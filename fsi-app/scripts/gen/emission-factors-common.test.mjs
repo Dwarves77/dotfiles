@@ -28,7 +28,7 @@ import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { validateFactor } from "../../src/lib/contracts/factor-tier.mjs";
-import { naturalKey, buildRow, loadFixtureRows, validateAll, seedFactors } from "./emission-factors-common.mjs";
+import { naturalKey, buildRow, loadFixtureRows, validateAll, seedFactors, authorCarbonIntensityEdges } from "./emission-factors-common.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DESNZ_FIXTURE = resolve(HERE, "fixtures/emission-factors/desnz-modal-defaults-2025.json");
@@ -184,6 +184,64 @@ test("seedFactors --apply with everything already live is a true no-op (insertFn
   assert.equal(insertCalled, false);
   assert.equal(summary.written, 0);
   assert.equal(summary.toWrite, 0);
+});
+
+// ── DAG authorship at write time (lane DAG-AUTHOR, 2026-09-04) ─────────────────────────────────────
+test("authorCarbonIntensityEdges: no insertRes.rows (a test double or a caller with no select) -> silent no-op, all zero", async () => {
+  const counts = await authorCarbonIntensityEdges([{ source_key: "desnz_ghg_factors" }], { inserted: 1, snapshot: null });
+  assert.deepEqual(counts, { authored: 0, skippedAlready: 0, licenceBlocked: 0, refused: 0, unknownMethod: 0, errored: 0 });
+});
+
+test("authorCarbonIntensityEdges: a non-embeddable source_key is licence-blocked, never authored", async () => {
+  let called = false;
+  const counts = await authorCarbonIntensityEdges(
+    [{ source_key: "not_a_registered_source" }],
+    { rows: [{ factor_id: "f1" }] },
+    { authorEdgesFn: async () => { called = true; return { ok: true, action: "authored", valueId: "v1" }; } }
+  );
+  assert.equal(called, false);
+  assert.equal(counts.licenceBlocked, 1);
+  assert.equal(counts.authored, 0);
+});
+
+test("authorCarbonIntensityEdges: an embeddable source calls authorEdges with the right shape and counts 'authored'", async () => {
+  let seenFigure = null;
+  const counts = await authorCarbonIntensityEdges(
+    [{ source_key: "desnz_ghg_factors" }],
+    { rows: [{ factor_id: "f1" }] },
+    {
+      sb: { marker: "fake-sb" },
+      authorEdgesFn: async (sb, figure) => { seenFigure = { sb, figure }; return { ok: true, action: "authored", valueId: "v1" }; },
+    }
+  );
+  assert.equal(counts.authored, 1);
+  assert.equal(seenFigure.sb.marker, "fake-sb");
+  assert.deepEqual(seenFigure.figure, {
+    table: "emission_factors",
+    id: "f1",
+    entity: null,
+    method: { id: "carbon_intensity_tkm", version: "1.0.0" },
+    inputs: [{ table: "emission_factors", pk: "f1" }],
+  });
+});
+
+test("authorCarbonIntensityEdges: 'skipped-already-authored' counts as skippedAlready, not authored", async () => {
+  const counts = await authorCarbonIntensityEdges(
+    [{ source_key: "desnz_ghg_factors" }],
+    { rows: [{ factor_id: "f1" }] },
+    { sb: {}, authorEdgesFn: async () => ({ ok: true, action: "skipped-already-authored" }) }
+  );
+  assert.equal(counts.skippedAlready, 1);
+  assert.equal(counts.authored, 0);
+});
+
+test("authorCarbonIntensityEdges: a thrown authorEdges call is caught, counted, and never propagates (the seeder's own write must not fail on this)", async () => {
+  const counts = await authorCarbonIntensityEdges(
+    [{ source_key: "desnz_ghg_factors" }],
+    { rows: [{ factor_id: "f1" }] },
+    { sb: {}, authorEdgesFn: async () => { throw new Error("network blip"); } }
+  );
+  assert.equal(counts.errored, 1);
 });
 
 // ── validateAll aborts loudly on any invalid row, naming every offender ────────────────────────────

@@ -92,7 +92,10 @@ export const DEFAULT_TIME_BUDGET_MIN = 20;
 export const DEFAULT_CONCURRENCY = 4;
 export const MAX_CONCURRENCY = 4; // "concurrency-bounded (<=4)" — a CLI value above this is clamped, never honored
 export const DEFAULT_HOST_INTERVAL_MS = 1000; // "per-host politeness (>=1s)" — a CLI value below this is clamped up
-export const DEFAULT_PER_FETCH_MS = 20000;
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file, per the wiring audit's
+// Appendix B (dead exports, 2026-09-04) — the sibling DEFAULT_* constants above remain exported since
+// other callers import them individually.
+const DEFAULT_PER_FETCH_MS = 20000;
 
 // v1.5/v1.6 realistic browser fingerprints, verbatim from capture-worker/index.ts (see header note).
 const PRIMARY_HEADERS = Object.freeze({

@@ -324,9 +324,11 @@ function matchProductSlug(headerText) {
  * sharedStrings, not the text itself — every caller that reads a cell's value (header text, a date, a
  * price) must go through this, never read `cell.value` directly, or a shared-string cell silently reads
  * back its own index as if it were the content.
+ * NOT exported (lane DEAD-EXEC, 2026-09-04): every current caller is within this file (cellText and the
+ * other in-module readers below), per the wiring audit's Appendix B (dead exports, 2026-09-04).
  * @param {WorkbookCell} cell @param {string[]} sharedStrings @returns {string|null}
  */
-export function resolveCellValue(cell, sharedStrings) {
+function resolveCellValue(cell, sharedStrings) {
   if (!cell || cell.value == null) return null;
   if (cell.type === "s") {
     const idx = Number(cell.value);

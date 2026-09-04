@@ -91,9 +91,13 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/mint/validate-mint-payload.mjs',
     'scripts/mint/payload-schema.json',
     'scripts/mint/item-type-required-slots.json',
-    'scripts/mint/lib/gate-a-scan.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-scan.mjs (below)
-    'scripts/mint/lib/gate-a-match.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-match.mjs (below)
-    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source since 2026-09-04; the kit copy was drift)
+    // 'scripts/mint/lib/gate-a-scan.mjs' / 'gate-a-match.mjs' REMOVED (lane DEAD-EXEC, 2026-09-04): the
+    // two re-export shims (added Wave GOV-SINGLE) were pure `export * from "../../../src/lib/agent/..."`
+    // pass-throughs with no logic of their own; their only real importer, validate-mint-payload.mjs, and
+    // their one test importer, src/lib/intake/record-facts.npmtest.mjs, now both import the src/lib/agent/
+    // files directly (below) — deleting the shims changes NOTHING about what content this family hashes,
+    // only removes two indirection files from the list.
+    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source, imported directly since 2026-09-04)
     'src/lib/agent/gate-a-match.mjs', // THE Gate-A matcher (same)
     'scripts/mint/lib/canonicalize-citation-url.mjs',
     'src/lib/intake/record-facts.mjs', // record-grade payload builder (lane POP, 2026-09-01)
@@ -152,5 +156,24 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/turns/run-propagation-drain.mjs',
     'src/lib/propagation/drain.ts',
     'src/lib/propagation/admissible-for.ts',
+  ]),
+  // corpus-turn (registered by lane TURNREQ, 2026-09-04 — closing the audit's B1 Gap #2 / B2 §1 finding:
+  // "the corpus-turn harness family has zero run artifacts... not registered in governing-files.mjs
+  // either"). Unlike every family above, corpus-turn has no single canonical `run-*.mjs` entry point —
+  // .github/workflows/corpus-turn.yml itself is the orchestrator, chaining scripts that already belong to
+  // OTHER families (discover-for-items.mjs, forward-events's own run-extraction.mjs) with the two scripts
+  // this family actually owns and that this same lane gave their first real corpus-turn wiring:
+  // consume-turn-requests.mjs (the ticket-queue selection this family's own turns now run over — see that
+  // file's header) and export-corpus-for-extraction.mjs (the corpus-file builder those selected ids feed
+  // into run-extraction.mjs through, extended this lane with --ids to accept exactly that selection). A
+  // change to either is a change to what a "corpus turn" actually selects and exports — the governing
+  // files a corpus-turn harness_version should move on, same as any other family's own scoring/export
+  // logic. discover-for-items.mjs and run-extraction.mjs stay OUT of this list deliberately: they are
+  // already governed as part of item_cross_references' plain writer set and the forward-events family
+  // respectively, and CONVENTION.md's own convention is one governing-file set per family, not a file
+  // double-counted into two families' hashes.
+  'corpus-turn': Object.freeze([
+    'scripts/turns/consume-turn-requests.mjs',
+    'scripts/turns/export-corpus-for-extraction.mjs',
   ]),
 });

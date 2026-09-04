@@ -27,7 +27,9 @@
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 
-export const FS_CALLS = [
+// not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (line ~110's callRe), per the
+// wiring audit's Appendix B (dead exports, 2026-09-04) — no external importer anywhere in the repo.
+const FS_CALLS = [
   'readFileSync', 'readdirSync', 'existsSync', 'statSync', 'lstatSync', 'accessSync', 'openSync',
   'readFile', 'readdir', 'stat', 'access', 'open',
 ];

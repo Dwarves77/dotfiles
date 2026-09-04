@@ -24,9 +24,16 @@
 // run-source-sweep.mjs and run-extraction.mjs already apply to their own families.
 //
 // Usage:
-//   node scripts/turns/run-propagation-drain.mjs --mode dry [--batch 500]
-//   node scripts/turns/run-propagation-drain.mjs --mode apply [--batch 500] [--out-dir dir] [--harness-runs-dir dir]
+//   node scripts/turns/run-propagation-drain.mjs --mode dry [--batch 500] [--trigger-context '<json>']
+//   node scripts/turns/run-propagation-drain.mjs --mode apply [--batch 500] [--out-dir dir]
+//     [--harness-runs-dir dir] [--trigger-context '<json>']
 // Exit 0 done · 1 bad args · 2 no DB creds (cannot run here).
+//
+// --trigger-context (lane CHAIN, 2026-09-04): only meaningful when this run was fired by
+// propagation-drain.yml's own `workflow_run` chaining off "Data producers" completing — a JSON object
+// {name, run_id, conclusion} naming that upstream run, recorded verbatim as config.trigger_context on
+// this run's own harness-run artifact (null for a plain hand dispatch). See propagation-drain.yml's own
+// "Resolve run parameters and the chaining gate" step for how it is built.
 
 import { parseArgs as nodeParseArgs } from "node:util";
 import { writeFileSync, mkdirSync } from "node:fs";
@@ -49,7 +56,7 @@ export const PROPAGATION_GOVERNING_FILES = GOVERNING_FILES.propagation;
 function usage() {
   return (
     "Usage: node scripts/turns/run-propagation-drain.mjs --mode <dry|apply> [--batch N]\n" +
-    "         [--harness-runs-dir dir] [--out-dir dir]"
+    "         [--harness-runs-dir dir] [--out-dir dir] [--trigger-context '<json>']"
   );
 }
 
@@ -64,6 +71,7 @@ export function parseArgs(argv) {
         batch: { type: "string", default: "500" },
         "harness-runs-dir": { type: "string" },
         "out-dir": { type: "string" },
+        "trigger-context": { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -79,6 +87,18 @@ export function parseArgs(argv) {
   if (!Number.isFinite(batch) || batch <= 0) {
     return { ok: false, error: "--batch must be a positive number." };
   }
+  let triggerContext = null;
+  if (values["trigger-context"] !== undefined) {
+    try {
+      const parsed = JSON.parse(values["trigger-context"]);
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+        return { ok: false, error: `--trigger-context must be a JSON object (got ${JSON.stringify(parsed)}).` };
+      }
+      triggerContext = parsed;
+    } catch (err) {
+      return { ok: false, error: `--trigger-context must be valid JSON: ${err.message}` };
+    }
+  }
 
   return {
     ok: true,
@@ -86,6 +106,7 @@ export function parseArgs(argv) {
     batch,
     harnessRunsDir: values["harness-runs-dir"] || null,
     outDir: values["out-dir"] || null,
+    triggerContext,
   };
 }
 
@@ -146,7 +167,7 @@ async function main() {
   const { createClient } = await import("@supabase/supabase-js");
   const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
 
-  const { mode, batch } = parsed;
+  const { mode, batch, triggerContext } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   const outDir = resolve(parsed.outDir || join(harnessRunsDir, "traces"));
 
@@ -195,7 +216,11 @@ async function main() {
         run_id: runId,
         started_at: startedAt,
         finished_at: new Date().toISOString(),
-        config: { mode, batch },
+        // trigger_context (lane CHAIN, 2026-09-04): {name, run_id, conclusion} of the upstream "Data
+        // producers" run when this drain was fired by propagation-drain.yml's own workflow_run chaining,
+        // or null for a plain hand dispatch — recorded every run, even null (same "record it every batch"
+        // posture run-population-flywheel.mjs's own trigger_context field already applies).
+        config: { mode, batch, trigger_context: triggerContext ?? null },
         inputs_ref: [`mode=${mode}`, `batch=${batch}`],
         per_item: shaped?.perItem ?? [],
         metrics: shaped?.metrics ?? {},

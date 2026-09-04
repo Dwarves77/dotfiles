@@ -61,7 +61,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/provenance-heal.mjs",
       "scripts/maintenance/record-hollow-sweep.mjs",
       "scripts/maintenance/canonical-key-dedup.mjs",
-      "scripts/turns/run-population-flywheel.mjs"
+      "scripts/turns/run-population-flywheel.mjs",
+      "scripts/review/apply-canonical-candidates.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -236,6 +237,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/maintenance/record-hollow-sweep.mjs` (Lane HOLLOW-SWEEP, 2026-09-04) | UPDATE — archives a live verified `item_grade='record'` row whose FACT claims are title-only (`archive_reason='record_hollow'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived row stops matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` (both hold archived rows as blockers too — see the step's own header) and the census row can re-mint. `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches `section_claim_provenance`/`intelligence_item_sections`/`item_cross_references` — claims, sections, and edges are left exactly as they are. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
 | `scripts/maintenance/canonical-key-dedup.mjs` (Lane DEDUP, 2026-09-04) | UPDATE — keeps the single live verified row per `canonical_instrument_key`, archives the others (`archive_reason='duplicate_of_verified'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived duplicate rows stop matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` and the census row can re-mint. Enforces invariant EP-11 (ADR-021). `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches claims, sections, or edges. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateKeepers`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
 | `scripts/turns/run-population-flywheel.mjs` (Lane TANDEM, 2026-09-04) | UPDATE (`intelligence_items`, `integrity_flags`) — THE FLYWHEEL, MINT-RUNBOOK.md §8/§9: `.github/workflows/population-turn.yml`'s own post-apply step, run automatically after every batch apply, never a separate hand-run pass (THE DEFECT this lane closed: population runs #15-#20 minted ~650 items with zero downstream connection/tag/obligation writes because nothing triggered §8/§9 before this driver existed). Its `buildTagProposalsDeps`/`buildTagRatificationDeps` are third and fourth call sites of the SAME `tag-proposals.mjs`/`tag-ratification.mjs` merge-only tag write and flag-resolve/flag-insert paths the two rows above already register — this driver imports and calls those scripts' own exported `main(opts, deps)` unmodified (never re-implements their write logic), passing deps shaped identically to their own `IS_MAIN` blocks so the literal `guardedInsertMany`/`guardedUpdate`/`.from(...).update(...)` call sites live in THIS file (hence a new registry entry) while the decision logic they invoke stays in `tag-proposals.mjs`/`tag-ratification.mjs` unchanged. Scoped to exactly the batch's own minted item ids (`--arg ids:<...>` for tag-proposals; `tag-ratification.mjs --arg auto` runs its normal system-wide auto-adoption sweep, honestly noted in this driver's own comments as the one step not batch-scoped). | `db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" })` in the tag-proposals deps' `insertMany`; `db.guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: TAG_RATIFICATION_CITE })` and `sb.from("integrity_flags").update(...)` / `.select(...)` in the tag-ratification deps' `updateItem`/`resolveFlag`/`readFlag` |
+| `scripts/review/apply-canonical-candidates.mjs` (Lane REVIEW-WIRE, 2026-09-04) | UPDATE (`intelligence_items`, narrow) — the "accept" arm of the `canonical_source_candidates` ratification-digest apply (see that table's own section below, and `docs/runbooks/MAINTENANCE-RUNBOOK.md` §14). A ruled `decision:"accept"` group is a two-phase write: it first resolves whether the candidate's canonical URL is ALREADY a registered `sources` row; only when it is does it repoint the single citing `intelligence_items` row's `source_id`/`source_url` onto that existing source (never mints a new `sources` row itself — an unresolvable candidate is routed to `needs_individual_review` instead, a report-only outcome with no write). This is the table's ONLY writer that touches `source_id`/`source_url` outside the intake/mint chokepoints (`mint-item.ts`, `apply-staged-update.ts`) and outside `canonical-pipeline.ts`'s own re-grounding path — narrow by construction: at most one row per ruled-and-resolvable candidate, gated behind an operator-signed ruling file (`validateRuling` refuses any group with no `decision` set) and a staleness check (`isRulingStale` refuses a ruling whose `generated_at` predates the row's own `updated_at`). Dispatched via the new MAINT step `review-apply-canonical-candidates` (`fsi-app/scripts/maintenance/review-apply-canonical-candidates.mjs`), which imports this file's exported `main({rulingPath, apply}, deps)` unmodified and never re-implements the accept/resolve logic. | `guardedUpdateByIds("intelligence_items", [itemId], { source_id, source_url }, { cite: CITE, applyMatch, select })` in `apply-canonical-candidates.mjs`'s per-group accept branch |
 
 Replace policy: guarded per-row UPDATE/INSERT (never a bulk replace); DELETE is single-purpose and
 gated behind a tombstone write (see `tombstone-delete.mjs` above) — this is a **guarded delete**, not a
@@ -423,13 +425,15 @@ rule-16 chokepoints (`mint-item.ts`, `apply-staged-update.ts`) previously left n
 |---|---|---|
 | `supabase/migrations/277_corpus_turn_requests.sql` (`enqueue_corpus_turn_request()` trigger function) | **DB trigger — the primary/mechanical writer.** `AFTER INSERT OR UPDATE OF (provenance_status, is_archived, operational_scenario_tags, compliance_object_tags, topic_tags) ON intelligence_items`; INSERTs `reason ∈ {inserted, verified, unarchived, updated, tags_applied}`. NOT in the JSON allowlist block above — it is SQL, outside the scanner's `scripts/`/`src/` scan scope, same reason `set_provenance_status` (migration 115/209) is absent from every other table's entry in this document. | migration 277's own `CREATE TRIGGER enqueue_corpus_turn_request_trg` |
 | `src/app/api/admin/corpus-turn-requests/route.ts` | POST — operator-triggered `reason='manual'` INSERT, one item (`{itemId}`) or a live-corpus backfill (`{all:true}`, skipping items that already carry an open request) | `.from("corpus_turn_requests").insert(...)`, both the single-item and chunked-backfill call sites |
-| `scripts/turns/consume-turn-requests.mjs` | `--mark-consumed --by <label>` — `guardedUpdate` stamps `consumed_at`/`consumed_by` on exactly the open rows the same run read | `guardedUpdate("corpus_turn_requests", ...)` |
+| `scripts/turns/consume-turn-requests.mjs` | `--mark-consumed --by <label>` (MODE 1, same-process caller) or `--mark-file <path> --by <label>` (MODE 2, a prior `--out` snapshot) — either way `guardedUpdateByIds` stamps `consumed_at`/`consumed_by` on exactly the open rows a run already read, never a fresh re-read | `guardedUpdateByIds("corpus_turn_requests", ...)` |
 
 Readers: `src/app/api/admin/corpus-turn-requests/route.ts` (GET — open requests + last-consumed
 timestamp, for the admin `CorpusTurnPanel`), `scripts/turns/consume-turn-requests.mjs` (`readAll`, the
-producer side of the hand-off to `discover-for-items.mjs --ids`), and — going forward — the corpus-turn
-GitHub Actions workflow a sibling lane (RT) owns, which is expected to invoke
-`consume-turn-requests.mjs` itself rather than read the table directly.
+producer side of the hand-off to `discover-for-items.mjs --ids`), and (lane TURNREQ, 2026-09-04 — closing
+the "going forward" gap this paragraph used to name) `.github/workflows/corpus-turn.yml`, which now
+invokes `consume-turn-requests.mjs` itself as its own default item-selection step (MODE 1 to select the
+scope, MODE 2 to mark it consumed only after the turn's writes succeed) rather than reading the table
+directly — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Item selection" section.
 
 Replace policy: append-only from the trigger and the manual-request route (INSERT only, `manual` is the
 only reason value the trigger itself never writes); `consumed_at`/`consumed_by` is the only ever-mutated
@@ -625,6 +629,23 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   from. Both callers go through the SAME `registerDerivedValue()` → `register_derived_value(...)` RPC, so
   the atomicity/acyclic-by-construction guarantees migration 285's own header states are identical either
   way — this is a second caller of the one write path, not a second write path.
+  **THIRD UPDATE, Lane DAG-AUTHOR, 2026-09-04: DAG authorship moved from one-off scripts to write time.**
+  `fsi-app/src/lib/propagation/author-edges.mjs` (`authorEdges()`) is the ONE DAG-authoring module every
+  producer imports — it too goes through `registerDerivedValue()`/`register_derived_value(...)`, so it is a
+  THIRD caller of the same one write path, never a fourth. Wired at two producer chokepoints (each already
+  the single shared write path for the producers behind it, so hooking authorship there covers every
+  relevant producer with two call sites, not five): `fsi-app/scripts/gen/emission-factors-common.mjs`'s
+  `seedFactors()` calls `authorCarbonIntensityEdges()` after its own guarded insert (covers
+  `emission-factors-desnz.mjs`/`emission-factors-epa.mjs`, licence-gated via `mayEmbedAsSeed`);
+  `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` calls
+  `authorAutomateVsHireForRegions()` over the run's own touched regions (covers
+  `bls-oews-producer.mjs`/`eurostat-lc-lci-lev-producer.mjs`/`eurostat-nrg-pc-205-producer.mjs`).
+  `fsi-app/scripts/entities/backfill-derivation-edges.mjs` (new, this lane) is a ONE-TIME bridge that calls
+  the SAME two functions over historical rows written before this wiring existed — see that file's own
+  header for its retirement condition. `market_series` producers (`eia-v2-petroleum-spot-producer.mjs`,
+  `ecb-fx-producer.mjs`, `eu-weekly-oil-bulletin.mjs`) are deliberately NOT wired: neither registered
+  method (`carbon_intensity_tkm@1.0.0`, `automate_vs_hire@1.0.0`) consumes `market_series` — wiring them
+  would author edges nothing reads.
 - **`statutory_computations`** and **`estimated_values`** (migration 286) — **UPDATE, Lane DP-SURF,
   2026-09-02: `estimated_values` is no longer reserved/unpopulated.**
   `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is its first production writer — a
@@ -648,12 +669,25 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   scenario) upsert, never an insert-only append — a re-run of the seed for the SAME region/scenario
   replaces that one row, which is the correct semantics for "the current estimate," not a history log
   (unlike `derived_values`, which is append-only/versioned via `supersedes`).
-  `statutory_computations` remains genuinely reserved: no production writer lands in this lane (this
-  lane's write set built `fsi-app/src/lib/statutory/fueleu-annex-iv.mjs`'s formula and `types.ts`'s
-  Layer-2 type barrier, but no page/route that calls `computeStatutory()` against a real obligation and
-  persists the result — see this lane's final report for why, and
-  `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`'s `StatutoryFigure.tsx` allowlist entry
-  for the matching "published, no consumer yet" disposition on the render side).
+  **UPDATE, Lane DAG-AUTHOR, 2026-09-04: `statutory_computations` is no longer reserved.**
+  `fsi-app/scripts/propagation/write-statutory.mjs` (`--apply`) is its FIRST production writer — reuses
+  DP-SURF's `computeStatutory("fueleu_annex_iv_penalty", ...)` (Layer 2, `src/lib/statutory/types.ts`)
+  unmodified; this lane adds only entity resolution, `admissibleFor()` gating (use='filing') on every
+  caller-asserted input, and the write itself. UNLIKE `derived_values`, this table has no `register_*` RPC
+  (migration 286 gives it a real DB-level `UNIQUE(entity_id, formula_id, formula_version, scenario_key)`
+  and its own purity trigger to do the transactional work), so this writer uses `db.mjs`'s `guardedInsert`
+  (rule-015: cite + snapshot) directly — idempotent on that same natural key (an existing row for the
+  tuple is read and skipped before any insert is attempted, never re-inserted or updated). ROWS-FILE-
+  DRIVEN, NOT A LIVE TABLE READ: neither `market_series` nor `obligations` (migration 290, spec-01's
+  register) carries a ship-level GHG-intensity-actual or energy-used figure anywhere in this corpus
+  (confirmed live, read-only SELECT, 2026-09-04) — see that file's own header for the full finding,
+  including why the one live `obligations` row naming Regulation (EU) 2023/1805 (Commission Implementing
+  Regulation 2024/2027, a verification-activities duty) is NOT used as `obligation_id`'s source; the
+  script instead mints a dedicated `obligation`-kind entity for the penalty obligation itself. First-apply
+  row count against the live DB today is 0 (no rows-file has been prepared/reviewed) — see this lane's
+  final report for the honest count, not a fabricated one. `estimated_values`'s own writer
+  (`seed-derived-values.mjs`, documented above) is unchanged by this lane — its automate-vs-hire sibling
+  already exists and is not duplicated here.
 - **`regional_data_facts`** (migration 106) — **NEW entry, Lane DP-SURF, 2026-09-02, coordinator follow-up
   task 3.** Three writers, all through the same shared envelope orchestrator
   (`fsi-app/scripts/producers/regional/run-envelope-producer.mjs` — `toCandidateRows` /
@@ -815,3 +849,34 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
    of this registry's scope by design") — neither is a harness/flywheel shared-8 table. Recorded here,
    narratively, for the same first-writer-disclosure reason as item 7, not because the write needs
    allowlisting.
+
+10. **`sources` (`status`) / `portal_link_candidates` (`status`, `disposition_reason`) /
+    `canonical_source_candidates` (`decision`, `promoted_to_source_id`) / `coverage_gap_candidates`
+    (`disposition`)** — added by Lane REVIEW-WIRE (2026-09-04), wiring the four ratification-digest apply
+    scripts (`scripts/review/apply-provisional-sources.mjs`, `apply-portal-links.mjs`,
+    `apply-canonical-candidates.mjs`, `apply-coverage-gaps.mjs` — all pre-existing, tested, and already
+    writing through the guarded path before this lane; see `docs/audits/wiring-audit-2026-09-04/B1-modules.md`
+    gap #1) into `.github/workflows/maintenance.yml` for the first time, via four new thin MAINT wrappers
+    (`scripts/maintenance/review-apply-{provisional-sources,portal-links,canonical-candidates,coverage-gaps}.mjs`,
+    built in the exact `reopen-validation-holds.mjs` pattern: each imports the review script's own exported
+    `main({rulingPath, apply}, deps)` unmodified, never re-implementing the group→decision→patch logic that
+    lives in `scripts/review/lib/{provisional-sources,portal-links,canonical-candidates,coverage-gaps}.mjs`).
+    None of the four tables is added to the enforced JSON allowlist above — `sources` is explicitly named
+    out-of-scope by the shared-writer-registry test's own header (the same basis items 7 and 8 already
+    state), and `portal_link_candidates`/`canonical_source_candidates`/`coverage_gap_candidates` are review
+    queues, not harness/flywheel shared-8 tables, by the same "table more than one live path writes" /
+    shared-8 criterion this document applies everywhere else — none of these four has a second writer.
+    (`canonical_source_candidates`'s "accept" path additionally repoints one `intelligence_items` row per
+    resolvable candidate — that IS a shared-8 table, and `scripts/review/apply-canonical-candidates.mjs` is
+    now in its JSON array above, with its own detail-table row in that table's section.) Confirmed by
+    running `.discipline/shared-writer-registry.test.mjs` against this tree after adding the four wrappers
+    and their upstream `apply-*.mjs` writers: it still passes — every write from these five files goes
+    through `guardedUpdateByIds(m.TABLE, ...)` with `m.TABLE` a dynamic property read off an imported module
+    (`ProvisionalSources.TABLE`, `PortalLinks.TABLE`, `CoverageGaps.TABLE`), never a string literal first
+    argument, so the scanner's `GUARDED_RE` regex — which also does not match the `guardedUpdateByIds` name
+    at all, only `guardedInsertMany`/`guardedInsert`/`guardedUpdate`/`guardedDelete`/`archiveRows` — does not
+    and structurally cannot see these calls; this is the same gap the scanner already has for the
+    pre-existing `apply-canonical-candidates.mjs`→`intelligence_items` write (unaffected by this lane, not
+    introduced by it), noted here so the doc stays honest that "passes the scanner" is not the same claim as
+    "the scanner enforces this," for these five files specifically. Recorded here, narratively, on the same
+    first-writer-disclosure basis as items 7, 8, and 9.

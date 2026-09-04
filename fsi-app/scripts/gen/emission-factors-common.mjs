@@ -33,8 +33,73 @@
  * DRY-RUN by default; --apply required to write (WO-18 lane contract). This module never calls
  * `--apply` itself — only a human or the coordinator's own run decides that.
  */
-import { readAll, guardedInsertMany } from "../lib/db.mjs";
+import { readAll, guardedInsertMany, readClient } from "../lib/db.mjs";
 import { validateFactor } from "../../src/lib/contracts/factor-tier.mjs";
+import { authorEdges } from "../../src/lib/propagation/author-edges.mjs";
+import { mayEmbedAsSeed } from "../../src/lib/contracts/source-licence.mjs";
+
+const CARBON_METHOD_ID = "carbon_intensity_tkm";
+const CARBON_METHOD_VERSION = "1.0.0";
+
+/**
+ * DAG AUTHORSHIP AT WRITE TIME (docs/audits/wiring-audit-2026-09-04/C1-loop-map.md §3: "new producer/mint
+ * data -> derivation_edges | NOBODY does this today"). Runs ONLY after a real --apply insert, over the
+ * rows PostgREST actually reported back (never the pre-insert candidates — a row that failed to insert
+ * must never be authored). `insertRes.rows` may be absent (a test double, or a caller whose `select`
+ * omitted `factor_id`) — that is not an error, it just means nothing here can be correlated back to a
+ * live factor_id, so authorship is silently skipped for this call (the producer's OWN write already
+ * succeeded and is not affected either way). Licence-gated exactly like seed-derived-values.mjs's own
+ * carbon-intensity seed path (`mayEmbedAsSeed`) — a non-embeddable source's factor is never turned into a
+ * derived value. Never throws: a DAG-authoring failure must not fail the seeder's own primary write, which
+ * already committed by the time this runs — every outcome (authored/skipped/refused/unknown-method/
+ * licence-blocked/errored) is counted and returned/logged instead.
+ * @param {Array<object>} writtenRows the candidate rows (pre-insert shape, includes source_key) IN THE
+ *   SAME ORDER `insertRes.rows` reports them — true for a single INSERT...VALUES statement (guardedInsertMany
+ *   chunks at 500; this seeder's fixtures are always far smaller than one chunk).
+ * @param {{rows?: Array<{factor_id: string}>}} insertRes
+ * @param {{ sb?: object, authorEdgesFn?: typeof authorEdges }} [deps]
+ */
+export async function authorCarbonIntensityEdges(writtenRows, insertRes, deps = {}) {
+  const counts = { authored: 0, skippedAlready: 0, licenceBlocked: 0, refused: 0, unknownMethod: 0, errored: 0 };
+  const insertedRows = insertRes && Array.isArray(insertRes.rows) ? insertRes.rows : null;
+  if (!insertedRows || !insertedRows.length) return counts; // nothing to correlate factor_id back to
+
+  // Lazy + memoized: readClient() requires live DB env (NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY)
+  // and must not be constructed at all when every row this call sees is licence-blocked/unresolvable —
+  // exactly the shape a --dry seeder run (or a test with no DB creds) hits.
+  let _sb = deps.sb ?? null;
+  const getSb = () => (_sb ??= readClient());
+  const authorFn = deps.authorEdgesFn ?? authorEdges;
+
+  const n = Math.min(writtenRows.length, insertedRows.length);
+  for (let i = 0; i < n; i++) {
+    const candidate = writtenRows[i];
+    const factorId = insertedRows[i]?.factor_id;
+    if (!factorId) continue;
+    if (!mayEmbedAsSeed(candidate.source_key)) { counts.licenceBlocked += 1; continue; }
+    try {
+      const result = await authorFn(getSb(), {
+        table: "emission_factors",
+        id: factorId,
+        entity: null,
+        method: { id: CARBON_METHOD_ID, version: CARBON_METHOD_VERSION },
+        inputs: [{ table: "emission_factors", pk: factorId }],
+      });
+      if (!result.ok) {
+        if (result.action === "unknown-method") counts.unknownMethod += 1;
+        else counts.refused += 1;
+      } else if (result.action === "skipped-already-authored") {
+        counts.skippedAlready += 1;
+      } else {
+        counts.authored += 1;
+      }
+    } catch (err) {
+      counts.errored += 1;
+      console.warn(`[author-edges] carbon_intensity_tkm authorship failed for emission_factors/${factorId}: ${err.message}`);
+    }
+  }
+  return counts;
+}
 
 /** The natural key for a modal-scope emission_factors row (see module header). */
 export function naturalKey(row) {
@@ -154,5 +219,13 @@ export async function seedFactors({ label, rows, cite, apply, readAllFn = readAl
   }
   const res = await insertFn("emission_factors", toWrite, { cite, select: "factor_id" });
   console.log(`[${label}] written=${res.inserted}  snapshot=${res.snapshot}`);
-  return { mode: "apply", fixtureRows: valid.length, skipped, toWrite: toWrite.length, written: res.inserted, snapshot: res.snapshot };
+
+  const authorCounts = await authorCarbonIntensityEdges(toWrite, res);
+  console.log(
+    `[${label}] DAG authorship (carbon_intensity_tkm): authored=${authorCounts.authored} ` +
+    `already=${authorCounts.skippedAlready} licence-blocked=${authorCounts.licenceBlocked} ` +
+    `refused=${authorCounts.refused} unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
+  );
+
+  return { mode: "apply", fixtureRows: valid.length, skipped, toWrite: toWrite.length, written: res.inserted, snapshot: res.snapshot, authorCounts };
 }

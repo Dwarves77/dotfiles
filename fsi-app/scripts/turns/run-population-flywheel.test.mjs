@@ -69,12 +69,64 @@ test("parseArgs: full apply invocation round-trips", () => {
     mintRun: "scripts/harness-runs/mint/mint-run-022.json",
     mode: "apply",
     harnessRunsDir: "custom/dir",
+    triggerContext: null,
   });
 });
 
 test("parseArgs: unknown flag is rejected (strict parsing)", () => {
   const r = parseArgs(["--mint-run", "x.json", "--bogus"]);
   assert.equal(r.ok, false);
+});
+
+// ── parseArgs: --trigger-context (lane CHAIN, 2026-09-04) ───────────────────────────────────────────────
+
+test("parseArgs: --trigger-context is null by default", () => {
+  const r = parseArgs(["--mint-run", "x.json"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.triggerContext, null);
+});
+
+test("parseArgs: --trigger-context parses a valid JSON object", () => {
+  const r = parseArgs([
+    "--mint-run",
+    "x.json",
+    "--mode",
+    "apply",
+    "--trigger-context",
+    JSON.stringify({ name: "Ledger consume", run_id: 12345, conclusion: "success" }),
+  ]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.triggerContext, { name: "Ledger consume", run_id: 12345, conclusion: "success" });
+});
+
+test("parseArgs: --trigger-context rejects malformed JSON", () => {
+  const r = parseArgs(["--mint-run", "x.json", "--trigger-context", "{not json"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger-context must be valid JSON/);
+});
+
+test("parseArgs: --trigger-context rejects a non-object JSON value", () => {
+  const r = parseArgs(["--mint-run", "x.json", "--trigger-context", '"just a string"']);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger-context must be a JSON object/);
+});
+
+test("parseArgs: --trigger-context rejects a JSON array", () => {
+  const r = parseArgs(["--mint-run", "x.json", "--trigger-context", "[1,2,3]"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--trigger-context must be a JSON object/);
+});
+
+test("parseArgs: --trigger-context is rejected alongside --check-gate", () => {
+  const r = parseArgs(["--check-gate", "--trigger-context", "{}"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /only meaningful with --mint-run/);
+});
+
+test("parseArgs: --trigger-context is rejected alongside --backlog", () => {
+  const r = parseArgs(["--backlog", "--trigger-context", "{}"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /only meaningful with --mint-run/);
 });
 
 // ── parseArgs: --backlog ─────────────────────────────────────────────────────────────────────────────

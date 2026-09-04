@@ -23,10 +23,66 @@ name: Propagation drain
 #   schedule:
 #     - cron: '*/30 * * * *'   # placeholder cadence only — the operator picks the real one at re-arm time
 #
+# EVENT-DRIVEN CHAINING (lane CHAIN, 2026-09-04, build plan W1.4 / audit wiring-audit-2026-09-04 §5 reading
+# (a)/§3 "B4 (already automatic) → B5 (drain)") — a `workflow_run` trigger on "Data producers" completed,
+# NOT a schedule. `emit_propagation_event()` (B4) already fires automatically, in the same transaction, on
+# every producer write (`market_series`/`emission_factors`/`regional_data_facts` inserts) — the ONLY thing
+# missing was a runtime that drains what that trigger queued, and dispatching one is exactly what firing
+# off "Data producers" completing gives it, without arming a cron (rule 16 forbids `schedule:`/cron, not
+# firing off another workflow's completion — see this file's own "CHAINING" section below and
+# population-turn.yml's identical header note for the same reading of rule 16). `producers.yml` writes
+# straight through the guarded Supabase path with no branch/PR step of its own (A1 §6 of the wiring audit:
+# "maintenance.yml and producers.yml do NOT use [deliver-artifact-branch.sh] — their writes go straight
+# through the guarded Supabase path... so they have no landing backlog by construction") — there is no
+# per-run artifact to read back here the way population-turn.yml reads ledger-consume's, so this chain
+# drains unconditionally on a successful producers run, never gated on a promoted-style count. See
+# "CHAINING" below for the full contract and docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md's chaining section
+# for the coordinator-facing summary.
+#
 # SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
 # same pair every guarded script in fsi-app/scripts/lib/db.mjs already requires; both already registered
 # in .discipline/governance/secrets-registry.mjs (no edit needed there — source-sweep.yml already added
 # this exact pair for its own workflow).
+#
+# ── CHAINING — HOW THIS RUN DECIDES WHAT TO DO (lane CHAIN, 2026-09-04) ─────────────────────────────────
+#
+# `on.workflow_run: workflows: ["Data producers"], types: [completed]` fires this workflow every time
+# `producers.yml` finishes, in ADDITION to `workflow_dispatch`. The first job step below ("Resolve run
+# parameters and the chaining gate") decides, for BOTH trigger shapes, what this run does — every later
+# step reads its RUN_* outputs (RUN_MODE/RUN_BATCH/RUN_BACKFILL_ENTITIES/RUN_SEED_DERIVED_VALUES/RUN_SKIP/
+# RUN_SKIP_REASON/RUN_TRIGGER_CONTEXT) instead of `inputs.*` directly — `inputs` is always empty on a
+# `workflow_run` dispatch, the exact class of silent-wrong-default population-turn.yml's own "Gate: refuse
+# a new slice" comment already scarred on once (a `type: boolean` input compared to a bare string).
+#
+# ON A workflow_dispatch: RUN_* mirrors `inputs.*` exactly — unchanged behavior from before this lane.
+#
+# ON A workflow_run (fired by "Data producers" completing): RUN_MODE=apply, RUN_BATCH=500 (the SAME
+# default `batch` already uses), RUN_BACKFILL_ENTITIES=false, RUN_SEED_DERIVED_VALUES=false — THE TWO
+# OPT-IN CHECKBOXES STAY HAND-ONLY (per the build plan's own W4.3 line: "the backfill_entities/
+# seed_derived_values checkboxes stay hand-only") — a chained dispatch never ticks either, regardless of
+# what a PRIOR hand dispatch chose; a coordinator who wants a backfill/seed pass still dispatches this
+# workflow by hand for it — ONLY IF the upstream run's own `conclusion`
+# (`github.event.workflow_run.conclusion`) is `"success"`; any other conclusion sets RUN_SKIP=true with a
+# named reason (`::notice::`), every real step below skips, and the JOB STILL EXITS 0 GREEN — a refused
+# chain is never a red run, matching population-turn.yml's identical posture. Unlike population-turn.yml's
+# chain off "Ledger consume," there is no per-run artifact to read a promoted-style count from here (see
+# the header paragraph above) — `producers.yml` writes straight to the DB with no branch of its own, and
+# B4's outbox trigger already fires unconditionally on every producer write regardless of how many rows
+# landed, so "conclusion == success" is the complete, correct gate for this family: a producer run that
+# succeeded may have written zero new rows (an idempotent no-op upsert, per producers.yml's own header —
+# "the run is almost always a no-op upsert" for the low-cadence sources), in which case
+# `invalidate_dependents` simply finds nothing new to invalidate and the drain still finishes honestly at
+# zero, which is the correct, informative outcome for THIS family (unlike ledger-consume's `promoted`
+# count, a zero-row propagation drain is not evidence of a disarmed/no-write upstream — see
+# run-propagation-drain.mjs's own artifact for the per-run counts).
+#
+# THIS CHAIN DOES NOT HONOUR `POPULATION_PAUSED` (lane CHAIN, 2026-09-04; see population-turn.yml's own
+# header for that variable's full contract). `POPULATION_PAUSED` stops NEW record-grade minting
+# (population-turn.yml) during the T46 validation window — it says nothing about decision propagation,
+# which is a DIFFERENT loop (spec 08, Loop B) draining events that are ALREADY queued from producer writes
+# that already happened. Pausing the drain during the population pause would let `propagation_events` grow
+# unboundedly for no reason tied to why population itself is paused; the two stops are independent by
+# design and this workflow introduces no new variable to conflate them.
 
 on:
   workflow_dispatch:
@@ -52,6 +108,17 @@ on:
         required: false
         default: false
         type: boolean
+      backfill_and_statutory:
+        description: 'Lane DAG-AUTHOR (2026-09-04): run scripts/entities/backfill-derivation-edges.mjs (one-time historical DAG-authorship bridge — see that file header for its retirement condition) THEN scripts/propagation/write-statutory.mjs (FuelEU Annex IV statutory_computations writer) before the drain. Honours mode. The statutory writer needs a reviewed --rows-file (no live ship-GHG source exists yet — see that file header); its step is a no-op, not a failure, when scripts/propagation/fixtures/fueleu-annex-iv-rows.json is absent.'
+        required: false
+        default: false
+        type: boolean
+  # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule — see this
+  # file's own header "CHAINING" section and population-turn.yml's identical rule-16 reading. Fires once
+  # per "Data producers" run, any conclusion; the first job step decides whether it earns a drain.
+  workflow_run:
+    workflows: ["Data producers"]
+    types: [completed]
   # schedule:
   #   - cron: '*/30 * * * *'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
   #                              # operator explicitly re-arms it.
@@ -78,34 +145,107 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained defaults (workflow_run)
+      # into a single RUN_* vocabulary every step below reads — see this file's own header "CHAINING"
+      # section. ALWAYS runs and ALWAYS logs its decision (trigger, gate reading, RUN_SKIP + reason).
+      - name: Resolve run parameters and the chaining gate
+        run: |
+          set -u
+          EVENT="${{ github.event_name }}"
+          echo "event = $EVENT"
+
+          RUN_SKIP=false
+          RUN_SKIP_REASON=""
+          RUN_TRIGGER_CONTEXT=""
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            RUN_MODE="${{ inputs.mode }}"
+            RUN_BATCH="${{ inputs.batch }}"
+            RUN_BACKFILL_ENTITIES="${{ inputs.backfill_entities }}"
+            RUN_SEED_DERIVED_VALUES="${{ inputs.seed_derived_values }}"
+            RUN_BACKFILL_AND_STATUTORY="${{ inputs.backfill_and_statutory }}"
+
+          elif [ "$EVENT" = "workflow_run" ]; then
+            UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
+            UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
+            UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION"
+
+            # Chained defaults: mode=apply, batch at the SAME default a hand dispatch already uses; the
+            # two opt-in checkboxes stay hand-only (build plan W4.3) — a chained dispatch never ticks
+            # either, regardless of what a prior hand dispatch chose.
+            RUN_MODE="apply"
+            RUN_BATCH="500"
+            RUN_BACKFILL_ENTITIES="false"
+            RUN_SEED_DERIVED_VALUES="false"
+            RUN_BACKFILL_AND_STATUTORY="false"
+            RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
+            echo "trigger_context = $RUN_TRIGGER_CONTEXT"
+
+            if [ "$UPSTREAM_CONCLUSION" != "success" ]; then
+              RUN_SKIP=true
+              RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to drain for."
+            fi
+            # No promoted-style artifact check here (unlike population-turn.yml's ledger-consume chain) —
+            # producers.yml writes straight to the DB with no branch of its own, and the propagation
+            # outbox trigger (B4) already fires unconditionally on every producer write; "conclusion ==
+            # success" is the complete, correct gate for this family — see this file's own header.
+
+          else
+            RUN_SKIP=true
+            RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
+            RUN_MODE="dry"; RUN_BATCH="500"; RUN_BACKFILL_ENTITIES="false"; RUN_SEED_DERIVED_VALUES="false"; RUN_BACKFILL_AND_STATUTORY="false"
+          fi
+
+          {
+            echo "RUN_MODE=$RUN_MODE"
+            echo "RUN_BATCH=$RUN_BATCH"
+            echo "RUN_BACKFILL_ENTITIES=$RUN_BACKFILL_ENTITIES"
+            echo "RUN_SEED_DERIVED_VALUES=$RUN_SEED_DERIVED_VALUES"
+            echo "RUN_BACKFILL_AND_STATUTORY=$RUN_BACKFILL_AND_STATUTORY"
+            echo "RUN_SKIP=$RUN_SKIP"
+          } >> "$GITHUB_ENV"
+          {
+            echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "$RUN_TRIGGER_CONTEXT"
+            echo "__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "RUN_SKIP_REASON<<__RUN_SKIP_REASON_EOF__"
+            echo "$RUN_SKIP_REASON"
+            echo "__RUN_SKIP_REASON_EOF__"
+          } >> "$GITHUB_ENV"
+
+          if [ "$RUN_SKIP" = "true" ]; then
+            echo "::notice::propagation-drain NO-OP — $RUN_SKIP_REASON"
+          else
+            echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES backfill_and_statutory=$RUN_BACKFILL_AND_STATUTORY trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
+          fi
+
       - uses: actions/setup-node@v4
+        if: ${{ env.RUN_SKIP != 'true' }}
         with:
           node-version: '24'
           cache: npm
           cache-dependency-path: fsi-app/package-lock.json
 
       - name: Install
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: npm ci
 
       - name: Verify required secrets
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: |
           missing=0
           if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
-      - name: This run's gates
-        run: |
-          echo "trigger = ${{ github.event_name }}"
-          echo "mode    = ${{ inputs.mode }}"
-          echo "batch   = ${{ inputs.batch }}"
-
       # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
       # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
-      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
-      # previous run's PR merged would see a stale count and claim the SAME run_id — the exact collision
-      # source-sweep.yml documents finding for its own family (source-sweep run #3, 2026-09-01). Same fix.
+      # the checked-out tree, i.e. master, but artifacts land through a PR — a run dispatched before the
+      # previous run's PR merged would otherwise claim the same run_id as that unmerged sibling — the exact
+      # collision source-sweep.yml documents finding for its own family (source-sweep run #3, 2026-09-01).
       - name: Hydrate unmerged propagation artifacts from sibling branches (run_id collision guard)
+        if: ${{ env.RUN_SKIP != 'true' }}
         run: |
           git fetch --no-tags origin '+refs/heads/propagation/*:refs/remotes/origin/propagation/*' || true
           : > /tmp/hydrated-artifacts.txt
@@ -126,33 +266,71 @@ jobs:
       # closure. Both are their own scripts with their own --dry/--apply gates; this workflow only gives them
       # a runtime with the service-role credentials the sandbox never has. Opt-in per dispatch, never on by
       # default, and they follow the SAME mode input as the drain so a dry dispatch is dry end to end.
+      # STAY HAND-ONLY (lane CHAIN, 2026-09-04, build plan W4.3): RUN_BACKFILL_ENTITIES/
+      # RUN_SEED_DERIVED_VALUES are always "false" on a workflow_run (chained) dispatch — see the resolve
+      # step above — so neither of these ever fires automatically, only on an explicit hand dispatch.
       - name: backfill-entities.mjs (opt-in)
-        if: inputs.backfill_entities
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_ENTITIES == 'true' }}
         run: |
-          if [ "${{ inputs.mode }}" = "apply" ]; then
+          if [ "$RUN_MODE" = "apply" ]; then
             node scripts/entities/backfill-entities.mjs --apply
           else
             node scripts/entities/backfill-entities.mjs --dry
           fi
 
       - name: seed-derived-values.mjs (opt-in)
-        if: inputs.seed_derived_values
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_SEED_DERIVED_VALUES == 'true' }}
         run: |
-          if [ "${{ inputs.mode }}" = "apply" ]; then
+          if [ "$RUN_MODE" = "apply" ]; then
             node scripts/propagation/seed-derived-values.mjs --apply
           else
             node scripts/propagation/seed-derived-values.mjs --dry
           fi
 
-      - name: run-propagation-drain.mjs
+      # Lane DAG-AUTHOR (2026-09-04), resolved through the same RUN_* env as the two opt-ins above (train 38
+      # assembly: always "false" on a chained workflow_run dispatch, hand-dispatch only): closes the historical DAG-authorship gap once, then attempts the
+      # first statutory writer run — see each script's own header for the full reasoning (backfill-
+      # derivation-edges.mjs's retirement condition; write-statutory.mjs's rows-file requirement).
+      - name: backfill-derivation-edges.mjs (opt-in)
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
         run: |
-          node scripts/turns/run-propagation-drain.mjs --mode "${{ inputs.mode }}" --batch "${{ inputs.batch }}"
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/entities/backfill-derivation-edges.mjs --apply
+          else
+            node scripts/entities/backfill-derivation-edges.mjs --dry
+          fi
+
+      - name: write-statutory.mjs (opt-in, no-op without a reviewed rows-file)
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
+        run: |
+          ROWS_FILE=scripts/propagation/fixtures/fueleu-annex-iv-rows.json
+          if [ ! -f "$ROWS_FILE" ]; then
+            echo "write-statutory: $ROWS_FILE not present — no reviewed ship-year rows to compute from yet (see write-statutory.mjs header). Skipping, not failing."
+            exit 0
+          fi
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/propagation/write-statutory.mjs --apply --rows-file "$ROWS_FILE"
+          else
+            node scripts/propagation/write-statutory.mjs --rows-file "$ROWS_FILE"
+          fi
+
+      # --trigger-context (lane CHAIN, 2026-09-04) passes this dispatch's own RUN_TRIGGER_CONTEXT through
+      # unchanged — {name, run_id, conclusion} of the upstream "Data producers" run for a chained dispatch,
+      # or nothing (null) for a hand dispatch — so it lands in config.trigger_context on this run's own
+      # scripts/harness-runs/propagation/propagation-run-NNN.json artifact.
+      - name: run-propagation-drain.mjs
+        if: ${{ env.RUN_SKIP != 'true' }}
+        run: |
+          args=(--mode "$RUN_MODE" --batch "$RUN_BATCH")
+          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then args+=(--trigger-context "$RUN_TRIGGER_CONTEXT"); fi
+          node scripts/turns/run-propagation-drain.mjs "${args[@]}"
 
       # Commit the family's own harness-run artifact (scripts/harness-runs/propagation/**) so the run this
       # dispatch produced survives past the Actions log — same posture source-sweep.yml applies to its own
       # family. A dispatch normally runs against master, which is typically branch-protected, so this
       # lands on its own branch and opens a PR (source-sweep.yml's own pattern) rather than pushing
-      # straight to whatever ref triggered the run.
+      # straight to whatever ref triggered the run. On a RUN_SKIP=true (no-op) dispatch nothing was ever
+      # written, so `git diff --cached --quiet` is true below and this step is a harmless no-op too.
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
         run: |
@@ -173,13 +351,17 @@ jobs:
           fi
           branch="propagation/${{ github.run_id }}"
           git checkout -b "$branch"
-          git commit -m "propagation drain ${{ inputs.mode }}: run ${{ github.run_id }}"
+          git commit -m "propagation drain $RUN_MODE: run ${{ github.run_id }}"
           # BRANCH-BASE (2026-09-04): re-base the artifact commit onto the current master tip before the push, so a
           # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
           # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
           git fetch --no-tags --depth=50 origin master
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
-          printf 'Automated propagation drain (run %s).\n\nMode: %s\nBatch: %s\n\nLands the harness-run artifact for this drain under scripts/harness-runs/propagation/.\n' \
-            "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.batch }}" > /tmp/pr-body.md
-          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Propagation drain (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
+          trigger_line="Trigger: workflow_dispatch (hand)"
+          if [ -n "$RUN_TRIGGER_CONTEXT" ]; then
+            trigger_line="Trigger: workflow_run — $(printf '%s' "$RUN_TRIGGER_CONTEXT" | jq -r '"\(.name) run \(.run_id), conclusion=\(.conclusion)"')"
+          fi
+          printf 'Automated propagation drain (run %s).\n\n%s\nMode: %s\nBatch: %s\n\nLands the harness-run artifact for this drain under scripts/harness-runs/propagation/.\n' \
+            "${{ github.run_id }}" "$trigger_line" "$RUN_MODE" "$RUN_BATCH" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Propagation drain (mode=${RUN_MODE}, run ${{ github.run_id }})" /tmp/pr-body.md

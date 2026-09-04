@@ -59,12 +59,22 @@ test("every family's governing-file list is non-empty", () => {
   }
 });
 
-// ── the CONFIRMED bug this module fixes: mint now carries all 10 entries, not the pre-fix 8 ────────
+// ── the CONFIRMED bug this module fixes: mint carries the two Gate-A src/ files, not a pre-fix drift ──
+//
+// Count history: 8 (pre-GOV-SINGLE, the runner's own drifted copy) → 10 (GOV-SINGLE fix, adding the two
+// src/lib/agent/ Gate-A files that F28's copy already had) → 8 again (lane DEAD-EXEC, 2026-09-04, which
+// deleted the two scripts/mint/lib/ Gate-A re-export shims themselves — their only real importer,
+// validate-mint-payload.mjs, and their one test importer, record-facts.npmtest.mjs, now both import the
+// two src/lib/agent/ files directly, so this list's CONTENT set is unchanged; only the two now-redundant
+// shim paths dropped out of it). The two src/lib/agent/ files staying present is what this test still
+// protects — the count number is incidental to that, not the invariant.
 
-test("REGRESSION PROOF: GOVERNING_FILES.mint includes the two Gate-A src/ files (the exact pair the pre-fix runner copy was missing) — measured 10 entries on the live tree, not the 12 an earlier estimate cited; the two-file GAP is the confirmed defect, not the absolute count", () => {
+test("REGRESSION PROOF: GOVERNING_FILES.mint includes the two Gate-A src/ files (the exact pair the pre-GOV-SINGLE runner copy was missing) — measured 8 entries on the live tree post-DEAD-EXEC (the two scripts/mint/lib/ re-export shims removed, 2026-09-04), not the pre-DEAD-EXEC 10 or the 12 an earlier estimate cited; the two-file PRESENCE is the confirmed invariant, not the absolute count", () => {
   assert.ok(GOVERNING_FILES.mint.includes("src/lib/agent/gate-a-scan.mjs"));
   assert.ok(GOVERNING_FILES.mint.includes("src/lib/agent/gate-a-match.mjs"));
-  assert.equal(GOVERNING_FILES.mint.length, 10, `expected mint's 10-file list, got ${GOVERNING_FILES.mint.length}: ${JSON.stringify(GOVERNING_FILES.mint)}`);
+  assert.ok(!GOVERNING_FILES.mint.includes("scripts/mint/lib/gate-a-scan.mjs"), "the re-export shim was deleted lane DEAD-EXEC (2026-09-04) — its path must not remain in the list");
+  assert.ok(!GOVERNING_FILES.mint.includes("scripts/mint/lib/gate-a-match.mjs"), "the re-export shim was deleted lane DEAD-EXEC (2026-09-04) — its path must not remain in the list");
+  assert.equal(GOVERNING_FILES.mint.length, 8, `expected mint's 8-file list (post-DEAD-EXEC shim removal), got ${GOVERNING_FILES.mint.length}: ${JSON.stringify(GOVERNING_FILES.mint)}`);
 });
 
 // ── F28 imports the module (never declares its own copy) ───────────────────────────────────────────

@@ -1,0 +1,142 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://dwarves77.internal/ledger-consume/verdict-file.schema.json",
+  "title": "ledger-consume session-verdict batch",
+  "description": "The session-verdict file contract run-ledger-consume.mjs's --verdicts flag reads (Wave LEDGER-ZERO, 2026-09-04, operator ruling 'stop offering API when you have a free option with Haiku'). One file = one batch produced by a session lane running FIRST_FETCH_HAIKU_SYSTEM_PROMPT (src/lib/llm/first-fetch-classify.ts, exported verbatim) offline against candidates listed by `--export-candidates`. This file is enforced by run-ledger-consume.mjs's own validateVerdictsFile (pure JS, no schema-engine dependency — see that file's header for why) — this JSON Schema is the human/tooling-readable statement of the SAME contract, not a second hand-typed copy: README.md documents how the two are kept in agreement.",
+  "type": "object",
+  "required": ["batch", "generated_at", "prompt_version", "classified_by", "entries"],
+  "additionalProperties": true,
+  "properties": {
+    "batch": {
+      "type": "string",
+      "minLength": 1,
+      "description": "This batch's own identifier, e.g. 'ledger-verdicts-001' — matches the filename stem by convention (ledger-verdicts-001.json) but is not itself parsed from the filename."
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "When this batch file was written (ISO 8601)."
+    },
+    "prompt_version": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{16}$",
+      "description": "Batch-level default: FIRST_FETCH_CLASSIFY_PROMPT_VERSION (src/lib/llm/first-fetch-classify.ts) at the time this batch was classified. Every entry also carries its own prompt_version (entries can, in principle, span a prompt edit mid-batch); the driver validates each entry's own value, this field is documentation of the common case."
+    },
+    "classified_by": {
+      "type": "string",
+      "const": "session-haiku",
+      "description": "Batch-level default classifier label. 'session-haiku' is currently the only sanctioned value (operator ruling 2026-09-04: use the free session-Haiku path, not the metered API) — a session lane running an actual Haiku model call against FIRST_FETCH_HAIKU_SYSTEM_PROMPT + buildFirstFetchClassifyUserMessage's output, never a human guess or a different model, stamps this."
+    },
+    "source_export_ref": {
+      "type": ["string", "null"],
+      "description": "Optional: the --export-candidates output file this batch classified (audit trail from candidate list to verdict batch). Not required — a session lane may have sourced candidates a different way — but should be set when available."
+    },
+    "entries": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/entry" }
+    }
+  },
+  "definitions": {
+    "entry": {
+      "type": "object",
+      "required": [
+        "candidate_id",
+        "url",
+        "entity_verdict",
+        "item_type",
+        "confidence",
+        "rationale",
+        "classified_by",
+        "classified_at",
+        "prompt_version"
+      ],
+      "additionalProperties": true,
+      "properties": {
+        "candidate_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "portal_link_candidates.id (uuid) for the row this verdict was produced for. The driver matches verdicts to ledger rows by URL (the field the classify injection point actually receives — see run-ledger-consume.mjs's header for why), and cross-checks candidate_id against the matched row's real id, flagging (never silently discarding) a mismatch as per_item[].verdict_candidate_id_mismatch."
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1,
+          "description": "portal_link_candidates.url — the join key run-ledger-consume.mjs actually matches on."
+        },
+        "entity_verdict": {
+          "type": "string",
+          "enum": ["specific_document", "portal", "uncertain"],
+          "description": "THE entity-gate signal, identical vocabulary to FirstFetchClassifyOutput.entity_verdict (src/lib/llm/first-fetch-classify.ts). 'portal'/'uncertain' are NOT items and are correct, required answers when genuinely uncertain — never guess 'specific_document' to be safe."
+        },
+        "item_type": {
+          "type": ["string", "null"],
+          "description": "Required, but null is a VALID value — null exactly when entity_verdict is not 'specific_document' (the same null-contract first-fetch-classify.ts enforces: an unsure classification is never silently defaulted to a real item_type)."
+        },
+        "confidence": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "description": "The session classifier's own confidence in entity_verdict, 0 (guessing) to 1 (certain) — an ADDITIONAL signal beyond the classifier's usual output, informational only today (not consumed by the mint chokepoint), carried through to this run's harness-run artifact per_item[].confidence for a future triage/review pass to read."
+        },
+        "rationale": {
+          "type": "string",
+          "description": "One or two sentences, same field/purpose as FirstFetchClassifyOutput.rationale."
+        },
+        "classified_by": {
+          "type": "string",
+          "const": "session-haiku",
+          "description": "Per-entry classifier label; see the batch-level field of the same name."
+        },
+        "classified_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "When THIS entry was classified (ISO 8601) — batches may span more than one session-lane run."
+        },
+        "prompt_version": {
+          "type": "string",
+          "pattern": "^sha256:[0-9a-f]{16}$",
+          "description": "FIRST_FETCH_CLASSIFY_PROMPT_VERSION at classification time. run-ledger-consume.mjs (partitionVerdictsByPromptVersion) excludes an entry whose prompt_version does not match the driver's own live FIRST_FETCH_CLASSIFY_PROMPT_VERSION from use — treated as no-verdict for that URL (skipped, never sent to the API) — and counts it, rather than rejecting the whole batch: a stale prompt is a version mismatch, handled per-entry, never a silently-accepted drift and never a reason to discard an otherwise-valid large batch. Contrast with a STRUCTURAL schema violation (a missing/malformed required field), which DOES fail the whole file (exit 4) — see README.md."
+        },
+        "domain": {
+          "type": ["integer", "null"],
+          "minimum": 1,
+          "maximum": 7,
+          "description": "Same vocabulary/routing rule as FirstFetchClassifyOutput.domain. REQUIRED (non-null) when entity_verdict='specific_document' — see the conditional rule below."
+        },
+        "severity": { "type": ["string", "null"] },
+        "priority": { "type": ["string", "null"] },
+        "urgency_tier": { "type": ["string", "null"] },
+        "topic_tags": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "jurisdictions": { "type": "array", "items": { "type": "string" }, "default": [] },
+        "surface_tags": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["regulations", "operations", "market_intel", "research"] },
+          "default": []
+        },
+        "relevance": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "title_candidate": { "type": ["string", "null"] },
+        "summary": { "type": ["string", "null"] }
+      },
+      "allOf": [
+        {
+          "description": "entity_verdict='specific_document' requires item_type + the fields buildCandidateSeed (src/lib/intake/portal-harvest.ts) needs to build a mint seed. entity_verdict != 'specific_document' leaves them null, mirroring first-fetch-classify.ts's own contract exactly.",
+          "if": {
+            "properties": { "entity_verdict": { "const": "specific_document" } },
+            "required": ["entity_verdict"]
+          },
+          "then": {
+            "required": ["item_type", "domain", "severity", "priority", "urgency_tier", "title_candidate"],
+            "properties": {
+              "item_type": { "type": "string", "minLength": 1 },
+              "domain": { "type": "integer", "minimum": 1, "maximum": 7 }
+            }
+          },
+          "else": {
+            "properties": {
+              "item_type": { "const": null }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

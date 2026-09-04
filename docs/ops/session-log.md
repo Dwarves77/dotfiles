@@ -9914,3 +9914,53 @@ trains T37–T46, T46 being the full-system validation. Launched now, nine Sonne
 LEDGER-ZERO, REVIEW-WIRE, TURNREQ, T4-OVERRIDE, F25-WIDE, CLOSURE-GATE, CHAIN, DEAD-EXEC, DAG-AUTHOR,
 alongside PERF-8, SITEMAP-3 and FWD-TEXT-4. This train also carries the R-D ratification (six series
 live and mapped), both discharged harness markers, RD-TESTS, PROPOSER-9/10 and source-sweep-run-012.
+
+### Addendum 85, postscript 49 — nine lanes in one train; the gates caught what the lanes could not see (2026-09-04)
+
+Train/wave37 landed as #584 (`835e3df0`) after one CI failure that was mine to fix: three
+`market-refresh-published-price-statistics` tests asserted the pre-ratification map. Then nine plan lanes
+finished within forty minutes of each other, so train 38 carries what the plan's table had spread over
+T39, T40 and T42 (the table is corrected in place, not rewritten). What each lane closed, with the
+operator's ruling where one applied: LEDGER-ZERO flipped `LEDGER_CONSUME_APPLY_ENABLED` to true, added
+`--verdicts` (a committed session-Haiku verdict file, prompt-version-hashed against the exported prompt
+builder), `--export-candidates`, an API path only behind `--allow-api` that the workflow never sets, and a
+`workflow_run` from Source sweep ("why is this costing me anything when it can be done for free?").
+REVIEW-WIRE wired the four review-apply steps into `maintenance.yml` as thin wrappers, fixed
+`review-digests`, and deleted both community-topics seeders ("people start rooms, regions exist"). TURNREQ
+made `corpus_turn_requests` the one item-selection mechanism for corpus-turn (1,709 open tickets, limit
+200 per run by its own arithmetic) and registered the corpus-turn harness family. T4-OVERRIDE added the
+`standards_body` class at T4 (ifrs.org, cdp.net, sciencebasedtargets.org, and ghgprotocol.org, iso.org,
+globalreporting.org, tnfd.global by the same rule; wri.org deliberately not) and made Part C of
+`institution-canonicalize` apply it. CHAIN added `workflow_run` chaining (Ledger consume → population-turn,
+gated on `promoted > 0` and the `POPULATION_PAUSED` repository variable; Data producers →
+propagation-drain) with trigger context on both artifacts. CLOSURE-GATE built the four-check gate in CI
+(never-run steps, stale NEXT rows, writer-without-reader tables, lane contract §0) with ratchet-only
+allowlists and seeded `docs/ops/dispatch-ledger.jsonl`. F25-WIDE widened module liveness to `scripts/**`
+and `.discipline/**` with dispatch-root awareness, an expiring allowlist (62 entries, each with a
+disposition), and a non-gating orphan/dead-export census (43 orphans, 187 dead exports on this tree).
+DEAD-EXEC executed the 2026-08-31 register's four open deletes, un-exported 16 in-file-only symbols, and
+removed the Gate-A shims. DAG-AUTHOR built `author-edges.mjs` (one body, guarded RPC path, idempotent on
+the natural key), wired it into the emission-factor and envelope producers, built the one-time
+`backfill-derivation-edges.mjs` (+8 derived_values / +9 edges expected from live inputs) and the first
+`statutory_computations` writer (FuelEU Annex IV, 2025 target 89.3368 gCO2eq/MJ confirmed against EUR-Lex
+this session; rows-file driven, since no ship-level GHG input exists in the corpus, so 0 rows until one is
+reviewed).
+
+Assembly is where the new gates earned their keep. F25 flagged five allowlist entries STALE because
+REVIEW-WIRE and TURNREQ had wired those modules in the same train, and two more because DEAD-EXEC had
+deleted the files; the closure gate flagged its own allowlist entry for `community-topics-seed` because
+REVIEW-WIRE had removed the step; REVIEW-WIRE had documented `institution-canonicalize` as dry-only in a
+second runbook section written before T4-OVERRIDE made Part C apply (one section kept, §8a); CHAIN's env
+resolution broke a workflow-shape test the lane did not run ("nothing deleted, full suite not required":
+the full suite is per train, always); DAG-AUTHOR's `backfill_and_statutory` steps read `inputs.*` and were
+rewritten onto CHAIN's `RUN_*` resolution so a chained dispatch never runs them; the mint marker deleted in
+train 37 came back as a fresh one for DEAD-EXEC's hash, and the meta-harness marker is pinned to the hash
+of both TURNREQ's and DEAD-EXEC's edits together (each lane had measured its own). Gates on the assembled
+tree: fitness 29/0, discipline 186/0, closure gate 4/4 PASS, orphan census clean, yaml, tsc, full suite
+5,181/0.
+
+PERF-8, SITEMAP-3 and FWD-TEXT-4 stopped writing at 15:32 (their worktrees hold the partial work: a
+commit and a dirty page for PERF-8, ten dirty files and migration 304 for SITEMAP-3, nothing for
+FWD-TEXT-4); relaunched at 16:45 on the same worktrees with a resume preamble. No population dispatch,
+no schedule, no API spend. Next: land this train (#585), then T39's proving dispatches in order, the
+Haiku classification lanes over the exported candidates, and T38b when the three lanes report.

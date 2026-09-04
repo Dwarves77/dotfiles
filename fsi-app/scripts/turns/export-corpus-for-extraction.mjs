@@ -37,6 +37,15 @@
 //
 // Usage:
 //   node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]
+//   node scripts/turns/export-corpus-for-extraction.mjs --out path.json --ids <uuid,uuid,...> [--limit N]
+//
+// SELECTION (lane TURNREQ, 2026-09-04): --ids scopes the export to EXACTLY the given
+// intelligence_items.id list (still ANDed with the verified/live filter below — a ticket for an item
+// that has since been archived is not re-exported) — the shape corpus-turn.yml's ticket-queue selection
+// (scripts/turns/consume-turn-requests.mjs) needs, matching discover-for-items.mjs's own --ids contract.
+// --since is unchanged: the pre-ticket, date-scoped mechanism, kept ONLY as an explicit backfill override
+// (see CORPUS-TURN-RUNBOOK.md). --ids and --since are mutually exclusive (ambiguous selection otherwise,
+// same rule discover-for-items.mjs's own parseArgs enforces for the identical pair of flags).
 // Exit 0 (writes --out, even for 0 matched items — an empty corpus is a valid, honestly-reported outcome,
 //   not a script failure) · 1 bad args · 2 no DB creds (cannot run here).
 
@@ -61,11 +70,12 @@ const DEFAULT_LIMIT = 10000; // well above today's corpus size (~a few hundred i
 
 function usage() {
   return (
-    "Usage: node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]"
+    "Usage: node scripts/turns/export-corpus-for-extraction.mjs --out path.json [--since ISO-date] [--limit N]\n" +
+    "       node scripts/turns/export-corpus-for-extraction.mjs --out path.json --ids <uuid,uuid,...> [--limit N]"
   );
 }
 
-/** Pure CLI arg parse/validate. @param {string[]} argv @returns {{ok:true,out:string,since:string|null,limit:number}|{ok:false,error:string}} */
+/** Pure CLI arg parse/validate. @param {string[]} argv @returns {{ok:true,out:string,since:string|null,ids:string[]|null,limit:number}|{ok:false,error:string}} */
 export function parseArgs(argv) {
   let values;
   try {
@@ -75,6 +85,7 @@ export function parseArgs(argv) {
         out: { type: "string" },
         since: { type: "string" },
         limit: { type: "string" },
+        ids: { type: "string" },
       },
       allowPositionals: false,
       strict: true,
@@ -83,14 +94,22 @@ export function parseArgs(argv) {
     return { ok: false, error: err.message };
   }
   if (!values.out) return { ok: false, error: "--out <path.json> is required." };
+  if (values.ids !== undefined && values.since !== undefined) {
+    return { ok: false, error: "pass --ids OR --since, not both (ambiguous selection)." };
+  }
   if (values.since && Number.isNaN(Date.parse(values.since))) {
     return { ok: false, error: `--since value is not a parseable date: ${JSON.stringify(values.since)}` };
+  }
+  let ids = null;
+  if (values.ids !== undefined) {
+    ids = values.ids.split(",").map((s) => s.trim()).filter(Boolean);
+    if (!ids.length) return { ok: false, error: "--ids requires at least one uuid." };
   }
   const limit = values.limit ? Number(values.limit) : DEFAULT_LIMIT;
   if (!Number.isFinite(limit) || limit <= 0) {
     return { ok: false, error: `--limit must be a positive number, got ${JSON.stringify(values.limit)}` };
   }
-  return { ok: true, out: values.out, since: values.since || null, limit };
+  return { ok: true, out: values.out, since: values.since || null, ids, limit };
 }
 
 /** Split an array into chunks of at most `size` (pure). @param {Array} arr @param {number} size */
@@ -152,16 +171,38 @@ async function main() {
   }
 
   const { readAll } = await import("../lib/db.mjs");
-  const { out, since, limit } = parsed;
+  const { out, since, ids, limit } = parsed;
 
-  // 1 — verified, live items (optionally scoped to --since, matching discover-for-items.mjs's own
-  // created_at >= since semantics — the ROW-INSERT timestamp, not the editorial added_date).
-  let items = await readAll("intelligence_items", "id, created_at", {
-    match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
-  });
-  if (since) {
-    const sinceMs = Date.parse(since);
-    items = items.filter((it) => it.created_at && Date.parse(it.created_at) >= sinceMs);
+  // 1 — the item scope. --ids: EXACTLY the given items (still ANDed with verified/live — a ticket for an
+  // item archived since it was queued is not re-exported), the shape corpus-turn.yml's ticket-queue
+  // selection needs. Otherwise: verified/live items, optionally scoped to --since (matching
+  // discover-for-items.mjs's own created_at >= since semantics — the ROW-INSERT timestamp, not the
+  // editorial added_date) — the explicit-backfill-only path now that --ids is the default selection.
+  let items;
+  if (ids) {
+    items = [];
+    for (const idChunk of chunk(ids, 200)) {
+      const rows = await readAll("intelligence_items", "id, created_at", {
+        match: (q) => q.in("id", idChunk).eq("provenance_status", "verified").eq("is_archived", false),
+      });
+      items.push(...rows);
+    }
+    const foundIds = new Set(items.map((it) => it.id));
+    const missing = ids.filter((id) => !foundIds.has(id));
+    if (missing.length) {
+      console.log(
+        `export-corpus-for-extraction: ${missing.length} of ${ids.length} requested id(s) matched no ` +
+        `verified/live item (already archived, or not found) — exported anyway for the rest.`
+      );
+    }
+  } else {
+    items = await readAll("intelligence_items", "id, created_at", {
+      match: (q) => q.eq("provenance_status", "verified").eq("is_archived", false),
+    });
+    if (since) {
+      const sinceMs = Date.parse(since);
+      items = items.filter((it) => it.created_at && Date.parse(it.created_at) >= sinceMs);
+    }
   }
   items.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
   if (items.length > limit) items = items.slice(0, limit);
@@ -176,7 +217,8 @@ async function main() {
 
   console.log(
     `export-corpus-for-extraction: ${items.length} verified/live item(s) in scope` +
-    `${since ? ` (created_at >= ${since})` : ""}; ${targetItems.length} lack any item_forward_events row.`
+    `${since ? ` (created_at >= ${since})` : ids ? ` (${ids.length} requested id(s))` : ""}; ` +
+    `${targetItems.length} lack any item_forward_events row.`
   );
 
   // 3 — batched claim/section reads for the target items only (chunked .in() — PostgREST/pg IN-list
@@ -185,11 +227,11 @@ async function main() {
   // SCOPED") is over the SAME `agent_run_searches` table `read-and-extract.mjs`'s live reader consults
   // for due_date slot context, but ONLY for the ids within this chunk whose claims actually need it
   // (`itemIdsNeedingContext`) — never the whole chunk.
-  const ids = targetItems.map((it) => it.id);
+  const targetIds = targetItems.map((it) => it.id);
   const claimRows = [];
   const sectionRows = [];
   const poolRows = [];
-  for (const idChunk of chunk(ids, 200)) {
+  for (const idChunk of chunk(targetIds, 200)) {
     if (!idChunk.length) continue;
     const claims = await readAll("section_claim_provenance", "id, intelligence_item_id, claim_kind, claim_text, source_span", {
       match: (q) => q.in("intelligence_item_id", idChunk).in("claim_kind", CLAIM_KIND_FILTER),

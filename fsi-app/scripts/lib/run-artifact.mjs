@@ -38,6 +38,7 @@ export const ALLOWED_FAMILIES = Object.freeze([
   "ledger-consume",
   "change-detection",
   "propagation",
+  "corpus-turn",
 ]);
 
 const REQUIRED_TOP_LEVEL = Object.freeze([

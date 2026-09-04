@@ -18,7 +18,11 @@ const CODE_EXT = ['.ts', '.tsx', '.mjs', '.js'];
 
 // The ONLY places a direct Anthropic call is permitted (the canonical wrappers + sanctioned routes).
 const PERMITTED = [
-  'fsi-app/scripts/lib/anthropic.mjs',                 // the canonical script wrapper (path of least resistance)
+  // 'fsi-app/scripts/lib/anthropic.mjs' REMOVED (lane DEAD-EXEC, 2026-09-04): the canonical script
+  // wrapper was never adopted by anything — every real script-side call routes through
+  // streamMessagesText (anthropic-stream.mjs below) directly or through spend-client.ts. Zero importers
+  // outside governance/allowlist references (disposition register docs/plans/unwired-disposition-
+  // 2026-08-31.md #18: DELETE). Deleted together with F15's SANCTIONED entry for it (same commit).
   'fsi-app/src/app/api/agent/run/',                    // canonical per-item generation route
   'fsi-app/src/app/api/ask/',                          // user Q&A route
   'fsi-app/src/app/api/admin/scan/',                   // admin scan route
@@ -32,7 +36,7 @@ const PERMITTED = [
   // here per the operator's found-defects-are-fixed-now rule).
   'fsi-app/src/lib/llm/haiku-classify.ts',             // haikuVerifyCandidate — the verification Haiku the sanctioned recommend-classification / bulk-classify / spot-check routes call (CLAUDE.md permitted-routes table): SOURCE classification, NOT brief generation, never populates source_citations. Enumerated 2026-07-19 (B1) when the file was first re-committed under rule 016 (D1 header fix).
   'fsi-app/src/lib/agent/canonical-pipeline.ts',       // canonical pipeline (calls the route's model)
-  'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above + scripts/lib/anthropic.mjs)
+  'fsi-app/src/lib/agent/anthropic-stream.mjs',        // canonical STREAMING call site (used by the above; scripts/lib/anthropic.mjs, its former script-side caller, deleted lane DEAD-EXEC 2026-09-04 — never adopted)
   'fsi-app/src/lib/llm/spend-client.ts',               // THE spend chokepoint (2026-07-04) — spendStream/spendSearch; F15 enforces routing THROUGH it
 ];
 
@@ -79,7 +83,7 @@ export const rule = {
       message: `Direct Anthropic API call(s) outside the canonical path in ${violations.length} location(s).`,
       remediation: [
         'Route Claude calls through the canonical path so spend-cap + provenance wiring are preserved:',
-        "  scripts:  import { canonicalGenerate } from './lib/anthropic.mjs'",
+        '  scripts:  import { streamMessagesText } from "../../src/lib/agent/anthropic-stream.mjs" (scripts/lib/anthropic.mjs, the former wrapper, was deleted lane DEAD-EXEC 2026-09-04 — never adopted by anything)',
         '  app:      call POST /api/agent/run (per-item) or the sanctioned /api/ask, /api/admin/scan routes',
         'Direct calls bypassed /api/agent/run before and source_citations never populated.',
         'Locations:',

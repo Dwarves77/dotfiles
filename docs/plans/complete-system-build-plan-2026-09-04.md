@@ -233,12 +233,13 @@ every train; the session log and board carry every ruling. Done: already true; k
 
 | Train | Contents | Depends on |
 |---|---|---|
-| T37 (assembled, unlanded) | R-D ratification, markers discharged, RD-TESTS, audit, plan, crons disarmed, source-sweep-run-012, PROPOSER-9/10 | operator "go" |
-| T38 | PERF-8 (W0) + FWD-TEXT-4 + SITEMAP-3 (W1.5 code) + migration 304 applied | T37 |
-| T39 | W1.1 ledger-consume $0 path + flip; W1.2 four ratification steps; W3.2 T4 override; W6.1 seeder retired | T38 |
-| T40 | W1.3 turn-request consumer; W1.4 workflow_run chaining; W7.1 F25 widened + orphan check (allowlist filled from the audit) | T39 |
+| T37 (landed #584 `835e3df0`) | R-D ratification, markers discharged, RD-TESTS, audit, plan, crons disarmed, source-sweep-run-012, PROPOSER-9/10 | operator "go" |
+| T38 (assembled 2026-09-04 16:45; carries what the table below planned for T39, T40 and T42 because all nine lanes finished together) | W1.1 ledger-consume $0 path + flip; W1.2 four review-apply steps; W1.3 turn-request consumer; W1.4 workflow_run chaining (ledger-consume → population-turn, producers → propagation-drain, `POPULATION_PAUSED` variable); W3.2 T4 standards-body class; W4.1 DAG authorship at write time + `backfill-derivation-edges`; W4.2 first statutory writer (FuelEU Annex IV, rows-file driven, 0 rows until a reviewed rows-file exists); W6.1 seeder deleted; W7.1 F25 widened + orphan/dead-export census; W7.2 register deletes 3/10/12/18 + 16 dead exports + Gate-A shims; W7.5 closure gate in CI (never-run, stale-NEXT, writer/reader, lane contract; `docs/ops/dispatch-ledger.jsonl`) | T37 |
+| T38b (next) | PERF-8 (W0) + FWD-TEXT-4 + SITEMAP-3 (W1.5 code) + migration 304 applied; the three lanes were interrupted at 15:32 and resumed at 16:45 on their own worktrees | T38 |
+| T39 (code landed in T38) | first dispatches that prove T38's components per §0: maintenance `institution-canonicalize` dry → apply; `review-digests` apply then the four review-apply steps (dry, then ruled apply); corpus-turn dry → apply (limit 200); propagation-drain `backfill_and_statutory` apply then the chained drain; producers apply (edges authored inline); `ledger-consume` plan with the first session-Haiku verdicts file (the Haiku lanes classify the 1,837 candidates from `--export-candidates`); each recorded in `docs/ops/dispatch-ledger.jsonl` | T38 |
+| T40 (folded into T38) | W1.3, W1.4, W7.1: landed in T38 | — |
 | T41 | W3.1 attach-found-sources + browser lanes over the 443; W3.3 tier-opinions path | T39 |
-| T42 | W4.1 DAG authorship + lineage backfill; W4.2 statutory/estimate writers + corridors | T40 |
+| T42 (W4.1/W4.2 writers landed in T38) | corridors (W4.2 second corridor entity so `spec09-reroute` can write); the statutory rows-file (reviewed ship-year GHG inputs) so `write-statutory` computes its first rows | T39 |
 | T43 | W4.3 drain chaining + notices on surfaces; W5.1 spec-09 decisions built (parsers, upload flow, readers) | T42 |
 | T44 | W6 community build after the ruling; W3.4 chips/badges on all surfaces | T39 |
 | T45 | W7.2–7.4 dead exports, shims, runbook, migration ledger; W2.3 migration 299 with backfill | T40 |

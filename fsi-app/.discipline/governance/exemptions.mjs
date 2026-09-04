@@ -73,12 +73,9 @@ export const EXEMPTIONS = [
     reason: 'The guarded-write helper itself — it IS the sanctioned write surface; its raw write call is the implementation, not a bypass.',
     by: 'operating-mechanism build 2026-06-06',
   },
-  {
-    match: 'fsi-app/scripts/lib/anthropic.mjs',
-    kinds: ['model'],
-    reason: 'The canonical Anthropic wrapper itself — the sanctioned direct-call site.',
-    by: 'operating-mechanism build 2026-06-06',
-  },
+  // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the file was deleted
+  // — the "canonical Anthropic wrapper" was never adopted by anything (disposition register
+  // docs/plans/unwired-disposition-2026-08-31.md #18) — so the exemption it needed no longer applies.
   // USER-ACCOUNT PLUMBING (2026-08-11, operator wiring census — wire-or-exempt, exempt side). These
   // write PER-USER preference / notification / auth-provisioning / telemetry rows, RLS-guarded and
   // route-auth-gated — not the intelligence corpus (sources / items / facts / trust) the governing
@@ -163,6 +160,22 @@ export const EXEMPTIONS = [
       'is outside this lane\'s write set) — a documented, known gap, not an oversight; see the test file\'s ' +
       'own header and the lane\'s final report.',
     by: 'Lane DP-SURF, system-completion train, 2026-09-02',
+  },
+  {
+    match: 'fsi-app/scripts/propagation/write-statutory',
+    reason:
+      'write-statutory.mjs performs the SAME class of write as the src/lib/propagation/ entry above ' +
+      '(a statutory_computations row, guarded-inserted after computeStatutory() and admissibleFor() — ' +
+      'corpus infrastructure the propagation/statutory engine owns, migration 286\'s assert_statutory_' +
+      'purity() and F32 (statutory-purity) already enforcing its invariants structurally, not skill-' +
+      'governed content) — this entry exists separately because the file lives under scripts/propagation/, ' +
+      'one root up from src/lib/propagation/, so the existing match prefix does not reach it, matching ' +
+      'the seed-derived-values entry\'s own reasoning exactly. No `kinds` restriction: this also covers ' +
+      'write-statutory.test.mjs\'s ORPHANED-PROOF finding — that test is real and passing (`node --test ' +
+      'scripts/propagation/write-statutory.test.mjs`) but is NOT wired into .discipline/run-test-suite.sh ' +
+      '(scripts/propagation/ is not one of its covered globs, and that file is outside this lane\'s write ' +
+      'set) — the SAME documented, known gap seed-derived-values.test.mjs already carries, not a new one.',
+    by: 'Lane DAG-AUTHOR, propagation build-out, 2026-09-04',
   },
 ];
 

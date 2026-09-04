@@ -220,8 +220,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
-        # The unit tests use fixtures (buildContextFromFixture) and do not
-        # shell out to git, so a shallow checkout is sufficient.
+        with:
+          # The unit tests and the invariant-coverage meta-gate use fixtures / git-tracked-file scans and
+          # do not need history, but the closure gate below (added 2026-09-04) shells out to `git log`,
+          # `git blame`, and `git merge-base --is-ancestor` to resolve train numbering and MUST see full
+          # history — a shallow checkout here would silently misnumber every train and either false-fail
+          # or (worse) false-pass every check. Same fetch-depth as validate-commits/consistency-backstop.
+          fetch-depth: 0
 
       - name: Setup Node
         uses: actions/setup-node@v5
@@ -239,6 +244,31 @@ jobs:
         # Fails CI if any skill invariant is neither enforced (by a resolving mechanism)
         # nor exempt-with-reason, or if any anchor/baseline drifted. Makes "wired" non-optional.
         run: node fsi-app/.discipline/governance/invariant-coverage.mjs
+
+      - name: Closure gate (never-run steps, stale NEXT rows, writer/reader orphans, lane-contract drift)
+        # Lane CLOSURE-GATE, 2026-09-04 — the enforcement docs/plans/complete-system-build-plan-2026-09-04.md
+        # W7.5 names as missing: nothing today fails when a maintenance.yml step or dispatchable workflow has
+        # never run, when a PROGRAM-BOARD.md row stays NEXT with no owning train, when a table created by a
+        # recent migration has a writer and no reader (or the reverse), or when the lane-common-contract lacks
+        # the plan's §0 done-conditions. Placed in THIS job (not fitness-check) because it needs the
+        # fetch-depth:0 checkout above for its git-log/blame/merge-base train-numbering — fitness-check's
+        # checkout is shallow (F9's tsc invocation is its only need). Every failure is ratchet-only: an
+        # allowlisted item fails once its own committed expiry train passes — see
+        # fsi-app/.discipline/governance/closure-gate.mjs's header.
+        run: node fsi-app/.discipline/governance/closure-gate.mjs
+
+      - name: Orphan-module + dead-export census (B1 Appendix A/B method — reports, never fails)
+        # W7.3 (docs/plans/complete-system-build-plan-2026-09-04.md; lane F25-WIDE, 2026-09-04). Runs
+        # docs/audits/wiring-audit-2026-09-04/B1-modules.md's own two named methods (Appendix A:
+        # only-test-importer orphans; Appendix B: dead exports on otherwise-wired modules) against every CI
+        # run, independent of F25's allowlist — the standing census the audit's method would produce today.
+        # Deliberately non-gating (orphan-modules.mjs's own header: "a REPORT, not a gate" — F25 (widened,
+        # above) is the CI-FAILING enforcement for the orphan-module class, with a reasoned expiring
+        # allowlist; dead-exports is reported-not-failing this train per the plan, since a mechanical
+        # whole-word scan can false-positive on a dynamic access pattern). This `run:` line is also how F25's
+        # own findDispatchRoots() sees orphan-modules.mjs as wired (a workflow bare-path mention), so this
+        # governance module does not itself become an F25 UNWIRED MODULE violation.
+        run: node fsi-app/.discipline/governance/orphan-modules.mjs --all
 
   consistency-backstop:
     name: Consistency layer (C3/C4/C5 reality — always-on backstop)

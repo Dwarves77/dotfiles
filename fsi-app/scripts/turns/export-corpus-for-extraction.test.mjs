@@ -42,6 +42,40 @@ test("parseArgs: --limit must be a positive number", () => {
   assert.equal(r.limit, 50);
 });
 
+// ── --ids (lane TURNREQ, 2026-09-04 — corpus-turn's ticket-queue selection) ────────────────────────
+
+test("parseArgs: --out alone defaults ids=null (unchanged, --since-or-nothing shape preserved)", () => {
+  const r = parseArgs(["--out", "x.json"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.ids, null);
+});
+
+test("parseArgs: --ids splits, trims, and drops empty entries", () => {
+  const r = parseArgs(["--out", "x.json", "--ids", "a, b ,,c"]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.ids, ["a", "b", "c"]);
+  assert.equal(r.since, null);
+});
+
+test("parseArgs: --ids with an empty value is refused", () => {
+  const r = parseArgs(["--out", "x.json", "--ids", " , , "]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--ids requires at least one uuid/);
+});
+
+test("parseArgs: --ids and --since together is refused (ambiguous selection, matches discover-for-items.mjs)", () => {
+  const r = parseArgs(["--out", "x.json", "--ids", "a,b", "--since", "2026-08-01"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--ids OR --since, not both/);
+});
+
+test("parseArgs: --ids composes with --limit", () => {
+  const r = parseArgs(["--out", "x.json", "--ids", "a,b,c", "--limit", "2"]);
+  assert.equal(r.ok, true);
+  assert.deepEqual(r.ids, ["a", "b", "c"]);
+  assert.equal(r.limit, 2);
+});
+
 // ── chunk ────────────────────────────────────────────────────────────────────────────────────────
 
 test("chunk: splits into groups of the given size, last group may be short", () => {

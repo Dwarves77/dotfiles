@@ -9,28 +9,50 @@ name: Corpus turn
 # the two repository secrets those workflows already inject, workflow_dispatch with a mode input, and a
 # schedule block that stays commented out under the same build-mode ruling.
 #
+# ITEM SELECTION (lane TURNREQ, 2026-09-04 — see docs/runbooks/CORPUS-TURN-RUNBOOK.md and the 2026-09-04
+# wiring audit's B1 Gap #2 / B2 §1): ONE mechanism, not two. `corpus_turn_requests` (migration 277) is
+# filled by a trigger every time an item's provenance/archive/tag state changes outside the in-app mint
+# hooks — a real, per-item record of "this needs a turn." This workflow's DEFAULT scope is now that ticket
+# queue: `scripts/turns/consume-turn-requests.mjs` selects the oldest `limit` open tickets (bounded,
+# grouped by item — migration 277's own partial-unique index guarantees at most one open ticket per item),
+# and every downstream step runs over EXACTLY those item ids. `since` is an EXPLICIT BACKFILL OVERRIDE
+# ONLY — set it to bypass the ticket queue entirely and rescope this turn by `created_at` the old way (no
+# ticket is read or marked in that mode). The old mechanism, `scripts/turns/last-turn-date.mjs`'s
+# `LAST-TURN.json` marker, is retired from this workflow's own selection logic — see that file's own header
+# for why it still exists as a library (a different lane's file still imports it) without being called here.
+#
 # WHAT ONE TURN DOES, IN ORDER (see docs/runbooks/CORPUS-TURN-RUNBOOK.md for the full walkthrough):
-#   1. discover-for-items.mjs   — mint-time connection discovery for items that bypassed the mint hook.
-#   2. export-corpus-for-extraction.mjs (new, this lane) — reads items+claims+sections lacking any
-#      item_forward_events row into the corpus-file shape run-extraction.mjs consumes.
-#   3. run-extraction.mjs       — the forward-events family's own canonical entry point; extracts dated
+#   1. Select this turn's scope   — ticket-queue mode (default): consume-turn-requests.mjs reads+bounds
+#      the open queue and writes a snapshot; --since override mode: skip the ticket read entirely.
+#   2. discover-for-items.mjs     — mint-time connection discovery for items that bypassed the mint hook,
+#      scoped by --ids (ticket mode) or --since (override mode).
+#   3. export-corpus-for-extraction.mjs — reads this scope's items+claims+sections lacking any
+#      item_forward_events row into the corpus-file shape run-extraction.mjs consumes, scoped the same way.
+#   4. run-extraction.mjs         — the forward-events family's own canonical entry point; extracts dated
 #      obligation events (writes nothing to the DB itself — PROTOCOL.md's own "the extractor never
-#      writes" rule) and ALWAYS self-emits its own scripts/harness-runs/forward-events/ artifact.
-#   4. apply-extraction-output.mjs (new, this lane) — the guarded-write-path "load" half PROTOCOL.md
-#      always assigns to a coordinator: inserts run-extraction.mjs's emitted events through
-#      db.mjs's guardedInsertMany, respecting migration 275's dedupe key (never migration 274's
-#      superseded one — see that script's own header).
-#   5. analyze-corpus.mjs       — clusters the connection graph into themes, detects coverage gaps, and
-#      (behind --signals) proposes L4 signal candidates.
+#      writes" rule) and self-emits its own scripts/harness-runs/forward-events/ artifact.
+#   5. apply-extraction-output.mjs — the guarded-write-path "load" half PROTOCOL.md always assigns to a
+#      coordinator: inserts run-extraction.mjs's emitted events through db.mjs's guardedInsertMany,
+#      respecting migration 275's dedupe key (never migration 274's superseded one).
+#   6. analyze-corpus.mjs         — clusters the WHOLE connection graph into themes, detects coverage
+#      gaps, and (behind --signals) proposes L4 signal candidates. Always unscoped, every turn.
+#   7. Mark tickets consumed      — apply mode + ticket-queue selection ONLY, and only after steps 2-6 have
+#      ALL succeeded (GitHub Actions step ordering with no continue-on-error IS the "only after success"
+#      guarantee — this step is simply unreached if an earlier one failed): consume-turn-requests.mjs
+#      --mark-file retires EXACTLY the tickets read in step 1, never a fresh "what's open now" re-read.
+#   8. Record this family's own harness-run artifact — corpus-turn-run-NNN.json (F28's
+#      scripts/harness-runs/CONVENTION.md), every dispatch, dry or apply, "record it every batch, even
+#      when zero."
 #
 # TWO WAYS TO REQUEST A TURN:
-#   - workflow_dispatch (Actions tab or `gh workflow run`): the operator/coordinator picks mode + an
-#     optional --since override + whether to run the --signals pass. Runs from whatever ref triggered it
+#   - workflow_dispatch (Actions tab or `gh workflow run`): the operator/coordinator picks mode + limit +
+#     an optional --since override + whether to run the --signals pass. Runs from whatever ref triggered it
 #     (normally master) and creates a fresh `turn/<run-id>` branch to land the run's own commit on.
 #   - push to a `turn/**` branch: a coordinator session pushes an EMPTY branch named `turn/<date>` (or any
 #     turn/* name) to REQUEST a turn without touching the Actions UI. A push-triggered turn always runs in
 #     apply mode (a coordinator pushing a turn branch is by definition asking for the real thing, not a
-#     preview) and lands its commit directly on that same branch — no new branch is created.
+#     preview) with the default limit (push events carry no `inputs.*`) and lands its commit directly on
+#     that same branch — no new branch is created.
 #
 # BUILD MODE (operator ruling 2026-09-01, same standing rule producers.yml/data-audit-lane.yml record for
 # their own families): no schedule while the site is being built — a turn happens by explicit dispatch or
@@ -47,13 +69,33 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'dry = fetch/read, print the plan, write nothing. apply = write through the guarded path.'
+        description: 'dry = fetch/read, print the plan, write nothing (no DB writes, no tickets marked). apply = write through the guarded path.'
         required: true
         default: 'dry'
         type: choice
         options: [dry, apply]
+      limit:
+        description: >-
+          Max OPEN corpus_turn_requests tickets this turn selects (oldest-first; ignored when `since` is
+          set). Default 200 matches THE GATE's own population-slice unit (docs/plans/complete-system-build-plan-2026-09-04.md
+          §W2.1: "Slices of 200"). Arithmetic (docs/runbooks/CORPUS-TURN-RUNBOOK.md "First dispatch"):
+          1,709 open tickets at registration ÷ 200 ≈ 9 dispatches drains today's backlog; this job's
+          45-minute timeout comfortably covers 200 items at the per-item costs already measured elsewhere
+          in this repo (mint's own batch step: ~0.45-0.6s/item for full validate+insert, heavier than this
+          family's discovery-score + forward-event-extract; forward-events extraction itself measured at
+          ~21ms for a whole 89-item batch) with headroom for checkout/npm-ci and the unscoped
+          analyze-corpus.mjs pass. New tickets keep arriving via the trigger as items change, so this is a
+          recurring, hand-dispatched cadence (rule 16: no schedule), not a one-time drain.
+        required: true
+        default: '200'
+        type: string
       since:
-        description: 'ISO date: rescope this turn to items created_at >= this date. Blank = use the last recorded turn date (scripts/turns/LAST-TURN.json), or 1970-01-01 (full backfill) on a repo with no marker yet.'
+        description: >-
+          EXPLICIT BACKFILL OVERRIDE ONLY. An ISO date bypasses the corpus_turn_requests ticket queue
+          entirely and rescopes this turn to items created_at >= this date (the pre-ticket mechanism) —
+          no ticket is read or marked consumed in this mode. Blank (default) = ticket-queue mode: select
+          the oldest `limit` open tickets, run the turn over exactly those items, mark them consumed only
+          after every write below succeeds.
         required: false
         type: string
       signals:
@@ -108,19 +150,23 @@ jobs:
           if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
           [ "$missing" -eq 0 ]
 
-      - name: Resolve this run's mode + branch
+      - name: Resolve this run's mode + branch + limit
         id: turn
         run: |
           echo "started_at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
           if [ "${{ github.event_name }}" = "push" ]; then
             # A coordinator pushed a turn/** branch to REQUEST a turn — always apply, land on that branch.
+            # push events carry no workflow_dispatch inputs, so the limit input's default (200) is applied
+            # here explicitly rather than left blank.
             echo "mode=apply" >> "$GITHUB_OUTPUT"
             echo "branch=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
             echo "created_branch=false" >> "$GITHUB_OUTPUT"
+            echo "limit=200" >> "$GITHUB_OUTPUT"
           else
             echo "mode=${{ inputs.mode }}" >> "$GITHUB_OUTPUT"
             echo "branch=turn/${{ github.run_id }}" >> "$GITHUB_OUTPUT"
             echo "created_branch=true" >> "$GITHUB_OUTPUT"
+            echo "limit=${{ inputs.limit }}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Ensure a real local branch (actions/checkout leaves a push event in detached HEAD)
@@ -136,15 +182,111 @@ jobs:
           echo "trigger  = ${{ github.event_name }}"
           echo "mode     = ${{ steps.turn.outputs.mode }}"
           echo "branch   = ${{ steps.turn.outputs.branch }}"
+          echo "limit    = ${{ steps.turn.outputs.limit }}"
 
-      - name: Resolve --since
-        id: since
+      # ── 1. Select this turn's scope: ticket queue (default) or an explicit --since backfill override ──
+      # MODE 1 read only (never --mark-consumed here) — marking happens in a SEPARATE step (below step 6),
+      # after this turn's writes have all succeeded, against this exact snapshot file (--mark-file).
+      - name: Select this turn's item scope
+        id: scope
         run: |
+          mkdir -p "scripts/_snapshots/turn-${{ github.run_id }}"
           if [ -n "${{ inputs.since }}" ]; then
-            echo "value=${{ inputs.since }}" >> "$GITHUB_OUTPUT"
+            echo "selection=since" >> "$GITHUB_OUTPUT"
+            echo "since=${{ inputs.since }}" >> "$GITHUB_OUTPUT"
+            echo "has_scope=true" >> "$GITHUB_OUTPUT"
+            echo "ticket_count=0" >> "$GITHUB_OUTPUT"
+            echo "corpus-turn (since-override mode): items created_at >= ${{ inputs.since }}; corpus_turn_requests is not read or marked in this mode."
           else
-            echo "value=$(node scripts/turns/last-turn-date.mjs)" >> "$GITHUB_OUTPUT"
+            TICKETS_PATH="scripts/_snapshots/turn-${{ github.run_id }}/tickets.json"
+            IDS=$(node scripts/turns/consume-turn-requests.mjs --out "$TICKETS_PATH" --limit "${{ steps.turn.outputs.limit }}")
+            COUNT=$(node -e "console.log(JSON.parse(require('fs').readFileSync('$TICKETS_PATH','utf8')).count)")
+            echo "selection=tickets" >> "$GITHUB_OUTPUT"
+            echo "since=" >> "$GITHUB_OUTPUT"
+            echo "ids=$IDS" >> "$GITHUB_OUTPUT"
+            echo "ticket_count=$COUNT" >> "$GITHUB_OUTPUT"
+            echo "tickets_path=$TICKETS_PATH" >> "$GITHUB_OUTPUT"
+            if [ "$COUNT" -gt 0 ]; then
+              echo "has_scope=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "has_scope=false" >> "$GITHUB_OUTPUT"
+              echo "corpus-turn (ticket-queue mode): 0 open tickets selected — a legitimate steady state, nothing to turn this dispatch."
+            fi
           fi
+
+      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
+      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
+      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
+      # previous run's PR merged sees a stale count and claims the SAME run_id (source-sweep run #3 on
+      # 2026-09-01 wrote a second "source-sweep-run-002" while run #2's was still on its branch). The
+      # unmerged sibling branches are fetched and their forward-events (and corpus-turn) artifacts placed
+      # in the working tree (untracked; removed again before the commit step, never committed by this run)
+      # so the claim counts above them. scripts/turns/LAST-TURN.json is no longer hydrated or written by
+      # this workflow (retired as this family's selection mechanism, lane TURNREQ, 2026-09-04 — see
+      # scripts/turns/last-turn-date.mjs's own header) — every step is idempotent
+      # (CORPUS-TURN-RUNBOOK.md, "The first full backfill").
+      - name: Hydrate unmerged run artifacts from sibling branches (run_id collision guard)
+        run: |
+          git fetch --no-tags origin '+refs/heads/turn/*:refs/remotes/origin/turn/*' || true
+          : > /tmp/hydrated-artifacts.txt
+          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/turn/*'); do
+            for dir in forward-events corpus-turn; do
+              for f in $(git ls-tree -r --full-tree --name-only "$b" -- "fsi-app/scripts/harness-runs/$dir/"); do
+                rel="${f#fsi-app/}"
+                if [ ! -e "$rel" ]; then
+                  mkdir -p "$(dirname "$rel")"
+                  git show "$b:$f" > "$rel"
+                  echo "$rel" >> /tmp/hydrated-artifacts.txt
+                fi
+              done
+            done
+          done
+          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged artifact file(s) from sibling branches"
+
+      # ── 2. discover-for-items — mint-time connection discovery for items that bypassed the mint hook ──
+      - name: discover-for-items.mjs
+        if: steps.scope.outputs.has_scope == 'true'
+        run: |
+          if [ "${{ steps.scope.outputs.selection }}" = "tickets" ]; then
+            SEL="--ids ${{ steps.scope.outputs.ids }}"
+          else
+            SEL="--since ${{ steps.scope.outputs.since }}"
+          fi
+          if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
+            node scripts/connections/discover-for-items.mjs $SEL --execute
+          else
+            node scripts/connections/discover-for-items.mjs $SEL
+          fi
+
+      # ── 3/4. forward-events: export this turn's corpus slice, then run the family's own runner ────────
+      - name: export-corpus-for-extraction.mjs
+        if: steps.scope.outputs.has_scope == 'true'
+        run: |
+          if [ "${{ steps.scope.outputs.selection }}" = "tickets" ]; then
+            node scripts/turns/export-corpus-for-extraction.mjs --out /tmp/turn-corpus.json --ids "${{ steps.scope.outputs.ids }}"
+          else
+            node scripts/turns/export-corpus-for-extraction.mjs --out /tmp/turn-corpus.json --since "${{ steps.scope.outputs.since }}"
+          fi
+
+      # The corpus file and run-extraction.mjs's events/skipped outputs are this turn's FULL TRACES (the
+      # forward-events artifact's full_trace_refs point at them). They live under scripts/_snapshots/
+      # (gitignored) so the upload-artifact step below retains them for 90 days — forward-events-run-002's
+      # refs pointed at /tmp on a runner that no longer exists, so its 276 skip reasons were unreadable.
+      - name: run-extraction.mjs (forward-events)
+        if: steps.scope.outputs.has_scope == 'true'
+        run: |
+          mkdir -p "scripts/_snapshots/turn-${{ github.run_id }}"
+          cp /tmp/turn-corpus.json "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
+          if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
+            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json" --execute
+          else
+            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
+          fi
+
+      # ── 5. load the extracted events — apply mode only (dry mode's run-extraction.mjs wrote no events file) ──
+      - name: apply-extraction-output.mjs
+        if: steps.turn.outputs.mode == 'apply' && steps.scope.outputs.has_scope == 'true'
+        run: node scripts/turns/apply-extraction-output.mjs --events "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.events.json" --execute
 
       - name: Resolve --signals flag
         id: signals
@@ -155,65 +297,9 @@ jobs:
             echo "flag=--signals" >> "$GITHUB_OUTPUT"
           fi
 
-      # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
-      # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
-      # the checked-out tree, i.e. master. Artifacts land through a PR, so a run dispatched before the
-      # previous run's PR merged sees a stale count and claims the SAME run_id (source-sweep run #3 on
-      # 2026-09-01 wrote a second "source-sweep-run-002" while run #2's was still on its branch). The
-      # unmerged sibling branches are fetched and their forward-events artifacts placed in the working tree
-      # (untracked; removed again before the commit step, never committed by this run) so the claim
-      # counts above them. scripts/turns/LAST-TURN.json is deliberately NOT hydrated: a turn
-      # dispatched before the previous apply turn merged simply re-covers a wider --since window, and
-      # every step is idempotent (CORPUS-TURN-RUNBOOK.md, "The first full backfill").
-      - name: Hydrate unmerged forward-events artifacts from sibling branches (run_id collision guard)
-        run: |
-          git fetch --no-tags origin '+refs/heads/turn/*:refs/remotes/origin/turn/*' || true
-          : > /tmp/hydrated-artifacts.txt
-          for b in $(git for-each-ref --format='%(refname)' 'refs/remotes/origin/turn/*'); do
-            for f in $(git ls-tree -r --full-tree --name-only "$b" -- fsi-app/scripts/harness-runs/forward-events/); do
-              rel="${f#fsi-app/}"
-              if [ ! -e "$rel" ]; then
-                mkdir -p "$(dirname "$rel")"
-                git show "$b:$f" > "$rel"
-                echo "$rel" >> /tmp/hydrated-artifacts.txt
-              fi
-            done
-          done
-          echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged forward-events file(s) from sibling branches"
-
-      # ── 1. discover-for-items — mint-time connection discovery for items that bypassed the mint hook ──
-      - name: discover-for-items.mjs
-        run: |
-          if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
-            node scripts/connections/discover-for-items.mjs --since "${{ steps.since.outputs.value }}" --execute
-          else
-            node scripts/connections/discover-for-items.mjs --since "${{ steps.since.outputs.value }}"
-          fi
-
-      # ── 2/3. forward-events: export this turn's corpus slice, then run the family's own runner ────────
-      - name: export-corpus-for-extraction.mjs
-        run: node scripts/turns/export-corpus-for-extraction.mjs --out /tmp/turn-corpus.json --since "${{ steps.since.outputs.value }}"
-
-      # The corpus file and run-extraction.mjs's events/skipped outputs are this turn's FULL TRACES (the
-      # forward-events artifact's full_trace_refs point at them). They live under scripts/_snapshots/
-      # (gitignored) so the upload-artifact step below retains them for 90 days — forward-events-run-002's
-      # refs pointed at /tmp on a runner that no longer exists, so its 276 skip reasons were unreadable.
-      - name: run-extraction.mjs (forward-events)
-        run: |
-          mkdir -p "scripts/_snapshots/turn-${{ github.run_id }}"
-          cp /tmp/turn-corpus.json "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
-          if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
-            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json" --execute
-          else
-            node scripts/forward-events/run-extraction.mjs --input "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json"
-          fi
-
-      # ── 4. load the extracted events — apply mode only (dry mode's run-extraction.mjs wrote no events file) ──
-      - name: apply-extraction-output.mjs
-        if: steps.turn.outputs.mode == 'apply'
-        run: node scripts/turns/apply-extraction-output.mjs --events "scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.events.json" --execute
-
-      # ── 5. analyze-corpus — themes, coverage gaps, and (behind --signals) L4 signal candidates ─────────
+      # ── 6. analyze-corpus — themes, coverage gaps, and (behind --signals) L4 signal candidates ─────────
+      # Always unscoped, every turn, regardless of has_scope — this is a whole-corpus recluster, not a
+      # per-item step (same posture MINT-RUNBOOK.md §8 documents for the equivalent population-turn step).
       - name: analyze-corpus.mjs
         run: |
           if [ "${{ steps.turn.outputs.mode }}" = "apply" ]; then
@@ -222,12 +308,38 @@ jobs:
             node scripts/connections/analyze-corpus.mjs --dry ${{ steps.signals.outputs.flag }}
           fi
 
-      # ── record the turn marker — apply mode only; a dry run must never advance --since's default ───────
-      - name: Record this turn's marker (apply mode only)
-        if: steps.turn.outputs.mode == 'apply'
-        run: node scripts/turns/last-turn-date.mjs --record "${{ steps.turn.outputs.started_at }}"
+      # ── 7. mark tickets consumed — apply mode + ticket-queue selection ONLY, and ONLY after steps 2-6 ──
+      # have all succeeded. No continue-on-error anywhere above: if discover/export/extract/apply/analyze
+      # failed, this step is simply never reached — that ordering IS the "only after the turn's writes
+      # succeeded" guarantee, no extra bookkeeping needed. --mark-file retires EXACTLY the request rows
+      # named in step 1's own snapshot (never a fresh "what's open now" re-read — see
+      # consume-turn-requests.mjs's own MODE 2 header for why).
+      - name: Mark consumed tickets (apply mode, ticket-queue selection, after this turn's writes succeeded)
+        if: steps.turn.outputs.mode == 'apply' && steps.scope.outputs.selection == 'tickets' && steps.scope.outputs.has_scope == 'true'
+        run: node scripts/turns/consume-turn-requests.mjs --mark-file "${{ steps.scope.outputs.tickets_path }}" --by "corpus-turn-${{ github.run_id }}"
 
-      # ── commit the harness-run artifacts (+ the turn marker) to the turn branch ─────────────────────────
+      # ── 8. record THIS family's own harness-run artifact (F28 / CONVENTION.md) ─────────────────────────
+      # "Emission is CODE" — the same posture run-mint-batch.mjs / run-extraction.mjs / screen-worklist.mjs
+      # already hold for their own families (PROPOSER-RUNBOOK.md §5): every dispatch, dry or apply, writes
+      # one, from a step that runs regardless of earlier failures (`if: always()`, guarded so a missing
+      # scope/mode still produces a valid, honestly-empty artifact rather than skipping emission outright).
+      - name: Record this turn's own harness-run artifact (corpus-turn family)
+        if: always() && steps.turn.outcome == 'success'
+        env:
+          CT_SELECTION: ${{ steps.scope.outputs.selection }}
+          CT_MODE: ${{ steps.turn.outputs.mode }}
+          CT_LIMIT: ${{ steps.turn.outputs.limit }}
+          CT_SINCE: ${{ steps.scope.outputs.since }}
+          CT_TICKET_COUNT: ${{ steps.scope.outputs.ticket_count }}
+          CT_HAS_SCOPE: ${{ steps.scope.outputs.has_scope }}
+          CT_STARTED_AT: ${{ steps.turn.outputs.started_at }}
+          CT_TICKETS_PATH: ${{ steps.scope.outputs.tickets_path }}
+          CT_CORPUS_PATH: scripts/_snapshots/turn-${{ github.run_id }}/turn-corpus.json
+          CT_CONSUMED: ${{ steps.turn.outputs.mode == 'apply' && steps.scope.outputs.selection == 'tickets' && steps.scope.outputs.has_scope == 'true' }}
+          CT_SIGNALS: ${{ steps.signals.outputs.flag != '' }}
+        run: node scripts/turns/emit-corpus-turn-artifact.mjs
+
+      # ── commit the harness-run artifacts to the turn branch ─────────────────────────────────────────
       # scripts/_snapshots/** is gitignored (fsi-app/scripts/_snapshots/ in the repo-root .gitignore) — the
       # ruling is to keep it ignored rather than fight the rule, so its contents ride a workflow artifact
       # instead (next step), never a commit.
@@ -242,14 +354,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          # LAST-TURN.json exists only after an apply-mode run (see the marker step); a dry run must
-          # still commit any harness artifacts it produced. Found by corpus-turn run #1 (2026-09-01).
           git add scripts/harness-runs
-          [ -f scripts/turns/LAST-TURN.json ] && git add scripts/turns/LAST-TURN.json || true
           if git diff --cached --quiet; then
             echo "changed=false" >> "$GITHUB_OUTPUT"
           else
-            git commit -m "corpus-turn ${{ steps.turn.outputs.mode }}: run ${{ github.run_id }} (since ${{ steps.since.outputs.value }})"
+            git commit -m "corpus-turn ${{ steps.turn.outputs.mode }}: run ${{ github.run_id }} (selection ${{ steps.scope.outputs.selection }}, limit ${{ steps.turn.outputs.limit }})"
             echo "changed=true" >> "$GITHUB_OUTPUT"
           fi
 
@@ -278,6 +387,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           branch="${{ steps.turn.outputs.branch }}"
-          printf 'Automated corpus turn (run %s, trigger %s).\n\nMode: %s\nSince: %s\nSignals flag: "%s"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/** and the updated turn marker at scripts/turns/LAST-TURN.json. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.\n' \
-            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.turn.outputs.mode }}" "${{ steps.since.outputs.value }}" "${{ steps.signals.outputs.flag }}" > /tmp/pr-body.md
+          printf 'Automated corpus turn (run %s, trigger %s).\n\nMode: %s\nSelection: %s (limit %s)\nSince (override): %s\nTickets selected: %s\nSignals flag: "%s"\n\nLands the harness-run artifacts for this turn under scripts/harness-runs/**. See docs/runbooks/CORPUS-TURN-RUNBOOK.md.\n' \
+            "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.turn.outputs.mode }}" "${{ steps.scope.outputs.selection }}" "${{ steps.turn.outputs.limit }}" "${{ steps.scope.outputs.since }}" "${{ steps.scope.outputs.ticket_count }}" "${{ steps.signals.outputs.flag }}" > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Corpus turn: $branch (mode=${{ steps.turn.outputs.mode }})" /tmp/pr-body.md

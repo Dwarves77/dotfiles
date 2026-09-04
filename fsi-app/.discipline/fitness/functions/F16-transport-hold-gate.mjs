@@ -25,10 +25,14 @@ export const RAW_BROWSERLESS_RE = /(chrome|production-[a-z0-9]+)\.browserless\.i
 // apiFetchForHost); the sources/ modules are the access_method transports.
 // (The RSS transport rss-fetch.ts was purged 2026-07-18 (dormant-systems P-5, dead code) and removed here.)
 // Widened 2026-08-11 (master gap register P1 #10 residual): fetch-now/route.ts carries its OWN inline
-// fetchViaApi helper (mirrors api-fetch.ts's shape but is a separate function) making a raw fetch() with
-// no gate — an admin manual-fetch click bypassed an engaged hold that every other transport honored.
+// fetchViaApi helper (mirrored the now-deleted api-fetch.ts's shape but is a separate function) making a
+// raw fetch() with no gate — an admin manual-fetch click bypassed an engaged hold that every other
+// transport honored.
+// 'fsi-app/src/lib/sources/api-fetch.ts' REMOVED (lane DEAD-EXEC, 2026-09-04): the module was deleted —
+// superseded by canonical-pipeline.ts's own inline apiFetchForHost (already below, already gated), never
+// wired to anything (disposition register docs/plans/unwired-disposition-2026-08-31.md #12). Its live
+// API-transport hold-gate coverage is unaffected: apiFetchForHost is the transport that actually runs.
 export const TRANSPORT_MODULES = [
-  'fsi-app/src/lib/sources/api-fetch.ts',
   'fsi-app/src/lib/agent/canonical-pipeline.ts',
   'fsi-app/src/app/api/admin/sources/[id]/fetch-now/route.ts',
 ];

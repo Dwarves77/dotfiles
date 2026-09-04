@@ -35,6 +35,7 @@
 // REAL chokepoint-computed cost (costUsdForModel, the same number the agent_runs row records) rather than
 // a locally-duplicated Haiku-rate constant that could silently drift from the ledger's own rates.
 
+import crypto from "node:crypto";
 import { asDomain, domainForItemType, type Domain, type SourceCategory } from "@/lib/domains";
 import { isErrorBody } from "@/lib/sources/entity-gate.mjs";
 import { spendMessage, setSpendTicket, currentSpendTicket } from "@/lib/llm/spend-client";
@@ -47,7 +48,16 @@ const CONTENT_MAX_CHARS = 6_000;
 //   - migration 101 CASE expression (lines 130-161)
 //   - fsi-app/src/lib/domains.ts domainForItemType()
 // Any change to the rule lands in all three places simultaneously.
-const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"surface_tags":[],"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
+//
+// EXPORTED (operator ruling 2026-09-04: "stop offering API when you have a free option with Haiku" —
+// the ledger-consume session-verdict flip, run-ledger-consume.mjs / CORPUS-TURN-RUNBOOK.md's "Ledger
+// consume" section). Session lanes producing OFFLINE Haiku classifications for run-ledger-consume.mjs's
+// `--verdicts` file must use this EXACT string — not a re-typed paraphrase — so a session-produced verdict
+// and a live spend-chokepoint classify call are provably the same prompt, ONE BODY, never two copies that
+// can drift. `FIRST_FETCH_CLASSIFY_PROMPT_VERSION` below is a content hash of this string; the verdict-file
+// schema (`scripts/turns/ledger-verdicts/schema.json`) requires every entry to carry the version it was
+// produced under, so a drifted prompt is a detectable version mismatch, never a silent divergence.
+export const FIRST_FETCH_HAIKU_SYSTEM_PROMPT = `You are a content classifier. Given source URL, source metadata, and a content excerpt, return STRICT JSON {"entity_verdict":"...","item_type":"...","domain":N,"surface_tags":[],"relevance":N,"severity":"...","priority":"...","urgency_tier":"...","topic_tags":[],"jurisdictions":[],"title_candidate":"...","summary":"...","rationale":"..."}.
 
 entity_verdict: specific_document | portal | uncertain — THE FIRST DECISION. Is this page a SPECIFIC regulatory document/finding (a particular regulation, directive, rule, ruling, report) that should become one intelligence item, OR a PORTAL / navigational homepage / institution landing / index / "latest news" hub (e.g. a ministry or legislature home page) that is a SOURCE, not an item? Return "portal" for navigational/institution-landing content; "specific_document" only when the excerpt is one specific instrument or finding; "uncertain" when you genuinely cannot tell. NEVER guess "specific_document" to be safe — an honest "uncertain" is correct and required.
 
@@ -86,6 +96,20 @@ If you cannot confidently assign a domain in 1-7 per this rule, return null. Nev
 relevance: integer 0-100 — how directly this content bears on freight-forwarding sustainability (regulations, emissions, fuels/energy, supply-chain, logistics costs, transport labor, batteries/EV, ports/corridors). 100 = core; 0 = unrelated (e.g. a residential apartment lottery, a generic cookie policy). This is a SURFACE-ONLY honesty signal used to flag off-vertical content for review — it NEVER blocks classification. Be honest; do not inflate.
 
 Output JSON only.`;
+
+// PROMPT_VERSION — a content hash of FIRST_FETCH_HAIKU_SYSTEM_PROMPT, same format as
+// scripts/lib/run-artifact.mjs's hashHarnessVersion ("sha256:" + first 16 hex chars of a sha256 digest),
+// so a reader who already knows that convention recognizes this one on sight. Recomputed at import time
+// from the live string above (never hand-maintained) — editing the prompt moves this hash automatically,
+// exactly the "a change to the source is a change to its own version stamp" property harness_version has.
+// This is what run-ledger-consume.mjs's `--verdicts` file schema pins as each entry's `prompt_version`:
+// a verdict produced under a stale prompt is a version MISMATCH the driver can flag, never silently
+// accepted as if the wording never changed.
+export const FIRST_FETCH_CLASSIFY_PROMPT_VERSION = `sha256:${crypto
+  .createHash("sha256")
+  .update(FIRST_FETCH_HAIKU_SYSTEM_PROMPT, "utf8")
+  .digest("hex")
+  .slice(0, 16)}`;
 
 export interface FirstFetchClassifyInput {
   source_id: string;
@@ -146,6 +170,31 @@ function extractJsonObject(text: string): string | null {
   return m ? m[0] : null;
 }
 
+/** The exact user-message text firstFetchClassify sends alongside FIRST_FETCH_HAIKU_SYSTEM_PROMPT — the
+ *  OTHER half of "one body" for a session lane building an offline verdict (see that const's own export
+ *  comment). PURE: no fetch, no truncation surprises — takes the caller's already-fetched excerpt and
+ *  applies the SAME CONTENT_MAX_CHARS truncation and "unknown" fallbacks firstFetchClassify itself uses,
+ *  so a session lane's Haiku call and a live spend-chokepoint call are given byte-identical input for the
+ *  same (source_url, text). Exported so run-ledger-consume.mjs's `--export-candidates` mode and any
+ *  session lane can build it without re-typing the template (REUSE-ONLY — see portal-harvest.ts's header
+ *  for the discipline this repo already applies at every such seam). */
+export function buildFirstFetchClassifyUserMessage(
+  input: Pick<FirstFetchClassifyInput, "source_url" | "source_id" | "source_tier" | "source_category" | "text">
+): string {
+  const text = input.text.slice(0, CONTENT_MAX_CHARS);
+  const sourceCategoryLabel =
+    input.source_category && typeof input.source_category === "string" ? input.source_category : "unknown";
+  return `Source URL: ${input.source_url}
+Source id: ${input.source_id}
+Source tier: ${input.source_tier ?? "unknown"}
+Source category: ${sourceCategoryLabel}
+Content excerpt:
+---
+${text}
+---
+Output the JSON object only.`;
+}
+
 /**
  * Call Haiku to produce title/summary/priority/etc. for a freshly-seeded
  * first-fetch stub. Returns {ok:false} on any failure (network, parse,
@@ -189,20 +238,7 @@ export async function firstFetchClassify(
     };
   }
 
-  const text = input.text.slice(0, CONTENT_MAX_CHARS);
-  const sourceCategoryLabel =
-    input.source_category && typeof input.source_category === "string"
-      ? input.source_category
-      : "unknown";
-  const userMessage = `Source URL: ${input.source_url}
-Source id: ${input.source_id}
-Source tier: ${input.source_tier ?? "unknown"}
-Source category: ${sourceCategoryLabel}
-Content excerpt:
----
-${text}
----
-Output the JSON object only.`;
+  const userMessage = buildFirstFetchClassifyUserMessage(input);
 
   const start = Date.now();
   // SPEND CHOKEPOINT: set the standing-ticket-class ticket for JUST this call, restoring whatever ticket
@@ -216,7 +252,11 @@ Output the JSON object only.`;
     standingClass: "first-fetch-classify",
     sourceId: input.source_id,
     itemId: null,
-    precondition: { check: "error-body-pre-gate", result: "content-passed-gate", snapshotBytes: text.length },
+    precondition: {
+      check: "error-body-pre-gate",
+      result: "content-passed-gate",
+      snapshotBytes: Math.min(input.text.length, CONTENT_MAX_CHARS),
+    },
   });
   let inputTokens = 0;
   let outputTokens = 0;

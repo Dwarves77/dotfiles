@@ -24,8 +24,10 @@
 // gap, not a silent one.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { resolve, dirname } from "node:path";
+import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import {
   parseArgs,
   resolveApplyGate,
@@ -38,7 +40,48 @@ import {
   LEDGER_CONSUME_APPLY_ENABLED,
   PROMOTED_LIKE_DISPOSITIONS,
   REJECTED_LIKE_DISPOSITIONS,
+  validateVerdictEntry,
+  validateVerdictsFile,
+  partitionVerdictsByPromptVersion,
+  indexVerdictsByUrl,
+  verdictEntryToClassifyOutput,
+  buildVerdictClassify,
+  buildCandidateExportPayload,
+  runExportCandidates,
 } from "./run-ledger-consume.mjs";
+
+const PV = "sha256:aaaaaaaaaaaaaaaa"; // a well-formed stand-in prompt_version for fixtures below
+
+function verdictEntry(overrides = {}) {
+  return {
+    candidate_id: "plc-1",
+    url: "https://x/doc1",
+    entity_verdict: "specific_document",
+    item_type: "regulation",
+    confidence: 0.9,
+    rationale: "specific instrument",
+    classified_by: "session-haiku",
+    classified_at: "2026-09-04T00:00:00.000Z",
+    prompt_version: PV,
+    domain: 1,
+    severity: "ACTION REQUIRED",
+    priority: "HIGH",
+    urgency_tier: "elevated",
+    title_candidate: "Doc 1",
+    ...overrides,
+  };
+}
+
+function verdictsFile(entries, overrides = {}) {
+  return {
+    batch: "ledger-verdicts-001",
+    generated_at: "2026-09-04T00:00:00.000Z",
+    prompt_version: PV,
+    classified_by: "session-haiku",
+    entries,
+    ...overrides,
+  };
+}
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -132,8 +175,8 @@ test("resolveApplyGate: apply requested + const true -> apply runs, no disarm me
   assert.equal(r.message, null);
 });
 
-test("the shipped LEDGER_CONSUME_APPLY_ENABLED const is false (ADR-023 gate, left unarmed by this lane)", () => {
-  assert.equal(LEDGER_CONSUME_APPLY_ENABLED, false);
+test("the shipped LEDGER_CONSUME_APPLY_ENABLED const is true (operator ruling 2026-09-04, ADR-023 gate flipped in this diff)", () => {
+  assert.equal(LEDGER_CONSUME_APPLY_ENABLED, true);
 });
 
 // ── defaultTraceDir ──────────────────────────────────────────────────────────────────────────────────
@@ -437,6 +480,331 @@ test("hashHarnessVersion resolves every governing file on disk (no typo'd path)"
   const { hashHarnessVersion } = await import("../lib/run-artifact.mjs");
   const hash = hashHarnessVersion(LEDGER_CONSUME_GOVERNING_FILES, FSI_ROOT);
   assert.match(hash, /^sha256:[0-9a-f]{16}$/);
+});
+
+// ── session-verdict file contract (operator ruling 2026-09-04) — validation ─────────────────────────────
+
+test("validateVerdictEntry: a well-formed specific_document entry validates clean", () => {
+  assert.deepEqual(validateVerdictEntry(verdictEntry(), 0), []);
+});
+
+test("validateVerdictEntry: a well-formed portal entry (item_type null) validates clean", () => {
+  const e = verdictEntry({
+    entity_verdict: "portal", item_type: null, domain: undefined, severity: undefined,
+    priority: undefined, urgency_tier: undefined, title_candidate: undefined,
+  });
+  assert.deepEqual(validateVerdictEntry(e, 0), []);
+});
+
+test("validateVerdictEntry: specific_document with item_type/domain/severity/priority/urgency_tier/title_candidate missing -> named errors", () => {
+  const errs = validateVerdictEntry(
+    verdictEntry({ item_type: null, domain: null, severity: null, priority: null, urgency_tier: null, title_candidate: null }),
+    2
+  );
+  assert.ok(errs.some((e) => e.startsWith("entries[2]:") && /item_type/.test(e)));
+  assert.ok(errs.some((e) => /domain/.test(e)));
+  assert.ok(errs.some((e) => /severity/.test(e)));
+  assert.ok(errs.some((e) => /priority/.test(e)));
+  assert.ok(errs.some((e) => /urgency_tier/.test(e)));
+  assert.ok(errs.some((e) => /title_candidate/.test(e)));
+});
+
+test("validateVerdictEntry: entity_verdict must be one of the three sanctioned values", () => {
+  const errs = validateVerdictEntry(verdictEntry({ entity_verdict: "definitely_an_item" }), 0);
+  assert.ok(errs.some((e) => /entity_verdict must be one of/.test(e)));
+});
+
+test("validateVerdictEntry: confidence out of [0,1] is rejected", () => {
+  assert.ok(validateVerdictEntry(verdictEntry({ confidence: 1.5 }), 0).length > 0);
+  assert.ok(validateVerdictEntry(verdictEntry({ confidence: -0.1 }), 0).length > 0);
+  assert.deepEqual(validateVerdictEntry(verdictEntry({ confidence: 0 }), 0), []);
+  assert.deepEqual(validateVerdictEntry(verdictEntry({ confidence: 1 }), 0), []);
+});
+
+test("validateVerdictEntry: classified_by must be the sanctioned 'session-haiku' label", () => {
+  const errs = validateVerdictEntry(verdictEntry({ classified_by: "a-human-guess" }), 0);
+  assert.ok(errs.some((e) => /classified_by must be one of/.test(e)));
+});
+
+test("validateVerdictEntry: prompt_version must match ^sha256:[0-9a-f]{16}$", () => {
+  assert.ok(validateVerdictEntry(verdictEntry({ prompt_version: "not-a-hash" }), 0).length > 0);
+  assert.ok(validateVerdictEntry(verdictEntry({ prompt_version: "sha256:tooshort" }), 0).length > 0);
+});
+
+test("validateVerdictEntry: classified_at must be a parseable ISO timestamp", () => {
+  assert.ok(validateVerdictEntry(verdictEntry({ classified_at: "not a date" }), 0).length > 0);
+});
+
+test("validateVerdictEntry: item_type must be null when entity_verdict is not specific_document", () => {
+  const errs = validateVerdictEntry(verdictEntry({ entity_verdict: "uncertain", item_type: "regulation" }), 0);
+  assert.ok(errs.some((e) => /item_type must be null/.test(e)));
+});
+
+test("validateVerdictEntry: not an object -> a single clear error, never a throw", () => {
+  assert.deepEqual(validateVerdictEntry(null, 5), ["entries[5]: must be an object"]);
+  assert.deepEqual(validateVerdictEntry("nope", 5), ["entries[5]: must be an object"]);
+});
+
+test("validateVerdictsFile: a well-formed batch validates clean", () => {
+  assert.deepEqual(validateVerdictsFile(verdictsFile([verdictEntry()])), []);
+});
+
+test("validateVerdictsFile: missing batch/generated_at/prompt_version/classified_by are named", () => {
+  const errs = validateVerdictsFile({ entries: [] });
+  assert.ok(errs.some((e) => /^batch/.test(e)));
+  assert.ok(errs.some((e) => /^generated_at/.test(e)));
+  assert.ok(errs.some((e) => /^prompt_version/.test(e)));
+  assert.ok(errs.some((e) => /^classified_by/.test(e)));
+});
+
+test("validateVerdictsFile: entries must be an array; per-entry errors are prefixed with their index", () => {
+  const badEntries = validateVerdictsFile(verdictsFile("not-an-array"));
+  assert.ok(badEntries.some((e) => e === "entries must be an array"));
+
+  const twoEntries = validateVerdictsFile(verdictsFile([verdictEntry(), verdictEntry({ candidate_id: "" })]));
+  assert.ok(twoEntries.some((e) => e.startsWith("entries[1]:")));
+  assert.ok(!twoEntries.some((e) => e.startsWith("entries[0]:")));
+});
+
+test("validateVerdictsFile: not an object -> a single clear error", () => {
+  assert.deepEqual(validateVerdictsFile(null), ["verdicts file must be a JSON object"]);
+  assert.deepEqual(validateVerdictsFile([1, 2]), ["verdicts file must be a JSON object"]);
+});
+
+// ── partitionVerdictsByPromptVersion — per-entry, non-fatal prompt-drift handling ───────────────────────
+
+test("partitionVerdictsByPromptVersion: splits current vs stale by exact prompt_version match", () => {
+  const entries = [
+    verdictEntry({ url: "https://x/1", prompt_version: PV }),
+    verdictEntry({ url: "https://x/2", prompt_version: "sha256:bbbbbbbbbbbbbbbb" }),
+  ];
+  const { current, stale } = partitionVerdictsByPromptVersion(entries, PV);
+  assert.equal(current.length, 1);
+  assert.equal(current[0].url, "https://x/1");
+  assert.equal(stale.length, 1);
+  assert.equal(stale[0].url, "https://x/2");
+});
+
+test("partitionVerdictsByPromptVersion: all-current and all-stale edge cases", () => {
+  const entries = [verdictEntry({ url: "https://x/1" })];
+  assert.deepEqual(partitionVerdictsByPromptVersion(entries, PV).stale, []);
+  assert.deepEqual(partitionVerdictsByPromptVersion(entries, "sha256:0000000000000000").current, []);
+});
+
+// ── indexVerdictsByUrl / verdictEntryToClassifyOutput ────────────────────────────────────────────────
+
+test("indexVerdictsByUrl: keyed by URL, last entry wins on a duplicate URL", () => {
+  const a = verdictEntry({ url: "https://x/dup", rationale: "first" });
+  const b = verdictEntry({ url: "https://x/dup", rationale: "second (correction)" });
+  const byUrl = indexVerdictsByUrl([a, b]);
+  assert.equal(byUrl.size, 1);
+  assert.equal(byUrl.get("https://x/dup").rationale, "second (correction)");
+});
+
+test("verdictEntryToClassifyOutput: specific_document maps to a FirstFetchClassifyOutput-shaped object, $0 cost", () => {
+  const out = verdictEntryToClassifyOutput(verdictEntry({ surface_tags: ["regulations"], relevance: 77, topic_tags: ["emissions"], jurisdictions: ["EU"], summary: "s" }));
+  assert.equal(out.entity_verdict, "specific_document");
+  assert.equal(out.item_type, "regulation");
+  assert.equal(out.domain, 1);
+  assert.deepEqual(out.surface_tags, ["regulations"]);
+  assert.equal(out.relevance, 77);
+  assert.equal(out.severity, "ACTION REQUIRED");
+  assert.equal(out.title_candidate, "Doc 1");
+  assert.equal(out.summary, "s");
+  assert.equal(out.cost_usd_estimated, 0);
+  assert.equal(out.input_tokens, 0);
+  assert.equal(out.output_tokens, 0);
+});
+
+test("verdictEntryToClassifyOutput: portal/uncertain -> item_type/domain null, never silently defaulted", () => {
+  const out = verdictEntryToClassifyOutput(verdictEntry({ entity_verdict: "uncertain", item_type: null, domain: null }));
+  assert.equal(out.item_type, null);
+  assert.equal(out.domain, null);
+  assert.equal(out.title_candidate, "https://x/doc1", "falls back to the URL, never a fabricated title");
+});
+
+// ── buildVerdictClassify — THE BYPASS, THE SKIP, THE $0 TELEMETRY ──────────────────────────────────────
+
+test("buildVerdictClassify: a URL WITH a verdict bypasses baseClassify entirely — $0, classify_source session-verdict", async () => {
+  let baseCalls = 0;
+  const baseClassify = async () => { baseCalls++; return { ok: true, result: { cost_usd_estimated: 0.001 } }; };
+  const verdictsByUrl = indexVerdictsByUrl([verdictEntry({ url: "https://x/hit", confidence: 0.8 })]);
+  const telemetry = new Map();
+  const classify = buildVerdictClassify({ verdictsByUrl, allowApi: false, baseClassify, telemetry });
+
+  const res = await classify({ source_id: "s1", source_url: "https://x/hit" }, "key");
+  assert.equal(res.ok, true);
+  assert.equal(res.result.entity_verdict, "specific_document");
+  assert.equal(baseCalls, 0, "the API classify function must NEVER be called for a verdict hit");
+  const t = telemetry.get("https://x/hit");
+  assert.equal(t.source, "session-verdict");
+  assert.equal(t.costUsd, 0);
+  assert.equal(t.confidence, 0.8);
+  assert.equal(t.verdictCandidateId, "plc-1");
+});
+
+test("buildVerdictClassify: a URL WITHOUT a verdict, allowApi=false (the default) is SKIPPED — never reaches baseClassify", async () => {
+  let baseCalls = 0;
+  const baseClassify = async () => { baseCalls++; return { ok: true, result: {} }; };
+  const classify = buildVerdictClassify({ verdictsByUrl: new Map(), allowApi: false, baseClassify, telemetry: new Map() });
+  const telemetry = new Map();
+  const classify2 = buildVerdictClassify({ verdictsByUrl: new Map(), allowApi: false, baseClassify, telemetry });
+
+  const res = await classify2({ source_id: "s1", source_url: "https://x/miss" }, "key");
+  assert.equal(res.ok, false);
+  assert.match(res.error, /^skipped-no-verdict:/);
+  assert.equal(baseCalls, 0, "no verdict + allowApi=false must NEVER reach the API");
+  const t = telemetry.get("https://x/miss");
+  assert.equal(t.source, "skipped-no-verdict");
+  assert.equal(t.costUsd, 0);
+  assert.equal(t.ok, false);
+  void classify; // (unused first instance, kept only to mirror the two-arg construction above)
+});
+
+test("buildVerdictClassify: a URL WITHOUT a verdict, allowApi=true, DOES fall through to baseClassify (the CLI-only escape hatch)", async () => {
+  let baseCalls = 0;
+  const baseClassify = async (input, apiKey) => {
+    baseCalls++;
+    assert.equal(apiKey, "real-key");
+    return { ok: true, result: { cost_usd_estimated: 0.0012 } };
+  };
+  const telemetry = new Map();
+  // baseClassify here stands in for a collectClassifyTelemetry-wrapped real classify — buildVerdictClassify
+  // itself does not write telemetry for this branch (the wrapped baseClassify does), so only assert the
+  // call happened and the result passed through unchanged.
+  const classify = buildVerdictClassify({ verdictsByUrl: new Map(), allowApi: true, baseClassify, telemetry });
+  const res = await classify({ source_id: "s1", source_url: "https://x/allow-api" }, "real-key");
+  assert.equal(baseCalls, 1, "allow-api=true must fall through to the real classify function on a miss");
+  assert.equal(res.ok, true);
+});
+
+test("buildVerdictClassify: a verdict hit WINS even when allowApi=true (verdict > API, never the reverse)", async () => {
+  let baseCalls = 0;
+  const baseClassify = async () => { baseCalls++; return { ok: true, result: {} }; };
+  const verdictsByUrl = indexVerdictsByUrl([verdictEntry({ url: "https://x/both" })]);
+  const telemetry = new Map();
+  const classify = buildVerdictClassify({ verdictsByUrl, allowApi: true, baseClassify, telemetry });
+  await classify({ source_id: "s1", source_url: "https://x/both" }, "key");
+  assert.equal(baseCalls, 0, "a verdict hit must be used even when --allow-api is set");
+  assert.equal(telemetry.get("https://x/both").source, "session-verdict");
+});
+
+test("buildVerdictClassify + collectClassifyTelemetry compose into ONE telemetry map (api branch tagged 'api')", async () => {
+  const baseFn = async () => ({ ok: true, result: { cost_usd_estimated: 0.002, input_tokens: 500, output_tokens: 40 } });
+  const { classify: apiClassify, telemetry } = collectClassifyTelemetry(baseFn);
+  const classify = buildVerdictClassify({
+    verdictsByUrl: indexVerdictsByUrl([verdictEntry({ url: "https://x/verdict" })]),
+    allowApi: true,
+    baseClassify: apiClassify,
+    telemetry,
+  });
+  await classify({ source_id: "s1", source_url: "https://x/verdict" }, "key");
+  await classify({ source_id: "s2", source_url: "https://x/api" }, "key"); // no verdict -> falls through to apiClassify
+  assert.equal(telemetry.size, 2);
+  assert.equal(telemetry.get("https://x/verdict").source, "session-verdict");
+  assert.equal(telemetry.get("https://x/verdict").costUsd, 0);
+  assert.equal(telemetry.get("https://x/api").source, "api");
+  assert.equal(telemetry.get("https://x/api").costUsd, 0.002);
+});
+
+// ── shapeConsumeResult — new metrics/per_item fields the session-verdict flip adds ──────────────────────
+
+test("shapeConsumeResult: classify_source/confidence/mismatch surface per_item, with_verdict/without_verdict_skipped/uncertain/est_usd surface in metrics", () => {
+  const result = {
+    mode: "plan", discovered: 4, fetched: 4, classified: 2,
+    outcomes: [
+      { ledgerId: "row-1", url: "https://x/1", disposition: "would_mint", reason: "dry: minted" },
+      { ledgerId: "row-2", url: "https://x/2", disposition: "skipped", reason: "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API" },
+      { ledgerId: "row-3", url: "https://x/3", disposition: "not_an_item", reason: "entity-gate: uncertain — genuinely unclear" },
+      { ledgerId: "row-4", url: "https://x/4", disposition: "not_an_item", reason: "entity-gate: portal — nav home" },
+    ],
+  };
+  const telemetry = new Map([
+    ["https://x/1", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: true, error: null, source: "session-verdict", verdictCandidateId: "row-1", confidence: 0.85 }],
+    ["https://x/2", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: false, error: "skipped-no-verdict: ...", source: "skipped-no-verdict" }],
+    ["https://x/3", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: true, error: null, source: "session-verdict", verdictCandidateId: "row-3", confidence: 0.4 }],
+    // row-4 never reached classify's telemetry in this fixture (no map entry) — exercises the "none" default.
+  ]);
+
+  const { perItem, metrics } = shapeConsumeResult(result, telemetry);
+  const byId = Object.fromEntries(perItem.map((p) => [p.id, p]));
+
+  assert.equal(byId["row-1"].classify_source, "session-verdict");
+  assert.equal(byId["row-1"].confidence, 0.85);
+  assert.equal(byId["row-1"].verdict_candidate_id_mismatch, undefined);
+  assert.equal(byId["row-2"].classify_source, "skipped-no-verdict");
+  assert.equal(byId["row-3"].confidence, 0.4);
+  assert.equal(byId["row-4"].classify_source, "none");
+
+  assert.equal(metrics.candidates, 4);
+  assert.equal(metrics.with_verdict, 2);
+  assert.equal(metrics.without_verdict_skipped, 1);
+  assert.equal(metrics.uncertain, 1, "only row-3 (entity-gate: uncertain) counts; row-4 (portal) does not");
+  assert.equal(metrics.est_usd, 0);
+  assert.equal(metrics.est_usd_total, 0);
+});
+
+test("shapeConsumeResult: a candidate_id mismatch between the verdict entry and the actual ledger row is flagged, not silently dropped", () => {
+  const result = {
+    mode: "plan", discovered: 1, fetched: 1, classified: 1,
+    outcomes: [{ ledgerId: "REAL-ROW-ID", url: "https://x/mismatch", disposition: "would_mint", reason: "dry: minted" }],
+  };
+  const telemetry = new Map([
+    ["https://x/mismatch", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: true, error: null, source: "session-verdict", verdictCandidateId: "STALE-DIFFERENT-ID", confidence: 0.9 }],
+  ]);
+  const { perItem } = shapeConsumeResult(result, telemetry);
+  assert.equal(perItem[0].verdict_candidate_id_mismatch, true);
+});
+
+// ── --export-candidates — buildCandidateExportPayload / runExportCandidates ─────────────────────────────
+
+test("buildCandidateExportPayload: shapes candidate rows, names why fetched text is absent, carries prompt_version", () => {
+  const rows = [
+    { id: "plc-1", url: "https://x/a", source_id: "src-1", anchor_text: "A", first_seen_at: "2026-09-01T00:00:00Z", sources: { name: "EUR-Lex", category: "regulatory", base_tier: 1 } },
+  ];
+  const payload = buildCandidateExportPayload(rows, { limit: 10, promptVersion: PV, now: () => "2026-09-04T00:00:00Z" });
+  assert.equal(payload.generated_at, "2026-09-04T00:00:00Z");
+  assert.equal(payload.prompt_version, PV);
+  assert.equal(payload.count, 1);
+  assert.match(payload.note_on_fetched_text, /does not persist first-fetch page text/);
+  assert.deepEqual(payload.candidates[0], {
+    candidate_id: "plc-1", url: "https://x/a", source_id: "src-1", anchor_text: "A",
+    first_seen_at: "2026-09-01T00:00:00Z", source_name: "EUR-Lex", source_category: "regulatory", source_tier: 1,
+  });
+  assert.equal(payload.next_cursor, null, "fewer rows than limit -> exhausted, no cursor");
+});
+
+test("buildCandidateExportPayload: next_cursor present when the page is exactly full (limit reached)", () => {
+  const rows = [
+    { id: "a", url: "https://x/a", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null },
+    { id: "b", url: "https://x/b", source_id: "s", first_seen_at: "2026-09-02T00:00:00Z", sources: null },
+  ];
+  const payload = buildCandidateExportPayload(rows, { limit: 2 });
+  assert.deepEqual(payload.next_cursor, { firstSeenAt: "2026-09-02T00:00:00Z", id: "b" });
+});
+
+test("runExportCandidates: writes the shaped payload to outPath via the injected selectPage (no live client needed)", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-export-"));
+  try {
+    const outPath = join(tmpDir, "candidates.json");
+    let calledWith = null;
+    const selectPage = async (opts) => {
+      calledWith = opts;
+      return [{ id: "plc-1", url: "https://x/a", source_id: "src-1", first_seen_at: "2026-09-01T00:00:00Z", sources: null }];
+    };
+    const { path, count } = await runExportCandidates({
+      selectPage, limit: 5, sourceId: "src-1", newestFirst: false, after: null, promptVersion: PV, outPath,
+      now: () => "2026-09-04T00:00:00Z",
+    });
+    assert.equal(count, 1);
+    assert.equal(path, resolve(outPath));
+    assert.deepEqual(calledWith, { limit: 5, sourceId: "src-1", newestFirst: false, after: undefined });
+    const written = JSON.parse(readFileSync(outPath, "utf8"));
+    assert.equal(written.count, 1);
+    assert.equal(written.candidates[0].candidate_id, "plc-1");
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
 });
 
 // The jiti-load proof (consumePortalCandidates + first-fetch-classify.ts resolve cleanly through jiti,

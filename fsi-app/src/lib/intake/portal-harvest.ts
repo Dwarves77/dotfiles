@@ -195,12 +195,30 @@ export function buildCandidateSeed(row: LedgerCandidate, cls: FirstFetchClassify
   };
 }
 
-export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeOpts): Promise<ConsumeResult> {
-  const { mode, limit, sourceId, fetchDoc, anthropicKey } = opts;
-  const classify = opts.classify ?? firstFetchClassify;
-  const now = opts.now ?? (() => new Date().toISOString());
-  const outcomes: CandidateOutcome[] = [];
+/** Options `selectCandidateLedgerPage` and `consumePortalCandidates` share — the read-only page-selection
+ *  half of ConsumeOpts, extracted so a second, read-only caller (run-ledger-consume.mjs's
+ *  `--export-candidates`) can select the SAME page of the SAME ledger the consume pass would have read,
+ *  without re-typing the query (REUSE-ONLY, this file's own header discipline — "no copies of logic"). */
+export interface CandidateLedgerPageOpts {
+  limit: number;
+  sourceId?: string;
+  newestFirst?: boolean;
+  after?: LedgerCursor | null;
+  censusExclusion?: { table: string; column?: string; dispositionColumn?: string } | null;
+}
 
+/** Select one page of `portal_link_candidates` (status='candidate'), joined to its parent source, in the
+ *  SAME (first_seen_at, id) keyset order and with the SAME optional census-anti-join exclusion
+ *  `consumePortalCandidates` applies — extracted from that function (Wave LEDGER-ZERO, 2026-09-04) so a
+ *  read-only lister (run-ledger-consume.mjs's `--export-candidates`, built for the session-verdict
+ *  offline-classify flow) reads EXACTLY the rows a consume pass would have read, never a hand-mirrored
+ *  second query that could silently drift from this one. See ConsumeOpts's own field docs for the
+ *  pagination/exclusion semantics this reuses verbatim. */
+export async function selectCandidateLedgerPage(
+  sb: SupabaseClient,
+  opts: CandidateLedgerPageOpts
+): Promise<LedgerCandidate[]> {
+  const { limit, sourceId } = opts;
   const ascending = !opts.newestFirst;
   let q = sb
     .from("portal_link_candidates")
@@ -244,7 +262,22 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   }
   const { data: rows, error: qErr } = await q;
   if (qErr) throw new Error(`[portal-harvest] ledger read failed: ${qErr.message}`);
-  const candidates = (rows ?? []) as unknown as LedgerCandidate[];
+  return (rows ?? []) as unknown as LedgerCandidate[];
+}
+
+export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeOpts): Promise<ConsumeResult> {
+  const { mode, limit, sourceId, fetchDoc, anthropicKey } = opts;
+  const classify = opts.classify ?? firstFetchClassify;
+  const now = opts.now ?? (() => new Date().toISOString());
+  const outcomes: CandidateOutcome[] = [];
+
+  const candidates = await selectCandidateLedgerPage(sb, {
+    limit,
+    sourceId,
+    newestFirst: opts.newestFirst,
+    after: opts.after,
+    censusExclusion: opts.censusExclusion,
+  });
 
   // Stamp a ledger disposition (apply mode only — plan is READ-ONLY by contract).
   const stamp = async (row: LedgerCandidate, status: "promoted" | "rejected", reason: string, itemId: string | null) => {

@@ -47,12 +47,132 @@
 // analysis runs once inside check().
 
 import { readFileSync, existsSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join, posix } from 'node:path';
 import { violation, PASS } from '../lib/result.mjs';
 import { globFiles } from '../lib/glob.mjs';
 import { getRepoRoot } from '../../lib/context.mjs';
 
 const MANIFEST = 'docs/audits/dead-code-manifest-2026-08-11.txt';
+
+// ── WAVE W7.1 WIDENING (2026-09-04, lane F25-WIDE, docs/plans/complete-system-build-plan-2026-09-04.md
+// §W7.1; method per docs/audits/wiring-audit-2026-09-04/B1-modules.md). THE GAP THIS CLOSES: B1's own
+// "Method" section read this exact file and named its scope as the reason the census/ratification half of
+// the loop (four scripts/review/apply-*.mjs) and 65 other modules could sit unwired with every fitness
+// gate green — nothing outside src/**+scripts/lib/** was in this check's SCOPE at all, so "0 importers, no
+// workflow" modules under scripts/mint, scripts/turns, scripts/maintenance, scripts/review,
+// scripts/spec09, scripts/gen, scripts/connections, scripts/entities, scripts/producers, and every
+// .discipline/** governance/rendering module were structurally invisible to this gate. SCOPE now covers
+// fsi-app/src/**, fsi-app/scripts/** (all subdirectories, not just lib/), and fsi-app/.discipline/**.
+//
+// WHY WIDENING ALONE WOULD HAVE BEEN WRONG: most of scripts/** is CLI entry points invoked by
+// `node scripts/x.mjs` from a GitHub Actions `run:` step, never imported by another module — B1's Method
+// section is explicit that "0 importers" is NORMAL AND EXPECTED for a correctly-wired driver, and the
+// import graph alone cannot see that. Two more blind spots B1 found and corrected by hand: (a) four
+// .discipline/rendering/smoke/stub-*.mjs files are resolved through an esbuild module-alias table (a
+// string constant), never a static `import` specifier; (b) a documented, artifact-proven MANUAL procedure
+// (screen-worklist.mjs, run by hand per MINT-RUNBOOK.md, proven by scripts/harness-runs/screen/*.json)
+// is real and used despite having neither an importer nor a workflow line. findDispatchRoots() below
+// mechanizes (a) and the workflow/package.json half of B1's method; the (b) class (proven only by a
+// harness-run artifact, not by any static reference) is not mechanically detectable from source text alone
+// and is instead carried as a named, reason-bearing LEGACY_ALLOWLIST entry — same treatment B1 itself gave
+// it.
+export function findDispatchRoots(
+  root,
+  readFileFn = (f) => readFileSync(join(root, f), 'utf8'),
+  listFilesFn = globFiles,
+) {
+  const roots = new Set();
+  // Path-based, not `node `-prefixed: B1's own Method section is explicit that it "grepped for the
+  // file's repo-relative path" across every workflow, not only literal `node x.mjs` invocations — several
+  // real dispatch shapes never look like that (a `run:` step building an `args=` string that a LATER line
+  // executes via `node $args`; a step comment naming the exact path it wires, which B1 itself counted as
+  // evidence). Matching the bare path is what makes this resolver agree with B1's own verdicts instead of
+  // a stricter regex silently disagreeing with the audit it is meant to mechanize.
+  const MJS_PATH_RE = /((?:fsi-app\/)?(?:scripts|\.discipline)\/[\w./-]+\.mjs)/g;
+  const normalize = (p) => (p.startsWith('fsi-app/') ? p : `fsi-app/${p}`);
+
+  // Source 1: every `.github/workflows/*.yml` — dispatch by CI (population-turn.yml, corpus-turn.yml,
+  // source-sweep.yml, ledger-consume.yml, change-detection.yml, propagation-drain.yml, producers.yml,
+  // maintenance.yml, discipline.yml, source-monitoring.yml, etc).
+  for (const wf of listFilesFn(['.github/workflows/*.yml'])) {
+    let text;
+    try { text = readFileFn(wf); } catch { continue; }
+    for (const m of text.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+  }
+
+  // Source 2: fsi-app/package.json's own "scripts" section (e.g. `perf:bundles` -> measure-bundles.mjs) —
+  // a dispatch root by `npm run <name>`, the same "reachable by a human hitting dispatch" shape B1's
+  // top-line findings describe for the workflow_dispatch-only loop stages.
+  try {
+    const pkg = JSON.parse(readFileFn('fsi-app/package.json'));
+    for (const cmd of Object.values(pkg.scripts || {})) {
+      for (const m of String(cmd).matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+    }
+  } catch { /* no package.json scripts to mine — not fatal */ }
+
+  // Source 3: esbuild module-alias tables under .discipline/rendering — every `stub-*.mjs` filename
+  // literal (however it is embedded: `join(HERE, 'stub-x.mjs')`, a template literal, a STUBS map value)
+  // names a real alias TARGET resolved at bundle time, invisible to the static import-specifier scan. All
+  // shipped stub files live in .discipline/rendering/smoke/; a stub introduced elsewhere under
+  // .discipline/rendering/ is still caught (the glob covers the whole subtree) but the reference itself is
+  // the file's own name wherever it appears, so this does not depend on which file DECLARES the alias.
+  const STUB_RE = /stub-[\w-]+\.mjs/g;
+  for (const f of listFilesFn(['fsi-app/.discipline/rendering/**/*.mjs'])) {
+    let text;
+    try { text = readFileFn(f); } catch { continue; }
+    for (const m of text.matchAll(STUB_RE)) roots.add(`fsi-app/.discipline/rendering/smoke/${m[0]}`);
+  }
+
+  // Source 4: scripts/verify/run-data-audit-lane.mjs's own `AUDITS` string table — a dispatch mechanism
+  // distinct from a static import OR a literal workflow path: ~28 scripts/verify/*-audit.mjs files are
+  // named as `["label", "scripts/verify/x-audit.mjs", hardFlag]` entries and run by
+  // `.github/workflows/data-audit-lane.yml` via this ONE indirection. Deliberately narrow (only this one
+  // file's own AUDITS array, the same regex `.discipline/governance/execution-wiring.mjs`'s own
+  // `auditLaneSet()` uses for the identical table — cited, not copied verbatim into general use) rather
+  // than reusing execution-wiring's full `isExecutionWired()`: that resolver's fitness-sentinel surface
+  // scans every fitness function file (F25-module-liveness.mjs included) for ANY `.mjs` path string
+  // literal, which would self-match this very file's own LEGACY_ALLOWLIST entries and silently mark them
+  // "wired" the moment they are written down — a false positive this module cannot risk on itself.
+  try {
+    const src = readFileFn('fsi-app/scripts/verify/run-data-audit-lane.mjs');
+    for (const m of src.matchAll(/\[\s*"[^"]+"\s*,\s*"([^"]+\.mjs)"\s*,/g)) roots.add(normalize(m[1]));
+  } catch { /* run-data-audit-lane.mjs itself is scope-checked like any other module; absence is its own violation */ }
+
+  // Source 5: behavioral goldens (run-goldens.mjs auto-discovers every `*.golden.mjs`/`*-golden.mjs`
+  // under scripts/verify/ — the same suffix coverage-scan.mjs's own PROOF_RE and execution-wiring.mjs's
+  // own goldensMatcher() use). isTestFile() (this file, above) does NOT classify a `-golden.mjs` suffix as
+  // a test — that convention predates this widening and changing it would ripple into every existing
+  // golden in the repo, well outside this lane's write set — so a golden with no static importer would
+  // otherwise misread as an unwired MODULE despite being a wired, executed PROOF. Named as a dispatch root
+  // here instead, which fixes the widened scope's blind spot without touching isTestFile()'s contract.
+  for (const f of listFilesFn(['fsi-app/scripts/verify/**/*.mjs'])) {
+    if (/(?:\.golden|-golden)\.mjs$/.test(f)) roots.add(f);
+  }
+
+  return roots;
+}
+
+// Latest landed train/wave number, read from `git log --oneline origin/master` (the expiry oracle named
+// by docs/plans/complete-system-build-plan-2026-09-04.md §W7.1). Returns null (never throws) when the
+// history is unavailable — the CI fitness-check job runs a DELIBERATELY shallow checkout ("fitness
+// functions scan the working tree ... do not consult git history", .github/workflows/discipline.yml) and
+// typically will not have an `origin/master` ref to read; a HEAD-only fallback covers the common case
+// where the checked-out commit IS itself a landed train commit (`git log` needs no network, only the
+// commits already present locally). Expiry enforcement is therefore best-effort in the shallow CI job and
+// exact in any full checkout (this worktree, the "Consistency layer" job, a coordinator's local run) — a
+// known, named degradation rather than a silent one, same posture as F9's own tool-availability handling.
+export function latestTrainWave(root, exec = execFileSync) {
+  for (const ref of ['origin/master', 'HEAD']) {
+    try {
+      const out = exec('git', ['log', '--oneline', ref], { cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+      let max = null;
+      for (const m of out.matchAll(/\bwave(\d+)\b/gi)) max = Math.max(max ?? 0, Number(m[1]));
+      if (max !== null) return max;
+    } catch { /* try the next ref */ }
+  }
+  return null;
+}
 
 // Framework entry points: invoked by convention, never imported. See the header note on proxy.ts.
 const ENTRY_BASENAMES = [
@@ -115,11 +235,20 @@ const PROVEN_BUT_UNWIRED = [
       'be "wired" into; the register names this class a graph-tool false positive, same family as ' +
       'src/proxy.ts\'s framework-entry-point exemption above.',
   },
+  // 'src/lib/llm/metered-emit.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the W1 register #3
+  // DELETE disposition was executed — the module and its test are gone, with them (the
+  // batch-classification runner it existed to gate was never built anywhere in the repo).
   {
-    file: 'src/lib/llm/metered-emit.mjs',
+    file: 'src/lib/llm/metered-gate.mjs',
     disposition:
-      'W1 register #3: DELETE (with its test) — the batch-classification runner this exists to gate was ' +
-      'never built anywhere in the repo. Pending MAINT execution (finish-plan R-C).',
+      'W1 register #4: KEEP, no action, explicitly anticipating this exact moment — "its disposition is ' +
+      'entirely downstream of #3 ... If #3 is deleted, leave this module in place — it\'s the law a future ' +
+      'batch-classification build would need to satisfy, and deleting sound doctrine to match a deleted ' +
+      'implementation is the wrong direction." Its one real caller was metered-emit.mjs (register #3, ' +
+      'DELETE, executed lane DEAD-EXEC 2026-09-04, entry above); the register itself verified ' +
+      '`admin/promotion-policy/route.ts` and `health/spend-health.mjs` only *mention* "metered-gate" in ' +
+      'comments, never import it. Newly unwired as a direct, verified consequence of #3\'s deletion — added ' +
+      'here the same commit that removed #3\'s own entry, per this register\'s own explicit instruction.',
   },
   {
     file: 'src/lib/llm/program-total.mjs',
@@ -127,12 +256,10 @@ const PROVEN_BUT_UNWIRED = [
       'W1 register #1: WIRE, but explicitly low-urgency — "wire it in the same change that ever gives ' +
       'seedSpend its first real caller; don\'t invent a caller just to hang this on." Pending MAINT execution.',
   },
-  {
-    file: 'src/lib/sources/api-fetch.ts',
-    disposition:
-      'W1 register #12: DELETE — superseded by canonical-pipeline.ts\'s own inline apiFetchForHost, not ' +
-      'waiting on an orchestrator like its scripts/lib/sources siblings. Pending MAINT execution.',
-  },
+  // 'src/lib/sources/api-fetch.ts' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the W1 register #12
+  // DELETE disposition was executed — superseded by canonical-pipeline.ts's own inline apiFetchForHost,
+  // which already did the live work; this was a parallel, unused implementation, not an
+  // orchestrator-blocked module like its scripts/lib/sources siblings.
   { file: 'src/lib/sources/instrument-identity.ts', disposition: null }, // not covered by the Aug-31 register
 ];
 
@@ -234,20 +361,11 @@ export const LEGACY_ALLOWLIST = [
     reviewByPhase: 'dormant-capability ruling (operator: wire into a live flow, or delete module + proof together)',
   },
 
-  // ── The one with a live coupling to another gate ──
-  {
-    file: 'fsi-app/scripts/lib/anthropic.mjs',
-    reason:
-      'The rule-016 sanctioned script-side LLM wrapper, and F15\'s one SANCTIONED script-side call site. Its three ' +
-      'importers are ALL on the dead-code manifest, so the sweep leaves it with zero consumers. COUPLED: when the ' +
-      'sweep deletes those three, this module and its F15 SANCTIONED entry must go in the same commit, or F15 ' +
-      'silently sanctions a file that no longer exists (the SANCTIONED staleness audit added to ' +
-      'F15-spend-chokepoint.test.mjs on 2026-08-11 makes that RED rather than silent). DISPOSITION ' +
-      '(docs/plans/unwired-disposition-2026-08-31.md #18): DELETE, corroborating this same finding independently ' +
-      '— "canonicalGenerate never actually adopted by anything"; delete together with the rule-016 PERMITTED ' +
-      'entry and this F15 SANCTIONED entry, same commit. Pending MAINT execution (finish-plan R-C).',
-    reviewByPhase: 'dead-code-sweep (delete with the manifest; retire the F15 SANCTIONED entry in the same commit)',
-  },
+  // 'fsi-app/scripts/lib/anthropic.mjs' entry REMOVED (lane DEAD-EXEC, 2026-09-04): the coupled DELETE
+  // named here (docs/plans/unwired-disposition-2026-08-31.md #18) was executed — the module, its rule-016
+  // PERMITTED entry, and its F15 SANCTIONED entry all went in the same commit, exactly as this entry's
+  // own coupling note required (the F15 SANCTIONED staleness audit stayed green throughout because all
+  // three moved together).
   {
     file: 'fsi-app/scripts/lib/batch-primitives.mjs',
     reason: 'Batch primitives consumed only by its own proof and two manifest scripts. Same sweep coupling as anthropic.mjs.',
@@ -324,6 +442,193 @@ export const LEGACY_ALLOWLIST = [
   // production importer (src/app/api/community/posts/route.ts). See antitrust.mjs's own header for why
   // this reuse happens rather than a second reimplementation.
 
+  // ══════════════════════════════════════════════════════════════════════════════════════════════════
+  // WAVE W7.1 WIDENING (2026-09-04, lane F25-WIDE): every module the newly-widened scope
+  // (scripts/** in full, .discipline/**) flags TODAY, measured against THIS tree (wave36,
+  // e8cb748f) by actually running the widened check — not hand-predicted from the audit. Source for
+  // every disposition + train is docs/plans/complete-system-build-plan-2026-09-04.md §W7.1 and
+  // docs/audits/wiring-audit-2026-09-04/B1-modules.md Appendix A ("no" rows) unless noted otherwise.
+  // Each entry carries `disposition` ({kind: 'wire'|'delete'|'one-shot', detail}) and `expiry` (a
+  // train/wave number): auditLiveness() reds the entry once latestTrainWave() reaches or passes
+  // `expiry`, forcing a real wire-or-delete instead of a permanent exemption wearing a temporary label.
+  // ══════════════════════════════════════════════════════════════════════════════════════════════════
+  ...(() => {
+    const w = (file, plan, expiry, reason) => ({
+      file: `fsi-app/${file}`,
+      reason,
+      reviewByPhase: `W7.1 ratchet (operator/coordinator: wire per ${plan}, or delete with its test, before wave${expiry})`,
+      disposition: { kind: 'wire', detail: plan },
+      expiry,
+    });
+    const d = (file, plan, expiry, reason) => ({
+      file: `fsi-app/${file}`,
+      reason,
+      reviewByPhase: `W7.1 ratchet (operator/coordinator: delete per ${plan} before wave${expiry})`,
+      disposition: { kind: 'delete', detail: plan },
+      expiry,
+    });
+    const o = (file, reasonDetail, expiry, reason) => ({
+      file: `fsi-app/${file}`,
+      reason,
+      reviewByPhase: `W7.1 ratchet (one-shot: ${reasonDetail}; re-review before wave${expiry})`,
+      disposition: { kind: 'one-shot', detail: reasonDetail },
+      expiry,
+    });
+    return [
+      w('.discipline/governance/skill-contract-map.mjs', 'plan §W7.1 (skill-contract-map.mjs)', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is .discipline/skill-drift-gate.test.mjs, no CI reference.'),
+      w('scripts/classification/propose-classifications.mjs', 'plan §W7.1, near scripts/classification/apply-classifications.mjs\'s existing wiring', 41,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs, not in any workflow.'),
+      w('scripts/connections/generate-theme-brief.mjs', 'plan §W7.1', 41,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs, not in any workflow.'),
+      w('scripts/connections/ratify-flag-to-census.mjs', 'plan §W7.1', 41,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs, not in any workflow.'),
+      o('scripts/gen/migration-267-origin-class-and-envelope.mjs',
+        'a numbered migration generator already executed against the live schema (migration 267 applied); rerunning is a no-op/destructive, not a wiring gap — plan §W7.4 "migration ledger"', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is src/__tests__/contracts-provenance-envelope.test.mjs.'),
+      o('scripts/gen/migration-268-market-series.mjs',
+        'a numbered migration generator already executed (migration 268 applied); same class as migration-267 above', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is src/__tests__/contracts-market-series-migration.test.mjs.'),
+      o('scripts/gen/migration-271-assumption-register.mjs',
+        'a numbered migration generator already executed (migration 271 applied); same class as migration-267 above', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is src/__tests__/contracts-assumption-register-migration.test.mjs.'),
+      w('scripts/gen/assumption-register-seed.mjs', 'plan §W7.1 (Gap #4: run --apply and give assumption_register its reader in the obligation register, or drop table + seeder)', 46,
+        'DEAD-OR-MANUAL-ONLY (B1 Gap #4): zero importers; assumption_register (migration 271, live) has 0 rows; header states "THIS SESSION NEVER RUNS --apply".'),
+      o('scripts/entities/backfill-lineage-edges.mjs',
+        'a documented whole-corpus $0 backfill (B1 Ranked Gap #5) — a bounded one-time repair, not a recurring runtime step; run once via MAINT (plan §W4.1 lineage backfill) then re-review', 43,
+        'DEAD-OR-MANUAL-ONLY (B1): zero importers, no workflow; live item_cross_references count (5) is inconsistent with a corpus-wide backfill having run.'),
+      w('scripts/mint/held-classes.mjs', 'plan §W7.1', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A / Ranked Gap #8): one-off dossier tool, only importer is its own .test.mjs.'),
+      o('scripts/mint/screen-worklist.mjs',
+        'manual CLI, MINT-RUNBOOK.md\'s documented pre-population-turn procedure — proven run by hand at least 3 times via scripts/harness-runs/screen/screen-run-{001,002,003}.json, but neither imported nor CI-dispatched, so the widened graph+workflow check cannot see the artifact evidence that makes this WIRED (B1\'s own classification). Re-review: give it a maintenance.yml step, or keep as documented manual with a fresh expiry.', 46,
+        'B1 classifies this WIRED (manual-only, artifact-proven); the mechanical graph+workflow check alone would call it BUILT-NOT-WIRED. Carried on the allowlist rather than silently passed, so the exemption is visible and reviewed.'),
+      w('scripts/producers/market/build-oil-bulletin-rows.mjs', 'plan §W7.1 (wired as the R-D producer pair with ratify-series-items.mjs)', 43,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs, not in any workflow.'),
+      w('scripts/producers/market/ratify-series-items.mjs', 'plan §W7.1 (R-D producer pair)', 43,
+        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs, not in any workflow.'),
+      w('scripts/spec09/auxiliary-energy-producer.mjs', 'plan §W5.1 (spec-09 decisions/producers)', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission (0-row table); only importer is its own .test.mjs.'),
+      w('scripts/spec09/dqi-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs.'),
+      w('scripts/spec09/eudr-custody-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs.'),
+      w('scripts/spec09/grid-queue-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs.'),
+      w('scripts/spec09/indexation-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs.'),
+      w('scripts/spec09/oem-roadmap-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs.'),
+      w('scripts/spec09/surcharge-audit-producer.mjs', 'plan §W5.1', 44,
+        'BUILT-NOT-WIRED (B1 Appendix A): DESIGNED-ONLY by SOURCES.md\'s own admission; only importer is its own .test.mjs. [CONFIRMED against this tree: 7 of 8 spec09 producers are BUILT-NOT-WIRED under the widened check, not the plan text\'s "six" — reroute-producer.mjs is the one already CI-dispatched (maintenance.yml spec09-reroute); listed here rather than silently under-allowlisted.]'),
+      w('scripts/verify/verification-audit-report.mjs', 'plan §W7.1', 46,
+        'BUILT-NOT-WIRED (B1 Appendix A / Ranked Gap #8): one-off dossier tool, only importer is its own .test.mjs.'),
+      o('.discipline/install-hooks.mjs',
+        'operator-run, out-of-repo install step (copies hooks into the shared .git/hooks / git-common-dir) — documented as such in .discipline/governance/invariants.mjs\'s worktree-isolation residual note ("this install is operator-run and lives outside the repo"); not invoked from any workflow or package.json script by design', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Not on B1\'s Appendix A (predates its 2026-08-21 window) but flagged the same way under the widened scope — measured against this tree, not assumed absent.'),
+
+      // ── The rest of the widened scope's "no": modules the audit's 2026-08-21+ window never covered
+      // (all predate it) but the widened check flags exactly the same way. Enumerated by ACTUALLY RUNNING
+      // the widened check against this tree (B4: measure, don't predict) rather than hand-guessing from
+      // the plan text alone, which names only the post-08-21 set. Two families:
+      //  (a) operator/git-hook-invoked out-of-repo-boundary tools (same class as install-hooks.mjs above,
+      //      .discipline/governance/OUT-OF-REPO-BOUNDARY.md) — legitimately never workflow-dispatched;
+      //  (b) dated, operator-authorized ONE-SHOT programs already run against production, left in the
+      //      tree at their original path as historical record (this repo's established pattern — see
+      //      scripts/_archive/README.md for the same convention applied one step further, after archival).
+      o('.discipline/consistency/runner.mjs',
+        'CLI entry point for the Layer-4 consistency scanner, invoked by the operator/coordinator directly (its own header: `node fsi-app/.discipline/consistency/runner.mjs [--check=Cn|--list]`), not from a workflow or package.json script.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s 2026-08-21 window.'),
+      o('.discipline/dispatch/audit.mjs',
+        'operator CLI for auditing a dispatch UUID against git log — out-of-repo-boundary class, run by hand per its own usage header.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('.discipline/dispatch/start.mjs',
+        'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('.discipline/governance/check-pretooluse-wired.mjs',
+        'runs in pre-push on the operator\'s machine (its own header: "settings.json is outside the repo, so this check runs in pre-push where that file exists") — genuinely cannot be a workflow/package.json dispatch root by design.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; same out-of-repo-boundary class as install-hooks.mjs.'),
+      o('.discipline/governance/pretooluse-skill-gate.mjs',
+        'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; out-of-repo-boundary class.'),
+      o('.discipline/governance/wire-pretooluse-settings.mjs',
+        'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('.discipline/governance/worktree-isolation-hook.mjs',
+        'invoked by the installed post-checkout/pre-commit git hook scripts (git hooks run in the invoking process, not CI) — out-of-repo-boundary class by design (RD-19).', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/_dataops/interlock.mjs',
+        'the RE-RUN INTERLOCK guard for already-executed Sprint-4 data-op scripts (docs/runbooks/sprint4-dataops-ledger.md) — imported BY those one-shot scripts, not the other way around; those scripts already ran once against the single shared prod/dev Supabase project and are not meant to run again.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; Sprint-4 one-shot family.'),
+      o('scripts/_diag/_pdf-probe.mjs',
+        'a scratch probe (its own header: "PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport was wired; the leading underscore is this repo\'s own scratch-file marker.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      ...['executor-ground', 'free-pass-run', 'id-stamp', 'lease', 'restore-overclear', 'target-match-probe', 'tombstone-delete'].map((n) =>
+        o(`scripts/_reground/${n}.mjs`,
+          'part of the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) for the promotion-lane drain — a dated, hand-run, per-item toolkit, not a scheduled or imported runtime.', 46,
+          'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; _reground one-shot toolkit.')),
+      o('scripts/_ruling/null-tier-host-ruling.mjs',
+        'the operator\'s own written-down 2026-08-11 batched ruling over the 57 SC-13-worklisted null-tier hosts — a ruling record + its one-time apply, not a recurring runtime.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/_wave-alpha/backfill-canonical-keys.mjs',
+        'Wave-α Track C8 one-time backfill for migration 200\'s canonical_instrument_key — a numbered migration\'s data step, same one-shot class as the migration-26x/27x generators above.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/apply-4c-plan.mjs',
+        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/audit-optionc-reachability.mjs',
+        'Part 1 B reachability audit for the archiving-decision bug class fixed 2026-06-01 — a dated investigation tool, not a recurring runtime.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/canonical-pipeline-proof.mjs',
+        'a direct-execution proof harness for the canonical-pipeline step functions ("before wrapped as \'use step\'") — a development-time proving tool, not a runtime.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/connections/backfill-edges.mjs',
+        'PILLAR A2 one-time item_cross_references backfill from shared provenance — the connections loop stage now has a live, CI-dispatched discovery runtime (scripts/connections/discover-for-items.mjs, corpus-turn.yml); operator/coordinator to confirm this backfill already ran or is superseded before its expiry.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/funded-pass.mjs',
+        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/gen/migration-258.mjs',
+        'a numbered migration generator (258_emission_factors_and_licence_gate.sql) already executed against the live schema — same one-shot class as the migration-267/268/271 generators above.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/holdings-audit.mjs',
+        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/recovery-measure.mjs',
+        'the ~347-recovery read-only measurement tool (Phase 1/1b/2) — a dated incident-response tool, not a recurring runtime.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/regen-quarantined.mjs',
+        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/remediation/acquire-primaries-batch.mjs',
+        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/remediation/refetch-capped-worklist.mjs',
+        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/run-4c-relabel.mjs',
+        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      w('scripts/seed-community-regional-rooms.mjs', 'operator/coordinator: confirm the 7 canonical regional community_groups rows exist, then either wire this into a maintenance.yml step (same shape as scripts/seed/community-topics-seed.mjs, already wired) or record it as already-applied and reclassify one-shot', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. A seeder that should either be re-run once via MAINT or confirmed already-applied — genuinely unclear from this lane\'s scope, unlike the dated one-shots above.'),
+      o('scripts/source-role-cleanup.mjs',
+        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/source-state-min-wage.mjs',
+        'the state minimum-wage DATA PROGRAM (operator ruling 2026-07-07) populating state_cost_facts with cited figures — a one-time population program, not a recurring runtime.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      o('scripts/sprint4-114-spancheck-test.mjs',
+        'task 1.14\'s unit test for span-check.ts, named with a hyphen (`-test.mjs`) rather than this repo\'s later dot convention (`.test.mjs`) — isTestFile() does not recognize it, but it is a proof file by function, not a production module; rename to the dot convention (which would make it self-excluding) or delete once superseded.', 46,
+        'Zero non-test importers, no workflow/package.json dispatch. Predates the .test.mjs naming convention isTestFile() now expects.'),
+      w('scripts/verify/audit-finding-status.mjs', 'wire into discipline.yml\'s existing docs/audits enforcement surface (standing rule 14) or scripts/verify/run-data-audit-lane.mjs\'s AUDITS table', 46,
+        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Enforces standing rule 14 (every audit finding carries a verification-status token) — its own purpose argues for CI wiring, not exemption.'),
+      w('scripts/verify/wave-acceptance-audit.mjs', 'wire into wave-close per its own header\'s stated intent, or formally mark DESIGNED-ONLY if wave-close has no home for it yet', 46,
+        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Its own header says so verbatim: "SCAFFOLD (authored 2026-07-15, NOT WIRED into wave-close)".'),
+      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'mint-gate-calibration', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
+        o(`scripts/verify/${n}.mjs`,
+          'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 46,
+          'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
+    ];
+  })(),
 
 ];
 
@@ -364,6 +669,34 @@ export function buildImportGraph(files, readFile) {
   return importers;
 }
 
+// WIDENED SCOPE PREDICATE (W7.1, 2026-09-04) — factored out so the orphan-module CI check
+// (.discipline/governance/orphan-modules.mjs) computes the identical scope this fitness function gates,
+// rather than a second hand-written copy that could quietly drift from it (the exact "two homes" class
+// CLAUDE.md forbids). fsi-app/scripts/** in FULL (was scripts/lib/** only) and the whole of
+// fsi-app/.discipline/** — see the header note above findDispatchRoots() for why this could not ship
+// without dispatch-root awareness (most of scripts/** is CI-invoked CLI, never imported).
+export function inWidenedScope(f, manifest) {
+  return (
+    (f.startsWith('fsi-app/src/') || f.startsWith('fsi-app/scripts/') || f.startsWith('fsi-app/.discipline/')) &&
+    /\.(?:ts|tsx|mjs)$/.test(f) &&
+    !/\.d\.ts$/.test(f) &&
+    !isTestFile(f) &&
+    !ENTRY_RE.test(f) &&
+    !manifest.has(f) &&
+    // _archive/ (scripts/_archive/**, src/_archive/**): inert-by-construction sunset storage — a module
+    // moved there is deliberately dead, not a fresh liveness question. Without this, moving a module out
+    // of src/lib/** into src/_archive/lib/** would keep it in scope (it still matches the 'fsi-app/src/'
+    // prefix) and immediately re-red the gate the archival was meant to close. scripts/lib/** archives
+    // land under scripts/_archive/lib/, which already fails a bare-prefix test and needs no help here —
+    // this exclusion exists for the src/ side of the same move.
+    !f.includes('/_archive/') &&
+    // scripts/_snapshots/, scripts/_plans/: gitignored scratch per CLAUDE.md standing rule 5 (machine
+    // evidence / regenerable working state) — tracked exceptions there are data, not modules to wire.
+    !f.includes('/scripts/_snapshots/') &&
+    !f.includes('/scripts/_plans/')
+  );
+}
+
 /** Modules in scope with no production importer. Pure. */
 export function findUnimported(scope, importers, manifest) {
   return scope.filter((f) => {
@@ -376,7 +709,7 @@ export function findUnimported(scope, importers, manifest) {
 /**
  * Pure comparator. Returns an array of message strings ([] = pass).
  */
-export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists = () => true) {
+export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists = () => true, latestWave = null) {
   const problems = [];
   const unimportedSet = new Set(unimported);
   const scopeSet = new Set(scope);
@@ -412,6 +745,28 @@ export function auditLiveness(unimported, scope, allowed = ALLOWED, fileExists =
           `F15/F22/F24. An entry with no reason is a permanent exemption wearing a temporary label.`,
       );
     }
+    // W7.1: an entry that carries an expiry (a train/wave number) must also carry a disposition, and reds
+    // once the latest landed train reaches or passes it — the ratchet that keeps a "temporary" exemption
+    // from becoming permanent by nobody ever coming back to it (plan §W7.1: "the check fails when an
+    // allowlisted module's expiry passes").
+    if (entry.expiry !== undefined) {
+      const kind = entry.disposition && entry.disposition.kind;
+      if (!['wire', 'delete', 'one-shot'].includes(kind) || !entry.disposition.detail) {
+        problems.push(
+          `ALLOWLIST ENTRY WITH EXPIRY BUT NO DISPOSITION — "${entry.file}" carries an expiry (wave${entry.expiry}) ` +
+            `but no valid disposition ({kind: 'wire'|'delete'|'one-shot', detail}). An expiry without a stated plan ` +
+            `is a deadline nobody can act on.`,
+        );
+      }
+      if (latestWave !== null && latestWave >= entry.expiry) {
+        problems.push(
+          `ALLOWLIST ENTRY EXPIRED — "${entry.file}"'s expiry (wave${entry.expiry}) has passed (latest landed: ` +
+            `wave${latestWave}). Disposition was ${kind ?? 'MISSING'} (${(entry.disposition && entry.disposition.detail) ?? 'n/a'}). ` +
+            `Wire it, delete it, or grant a new expiry with a fresh reason — an expiry that nobody returns to is a ` +
+            `permanent exemption wearing a temporary label, exactly what the expiry field exists to prevent.`,
+        );
+      }
+    }
   }
 
   return problems;
@@ -427,10 +782,13 @@ export const fitnessFunction = {
   id: 'F25',
   name: 'module-liveness',
   description:
-    'Every module under src/ and scripts/lib/ has a production importer, is a framework entry point, or carries a ' +
-    'reason-bearing exemption. Mechanizes the last two classes the 2026-08-11 wiring census could only name: 54 ' +
-    'modules with zero production importer, 13 of them carrying a green selftest — remediation-discipline ' +
-    'category 21 (a capability having a test does not prove it is wired) in its literal form.',
+    'Every module under src/, the whole of scripts/, and .discipline/ has a production importer, is a framework ' +
+    'entry point, is a CI/npm dispatch root (a workflow run: line, a package.json script, or an esbuild alias ' +
+    'target), or carries a reason-bearing, expiring exemption. Mechanizes the last two classes the 2026-08-11 ' +
+    'wiring census could only name, then (2026-09-04, plan §W7.1) widens past its original src/+scripts/lib/ scope ' +
+    'to the rest of scripts/** and .discipline/** — the exact gap docs/audits/wiring-audit-2026-09-04/B1-modules.md ' +
+    'found this file\'s own scope leaving open (the four scripts/review/apply-*.mjs ratification scripts green on ' +
+    'every fitness gate while portal_link_candidates carried 1,837 untouched rows).',
   source:
     'wiring census 2026-08-11 §A and §B (unmechanized classes); remediation-discipline category 21 (seek-more.mjs: ' +
     'fully built, unit-tested, zero live callers)',
@@ -452,24 +810,11 @@ export const fitnessFunction = {
       'fsi-app/.discipline/**/*.mjs',
     ]);
     const importers = buildImportGraph(files, (f) => readFileSync(join(root, f), 'utf8'));
-    const scope = files.filter(
-      (f) =>
-        (f.startsWith('fsi-app/src/') || f.startsWith('fsi-app/scripts/lib/')) &&
-        /\.(?:ts|tsx|mjs)$/.test(f) &&
-        !/\.d\.ts$/.test(f) &&
-        !isTestFile(f) &&
-        !ENTRY_RE.test(f) &&
-        !manifest.has(f) &&
-        // _archive/ (scripts/_archive/**, src/_archive/**): inert-by-construction sunset storage — a
-        // module moved there is deliberately dead, not a fresh liveness question. Without this, moving a
-        // module out of src/lib/** into src/_archive/lib/** would keep it in scope (it still matches the
-        // 'fsi-app/src/' prefix) and immediately re-red the gate the archival was meant to close. scripts/lib/**
-        // archives land under scripts/_archive/lib/, which already fails the 'fsi-app/scripts/lib/' prefix
-        // test above and needs no help here — this exclusion exists for the src/ side of the same move.
-        !f.includes('/_archive/'),
-    );
-    const unimported = findUnimported(scope, importers, manifest);
-    const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)));
+    const scope = files.filter((f) => inWidenedScope(f, manifest));
+    const dispatchRoots = findDispatchRoots(root, (f) => readFileSync(join(root, f), 'utf8'));
+    const unimported = findUnimported(scope, importers, manifest).filter((f) => !dispatchRoots.has(f));
+    const latestWave = latestTrainWave(root);
+    const problems = auditLiveness(unimported, scope, ALLOWED, (f) => existsSync(join(root, f)), latestWave);
     if (problems.length === 0) return PASS;
     return problems.map((msg) => violation(1, msg));
   },

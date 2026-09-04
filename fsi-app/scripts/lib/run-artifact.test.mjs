@@ -1,9 +1,8 @@
 // Tests for run-artifact.mjs — the meta-harness run-artifact writer/reader/CLI (Wave MH-1). Filesystem
-// only, node:test + node:assert/strict, no npm deps — same no-npm-ci discipline as
-// community-topics-seed.test.mjs in this same directory (see that file's header for why a
-// scripts/lib/*.test.mjs lives in the no-npm suite: run-test-suite.sh's scripts/lib entries are a
-// hand-maintained NAMED LIST, not a directory glob — this file is wired in by an explicit line in
-// .discipline/run-test-suite.sh, not by dropping it in this directory).
+// only, node:test + node:assert/strict, no npm deps — same no-npm-ci discipline as every other
+// scripts/lib/*.test.mjs named in .discipline/run-test-suite.sh's own header comment (run-test-suite.sh's
+// scripts/lib entries are a hand-maintained NAMED LIST, not a directory glob — this file is wired in by
+// an explicit line in .discipline/run-test-suite.sh, not by dropping it in this directory).
 //
 // Every fixture below is a syntactically-valid-but-deliberately-wrong artifact built from the SAME
 // shape as the real retrofitted artifacts under scripts/harness-runs/ — the red cases exist to prove

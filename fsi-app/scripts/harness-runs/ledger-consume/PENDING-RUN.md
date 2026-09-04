@@ -31,27 +31,33 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:b12b73cfc8a273af` (see Re-pin note 4 below; `sha256:2798bdb08c8e8552` is superseded)
+**harness_version at write time:** `sha256:80d15aac9240060d` (see Re-pin note 5 below; `sha256:b12b73cfc8a273af` is superseded)
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
-carries `NEXT_PUBLIC_SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, and `ANTHROPIC_API_KEY` — real GitHub-
-Actions network egress this environment lacks). That first dispatch runs `mode: plan` by default (a
-`mode: apply` dispatch would ALSO land as `ledger-consume-run-001` but with `config.apply_disarmed: true`
-and plan semantics — see the workflow's own header for why apply is structurally disarmed until an
-operator reviews `LEDGER_CONSUME_APPLY_ENABLED`). Per F28's reverse-audit (an artifact matching this
-marker's recorded hash means "the planned run happened — delete the marker"), this file is deleted the
-moment that first artifact lands and its `harness_version` matches the value above (or updated to a new
-hash, per rule (c), if the driver or either governing library module changes again before that first run
-lands).
+carries `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — real GitHub-Actions network/DB
+access this environment lacks; `ANTHROPIC_API_KEY` is NO LONGER required for this dispatch — see Re-pin
+note 5). The named first dispatch is **`mode: plan`, `verdicts_file: <the first
+scripts/turns/ledger-verdicts/ledger-verdicts-NNN.json batch>`, `limit: 50`** (or a smaller/larger
+`limit`) — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section for the exact dispatch
+and what it proves. `LEDGER_CONSUME_APPLY_ENABLED` is now `true` (operator ruling 2026-09-04, Re-pin note
+5) — a `mode: apply` dispatch WILL write when it has a verdicts file; the first proving dispatch is
+deliberately `plan` so a human reads the plan before any apply. Per F28's reverse-audit (an artifact
+matching this marker's recorded hash means "the planned run happened — delete the marker"), this file is
+deleted the moment that first artifact lands and its `harness_version` matches the value above (or updated
+to a new hash, per rule (c), if the driver or either governing library module changes again before that
+first run lands).
 
-**A registration gap discovered while wiring this family's workflow, NOT resolved by this marker or this
-lane (write-set boundary):** `.github/workflows/ledger-consume.yml` references `secrets.ANTHROPIC_API_KEY`
-(required in every mode — even `plan` spends on classify), and `.discipline/governance/secrets-reference-
-audit.mjs` currently fails that reference because `ANTHROPIC_API_KEY` is not yet in `WORKFLOW_SECRETS`
-(`.discipline/governance/secrets-registry.mjs`, outside this lane's write set). The first `ledger-consume`
-dispatch cannot succeed until that registration lands — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s
-"Ledger consume" section for the full account.
+**The registration gap this marker previously flagged is CLOSED, from BOTH directions.** Lane SPEND
+registered `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS`
+(`.discipline/governance/secrets-registry.mjs`) at the 2026-09-02 integration — confirmed still present,
+live, in this tree. Separately, Re-pin note 5 below REMOVES the workflow's `ANTHROPIC_API_KEY` precondition
+from the plan path entirely (the session-verdict $0 default no longer calls Haiku by default, so the
+secret it used to require unconditionally is now optional, read only when a human explicitly passes
+`--allow-api`, which `ledger-consume.yml` does not expose as a workflow input). Both facts are recorded
+here so a future reader does not re-open a gap that closed twice, from two different directions, for two
+different reasons. See `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section for the full
+account.
 
 **Re-pin note (coordinator, 2026-09-02, integration of the system-completion train):** the hash above was `sha256:d7f537714f9975aa` when the lane wrote this marker. Lane SPEND (same train) routed `src/lib/llm/first-fetch-classify.ts`, one of this family's three governing files, through the spend chokepoint (`spendMessage`), so the hash pinned by Lane CONSUME moved before any run landed. Re-pinned by the coordinator at integration (2026-09-02) to `sha256:db591d024e90fc22`; the planned first run is unchanged.
 
@@ -60,3 +66,25 @@ dispatch cannot succeed until that registration lands — see `docs/runbooks/COR
 **Re-pin note 3 (coordinator, 2026-09-02):** `sha256:e8506362c5e2c2c5` → `sha256:2798bdb08c8e8552`. The rule-016 prose false-positive fix reworded one header comment in `run-ledger-consume.mjs` after the previous pin; PR #517's first CI run caught the drift (NO ARTIFACTS on this family) because the coordinator re-ran the engine and consistency gates after that edit but not F28. The planned first run is unchanged.
 
 **Re-pin note 4 (lane GOV-SINGLE, 2026-09-04):** `sha256:2798bdb08c8e8552` → `sha256:b12b73cfc8a273af`. `LEDGER_CONSUME_GOVERNING_FILES` moved from a hand-copied literal array inside `run-ledger-consume.mjs` to `export const LEDGER_CONSUME_GOVERNING_FILES = GOVERNING_FILES['ledger-consume'];`, importing its entry from the new single source `scripts/harness-runs/governing-files.mjs` (see that module's own header — this closes the "two hand-synced copies of the same fact" defect proven live for `mint`'s own pair). The FILE LIST this family's `harness_version` hashes is byte-identical (`scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`, `src/lib/llm/first-fetch-classify.ts` — unchanged); only `run-ledger-consume.mjs` itself — one of its own three governing files — changed BYTES (the import line and the declaration), which is what moved the hash. Neither library governing file changed. The planned first run is unchanged.
+
+**Re-pin note 5 (lane LEDGER-ZERO, 2026-09-04, operator ruling "stop offering API when you have a free
+option with Haiku" / "why is this costing me anything when it can be done for free?"):** `sha256:
+b12b73cfc8a273af` → `sha256:80d15aac9240060d`. All THREE governing files moved bytes in the same diff:
+(1) `run-ledger-consume.mjs` gained `--verdicts`/`--allow-api`/`--export-candidates`, the session-verdict
+validation + classify-bypass machinery (`validateVerdictsFile`, `partitionVerdictsByPromptVersion`,
+`buildVerdictClassify`, `verdictEntryToClassifyOutput`, `runExportCandidates`), the new `classify_source`/
+`with_verdict`/`without_verdict_skipped`/`uncertain`/`candidates`/`est_usd` artifact fields, and flipped
+`LEDGER_CONSUME_APPLY_ENABLED` to `true`; (2) `src/lib/intake/portal-harvest.ts` gained
+`selectCandidateLedgerPage` (the query-select half of `consumePortalCandidates` extracted for reuse by
+`--export-candidates` — REUSE-ONLY, no behavior change to `consumePortalCandidates` itself); (3)
+`src/lib/llm/first-fetch-classify.ts` exported `FIRST_FETCH_HAIKU_SYSTEM_PROMPT`,
+`FIRST_FETCH_CLASSIFY_PROMPT_VERSION`, and `buildFirstFetchClassifyUserMessage` so a session lane can
+build the IDENTICAL Haiku call offline (ONE BODY). The planned first run moves WITH this note: **`node
+scripts/turns/run-ledger-consume.mjs --mode plan --verdicts scripts/turns/ledger-verdicts/ledger-verdicts-
+001.json --limit 50`** (or the equivalent `ledger-consume.yml` dispatch with `mode=plan`,
+`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`) — see
+`docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section. `ledger-verdicts-001.json` itself is
+NOT produced by this lane (outside its write set — a session-Haiku classification batch over live
+candidates is the coordinator's Haiku lanes' job, per the build plan's own §W1.1); this lane ships the
+contract (`scripts/turns/ledger-verdicts/schema.json` + `README.md`) and the `--export-candidates` mode
+that produces the candidate list those lanes classify from.

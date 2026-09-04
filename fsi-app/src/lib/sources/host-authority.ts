@@ -57,12 +57,14 @@ export function defaultTierForHost(host: string | null | undefined): number {
 // The codified rule above assigns only the floor-PASSING tiers (legal 1 / gov 2) — deliberately conservative,
 // since a wrong high tier hollow-passes a floor. This extension adds the ruled SUB-FLOOR + T4 classes so a
 // register-at-grounding host that classifies to a ruled class auto-registers at its class tier; an unrecognized
-// host stays null → worklist (unchanged SC-13 guarantee). The T4 classes (verifier/academic/association) can pass
-// the research floor (=4), so they demand a HIGH-CONFIDENCE signal (accredited-CAB list / .edu-.ac TLD / a curated
-// association allowlist) — never a fuzzy .org. The sub-floor classes (analysis T6, lawfirm/news T7) never pass any
-// floor, so a mis-fire only under-credits (recoverable), never hollow-passes. No LLM guess, no default: still SC-13.
+// host stays null → worklist (unchanged SC-13 guarantee). The T4 classes (verifier/academic/association/
+// standards_body) can pass the research floor (=4), so they demand a HIGH-CONFIDENCE signal (accredited-CAB
+// list / .edu-.ac TLD / a curated association or standards-body allowlist) — never a fuzzy .org. The sub-floor
+// classes (analysis T6, lawfirm/news T7) never pass any floor, so a mis-fire only under-credits (recoverable),
+// never hollow-passes. No LLM guess, no default: still SC-13. `standards_body` added 2026-09-04 (operator
+// ruling, `institution-canonicalize` Part C — see STANDARDS_BODY_ALLOW below) — same posture, one more class.
 //
-//   class-table (ruled):  legal→1  gov→2  verifier/academic/association→4  analysis→6  lawfirm/news→7
+//   class-table (ruled):  legal→1  gov→2  verifier/academic/association/standards_body→4  analysis→6  lawfirm/news→7
 //   permanent worklist:   encyclopedia / aggregator / DOI-resolver / legal-aggregator (justia/legiscan) / unknown
 //                         — never auto-registered; a span attributing to one is a re-attribution instruction.
 
@@ -76,6 +78,28 @@ const ASSOCIATION_ALLOW = new Set([
   "cer.be", "usasean.org", "wbcsd.org", "intercargo.org", "seacargocharter.org",
   // 2026-08-11 batched ruling: standard-setter / industry body, same class as cer.be.
   "ieta.org", "goldstandard.org",
+]);
+/** Standards / framework bodies whose OWN text companies report against → T4 (the SAME class as
+ *  SKILL.md §3's "Industry body / classification society" row — a standard-setter is classified by the
+ *  act of publishing a standard/framework, the same act that puts an accredited CAB's official acts at
+ *  T4, never T1/T2/T3: it does not ISSUE binding law (T1) or regulator guidance (T2), and it is not an
+ *  intergovernmental analysis body informing policy from outside industry (T3)). Operator ruling
+ *  2026-09-04 (`institution-canonicalize` Part C `ruling_needed`: ifrs.org / cdp.net /
+ *  sciencebasedtargets.org sat at T5 against this class's own T4 floor — verbatim, "you know how to
+ *  classify, fix it … T4"): ISSB/IFRS Foundation, CDP, SBTi are the three named hosts; GHG Protocol, ISO,
+ *  GRI and TNFD are the SAME class and live in `sources` today (WBCSD is already in ASSOCIATION_ALLOW
+ *  above; WRI's OWN site stays ANALYSIS below — WRI co-authors GHG Protocol at ghgprotocol.org, but wri.org
+ *  itself is WRI's think-tank output, a different act). Curated — never a fuzzy .org rule, the same
+ *  posture as ASSOCIATION_ALLOW (no derivable TLD/domain signal distinguishes a standards body from any
+ *  other .org). A host already ruled BELOW T4 for a documented reason (ghgprotocol.org / tnfd.global at
+ *  T3, sciencebasedtargetsnetwork.org at T3, efrag.org at T2 — see institution-canonicalize.mjs Part C
+ *  header) stays listed here too: classTierForHost only ever fires for a host with NO existing
+ *  institution-tier match (decidePoolHostRegistration's `inherit` branch always wins first when one
+ *  exists), so listing an already-lower-ruled host here never regresses that ruling — it only closes the
+ *  worklist gap the NEXT not-yet-registered pool host of the same body would otherwise hit. */
+const STANDARDS_BODY_ALLOW = new Set([
+  "ifrs.org", "cdp.net", "sciencebasedtargets.org", // the three named ruling_needed hosts
+  "ghgprotocol.org", "iso.org", "globalreporting.org", "tnfd.global", // same rule, live in `sources` today
 ]);
 /** Law firms → T7 commentary. */
 const LAWFIRM = /(bakermckenzie|bracewell|cliffordchance|mayerbrown|proskauer|slaughterandmay|kennedyslaw|globalelr|fenechlaw|klalaw|tauilchequer|nortonrose|whitecase|hoganlovells|(^|\.)lw\.com$|(^|\.)wfw\.com$|aoshearman|trenchrossi|(^|\.)cms\.law$|(^|\.)blakes\.com$|garrigues|dlapiper|linklaters|morihamada|allbrightlaw)/;
@@ -147,6 +171,7 @@ export function classTierForHost(host: string | null | undefined): number | null
   if (VERIFIER_CAB.test(h)) return 4;
   if (ACADEMIC_TLD.test(h)) return 4;
   if (ASSOCIATION_ALLOW.has(h)) return 4;
+  if (STANDARDS_BODY_ALLOW.has(h)) return 4;
   if (ANALYSIS.test(h)) return 6;
   if (LAWFIRM.test(h) || NEWS.test(h)) return 7;
   return null; // unknown / encyclopedia / aggregator / resolver / legal-aggregator → worklist

@@ -20,7 +20,8 @@ import { createJiti } from "jiti";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
-const { persistPortalCandidates, buildCandidateSeed, consumePortalCandidates } = await jiti.import("./portal-harvest.ts");
+const { persistPortalCandidates, buildCandidateSeed, consumePortalCandidates, selectCandidateLedgerPage } =
+  await jiti.import("./portal-harvest.ts");
 
 // ── fake supabase client ─────────────────────────────────────────────────────────────────────────────
 // Serves: the ledger select chain (thenable builder), ledger .update().eq() (stamps captured), the mint
@@ -292,4 +293,50 @@ test("censusExclusion: table exists but nothing dispositioned yet → no ledger 
   });
   const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
   assert.equal(ledgerNot, undefined);
+});
+
+// ── selectCandidateLedgerPage — the extracted read-only page-select (Wave LEDGER-ZERO, 2026-09-04) ─────
+// Proves the read-only lister run-ledger-consume.mjs's --export-candidates mode uses is the SAME query
+// consumePortalCandidates itself reads (REUSE-ONLY, one body, never a second hand-mirrored query).
+test("selectCandidateLedgerPage: returns the ledger rows a consume pass would have read, same shape", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW] });
+  const rows = await selectCandidateLedgerPage(sb, { limit: 10 });
+  assert.deepEqual(rows, [LEDGER_ROW]);
+});
+
+test("selectCandidateLedgerPage: threads sourceId/after/censusExclusion into the exact same filters consumePortalCandidates applies", async () => {
+  const sb = fakeClient({ ledgerRows: [LEDGER_ROW], censusWorklistRows: [{ document_url: "https://x/old-1" }] });
+  await selectCandidateLedgerPage(sb, {
+    limit: 5,
+    sourceId: "portal-src-1",
+    after: { firstSeenAt: "2026-07-01T00:00:00.000Z", id: "plc-0" },
+    censusExclusion: { table: "census_worklist" },
+  });
+  const censusNot = sb.notCalls.find((c) => c.table === "census_worklist");
+  assert.ok(censusNot, "censusExclusion is applied identically to the consume-pass query");
+  const ledgerNot = sb.notCalls.find((c) => c.table === "portal_link_candidates");
+  assert.ok(ledgerNot);
+  assert.match(ledgerNot.val, /old-1/);
+});
+
+test("selectCandidateLedgerPage: a ledger read error is thrown, never swallowed (a read-only lister must not silently return an empty/partial page)", async () => {
+  const erroringClient = {
+    from(table) {
+      const q = {
+        select() { return this; },
+        order() { return this; },
+        limit() { return this; },
+        eq() { return this; },
+        then(res) {
+          return Promise.resolve(
+            table === "portal_link_candidates"
+              ? { data: null, error: { message: "connection reset" } }
+              : { data: [], error: null }
+          ).then(res);
+        },
+      };
+      return q;
+    },
+  };
+  await assert.rejects(() => selectCandidateLedgerPage(erroringClient, { limit: 10 }), /connection reset/);
 });

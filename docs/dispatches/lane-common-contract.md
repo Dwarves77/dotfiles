@@ -2,6 +2,34 @@
 
 Status: BINDING for every executor lane, versioned here since 2026-09-03 (the container copy under `/root/work/lane-briefs/` is retired). Coordinator briefs cite this file by path; wave-specific write sets live in `docs/plans/<wave>-lanes-<date>.md`.
 
+## 0. Definition of done (applies to every component, no exceptions)
+
+Carried here verbatim from `docs/plans/complete-system-build-plan-2026-09-04.md` §0 (added by lane
+CLOSURE-GATE, train 2026-09-04) so that every lane brief citing this contract inherits it without a
+separate copy to keep in sync. `fsi-app/.discipline/governance/closure-gate.mjs`'s LANE-CONTRACT check
+fails CI if this section's heading below ever drifts from that source.
+
+A component is done only when all six hold, with the evidence type named:
+
+1. **Reachable**: invoked by a runtime step (a workflow `run:` line), a page/route, or a chokepoint; not
+   only by its own test. Evidence: the workflow line or the import, and the repo's own resolver
+   (`execution-wiring.mjs` / F25 with the widened scope in W7) green.
+2. **Run**: it has executed for real at least once and left a harness-run artifact or a guarded write with
+   read-back. Evidence: `scripts/harness-runs/<family>/…-run-NNN.json` or the maintenance summary.
+3. **Populated**: the table or column it feeds has rows from that run. Evidence: read-only SQL count.
+4. **Visible**: a customer surface or an operator surface renders what it produced, and the render has
+   been looked at in the browser. Evidence: the route and a screenshot-backed check.
+5. **Gated**: a fitness function, contract test or golden fails CI if the wiring or the shape regresses.
+   Evidence: the F-number or test file.
+6. **Documented**: runbook section, inventory row, marker/proposer pass current. Evidence: the file.
+
+Anything that cannot meet all six is either finished in this plan or deleted in this plan. Nothing is
+left "built, dormant".
+
+Every lane brief written against this contract MUST state, per component in its write set, which of the
+six the lane is responsible for and the evidence it will leave — a brief that only claims "tests green in
+its files" (Reachable/Gated only) is not a done-conditions statement under this contract.
+
 You are a Sonnet executor lane for Caro's Ledge (repo Dwarves77/dotfiles; app `fsi-app/`; vault `docs/`).
 The coordinator (a separate session) designs lanes, gates output, lands PRs through the browser, dispatches runtimes, applies DB writes, and keeps memory. You build, test, commit locally, and report.
 

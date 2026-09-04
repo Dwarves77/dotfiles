@@ -160,7 +160,13 @@ export const PINNED_MANIFEST = {
   },
   'source-credibility-model': {
     skillPath: 'fsi-app/.claude/skills/source-credibility-model/SKILL.md',
-    contentHash: '3417422d0cf01dd6ba3b0db445f355ba2391ceaeae8ab6938b2ad6941cb5444f',
+    // 2026-09-04 (lane T4-OVERRIDE): contentHash re-pinned deliberately — Section 3's "SC-13 class-table
+    // extension" paragraph gained a `standards_body` class entry (IFRS Foundation/ISSB, CDP, SBTi, GHG
+    // Protocol, ISO, GRI, TNFD -> T4, curated allowlist STANDARDS_BODY_ALLOW in host-authority.ts) and the
+    // operator ruling that authorized it ("you know how to classify, fix it … T4" — see
+    // institution-canonicalize.mjs Part C / MAINTENANCE-RUNBOOK.md §8a). citingFiles unchanged: none of the
+    // files below cite this new class specifically, they cite the skill as a whole.
+    contentHash: '7f7e371f4cb2198fa976e7995fcb0c6c7a07be2148d01f2075dd73cea13f903a',
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',

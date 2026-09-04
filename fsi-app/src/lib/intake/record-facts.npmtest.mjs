@@ -30,8 +30,12 @@ import {
   extractInForceStatusFact,
 } from "./record-facts.mjs";
 import { validateMintPayload } from "../../../scripts/mint/validate-mint-payload.mjs";
-import { extractFactualTokens } from "../../../scripts/mint/lib/gate-a-scan.mjs";
-import { containsToken } from "../../../scripts/mint/lib/gate-a-match.mjs";
+// gate-a-scan.mjs/gate-a-match.mjs imported directly from src/lib/agent/ (lane DEAD-EXEC, 2026-09-04):
+// scripts/mint/lib/gate-a-scan.mjs and gate-a-match.mjs, the shims this file used to import from, were
+// deleted — they were pure `export *` re-exports of these two files (since Wave GOV-SINGLE, 2026-09-04)
+// and this test was their one remaining importer.
+import { extractFactualTokens } from "../agent/gate-a-scan.mjs";
+import { containsToken } from "../agent/gate-a-match.mjs";
 
 test("RECORD_FACTS_VERSION is a non-empty string", () => {
   assert.equal(typeof RECORD_FACTS_VERSION, "string");

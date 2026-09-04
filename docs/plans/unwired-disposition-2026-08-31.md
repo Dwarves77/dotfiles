@@ -150,6 +150,11 @@ queued lanes.
 this design (assert-then-mark-before-execute) is worth re-deriving from the git history rather than
 carrying dead code forward on the chance it's reused verbatim.
 
+**EXECUTED** — lane DEAD-EXEC, 2026-09-04, commit `18e62c28`. Module and test deleted. Its downstream
+row (#4, `metered-gate.mjs`) is now newly unwired as a direct, verified consequence — per that row's own
+"if #3 is deleted, leave this module in place" instruction, it was NOT deleted; added to F25's
+`PROVEN_BUT_UNWIRED` allowlist instead, citing this row.
+
 ### 4. `src/lib/llm/metered-gate.mjs`
 **What it does.** `assertMeteredCallAllowed`/`isMeteredCallAllowed`/`MeteredCallForbiddenError` —
 standing financial law (operator ruling 2026-07-25): only Haiku batch-classification may ever be
@@ -328,6 +333,8 @@ needs ADR-scope intersection, the git history has this implementation to restore
 **Recommendation: DELETE**, with its test. The rule it served no longer exists; keeping an orphaned
 capability "just in case" is exactly the class F25 exists to surface and retire.
 
+**EXECUTED** — lane DEAD-EXEC, 2026-09-04, commit `18e62c28`. Module and test deleted.
+
 ---
 
 ## G. Crawl/intake stack (ADR-015 scope)
@@ -387,6 +394,11 @@ keeps working exactly as it does today — nothing currently depends on this fil
 orchestrator — it's redundant with code that already runs live. If the API-transport logic ever needs
 consolidating (e.g. because the inline and standalone versions drift), that's a dedup task against
 `canonical-pipeline.ts`'s real implementation, not a reason to keep this one on standby.
+
+**EXECUTED** — lane DEAD-EXEC, 2026-09-04, commit `18e62c28`. Module deleted. Its one real (test-only)
+importer, `src/lib/sources/transport-hold-wiring.npmtest.mjs`, had its `apiFetch`-specific case removed
+(the file's remaining cases already exercise the same live path via `canonical-pipeline.ts`'s
+`buildLiveTransports`).
 
 ### 13–16. `src/lib/sources/amendment-diff.mjs`, `change-sweep.mjs`, `feed-walk.mjs`, `register-walk.mjs`
 **What they do.** Four pure, `$0`, node-testable transports/analyzers for the ADR-015 crawl-rebuild:
@@ -471,6 +483,9 @@ and turn red rather than silent).
 **Recommendation: DELETE**, together with retiring its `rule-016` PERMITTED entry and its
 `F15-spend-chokepoint.test.mjs` SANCTIONED entry in the same commit — F25's own header already flags
 this exact coupling requirement.
+
+**EXECUTED** — lane DEAD-EXEC, 2026-09-04, commit `18e62c28`. Module deleted; its `rule-016` PERMITTED
+entry and F15 SANCTIONED entry retired in the same commit, per the coupling requirement above.
 
 ### 19. `scripts/lib/net-agent.mjs`
 **What it does.** Side-effecting module that, on import, installs a bounded `undici` Agent

@@ -11,10 +11,50 @@ of it actually executes. This closes that gap the exact way `docs/decisions/ADR-
 closed it for the data producers — GitHub Actions, the two repository secrets `.github/workflows/
 producers.yml` and `data-audit-lane.yml` already inject, dispatch-driven, no standing schedule.
 
+## Item selection: the ticket queue (default), `--since` as an explicit backfill override
+
+**Rewired by lane TURNREQ, 2026-09-04** (see the 2026-09-04 wiring audit, B1 Gap #2 / B2 §1): a turn's
+item scope is now ONE mechanism, not two. `corpus_turn_requests` (migration 277) is filled by a DB
+trigger (`enqueue_corpus_turn_request()`) every time an item's provenance/archive/tag state changes
+outside the in-app mint hooks — a real, per-item record of "this item needs a turn," not an inferred
+`created_at` window. `scripts/turns/consume-turn-requests.mjs` is this queue's only reader:
+
+- **MODE 1 (read).** `node scripts/turns/consume-turn-requests.mjs [--out path] [--limit N] [--mark-consumed --by <label>]`
+  reads every OPEN ticket (oldest `requested_at` first — the DB read is already ordered, so `--limit`
+  is a plain slice), optionally writes the full snapshot (id list + per-row reason/requested_at) to
+  `--out`, and prints the distinct `intelligence_item_id` list as its one line of real stdout. Migration
+  277's partial-unique index guarantees at most one OPEN row per item, so bounding rows bounds distinct
+  items 1:1 — "grouped by item" needs no separate dedup step.
+- **MODE 2 (`--mark-file <path> --by <label>`).** Marks EXACTLY the ticket rows named in a PRIOR `--out`
+  snapshot `consumed_at`/`consumed_by`, through the guarded write path (`db.mjs`'s `guardedUpdateByIds`:
+  cite + prior-row snapshot + read-back) — never a fresh "what's open now" re-read, so a caller retires
+  precisely what it already processed even if the open set changed in between. Mutually exclusive with
+  `--out`/`--limit`/`--mark-consumed` (MODE 1's read-shaping flags).
+
+`corpus-turn.yml`'s own shape is MODE 1 (no `--mark-consumed`) as its very first step, then discover →
+export → extract → apply → analyze, and only once every one of those has succeeded, MODE 2 against that
+same snapshot file — GitHub Actions' own step ordering (no `continue-on-error` anywhere in between) IS
+the "only after the turn's writes succeeded" guarantee; no extra bookkeeping is needed.
+
+`since` (the workflow's `since` input, `--since` on `discover-for-items.mjs`/
+`export-corpus-for-extraction.mjs`) is now an **EXPLICIT BACKFILL OVERRIDE ONLY**: set it to bypass the
+ticket queue entirely and rescope the turn to `created_at >=` that date, the pre-2026-09-04 mechanism.
+No ticket is read or marked consumed in that mode. Leave it blank (the default) for ticket-queue mode.
+
+`scripts/turns/last-turn-date.mjs`'s `LAST-TURN.json` marker — the mechanism `since`'s blank default used
+to read — is **retired from this workflow**. It is not deleted: `scripts/turns/run-population-flywheel.mjs`
+(a different family's driver) still calls `writeLastTurnDate` after its own successful apply, for a
+purpose that no longer applies to corpus-turn now that ticket selection is the default; that residual
+write-with-no-corpus-turn-reader is a known, named gap (see `last-turn-date.mjs`'s own header), not
+something this workflow depends on.
+
 ## What a "turn" is
 
 One turn = one pass of the corpus flywheel:
 
+0. **`consume-turn-requests.mjs`** (`fsi-app/scripts/turns/`, MODE 1) — selects this turn's item scope:
+   the oldest `limit` open `corpus_turn_requests` tickets (ticket-queue mode, the default), or skipped
+   entirely when `--since` is an explicit override. See the section above.
 1. **`discover-for-items.mjs`** (`fsi-app/scripts/connections/`) — runs mint-time connection discovery
    for items that bypassed the mint hook (a coordinator-SQL mint, typically), writing edges through the
    same guarded writer (`write-edges.mjs`) mint-time discovery uses.
@@ -65,16 +105,41 @@ records its own `source-sweep` harness-run artifact family every run, in both dr
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`
-(`dry` or `apply`), optionally `since` (an ISO date — items with `created_at >=` this are in scope;
-leave blank to use the last recorded turn date), and `signals` (default `true` — also runs
-`analyze-corpus.mjs`'s `--signals` pass). The workflow creates a fresh `turn/<run-id>` branch off
-whatever ref it dispatched from (normally `master`) and lands the run's own commit there.
+(`dry` or `apply`), `limit` (default `200` — max OPEN `corpus_turn_requests` tickets this turn selects,
+oldest-first; ignored when `since` is set — see "First dispatch" below for the arithmetic behind the
+default), optionally `since` (an ISO date — an EXPLICIT BACKFILL OVERRIDE that bypasses the ticket queue
+and rescopes to `created_at >=` this date instead; leave blank for ticket-queue mode, the default), and
+`signals` (default `true` — also runs `analyze-corpus.mjs`'s `--signals` pass). The workflow creates a
+fresh `turn/<run-id>` branch off whatever ref it dispatched from (normally `master`) and lands the run's
+own commit there.
 
 **Option B — push an empty `turn/**` branch:** a coordinator session that wants a turn without touching
 the Actions UI pushes a branch named `turn/<anything>` (e.g. `turn/2026-09-02`) — content doesn't
 matter, only the branch name and the push event. This ALWAYS runs in `apply` mode (pushing a turn branch
-is, by definition, asking for the real thing) and lands the run's commit directly on that same branch —
-no second branch is created.
+is, by definition, asking for the real thing) with the default `limit` (push events carry no
+`workflow_dispatch` inputs) and lands the run's commit directly on that same branch — no second branch
+is created.
+
+## First dispatch
+
+`corpus_turn_requests` stood at **1,709 open tickets** at registration (2026-09-04 wiring audit). The
+`limit` input's default, **200**, matches THE GATE's own population-slice unit
+(`docs/plans/complete-system-build-plan-2026-09-04.md` §W2.1: "Slices of 200") rather than inventing a
+new one. Arithmetic: 1,709 ÷ 200 ≈ 9 dispatches drains today's backlog; this is a recurring, hand-dispatched
+cadence (rule 16: no schedule during build), not a one-time drain, since new tickets keep arriving via the
+trigger as items change. The 45-minute job timeout comfortably covers 200 items at the per-item costs
+already measured elsewhere in this repo — mint's own batch step runs ~0.45-0.6s/item for full
+validate+insert (heavier than this family's discovery-score + forward-event-extract work), and
+forward-events extraction itself was measured at ~21ms for a whole 89-item batch — with headroom left for
+checkout/`npm ci` and the always-unscoped `analyze-corpus.mjs` pass. A directly-measured corpus-turn-
+specific per-item wall-clock figure does not exist as of this writing — no live dispatch has run in the
+authoring environment (no Supabase credentials, no Actions runner) — so this arithmetic is `[HYPOTHESIS]`
+grounded in the two measurements above, not a `[CONFIRMED]` corpus-turn timing.
+
+Recommended first dispatch: `mode: dry`, `limit: 200`, `since` blank — read the printed plan (tickets
+selected, would-discover/would-extract counts) before ever writing. Follow with `mode: apply` once the
+dry plan looks right; that apply is the run whose own harness-run artifact (`corpus-turn-run-001.json`)
+first discharges `scripts/harness-runs/corpus-turn/PENDING-RUN.md`.
 
 Either way, the workflow ATTEMPTS to end by opening a PR from the turn branch to `master` (skipped if
 one is already open for that branch, and skipped entirely if the run produced no new
@@ -88,9 +153,12 @@ same way any other PR is reviewed; nothing about `corpus-turn.yml` auto-merges.
 
 - `scripts/harness-runs/forward-events/forward-events-run-NNN.json` — `run-extraction.mjs`'s own
   self-emitted artifact, every turn, dry or apply.
-- `scripts/turns/LAST-TURN.json` — the "since when did this turn's `--since` default cover" marker,
-  updated ONLY on a successful apply-mode turn, to that run's own start timestamp (not "now" at the
-  moment it is recorded — see `last-turn-date.mjs`'s own header for why).
+- `scripts/harness-runs/corpus-turn/corpus-turn-run-NNN.json` — this family's own self-emitted artifact
+  (`scripts/turns/emit-corpus-turn-artifact.mjs`), every dispatch, dry or apply, "record it every batch,
+  even when zero" (MINT-RUNBOOK.md's own rule, applied here).
+- `corpus_turn_requests.consumed_at`/`consumed_by` — a DATABASE write, not a local file: apply mode +
+  ticket-queue selection only, and only after every write step above has succeeded (see "Item selection"
+  above). Left untouched in dry mode, in `--since` override mode, and on any failed apply.
 - `scripts/_snapshots/turn-<run-id>/turn-corpus.{json,events.json,skipped.json}` — the turn's FULL
   TRACES for extraction (the corpus slice and `run-extraction.mjs`'s events/skipped outputs, which the
   forward-events artifact's `full_trace_refs` name). Kept here, not on `/tmp`, precisely so the
@@ -168,13 +236,18 @@ also not progress until someone runs these steps.
 
 ## The first full backfill over ALL existing items
 
+**Historical note (pre-2026-09-04):** this section originally described `since: 1970-01-01` as the
+zero-turns-yet default, because `since`'s blank default read `last-turn-date.mjs`'s `LAST-TURN.json`
+marker, which itself defaulted to the epoch with no prior marker. As of lane TURNREQ (2026-09-04) the
+blank default is the ticket queue, not the epoch, and `since` is an explicit override — the text below
+still describes a real, supported path (a full-corpus rescope), just no longer the thing a blank `since`
+does on its own.
+
 Dispatch `corpus-turn.yml` with `mode: apply` and `since: 1970-01-01` — the epoch value
 `export-corpus-for-extraction.mjs`'s own `--since` filter and `discover-for-items.mjs`'s `--since` filter
-both treat as "every item ever created," and the same value `last-turn-date.mjs` returns by default when
-no `scripts/turns/LAST-TURN.json` marker exists yet (a repo that has never run a turn is, by construction,
-already asking for a full backfill the first time it does). This is the intended way to seed the corpus
-flywheel on a repo (or environment) that has run zero turns so far: it is not a special mode, just the
-normal apply path with the widest possible `since`. Every step downstream is already idempotent
+both treat as "every item ever created." This is the way to force a full-corpus rescope regardless of the
+ticket queue's own state: it is not a special mode, just the normal apply path with the widest possible
+explicit `since`. Every step downstream is already idempotent
 (discovery's edges dedupe on the connection signature, extraction's dedupe key is migration 275's, the
 ledger upserts on `UNIQUE url`), so a full backfill can be safely re-dispatched if it fails partway
 through — a re-run only re-covers what a prior partial run did not finish, at the cost of re-examining
@@ -185,8 +258,9 @@ refreshed, 5 skipped as owned by the entity/semantic origin, prior state snapsho
 of 322 live items without a forward event and the extractor confirmed 0 events for them (they are exactly
 forward-events-run-001's no-event set, 322 − 137); analyze persisted 14 themes (replacing 9; delta:
 8 persisted, 1 split, 4 appeared), opened 12 coverage-gap, 7 anticipate and 297 signal-candidate flags,
-and its own VERIFY passed. `scripts/turns/LAST-TURN.json` now carries that run's start time, so the next
-dispatch with a blank `since` is incremental.
+and its own VERIFY passed. `scripts/turns/LAST-TURN.json` carried that run's start time at the time
+(historical — a blank `since` no longer reads that marker; see "Item selection" above), so the next
+dispatch with a blank `since` was incremental under the pre-2026-09-04 mechanism.
 
 A LATER apply (run 33756943043, 2026-09-03) grew the open signal-candidate count to 930
 (`shared_regulation_identifier` 154, `shared_title_entity` 776) under the original "operator review
@@ -210,68 +284,136 @@ no deploy required.
 
 ## Ledger consume
 
-A third, related workflow, **`ledger-consume.yml`** (Lane CONSUME, system-completion plan, 2026-09-02),
-runs `run-ledger-consume.mjs` (new, `fsi-app/scripts/turns/`) — the CONSUME half of the same
-`portal_link_candidates` ledger `source-sweep.yml` discovers into. Where `source-sweep` writes candidate
-URLs, `ledger-consume` reads them: it gives a production runtime to `consumePortalCandidates`
-(`fsi-app/src/lib/intake/portal-harvest.ts`), which had ZERO callers anywhere in this repo before this
-lane (system-completion plan §0, item 1) — 1,454 `status='candidate'` rows sat with no reader. Like
-`source-sweep`, it is dispatch-only (`mode`, `limit`, `source_id` inputs), no schedule armed, and always
-self-emits its own `ledger-consume` harness-run artifact (`scripts/harness-runs/ledger-consume/`), dry or
-apply, from a `finally` block.
+A third, related workflow, **`ledger-consume.yml`** (Lane CONSUME, system-completion plan, 2026-09-02;
+the session-verdict $0 flip below is Lane LEDGER-ZERO, 2026-09-04), runs `run-ledger-consume.mjs` (new,
+`fsi-app/scripts/turns/`) — the CONSUME half of the same `portal_link_candidates` ledger
+`source-sweep.yml` discovers into. Where `source-sweep` writes candidate URLs, `ledger-consume` reads
+them: it gives a production runtime to `consumePortalCandidates` (`fsi-app/src/lib/intake/portal-
+harvest.ts`), which had ZERO callers anywhere in this repo before Lane CONSUME (system-completion plan
+§0, item 1) — 1,454 `status='candidate'` rows sat with no reader (1,840 at the time of the 2026-09-04
+wiring audit). It is dispatch-only, plus one `workflow_run` event chain (see below), no schedule armed,
+and always self-emits its own `ledger-consume` harness-run artifact
+(`scripts/harness-runs/ledger-consume/`), from a `finally` block, in every mode.
 
-**Modes.** `plan` runs every fetched candidate through the LIVE entity-gate classifier and the real
-chokepoint's dry pre-pass, and writes NOTHING to `portal_link_candidates` or the intake pipeline — but it
-is NOT free: the Haiku classify call (~$0.001/candidate) still runs for every candidate whose fetch
-clears the 200-char floor, so a plan dispatch is a real, metered spend even though it changes no row.
-`apply` would push the would-mint set through the full stage -> mint -> ground -> validate cycle and stamp
-the ledger disposition — but it is structurally **DISARMED**: `run-ledger-consume.mjs` carries a source
-constant, `LEDGER_CONSUME_APPLY_ENABLED = false`, the same ADR-023 reviewed-change gate the data producers
-use, applied here to a consumer. Dispatching `mode: apply` before an operator reviews and flips that
-constant in a diff does not fail and does not silently run as if nothing were requested: the run logs an
-"APPLY DISARMED" line, executes with `plan` semantics (still spends on classify, writes nothing), and
-records `config.requested_mode: "apply"` / `config.apply_disarmed: true` / `config.mode: "plan"` in its
-own artifact, so a reader of the artifact alone can tell an apply request from an apply run.
+### The session-verdict $0 default (operator ruling 2026-09-04)
 
-**Telemetry — closed at the source, not by this driver.** Every classify call in a `ledger-consume` run
-leaves its own `agent_runs` row (operator ruling 2026-07-06: "every classify call must leave an
-agent_runs row"). Lane CONSUME originally found `firstFetchClassify`
-(`fsi-app/src/lib/llm/first-fetch-classify.ts`) calling the Anthropic API directly — no `SpendTicket`, no
-`agent_runs` write, entirely outside the spend chokepoint — despite `first-fetch-classify` being a
-registered Rule-016 standing ticket class (`STANDING_TICKET_CLASSES`) that nothing actually wired, and
-closed the gap from OUTSIDE `first-fetch-classify.ts` by wrapping the `ConsumeOpts.classify` injection
-point with its own `agent_runs` insert. **Lane SPEND (same train) then closed the same gap properly, at
-the source:** `firstFetchClassify` now routes every Haiku call through `spend-client.ts`'s `spendMessage`,
-which writes the `agent_runs` row itself (`recordSpendCall`, keyed by `source_id` from the
-`SpendTicket` `firstFetchClassify` sets internally). Keeping the driver's own insert after that change
-would write a SECOND row per call, so it was removed at integration — `run-ledger-consume.mjs`'s
-`collectClassifyTelemetry` is now a READ-ONLY collector, not a write-site: it captures
-`FirstFetchClassifyResult`'s `cost_usd_estimated`/`render_ms`/`input_tokens`/`output_tokens` per call so
-this family's own artifact (`per_item.est_usd`/`input_tokens`/`output_tokens`,
-`metrics.est_usd_total`/`input_tokens_total`/`output_tokens_total`) can report real numbers without a
-second lookup or a second ledger write. Token counts are no longer a gap either: Lane SPEND added
-`input_tokens`/`output_tokens` to `FirstFetchClassifyResult` (the chokepoint has the real Haiku `usage`
-block), so this artifact's per-call numbers are real cost AND real tokens, not cost alone.
+Verbatim: **"stop offering API when you have a free option with Haiku"**; **"why is this costing me
+anything when it can be done for free?"**. Before this change, **every** dispatch — `plan` or `apply` —
+called Haiku (`firstFetchClassify`, ~$0.001/candidate) for every candidate whose fetch cleared the
+200-char floor; `plan`'s "read-only" promise was about writes, never about spend. That is closed now:
 
-**What lands where.** `scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own
-self-emitted artifact, every dispatch, plan or (disarmed) apply. `scripts/harness-runs/ledger-consume/
-traces/ledger-consume-run-NNN.result.json` — the run's FULL raw `ConsumeResult` (every candidate outcome,
-not just the ones the artifact's `per_item` names), one level below the family directory so F28's
-family-level `*.json` glob never mistakes it for an artifact (the same convention `source-sweep`'s
-`traces/` directory established). The workflow commits only `scripts/harness-runs/ledger-consume/**`, via
-a fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, same fallback-to-tracking-
+- **`--verdicts <path>`** (a repo path to a session-verdict batch — see `fsi-app/scripts/turns/ledger-
+  verdicts/README.md` + `schema.json` for the file contract, and how a session lane produces one for
+  $0 via its own model access rather than the metered API). A candidate whose URL matches an entry in
+  the file is classified from that verdict — the classify call is bypassed entirely, `$0`,
+  `classify_source: "session-verdict"` in this run's own artifact.
+- A candidate **without** a matching verdict is **SKIPPED** — left `status='candidate'`, untouched, for
+  a later batch — and is **NEVER sent to the API**, unless the driver was run with the explicit,
+  CLI-only `--allow-api` flag (default `false`). `ledger-consume.yml` does **not** expose `--allow-api`
+  as a workflow input, so a workflow dispatch can never spend on classify by omission — only a human
+  running the script directly and asking for it by name can.
+- **`--export-candidates <path>`** is a separate, READ-ONLY mode (no fetch, no classify, no DB write, no
+  harness-run artifact — it is a listing utility, not a consume pass): it writes the candidate rows
+  (`candidate_id`, `url`, `source_id`, `anchor_text`, `first_seen_at`, source metadata) a session lane
+  needs to fetch (this runtime does not persist first-fetch page text — `portal_link_candidates` has no
+  content column) and classify offline into a `--verdicts` file, using the SAME prompt the live
+  chokepoint uses (`FIRST_FETCH_HAIKU_SYSTEM_PROMPT` / `buildFirstFetchClassifyUserMessage`, both
+  exported from `first-fetch-classify.ts` for exactly this — ONE BODY, never a second hand-typed copy).
+- **`prompt_version`** (`FIRST_FETCH_CLASSIFY_PROMPT_VERSION`, also exported from `first-fetch-
+  classify.ts`) is a content hash of the live system prompt, stamped into every verdict entry. A verdict
+  whose `prompt_version` does not match the driver's own live constant is excluded from use — per-entry,
+  non-fatal, counted honestly in the run's own artifact — never silently accepted as current.
+
+### Modes, and the apply flip
+
+`plan` classifies (from a verdict, or skips) every fetched candidate and writes NOTHING to
+`portal_link_candidates` or the intake pipeline. `apply` pushes the would-mint set through the full
+stage -> mint -> ground -> validate cycle and stamps the ledger disposition — gated by
+`LEDGER_CONSUME_APPLY_ENABLED` in `run-ledger-consume.mjs`, **`true` as of 2026-09-04** (Lane
+LEDGER-ZERO, operator ruling above, `docs/decisions/ADR-023-producer-execution-model.md`'s reviewed-
+change mechanism, the same source-constant gate the data producers use — see that ADR's Consequences
+section for the record of the flip). Before this it was structurally DISARMED
+(`LEDGER_CONSUME_APPLY_ENABLED = false`); a `mode: apply` dispatch that requests apply while the const is
+false still does not fail and does not silently run as if nothing were requested — it logs an "APPLY
+DISARMED" line, executes with `plan` semantics, and records `config.requested_mode: "apply"` /
+`config.apply_disarmed: true` / `config.mode: "plan"` in its own artifact — that mechanism is unchanged,
+just no longer the default outcome. With the const now `true`, an `apply` dispatch WITH a `--verdicts`
+file (or `--allow-api`) actually writes; one with NEITHER mints nothing — every candidate skipped for
+want of a classification source, a legal, honest, explicitly-logged no-op, never a silent downgrade.
+
+**DECISION, recorded here (build plan W1.4's "name in a comment... decide and document"): `apply` is
+reachable ONLY via an explicit `workflow_dispatch`.** The `workflow_run` event chain below (see next
+section) always forces `mode: plan`, regardless of what an operator might otherwise want — there is no
+`mode` input to read from a `workflow_run` event in the first place, and a source-sweep completion is a
+"check whether there is new work" signal, not an "operator decided to write now" signal; those are kept
+separate. Separately, and independently: an `apply` dispatch that supplies neither `verdicts_file` nor
+`--allow-api` also does not write anything, even though it was an explicit dispatch — the workflow's "This
+run's gates" step emits a `::warning::` for exactly this combination so it is visible in the run log, not
+silently absorbed.
+
+### Event chaining, not a schedule (build plan W1.4)
+
+`ledger-consume.yml` carries a `workflow_run: workflows: ["Source sweep"]` trigger (rule 16 governs
+`schedule:`/cron, not event chaining — this is not a schedule). When `source-sweep.yml` completes
+successfully, `ledger-consume.yml` fires automatically in `mode: plan`, resolving the newest committed
+`scripts/turns/ledger-verdicts/ledger-verdicts-*.json` batch if one exists (lexicographic sort on the
+zero-padded `NNN` suffix), or running with no verdicts file at all if none does (every candidate skipped,
+$0 — an honest "nothing classified yet" plan run, still worth having on record). This still requires a
+human (or a follow-up dispatch) to act on the plan's output — plan never writes — and, per the DECISION
+above, can never itself become an apply.
+
+### Telemetry — closed at the source, not by this driver
+
+Every classify call that actually reaches the API in a `ledger-consume` run leaves its own `agent_runs`
+row (operator ruling 2026-07-06: "every classify call must leave an agent_runs row") — `firstFetchClassify`
+routes every Haiku call through `spend-client.ts`'s `spendMessage`, which writes the `agent_runs` row
+itself (`recordSpendCall`, keyed by `source_id` from the `SpendTicket` `firstFetchClassify` sets
+internally). `run-ledger-consume.mjs`'s `collectClassifyTelemetry` is a READ-ONLY collector, not a
+write-site: it captures `FirstFetchClassifyResult`'s cost/token fields per URL so this family's own
+artifact can report real numbers without a second lookup or a second ledger write. A session-verdict hit
+or a no-verdict skip writes NO `agent_runs` row at all — there is no real spend event to log — but both
+still flow through the SAME telemetry map (`buildVerdictClassify`, tagged `classify_source:
+"session-verdict"` / `"skipped-no-verdict"` / `"api"`), so this run's own artifact reports exactly where
+each outcome's classification came from and what, if anything, it cost.
+
+### What lands where
+
+`scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own self-emitted
+artifact, every consume dispatch (plan or apply; NOT `--export-candidates`, which is read-only and writes
+no artifact). `scripts/harness-runs/ledger-consume/traces/ledger-consume-run-NNN.result.json` — the run's
+FULL raw `ConsumeResult`, one level below the family directory so F28's family-level `*.json` glob never
+mistakes it for an artifact. The workflow commits only `scripts/harness-runs/ledger-consume/**`, via a
+fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, same fallback-to-tracking-
 issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
 `scripts/_snapshots/**` workflow artifact the same way.
 
-**A registration gap this lane found, could not close itself, and Lane SPEND has since resolved.**
-`ledger-consume.yml` references `secrets.ANTHROPIC_API_KEY` — required in EVERY mode, since even `plan`
-spends on classify. Lane CONSUME's `.discipline/governance/secrets-registry.mjs`/`secrets-reference-
-audit.mjs` were outside its write set, so it reported (rather than fixed) that `ANTHROPIC_API_KEY` was
-not yet in `WORKFLOW_SECRETS` — the same class of gap ADR-023/the system-completion plan anticipates for
-`EIA_API_KEY`. Lane SPEND (same train) registered `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS` +
-`docs/ops/secrets-topology.md` at integration (2026-09-02); `node
-.discipline/governance/secrets-reference-audit.mjs` now reports every workflow secret reference
-registered, `ledger-consume.yml` included.
+### Secrets
+
+`ledger-consume.yml` now references only `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` — the
+`ANTHROPIC_API_KEY` precondition is REMOVED from the workflow's plan (and apply) path, because the $0
+session-verdict default no longer calls Haiku unconditionally; the real API path (`--allow-api`) is
+CLI-only and this workflow never sets it. `ANTHROPIC_API_KEY` stays registered in `WORKFLOW_SECRETS`
+(`.discipline/governance/secrets-registry.mjs`, Lane SPEND, 2026-09-02) for the humans who DO run
+`--allow-api` by hand outside this workflow — `node .discipline/governance/secrets-reference-audit.mjs`
+reports every workflow secret reference registered either way.
+
+### First dispatch (proves this component per the build plan's §0)
+
+```
+node scripts/turns/run-ledger-consume.mjs --mode plan \
+  --verdicts scripts/turns/ledger-verdicts/ledger-verdicts-001.json --limit 50
+```
+— or, via `ledger-consume.yml`: `mode=plan`,
+`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`. `ledger-verdicts-
+001.json` is produced by first dispatching `--export-candidates` (read-only) over the live
+`portal_link_candidates` backlog, then a session-Haiku lane classifying that list into a batch matching
+`fsi-app/scripts/turns/ledger-verdicts/schema.json` — that batch is NOT part of this runbook update or
+Lane LEDGER-ZERO's write set (a live classification pass over ~1,800+ candidates is the coordinator's
+Haiku lanes' job, per the build plan's own §W1.1); this entry documents the mechanism and the exact first
+proving dispatch once that batch exists. Success is: `ledger-consume-run-001.json` lands with
+`metrics.with_verdict > 0`, `metrics.promoted > 0` (once an `apply` dispatch follows a reviewed plan), and
+`metrics.est_usd === 0`.
+
 ## Change detection
 
 Written 2026-09-02, lane CD (system-completion train). Governs `.github/workflows/change-detection.yml` —
@@ -370,7 +512,53 @@ fresh branch per dispatch, commit + PR via `deliver-artifact-branch.sh`, a comme
 under the same no-schedule-during-build ruling as every other family in this repo (see above), and the same
 hydrate-unmerged-artifacts collision guard.
 
-**What lands where:** `scripts/harness-runs/propagation/propagation-drain-run-NNN.json` — the run's own
+### Chaining: dispatched automatically after Data producers (lane CHAIN, 2026-09-04)
+
+`propagation-drain.yml` also fires on `on.workflow_run: {workflows: ["Data producers"], types:
+[completed]}` — every time `producers.yml` finishes, in addition to `workflow_dispatch`. This closes W1.4
+of `docs/plans/complete-system-build-plan-2026-09-04.md` and the B4→B5 gap
+`docs/audits/wiring-audit-2026-09-04/C1-loop-map.md` §3 names: "the propagation outbox trigger (B4) —
+genuinely zero-touch; it just has nothing pointed at it downstream," and its own §5 reading (b), step 4:
+"Chain B4 (already automatic) → B5 (drain) ... with the same `workflow_run` mechanism." **Event-driven off
+a completed run, not a cron cadence** — the same rule-16 reading `population-turn.yml`'s own chaining
+uses; no `schedule:` block here is armed or uncommented by this change.
+
+**What decides whether a chained run drains.** The workflow's first step ("Resolve run parameters and the
+chaining gate") checks only the upstream run's own `conclusion`
+(`github.event.workflow_run.conclusion`) — `"success"` drains, anything else is a named no-op
+(`::notice::`, job still exits 0 green). Unlike `population-turn.yml`'s chain off `ledger-consume.yml`,
+there is **no per-run artifact to read a promoted-style count from**: `producers.yml` writes straight
+through the guarded Supabase path with no branch/PR step of its own (a producer run leaves no
+`producers/<run_id>` branch to fetch — this family "has no landing backlog by construction," per the
+wiring audit's A1 §6), and the propagation outbox trigger `emit_propagation_event()` (B4) already fires
+unconditionally, in the same transaction, on every producer write regardless of how many rows a given run
+touched. "Upstream concluded success" is therefore the complete, correct gate for this family — a
+producer run that succeeded but wrote nothing new (an idempotent no-op upsert; `producers.yml`'s own
+header: low-cadence sources are "almost always a no-op upsert") simply drains a batch that finds nothing
+new to invalidate, which is the honest, correct outcome, not a false positive the way an ungated
+`ledger-consume` plan run's `would_mint` count would be for `population-turn.yml`.
+
+**What a chained run actually drains with.** `mode: apply`, `batch: 500` (the same default the `batch`
+input already uses). **The two opt-in checkboxes stay hand-only** (build plan W4.3, verbatim): a chained
+dispatch never ticks `backfill_entities` or `seed_derived_values`, regardless of what a prior hand
+dispatch chose — a coordinator who wants an entity-spine backfill or a derived-value seed pass still
+dispatches this workflow by hand for it. The run's own `propagation-run-NNN.json` gains a
+`config.trigger_context` field — `{name: "Data producers", run_id, conclusion}` for a chained dispatch,
+`null` for a hand dispatch — written by `run-propagation-drain.mjs`'s `--trigger-context` flag
+(`propagation-drain.yml` passes it straight through), so the artifact alone always answers whether a
+given drain was hand-dispatched or chained and, if chained, off which upstream producers run.
+
+**This chain does not honour `POPULATION_PAUSED`** (`population-turn.yml`'s own pause variable — see
+`POPULATION-TURN-RUNBOOK.md`'s "Population stop" section). `POPULATION_PAUSED` stops NEW record-grade
+minting during the T46 validation window; it says nothing about decision propagation, which is Loop B
+(spec 08) draining events already queued from producer writes that already happened. The two stops are
+independent by design — pausing the drain during the population pause would let `propagation_events` grow
+unboundedly for a reason unrelated to why population itself is paused.
+
+**Manual dispatch is unaffected** — `workflow_dispatch` remains, every input unchanged; chaining is
+additive.
+
+**What lands where:** `scripts/harness-runs/propagation/propagation-run-NNN.json` — the run's own
 self-emitted artifact (dry or apply). No other file is committed by this workflow; `derived_values`,
 `derivation_edges`, and the `drained_at` marks on `propagation_events` are database writes, not local
 files, matching the same "database writes leave no local file beyond the harness-run artifact" posture
@@ -379,7 +567,7 @@ files, matching the same "database writes leave no local file beyond the harness
 
 **First run.** `scripts/harness-runs/propagation/PENDING-RUN.md` records the pre-first-run
 harness-version hash pin (mirroring the mint/screen family's own convention) — it is replaced by the first
-real `propagation-drain-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
+real `propagation-run-001.json` once a run actually lands, the same lifecycle `forward-events`'s
 `PENDING-RUN.md` went through.
 
 ## Seeding derived values
@@ -441,3 +629,102 @@ that file's covered globs, and that file is outside this lane's write set) — r
 `.discipline/governance/exemptions.mjs`'s `scripts/propagation/seed-derived-values` entry rather than left
 silent; run it directly with `node --test scripts/propagation/seed-derived-values.test.mjs` until a later
 lane adds the glob.
+
+## DAG authorship at write time
+
+Added by Lane DAG-AUTHOR (propagation build-out, 2026-09-04) — closes the gap
+`docs/audits/wiring-audit-2026-09-04/C1-loop-map.md` §3 named: "new producer/mint data → derivation_edges |
+NOBODY does this today." Before this lane, the ONLY way a `derived_values`/`derivation_edges` pair came
+into existence was a one-off run of `seed-derived-values.mjs` (above) — a producer's own ordinary write
+(a new `emission_factors` row, a new `regional_data_facts` fact) never touched the DAG at all, so the drain
+had nothing new to invalidate/recompute as the corpus grew, only at the moment someone remembered to
+re-run the seed by hand.
+
+**The one authoring module.** `fsi-app/src/lib/propagation/author-edges.mjs` exports `authorEdges(sb,
+figure, deps)` — given a landed figure `{table, id, entity, method: {id, version}, inputs: [{table, pk}]}`,
+it looks up the registered method (`methods/index.ts`'s `getMethod`), checks `hasBeenAuthored()` (every
+declared input scanned against live `derivation_edges` joined to `derived_values` for a matching
+`(method_id, method_version)` — idempotent on that natural key; `derived_values`/`derivation_edges`
+deliberately carry no DB-level unique constraint, since a legitimate recompute/supersede chain repeats
+rows, so idempotency is enforced here, in application code, not the schema), computes the method against
+the resolved inputs, and writes through the SAME `registerDerivedValue()` → `register_derived_value(...)`
+RPC every other caller in this family uses (see "Propagation drain" above) — never a second write path.
+EVERY producer that can feed a registered method imports this ONE module; none reimplements the
+idempotency check or the RPC call itself.
+
+**Wired at two chokepoints, covering five producers with two call sites:**
+- `fsi-app/scripts/gen/emission-factors-common.mjs`'s `seedFactors()` — the shared write path for
+  `emission-factors-desnz.mjs` and `emission-factors-epa.mjs` — calls `authorCarbonIntensityEdges()` right
+  after its own guarded insert, over the rows PostgREST actually reported back (never the pre-insert
+  candidates). Licence-gated: `mayEmbedAsSeed(source_key)` — a non-embeddable source's factor is never
+  turned into a derived value, matching `seed-derived-values.mjs`'s own gate.
+- `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` — the shared
+  write path for `bls-oews-producer.mjs`, `eurostat-lc-lci-lev-producer.mjs`,
+  `eurostat-nrg-pc-205-producer.mjs` — calls `authorAutomateVsHireForRegions()` over the run's own touched
+  region ids. Picks the MOST RECENT hourly-wage (`isHourlyWageUnit`) and operational-cost fact per region;
+  mints the region's jurisdiction entity on demand (via `resolveRegionEntityId`, reused unmodified from
+  `seed-derived-values.mjs`) when absent.
+- `market_series` producers (`eia-v2-petroleum-spot-producer.mjs`, `ecb-fx-producer.mjs`,
+  `eu-weekly-oil-bulletin.mjs`) are deliberately **not wired** — neither registered method consumes
+  `market_series`, so authoring an edge from it would point at nothing any method reads.
+- `src/lib/intake/write-item.ts` (the record-item mint chokepoint) was checked and **refused**: no table it
+  writes is in `derivation_edges`'s `from_table` allowlist (migration 285), and no registered method
+  consumes anything it writes — there is nothing to author there today.
+
+**The one-time historical bridge.** `fsi-app/scripts/entities/backfill-derivation-edges.mjs` (new, this
+lane) closes the gap for rows written BEFORE the wiring above existed — it calls the exact same two
+functions (`authorCarbonIntensityEdges`, `authorAutomateVsHireForRegions`) over every live
+`emission_factors` row and every region carrying a `labor_markets`/`operational_cost` fact, no
+reimplemented logic. `--dry` (default) reports candidate counts; `--apply` authors for real; `--limit N`
+bounds each candidate list for a pilot run. **Retirement condition** (see the file's own header for the
+full statement): run it once unbounded with `--apply`, then run it again unbounded with `--apply`
+immediately after — a second run reporting `candidates: 0` on both counters is the signal every historical
+row is now authored and every future row is already covered by the two chokepoints above, at which point
+the file, its `propagation-drain.yml` checkbox, and this section are deleted.
+
+**How a coordinator requests a backfill run:** the `backfill_and_statutory` checkbox on
+`propagation-drain.yml`'s `workflow_dispatch` (added this lane) runs
+`backfill-derivation-edges.mjs` and then `write-statutory.mjs` (next section) before the drain step,
+honouring the dispatch's own `mode` (`dry`/`apply`). Both steps are independent no-ops when their inputs
+are empty/absent — enabling the checkbox on a routine dispatch cannot fail the run.
+
+## Statutory computations (first writer)
+
+Added by Lane DAG-AUTHOR (propagation build-out, 2026-09-04) — the first `statutory_computations` writer
+(spec 08 §4's FuelEU Maritime worked example, instantiated). `fsi-app/scripts/propagation/write-statutory.mjs`
+reuses `src/lib/statutory/types.ts`'s `computeStatutory("fueleu_annex_iv_penalty", ...)` (Layer 2, built by
+Lane DP-SURF 2026-09-02) unmodified — this script only resolves entities, gates every input through
+`admissibleFor()` (use='filing', spec §3.3's pollution barrier), and writes the row.
+
+**Rows-file-driven, not a live table read — a finding, not a shortcut.** Neither `market_series` nor
+`obligations` (migration 290) carries a ship-level GHG-intensity-actual or energy-used figure anywhere in
+this corpus (confirmed live, read-only SELECT, 2026-09-04) — see the script's own header for the full
+finding, including why the one live `obligations` row naming Regulation (EU) 2023/1805 (an implementing
+verification-activities regulation, not the Annex IV penalty itself) is not used as the obligation source.
+`--rows-file <path>` (JSON) is REQUIRED in both dry and apply mode — each row supplies a `shipKey`,
+`targetYear` (2025 only — see below), and three fully-provenanced `StatutoryInput`-shaped blocks
+(`ghgIntensityActual`, `energyUsedMJ`, `consecutiveDeficitYears`), each checked against `admissibleFor()`
+before the row can be assembled. **No rows-file has been prepared/reviewed as of this writing — the honest
+first-apply count is 0 rows**, not a fabricated number.
+
+**2025-target-only.** Article 4(2) of Regulation (EU) 2023/1805, verified live against EUR-Lex
+CELEX:32023R1805 this session (2026-09-04): the reference value 91.16 gCO2eq/MJ is reduced 2% from
+1 January 2025 (target = 89.3368 gCO2eq/MJ). Every other `targetYear` is refused BY NAME
+(`SUPPORTED_TARGET_YEARS`) — the fetch mentioned a 6% reduction from 2030 without giving verbatim Article
+text, and did not cover 2035/2040/2045/2050 at all, so only 2025 is implemented.
+
+**How to run it:**
+
+```
+node scripts/propagation/write-statutory.mjs --rows-file path/to/rows.json               # dry (default)
+node scripts/propagation/write-statutory.mjs --apply --rows-file path/to/rows.json        # writes
+```
+
+Exit 0 done · 1 unexpected fatal · 2 no DB creds · 3 missing/bad `--rows-file`. Idempotent on the table's
+own natural key (`entity_id, formula_id, formula_version, scenario_key`, migration 286's own UNIQUE
+constraint) — an existing row is read and skipped before any insert, never re-inserted or updated; a
+genuine recompute needs a caller-chosen new `scenario_key` (the same convention migration 286 documents
+for itself).
+
+**`estimated_values`'s automate-vs-hire sibling already exists** — `seed-derived-values.mjs`'s
+`seedAutomateVsHire` (documented above) — and is not duplicated by this lane.

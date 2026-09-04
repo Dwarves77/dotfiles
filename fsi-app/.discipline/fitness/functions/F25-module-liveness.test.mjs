@@ -15,6 +15,8 @@ import {
   isTestFile,
   fitnessFunction,
   LEGACY_ALLOWLIST,
+  findDispatchRoots,
+  latestTrainWave,
 } from './F25-module-liveness.mjs';
 
 
@@ -184,4 +186,136 @@ test('framework entry points are never allowlisted (they are excluded by convent
       `${f} is a framework entry point — it belongs in ENTRY_BASENAMES, not in the allowlist`,
     );
   }
+});
+
+// ── W7.1 widening: dispatch-root awareness ─────────────────────────────────
+
+// findDispatchRoots takes an injectable listFilesFn (a CONSTRUCTED file list, same fixture discipline as
+// buildImportGraph above) so these tests exercise the SHAPE of each source, never the live repo.
+const listOnly = (map) => (patterns) => patterns.flatMap((p) => map[p] ?? []);
+
+test('findDispatchRoots: a workflow `node scripts/x.mjs` run: line is a dispatch root', () => {
+  const files = { '.github/workflows/example.yml': 'jobs:\n  x:\n    steps:\n      - run: node scripts/turns/run-example.mjs --apply\n' };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/turns/run-example.mjs'));
+});
+
+test('findDispatchRoots: a bare path mention (not `node`-prefixed) still counts, per B1\'s own grep method', () => {
+  const files = {
+    '.github/workflows/example.yml':
+      'jobs:\n  x:\n    steps:\n      - run: |\n          args="scripts/sources/inaccessible-triage.mjs --out-dir d"\n          node $args\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/sources/inaccessible-triage.mjs'));
+});
+
+test('findDispatchRoots: a package.json "scripts" entry is a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/package.json': JSON.stringify({ scripts: { 'perf:bundles': 'node scripts/measure-bundles.mjs' } }),
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/measure-bundles.mjs'));
+});
+
+test('findDispatchRoots: an esbuild stub-*.mjs alias target under .discipline/rendering is a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/rendering/smoke/harness.mjs': "export const NEXT_LINK_STUB = join(HERE, 'stub-next-link.mjs');",
+  };
+  const list = listOnly({
+    '.github/workflows/*.yml': ['.github/workflows/example.yml'],
+    'fsi-app/.discipline/rendering/**/*.mjs': ['fsi-app/.discipline/rendering/smoke/harness.mjs'],
+  });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/rendering/smoke/stub-next-link.mjs'));
+});
+
+test('findDispatchRoots: an AUDITS-table entry in run-data-audit-lane.mjs is a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/scripts/verify/run-data-audit-lane.mjs':
+      'const AUDITS = [\n  ["one-tier-per-host", "scripts/verify/one-tier-per-host-audit.mjs", true],\n];\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/scripts/verify/one-tier-per-host-audit.mjs'));
+});
+
+test('findDispatchRoots: a *-golden.mjs / *.golden.mjs file under scripts/verify/ is a dispatch root (run-goldens.mjs auto-discovery)', () => {
+  const list = listOnly({
+    '.github/workflows/*.yml': ['.github/workflows/example.yml'],
+    'fsi-app/scripts/verify/**/*.mjs': ['fsi-app/scripts/verify/lock-golden.mjs', 'fsi-app/scripts/verify/x.golden.mjs', 'fsi-app/scripts/verify/plain.mjs'],
+  });
+  const roots = findDispatchRoots('/repo', () => 'jobs: {}\n', list);
+  assert.ok(roots.has('fsi-app/scripts/verify/lock-golden.mjs'));
+  assert.ok(roots.has('fsi-app/scripts/verify/x.golden.mjs'));
+  assert.equal(roots.has('fsi-app/scripts/verify/plain.mjs'), false);
+});
+
+test('latestTrainWave: parses the highest waveNN from `git log --oneline <ref>`', () => {
+  const fakeExec = () => 'abcdef1 train/wave36 2026 09 04 (#583)\nfedcba2 train/wave35 2026 09 04 (#582)\n';
+  assert.equal(latestTrainWave('/repo', fakeExec), 36);
+});
+
+test('latestTrainWave: returns null (never throws) when no ref resolves', () => {
+  const fakeExec = () => { throw new Error('unknown revision'); };
+  assert.equal(latestTrainWave('/repo', fakeExec), null);
+});
+
+test('auditLiveness: an allowlist entry past its expiry is RED even if otherwise well-formed', () => {
+  const allow = new Map([
+    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'wire', detail: 'plan §X' }, expiry: 40 }],
+  ]);
+  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 41);
+  assert.ok(problems.some((p) => /ALLOWLIST ENTRY EXPIRED/.test(p) && /x\.mjs/.test(p)));
+});
+
+test('auditLiveness: an allowlist entry NOT YET at its expiry passes (given a valid disposition)', () => {
+  const allow = new Map([
+    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'one-shot', detail: 'already run' }, expiry: 40 }],
+  ]);
+  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 39);
+  assert.deepEqual(problems, []);
+});
+
+test('auditLiveness: expiry with no latestWave available (null) never reds on its own — best-effort, not silent-fail', () => {
+  const allow = new Map([
+    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', disposition: { kind: 'wire', detail: 'plan §X' }, expiry: 1 }],
+  ]);
+  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, null);
+  assert.deepEqual(problems, []);
+});
+
+test('auditLiveness: an expiry without a valid disposition is RED regardless of the wave', () => {
+  const allow = new Map([
+    ['fsi-app/scripts/x.mjs', { file: 'fsi-app/scripts/x.mjs', reason: 'r', reviewByPhase: 'p', expiry: 99 }],
+  ]);
+  const problems = auditLiveness(['fsi-app/scripts/x.mjs'], ['fsi-app/scripts/x.mjs'], allow, () => true, 1);
+  assert.ok(problems.some((p) => /WITH EXPIRY BUT NO DISPOSITION/.test(p)));
+});
+
+test('every W7.1-widened allowlist entry (one carrying an expiry) has a valid disposition', () => {
+  const withExpiry = LEGACY_ALLOWLIST.filter((e) => e.expiry !== undefined);
+  assert.ok(withExpiry.length > 0, 'the widened scope actually produced expiry-bearing entries');
+  for (const e of withExpiry) {
+    assert.ok(['wire', 'delete', 'one-shot'].includes(e.disposition && e.disposition.kind), `${e.file} disposition`);
+    assert.ok(e.disposition.detail, `${e.file} disposition detail`);
+    assert.equal(typeof e.expiry, 'number', `${e.file} expiry is a train/wave number`);
+  }
+});
+
+// The widened scope's own shape: scripts/** in full (not just scripts/lib/**) and .discipline/** are now
+// covered — asserted against the SHIPPED fitnessFunction.check() logic indirectly via a scope-shaped
+// allowlist entry that only makes sense once the scope actually reaches those directories (e.g. a
+// scripts/verify/ or .discipline/governance/ entry existing at all proves the scope reaches there, since
+// an entry for a file OUTSIDE scope would trip nothing and be pointless to carry).
+test('the widened allowlist reaches scripts/** beyond scripts/lib/ and .discipline/**', () => {
+  const files = LEGACY_ALLOWLIST.map((e) => e.file);
+  assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/verify/')), 'scripts/verify/ entries present');
+  assert.ok(files.some((f) => f.startsWith('fsi-app/.discipline/governance/')), '.discipline/governance/ entries present');
+  assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/spec09/')), 'scripts/spec09/ entries present');
 });
