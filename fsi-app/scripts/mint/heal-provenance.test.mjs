@@ -98,13 +98,27 @@ import {
   classifyHopLink,
   hopLinksForToken,
   extractSentenceContext,
+  // tenth pass (HEAL-10, 2026-09-04) — Tasks 1-4
+  buildCaptureIndex,
+  getCaptureIndex,
+  containsCaseInsensitiveCached,
+  locateSpanInTextIndexed,
+  locateSpanInTextCached,
+  computeItemTimeBudgetSeconds,
+  sentenceSpans,
+  findSentenceSpanForToken,
+  removeSentenceSpan,
+  planStripUnprovableClause,
+  planStripUnprovableSentence,
+  planBriefHonest,
+  planRelabelFromFullBrief,
 } from "./heal-provenance.mjs";
 import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp8-/);
+  assert.match(HEAL_VERSION, /^hp10-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -576,19 +590,34 @@ test("shouldUnarchive: only archived-unreasoned selection, freshly verified, cur
 // ── selection ────────────────────────────────────────────────────────────────────────────────────────
 
 test("parseSelection: blank/default is quarantined-live", () => {
-  assert.deepEqual(parseSelection(""), { ok: true, mode: "quarantined-live", ids: null });
-  assert.deepEqual(parseSelection(undefined), { ok: true, mode: "quarantined-live", ids: null });
+  assert.deepEqual(parseSelection(""), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: false });
+  assert.deepEqual(parseSelection(undefined), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: false });
 });
 
 test("parseSelection: the other three named selections", () => {
   assert.equal(parseSelection("archived-unreasoned").mode, "archived-unreasoned");
   assert.equal(parseSelection("slots-backfill").mode, "slots-backfill");
-  assert.deepEqual(parseSelection("ids: a-1, b-2"), { ok: true, mode: "ids", ids: ["a-1", "b-2"] });
+  assert.deepEqual(parseSelection("ids: a-1, b-2"), { ok: true, mode: "ids", ids: ["a-1", "b-2"], stripUnprovable: false });
 });
 
 test("parseSelection: bad input refused", () => {
   assert.equal(parseSelection("ids:").ok, false);
   assert.equal(parseSelection("bogus").ok, false);
+});
+
+// TENTH PASS (lane HEAL-10, Task 3) — the "+strip-unprovable" suffix on every existing selection form.
+test("parseSelection: +strip-unprovable suffix sets stripUnprovable, preserves every existing form's own meaning", () => {
+  assert.deepEqual(parseSelection("+strip-unprovable"), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: true });
+  assert.deepEqual(parseSelection("quarantined-live+strip-unprovable"), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: true });
+  assert.deepEqual(parseSelection("archived-unreasoned+strip-unprovable"), { ok: true, mode: "archived-unreasoned", ids: null, stripUnprovable: true });
+  assert.deepEqual(parseSelection("slots-backfill+strip-unprovable"), { ok: true, mode: "slots-backfill", ids: null, stripUnprovable: true });
+  assert.deepEqual(
+    parseSelection("ids: a-1, b-2+strip-unprovable"),
+    { ok: true, mode: "ids", ids: ["a-1", "b-2"], stripUnprovable: true },
+  );
+  // absent -> false, on every form, unchanged from before this pass
+  assert.equal(parseSelection("quarantined-live").stripUnprovable, false);
+  assert.equal(parseSelection("ids:a-1").stripUnprovable, false);
 });
 
 test("resolveSlotsBackfillCandidates: narrows to items ACTUALLY missing a slot", () => {
@@ -637,7 +666,12 @@ function baseDeps(overrides = {}) {
     insertInstitution: async (row) => { calls.push(["insertInstitution", row]); return { id: "inst-new" }; },
     updateSourceInstitution: async (sourceId, institutionId) => { calls.push(["updateSourceInstitution", sourceId, institutionId]); return { updated: 1 }; },
     validateProvenance: async () => ({ valid: true, recommended_status: "verified", failures: [] }),
-    insertSearch: async (row) => { calls.push(["insertSearch", row]); return { id: "search-new", result_url: row.result_url }; },
+    // TENTH PASS note: a unique id PER CALL (never a fixed literal) — a real insertSearch (db.mjs's own
+    // guardedInsert) always returns a genuinely unique row id, and healOneItem's new capture-index cache
+    // (getCaptureIndex, keyed by capture.id) relies on that uniqueness to never conflate two DIFFERENT
+    // captures inserted in the SAME run; a fixed literal here previously let two distinct fresh captures
+    // (e.g. a landing page and the hop page it links to) collide on the SAME cache key.
+    insertSearch: async (row) => { calls.push(["insertSearch", row]); return { id: `search-new-${calls.length}`, result_url: row.result_url }; },
     insertClaim: async (row) => { calls.push(["insertClaim", row]); return { id: `claim-${calls.length}` }; },
     updateClaimSpan: async (id, patch) => { calls.push(["updateClaimSpan", id, patch]); return { updated: 1 }; },
     updateClaimKind: async (id, patch) => { calls.push(["updateClaimKind", id, patch]); return { updated: 1 }; },
@@ -659,6 +693,9 @@ function baseDeps(overrides = {}) {
     touchItem: async (id) => { calls.push(["touchItem", id]); return { updated: 1 }; },
     readProvenanceStatus: async () => "verified",
     unarchiveItem: async (id) => { calls.push(["unarchiveItem", id]); return { updated: 1 }; },
+    // TENTH PASS (2026-09-04, lane HEAL-10) — STEP BRIEF-HONEST's own write (Task 3); only ever called
+    // when apply && stripUnprovable && the plan was accepted.
+    updateItemBrief: async (id, full_brief) => { calls.push(["updateItemBrief", id, full_brief]); return { updated: 1 }; },
     ...overrides,
   };
 }
@@ -2940,4 +2977,288 @@ test("healOneItem STEP C: an unprovable orphan carries its own enclosing sentenc
   const unprovable = r.steps.orphans.find((o) => o.outcome === "unprovable");
   assert.ok(unprovable, JSON.stringify(r.steps.orphans));
   assert.equal(unprovable.sentence, "The levy is set at €922,000 under this measure.");
+});
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// TENTH PASS (2026-09-04, lane HEAL-10) — Tasks 3/4/5: BRIEF-HONEST STRIP + RELABEL-from-full-brief.
+// Fixtures for the sentence/clause-boundary and healOneItem-integration cases below reuse the Blue Visby
+// item's OWN tokens/sentences verbatim (item 0781a8c0-5e17-4841-819c-fe9cd91eff15, run #31,
+// scripts/_snapshots/heal31.json's own per_item[].steps.orphans): token "15%" ->
+// "The consortium states a 15% reduction in shipping GHG emissions as the platform's target outcome." and
+// token "April 2026" -> "**Technology Profile** | April 2026".
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+// ── sentenceSpans / findSentenceSpanForToken / removeSentenceSpan ──────────────────────────────────────
+
+test("sentenceSpans: splits on the same SENTENCE_BOUNDARY_RE extractSentenceContext uses, spans reconstruct the input", () => {
+  const text = "First sentence here. Second one follows. Third and last.";
+  const spans = sentenceSpans(text);
+  assert.equal(spans.length, 3);
+  assert.equal(text.slice(spans[0].start, spans[0].end), "First sentence here.");
+  assert.equal(text.slice(spans[1].start, spans[1].end), "Second one follows.");
+  assert.equal(text.slice(spans[2].start, spans[2].end), "Third and last.");
+});
+
+test("sentenceSpans: a markdown table (newline-separated rows, no terminal punctuation) — Blue Visby's own April-2026 row", () => {
+  const text = "**Technology Profile** | April 2026\n**Status** | Pilot phase";
+  const spans = sentenceSpans(text);
+  assert.equal(spans.length, 2);
+  assert.equal(text.slice(spans[0].start, spans[0].end), "**Technology Profile** | April 2026");
+  assert.equal(text.slice(spans[1].start, spans[1].end), "**Status** | Pilot phase");
+});
+
+test("sentenceSpans: empty input -> []", () => {
+  assert.deepEqual(sentenceSpans(""), []);
+  assert.deepEqual(sentenceSpans(null), []);
+});
+
+test("findSentenceSpanForToken: Blue Visby's own '15%' sentence, verbatim", () => {
+  const fullBrief =
+    "Intro paragraph about the initiative. The consortium states a 15% reduction in shipping GHG emissions " +
+    "as the platform's target outcome. Closing remark about scope.";
+  const hit = findSentenceSpanForToken(fullBrief, "15%");
+  assert.ok(hit);
+  assert.equal(hit.sentence, "The consortium states a 15% reduction in shipping GHG emissions as the platform's target outcome.");
+  assert.equal(fullBrief.slice(hit.start, hit.end), hit.sentence);
+});
+
+test("findSentenceSpanForToken: null when token is not a literal substring at all", () => {
+  assert.equal(findSentenceSpanForToken("No figures here.", "15%"), null);
+});
+
+test("removeSentenceSpan: removes a MIDDLE sentence, consuming the separator AFTER it, everything else byte-identical", () => {
+  const text = "First sentence here. Second one follows. Third and last.";
+  const spans = sentenceSpans(text);
+  const out = removeSentenceSpan(text, spans, 1); // "Second one follows."
+  assert.equal(out, "First sentence here. Third and last.");
+});
+
+test("removeSentenceSpan: removes the LAST sentence, consuming the separator BEFORE it instead", () => {
+  const text = "First sentence here. Second one follows. Third and last.";
+  const spans = sentenceSpans(text);
+  const out = removeSentenceSpan(text, spans, 2); // "Third and last."
+  assert.equal(out, "First sentence here. Second one follows.");
+});
+
+test("removeSentenceSpan: the ONLY sentence in the text -> empties it", () => {
+  const text = "Just one sentence here.";
+  const spans = sentenceSpans(text);
+  assert.equal(removeSentenceSpan(text, spans, 0), "");
+});
+
+// ── planStripUnprovableClause (middle-clause-only carve-out) ────────────────────────────────────────
+
+test("planStripUnprovableClause: removes a MIDDLE clause, rejoining with the separator that preceded it", () => {
+  const sentence = "The report notes early progress, a 42% reduction was recorded in Q1, and full compliance is expected by 2027.";
+  const plan = planStripUnprovableClause(sentence, "42%");
+  assert.ok(plan);
+  assert.equal(plan.removedClause, "a 42% reduction was recorded in Q1");
+  assert.equal(plan.rewritten, "The report notes early progress, and full compliance is expected by 2027.");
+});
+
+test("planStripUnprovableClause: refuses the FIRST clause, never guesses", () => {
+  const sentence = "A 42% figure opens this sentence, a middle clause follows, and it closes here.";
+  assert.equal(planStripUnprovableClause(sentence, "42%"), null);
+});
+
+test("planStripUnprovableClause: refuses the LAST clause, never guesses", () => {
+  const sentence = "It opens here, a middle clause follows, and it closes with 42% at the end.";
+  assert.equal(planStripUnprovableClause(sentence, "42%"), null);
+});
+
+test("planStripUnprovableClause: fewer than 3 clauses (no middle exists) -> refuses", () => {
+  assert.equal(planStripUnprovableClause("Only one clause with 42% in it.", "42%"), null);
+  assert.equal(planStripUnprovableClause("Two clauses, and 42% is in the second.", "42%"), null);
+});
+
+test("planStripUnprovableClause: token not in the sentence at all -> null", () => {
+  assert.equal(planStripUnprovableClause("No figure here, none at all, truly.", "42%"), null);
+});
+
+// ── planStripUnprovableSentence ──────────────────────────────────────────────────────────────────────
+
+test("planStripUnprovableSentence: whole-sentence removal when no OTHER live token shares the sentence", () => {
+  const fullBrief =
+    "Intro paragraph about the initiative. The consortium states a 15% reduction in shipping GHG emissions " +
+    "as the platform's target outcome. Closing remark about scope.";
+  const plan = planStripUnprovableSentence(fullBrief, "15%", []);
+  assert.equal(plan.outcome, "sentence_removed");
+  assert.equal(
+    plan.newFullBrief,
+    "Intro paragraph about the initiative. Closing remark about scope.",
+  );
+});
+
+test("planStripUnprovableSentence: falls back to a middle-clause carve-out when the sentence carries another live token", () => {
+  const fullBrief =
+    "Intro. The report notes early progress, a 42% reduction was recorded in Q1, and full compliance is " +
+    "expected by 2027. Closing.";
+  const plan = planStripUnprovableSentence(fullBrief, "42%", ["2027"]);
+  assert.equal(plan.outcome, "clause_removed");
+  assert.equal(
+    plan.newFullBrief,
+    "Intro. The report notes early progress, and full compliance is expected by 2027. Closing.",
+  );
+});
+
+test("planStripUnprovableSentence: refuses outright when the other live token sits in the SAME (first/last) clause as the target — never guesses", () => {
+  const fullBrief = "Intro. A 42% figure opens this sentence, a middle clause follows, and it closes at 2027. Closing.";
+  const plan = planStripUnprovableSentence(fullBrief, "42%", ["2027"]);
+  assert.equal(plan.outcome, "refused");
+  assert.equal(plan.reason, "sentence_carries_other_live_token_no_isolable_clause");
+});
+
+test("planStripUnprovableSentence: refuses when the token is not in full_brief at all", () => {
+  const plan = planStripUnprovableSentence("Nothing relevant here.", "15%", []);
+  assert.equal(plan.outcome, "refused");
+  assert.equal(plan.reason, "token_not_found_in_full_brief");
+});
+
+// ── planBriefHonest (orchestration + live Gate A re-scan acceptance) ────────────────────────────────
+
+test("planBriefHonest: ACCEPTED — Blue Visby's own two tokens ('15%'/'April 2026'), both strip cleanly, Gate A clears", () => {
+  const item = {
+    id: "item-bv",
+    full_brief:
+      "Intro paragraph about the initiative. The consortium states a 15% reduction in shipping GHG emissions " +
+      "as the platform's target outcome. Closing remark about scope.\n\n" +
+      "**Technology Profile** | April 2026\n**Status** | Pilot phase",
+  };
+  const plan = planBriefHonest(item, ["15%", "April 2026"], [], new Set());
+  assert.equal(plan.outcome, "accepted");
+  assert.equal(
+    plan.newFullBrief,
+    "Intro paragraph about the initiative. Closing remark about scope.\n\n**Status** | Pilot phase",
+  );
+  assert.equal(plan.perToken.length, 2);
+  assert.ok(plan.perToken.every((p) => p.outcome === "sentence_removed"));
+  assert.match(plan.restore_sql, /^UPDATE intelligence_items SET full_brief = '/);
+  assert.match(plan.restore_sql, /WHERE id = 'item-bv';$/);
+  // the restore_sql's own quoted value round-trips back to the ORIGINAL (pre-strip) full_brief
+  assert.ok(plan.restore_sql.includes(item.full_brief.replace(/'/g, "''").slice(0, 30)));
+});
+
+test("planBriefHonest: REJECTED — an UNRELATED orphan this call was never asked to touch survives the rewrite", () => {
+  const item = {
+    id: "item-partial",
+    full_brief: "Intro. The consortium states a 15% reduction. Middle text with a separate 7% figure never touched. Closing.",
+  };
+  const plan = planBriefHonest(item, ["15%"], [], new Set()); // "7%" is deliberately NOT in the input list
+  assert.equal(plan.outcome, "rejected");
+  assert.equal(plan.reason, "gate_a_still_has_orphans_after_strip");
+  assert.ok(plan.orphan_count >= 1);
+});
+
+test("planBriefHonest: NO_OP — empty token list", () => {
+  assert.deepEqual(planBriefHonest({ id: "x", full_brief: "text" }, [], [], new Set()), { outcome: "no_op", perToken: [] });
+});
+
+test("planBriefHonest: NO_OP — every token refuses its own strip (nothing found), reported, never silently dropped", () => {
+  const item = { id: "item-none", full_brief: "Nothing relevant to any of these tokens here." };
+  const plan = planBriefHonest(item, ["15%", "April 2026"], [], new Set());
+  assert.equal(plan.outcome, "no_op");
+  assert.equal(plan.perToken.length, 2);
+  assert.ok(plan.perToken.every((p) => p.outcome === "refused"));
+});
+
+// ── planRelabelFromFullBrief (criterion 4, Task 4 — the measured 3/159 "lives only in full_brief" case) ──
+
+test("planRelabelFromFullBrief: null when claim_text is ALREADY resolvable in the section (not this branch's job)", () => {
+  const section = { content_md: "This paragraph already states the figure directly." };
+  assert.equal(planRelabelFromFullBrief(section, "already states the figure", "irrelevant full brief"), null);
+});
+
+test("planRelabelFromFullBrief: null when claim_text is nowhere, not even in full_brief (unrecoverable)", () => {
+  const section = { content_md: "Unrelated section text." };
+  assert.equal(planRelabelFromFullBrief(section, "A paraphrase nobody actually wrote.", "Also unrelated full brief text."), null);
+});
+
+test("planRelabelFromFullBrief: appends a labeled paragraph quoting claim_text verbatim when it's in full_brief but absent from the section", () => {
+  const section = { content_md: "Existing paragraph, unrelated content." };
+  const claimText = "Article 1000 requires enterprises to adopt green procurement practices.";
+  const fullBrief = `Some prose. ${claimText} More prose.`;
+  const plan = planRelabelFromFullBrief(section, claimText, fullBrief);
+  assert.ok(plan);
+  assert.equal(plan.content_md, `Existing paragraph, unrelated content.\n\n*Analytical inference:* ${claimText}`);
+  assert.equal(plan.after, `*Analytical inference:* ${claimText}`);
+});
+
+test("planRelabelFromFullBrief: no leading blank-line separator when the section's own content_md is empty", () => {
+  const claimText = "A standalone claim.";
+  const plan = planRelabelFromFullBrief({ content_md: "" }, claimText, `Prose. ${claimText} More.`);
+  assert.equal(plan.content_md, `*Analytical inference:* ${claimText}`);
+});
+
+// ── healOneItem integration: STEP BRIEF-HONEST is dry-by-default; the write fires ONLY with the
+//    explicit token AND apply=true (Task 5's own "default dispatch never writes a brief" contract) ────
+
+test("healOneItem: STEP BRIEF-HONEST plans and reports even in a normal apply-mode run, but NEVER calls updateItemBrief without the explicit token", async () => {
+  const item = {
+    id: "item-bh-default", item_type: "tool", source_url: null,
+    full_brief: "Intro text. The consortium states a 15% reduction in this figure alone. Closing text.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} }); // no stripUnprovable
+
+  assert.equal(r.steps.brief_honest.outcome, "accepted"); // the plan itself still computes
+  assert.equal(r.steps.brief_honest.applied, false); // but is never applied without the token
+  assert.equal(deps.calls.some((c) => c[0] === "updateItemBrief"), false);
+  assert.equal(item.full_brief, "Intro text. The consortium states a 15% reduction in this figure alone. Closing text."); // untouched
+});
+
+test("healOneItem: STEP BRIEF-HONEST WRITES only when apply=true AND stripUnprovable=true (the explicit +strip-unprovable token)", async () => {
+  const item = {
+    id: "item-bh-apply", item_type: "tool", source_url: null,
+    full_brief: "Intro text. The consortium states a 15% reduction in this figure alone. Closing text.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, stripUnprovable: true });
+
+  assert.equal(r.steps.brief_honest.outcome, "accepted");
+  assert.equal(r.steps.brief_honest.applied, true);
+  const call = deps.calls.find((c) => c[0] === "updateItemBrief");
+  assert.ok(call, JSON.stringify(deps.calls));
+  assert.equal(call[1], "item-bh-apply");
+  assert.equal(call[2], "Intro text. Closing text.");
+  assert.equal(item.full_brief, "Intro text. Closing text."); // in-memory item mutated so STEP 9's Gate A write reflects it
+});
+
+test("healOneItem: DRY mode never writes the brief even with stripUnprovable=true — dry stays dry regardless of the token", async () => {
+  const item = {
+    id: "item-bh-dry", item_type: "tool", source_url: null,
+    full_brief: "Intro text. The consortium states a 15% reduction in this figure alone. Closing text.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  const r = await healOneItem(item, { deps, apply: false, selectionMode: "quarantined-live", requiredSlotsMap: {}, stripUnprovable: true });
+
+  assert.equal(r.steps.brief_honest.outcome, "accepted");
+  assert.equal(r.steps.brief_honest.applied, false);
+  assert.deepEqual(deps.calls, []); // dry mode makes NO writes at all, this one included
+});
+
+// ── healOneItem integration: RELABEL-from-full-brief (Task 4) — same dry-by-default/explicit-token gate ──
+
+test("healOneItem STEP D: RELABEL-from-full-brief plans (dry) and only writes with the explicit token", async () => {
+  const claimText = "Article 1000 requires enterprises to adopt green procurement practices.";
+  const item = {
+    id: "item-relabel-fb", item_type: "regulation", source_url: null,
+    full_brief: `Some prose. ${claimText} More prose, no gate-A figures or dates here.`,
+  };
+  const sectionsByItem = new Map([[item.id, [{ id: "sec-1", item_id: item.id, content_md: "This section covers scope only." }]]]);
+  const claims = [{ id: "claim-existing", claim_kind: "ANALYSIS", claim_text: claimText, section_row_id: "sec-1" }];
+  const deps = baseDeps({ readClaims: async () => claims, readSections: async (id) => sectionsByItem.get(id) ?? [] });
+
+  const dryReport = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} }); // no token
+  const dryEntry = dryReport.steps.relabel.find((r) => r.claim_id === "claim-existing");
+  assert.ok(dryEntry, JSON.stringify(dryReport.steps.relabel));
+  assert.equal(dryEntry.outcome, "would_relabel_from_full_brief");
+  assert.equal(deps.calls.some((c) => c[0] === "updateSectionContent"), false);
+
+  const deps2 = baseDeps({ readClaims: async () => claims, readSections: async (id) => sectionsByItem.get(id) ?? [] });
+  const applyReport = await healOneItem(item, { deps: deps2, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {}, stripUnprovable: true });
+  const applyEntry = applyReport.steps.relabel.find((r) => r.claim_id === "claim-existing");
+  assert.equal(applyEntry.outcome, "relabeled_from_full_brief");
+  const call = deps2.calls.find((c) => c[0] === "updateSectionContent");
+  assert.ok(call, JSON.stringify(deps2.calls));
+  assert.equal(call[2], `This section covers scope only.\n\n*Analytical inference:* ${claimText}`);
 });

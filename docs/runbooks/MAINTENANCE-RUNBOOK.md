@@ -765,6 +765,93 @@ cross-host institution follows (below).
    the real post-apply rows) to size what residue, if any, needs a raised `SOURCE_MAX_PER_ITEM` or a
    DB-backed cross-host one-hop as a follow-on lane.
 
+**Tenth pass (lane HEAL-10, 2026-09-04, `HEAL_VERSION` now `hp10-2026-09-04.2`)** closes the run's own COST
+(the actual bottleneck maintenance #31 hit, below) and builds the two steps HEAL-6 named but never built —
+see `scripts/mint/heal-provenance.mjs`'s own TENTH PASS header for the complete mechanism and evidence.
+
+1. **Cost attribution — `[CONFIRMED]`, maintenance #31 (run 33855060659) vs. #28 (run 33851505474, DRY).**
+   #31's 15 processed items averaged ~100s/item (1500s / 15). #28's DRY run — which makes **zero** network
+   fetches by construction (`main()` never writes or fetches unless `apply`) — still averaged ~63s/item
+   (1776s / 28), proving the dominant cost is CPU, not the 1 req/s politeness pacing (already low: #31's own
+   `capture_cited.fetched` sums to 9 across all 15 items). Root cause: `locateSpanInText`
+   (`planGroundingForClaim`/`planResourceForClaim`/`planOrphanGrounding`) rebuilt its normalized/numeric
+   index from scratch, from an O(n) pass over the FULL capture text, on **every** call — once per CLAIM
+   (GROUND/RESOURCE) or per Gate-A ORPHAN TOKEN, TWICE for any orphan STEP SOURCE could not resolve (its own
+   precheck, then STEP C's fresh scan). Measured live (read-only SQL): item `15f63ea9-…` (one of #31's 15)
+   carries 32 captures totalling 2,833,138 chars and 10 orphan tokens — its own pool is re-normalized on the
+   order of ~1,280 full-text passes over ~2.8M chars combined. **Fix**: `buildCaptureIndex`/`getCaptureIndex`
+   precompute a capture's normalized forms ONCE, memoized by `capture.id` in a `Map` threaded run-wide
+   (`healOneItem`'s new `captureIndexCache` option, the same convention as the SIXTH PASS's own
+   `citedUrlCache`) — turns the per-item cost from O(claims-or-tokens × captures × chars) into O(captures ×
+   chars). Fully additive: every existing call/test keeps its own isolated cache when the new parameter is
+   omitted.
+2. **Per-item wall-clock backstop** (defensive, under fix 1). `computeItemTimeBudgetSeconds(runBudget)` (new,
+   pure) derives `clamp(runBudget/10, 30, 120)` seconds from the SAME `HEAL_TIME_BUDGET_SECONDS` the run-level
+   budget already reads — no new workflow env line. `healOneItem` checks it BETWEEN orphan tokens (never
+   mid-token) in STEP SOURCE's and STEP C's own loops, reporting `item_bound_hit` (never silently dropped;
+   new `summarizeReports` counters `source_item_bound_hit`/`orphans_item_bound_hit`) for anything skipped.
+3. **Job-timeout arithmetic.** `.github/workflows/maintenance.yml`'s `maintain` job `timeout-minutes` raised
+   30 → 35: #31's own measured pre-step setup was 5m21s (321s), not the ~1-2min a prior comment assumed —
+   the 30-minute job timeout fired 8s BEFORE `HEAL_TIME_BUDGET_SECONDS`'s own 1500s internal deadline could
+   stop the run cleanly (08:51:57 + 1500s = 09:16:57; job killed at 09:16:49). New arithmetic (see that
+   file's own comment): 2100s job − 321s setup − 1500s step budget − 3s Population-AFTER − 3s artifact
+   upload = 273s (4m33s) headroom. `HEAL_TIME_BUDGET_SECONDS` itself is UNCHANGED at 1500 — fix 1/2 cut the
+   cost the budget is spent on, not the budget.
+4. **BRIEF-HONEST STRIP (Task 3, criterion 7's `gate_a_unproven_or_stale` residue — 13 of #31's 15 items).**
+   Once STEP SOURCE has exhausted every cited URL and STEP C has exhausted every capture for an orphan token
+   and it is still `unprovable`, a new step (right after STEP C) PLANS removing exactly that token's own
+   enclosing sentence — or, when the sentence carries another still-tracked token, exactly the middle clause
+   (first/last-clause cuts are always refused, never guessed) — from `full_brief`. Never invents, never
+   paraphrases, only deletes a located literal span (`sentenceSpans`/`findSentenceSpanForToken`/
+   `removeSentenceSpan`/`planStripUnprovableClause`/`planStripUnprovableSentence`, all pure). Acceptance
+   re-runs the LIVE Gate A scanner (`buildGateARow`) on the rewritten brief and requires `orphan_count === 0`
+   — a stray unrelated orphan (untouched this run) rejects the whole plan, nothing partial ever writes.
+   **DRY BY DEFAULT**: the plan is always computed and reported (`report.steps.brief_honest`,
+   `summary.brief_honest`, with per-item before/after excerpts and a `restore_sql`); the write itself
+   (`deps.updateItemBrief`, new wrapper dep) fires ONLY when `apply=true` AND the dispatch's `--arg` carries
+   the new `parseSelection` suffix **`+strip-unprovable`** (every existing selection form's own mode/ids
+   meaning is unchanged — the suffix only sets `selection.stripUnprovable`). `item_grade` doctrine (migration
+   278 / `docs/plans/record-tier-population-plan-2026-09-01.md` §2/§7, grepped): UNCHANGED either way — a
+   record-grade item has no full_brief-driven Gate A orphans to strip in the first place (FACT/GAP-only, no
+   synthesized prose), and a brief-grade item stays brief-grade (this step only ever removes prose from a
+   full_brief it already has).
+5. **CRITERION 4 RESIDUE (Task 4) — measured, not assumed.** Pulled `validate_item_provenance`'s live
+   definition via `pg_get_functiondef` (read-only) rather than trusting this file's own label-regex mirror:
+   criterion 4's ANALYSIS check is item-wide (every section of the item, never scoped to a claim's own
+   `section_row_id`) and reads **only** `intelligence_item_sections.content_md` — it never reads
+   `full_brief` at all. Re-measured heal31.json's full 159-claim `relabel_no_owning_section` residue against
+   the LIVE DB with this exact predicate: **148/159 (93%) already pass today** — inspection of a sample
+   confirms `planRelabelParagraph`'s own "already labeled" guard is correctly no-oping on a paragraph an
+   earlier pass already labeled (the run's own snapshot was stale relative to today's DB, not a live defect);
+   **3/159** (one item, `27dfbe4c-…`, one section) are exactly the case lane HEAL-6 named: `claim_text`
+   absent from every section's `content_md` but a literal substring of `full_brief`; **8/159** are nowhere
+   at all, not even in `full_brief` (a paraphrase, not a quote) — genuinely unrecoverable, reported, never
+   invented. **Fix**: `planRelabelFromFullBrief` (STEP D) — for the 3/159 case only — APPENDS a new labeled
+   paragraph (`*Analytical inference:* ` + the claim's own verbatim `claim_text`) to the claim's own
+   registered section (never edits `full_brief`, since criterion 4 never reads it), gated behind the SAME
+   `+strip-unprovable` token as the strip step above (new prose beyond the established prepend-a-label
+   pattern gets the same explicit-opt-in treatment). New `relabel` outcomes: `relabeled_from_full_brief` /
+   `would_relabel_from_full_brief`; new counters `relabeled_from_full_brief`/`would_relabel_from_full_brief`.
+
+New `counts`: `brief_honest_applied`/`brief_honest_would_apply`/`brief_honest_rejected`/
+`brief_honest_refused_tokens`, `relabeled_from_full_brief`/`would_relabel_from_full_brief`. New summary
+field: `summary.brief_honest` (per-item before/after, present whenever an item had ≥1 exhausted-unprovable
+token this run, dry or apply). New wrapper dep: `updateItemBrief(itemId, full_brief)` →
+`guardedUpdate("intelligence_items", …)`, called only when `apply && stripUnprovable`.
+
+**Coordinator dispatch — two runs, in order**:
+1. **Dry run (plan review, no token)**: `provenance-heal`, `mode: dry`, `arg: "quarantined-live"` — expect
+   `summary.brief_honest` to list a per-item strip plan for the 13 criterion-7 items above (`outcome:
+   "accepted"`, `applied: false`) and `steps.relabel[]` to show `would_relabel_from_full_brief` for the
+   `27dfbe4c-…` item's 3 claims; review both before deciding to apply.
+2. **Apply run (writes the reviewed plan)**: `provenance-heal`, `mode: apply`,
+   `arg: "quarantined-live+strip-unprovable"` — same selection, now with the explicit token: `applied: true`
+   in `summary.brief_honest`, `relabeled_from_full_brief` in the counts, and a `restore_sql` recorded per
+   item in case any strip needs undoing by hand. An apply run WITHOUT the suffix (`arg: "quarantined-live"`)
+   still reports the identical plan but writes nothing for either step — the dry-by-default contract this
+   lane's own tests assert directly (`healOneItem`'s default-apply-mode test: `applied: false`, zero
+   `updateItemBrief` calls, `item.full_brief` unchanged).
+
 ---
 
 ## 9. `reopen-validation-holds`
