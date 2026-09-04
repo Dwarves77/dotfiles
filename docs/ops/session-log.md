@@ -10009,3 +10009,14 @@ resume found a rounding error in the previous agent's max-hosts arithmetic (16 v
 three places. Gates on this tree: fitness 30/0, discipline 186/0, closure gate 4/4, tsc, yaml, full suite
 5,243/0. Next: land (#586), apply migration 304, dispatch source-sweep all_hosts and ledger-consume
 export_candidates, corpus-turn apply under TICKET-CORPUS, Haiku classification lanes over the exported text.
+
+UX compliance (PERF-8: /regulations, /operations, the regulation detail surface; no new controls).
+Primary goal: the reader opens /regulations or /operations and sees the ledger rows on first paint
+without the page re-rendering itself; the detail surface shows the same dates the list showed. Path:
+unchanged, no new navigation, no mode switch. One primary action per row: unchanged. Feedback state:
+unchanged (the FIRSTPAGE "Loading N…" band state stays); what changed is that the hydration mismatch
+(React #418) no longer throws, so the first paint is the final paint, and the first-page rows carry only
+the fields the ledger renders, so the document is smaller and the detail fields load with the detail.
+Dates: every milestone and due date on these three surfaces is now formatted in UTC on both server and
+client, so a reader in any time zone sees the calendar day the source states, never a day shifted by the
+viewer's clock. Fitts's-law surface: no new interactive element; F36 guards the date-format class in CI.
