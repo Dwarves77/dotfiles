@@ -224,7 +224,7 @@ jobs:
           # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
           # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
           git fetch --no-tags --depth=50 origin master
-          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
             "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.limit }}" > /tmp/pr-body.md

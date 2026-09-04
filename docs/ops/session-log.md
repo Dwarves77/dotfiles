@@ -9688,3 +9688,30 @@ corpus-turn, change-detection, ledger-consume, propagation-drain, source-sweep) 
 depth 50 and rebase the single artifact commit onto it before the push; a rebase that cannot apply
 aborts and fails the step loudly. Retext apply #35 is queued behind heal dry #34 (HEAL-10's first
 run). Dispatch next: backlog apply again (005/006/011/012 re-run, this time with the stamps landing).
+
+### Addendum 85, postscript 42 — the rebase that refused, and what the heal's dry run showed (2026-09-04)
+
+Train/wave30 landed as #577 (`3650f663`). Backlog apply #30 (run 33866263053, 6 artifacts) ran
+mint-run-005, 006, 011, 012, 013 and 014 through every step and then BRANCH-BASE's own rebase
+refused: "cannot rebase: You have unstaged changes" [CONFIRMED from the log]; the run's working tree
+carries modified tracked files it never stages, and I had not accounted for them. `--autostash`
+(this train) stashes them around the rebase. Six artifacts' stamps lost a second time; the DB work is
+idempotent and the next dispatch redoes them.
+
+Heal dry #34 (run 33863814186, HEAL-10's code) processed all 87 candidates in 14 min with no
+cancellation [CONFIRMED]: the capture-index cache did what the lane projected. Its brief-honest plans
+(3 accepted, 75 rejected with per-token reason `sentence_carries_other_live_token_no_isolable_clause`)
+exposed the scanner rather than the strip: the accepted plans would have removed a heading "## 2."
+for the token "2. Tonne", a markdown table row for its date cell, and the metadata line
+"**Technology Profile** | April 2026"; of the 627 orphan tokens, the first eight alone include
+"**As of:** 2025-05-01" and "*No content for this section as of May 2025*", the brief's own stamps
+and boilerplate, not assertions. Gate A is counting structure as facts. I did not put the strip to
+the operator on that evidence; lane GATE-A-TOKENS (Sonnet) is classifying all 627 tokens and fixing
+`gate-a-scan.mjs` so only asserted facts count (mint marker re-pin). Heal apply #36 (no strip token)
+dispatched under rule 18 to register, rate and ground what it can (the dry projected 1,452 groundable
+tokens). Retext apply #35 failed on `uq_item_forward_events_dedupe` (item, date, kind, md5(text),
+source) at its first row: a sentence carrying the same date twice yields two rows from one source,
+byte-identical once honest. Ruling taken: a derived duplicate the index itself forbids is deleted
+through guardedDelete (snapshotted, reversible) and the survivor rewritten; lane RETEXT-COLLIDE is
+building it. Dispatch next: backlog apply again under this train (six artifacts re-run), retext
+apply under RETEXT-COLLIDE, heal dry after GATE-A-TOKENS.

@@ -168,7 +168,7 @@ jobs:
           # workflow-file change that landed on master mid-run cannot make GitHub refuse the branch (see
           # population-turn.yml's own BRANCH-BASE comment for the failure this fixes).
           git fetch --no-tags --depth=50 origin master
-          git rebase origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
           printf 'Automated change-detection run (run %s).\n\nMode: %s\nCheck limit: %s\nSkip check: %s\n\nLands the harness-run artifact for this run under scripts/harness-runs/change-detection/.\n' \
             "${{ github.run_id }}" "${{ inputs.mode }}" "${{ inputs.check_limit }}" "${{ inputs.skip_check }}" > /tmp/pr-body.md
