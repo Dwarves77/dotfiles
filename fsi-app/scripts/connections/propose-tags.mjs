@@ -340,7 +340,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-const { readAll, readClient, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+const { readAll, readClient, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
 const { fetchRowsIn } = await import("../mint/export-census-rows.mjs");
 
 const CITE = {
@@ -385,16 +385,17 @@ const deps = {
     match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
   }),
   insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
-  updateStale: (ids) => guardedUpdate(
+  // IN-CHUNK (2026-09-04): chunked by id (100 per request); see analyze-corpus.mjs IN_CHUNK.
+  updateStale: (ids) => guardedUpdateByIds(
     "integrity_flags",
-    (qb) => qb.in("id", ids),
+    ids,
     {
       status: "resolved",
       resolved_at: new Date().toISOString(),
       resolved_by: "propose-tags.mjs",
       resolution_note: `${TAG_NAMESPACE} finding no longer applicable (item now carries connection-signature tags, or fell outside this run's selection scope).`,
     },
-    { cite: CITE },
+    { cite: CITE, select: "id", chunk: 100 },
   ),
 };
 

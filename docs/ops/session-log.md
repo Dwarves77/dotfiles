@@ -9577,3 +9577,24 @@ active filter, or a genuinely empty band, so the empty state never lies mid-load
 no new interactive element on either surface; the rendering guard runs in CI on this train. Obligation
 text on the strip and the detail page now reads as one clause from a word boundary with no markdown
 or URL residue; the fix is at the producer, no display-side sanitizer.
+
+### Addendum 85, postscript 37 — the backlog dies on a URL (2026-09-04)
+
+Train/wave25 landed as #572 (`2f110fea`). Backlog apply #26 (run 33856071669, 4 artifacts) resolved
+mint-run-001 this time (LEGACY-3 and the dedup did their part: discovery, corpus export, forward-event
+extraction and apply all ran) and then died exactly where #24 did: `analyze-corpus: db.mjs snapshot
+read failed: TypeError: fetch failed`, six seconds after the step began, which is the DB-RETRY ladder
+(0.5 + 2 + 5 s) exhausting, so not transient. Root cause [CONFIRMED by code and live counts]:
+`groupStaleFlagsForResolution` returns one group per `created_by` with an unbounded id list, there
+are 1,317 open `flywheel-signal:shared_title_entity` flags live, and `analyze-corpus.mjs` passed the
+whole group to `guardedUpdate(qb.in("id", ids))`, a single PostgREST GET whose URL carries every
+uuid (~53 KB), past the gateway's header limit; undici reports that as `fetch failed`. The chunked
+`guardedUpdateByIds` already existed. IN-CHUNK (this train): the four writers of this class
+(analyze-corpus twice, the flywheel driver's `updateStale`, propose-tags, consume-turn-requests) go
+through `guardedUpdateByIds` at 100 ids per request (~4 KB); regression test with the live 1,317
+count. The same run's artifact push was then refused with "refusing to allow a GitHub App to create
+or update workflow `.github/workflows/maintenance.yml` without `workflows` permission": the run had
+checked out `f9f6824` while #572 moved master and that file, so the new branch's workflow files
+differed from the default branch [INFERRED from GitHub's rule]. Timing, not code; the DB writes
+mint-run-001 made are idempotent and the re-run regenerates the artifact. Heal apply #31 and retext
+dry #32 are queued on maintenance. Dispatch next: backlog apply again on this master.
