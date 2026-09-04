@@ -632,12 +632,63 @@ bugs are entirely in `heal-provenance.mjs`'s own call sites — no new migration
    above the item's authority floor) is criterion 3 (the authority floor) working as designed, not a defect
    this lane's write set can or should close — grounding them would write a FACT claim whose source tier
    violates the floor, which the "no claims ahead of evidence" rule and this file's own header both forbid.
+   **Superseded below (lane HEAL-7)**: the operator's ruling of 2026-09-04 overrules the REFUSAL half of
+   this floor (never the grounding requirement) — see the EIGHTH PASS subsection.
 
 **Next dry-run dispatch** (verify both fixes against the live 94-item quarantine before an apply run):
 `provenance-heal`, `mode: dry`, `arg: "quarantined-live"` — expect `gate_a_written` orphan counts to drop
 for the 5 named items above, and `reclassify`/`retrofit` entries to show `cross_section: true` for a
 material share of the 38 criterion-4 items' claims. Follow with `mode: apply` on the same selection once
 the dry run confirms.
+
+**Eighth pass (lane HEAL-7, 2026-09-04, `HEAL_VERSION` now `hp7-2026-09-04.1`)** builds THE RULING
+[CONFIRMED, operator, 2026-09-04, verbatim]: "get the source. then rate the source. it's that simple.
+this isn't hard, find the source and then publish the data on the site." The ruling overrules the
+REFUSAL half of criterion 3's authority floor — never the grounding requirement — for the 386 Gate-A
+orphan figures HEAL-6 measured with no floor-qualifying source (167 with no `sources` row at all for the
+figure's URL, 179 with a `sources` row above the item-type floor). See `scripts/mint/heal-provenance.mjs`'s
+own EIGHTH PASS header for the complete mechanism.
+
+1. **New step, SOURCE**, runs after CAPTURE-CITED/STEP A/E/RETROFIT, before STEP C/ORPHANS, so a token it
+   grounds is simply not an orphan by the time ORPHANS' own fresh scan runs. For every current Gate-A
+   orphan STEP A's own three buckets could not locate: finds the candidate cited URL(s) (the token's
+   owning section, or every URL the item cites when it has no owning section — `candidateUrlsForOrphan`,
+   bounded `SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN=5`), classifies each (`classifyCitedUrlForOrphan`) as
+   `already_registered` (the 179 case — grounds on the existing source, no new row), `registerable` (the
+   167 case — `classTierForHost`, SC-13's own deterministic host class table, NEVER a guessed tier;
+   registered through `deps.registerSource`, the SAME guarded/institutionKey-deduped path
+   `run-source-sweep.mjs`'s own registerSource use goes through), or `worklist_ambiguous_host` (SC-13
+   forbids inventing a tier — reported, never forced; the token stays an honest orphan). A `registerable`
+   or `already_registered` candidate is captured (`captureCitedUrl`, the SAME per-family resolution with
+   the Wayback fallback CAPTURE-CITED already uses) unless already captured this run, then
+   `locateSpanInText` on the captured page grounds a NEW FACT claim exactly as ORPHANS already does —
+   `source_tier_at_grounding` is the REAL read-back tier (`deps.readSourceByUrl`), never the class table's
+   own predicted tier alone. Bounded per item (`SOURCE_MAX_PER_ITEM=25`), overflow reported `bound_hit`,
+   never silently dropped. Dry mode plans every candidate (`would_register_and_capture` /
+   `would_capture_and_ground`) with zero writes and zero fetches.
+2. **Migration 302** (`fsi-app/supabase/migrations/302_criterion3_rating_not_refusal.sql`, written,
+   **NOT applied** — no DB write credential in this lane) patches `validate_item_provenance` in place: the
+   `fact_below_authority_floor` check moves from `v_failures` to a new non-blocking `v_result.warnings`
+   composite attribute (`{below_floor_facts, claims:[...]}`, same payload shape). `fact_missing_source_span`
+   / `fact_span_not_in_source` / `fact_mint_hold` are UNCHANGED — an ungrounded claim still quarantines.
+   `scripts/mint/validate-mint-payload.mjs` mirrors this in the same lane (its own `fact_below_authority_floor`
+   push moves `failures` → `warnings`, `VALIDATE_MINT_PAYLOAD_KIT_VERSION` bumped to `vmp-2026-09-04.2`) so
+   the kit and the function agree on what blocks.
+3. **New deps wired** into `scripts/maintenance/provenance-heal.mjs` (its own write set, edited in this
+   same lane): `registerSource(source)` → `db.mjs`'s own guarded, institutionKey-deduped registration, and
+   `readSourceByUrl(url)` → the matching `sources` row (or null), same institutionKey identity rule.
+   Neither is called in dry mode.
+4. **Coordinator dispatch, once migration 302 is applied**: `provenance-heal`, `mode: dry`,
+   `arg: "quarantined-live"` — expect `steps.source[]` entries across the 94-item quarantine naming
+   `source_registered_and_grounded` (the 167 case) / `grounded_on_existing_source` (the 179 case) for a
+   material share of the 386 measured tokens, `worklist_ambiguous_host` for any host SC-13 forbids
+   registering, and `unfetchable` for a URL this container's own egress allowlist or the publisher itself
+   refuses (see this lane's own report for which). Follow with `mode: apply` once the dry run confirms.
+5. **UI**: the credibility/tier chip already renders on item surfaces (grepped: `src/components` — no
+   `.tsx` edit in this lane's write set). Confirm at apply time that a FACT claim carrying a below-floor
+   `source_tier_at_grounding` shows its chip on the regulations detail page the same way an above-floor
+   FACT already does; if it does not, the fix is in whichever component renders
+   `section_claim_provenance.source_tier_at_grounding` for that page, named in this lane's own report.
 
 ---
 

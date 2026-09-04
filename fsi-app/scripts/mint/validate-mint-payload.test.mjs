@@ -196,11 +196,16 @@ test("C3 RED: FACT span not verbatim in the cited source's fetched text -> fact_
   assert.ok(r.failures.some((f) => f.criterion === 3 && f.reason === "fact_span_not_in_source"));
 });
 
-test("C3 RED: FACT below the reg-family authority floor (tier 5 source, floor is 2) -> fact_below_authority_floor", () => {
+test("C3 WARNING (migration 302): FACT below the reg-family authority floor (tier 5 source, floor is 2) -> a rating, never a failure", () => {
   const p = basePayload();
   p.source.base_tier = 5;
   const r = validateMintPayload(p);
-  assert.ok(r.failures.some((f) => f.criterion === 3 && f.reason === "fact_below_authority_floor"));
+  assert.ok(!r.failures.some((f) => f.criterion === 3 && f.reason === "fact_below_authority_floor"), JSON.stringify(r.failures));
+  assert.ok(r.warnings.claims.some((f) => f.criterion === 3 && f.reason === "fact_below_authority_floor" && f.source_tier_derived === 5));
+  assert.equal(r.warnings.below_floor_facts, r.warnings.claims.length);
+  // the ONLY thing wrong with this payload is tier — it must still clear as valid (the ruling: get the
+  // source, then rate the source; a genuinely grounded claim is never refused publication on tier alone).
+  assert.equal(r.valid, true, JSON.stringify(r.failures));
 });
 
 test("C3 GREEN: a FACT citing a DOCUMENT URL under the registered INSTITUTION source resolves that source's tier (registry identity, 2026-09-02)", () => {
@@ -213,7 +218,7 @@ test("C3 GREEN: a FACT citing a DOCUMENT URL under the registered INSTITUTION so
   p.search_results[0].result_url = "https://www.legislation.gov.uk/uksi/2021/1095";
   for (const c of p.claims) if (c.claim_kind === "FACT") c.source_url = "https://www.legislation.gov.uk/uksi/2021/1095";
   const r = validateMintPayload(p);
-  assert.deepEqual(r.failures.filter((f) => f.reason === "fact_below_authority_floor"), [], JSON.stringify(r.failures));
+  assert.deepEqual(r.warnings.claims.filter((f) => f.reason === "fact_below_authority_floor"), [], JSON.stringify(r.warnings));
   assert.equal(r.valid, true, JSON.stringify(r.failures));
 });
 
@@ -225,9 +230,10 @@ test("C3 RED: registry identity does NOT cross institutions — a document on a 
   p.sections[0].content_md = "The rule applies as described. https://www.gov.uk/guidance/reg";
   for (const c of p.claims) if (c.claim_kind === "FACT") c.source_url = "https://www.gov.uk/guidance/reg";
   const r = validateMintPayload(p);
-  const floor = r.failures.filter((f) => f.reason === "fact_below_authority_floor");
+  const floor = r.warnings.claims.filter((f) => f.reason === "fact_below_authority_floor");
   assert.equal(floor.length, 2);
   assert.equal(floor[0].source_tier_derived, null);
+  assert.equal(r.failures.filter((f) => f.reason === "fact_below_authority_floor").length, 0);
 });
 
 test("C3: exact canonical URL still wins over registry identity when both resolve (a per-document registry row keeps its own tier)", () => {
@@ -235,7 +241,7 @@ test("C3: exact canonical URL still wins over registry identity when both resolv
   p.source = { id: "src-root", url: "https://example.gov/", base_tier: 1, tier_override: null, status: "active", institution_id: null };
   p.registry_sources = [{ id: "src-doc", url: "https://example.gov/reg", base_tier: 5, tier_override: null, status: "active", institution_id: null }];
   const r = validateMintPayload(p);
-  const floor = r.failures.filter((f) => f.reason === "fact_below_authority_floor");
+  const floor = r.warnings.claims.filter((f) => f.reason === "fact_below_authority_floor");
   assert.equal(floor.length, 2);
   assert.equal(floor[0].source_tier_derived, 5);
 });

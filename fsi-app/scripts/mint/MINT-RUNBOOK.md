@@ -278,16 +278,60 @@ See `scripts/turns/run-population-flywheel.mjs`'s own header for the exact step 
 behavior, and how it reuses each of the scripts named above (child process or exported `main()` — it
 never re-implements their logic) instead of hand-running this section.
 
+**THE GATE, WIDENED, and BACKLOG MODE (lane TANDEM-2, 2026-09-04).** THE DEFECT [CONFIRMED by the
+coordinator reading the landed code]: THE GATE described above used to read only the single NEWEST
+`mint-run-NNN.json` on the checkout (by `started_at`). A DRY artifact — a `rows_file` preview, or a live
+export that minted nothing — has `metrics.minted` absent/0 by construction, so whenever a dry artifact
+happened to be newest it read as "nothing to connect" and let a brand-new apply through, while every apply
+artifact BEHIND it on the timeline stayed unconnected. This is exactly what happened to mint-run-017..022
+(six apply artifacts, 177+168+156+152+141+140 = 934 minted items — measured directly from their own
+`metrics.minted`): mint-run-023, a `rows_file` dry preview of the six-row EU Weekly Oil Bulletin batch
+(ruling R-D), landed newest, and the gate read only it — reporting a false "no flywheel pass required."
+**Fixed:** `run-population-flywheel.mjs --check-gate` now scans EVERY `mint-run-NNN.json` on the
+checkout, not only the newest, and refuses if ANY of them minted items but was left without §9's outcome
+keys — a dry artifact still never counts on its own merits, it just no longer gets to stand in for the
+(possibly stale) artifacts behind it.
+
+**The full backlog this widening surfaces is larger than the six runs above** — measured [CONFIRMED,
+2026-09-04]: 15 of 23 mint-run artifacts on this checkout minted items and were never connected. 13 are
+auto-connectable by `--backlog` (1,272 items total: the six above, plus mint-run-011/012/013/014/016 —
+pre-TANDEM population runs, 329 items — and mint-run-004/006 — a retired `minted_verified_first_pass`
+outcome label, 9 items). **2 are NOT auto-connectable by either `--mint-run` or `--backlog`**:
+mint-run-001 (6 items) and mint-run-005 (5 items), both predating the `per_item.item_id` field entirely —
+`extractMintedItemIds` has no id to recover from either, and running the flywheel over them REFUSES
+rather than write a false zero-valued outcomes record (`hasRecoverableMintedIds`, that script's own
+header). THE GATE keeps refusing every new apply on account of these two specifically until they are
+resolved by hand (e.g. matching their per_item CELEX ids against `intelligence_items` directly) —
+`--backlog`, run any number of times, will never clear them.
+
+The gate's own refusal message names the fix for the 13 auto-connectable artifacts, and that fix is now
+dispatchable rather than hand-run: `run-population-flywheel.mjs --backlog --mode dry|apply` connects the
+EXACT auto-connectable artifacts the gate refuses — oldest first, bounded by `--max-artifacts` (default
+2; see that script's own header, "COST PROJECTION," for the [INFERRED] per-item cost reasoning behind
+that default — clearing all 13 takes on the order of `ceil(13/2) = 7` dispatches at the default), each
+one enriched in place through the SAME §9 write this section already documents (`run-mint-batch.mjs
+--outcomes`, unmodified by this mode) — and checkpointed to disk artifact-by-artifact so a job timeout
+mid-backlog leaves everything processed so far connected and the gate correctly narrowed. `--backlog`
+mints NOTHING — it never touches `export-census-rows.mjs` or `run-mint-batch.mjs`'s minting gate at all,
+only the already-minted artifacts already on disk. Wired into `.github/workflows/population-turn.yml` as
+the `flywheel_backlog` workflow_dispatch input (`backlog_max_artifacts` overrides the default); see
+`docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s backlog section for the coordinator-facing dispatch
+instructions and `run-population-flywheel.mjs`'s own header for the full mechanism.
+
 ## 9. Corpus-outcome enrichment (`--outcomes`)
 
 `run-population-flywheel.mjs` computes these three metrics itself, from the live tables, once §8's steps
 have run for this batch, and writes them back into the mint run's own artifact with
 `run-mint-batch.mjs --outcomes` as its own last step — this is not a separate, hand-run enrichment pass
 either. `.github/workflows/population-turn.yml` refuses to start a NEW batch (THE GATE,
-`run-population-flywheel.mjs --check-gate`) while a PRIOR batch's `mint-run-NNN.json` is missing these
-keys, so an unrecorded batch blocks the next one rather than silently accumulating. A coordinator reading
-`mint-run-NNN.json` after a population-turn run sees the full picture in one place — minted, connected,
-and recorded — without cross-referencing a separate discovery/extraction report:
+`run-population-flywheel.mjs --check-gate`, now scanning EVERY mint-run artifact on the checkout, not
+only the newest — see §8's "THE GATE, WIDENED" subsection above) while ANY batch's `mint-run-NNN.json` is
+missing these keys, so an unrecorded batch blocks the next one rather than silently accumulating, and a
+dry artifact can no longer mask a stale one behind it. The coordinator's fix for a refusal is the backlog
+dispatch (§8 above), not a hand-run pass over one artifact at a time (though that single-artifact command
+still works — the gate's own refusal message prints it too). A coordinator reading `mint-run-NNN.json`
+after a population-turn run sees the full picture in one place — minted, connected, and recorded —
+without cross-referencing a separate discovery/extraction report:
 
 ```
 node scripts/mint/run-mint-batch.mjs --outcomes path/to/outcomes.json

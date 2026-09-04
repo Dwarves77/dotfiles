@@ -9368,3 +9368,41 @@ previous one by the three artifacts' hash).
 
 TANDEM-2 was killed by a turn interrupt at 04:24 with 884 lines uncommitted; relaunched with a resume
 note to read its own diff first. HEAL-7 running.
+
+### Addendum 85, postscript 30 — rule 18 built and the validator amended live (2026-09-04)
+
+Train/wave18 landed as #565 (`db01f605`). HEAL-7 (Sonnet, `89388e6d`, 202 + 68 tests, killed once by
+a turn interrupt and resumed on its own diff): STEP SOURCE in the heal, run after CAPTURE-CITED, finds
+where each Gate-A orphan figure came from (citations, cited URLs, section links, captured search
+results), registers the cited page's host through the registry with the class-table tier
+(`host-authority.ts classTierForHost`, never hand-typed), captures it through the polite fetch with
+HEAL-5's Wayback fallback, grounds the token verbatim, and reports per token
+`source_registered_and_grounded` / `grounded_on_existing_source` / `unfetchable` /
+`token_not_in_page`. Migration 302 turns criterion 3 into a rating: `validation_result` gains a
+`warnings` attribute `{below_floor_facts, claims[]}`, the below-floor payload moves there byte-identical,
+grounding failures unchanged; the kit mirrors it (`warnings` return field). I applied it live at
+05:49 UTC after reading the body: pre md5 matched the guard, post md5
+`7c4ae6dc4fa4ef1c91c63fddbc8d56cb`, attrs `valid,failures,recommended_status,warnings`. HEAL-7 also
+found drift: the live function carries a `c_own_body_types`/`voluntary_own_body` extension and the
+`result_content` rename that no committed migration file contains; 302 was written against the live
+body, and the missing file is a chore for a Haiku lane. The container proxy refuses every public host,
+so the real fetch/register/ground runs only from Actions: dispatch `provenance-heal` dry
+`quarantined-live`, then apply. HEAL-7 read the page and found the record-grade fact renderer shows no
+tier (`RecordFactLine` parses `content_md` only); lane TIER-CHIP (Sonnet) is putting the claim tier on
+the page as the existing `TierBadge`, because "publish the data" under rule 18 means with its rating.
+
+Runtimes: source-sweep `sitemap` apply on smartfreightcentre.org wrote 383 candidates (run-012). The
+only consumer of `portal_link_candidates` is ledger-consume (Haiku classify at ~$0.001/candidate,
+apply disarmed by `LEDGER_CONSUME_APPLY_ENABLED=false`, ADR-023); ~1,838 candidates wait on the
+operator's flip, put to him with the cost.
+
+TANDEM-2 (Sonnet, `adf61304`, 62 tests, killed twice by turn interrupts and resumed on its own diff)
+[CONFIRMED]: the gate now scans every mint artifact (`checkAllSlicesConnected`), so a dry artifact
+never masks a stale apply; `--backlog --mode dry|apply [--max-artifacts N]` is a dispatch input
+(`flywheel_backlog`, `backlog_max_artifacts`, job timeout 30 → 60 min) that skips export/mint and
+connects the oldest unconnected artifacts first. The wider scan measured 15 of 23 artifacts stale,
+not six: 13 auto-connectable (1,272 items) and two (mint-run-001, mint-run-005, 11 items) that
+predate `per_item.item_id`; those are reported, never "connected" with zero outcomes, and the gate
+keeps refusing new applies until they are resolved, which a Haiku lane does next by matching their
+CELEX ids to `canonical_instrument_key`. Marker chain merged: HEAL-7 (6), TANDEM-2 (7) and (8),
+combined hash `sha256:79589ef978593250`. Full suite 4,693/0.

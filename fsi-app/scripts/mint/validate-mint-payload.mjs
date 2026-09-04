@@ -51,7 +51,7 @@ const REQUIRED_SLOTS = JSON.parse(readFileSync(resolve(__dirname, "item-type-req
 // KIT VERSION (Lane HOLLOW-GATE, 2026-09-04). This module had no version constant before this lane; adding
 // one now that a new kit-level check (record_hollow, below) changes what "green" means for a record-grade
 // payload — see MINT-RUNBOOK.md §5's kept-in-sync note.
-export const VALIDATE_MINT_PAYLOAD_KIT_VERSION = "vmp-2026-09-04.1"; // +record_hollow (criterion 5)
+export const VALIDATE_MINT_PAYLOAD_KIT_VERSION = "vmp-2026-09-04.2"; // +criterion-3 floor as warning (migration 302)
 
 // ── Wave MH-3: capture-completeness gate ────────────────────────────────────────────────────────
 // mint-run-001.json's defects_found[0]: batch-001's six archived source-<celex>.txt files held only
@@ -386,6 +386,14 @@ function paragraphs(text) {
 export function validateMintPayload(payload, opts = {}) {
   const baseDir = opts.baseDir ?? process.cwd();
   const failures = [];
+  // Migration 302 (lane HEAL-7, 2026-09-04 — operator ruling verbatim: "get the source. then rate the
+  // source. ... find the source and then publish the data on the site"). Criterion 3's authority-floor
+  // check (fact_below_authority_floor) is a RATING, never a refusal: it no longer pushes to `failures`
+  // (so it never affects `valid`/`recommended_status`) — it accumulates here instead, mirroring the DB
+  // function's own `v_warnings`/`v_below_floor_facts` byte-for-byte (same jsonb_build_object payload).
+  // fact_missing_source_span / fact_span_not_in_source / fact_mint_hold are UNCHANGED — the ruling
+  // overrules the refusal half of the floor, never the grounding requirement.
+  const warningClaims = [];
   const item = payload?.item || {};
   const source = payload?.source || {};
   const registrySources = payload?.registry_sources || [];
@@ -618,7 +626,9 @@ export function validateMintPayload(payload, opts = {}) {
         effectiveFloor = 4;
       }
       if (floorArmed && effectiveFloor != null && (derivedTier == null || derivedTier > effectiveFloor)) {
-        failures.push({
+        // 302: a RATING, not a failure — get the source, then rate the source; the item is never
+        // refused publication on tier alone once its claim is genuinely span-grounded (above).
+        warningClaims.push({
           criterion: 3,
           reason: "fact_below_authority_floor",
           claim: c.claim_text,
@@ -718,6 +728,8 @@ export function validateMintPayload(payload, opts = {}) {
     failures,
     recommended_status: failures.length === 0 ? "verified" : "quarantined",
     gate_a: gateA,
+    // 302: below-floor tier RATINGS, never blocking. Same shape as the DB function's v_result.warnings.
+    warnings: { below_floor_facts: warningClaims.length, claims: warningClaims },
   };
 }
 

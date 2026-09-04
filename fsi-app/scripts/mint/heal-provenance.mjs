@@ -332,6 +332,12 @@ import { institutionKey, hostOf } from "../lib/institution-key.mjs";
 // gap, never re-deriving the per-family HTML/Cellar/FR-API resolution this file's header already forbids
 // re-deriving.
 import { pdfToText, looksLikePdfUrl, isPdfBytes } from "../../src/lib/sources/pdf-extract.mjs";
+// classTierForHost -- THE deterministic register-at-grounding class table (SC-13, src/lib/sources/
+// host-authority.ts), imported unmodified. EIGHTH PASS's SOURCE step (below) is the ONLY caller in this
+// file: it is how a brand-new host gets a base_tier that is never a guess (legal->1, gov/intergov->2,
+// verifier/academic/association->4, analysis->6, lawfirm/news->7; an unrecognized host returns null and
+// this file NEVER invents a fallback tier for it -- see SOURCE's own header for the worklist outcome).
+import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
 // norm -- gate-a-match.mjs's own token normalizer, imported unmodified. SEVENTH PASS's computeDerivedCovered
 // (below) uses it to key its covered-token Set EXACTLY the way gate-a-derived.mjs's live derivedCoveredTokens
 // and gate-a-scan.mjs's own scanBrief both already do -- never a second normalization rule.
@@ -499,7 +505,69 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // both forbid. `validate_item_provenance` itself needed no change (both fixes are entirely in this file's
 // own call sites), so no new migration is written; `gate-a-scan.mjs`/`gate-a-match.mjs` needed no change
 // either (both are correct — the bug was never in the scanner), so `PENDING-RUN.md` is NOT re-pinned.
-export const HEAL_VERSION = "hp6-2026-09-04.1";
+// EIGHTH PASS (2026-09-04, lane HEAL-7), building THE RULING [CONFIRMED, operator, 2026-09-04, verbatim]:
+// "get the source. then rate the source. it's that simple. this isn't hard, find the source and then
+// publish the data on the site." Context: heal #21 (Actions 33829526120) left 94 items quarantined; HEAL-6
+// measured that 386 of the 824 Gate-A orphan figures in those briefs have no floor-qualifying source: 167
+// have NO `sources` row at all for the URL the figure came from, 179 have a `sources` row whose derived
+// tier is ABOVE the item-type floor (migration 141/145/158/202). The ruling overrules the REFUSAL half of
+// that floor (migration 302, written this lane, NOT applied — see that file), never the grounding
+// requirement: a figure's source is registered and RATED (its tier, from the SAME deterministic class
+// table the registry already applies — src/lib/sources/host-authority.ts's classTierForHost, SC-13, NEVER
+// a guess), the figure is grounded on it VERBATIM, and it is published with its rating visible. A figure
+// with no source ANYWHERE stays ungrounded and is never published as fact.
+//
+// STEP SOURCE (new, runs after CAPTURE-CITED and STEP A/RESOURCE + E/RECLASSIFY + RETROFIT, before STEP
+// C/ORPHANS — so it can enrich the SAME ranked capture pool ORPHANS scans, and a token it grounds simply
+// stops being a Gate-A orphan by the time ORPHANS' own fresh planGateA scan runs, with NO second orphan-
+// removal bookkeeping needed anywhere). For every CURRENT Gate-A orphan token that STEP A's own three
+// buckets (own_canonical + tier_qualifying + corpus_pool, tier_qualifying deliberately capped at the
+// floor) could NOT locate:
+//   1. FIND WHERE THE FIGURE CAME FROM. The token's OWNING SECTION (findOwningSection, unchanged) narrows
+//      the search to that section's own cited URLs (collectCitedUrls, unchanged, reused not re-derived);
+//      an orphan with no owning section falls back to every URL the item cites at all. Candidate URLs are
+//      tried in order, bounded (SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN) — the item's citations and cited
+//      URLs, exactly as the brief names, are the search surface; this step adds NO new URL-discovery
+//      mechanism (search-result / claim-text scanning is what collectCitedUrls + findOwningSection already
+//      do, reused verbatim).
+//   2. CLASSIFY (classifyCitedUrlForOrphan, pure, new below). A candidate URL classifies one of three ways
+//      against the run's OWN sourcesIndex (byCanonUrl, exact-URL — the SAME matching convention
+//      buildOwnCanonicalBucket/buildTierQualifyingBucket already use, never a second equality rule):
+//        - `already_registered` — a `sources` row already exists at this exact URL (the 179 ABOVE-FLOOR
+//          case: STEP A's own tier_qualifying bucket excluded it BECAUSE its tier is above the floor; post-
+//          302 that no longer disqualifies it from grounding at all).
+//        - `registerable` — no row exists, but `classTierForHost(hostOf(url))` resolves a deterministic
+//          class tier (the 167 NO-SOURCE-ROW case, closed the SC-13-safe way: legal/gov/intergov/verifier/
+//          academic/association/analysis/lawfirm/news, never a guessed default).
+//        - `worklist_ambiguous_host` — neither: SC-13 forbids registering ambiguous hosts with an invented
+//          tier. Reported, never forced; the token stays an honest orphan on this candidate (the next
+//          candidate URL, if any, is still tried).
+//   3. CAPTURE + REGISTER (apply only). A `registerable` host is registered through `deps.registerSource`
+//      (db.mjs's own guarded, institutionKey-deduped path — the SAME path run-source-sweep.mjs's own
+//      registerSource use goes through; never a second registration mechanism), base_tier = the class-
+//      table tier, NEVER hand-typed. The URL is captured through `captureCitedUrl` (THIRD/FIFTH PASS's own
+//      per-family resolution — Cellar-first/FR-API/plain-GET/PDF, WITH the Wayback archive fallback HEAL-5
+//      already built into that function — imported and reused unmodified, never re-derived) UNLESS the
+//      item already holds a usable capture of that exact URL (checked against the run's live `captures`
+//      array, including whatever CAPTURE-CITED just added this same run) — the SAME run-level
+//      `citedUrlCache` CAPTURE-CITED already threads through is reused here too, so a URL two different
+//      orphans (or two different items) cite in the SAME run is never fetched twice. `deps.readSourceByUrl`
+//      (new; institutionKey-matched, the SAME dedup rule registerSource itself uses) reads back the
+//      REGISTERED row's real tier for the claim's `source_tier_at_grounding` stamp — never the class
+//      table's own predicted tier, in case registerSource's own dedup matched an EXISTING row at a
+//      different exact path than the one just classified.
+//   4. GROUND. `locateSpanInText` (unchanged, the same three-tier exact/normalized/normalized_ci matcher
+//      every other step uses) on the (now-captured) page's text; a verbatim match writes a NEW FACT claim
+//      exactly as ORPHANS already does (buildOrphanClaimText, verbatim span = the token) — `source_id` =
+//      the registered/existing source, `search_result_id` = the capture, `source_tier_at_grounding` = the
+//      REAL read-back tier (never invented). No match: the next candidate URL is tried; every candidate
+//      exhausted with no match is reported `token_not_in_page` (per the report contract) and the token
+//      stays an honest orphan for ORPHANS' own (unchanged) fuzzy-evidence report.
+// Bounded per item (SOURCE_MAX_PER_ITEM) so a pathological item cannot exhaust a run's whole politeness
+// budget; overflow is reported, never silently dropped. Dry mode plans every step above with ZERO writes
+// and ZERO fetches (`would_register` / `would_capture_and_register` / `would_ground`), matching every
+// other step's dry contract.
+export const HEAL_VERSION = "hp7-2026-09-04.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -1558,6 +1626,56 @@ export function resolveInstitutionKeyForSource(source) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// STEP SOURCE (2026-09-04, EIGHTH PASS, lane HEAL-7). See this file's header EIGHTH PASS section for the
+// full mechanism and the operator ruling it builds. Runs after CAPTURE-CITED + STEP A/RESOURCE +
+// RECLASSIFY + RETROFIT, before STEP C/ORPHANS.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+export const SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN = 5;
+export const SOURCE_MAX_PER_ITEM = 25;
+
+/**
+ * Classify one candidate cited URL for an orphan-grounding attempt against the run's `sourcesIndex`
+ * (see buildSourcesIndex — the SAME exact-canonical-URL matching convention buildOwnCanonicalBucket/
+ * buildTierQualifyingBucket already use, never a second equality rule). Pure. Three outcomes:
+ *   `{ status: "already_registered", sourceId, tier }` — a `sources` row already exists at this exact
+ *     URL. This is the 179 ABOVE-FLOOR case (HEAL-6): STEP A's own tier_qualifying bucket excluded it
+ *     because its tier is above the item's floor; post-migration-302 that no longer disqualifies
+ *     grounding at all, only removes it from a floor-conferring bucket.
+ *   `{ status: "registerable", host, tier }` — no row exists, but `classTierForHost` (SC-13's own
+ *     deterministic class table, imported unmodified) resolves a class tier for the URL's host. This is
+ *     the 167 NO-SOURCE-ROW case, closed the SC-13-safe way: NEVER a hand-typed or guessed tier.
+ *   `{ status: "worklist_ambiguous_host", host }` — neither. SC-13 forbids registering an ambiguous host
+ *     with an invented tier; the caller must try the NEXT candidate URL (if any) rather than force this
+ *     one. `{ status: "unresolvable_host" }` for a URL with no parseable host at all (defensive; the URL
+ *     already came from a regex match against real prose, so this should not occur in practice).
+ */
+export function classifyCitedUrlForOrphan(url, sourcesIndex) {
+  const canon = canonicalizeCitationUrl(url);
+  const existing = canon ? sourcesIndex?.byCanonUrl?.get(canon) : null;
+  if (existing) return { status: "already_registered", sourceId: existing.id, tier: deriveSourceTier(existing) };
+  const host = hostOf(url);
+  if (!host) return { status: "unresolvable_host" };
+  const tier = classTierForHost(host);
+  if (tier == null) return { status: "worklist_ambiguous_host", host };
+  return { status: "registerable", host, tier };
+}
+
+/**
+ * The candidate cited URLs to try sourcing an orphan `token` against: every URL cited in the token's
+ * OWNING SECTION (findOwningSection, unchanged), or — when the token owns no section — every URL the
+ * item cites at all (collectCitedUrls over every section, the same "search across the item's citations"
+ * fallback the brief names). Bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN. Pure; adds NO new
+ * URL-discovery mechanism — both helpers it calls already exist and are reused verbatim.
+ */
+export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex }) {
+  const owning = findOwningSection(token, sections);
+  const scopedSections = owning ? [owning] : sections;
+  const urls = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
+  return urls.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // STEP C — ORPHANS (criterion 7). A gate-A orphan is a prose fact (figure/deadline) in `full_brief` with
 // no span-proven FACT claim. Search runs over the SAME ranked capture pool STEP A assembled (own_canonical
 // + tier_qualifying + corpus_pool) — "after A broadened them", per the brief. A found orphan gets a NEW
@@ -2417,12 +2535,140 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.retrofit = retrofitResults;
 
-  // ── STEP C — ORPHANS (criterion 7) — a FRESH scan against claims post-RECLASSIFY (E may have exposed
-  //    a token whose only "coverage" was a claim just demoted to ANALYSIS), before this step's own
-  //    inserts, so it names exactly what's missing right now. ──────────────────────────────────────
+  // ── orphanFallbackSectionId — hoisted (was STEP C's own local): the SAME fallback "record_facts"
+  //    section id, shared by STEP SOURCE and STEP C/ORPHANS below, so the two steps never create TWO
+  //    separate fallback sections in the same run. ────────────────────────────────────────────────
+  let orphanFallbackSectionId = null;
+
+  // ── STEP SOURCE (2026-09-04, EIGHTH PASS, lane HEAL-7) — see this file's header EIGHTH PASS section.
+  //    Scanned BEFORE STEP C's own (unchanged) buckets-only search, over the SAME fresh gate-A orphan
+  //    list, so a token this step grounds simply is not an orphan any more by the time STEP C's OWN
+  //    fresh planGateA scan runs (claims mutates in place; no separate "remove from orphan list" needed
+  //    anywhere). Every candidate this step tries and every write it makes is reported per-token. ─────
+  const gateRowForSource = planGateA(item, claims, computeDerivedCovered(claims, captures));
+  const sourceResults = [];
+  let sourceAttempts = 0;
+  for (const orphan of gateRowForSource.orphans ?? []) {
+    if (sourceAttempts >= SOURCE_MAX_PER_ITEM) {
+      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "bound_hit" });
+      continue;
+    }
+    // Already coverable by STEP A's own (unchanged) floor-respecting buckets — leave it to STEP C, which
+    // grounds it there for free, no new source needed.
+    const alreadyCoverable = planOrphanGrounding(orphan, resourceBuckets);
+    if (alreadyCoverable.outcome === "found") continue;
+
+    const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx });
+    if (!candidateUrls.length) { sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "no_candidate_url" }); continue; }
+
+    let grounded = false;
+    let lastReason = null;
+    for (const url of candidateUrls) {
+      sourceAttempts += 1;
+      const cls = classifyCitedUrlForOrphan(url, sIdx);
+      if (cls.status === "worklist_ambiguous_host" || cls.status === "unresolvable_host") {
+        lastReason = cls.status;
+        sourceResults.push({ token: orphan.token, class: orphan.class, url, host: cls.host ?? null, outcome: cls.status });
+        continue;
+      }
+
+      if (!apply) {
+        sourceResults.push({
+          token: orphan.token, class: orphan.class, url,
+          outcome: cls.status === "registerable" ? "would_register_and_capture" : "would_capture_and_ground",
+          class_tier: cls.tier ?? null,
+        });
+        continue; // dry mode: plan every candidate, write nothing
+      }
+
+      // Ensure a usable capture of this exact URL — reuse an existing one (this item's own captures,
+      // including whatever CAPTURE-CITED already added this run) before fetching a new one. The SAME
+      // run-level dedup cache CAPTURE-CITED threads through (runCitedCache) is reused here too, so a
+      // URL two different orphans (or two different items) cite in the SAME run is never fetched twice.
+      const capCanon = canonicalizeCitationUrl(url);
+      let cap = capCanon ? captures.find((c) => c.result_url && canonicalizeCitationUrl(c.result_url) === capCanon) : null;
+      if (!cap) {
+        const cacheKey = capCanon ?? url;
+        let res;
+        if (runCitedCache.has(cacheKey)) {
+          res = runCitedCache.get(cacheKey);
+        } else {
+          res = await captureCitedUrl(url, deps);
+          runCitedCache.set(cacheKey, res);
+        }
+        if (res.status !== "captured") {
+          lastReason = "unfetchable";
+          sourceResults.push({ token: orphan.token, class: orphan.class, url, outcome: "unfetchable", reason: res.reason, evidence: res.evidence ?? null });
+          continue;
+        }
+        const row = buildCaptureSearchRow(item.id, res, new Date().toISOString(), "heal-provenance:source");
+        const ins = await deps.insertSearch(row);
+        cap = { id: ins.id, result_url: row.result_url, result_content: row.result_content };
+        captures.push(cap);
+      }
+
+      let sourceId = cls.status === "already_registered" ? cls.sourceId : null;
+      let sourceTier = cls.status === "already_registered" ? cls.tier : null;
+      let registerOutcome = "already_registered";
+      if (cls.status === "registerable") {
+        const reg = await deps.registerSource({ url, name: cls.host, base_tier: cls.tier });
+        sourceId = reg.source_id;
+        registerOutcome = reg.created ? "source_registered" : "source_already_existed";
+        // Read back the REAL row (registerSource dedups by institutionKey, so a match may sit at a
+        // different exact URL than the one just classified) — never trust the class table's own
+        // predicted tier once a real row can be read. Also folds into sIdx for the rest of THIS run so a
+        // second orphan citing the same host in the same item (or a later item) inherits it for free.
+        const real = await deps.readSourceByUrl(url);
+        if (real) {
+          sourceTier = deriveSourceTier(real);
+          sIdx.byId.set(real.id, real);
+          const realCanon = real.url ? canonicalizeCitationUrl(real.url) : null;
+          if (realCanon) sIdx.byCanonUrl.set(realCanon, real);
+        } else {
+          sourceTier = cls.tier; // defensive: registerSource reported success but the read-back missed it
+        }
+      }
+
+      const found = locateSpanInText(orphan.token, cap.result_content);
+      if (!found) {
+        lastReason = "token_not_in_page";
+        sourceResults.push({ token: orphan.token, class: orphan.class, url, outcome: "token_not_in_page", source_id: sourceId, register: registerOutcome });
+        continue;
+      }
+
+      let sectionId = (findOwningSection(orphan.token, sectionsList) ?? {}).id ?? orphanFallbackSectionId;
+      if (!sectionId) { sectionId = await findOrCreateRecordFactsSection(); orphanFallbackSectionId = sectionId; }
+      const claimRow = {
+        section_row_id: sectionId,
+        intelligence_item_id: item.id,
+        claim_text: buildOrphanClaimText(orphan),
+        claim_kind: "FACT",
+        source_span: found.span,
+        source_id: sourceId,
+        search_result_id: cap.id,
+        source_tier_at_grounding: sourceTier ?? null,
+      };
+      const ins = await deps.insertClaim(claimRow);
+      claims.push({ id: ins.id, claim_kind: "FACT", claim_text: claimRow.claim_text, source_span: claimRow.source_span, source_id: sourceId, section_row_id: sectionId });
+      sourceResults.push({
+        token: orphan.token, class: orphan.class, url,
+        outcome: cls.status === "registerable" ? "source_registered_and_grounded" : "grounded_on_existing_source",
+        claim_id: ins.id, source_id: sourceId, source_tier: sourceTier, register: registerOutcome,
+      });
+      grounded = true;
+      break;
+    }
+    if (!grounded && apply) {
+      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "unresolved", last_reason: lastReason });
+    }
+  }
+  report.steps.source = sourceResults;
+
+  // ── STEP C — ORPHANS (criterion 7) — a FRESH scan against claims post-RECLASSIFY/STEP SOURCE (both may
+  //    have exposed or closed tokens), before this step's own inserts, so it names exactly what's missing
+  //    right now. ─────────────────────────────────────────────────────────────────────────────────────
   const gateRowForOrphans = planGateA(item, claims, computeDerivedCovered(claims, captures));
   const orphanResults = [];
-  let orphanFallbackSectionId = null;
   for (const orphan of gateRowForOrphans.orphans ?? []) {
     const plan = planOrphanGrounding(orphan, resourceBuckets);
     if (plan.outcome !== "found") {
@@ -2534,6 +2780,18 @@ export function summarizeReports(perItem) {
     // 365-claim defect this run actually closed vs. how much stayed refused.
     reclassified_rewritten: 0, reclassify_refused_no_owning_paragraph: 0,
     retrofitted: 0, retrofit_refused_no_owning_paragraph: 0,
+    // EIGHTH PASS (2026-09-04) STEP SOURCE additions — see this file's header EIGHTH PASS section. Named
+    // to the dispatch's own report-contract vocabulary (source_registered, source_rated_tier,
+    // grounded_after_register, unfetchable, token_not_in_page); a single per-token result carries BOTH
+    // source_registered (a NEW `sources` row was created for this token, the 167 case) and
+    // source_rated_tier (whatever the token's grounding source's tier is, new OR pre-existing — every
+    // grounded token gets one, so this is the tier-visibility count the ruling calls for) whenever it
+    // grounds by registering; grounded_after_register counts every token this step grounded regardless of
+    // whether registration was needed (the 179 above-floor case grounds on an existing source, no new
+    // registration). would_* dry-mode counterparts are also tallied so a dry report shows the same shape.
+    source_registered: 0, source_rated_tier: 0, source_grounded: 0, source_would_ground: 0,
+    grounded_after_register: 0, source_unfetchable: 0, source_token_not_in_page: 0,
+    source_unresolved: 0, source_worklisted: 0, source_bound_hit: 0,
   };
   for (const r of perItem) {
     if (r.steps.capture?.outcome === "held") s.capture_held += 1;
@@ -2570,6 +2828,25 @@ export function summarizeReports(perItem) {
     for (const or of r.steps.orphans ?? []) {
       if (or.outcome === "grounded") s.orphans_grounded += 1;
       if (or.outcome === "unprovable") s.orphans_unprovable += 1;
+    }
+    for (const so of r.steps.source ?? []) {
+      if (so.outcome === "source_registered_and_grounded") {
+        s.source_registered += 1;
+        s.source_rated_tier += 1;
+        s.source_grounded += 1;
+        s.grounded_after_register += 1;
+      }
+      if (so.outcome === "grounded_on_existing_source") {
+        s.source_rated_tier += 1;
+        s.source_grounded += 1;
+        s.grounded_after_register += 1;
+      }
+      if (so.outcome === "unfetchable") s.source_unfetchable += 1;
+      if (so.outcome === "token_not_in_page") s.source_token_not_in_page += 1;
+      if (so.outcome === "unresolved") s.source_unresolved += 1;
+      if (so.outcome === "worklist_ambiguous_host" || so.outcome === "unresolvable_host") s.source_worklisted += 1;
+      if (so.outcome === "bound_hit") s.source_bound_hit += 1;
+      if (so.outcome === "would_register_and_capture" || so.outcome === "would_capture_and_ground") s.source_would_ground += 1;
     }
     for (const rl of r.steps.relabel ?? []) {
       if (rl.outcome === "relabeled") s.relabeled_paragraphs += 1;
@@ -2645,10 +2922,14 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
       `${counts.slot_repaired_to_gap} slot_repaired_to_gap; ` +
       `${counts.cited_captured} cited-captured/${counts.cited_held} cited-held (bound hit on ${counts.cited_bound_hit_items} items); ` +
       `${counts.capture_held} capture-held; ${counts.ungrounded_after_capture} ungrounded_after_capture; ` +
-      `${counts.unarchived} un-archived.`
+      `${counts.unarchived} un-archived; ` +
+      `STEP SOURCE (ruling 2026-09-04): ${counts.source_registered} source_registered, ${counts.source_rated_tier} ` +
+      `source_rated_tier, ${counts.grounded_after_register} grounded_after_register, ${counts.source_unfetchable} ` +
+      `unfetchable, ${counts.source_token_not_in_page} token_not_in_page, ${counts.source_worklisted} worklisted, ` +
+      `${counts.source_unresolved} unresolved, ${counts.source_bound_hit} bound_hit.`
     : `DRY — plan only, nothing written or fetched. ${counts.would_heal_verified}/${items.length} would ` +
       `heal to verified on current captures; the rest need capture/grounding/slots work this run's per_item ` +
-      `lists explicitly.`;
+      `lists explicitly. STEP SOURCE would-ground ${counts.source_would_ground} orphan token(s).`;
   return summary;
 }
 
@@ -2665,7 +2946,14 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
  *   `timeBudgetSeconds` (a positive number — apply mode only; unset/non-positive means no budget, the
  *   original unbounded behavior) and `now` (an injectable clock, `() => number`, defaulting to
  *   `() => Date.now()` — this file's own DI mandate; the run loop below is the only place this file reads
- *   elapsed wall time, and it is never read without going through this hook).
+ *   elapsed wall time, and it is never read without going through this hook). EIGHTH PASS (2026-09-04,
+ *   lane HEAL-7, STEP SOURCE) adds two deps, both apply-mode-only (never called in dry mode):
+ *   `registerSource({url, name, base_tier})` -> `{source_id, created, host}` (scripts/lib/db.mjs's own
+ *   registerSource, dedup-by-institutionKey, wired through provenance-heal.mjs) and
+ *   `readSourceByUrl(url)` -> the matching `sources` row (institutionKey-matched, same identity rule) or
+ *   `null` — used to read back the REAL row after registerSource's own dedup, since a match may land on a
+ *   different exact URL than the one just classified; base_tier is ALWAYS resolved through
+ *   classTierForHost (src/lib/sources/host-authority.ts), never hand-typed or guessed (SC-13).
  */
 export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   const apply = mode === "apply";

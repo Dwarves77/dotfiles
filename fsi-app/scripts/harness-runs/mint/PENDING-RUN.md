@@ -199,14 +199,170 @@ likewise UNCHANGED.
 
 **harness_version at BOILER-2's own write time (its worktree predates the series-backed exemption):** `sha256:45f466a329448e44`
 
-**harness_version at write time:** `sha256:2885d372e53e4769` (train/wave17: BOILER-2 on top of the landed wave16 kit)
+**harness_version at train/wave17's write time (superseded below):** `sha256:2885d372e53e4769` (train/wave17: BOILER-2 on top of the landed wave16 kit)
 
-**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
-under this landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
+**The planned run that supersedes THAT marker:** the next `population-turn` dispatch (dry, then apply)
+under that landed code — its `mint-batch-report.json` should show CELEX `32012D0706(01)`-shaped rows
 (a genuine operative-provision clause mentioning a bare domain) now minting a substantive `operative_provision`
 FACT instead of GAP; CELEX 'H'-recommendation rows (like `31976H0495`'s shape) now minting a substantive
 `jurisdictional_scope` FACT where the source states one via a numbered clause; and any row whose Cellar
 capture is this RDF-fingerprint shape now held `capture_garbled_metadata` (or re-minted with real EUR-Lex
-fallback text) rather than shipping hollow. Per F28's reverse-audit, this marker is deleted the moment that
+fallback text) rather than shipping hollow. That run has not yet landed, so this marker is superseded (rule
+(c): a new governing-file edit below moved the hash again) rather than deleted — the next `population-turn`
+run under the CURRENT hash covers both this entry and the one below.
+
+---
+
+## Lane HEAL-7 (2026-09-04) — criterion 3's authority floor becomes a rating, not a refusal
+
+**What changed (6):** lane HEAL-7 (2026-09-04), building THE RULING [CONFIRMED, operator, 2026-09-04,
+verbatim]: "get the source. then rate the source. it's that simple. this isn't hard, find the source and
+then publish the data on the site." `scripts/mint/validate-mint-payload.mjs` moved: its criterion-3
+authority-floor check (`fact_below_authority_floor`) no longer pushes to `failures` (so it never affects
+`valid`/`recommended_status`) — it accumulates into a new `warnings.claims` array instead (`warnings:
+{below_floor_facts, claims}`), mirroring migration 302's own DB-side `v_result.warnings` byte-for-byte.
+`fact_missing_source_span` / `fact_span_not_in_source` / `fact_mint_hold` are UNCHANGED — the ruling
+overrules the refusal half of the floor, never the grounding requirement; an ungrounded claim still
+quarantines. `VALIDATE_MINT_PAYLOAD_KIT_VERSION` bumped `vmp-2026-09-04.1` → `vmp-2026-09-04.2`.
+
+Migration 302 (`fsi-app/supabase/migrations/302_criterion3_rating_not_refusal.sql`, written this lane, NOT
+applied — no DB write credential in this lane, Supabase MCP is read-only here) is the DB-side twin: an
+in-place patch of `validate_item_provenance` so the kit and the function agree on what blocks. No other
+mint `GOVERNING_FILES` entry moved — `MINT-RUNBOOK.md`, `payload-schema.json`,
+`item-type-required-slots.json`, and the three `scripts/mint/lib/*.mjs` files are UNCHANGED by this lane.
+
+**harness_version at HEAL-7's write time (superseded below — see "What changed (7)"):** `sha256:02be5e03486540f3`
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (dry, then apply)
+under this landed code, AFTER the coordinator applies migration 302 — its `mint-batch-report.json` should
+show a below-floor-tier FACT (a genuinely span-grounded claim whose source tier exceeds its item-type
+floor) recorded in `warnings.below_floor_facts` rather than in `failures`, clearing to `verified` on tier
+alone when nothing else is wrong with it. Per F28's reverse-audit, this marker is deleted the moment that
 artifact lands and its `harness_version` matches the hash above (or re-pinned to a new hash, per rule (c),
 if a governing file changes again before that run lands).
+**What changed (7):** lane TANDEM-2 (2026-09-04), closing two defects the coordinator found reading
+BOILER-2's own landed code (never reported by any lane, never a hand-off) [CONFIRMED]:
+
+1. **THE GATE (`checkPriorSliceConnected`, wired into `run-population-flywheel.mjs --check-gate`) read
+   only the SINGLE newest mint-run artifact** (`readRunHistory(dir).runs.at(-1)`, sorted by
+   `started_at`). mint-run-023 — the `rows_file` dry preview of the six-row EU Weekly Oil Bulletin batch,
+   ruling R-D (`MINT-RUNBOOK.md`'s §11 addendum; `docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s
+   "Dispatching the oil-bulletin batch" section) — is a DRY artifact (`metrics.minted` absent; every
+   `per_item` outcome is `apply_ready`, nothing minted) and landed newest by `started_at`
+   (`2026-09-04T01:41:32.029Z`), so the gate read ONLY it, reported "nothing was minted by this slice,"
+   and would have let a NEW apply through — while mint-run-017 through mint-run-022 (six apply artifacts;
+   run ids `33804773824`, `33806554326`, `33817563729`, `33821410389`, `33823467586`, `33825867992`; read
+   directly under `fsi-app/scripts/harness-runs/mint/`) still carried none of the three §9 outcome keys.
+   **Measured directly from those six artifacts' own `metrics.minted` this session: 177+168+156+152+141+140
+   = 934 minted items** (prior notes, including this marker's own earlier entries and
+   `run-population-flywheel.mjs`'s original header, approximated this "~650" — 934 is the precise,
+   re-measured count). Any dry run reset the gate to a false green; CLAUDE.md standing rule 17 ("a mint is
+   closed only when the flywheel has connected it and the harness recorded the outcome") was silently
+   unenforced for six consecutive apply batches. Fixed: new `checkAllSlicesConnected` scans EVERY artifact
+   `readRunHistory` returns, reusing `checkPriorSliceConnected`'s own per-artifact verdict (a dry
+   artifact — `metrics.minted` absent/0 — still never counts on its own; it just no longer masks a stale
+   artifact elsewhere in the list); `--check-gate`'s CLI now calls it over `runs`, not `runs.at(-1)`.
+2. **There was no dispatchable way to connect the six-artifact backlog THE GATE now correctly refuses.**
+   `run-population-flywheel.mjs` only ever ran `--mint-run <artifact>` over ONE artifact's own
+   newly-minted ids; `population-turn.yml` only ever called it for the run's own new batch. Fixed: new
+   `--backlog --mode dry|apply [--max-artifacts N]` (default 2 — see that script's own header, "COST
+   PROJECTION," for the [INFERRED] per-item cost reasoning) selects every stale mint-run artifact, oldest
+   first, and — in `apply` mode — enriches each ONE AT A TIME through the SAME per-artifact step
+   plan/executor a normal `--mint-run` apply already uses (`runFlywheelForOneArtifact`, extracted from the
+   prior single-artifact `main()` so there is exactly one code path implementing "how a mint-run artifact
+   gets connected," never two), writing each artifact's §9 outcomes back via the EXISTING, unmodified
+   `run-mint-batch.mjs --outcomes` path — checkpointed to disk artifact-by-artifact, so a job timeout
+   mid-backlog leaves everything processed so far connected and the gate correctly narrowed. A dry backlog
+   run (`selectBacklogArtifacts` / `formatBacklogReport`, both pure) lists the stale artifacts and each
+   one's item count and writes nothing, no DB creds needed. Wired into `.github/workflows/
+   population-turn.yml` as the `flywheel_backlog` / `backlog_max_artifacts` workflow_dispatch inputs,
+   which skip every export/mint/apply/reconcile step and THE GATE itself (that dispatch's whole purpose is
+   clearing the gate — gating it would be circular) and run `--backlog` instead;
+   `timeout-minutes` raised 30 → 60 for exactly this mode's headroom. `checkAllSlicesConnected`'s own
+   refusal message now names the backlog dispatch as the preferred fix (the single-artifact
+   `--mint-run ... --mode apply` command per stale artifact is still printed too, as an equivalent
+   alternative).
+
+`run-population-flywheel.mjs` is NOT itself a mint `GOVERNING_FILES` entry (confirmed again, unchanged
+from lane TANDEM's own note above) — only the ONE governing file this lane moved,
+`scripts/mint/MINT-RUNBOOK.md` (§8's new "THE GATE, WIDENED, and BACKLOG MODE" subsection and §9's
+cross-reference to it — text only, per this lane's task instruction; no example payload, schema, or
+extractor logic touched), moves the mint family's `harness_version`. `.github/workflows/
+population-turn.yml` and `docs/runbooks/POPULATION-TURN-RUNBOOK.md` are neither of them governing files
+either. `scripts/mint/validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`,
+the three `scripts/mint/lib/*.mjs` files, and `src/lib/intake/record-facts.mjs` are all UNCHANGED by this
+lane.
+
+**harness_version at TANDEM-2's write time (superseded below):** `sha256:0d22fb65d17b9343`
+
+**harness_version at TANDEM-2's train-tip write time (superseded below — see "What changed (8)"):**
+`sha256:0d22fb65d17b9343` (train tip: TANDEM-2 on top of the landed BOILER-2 tree — MINT-RUNBOOK.md §8/§9
+text-only edit)
+
+---
+
+## Lane TANDEM-2, continued (2026-09-04) — the coordinator's OWN measured-against-the-code correction, plus a real gate/backlog correctness fix
+
+**What changed (8):** lane TANDEM-2 (2026-09-04), same lane, further edit to `MINT-RUNBOOK.md` §8's "THE
+GATE, WIDENED, and BACKLOG MODE" subsection (text only) — no code change to any governing file, but the
+NARRATIVE that subsection tells needed correcting once actually measured, and two real correctness gaps
+in `run-population-flywheel.mjs` (not a mint `GOVERNING_FILES` entry, so neither moves this hash) needed
+closing before `--backlog` could be trusted:
+
+1. **The "six artifacts / 934 items / three dispatches" framing undercounted the real backlog.**
+   `checkAllSlicesConnected`, once actually run against every `mint-run-NNN.json` on this checkout (not
+   only the six the coordinator's own defect description named), finds **15 of 23** artifacts minted
+   items and were never connected, not six: mint-run-001, 004, 005, 006, 011, 012, 013, 014, 016, plus
+   the six named (017-022). §8's subsection now states this measured [CONFIRMED] total and corrects the
+   dispatch-count arithmetic (`ceil(13/2) = 7` at the default cap, not three).
+2. **Of those 15, 2 (mint-run-001, mint-run-005) cannot be auto-connected by `--mint-run` OR
+   `--backlog` at all** — both predate the `per_item.item_id` field entirely (their per_item entries
+   carry a CELEX id and an outcome like `"minted"`/`"minted_validator_pass"`, never a real
+   `intelligence_items.id`), so `extractMintedItemIds` has nothing to recover. Left unhandled, the OLD
+   code would have let `--backlog` (or a direct `--mint-run` call) "connect" either one by writing
+   `edges_discovered=0`/`isolated_items=0` — a FALSE record that these 6+5 items were ever discovered,
+   when in truth their ids were simply never identified. Fixed in `run-population-flywheel.mjs` (this
+   lane's own code, not re-opening BOILER-2 or HOLLOW-GATE's work): new `hasRecoverableMintedIds` pure
+   predicate; `checkAllSlicesConnected` now reports such an artifact separately (still refuses — CLAUDE.md
+   rule 17 carves out no exception for "the ids are gone" — but never hands out the standard
+   `--mint-run ... --mode apply` fix command for it, since running that exact command against it now
+   REFUSES rather than "fixing" anything); `selectBacklogArtifacts` never selects such an artifact (so it
+   can never stall `--backlog`'s progress on the artifacts behind it, even though mint-run-001 is the
+   OLDEST artifact on the checkout — proven by a dedicated test); `runFlywheelForOneArtifact` gained a
+   pre-I/O guard that refuses before any child process or DB call for the direct `--mint-run` path, which
+   `selectBacklogArtifacts`' exclusion does not protect. Also fixed in the same pass:
+   `extractMintedItemIds` was missing the retired `"minted_verified_first_pass"` outcome label
+   (mint-run-004/006's own shape, 9 items total, item_id present) — without this, both would have wrongly
+   fallen into the "unrecoverable" bucket alongside mint-run-001/005 instead of being auto-connected. All
+   of this is covered by new tests in `run-population-flywheel.test.mjs` (62 tests total, 0 failing).
+
+**CONSEQUENCE the operator/coordinator must act on, not this lane:** even after every `--backlog`
+dispatch this lane makes possible, THE GATE will keep refusing EVERY population-turn apply — the R-D
+oil-bulletin batch included — until mint-run-001 and mint-run-005 are resolved by some OTHER means (e.g.
+hand-matching their per_item CELEX ids against `intelligence_items.canonical_instrument_key` and
+hand-writing their §9 outcomes via `run-mint-batch.mjs --outcomes`). This is out of this lane's write set
+and not attempted here.
+
+Only `scripts/mint/MINT-RUNBOOK.md` moved among `GOVERNING_FILES.mint` (§8's subsection rewritten with
+the measured 15/13/2 split and the corrected dispatch-count math — text only, same scope as "What changed
+(6)"). `run-population-flywheel.mjs`, its test file, `.github/workflows/population-turn.yml`, and
+`docs/runbooks/POPULATION-TURN-RUNBOOK.md` are none of them `GOVERNING_FILES` entries.
+`scripts/mint/validate-mint-payload.mjs`, `payload-schema.json`, `item-type-required-slots.json`, the
+three `scripts/mint/lib/*.mjs` files, and `src/lib/intake/record-facts.mjs` are all UNCHANGED by this
+continued edit, same as "What changed (7)" already stated.
+
+**harness_version at TANDEM-2's final write time (superseded below):** `sha256:cffea59cb524f51a`
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch under this landed
+code. The correct FIRST dispatch is now the backlog (`flywheel_backlog: true`, `mode: dry` then `apply`,
+`backlog_max_artifacts` left at default), repeated roughly `ceil(13/2) = 7` times to clear every
+auto-connectable stale artifact — never the R-D six-row apply first, and never expected to fully clear
+THE GATE on its own: mint-run-001/mint-run-005 need the separate manual resolution described above before
+`--check-gate` can report zero stale artifacts. Once BOTH the backlog is clear AND mint-run-001/005 are
+resolved, the R-D six-row `apply` dispatch (`docs/runbooks/POPULATION-TURN-RUNBOOK.md`'s "Dispatching the
+oil-bulletin batch" section) is the next slice, and its own `mint-run-NNN.json` should carry all three §9
+outcome keys once this lane's own normal (non-backlog) flywheel step runs over it — closing this marker
+at that point, per F28's reverse-audit (or re-pinned to a new hash, per rule (c), if a governing file
+changes again before either run lands).
+
+**harness_version at write time:** `sha256:79589ef978593250` (train/wave19: HEAL-7 kit mirror and TANDEM-2 runbook text on one tree)

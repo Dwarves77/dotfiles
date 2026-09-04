@@ -82,6 +82,7 @@ if (IS_MAIN) {
     buildDeps: async () => {
       const {
         readAll, readClient, guardedInsert, guardedInsertMany, guardedUpdate, guardedUpdateByIds,
+        registerSource, institutionKey,
       } = await import("../lib/db.mjs");
       const { createClient } = await import("@supabase/supabase-js");
       const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
@@ -153,6 +154,22 @@ if (IS_MAIN) {
           if (error) throw new Error(`provenance-heal: readInstitutionByDomain failed: ${error.message}`);
           return data ?? null;
         },
+        // STEP SOURCE (EIGHTH PASS, 2026-09-04, lane HEAL-7) — see heal-provenance.mjs's own header EIGHTH
+        // PASS section for the ruling this implements. `readSourceByUrl` reads the SAME bounded whole-table
+        // `sources` shape readAllSources/db.mjs's own registerSource dedup already use (never a per-call
+        // filtered read against the small registry table), matched by the SAME institutionKey identity rule
+        // registerSource dedups by — so a lookup here and a registerSource dedup below always agree on
+        // whether a URL's host is "already registered".
+        readSourceByUrl: async (url) => {
+          const key = institutionKey(url);
+          if (!key) return null;
+          const all = await readAll("sources", "id, url, base_tier, tier_override, institution_id, status");
+          return all.find((s) => institutionKey(s.url) === key) ?? null;
+        },
+        // base_tier here is ALWAYS the caller's classTierForHost value (SC-13 no-guess registration) —
+        // heal-provenance.mjs's STEP SOURCE is the only caller, and it never omits base_tier, so db.mjs's
+        // own `?? 7` default is never reached through this path.
+        registerSource: (source) => registerSource(source, { cite: CITE }),
         validateProvenance: rpc,
         readProvenanceStatus: async (itemId) => {
           const { data, error } = await rc.from("intelligence_items").select("provenance_status").eq("id", itemId).maybeSingle();

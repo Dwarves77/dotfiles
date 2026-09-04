@@ -11,16 +11,22 @@ import assert from "node:assert/strict";
 import {
   parseArgs,
   extractMintedItemIds,
+  hasRecoverableMintedIds,
   buildFlywheelPlan,
   computeCorpusOutcomes,
   checkPriorSliceConnected,
+  checkAllSlicesConnected,
+  selectBacklogArtifacts,
+  formatBacklogReport,
+  runFlywheelForOneArtifact,
+  DEFAULT_BACKLOG_MAX_ARTIFACTS,
 } from "./run-population-flywheel.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────────
 
 test("parseArgs: --check-gate needs nothing else", () => {
   const r = parseArgs(["--check-gate"]);
-  assert.deepEqual(r, { ok: true, checkGate: true, harnessRunsDir: null });
+  assert.deepEqual(r, { ok: true, checkGate: true, backlog: false, harnessRunsDir: null });
 });
 
 test("parseArgs: --check-gate accepts --harness-runs-dir", () => {
@@ -30,7 +36,7 @@ test("parseArgs: --check-gate accepts --harness-runs-dir", () => {
   assert.equal(r.harnessRunsDir, "scripts/harness-runs/mint");
 });
 
-test("parseArgs: --mint-run is required outside --check-gate", () => {
+test("parseArgs: --mint-run is required outside --check-gate/--backlog", () => {
   const r = parseArgs([]);
   assert.equal(r.ok, false);
   assert.match(r.error, /--mint-run/);
@@ -41,6 +47,7 @@ test("parseArgs: --mode defaults to dry", () => {
   assert.equal(r.ok, true);
   assert.equal(r.mode, "dry");
   assert.equal(r.checkGate, false);
+  assert.equal(r.backlog, false);
 });
 
 test("parseArgs: --mode must be dry or apply", () => {
@@ -54,6 +61,7 @@ test("parseArgs: full apply invocation round-trips", () => {
   assert.deepEqual(r, {
     ok: true,
     checkGate: false,
+    backlog: false,
     mintRun: "scripts/harness-runs/mint/mint-run-022.json",
     mode: "apply",
     harnessRunsDir: "custom/dir",
@@ -63,6 +71,58 @@ test("parseArgs: full apply invocation round-trips", () => {
 test("parseArgs: unknown flag is rejected (strict parsing)", () => {
   const r = parseArgs(["--mint-run", "x.json", "--bogus"]);
   assert.equal(r.ok, false);
+});
+
+// ── parseArgs: --backlog ─────────────────────────────────────────────────────────────────────────────
+
+test("parseArgs: --backlog defaults to mode=dry and DEFAULT_BACKLOG_MAX_ARTIFACTS", () => {
+  const r = parseArgs(["--backlog"]);
+  assert.deepEqual(r, {
+    ok: true,
+    checkGate: false,
+    backlog: true,
+    mode: "dry",
+    maxArtifacts: DEFAULT_BACKLOG_MAX_ARTIFACTS,
+    harnessRunsDir: null,
+  });
+});
+
+test("parseArgs: --backlog full apply invocation round-trips", () => {
+  const r = parseArgs(["--backlog", "--mode", "apply", "--harness-runs-dir", "custom/dir", "--max-artifacts", "5"]);
+  assert.deepEqual(r, {
+    ok: true,
+    checkGate: false,
+    backlog: true,
+    mode: "apply",
+    maxArtifacts: 5,
+    harnessRunsDir: "custom/dir",
+  });
+});
+
+test("parseArgs: --backlog rejects --mint-run alongside it", () => {
+  const r = parseArgs(["--backlog", "--mint-run", "x.json"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--mint-run/);
+});
+
+test("parseArgs: --backlog and --check-gate are mutually exclusive", () => {
+  const r = parseArgs(["--backlog", "--check-gate"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /mutually exclusive/);
+});
+
+test("parseArgs: --backlog --max-artifacts must be a positive integer", () => {
+  for (const bad of ["0", "-1", "1.5", "abc", ""]) {
+    const r = parseArgs(["--backlog", "--max-artifacts", bad]);
+    assert.equal(r.ok, false, `--max-artifacts ${JSON.stringify(bad)} should be rejected`);
+    assert.match(r.error, /--max-artifacts/);
+  }
+});
+
+test("parseArgs: --backlog --mode must still be dry or apply", () => {
+  const r = parseArgs(["--backlog", "--mode", "bogus"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--mode must be/);
 });
 
 // ── extractMintedItemIds ─────────────────────────────────────────────────────────────────────────────
@@ -100,6 +160,54 @@ test("extractMintedItemIds: tolerates a missing/malformed per_item", () => {
   assert.deepEqual(extractMintedItemIds({}), []);
   assert.deepEqual(extractMintedItemIds({ per_item: null }), []);
   assert.deepEqual(extractMintedItemIds(null), []);
+});
+
+test("extractMintedItemIds: also recognizes the retired 'minted_verified_first_pass' outcome (mint-run-004/006 on this checkout)", () => {
+  const artifact = {
+    per_item: [
+      { outcome: "minted_verified_first_pass", item_id: "legacy-1" },
+      { outcome: "not_minted_existing_item", item_id: "legacy-2" }, // NOT newly minted this run — excluded
+    ],
+  };
+  assert.deepEqual(extractMintedItemIds(artifact), ["legacy-1"]);
+});
+
+// ── hasRecoverableMintedIds ──────────────────────────────────────────────────────────────────────────
+
+test("hasRecoverableMintedIds: metrics.minted absent/0 — trivially true, nothing to recover", () => {
+  assert.equal(hasRecoverableMintedIds({ metrics: { minted: 0 } }), true);
+  assert.equal(hasRecoverableMintedIds({ metrics: {} }), true);
+  assert.equal(hasRecoverableMintedIds({}), true);
+});
+
+test("hasRecoverableMintedIds: minted > 0 with real item ids in per_item — true", () => {
+  const artifact = {
+    metrics: { minted: 2 },
+    per_item: [
+      { outcome: "minted_verified", item_id: "a" },
+      { outcome: "minted_verified", item_id: "b" },
+    ],
+  };
+  assert.equal(hasRecoverableMintedIds(artifact), true);
+});
+
+test("hasRecoverableMintedIds: minted > 0 but per_item has NO item_id anywhere (mint-run-001's own shape) — false", () => {
+  const artifact = {
+    metrics: { minted: 6 },
+    per_item: [
+      { id: "32006R1692", outcome: "minted", verdict: "..." },
+      { id: "32009L0123", outcome: "minted", verdict: "..." },
+    ],
+  };
+  assert.equal(hasRecoverableMintedIds(artifact), false);
+});
+
+test("hasRecoverableMintedIds: minted > 0, outcome carries no recognized 'minted*' value with an id (mint-run-005's own shape) — false", () => {
+  const artifact = {
+    metrics: { minted: 5 },
+    per_item: [{ outcome: "minted_validator_pass" }, { outcome: "holder_conflict" }],
+  };
+  assert.equal(hasRecoverableMintedIds(artifact), false);
 });
 
 // ── buildFlywheelPlan: step ordering ─────────────────────────────────────────────────────────────────
@@ -310,3 +418,256 @@ test("checkPriorSliceConnected: a zero outcome value is present, not missing (0 
   };
   assert.equal(checkPriorSliceConnected(artifact).ok, true);
 });
+
+// ── checkAllSlicesConnected: THE GATE, WIDENED — every artifact, not only the newest ───────────────────
+
+const CONNECTED = (runId, minted = 3) => ({
+  run_id: runId,
+  metrics: { minted, edges_discovered: 1, forward_events_extracted: 1, isolated_items: 0 },
+});
+// missing all 3 outcome keys; per_item carries exactly `minted` minted_verified rows, matching
+// metrics.minted, so extractMintedItemIds(...).length agrees with the fixture's own `minted` param.
+const STALE = (runId, minted = 3) => ({
+  run_id: runId,
+  metrics: { minted },
+  per_item: Array.from({ length: minted }, (_, i) => ({ outcome: "minted_verified", item_id: `${runId}-item-${i}` })),
+});
+const DRY = (runId) => ({ run_id: runId, metrics: { attempted: 3, valid: 0, invalid: 3 } }); // minted absent
+// mint-run-001/mint-run-005's own shape: metrics.minted > 0 but no per_item entry carries an item_id at
+// all (pre-item_id-field schema) — hasRecoverableMintedIds is false for these, unlike DRY (minted absent).
+const UNRECOVERABLE = (runId, minted = 6) => ({
+  run_id: runId,
+  metrics: { minted },
+  per_item: Array.from({ length: minted }, (_, i) => ({ id: `celex-${i}`, outcome: "minted" })),
+});
+
+test("checkAllSlicesConnected: no artifacts at all — never blocks", () => {
+  const r = checkAllSlicesConnected([]);
+  assert.equal(r.ok, true);
+  assert.match(r.reason, /nothing to gate/);
+});
+
+test("checkAllSlicesConnected: all connected — accepts, names the count", () => {
+  const r = checkAllSlicesConnected([CONNECTED("mint-run-001"), CONNECTED("mint-run-002"), DRY("mint-run-003")]);
+  assert.equal(r.ok, true);
+  assert.match(r.reason, /3 mint-run artifact\(s\) checked/);
+});
+
+test("checkAllSlicesConnected: THE DEFECT reproduced — one stale artifact in the middle, masked by a newer dry one, is still caught", () => {
+  // Exactly BOILER-2's shape: mint-run-017..022 stale (apply batches), mint-run-023 a dry R-D preview
+  // sorted newest. The OLD single-newest gate read only 023 and said "nothing to connect." This one must
+  // refuse, naming the stale run even though a dry run comes after it in the list.
+  const runs = [CONNECTED("mint-run-016"), STALE("mint-run-017", 177), DRY("mint-run-023")];
+  const r = checkAllSlicesConnected(runs);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /mint-run-017/);
+  assert.doesNotMatch(r.reason, /mint-run-016/);
+  assert.doesNotMatch(r.reason, /mint-run-023/);
+});
+
+test("checkAllSlicesConnected: several stale artifacts — names every one and every fix command", () => {
+  const runs = [STALE("mint-run-017", 177), STALE("mint-run-018", 168), CONNECTED("mint-run-019"), STALE("mint-run-020", 152)];
+  const r = checkAllSlicesConnected(runs);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /3 of 4 mint-run artifact\(s\)/);
+  for (const runId of ["mint-run-017", "mint-run-018", "mint-run-020"]) {
+    assert.match(r.reason, new RegExp(runId));
+    assert.match(r.reason, new RegExp(`--mint-run scripts/harness-runs/mint/${runId}\\.json --mode apply`));
+  }
+  assert.doesNotMatch(r.reason, /mint-run-019/);
+});
+
+test("checkAllSlicesConnected: names the backlog dispatch as the preferred fix", () => {
+  const r = checkAllSlicesConnected([STALE("mint-run-017", 177)]);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /flywheel_backlog=true/);
+  assert.match(r.reason, /--backlog --mode apply/);
+});
+
+test("checkAllSlicesConnected: dry artifacts never count, however many of them there are", () => {
+  const r = checkAllSlicesConnected([DRY("mint-run-001"), DRY("mint-run-002"), DRY("mint-run-003")]);
+  assert.equal(r.ok, true);
+});
+
+// ── checkAllSlicesConnected: unrecoverable artifacts (no item_id at all) ────────────────────────────────
+
+test("checkAllSlicesConnected: an unrecoverable artifact still refuses, but is named separately from the auto-fixable ones", () => {
+  const r = checkAllSlicesConnected([STALE("mint-run-017", 5), UNRECOVERABLE("mint-run-001", 6)]);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /mint-run-001/);
+  assert.match(r.reason, /mint-run-017/);
+  assert.match(r.reason, /CANNOT be auto-connected/);
+  assert.match(r.reason, /manual\/operator resolution/);
+  // The per-run FIX command block must offer the real fix for mint-run-017, but never a command that
+  // would refuse when run against mint-run-001.
+  assert.match(r.reason, /--mint-run scripts\/harness-runs\/mint\/mint-run-017\.json --mode apply/);
+  assert.doesNotMatch(r.reason, /--mint-run scripts\/harness-runs\/mint\/mint-run-001\.json --mode apply/);
+});
+
+test("checkAllSlicesConnected: an artifact that is ENTIRELY unrecoverable artifacts still refuses (no false green)", () => {
+  const r = checkAllSlicesConnected([UNRECOVERABLE("mint-run-001", 6), UNRECOVERABLE("mint-run-005", 5)]);
+  assert.equal(r.ok, false);
+  assert.match(r.reason, /2 of 2 mint-run artifact\(s\)/);
+  assert.match(r.reason, /mint-run-001/);
+  assert.match(r.reason, /mint-run-005/);
+});
+
+// ── selectBacklogArtifacts ───────────────────────────────────────────────────────────────────────────
+
+function withStartedAt(artifact, iso) {
+  return { ...artifact, started_at: iso };
+}
+
+test("selectBacklogArtifacts: no stale artifacts — empty selection", () => {
+  const runs = [
+    withStartedAt(CONNECTED("mint-run-001"), "2026-09-01T00:00:00Z"),
+    withStartedAt(DRY("mint-run-002"), "2026-09-02T00:00:00Z"),
+  ];
+  const r = selectBacklogArtifacts(runs, 5);
+  assert.deepEqual(r, { staleTotal: 0, staleTotalItems: 0, selected: [], selectedItems: 0, remaining: 0, unrecoverable: [] });
+});
+
+test("selectBacklogArtifacts: selects oldest-first and caps at maxArtifacts, honestly reporting the remainder", () => {
+  const runs = [
+    withStartedAt(STALE("mint-run-020", 10), "2026-09-04T02:00:00Z"),
+    withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z"),
+    withStartedAt(STALE("mint-run-019", 7), "2026-09-03T23:00:00Z"),
+    withStartedAt(STALE("mint-run-018", 3), "2026-09-03T21:00:00Z"),
+  ];
+  const r = selectBacklogArtifacts(runs, 2);
+  assert.equal(r.staleTotal, 4);
+  assert.equal(r.staleTotalItems, 25);
+  assert.deepEqual(r.selected.map((s) => s.runId), ["mint-run-017", "mint-run-018"]);
+  assert.equal(r.selectedItems, 8);
+  assert.equal(r.remaining, 2);
+});
+
+test("selectBacklogArtifacts: a dry artifact anywhere in the list is never selected", () => {
+  const runs = [
+    withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z"),
+    withStartedAt(DRY("mint-run-023"), "2026-09-04T01:41:32Z"),
+  ];
+  const r = selectBacklogArtifacts(runs, 5);
+  assert.deepEqual(r.selected.map((s) => s.runId), ["mint-run-017"]);
+});
+
+test("selectBacklogArtifacts: an unrecoverable artifact is NEVER selected, is reported separately, and does not consume the maxArtifacts budget", () => {
+  const runs = [
+    withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z"),
+    withStartedAt(STALE("mint-run-018", 3), "2026-09-03T21:00:00Z"),
+    withStartedAt(UNRECOVERABLE("mint-run-001", 6), "2026-09-01T00:00:00Z"), // oldest of all three
+  ];
+  const r = selectBacklogArtifacts(runs, 1);
+  // mint-run-001 is the OLDEST — proof this doesn't stall selection at the artifact it can never fix.
+  assert.deepEqual(r.selected.map((s) => s.runId), ["mint-run-017"]);
+  assert.deepEqual(r.unrecoverable, [{ runId: "mint-run-001", minted: 6 }]);
+  assert.equal(r.staleTotal, 2, "staleTotal counts only auto-connectable artifacts");
+  assert.equal(r.remaining, 1);
+});
+
+test("selectBacklogArtifacts: every stale artifact is unrecoverable — empty selection, all reported, never a false green", () => {
+  const runs = [
+    withStartedAt(UNRECOVERABLE("mint-run-001", 6), "2026-09-01T00:00:00Z"),
+    withStartedAt(UNRECOVERABLE("mint-run-005", 5), "2026-09-02T00:00:00Z"),
+  ];
+  const r = selectBacklogArtifacts(runs, 5);
+  assert.deepEqual(r.selected, []);
+  assert.equal(r.staleTotal, 0);
+  assert.equal(r.unrecoverable.length, 2);
+});
+
+test("selectBacklogArtifacts: an invalid maxArtifacts falls back to DEFAULT_BACKLOG_MAX_ARTIFACTS", () => {
+  const runs = Array.from({ length: DEFAULT_BACKLOG_MAX_ARTIFACTS + 3 }, (_, i) =>
+    withStartedAt(STALE(`mint-run-${String(i).padStart(3, "0")}`, 1), `2026-09-0${(i % 9) + 1}T00:00:00Z`),
+  );
+  const r = selectBacklogArtifacts(runs, 0);
+  assert.equal(r.selected.length, DEFAULT_BACKLOG_MAX_ARTIFACTS);
+});
+
+test("selectBacklogArtifacts: itemCount matches extractMintedItemIds, not metrics.minted", () => {
+  // A stale artifact whose per_item disagrees with its own metrics.minted count — itemCount must come
+  // from the same source THE GATE's fix command actually operates on (per_item), not the summary number.
+  const artifact = {
+    run_id: "mint-run-030",
+    metrics: { minted: 99 }, // deliberately wrong/stale summary number
+    per_item: [
+      { outcome: "minted_verified", item_id: "a" },
+      { outcome: "minted_unverified", item_id: "b" },
+      { outcome: "apply_failed", item_id: "c" },
+    ],
+  };
+  const r = selectBacklogArtifacts([artifact], 5);
+  assert.equal(r.selected[0].itemCount, 2);
+});
+
+// ── formatBacklogReport ──────────────────────────────────────────────────────────────────────────────
+
+test("formatBacklogReport: zero stale — the clear-backlog message", () => {
+  const msg = formatBacklogReport(selectBacklogArtifacts([], 5));
+  assert.match(msg, /0 stale mint-run artifact/);
+});
+
+test("formatBacklogReport: lists every selected artifact and its item count, and names the remainder", () => {
+  const runs = [
+    withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z"),
+    withStartedAt(STALE("mint-run-018", 3), "2026-09-03T21:00:00Z"),
+    withStartedAt(STALE("mint-run-019", 7), "2026-09-03T23:00:00Z"),
+  ];
+  const msg = formatBacklogReport(selectBacklogArtifacts(runs, 2));
+  assert.match(msg, /3 stale mint-run artifact\(s\) found \(15 item\(s\) total/);
+  assert.match(msg, /mint-run-017: 5 minted item\(s\)/);
+  assert.match(msg, /mint-run-018: 3 minted item\(s\)/);
+  assert.doesNotMatch(msg, /mint-run-019: 7/);
+  assert.match(msg, /1 more stale artifact\(s\) not selected/);
+});
+
+test("formatBacklogReport: no remainder note when every stale artifact was selected", () => {
+  const runs = [withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z")];
+  const msg = formatBacklogReport(selectBacklogArtifacts(runs, 5));
+  assert.doesNotMatch(msg, /not selected/);
+});
+
+test("formatBacklogReport: names unrecoverable artifacts distinctly, alongside a normal selection", () => {
+  const runs = [
+    withStartedAt(STALE("mint-run-017", 5), "2026-09-03T20:00:00Z"),
+    withStartedAt(UNRECOVERABLE("mint-run-001", 6), "2026-09-01T00:00:00Z"),
+  ];
+  const msg = formatBacklogReport(selectBacklogArtifacts(runs, 5));
+  assert.match(msg, /mint-run-017: 5 minted item\(s\)/);
+  assert.match(msg, /1 additional stale artifact\(s\) CANNOT be auto-connected/);
+  assert.match(msg, /mint-run-001: metrics\.minted=6, no recoverable item id/);
+});
+
+test("formatBacklogReport: unrecoverable-only backlog — still names them even though staleTotal is 0", () => {
+  const runs = [withStartedAt(UNRECOVERABLE("mint-run-001", 6), "2026-09-01T00:00:00Z")];
+  const msg = formatBacklogReport(selectBacklogArtifacts(runs, 5));
+  assert.match(msg, /0 stale mint-run artifact/);
+  assert.match(msg, /1 additional stale artifact\(s\) CANNOT be auto-connected/);
+});
+
+// ── runFlywheelForOneArtifact: the pre-I/O safety-net guard (throws before any step, any child process,
+// any DB call — testable without mocking) ───────────────────────────────────────────────────────────────
+
+test("runFlywheelForOneArtifact: refuses BEFORE any I/O when the artifact has no recoverable item ids", async () => {
+  const artifact = UNRECOVERABLE("mint-run-001", 6);
+  await assert.rejects(
+    () =>
+      runFlywheelForOneArtifact({
+        mintRunPath: "scripts/harness-runs/mint/mint-run-001.json",
+        artifact,
+        mode: "apply",
+        harnessRunsDir: "scripts/harness-runs/mint",
+        db: {}, // never touched — the guard throws first
+        startedAt: new Date().toISOString(),
+      }),
+    /no item id could be recovered/,
+  );
+});
+
+// A negative counterpart ("a normal artifact does NOT hit this guard") is deliberately NOT exercised by
+// calling runFlywheelForOneArtifact directly — past the guard it spawns REAL child processes
+// (scripts/connections/analyze-corpus.mjs etc., per buildFlywheelPlan's own unscoped steps), exactly the
+// I/O this file's own header says stays out of this suite. hasRecoverableMintedIds' own tests above
+// already pin the guard's predicate directly (true for the normal/DRY-fixture case, false only for
+// UNRECOVERABLE) — the guard here is a one-line `if (!hasRecoverableMintedIds(artifact)) throw`, so that
+// coverage already proves it does not fire on the normal case.
