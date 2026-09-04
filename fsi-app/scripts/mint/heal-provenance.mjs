@@ -567,7 +567,93 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // budget; overflow is reported, never silently dropped. Dry mode plans every step above with ZERO writes
 // and ZERO fetches (`would_register` / `would_capture_and_register` / `would_ground`), matching every
 // other step's dry contract.
-export const HEAL_VERSION = "hp7-2026-09-04.1";
+//
+// NINTH PASS (2026-09-04, lane HEAL-8), diagnosing STEP SOURCE's own live apply run (Actions 33844146038,
+// quarantined-live, HEAL_VERSION hp7-2026-09-04.1 — measured read-only via Supabase MCP SELECT against the
+// real rows, never the run's own summary.json, which was not on disk): 359 `unresolved`, 302 `bound_hit`,
+// and a `token_not_in_page` sample (>=60 tokens across >=20 items) classified into four causes, per the
+// dispatch's own taxonomy:
+//   (A) NUMERIC-FORM MISMATCH — a different surface form of the SAME figure (decimal/thousands separator,
+//       currency symbol vs code, non-breaking/narrow-no-break/thin space, super/subscript digits, dash
+//       variants, trailing sentence punctuation the token regex over-captured). [CONFIRMED] measured at
+//       ~1.4% of the sampled token_not_in_page rows — small, but a real, distinct, fixable cause.
+//       PDF or sub-page ONE HOP away does (the dispatch's own example: a Cellar/EUR-Lex link off a
+//       Commission press page; this lane's own sampled case: a CINEA AFIF grant-database figure linked from
+//       a Clean Hydrogen Partnership press release that was itself never captured beyond a placeholder
+//       stub). BUILT SCOPE NOTE [CONFIRMED, this lane]: both of those examples are actually CROSS-HOST
+//       (ec.europa.eu -> eur-lex.europa.eu; the Partnership's own host -> cinea.ec.europa.eu), and
+//       `institutionKey` — the one identity rule this file's one-hop eligibility reuses, deliberately never
+//       a second resolver — is host-prefixed by construction and can never equate two different hosts (see
+//       classifyHopLink's own header). What this pass's ONE-HOP FOLLOW actually closes is SAME-INSTITUTION
+//       (same host, or same shared-portal institution) hops — a genuine cross-host institution hop would
+//       need an async DB institution lookup, which is a separate, still-open lever, not silently claimed
+//       done by naming the dispatch's own examples.
+//   (C) PAGE CHANGED / CAPTURE THIN — a cookie wall, JS shell, 404, or a shorter/blocked earlier capture
+//       than a fresh fetch would produce; the EXISTING >200-char usability floor this file already applies
+//       elsewhere (needsCapture/bestCaptureText) was NOT being applied to STEP SOURCE's own "already
+//       captured, skip the fetch" lookup, so a thin/blocked pre-existing row silently short-circuited a real
+//       re-fetch that (Wayback-aware, via the unmodified captureCitedUrl) might well have succeeded.
+//   (D) NOWHERE — not in the capture, not in any one-hop resource, not in any other capture: the honest
+//       terminal state. `full_brief` (what Gate A scans) has NO editor path anywhere in this file (RELABEL
+//       only ever touches a section's `content_md`, by construction never full_brief — see the THIRD PASS
+//       header above) — a bare orphan TOKEN, unlike an existing FACT claim, has no RECLASSIFY/RETROFIT path
+//       to re-kind, because there was never a claim to re-kind in the first place. The honest, buildable
+//       version of "refactor if the paragraph exists, else report" is: report the token's own literal
+//       enclosing sentence from full_brief (never invented) alongside STEP C's existing fuzzy-match
+//       evidence, so the coordinator hands the operator an actual sentence, not a bare token.
+// The SINGLE largest, best-evidenced cause in the broader sample (measured, not the token_not_in_page
+// slice alone): STEP SOURCE's own `sourceAttempts` budget counted a ZERO-COST "already captured, no fetch"
+// lookup THE SAME as a real network fetch or a classification-only worklist decision — starving genuinely
+// free, high-value groundings on high-orphan items (one sampled item: 51 orphans, 47 free-lookup
+// groundings available across its own already-captured rows, most never even attempted before the item's
+// 25-attempt budget ran out on classification/fetch churn). Fetch-count arithmetic against the run's real
+// wall-clock budget (`HEAL_TIME_BUDGET_SECONDS=1500`, `.github/workflows/maintenance.yml`, at 1 req/s via
+// the single shared makePoliteFetch instance): ~1500 real fetches are available per WHOLE RUN, shared
+// across all ~89 quarantined-live items — SOURCE_MAX_PER_ITEM=25 real-fetch slots per item is therefore
+// still a reasonable per-item share of that shared budget (89 x 25 = 2225 > 1500, so the existing cap
+// already assumes not every item spends its full budget on real fetches, which matches C's classification-
+// heavy reality); RAISING it further would not have helped the 47/51 case above, since the bottleneck there
+// was the ACCOUNTING, not the ceiling. This lane's fix is therefore the budget-split below, not a raised
+// ceiling — a raised ceiling is left to the operator as a SEPARATE, still-open lever if the budget-split
+// fix alone does not clear the residue in one more pass.
+// Fixes, all in STEP SOURCE (healOneItem), none touching the EIGHTH PASS mechanism's own three outcomes:
+//   - BUDGET SPLIT: `sourceAttempts` no longer charges an already-captured, USABLE (>200-char) row for the
+//     exact URL being tried (a zero-cost, zero-network lookup) — it still charges a classification-only
+//     worklist_ambiguous_host/unresolvable_host decision, a dry-mode plan, and every genuine new fetch
+//     (direct or one-hop), so the EIGHTH PASS bound_hit test's own accounting is unchanged.
+//   - CLASS C THIN-RECAPTURE: the "already captured" lookup now REQUIRES >200 usable trimmed chars (the
+//     file's own established floor) to count as captured at all; a thin/blocked pre-existing row is treated
+//     as not-yet-captured and falls through to a real, Wayback-aware re-fetch via the unmodified
+//     captureCitedUrl — which DOES charge the budget, being a genuine attempt.
+//   - CLASS A NUMERIC-TOLERANT MATCHER: `locateSpanInText` gains a fourth tier (`numeric_tolerant`, digit-
+//     gated — never applied to non-numeric needles) plus a trailing-punctuation retry, built on a NEW
+//     composable `buildNumericNormalizedIndex` layered on the existing structural normalizer. The STORED
+//     `source_span` stays byte-exact from the capture (ADR-016) — only the SEARCH tolerates a different
+//     surface form of the same figure. This never weakens Gate-A coverage (gate-a-match.mjs's own literal-
+//     and-exact `containsToken`, a governing file, is untouched): `buildOrphanClaimText` (unchanged,
+//     pre-existing) already embeds the orphan token VERBATIM into `claim_text`, and `scanBrief` checks
+//     `claim_text + " " + source_span` CONCATENATED — so a tolerant SEARCH only needs to prove genuine
+//     grounding and recover a real verbatim span; it never needs to defeat the coverage-decision doctrine.
+//   - CLASS B ONE-HOP FOLLOW: when a freshly-fetched (THIS run) candidate page does not itself carry the
+//     token, up to SOURCE_MAX_HOP_LINKS_PER_TOKEN same-host/same-registered-institution links extracted
+//     from that page's own raw html (a field newly threaded through envelopeFromPlainGet/envelopeToOutcome/
+//     tryArchiveFallback — additive, NEVER persisted to any stored row, only ever used transiently within
+//     this same run before being discarded) are tried, each captured through the SAME captureCitedUrl path
+//     and grounded with its OWN registered+rated source (never inherits the landing page's source/tier).
+//     An already-captured row never carries raw html (it was never stored), so one-hop is only ever possible
+//     off a page this run itself just fetched live — never a stale DB row.
+//   - CLASS D REPORTING: `no_candidate_url` and `unresolved` STEP SOURCE outcomes, and STEP C's own
+//     `unprovable` outcome, now carry `sentence` — the token's own literal enclosing sentence from
+//     full_brief (new `extractSentenceContext`, null-safe, never invented) — so the coordinator can hand the
+//     operator an actual sentence, not a bare token.
+// Also fixed: `summarizeReports` was missing a tally for the `no_candidate_url` STEP SOURCE outcome
+// entirely (silently absent from every summary this file has ever produced) — added alongside the other
+// STEP SOURCE counters, tested.
+// See this file's own test suite for the full coverage of every fix above (numeric forms actually measured
+// in the sample, one-hop extraction/eligibility/grounding, sentence-context extraction, the budget-split and
+// thin-recapture behavior changes, all via the SAME `fetchImpl`-injected, real-network-free testing
+// convention every prior capture-family function in this file already uses).
+export const HEAL_VERSION = "hp8-2026-09-04.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -706,38 +792,225 @@ export function buildNormalizedIndex(text) {
   return { normalized: out, map };
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// NUMERIC-FORM TOLERANT NORMALIZATION (NINTH PASS, 2026-09-04, lane HEAL-8). See this file's header NINTH
+// PASS section for the measured basis (60+ real token_not_in_page tokens sampled read-only via the
+// Supabase MCP against the live `agent_run_searches`/`item_gate_a_state` for the 89 items still quarantined
+// after run 33844146038). Every transform below is one MEASURED surface-form family from that sample, not
+// a textbook guess: currency SYMBOL vs CODE (`€1,200` vs `EUR 1.200`), decimal vs thousands SEPARATOR
+// (`1,200` / `1 200` / `1.200`, `35.5%` / `35,5 %`), superscript/subscript digits (`gCO₂`), and unicode dash
+// variants. Composed ON TOP of `buildNormalizedIndex`'s own structural pass (whitespace/quotes/entities/
+// soft-hyphen) so both layer correctly; position-preserving throughout — `buildNumericNormalizedIndex`'s own
+// map still resolves to the ORIGINAL text's indices, so a match here still yields a byte-exact VERBATIM
+// slice of the capture (ADR-016: only the SEARCH is tolerant, the stored span never is).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+const CURRENCY_SYMBOL_TO_CODE = Object.freeze({ "€": "eur", "$": "usd", "£": "gbp", "¥": "jpy" });
+const SUPERSCRIPT_DIGIT = Object.freeze({ "⁰": "0", "¹": "1", "²": "2", "³": "3", "⁴": "4", "⁵": "5", "⁶": "6", "⁷": "7", "⁸": "8", "⁹": "9" });
+const SUBSCRIPT_DIGIT = Object.freeze({ "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4", "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9" });
+const DASH_VARIANTS = new Set(["‐", "‑", "‒", "–", "—", "−"]);
+const CURRENCY_CODES = new Set(["eur", "usd", "gbp", "jpy"]);
+
+/** Pass 1: per-character folds (dash variants -> `-`, superscript/subscript digits -> plain digits,
+ *  a currency SYMBOL -> its lowercase CODE, everything else lowercased) — position-preserving, `map[i]`
+ *  is the original index the output character at `i` came from (a symbol->code expansion repeats the
+ *  ONE original index across its 3 output characters, same convention `buildNormalizedIndex`'s own entity
+ *  decode already uses). Pure. */
+function numericPassOne(text) {
+  const s = String(text ?? "");
+  let out = "";
+  const map = [];
+  let i = 0;
+  while (i < s.length) {
+    const ch = s[i];
+    if (DASH_VARIANTS.has(ch)) { out += "-"; map.push(i); i += 1; continue; }
+    if (SUPERSCRIPT_DIGIT[ch]) { out += SUPERSCRIPT_DIGIT[ch]; map.push(i); i += 1; continue; }
+    if (SUBSCRIPT_DIGIT[ch]) { out += SUBSCRIPT_DIGIT[ch]; map.push(i); i += 1; continue; }
+    if (CURRENCY_SYMBOL_TO_CODE[ch]) {
+      for (const c of CURRENCY_SYMBOL_TO_CODE[ch]) { out += c; map.push(i); }
+      i += 1;
+      continue;
+    }
+    out += ch.toLowerCase();
+    map.push(i);
+    i += 1;
+  }
+  map.push(s.length);
+  return { normalized: out, map };
+}
+
+/** Pass 2: drop a whitespace run immediately between a currency CODE and a following digit (so `EUR
+ *  1.200` and `€1.200` both fold to `eur1.200`, matching adjacency on both sides), and between a complete
+ *  numeral and a following `%` (the SAME %-spacing convention `gate-a-match.mjs`'s own `collapsePctSpace`
+ *  already applies at the coverage-decision site — mirrored here, never re-derived, for the SEARCH site).
+ *  Pure, position-preserving. */
+function numericCollapseAdjacency(s, map) {
+  let out = "";
+  const outMap = [];
+  let i = 0;
+  while (i < s.length) {
+    if (/\s/.test(s[i])) {
+      let j = i;
+      while (j < s.length && /\s/.test(s[j])) j += 1;
+      const beforeIsCode = CURRENCY_CODES.has(out.slice(-3));
+      const afterIsDigit = /\d/.test(s[j] ?? "");
+      const afterIsPct = s[j] === "%";
+      if ((beforeIsCode && afterIsDigit) || afterIsPct) { i = j; continue; }
+      out += " ";
+      outMap.push(map[i]);
+      i = j;
+      continue;
+    }
+    out += s[i];
+    outMap.push(map[i]);
+    i += 1;
+  }
+  outMap.push(map[s.length]);
+  return { normalized: out, map: outMap };
+}
+
+const NUMERIC_RUN_RE = /\d(?:[., ]\d+)*/g;
+
+/** Fold ONE numeric run's internal separators: a separator followed by EXACTLY 3 digits is a THOUSANDS
+ *  grouping (dropped); any other separator is DECIMAL (folded to `.`) — the convention this lane's own
+ *  measured sample pins (`1,200` / `1 200` / `1.200` all fold to `1200`; `35.5` / `35,5` both fold to
+ *  `35.5`). Applied left to right, independently per separator (a well-formed number never disagrees with
+ *  itself under this rule — see this section's header for the one deliberately-ambiguous case, `12.345`
+ *  read as 12345 rather than 12.345, matching the measured examples). Pure, position-preserving. */
+function foldNumericRun(run, origIndexOf) {
+  const m = /^(\d+)((?:[., ]\d+)*)$/.exec(run);
+  const lead = m[1];
+  const rest = m[2];
+  let out = lead;
+  const outMap = [];
+  for (let k = 0; k < lead.length; k++) outMap.push(origIndexOf(k));
+  let pos = lead.length;
+  const groupRe = /[., ](\d+)/g;
+  let gm;
+  while ((gm = groupRe.exec(rest))) {
+    const digits = gm[1];
+    const digitsStartPos = pos + 1;
+    if (digits.length === 3) {
+      for (let k = 0; k < digits.length; k++) outMap.push(origIndexOf(digitsStartPos + k));
+      out += digits;
+    } else {
+      outMap.push(origIndexOf(pos));
+      out += ".";
+      for (let k = 0; k < digits.length; k++) outMap.push(origIndexOf(digitsStartPos + k));
+      out += digits;
+    }
+    pos += 1 + digits.length;
+  }
+  return { text: out, map: outMap };
+}
+
+/** Pass 3: fold every numeric run's separators per `foldNumericRun`. Pure, position-preserving. */
+function numericFoldSeparators(s1, map1) {
+  let out = "";
+  const map = [];
+  let last = 0;
+  NUMERIC_RUN_RE.lastIndex = 0;
+  let m;
+  while ((m = NUMERIC_RUN_RE.exec(s1))) {
+    for (let k = last; k < m.index; k++) { out += s1[k]; map.push(map1[k]); }
+    const folded = foldNumericRun(m[0], (k) => map1[m.index + k]);
+    out += folded.text;
+    for (const idx of folded.map) map.push(idx);
+    last = m.index + m[0].length;
+  }
+  for (let k = last; k < s1.length; k++) { out += s1[k]; map.push(map1[k]); }
+  map.push(map1[s1.length]);
+  return { normalized: out, map };
+}
+
+/** Build the numeric-tolerant normalized form of `text` (composing the three passes above), returning
+ *  `{ normalized, map }` in the SAME shape `buildNormalizedIndex` returns — `map[i]` is the ORIGINAL
+ *  string index the output character at `i` came from. Pure. Exported for direct testing of every
+ *  measured surface-form family; `locateSpanInText` is the only production caller. */
+export function buildNumericNormalizedIndex(text) {
+  const p1 = numericPassOne(text);
+  const p2 = numericCollapseAdjacency(p1.normalized, p1.map);
+  return numericFoldSeparators(p2.normalized, p2.map);
+}
+
+/** Core of `locateSpanInText` — exact, then structural-normalized, then structural-normalized
+ *  case-insensitive, then (only when `needleTrim` carries a digit — a no-op skip for prose, since none of
+ *  these transforms touch non-numeric text) numeric-tolerant. Pure, no trailing-punctuation retry (the
+ *  caller owns that — see `locateSpanInText`). */
+function locateSpanInTextCore(needleTrim, hay) {
+  const litIdx = hay.indexOf(needleTrim);
+  if (litIdx !== -1) return { span: hay.slice(litIdx, litIdx + needleTrim.length), method: "exact" };
+
+  const { normalized: hayNorm, map } = buildNormalizedIndex(hay);
+  const { normalized: needleNorm } = buildNormalizedIndex(needleTrim);
+  if (needleNorm) {
+    let idx = hayNorm.indexOf(needleNorm);
+    let method = "normalized";
+    if (idx === -1) {
+      idx = hayNorm.toLowerCase().indexOf(needleNorm.toLowerCase());
+      method = "normalized_ci";
+    }
+    if (idx !== -1) {
+      const origStart = map[idx];
+      const origEnd = map[idx + needleNorm.length];
+      if (origStart != null && origEnd != null && origEnd > origStart) {
+        const span = hay.slice(origStart, origEnd).trim();
+        if (span) return { span, method };
+      }
+    }
+  }
+
+  if (/\d/.test(needleTrim)) {
+    const { normalized: hayNum, map: numMap } = buildNumericNormalizedIndex(hay);
+    const { normalized: needleNum } = buildNumericNormalizedIndex(needleTrim);
+    if (needleNum) {
+      const idx = hayNum.indexOf(needleNum);
+      if (idx !== -1) {
+        const origStart = numMap[idx];
+        const origEnd = numMap[idx + needleNum.length];
+        if (origStart != null && origEnd != null && origEnd > origStart) {
+          const span = hay.slice(origStart, origEnd).trim();
+          if (span) return { span, method: "numeric_tolerant" };
+        }
+      }
+    }
+  }
+
+  return null;
+}
+
+// Trailing punctuation a token's OWN extraction context bakes in that is never part of the figure/date
+// itself — measured defect (NINTH PASS): gate-a-scan.mjs's own `figureTokens` regex (`\d[\d.,]*`, a mint
+// GOVERNING FILE this lane does not edit) greedily consumes the BRIEF's own sentence-ending punctuation
+// immediately after a number ("...a late fee of $44,836." -> token "$44,836."), so the orphan token this
+// file receives sometimes carries punctuation the SOURCE page's own sentence never had at that position.
+// Retried ONLY after every tier above has already failed on the untouched needle — never tried first, so a
+// needle whose trailing punctuation genuinely IS part of the source text is never weakened.
+const TRAILING_PUNCT_RE = /[.,;:)\]}]+$/;
+
 /**
  * Locate `needle` inside `haystackText`: exact literal substring first (the common, cheap case), then a
- * normalized match (structural normalization only, case preserved), then a normalized CASE-INSENSITIVE
- * fallback. Returns `{ span, method }` — `span` is a VERBATIM slice of the ORIGINAL `haystackText` (never
- * the normalized form), `method` one of `"exact" | "normalized" | "normalized_ci"`. Returns null when no
- * method locates it. Pure.
+ * structural-normalized match, then a structural-normalized CASE-INSENSITIVE fallback, then (needle
+ * carries a digit) a NUMERIC-FORM-TOLERANT match (decimal/thousands separators, currency symbol vs code,
+ * super/subscript digits, dash variants — see `buildNumericNormalizedIndex`'s own header), then — only if
+ * every tier above still failed — the same four tiers again against the needle with its own trailing
+ * sentence punctuation stripped. Returns `{ span, method }` — `span` is a VERBATIM slice of the ORIGINAL
+ * `haystackText` (never a normalized form), `method` one of `"exact" | "normalized" | "normalized_ci" |
+ * "numeric_tolerant"`. Returns null when no tier locates it. Pure.
  */
 export function locateSpanInText(needle, haystackText) {
   const needleTrim = String(needle ?? "").trim();
   const hay = String(haystackText ?? "");
   if (!needleTrim || !hay) return null;
 
-  const litIdx = hay.indexOf(needleTrim);
-  if (litIdx !== -1) return { span: hay.slice(litIdx, litIdx + needleTrim.length), method: "exact" };
+  const found = locateSpanInTextCore(needleTrim, hay);
+  if (found) return found;
 
-  const { normalized: hayNorm, map } = buildNormalizedIndex(hay);
-  const { normalized: needleNorm } = buildNormalizedIndex(needleTrim);
-  if (!needleNorm) return null;
-
-  let idx = hayNorm.indexOf(needleNorm);
-  let method = "normalized";
-  if (idx === -1) {
-    idx = hayNorm.toLowerCase().indexOf(needleNorm.toLowerCase());
-    method = "normalized_ci";
+  const stripped = needleTrim.replace(TRAILING_PUNCT_RE, "");
+  if (stripped && stripped !== needleTrim) {
+    return locateSpanInTextCore(stripped, hay);
   }
-  if (idx === -1) return null;
-
-  const origStart = map[idx];
-  const origEnd = map[idx + needleNorm.length];
-  if (origStart == null || origEnd == null || origEnd <= origStart) return null;
-  const span = hay.slice(origStart, origEnd).trim();
-  return span ? { span, method } : null;
+  return null;
 }
 
 /** The exact criterion-3 test (migration 218's restored shape): does `haystack` contain `needle` as a
@@ -834,6 +1107,11 @@ export function envelopeFromPlainGet(res, endpoint) {
     head: text.slice(0, 300),
     endpoint,
     text: usable ? text : null,
+    // RAW html, never stored (agent_run_searches.result_content is always the STRIPPED text — ADR-016's
+    // own stored field), carried only as far as this run's in-memory outcome so STEP SOURCE's one-hop
+    // follow (NINTH PASS, lane HEAL-8 — see that section's header) can extract this page's OWN <a href>
+    // links before the raw markup is discarded. Null when unusable (nothing worth linking off of).
+    html: usable ? (res.html ?? null) : null,
     title: null,
     error: res.error,
   };
@@ -1011,6 +1289,9 @@ function envelopeToOutcome(env, url) {
     url: env.endpoint ?? url,
     text: env.text,
     title: env.title ?? null,
+    // Propagated only as far as this run's in-memory outcome (never stored — see envelopeFromPlainGet's
+    // own note); null for a PDF-shaped or non-HTML envelope, which never sets it.
+    html: env.html ?? null,
     evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, endpoint: env.endpoint ?? null },
   };
 }
@@ -1133,6 +1414,7 @@ async function tryArchiveFallback(citedUrl, directReason, directEvidence, deps) 
     url: citedUrl,
     text: env.text,
     title: env.title ?? null,
+    html: env.html ?? null,
     evidence: { status: env.status ?? null, bytes: env.bytes ?? 0, endpoint: fetchUrl, transport: "wayback", snapshot_timestamp: timestamp },
   };
 }
@@ -1673,6 +1955,118 @@ export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex }
   const scopedSections = owning ? [owning] : sections;
   const urls = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
   return urls.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// ONE-HOP FOLLOW (NINTH PASS, 2026-09-04, lane HEAL-8). See this file's header NINTH PASS section for the
+// measured basis: a Gate-A orphan whose owning section cites a LANDING/PRESS page (already captured or
+// just fetched this run) that itself links to the actual PDF or sub-page carrying the figure. Runs ONLY off
+// a page THIS RUN just fetched live (`captureCitedUrl`'s own `html` field, above — an already-captured row
+// never carries raw html, see that field's own note) — a hop off a stale DB capture would need a live
+// re-fetch anyway, which STEP SOURCE's own thin-recapture branch (see below) already covers by treating a
+// sub-200-char existing capture as not-yet-captured. Bounded to SOURCE_MAX_HOP_LINKS_PER_TOKEN links,
+// SAME REGISTERED INSTITUTION only (institutionKey, the ONE identity rule STEP B/OWN-BODY and the source
+// registry's own dedup already use — never a second equality rule, and never an arbitrary third-party
+// domain). NOT a plain same-host check — see classifyHopLink's own header for why a naive `hostOf` compare
+// is WRONG on a shared government portal (nj.gov/dep vs nj.gov/other are the same host but different
+// institutions) and why institutionKey, being host-prefixed by construction, can never itself bridge two
+// genuinely different hosts either: "a Cellar/EUR-Lex link from a Commission press page" is the dispatch's
+// own example, but ec.europa.eu and eur-lex.europa.eu are two separate registered institution rows, so that
+// SPECIFIC cross-host case is [CONFIRMED] NOT reachable by this pass's one-hop mechanism — it would need an
+// async DB institution lookup, which is out of scope here (would break every hop function's pure/sync,
+// real-network-free test contract) and is left as a separate, still-open lever, not silently claimed done.
+// This lane's own real sample (CINEA AFIF grant database, linked from a Clean Hydrogen Partnership press
+// release, itself never captured beyond a placeholder stub) is ALSO a cross-host case for the same reason —
+// what THIS pass actually closes is same-institution (same-host, or same-portal-institution) one-hop
+// follows; this lane adds NO new URL-discovery mechanism beyond "read the hrefs actually on the page".
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+export const SOURCE_MAX_HOP_LINKS_PER_TOKEN = 3;
+
+const HREF_RE = /<a\b[^>]*\bhref\s*=\s*(["'])(.*?)\1/gis;
+
+/** Every `<a href>` target on `html`, resolved to an absolute URL against `baseUrl` (a relative href, a
+ *  protocol-relative `//host/path`, or an already-absolute one — `new URL(href, baseUrl)` handles all
+ *  three). `javascript:`/`mailto:`/`tel:`/bare-`#`-fragment hrefs and anything `new URL` cannot resolve
+ *  are skipped. Deduplicated, order-preserving (document order — the SAME "as the brief names them"
+ *  posture `collectCitedUrls` already has). Pure. */
+export function extractHopLinks(html, baseUrl) {
+  const out = [];
+  const seen = new Set();
+  for (const m of String(html ?? "").matchAll(HREF_RE)) {
+    const raw = m[2].trim();
+    if (!raw || raw.startsWith("#") || /^(javascript|mailto|tel):/i.test(raw)) continue;
+    let abs;
+    try {
+      abs = new URL(raw, baseUrl).toString();
+    } catch {
+      continue;
+    }
+    if (!/^https?:\/\//i.test(abs)) continue;
+    if (seen.has(abs)) continue;
+    seen.add(abs);
+    out.push(abs);
+  }
+  return out;
+}
+
+/** True when `url` is eligible as a one-hop target from a page at `baseUrl`: the SAME registered
+ *  institution (`institutionKey`, imported unmodified — the ONE identity rule STEP B/OWN-BODY and db.mjs's
+ *  own `registerSource` dedup already share, never a second equality rule). NOT a plain same-host check —
+ *  institutionKey is host-prefixed for the ~non-portal majority (so same-institution reduces to same-host
+ *  there, as intended), but on a SHARED GOVERNMENT PORTAL (institution-key.mjs's own SHARED_PORTAL_KEYDEPTH
+ *  — nj.gov, gob.mx, etc.) it is STRICTER than same-host: `nj.gov/dep/...` and `nj.gov/other/...` share a
+ *  host but are DIFFERENT institutions, and a plain `hostOf` comparison would wrongly treat a hop between
+ *  two unrelated state agencies as eligible. [CONFIRMED, measured this lane] `institutionKey` can never
+ *  equate two DIFFERENT hosts either (every key is host-prefixed by construction) — so a genuine cross-host
+ *  institution hop (the dispatch's own "Cellar/EUR-Lex from a Commission press page" example: ec.europa.eu
+ *  and eur-lex.europa.eu are registered as two separate institution rows) is NOT eligible under this pure,
+ *  DB-free check; recognizing it would need an async `readInstitutionByDomain` lookup for both hosts, which
+ *  would break this function's (and every hop function's) pure/synchronous, real-network-free test
+ *  contract. Left OUT of this pass rather than half-built — same-institution (host-scoped) coverage is what
+ *  is built and tested; a DB-backed cross-host institution hop is a separate, still-open lever. Pure. False
+ *  for an unparseable url/baseUrl (never a guessed eligibility). */
+export function classifyHopLink(url, baseUrl) {
+  const uKey = institutionKey(url);
+  const bKey = institutionKey(baseUrl);
+  return !!uKey && !!bKey && uKey === bKey;
+}
+
+/** Eligible one-hop candidate URLs off `html` (fetched from `baseUrl`): every extracted href, filtered by
+ *  `classifyHopLink`, bounded to `SOURCE_MAX_HOP_LINKS_PER_TOKEN`. Pure. */
+export function hopLinksForToken(html, baseUrl) {
+  return extractHopLinks(html, baseUrl)
+    .filter((u) => classifyHopLink(u, baseUrl))
+    .slice(0, SOURCE_MAX_HOP_LINKS_PER_TOKEN);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// UNPROVABLE-FIGURE CONTEXT (NINTH PASS, 2026-09-04, lane HEAL-8). The honest terminal state for a Gate-A
+// orphan STEP SOURCE (direct + one-hop) and STEP C could ground nowhere. `full_brief` — what Gate A scans
+// — has NO editor anywhere in this file (RELABEL only ever touches a SECTION's `content_md`; see this
+// file's SEVENTH PASS header for why that is, by construction, never criterion-7-visible): there is no
+// deterministic REFACTOR-to-ANALYSIS path for a bare orphan TOKEN the way there is for an EXISTING FACT
+// CLAIM (RECLASSIFY/RETROFIT), because an orphan that grounded nowhere never had a claim to re-kind in the
+// first place. The honest, buildable version of "refactor if the paragraph exists, else report" is this:
+// report the token's own ENCLOSING SENTENCE from `full_brief` (never invented — a literal slice around the
+// token's own first occurrence) alongside the fuzzy-match evidence STEP C already computes, so the
+// coordinator can hand the operator an actual sentence to read, not just a bare token.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+const SENTENCE_BOUNDARY_RE = /(?<=[.!?])\s+(?=[A-Z0-9])|\n+/;
+
+/** The sentence (or table/line, for prose without terminal punctuation) in `fullBrief` that contains
+ *  `token`'s FIRST literal (case-insensitive) occurrence, trimmed. Pure. Null when `token` is not a
+ *  literal substring of `fullBrief` at all (should not occur for a genuine Gate-A orphan — every orphan
+ *  token is, by construction, extracted FROM `full_brief` — but defensive rather than throwing). */
+export function extractSentenceContext(fullBrief, token) {
+  const text = String(fullBrief ?? "");
+  const idx = text.toLowerCase().indexOf(String(token ?? "").toLowerCase());
+  if (idx === -1) return null;
+  const before = text.slice(0, idx).split(SENTENCE_BOUNDARY_RE);
+  const after = text.slice(idx).split(SENTENCE_BOUNDARY_RE);
+  const sentence = `${before[before.length - 1] ?? ""}${after[0] ?? ""}`.trim();
+  return sentence || null;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2354,7 +2748,15 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     if (res.status === "captured") {
       const row = buildCaptureSearchRow(item.id, res, new Date().toISOString(), "heal-provenance:capture-cited");
       const ins = await deps.insertSearch(row);
-      captures.push({ id: ins.id, result_url: row.result_url, result_content: row.result_content });
+      // NINTH PASS (lane HEAL-8) finding: STEP SOURCE's own candidate URLs (candidateUrlsForOrphan ->
+      // collectCitedUrls) are drawn from the SAME cited-URL pool THIS step already fetches, so by the time
+      // STEP SOURCE runs its own "already captured, no fetch" branch fires for almost every direct
+      // candidate — CAPTURE-CITED got there first. Without this `html` field, STEP SOURCE's ONE-HOP FOLLOW
+      // (which only ever works off a page THIS RUN fetched live) would be starved in exactly the realistic
+      // case it exists for. `html` is additive, in-memory-only for the lifetime of this run's `captures`
+      // array — never part of `row` (buildCaptureSearchRow, unchanged) and never persisted to any stored
+      // column (ADR-016: only `result_content`, the stripped text, is ever stored).
+      captures.push({ id: ins.id, result_url: row.result_url, result_content: row.result_content, html: res.html ?? null });
       captureCitedResults.push({ url, outcome: "captured", length: res.text.length, search_id: ins.id, evidence: res.evidence, cache_hit: cacheHit });
     } else {
       captureCitedResults.push({ url, outcome: "held", reason: res.reason, evidence: res.evidence ?? null, cache_hit: cacheHit });
@@ -2548,6 +2950,14 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const gateRowForSource = planGateA(item, claims, computeDerivedCovered(claims, captures));
   const sourceResults = [];
   let sourceAttempts = 0;
+  // NINTH PASS (2026-09-04, lane HEAL-8) budget accounting — see this file's header NINTH PASS section for
+  // the measured basis. `sourceAttempts` charges: (1) a classification-only worklist/unresolvable-host
+  // decision (no fetch, but still a real per-item slot spent — preserves the EIGHTH PASS bound_hit test's
+  // own accounting unchanged); (2) a dry-mode plan (no fetch, mirrors what apply mode would spend); (3) a
+  // genuine NEW network fetch, direct or one-hop. It does NOT charge an already-captured, USABLE (>200-char)
+  // row for the exact URL being tried — that is a zero-cost, zero-network lookup, and charging it was
+  // measured to starve genuinely free, high-value groundings on high-orphan items (one sampled item: 51
+  // orphans, 47 free-lookup groundings available, most never attempted under the old accounting).
   for (const orphan of gateRowForSource.orphans ?? []) {
     if (sourceAttempts >= SOURCE_MAX_PER_ITEM) {
       sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "bound_hit" });
@@ -2559,20 +2969,26 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     if (alreadyCoverable.outcome === "found") continue;
 
     const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx });
-    if (!candidateUrls.length) { sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "no_candidate_url" }); continue; }
+    if (!candidateUrls.length) {
+      // Class D reporting (NINTH PASS): the sentence carries context for the coordinator/operator even
+      // though no candidate URL exists to try at all — never invented, a literal slice of full_brief.
+      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "no_candidate_url", sentence: extractSentenceContext(item.full_brief, orphan.token) });
+      continue;
+    }
 
     let grounded = false;
     let lastReason = null;
     for (const url of candidateUrls) {
-      sourceAttempts += 1;
       const cls = classifyCitedUrlForOrphan(url, sIdx);
       if (cls.status === "worklist_ambiguous_host" || cls.status === "unresolvable_host") {
+        sourceAttempts += 1;
         lastReason = cls.status;
         sourceResults.push({ token: orphan.token, class: orphan.class, url, host: cls.host ?? null, outcome: cls.status });
         continue;
       }
 
       if (!apply) {
+        sourceAttempts += 1;
         sourceResults.push({
           token: orphan.token, class: orphan.class, url,
           outcome: cls.status === "registerable" ? "would_register_and_capture" : "would_capture_and_ground",
@@ -2585,9 +3001,24 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       // including whatever CAPTURE-CITED already added this run) before fetching a new one. The SAME
       // run-level dedup cache CAPTURE-CITED threads through (runCitedCache) is reused here too, so a
       // URL two different orphans (or two different items) cite in the SAME run is never fetched twice.
+      // NINTH PASS: an existing row must also be USABLE (>200 trimmed chars, the file's own established
+      // floor — needsCapture/bestCaptureText) to count as "already captured"; a thin/blocked pre-existing
+      // capture (Class C — cookie wall, JS shell, 404, or a shorter earlier capture) is treated as NOT YET
+      // captured and falls through to a real re-fetch below, which is Wayback-aware via captureCitedUrl.
       const capCanon = canonicalizeCitationUrl(url);
-      let cap = capCanon ? captures.find((c) => c.result_url && canonicalizeCitationUrl(c.result_url) === capCanon) : null;
+      let cap = capCanon
+        ? captures.find((c) => c.result_url && canonicalizeCitationUrl(c.result_url) === capCanon && String(c.result_content ?? "").trim().length > 200)
+        : null;
+      // ONE-HOP FOLLOW: raw html of a page THIS RUN fetched live — either just now (below) or earlier this
+      // SAME run by CAPTURE-CITED (whose own captures.push also carries `.html`, NINTH PASS finding: the
+      // candidate URLs STEP SOURCE tries are drawn from the SAME cited-URL pool CAPTURE-CITED already
+      // fetched, so `cap` is found pre-existing here far more often than freshly fetched below). `cap.html`
+      // is undefined (never `null`-coerced away) on any row loaded from `deps.readCaptures()` at the top of
+      // the run — a real DB row never carries it — so a stale DB capture never feeds a one-hop, only ever a
+      // page fetched THIS run, by either step.
+      let hopHtml = cap?.html ?? null;
       if (!cap) {
+        sourceAttempts += 1;
         const cacheKey = capCanon ?? url;
         let res;
         if (runCitedCache.has(cacheKey)) {
@@ -2603,8 +3034,9 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
         }
         const row = buildCaptureSearchRow(item.id, res, new Date().toISOString(), "heal-provenance:source");
         const ins = await deps.insertSearch(row);
-        cap = { id: ins.id, result_url: row.result_url, result_content: row.result_content };
+        cap = { id: ins.id, result_url: row.result_url, result_content: row.result_content, html: res.html ?? null };
         captures.push(cap);
+        hopHtml = cap.html;
       }
 
       let sourceId = cls.status === "already_registered" ? cls.sourceId : null;
@@ -2630,36 +3062,117 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
       }
 
       const found = locateSpanInText(orphan.token, cap.result_content);
-      if (!found) {
-        lastReason = "token_not_in_page";
-        sourceResults.push({ token: orphan.token, class: orphan.class, url, outcome: "token_not_in_page", source_id: sourceId, register: registerOutcome });
-        continue;
+      if (found) {
+        let sectionId = (findOwningSection(orphan.token, sectionsList) ?? {}).id ?? orphanFallbackSectionId;
+        if (!sectionId) { sectionId = await findOrCreateRecordFactsSection(); orphanFallbackSectionId = sectionId; }
+        const claimRow = {
+          section_row_id: sectionId,
+          intelligence_item_id: item.id,
+          claim_text: buildOrphanClaimText(orphan),
+          claim_kind: "FACT",
+          source_span: found.span,
+          source_id: sourceId,
+          search_result_id: cap.id,
+          source_tier_at_grounding: sourceTier ?? null,
+        };
+        const ins = await deps.insertClaim(claimRow);
+        claims.push({ id: ins.id, claim_kind: "FACT", claim_text: claimRow.claim_text, source_span: claimRow.source_span, source_id: sourceId, section_row_id: sectionId });
+        sourceResults.push({
+          token: orphan.token, class: orphan.class, url,
+          outcome: cls.status === "registerable" ? "source_registered_and_grounded" : "grounded_on_existing_source",
+          claim_id: ins.id, source_id: sourceId, source_tier: sourceTier, register: registerOutcome, match_method: found.method,
+        });
+        grounded = true;
+        break;
       }
 
-      let sectionId = (findOwningSection(orphan.token, sectionsList) ?? {}).id ?? orphanFallbackSectionId;
-      if (!sectionId) { sectionId = await findOrCreateRecordFactsSection(); orphanFallbackSectionId = sectionId; }
-      const claimRow = {
-        section_row_id: sectionId,
-        intelligence_item_id: item.id,
-        claim_text: buildOrphanClaimText(orphan),
-        claim_kind: "FACT",
-        source_span: found.span,
-        source_id: sourceId,
-        search_result_id: cap.id,
-        source_tier_at_grounding: sourceTier ?? null,
-      };
-      const ins = await deps.insertClaim(claimRow);
-      claims.push({ id: ins.id, claim_kind: "FACT", claim_text: claimRow.claim_text, source_span: claimRow.source_span, source_id: sourceId, section_row_id: sectionId });
-      sourceResults.push({
-        token: orphan.token, class: orphan.class, url,
-        outcome: cls.status === "registerable" ? "source_registered_and_grounded" : "grounded_on_existing_source",
-        claim_id: ins.id, source_id: sourceId, source_tier: sourceTier, register: registerOutcome,
-      });
-      grounded = true;
-      break;
+      // Class B ONE-HOP FOLLOW (NINTH PASS) — the direct candidate page does not itself carry the token.
+      // Only possible off a page THIS RUN fetched live (hopHtml set); an already-captured row never carries
+      // raw html (see envelopeToOutcome's own header note). Each eligible hop link is grounded with its OWN
+      // registered+rated source, exactly like a direct candidate — never inherits the landing page's source.
+      let hopGrounded = false;
+      if (hopHtml) {
+        for (const hopUrl of hopLinksForToken(hopHtml, url)) {
+          if (sourceAttempts >= SOURCE_MAX_PER_ITEM) break;
+          const hopCls = classifyCitedUrlForOrphan(hopUrl, sIdx);
+          if (hopCls.status === "worklist_ambiguous_host" || hopCls.status === "unresolvable_host") {
+            sourceAttempts += 1;
+            continue; // SC-13 forbids inventing a tier for an ambiguous host, one hop or not
+          }
+          const hopCanon = canonicalizeCitationUrl(hopUrl);
+          let hopCap = hopCanon
+            ? captures.find((c) => c.result_url && canonicalizeCitationUrl(c.result_url) === hopCanon && String(c.result_content ?? "").trim().length > 200)
+            : null;
+          if (!hopCap) {
+            sourceAttempts += 1;
+            const hopCacheKey = hopCanon ?? hopUrl;
+            let hopRes;
+            if (runCitedCache.has(hopCacheKey)) {
+              hopRes = runCitedCache.get(hopCacheKey);
+            } else {
+              hopRes = await captureCitedUrl(hopUrl, deps);
+              runCitedCache.set(hopCacheKey, hopRes);
+            }
+            if (hopRes.status !== "captured") continue;
+            const hopRow = buildCaptureSearchRow(item.id, hopRes, new Date().toISOString(), "heal-provenance:source:hop");
+            const hopIns = await deps.insertSearch(hopRow);
+            hopCap = { id: hopIns.id, result_url: hopRow.result_url, result_content: hopRow.result_content };
+            captures.push(hopCap);
+          }
+          const hopFound = locateSpanInText(orphan.token, hopCap.result_content);
+          if (!hopFound) continue;
+
+          let hopSourceId = hopCls.status === "already_registered" ? hopCls.sourceId : null;
+          let hopSourceTier = hopCls.status === "already_registered" ? hopCls.tier : null;
+          let hopRegisterOutcome = "already_registered";
+          if (hopCls.status === "registerable") {
+            const hopReg = await deps.registerSource({ url: hopUrl, name: hopCls.host, base_tier: hopCls.tier });
+            hopSourceId = hopReg.source_id;
+            hopRegisterOutcome = hopReg.created ? "source_registered" : "source_already_existed";
+            const hopReal = await deps.readSourceByUrl(hopUrl);
+            if (hopReal) {
+              hopSourceTier = deriveSourceTier(hopReal);
+              sIdx.byId.set(hopReal.id, hopReal);
+              const hopRealCanon = hopReal.url ? canonicalizeCitationUrl(hopReal.url) : null;
+              if (hopRealCanon) sIdx.byCanonUrl.set(hopRealCanon, hopReal);
+            } else {
+              hopSourceTier = hopCls.tier;
+            }
+          }
+
+          let hopSectionId = (findOwningSection(orphan.token, sectionsList) ?? {}).id ?? orphanFallbackSectionId;
+          if (!hopSectionId) { hopSectionId = await findOrCreateRecordFactsSection(); orphanFallbackSectionId = hopSectionId; }
+          const hopClaimRow = {
+            section_row_id: hopSectionId,
+            intelligence_item_id: item.id,
+            claim_text: buildOrphanClaimText(orphan),
+            claim_kind: "FACT",
+            source_span: hopFound.span,
+            source_id: hopSourceId,
+            search_result_id: hopCap.id,
+            source_tier_at_grounding: hopSourceTier ?? null,
+          };
+          const hopClaimIns = await deps.insertClaim(hopClaimRow);
+          claims.push({ id: hopClaimIns.id, claim_kind: "FACT", claim_text: hopClaimRow.claim_text, source_span: hopClaimRow.source_span, source_id: hopSourceId, section_row_id: hopSectionId });
+          sourceResults.push({
+            token: orphan.token, class: orphan.class, url: hopUrl, hop_from: url,
+            outcome: hopCls.status === "registerable" ? "source_registered_and_grounded_one_hop" : "grounded_on_existing_source_one_hop",
+            claim_id: hopClaimIns.id, source_id: hopSourceId, source_tier: hopSourceTier, register: hopRegisterOutcome, match_method: hopFound.method,
+          });
+          grounded = true;
+          hopGrounded = true;
+          break;
+        }
+      }
+      if (hopGrounded) break;
+
+      lastReason = "token_not_in_page";
+      sourceResults.push({ token: orphan.token, class: orphan.class, url, outcome: "token_not_in_page", source_id: sourceId, register: registerOutcome });
     }
     if (!grounded && apply) {
-      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "unresolved", last_reason: lastReason });
+      // Class D reporting (NINTH PASS): the orphan's own enclosing sentence, never invented, so the
+      // coordinator can hand the operator an actual sentence to read rather than a bare token.
+      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "unresolved", last_reason: lastReason, sentence: extractSentenceContext(item.full_brief, orphan.token) });
     }
   }
   report.steps.source = sourceResults;
@@ -2672,7 +3185,9 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   for (const orphan of gateRowForOrphans.orphans ?? []) {
     const plan = planOrphanGrounding(orphan, resourceBuckets);
     if (plan.outcome !== "found") {
-      orphanResults.push({ token: orphan.token, class: orphan.class, outcome: "unprovable", fuzzy: plan.fuzzy });
+      // Class D reporting (NINTH PASS): the orphan's own enclosing sentence, never invented, alongside
+      // this step's own existing fuzzy-match evidence — see this file's header NINTH PASS section.
+      orphanResults.push({ token: orphan.token, class: orphan.class, outcome: "unprovable", fuzzy: plan.fuzzy, sentence: extractSentenceContext(item.full_brief, orphan.token) });
       continue;
     }
     const owning = findOwningSection(orphan.token, sectionsList);
@@ -2792,6 +3307,13 @@ export function summarizeReports(perItem) {
     source_registered: 0, source_rated_tier: 0, source_grounded: 0, source_would_ground: 0,
     grounded_after_register: 0, source_unfetchable: 0, source_token_not_in_page: 0,
     source_unresolved: 0, source_worklisted: 0, source_bound_hit: 0,
+    // NINTH PASS (2026-09-04) additions — see this file's header NINTH PASS section. source_no_candidate_url
+    // fixes a real gap: the "no_candidate_url" STEP SOURCE outcome (an orphan with no candidate URL to try
+    // at all) had NO counter anywhere in this function before now, silently absent from every summary this
+    // file has ever produced. source_grounded_one_hop counts Class B one-hop groundings as a SUBSET of
+    // source_grounded/grounded_after_register (both still increment for a one-hop grounding, same as any
+    // other), so a report can show how much of the total came from the direct candidate vs. a hop away.
+    source_no_candidate_url: 0, source_grounded_one_hop: 0,
   };
   for (const r of perItem) {
     if (r.steps.capture?.outcome === "held") s.capture_held += 1;
@@ -2841,9 +3363,23 @@ export function summarizeReports(perItem) {
         s.source_grounded += 1;
         s.grounded_after_register += 1;
       }
+      if (so.outcome === "source_registered_and_grounded_one_hop") {
+        s.source_registered += 1;
+        s.source_rated_tier += 1;
+        s.source_grounded += 1;
+        s.grounded_after_register += 1;
+        s.source_grounded_one_hop += 1;
+      }
+      if (so.outcome === "grounded_on_existing_source_one_hop") {
+        s.source_rated_tier += 1;
+        s.source_grounded += 1;
+        s.grounded_after_register += 1;
+        s.source_grounded_one_hop += 1;
+      }
       if (so.outcome === "unfetchable") s.source_unfetchable += 1;
       if (so.outcome === "token_not_in_page") s.source_token_not_in_page += 1;
       if (so.outcome === "unresolved") s.source_unresolved += 1;
+      if (so.outcome === "no_candidate_url") s.source_no_candidate_url += 1;
       if (so.outcome === "worklist_ambiguous_host" || so.outcome === "unresolvable_host") s.source_worklisted += 1;
       if (so.outcome === "bound_hit") s.source_bound_hit += 1;
       if (so.outcome === "would_register_and_capture" || so.outcome === "would_capture_and_ground") s.source_would_ground += 1;
@@ -2924,8 +3460,9 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
       `${counts.capture_held} capture-held; ${counts.ungrounded_after_capture} ungrounded_after_capture; ` +
       `${counts.unarchived} un-archived; ` +
       `STEP SOURCE (ruling 2026-09-04): ${counts.source_registered} source_registered, ${counts.source_rated_tier} ` +
-      `source_rated_tier, ${counts.grounded_after_register} grounded_after_register, ${counts.source_unfetchable} ` +
-      `unfetchable, ${counts.source_token_not_in_page} token_not_in_page, ${counts.source_worklisted} worklisted, ` +
+      `source_rated_tier, ${counts.grounded_after_register} grounded_after_register (${counts.source_grounded_one_hop} ` +
+      `one_hop), ${counts.source_unfetchable} unfetchable, ${counts.source_token_not_in_page} token_not_in_page, ` +
+      `${counts.source_worklisted} worklisted, ${counts.source_no_candidate_url} no_candidate_url, ` +
       `${counts.source_unresolved} unresolved, ${counts.source_bound_hit} bound_hit.`
     : `DRY — plan only, nothing written or fetched. ${counts.would_heal_verified}/${items.length} would ` +
       `heal to verified on current captures; the rest need capture/grounding/slots work this run's per_item ` +
