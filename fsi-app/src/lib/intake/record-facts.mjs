@@ -82,7 +82,7 @@
 import { BINDING_POSITION, normaliseMode } from "../contracts/vocabularies.mjs";
 import { CORRIDOR_ID_SCHEME } from "../entities/decisions.mjs";
 
-export const RECORD_FACTS_VERSION = "rf1-2026-09-03.1"; // lane URL-GUIL: URL-safe trigger continuations
+export const RECORD_FACTS_VERSION = "rf1-2026-09-04.1"; // lane URL-BOILER: bare-domain-URL span guard
 
 // ---------------------------------------------------------------------------
 // Verbatim-span guard (same contract as extract-forward-events.mjs's assertVerbatim — see that file's
@@ -211,11 +211,55 @@ const RUN_LIMIT = 4;
 const HTML_ENTITY = /&(?:#\d+|#x[0-9a-f]+|[a-z]+);?/i;
 const PUNCT_RUN = new RegExp(`([^\\p{L}\\p{N}\\s])\\1{${RUN_LIMIT - 1},}`, "u");
 
-/** True when `span` reads as a clause of prose rather than page chrome. Pure. */
+// BARE-DOMAIN URL GUARD (lane URL-BOILER, 2026-09-04, population runs #17/#18, mint-run-020/021, rows
+// 429c85d2 and a980a0b9 — both "The [X] (Amendment) Regulations/Order 20XX", UK legislation.gov.uk).
+// Lane URL-GUIL (postscript 18) fixed the truncation that cut a matched URL off mid-domain; once the URL
+// was captured WHOLE, a different, previously-masked defect surfaced: both rows' jurisdictional_scope
+// trigger matched the exact same UK Explanatory Note boilerplate — "...viewed in the Official Journal of
+// the European Union via the EUR-Lex website at http://eur-lex.europa.eu ." — a sentence that tells the
+// reader WHERE to go look up EU legislation in general, not a statement of which entities THIS instrument
+// binds. Its only URL is the bare EUR-Lex root with no path (`http://eur-lex.europa.eu`, confirmed via
+// Supabase MCP against the live `sources` table: no row's `url` canonicalizes to this exact string — the
+// one registered EUR-Lex source is `https://eur-lex.europa.eu/`, a DIFFERENT scheme, and
+// canonicalize_citation_url — migration 150, confirmed by reading it — never normalizes http vs https, so
+// this citation is honestly, correctly ungrounded by both the live SQL and this kit's JS mirror; that
+// function's own contract (lowercase / strip `www.` / strip trailing junk) was never meant to paper over a
+// literal http-vs-https scheme mismatch, and widening it now would be a much bigger, unrequested change
+// than this narrow case needs). The honest fix is upstream of grounding entirely: a "see the website at
+// http://example.org" sentence whose only URL is a bare domain root is not a citation of anything specific
+// and states no fact this slot needs — it should never have been accepted as a FACT span in the first
+// place, the same posture PROSE GUARD above already takes toward page chrome. A span disqualified this way
+// is skipped exactly like a menu line: findSlotSpan/findBindingPositionMatch/findDueDateMatch keep walking
+// every remaining match, and a document with no other qualifying match honestly falls to GAP (both rows
+// have no other jurisdictional_scope trigger match at all — measured against the real captured_text — so
+// GAP is the correct, not merely convenient, outcome). A span whose URL carries a real path/query (an
+// actual document citation, e.g. a CELEX `legal-content` URL) is untouched by this guard.
+const BARE_URL_RE = /https?:\/\/\S+/g;
+
+/** True when every `https?://` URL found in `span` resolves (via the WHATWG URL parser) to a bare host with
+ *  no path/query/hash — i.e. the span cites nothing more specific than "the website", never a document. A
+ *  span with NO url at all is not affected (returns false: nothing to disqualify it here). An unparsable
+ *  URL-shaped substring is treated conservatively as NOT bare (never disqualifies a span this guard cannot
+ *  actually confirm is empty-path). Pure. */
+export function hasOnlyBareDomainUrls(span) {
+  const matches = String(span ?? "").match(BARE_URL_RE);
+  if (!matches || matches.length === 0) return false;
+  return matches.every((raw) => {
+    try {
+      const u = new URL(raw);
+      return (u.pathname === "" || u.pathname === "/") && u.search === "" && u.hash === "";
+    } catch {
+      return false;
+    }
+  });
+}
+
+/** True when `span` reads as a clause of prose rather than page chrome or a bare "see the website" pointer. Pure. */
 export function isProseSpan(span) {
   const s = String(span ?? "");
   if (PUNCT_RUN.test(s)) return false;
   if (HTML_ENTITY.test(s)) return false; // an unescaped entity means the capture is markup, not the text
+  if (hasOnlyBareDomainUrls(s)) return false; // a bare-domain-only URL is a pointer, not a citation
 
   const words = s.match(/\p{L}{2,}/gu) || [];
   return words.length >= MIN_SPAN_WORDS;

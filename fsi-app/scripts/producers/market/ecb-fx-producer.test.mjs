@@ -29,6 +29,9 @@ const PRODUCER_PATH = resolve(HERE, "ecb-fx-producer.mjs");
 
 const FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:Sender>
+		<gesmes:name>European Central Bank</gesmes:name>
+	</gesmes:Sender>
 	<Cube>
 		<Cube time="2026-08-28">
 			<Cube currency="USD" rate="1.1801"/>
@@ -41,9 +44,34 @@ const FIXTURE_XML = `<?xml version="1.0" encoding="UTF-8"?>
 </gesmes:Envelope>
 `;
 
-function withFixtureFile(fn) {
+// The LIVE shape (root cause of producers run #22, 2026-09-04 00:50 UTC — see ecb-fx-producer.mjs's own
+// header): single-quoted attributes, tab indentation. Built from the coordinator's own live re-fetch
+// (GitHub Codespace, 2026-09-04 00:58 UTC, HTTP 200, text/xml, 1547 bytes) — same disclosure as
+// market-ecb-fx-parser.test.mjs's own ECB_FIXTURE_XML_SINGLE_QUOTED: leading shape/currency order is
+// verbatim, trailing rate values are illustrative test data, not asserted live figures.
+const FIXTURE_XML_SINGLE_QUOTED = `<?xml version="1.0" encoding="UTF-8"?>
+<gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+	<gesmes:subject>Reference rates</gesmes:subject>
+	<gesmes:Sender>
+		<gesmes:name>European Central Bank</gesmes:name>
+	</gesmes:Sender>
+	<Cube>
+		<Cube time='2026-09-03'>
+			<Cube currency='USD' rate='1.1615'/>
+			<Cube currency='JPY' rate='181.21'/>
+			<Cube currency='CZK' rate='24.221'/>
+			<Cube currency='DKK' rate='7.4746'/>
+			<Cube currency='GBP' rate='0.86055'/>
+			<Cube currency='HUF' rate='367.43'/>
+			<Cube currency='CNY' rate='8.2891'/>
+		</Cube>
+	</Cube>
+</gesmes:Envelope>
+`;
+
+function withFixtureFile(fn, xml = FIXTURE_XML) {
   const path = join(tmpdir(), `ecb-fx-cli-fixture-${process.pid}-${Math.random().toString(36).slice(2)}.xml`);
-  writeFileSync(path, FIXTURE_XML);
+  writeFileSync(path, xml);
   try {
     return fn(path);
   } finally {
@@ -70,6 +98,27 @@ test("dry run via --input: exit 0, reports 4 tracked rows, 1 unrecognised-curren
     assert.match(res.stdout, /would create {2}ecb-fx:eur-usd @ 2026-08-28 {2}1\.1801 USD\/EUR/);
     assert.match(res.stderr, /not in this lane's closed vocabulary/, "AUD must warn, not silently vanish");
   });
+});
+
+test("REGRESSION (producers run #22): the live single-quoted, tab-indented shape parses via the real CLI, end to end", () => {
+  withFixtureFile((path) => {
+    const res = runCli(["--input", path]);
+    assert.equal(res.status, 0, `expected exit 0, got ${res.status}. stderr: ${res.stderr}`);
+    assert.match(res.stdout, /parsed 4 row\(s\)/, `single-quoted attributes were not parsed — stdout: ${res.stdout} stderr: ${res.stderr}`);
+    assert.match(res.stdout, /would create {2}ecb-fx:eur-usd @ 2026-09-03 {2}1\.1615 USD\/EUR/);
+    assert.match(res.stderr, /not in this lane's closed vocabulary/, "CZK/DKK/HUF must warn, not silently vanish");
+  }, FIXTURE_XML_SINGLE_QUOTED);
+});
+
+test("a refusal (0 rows) logs evidence — HTTP/content-type when known, byte count and a body snippet always", () => {
+  withFixtureFile((path) => {
+    const res = runCli(["--input", path]);
+    assert.equal(res.status, 0);
+    assert.match(res.stdout, /parsed 0 row\(s\)/);
+    assert.match(res.stderr, /\[parse\] evidence:.*byte\(s\).*first 200 chars:/s, `expected an evidence line on refusal, got stderr: ${res.stderr}`);
+    // --input has no HTTP response to report — must not fabricate a status/content-type it never observed.
+    assert.doesNotMatch(res.stderr, /evidence:.*HTTP \d/s);
+  }, "<not-ecb-xml/>");
 });
 
 test("dry run reads from stdin exactly like --input (same CSV/XML-in-from-somewhere contract oil-bulletin uses)", () => {

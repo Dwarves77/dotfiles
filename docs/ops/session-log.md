@@ -9075,3 +9075,27 @@ at 00:58 UTC shows `<Cube time='2026-09-03'>`). Live: 2,204 items, 1,415 live ve
 (HEAL-5 #20 still running). R-D batch rows carry the live DG Energy source id at T2 (no bulletin row
 exists; `registerSource` would have deduped to the same institution). Train gates: fitness 29/0,
 discipline 141/0, C3/C5 pass, maintenance+reopen 116/0.
+
+### Addendum 85, postscript 21 — background lanes, two more defects closed, heal timed out (2026-09-04)
+
+Lanes now run as background workflows (ECB-FX + URL-BOILER together, then HEAL-BUDGET) while I land
+and dispatch; the four-in-one-call launch was refused at the tool layer twice, the workflow path was
+not. ECB-FX (`f7c50d24`, 137 tests): the parser's attribute regexes accepted only double quotes; the
+ECB feed single-quotes (`<Cube time='2026-09-03'>`), so producers #22 parsed nothing and said so
+without evidence; fixed quote-agnostically with the refusal now carrying status, content-type, bytes
+and body head, and the same assumption removed from the oil-bulletin history-link scrape. URL-BOILER
+(`872c9c14`): the UK-SI rows that kept failing criterion 2 were selecting explanatory-note
+boilerplate that points at EUR-Lex's front door as a "jurisdictional scope" fact; a span whose only
+URL is a bare domain is now rejected as a pointer, not a citation, and both rows validate clean when
+replayed [CONFIRMED]. The lane refuted my hypothesis (b): the live EUR-Lex source row is `https://`,
+the citation `http://`, and the canonicalizer folds neither scheme nor path by design; widening it to
+rescue a non-fact would have changed what every citation on the site grounds against.
+
+Maintenance #20, the first heal under HEAL-5, ran 15m20s and was cancelled by the job's 15-minute
+timeout with no artifact written; HEAL-4 had taken 10m50s and the archive fallback adds two requests
+per blocked URL. Lane HEAL-BUDGET is building the time budget, checkpointed artifact and resume, and
+the measured timeout. Population #20 running; R-D rows_file dry (#21) queued behind it; change
+detection #5 dry (discharges CD-GATE's marker) dispatched. Home page re-measured in Chrome (deploy
+`dpl_6rVU4uhL…`): TTFB 109 ms cold / 73 ms warm, document stream ends 3.85 s cold / 1.53 s warm,
+`/api/user/list-order` 1.36 s and `/api/workspace/personal-state` 1.0–1.4 s are the slow calls; paint
+timings unavailable from a background tab, measured next from a focused one.

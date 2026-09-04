@@ -330,6 +330,44 @@ test("canonicalizeCitationUrl matches migration 150's SQL: lowercase, strip */`,
   assert.equal(canonicalizeCitationUrl("https://example.gov/reg"), "https://example.gov/reg");
 });
 
+// lane URL-BOILER (2026-09-04): migration 150's own SQL — read directly, both here and live via the
+// Supabase MCP against the actual `sources` row — never folds `http://` and `https://` to the same
+// string; only lowercase / `www.` / trailing-markdown / trailing-punctuation are normalized. Confirmed
+// live: the one registered EUR-Lex source is `https://eur-lex.europa.eu/` (base_tier 1, active); a
+// cited `http://eur-lex.europa.eu` (rows 429c85d2 / a980a0b9's real boilerplate, both UK legislation.gov.uk
+// explanatory notes using the older plain-http form) canonicalizes to a DIFFERENT string and grounds
+// against nothing — correctly, per this function's documented contract, not a bug in it. This is the
+// reasoned "no" side of this lane's own investigation into a scheme-unifying migration 301: the honest fix
+// for these two rows is upstream, in record-facts.mjs not selecting the boilerplate span at all (see that
+// file's own bare-domain-URL guard and its tests) — widening canonicalize_citation_url's normalization
+// class to also fold http/https would be a much broader, unrequested change to what EVERY citation on the
+// live site grounds against, motivated by a case where the citation itself carried no fact worth grounding
+// in the first place. No migration 301 is written; this test pins the behavior so a future change to
+// canonicalize_citation_url (SQL or this JS mirror) cannot silently start folding schemes without an
+// explicit decision and a matching live migration.
+test("canonicalizeCitationUrl does NOT unify http:// and https:// — a scheme mismatch is a genuine grounding miss, not a canonicalization bug", () => {
+  assert.equal(canonicalizeCitationUrl("http://eur-lex.europa.eu"), "http://eur-lex.europa.eu");
+  assert.equal(canonicalizeCitationUrl("https://eur-lex.europa.eu/"), "https://eur-lex.europa.eu");
+  assert.notEqual(
+    canonicalizeCitationUrl("http://eur-lex.europa.eu"),
+    canonicalizeCitationUrl("https://eur-lex.europa.eu/"),
+    "http and https canonicalize to different strings -- criterion 2 correctly treats them as ungrounded against each other",
+  );
+});
+
+test("C2 RED: a citation URL differing from every registered/grounded source ONLY by scheme (http vs https) is ungrounded_url — the real rows-429c85d2/a980a0b9 shape, isolated from record-facts.mjs's own fix", () => {
+  const p = basePayload();
+  // The item's OWN source/search-result/source_url are all https (as legislation.gov.uk always is); the
+  // section prose cites a DIFFERENT registered institution (EUR-Lex) by its bare http root -- exactly the
+  // real boilerplate sentence's only URL, isolated here from record-facts.mjs's span-selection question so
+  // this test proves criterion 2's URL-compare behavior on its own.
+  p.sections[0].content_md = "viewed in the Official Journal of the European Union via the EUR-Lex website at http://eur-lex.europa.eu";
+  const r = validateMintPayload(p);
+  const f = r.failures.find((x) => x.criterion === 2 && x.reason === "ungrounded_url");
+  assert.ok(f, JSON.stringify(r.failures));
+  assert.equal(f.url, "http://eur-lex.europa.eu");
+});
+
 // ── Wave MH-3: capture-completeness gate ─────────────────────────────────────────────────────────
 // mint-run-001.json's defects_found[0]: batch-001's six archived source files held only 2-12KB
 // cited-excerpt windows for documents that were actually 43,813-178,953 chars -- nothing stopped a

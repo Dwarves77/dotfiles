@@ -127,6 +127,24 @@ function refToCol(ref) {
   return m[1];
 }
 
+// ── attribute parsing, QUOTE-AGNOSTIC ───────────────────────────────────────────────────────────────
+// DEFENSIVE HARDENING, NOT A LIVE-OBSERVED DEFECT HERE — stated plainly, so as not to overclaim: every one
+// of the three live inspection passes this module's own header cites (2026-08-30) read the real workbook's
+// XML parts as double-quoted, and Excel's own OOXML writer (like every other OOXML writer this module's
+// author is aware of) always emits double-quoted attributes — categorically different from ecb-fx-
+// producer.mjs's ECB feed, where the double-quote-only assumption was CONFIRMED wrong by a real production
+// run (producers run #22, 2026-09-04). Applied here anyway, at the coordinator's direction, because XML 1.0
+// itself permits either quote character per attribute and nothing actually guarantees this module is only
+// ever fed genuine Excel output — the fix costs nothing in strictness (a value is still required to be
+// present; only WHICH quote character delimits it is now unconstrained) and removes one more unverified-
+// quoting assumption from this codebase's XML-parsing surface.
+function attrValue(attrString, name) {
+  const re = new RegExp(`(?:^|\\s)${name}\\s*=\\s*(?:"([^"]*)"|'([^']*)')`);
+  const m = re.exec(String(attrString ?? ""));
+  if (!m) return undefined;
+  return m[1] !== undefined ? m[1] : m[2];
+}
+
 // ── xl/workbook.xml + xl/_rels/workbook.xml.rels -> sheet name -> package path ─────────────────────
 
 /**
@@ -142,8 +160,8 @@ export function parseSheetNames(workbookXml, relsXml) {
   const relTags = [...String(relsXml ?? "").matchAll(/<Relationship\b([^>]*)\/>/g)].map((m) => m[1]);
   const targetById = new Map();
   for (const attrs of relTags) {
-    const id = /(?:^|\s)Id="([^"]+)"/.exec(attrs)?.[1];
-    const target = /(?:^|\s)Target="([^"]+)"/.exec(attrs)?.[1];
+    const id = attrValue(attrs, "Id");
+    const target = attrValue(attrs, "Target");
     if (id && target) targetById.set(id, target);
   }
   if (targetById.size === 0) {
@@ -152,9 +170,9 @@ export function parseSheetNames(workbookXml, relsXml) {
 
   const result = {};
   for (const attrs of sheetTags) {
-    const name = /(?:^|\s)name="([^"]*)"/.exec(attrs)?.[1];
+    const name = attrValue(attrs, "name");
     // r:id — the namespace prefix is fixed (r:) in every real workbook.xml this format produces.
-    const rId = /(?:^|\s)r:id="([^"]+)"/.exec(attrs)?.[1];
+    const rId = attrValue(attrs, "r:id");
     if (!name || !rId) continue; // malformed <sheet> tag — skip rather than crash on one bad entry
     const target = targetById.get(rId);
     if (!target) {
@@ -219,17 +237,19 @@ export function* iterateRows(sheetXml) {
   let rowMatch;
   while ((rowMatch = rowRe.exec(body))) {
     const [, rowAttrs, rowInner] = rowMatch;
-    const rIndexRaw = /(?:^|\s)r="(\d+)"/.exec(rowAttrs)?.[1];
-    const rowIndex = rIndexRaw ? Number(rIndexRaw) : null;
+    const rIndexRaw = attrValue(rowAttrs, "r");
+    const rowIndex = rIndexRaw && /^\d+$/.test(rIndexRaw) ? Number(rIndexRaw) : null;
     const cells = [];
     if (rowInner) {
       const cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
       let cellMatch;
       while ((cellMatch = cellRe.exec(rowInner))) {
         const [, cAttrs, cInner] = cellMatch;
-        const ref = /(?:^|\s)r="([A-Z]+\d+)"/.exec(cAttrs)?.[1];
+        const refRaw = attrValue(cAttrs, "r");
+        const ref = refRaw && /^[A-Z]+\d+$/.test(refRaw) ? refRaw : undefined;
         if (!ref) continue; // a cell with no ref cannot be positioned — skip rather than guess a column
-        const type = /(?:^|\s)t="([a-zA-Z]+)"/.exec(cAttrs)?.[1] ?? null;
+        const typeRaw = attrValue(cAttrs, "t");
+        const type = typeRaw && /^[a-zA-Z]+$/.test(typeRaw) ? typeRaw : null;
         let value = null;
         if (cInner) {
           if (type === "inlineStr") {

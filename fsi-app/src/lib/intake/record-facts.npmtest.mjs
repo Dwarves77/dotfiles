@@ -9,6 +9,7 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   isProseSpan,
+  hasOnlyBareDomainUrls,
   RECORD_FACTS_VERSION,
   assertVerbatim,
   findSlotSpan,
@@ -62,29 +63,63 @@ test("findSlotSpan: skips page chrome and returns the first PROSE match — mint
   assert.equal(isProseSpan("applies to lighting products placed on the market"), true);
 });
 
-// lane URL-GUIL (2026-09-03, population run #16, mint-run-018, row 429c85d2). Fixture built from the
-// real row's captured_text shape (census-rows.mint-batch-report.json, run 33806554326): "The Renewable
-// Transport Fuel Obligations (Amendment) Order 2013" explanatory note names the EUR-Lex website by its
-// bare domain URL mid-sentence, three words before the sentence's own full stop. Before this lane's fix,
+// lane URL-GUIL (2026-09-03, population run #16, mint-run-018, row 429c85d2). Before this lane's fix,
 // jurisdictional_scope's "...the european union..." trigger's plain `[^.;\n]{0,90}` continuation stopped
-// at the URL's OWN domain dot (indistinguishable from a sentence-ending period to that class), truncating
-// the located span to "...at http://eur-lex" — one character short of ".europa.eu" — which the mint
-// kit's guillemet template then glued directly to a closing "»" with no space, producing the exact
-// `ungrounded_url` failure the run reported (`"url":"http://eur-lex»"`, criterion 2's URL extraction
-// regex swallowing the delimiter too — the companion fix, migration 300 / validate-mint-payload.mjs).
-test("findSlotSpan: a URL inside the matched window is never truncated at its own domain dot (population run #16, row 429c85d2)", () => {
+// at a URL's OWN domain dot (indistinguishable from a sentence-ending period to that class), truncating a
+// located span mid-domain. The window is now URL-safe (a whole `\S+` URL run is consumed atomically before
+// falling back to the terminator-excluding class) -- proven here with a URL that carries a real path/query
+// (a genuine document citation, not a bare "see the website" pointer -- see the bare-domain-URL guard test
+// below, which covers the ACTUAL row 429c85d2/a980a0b9 text, where the URL-GUIL fix's own fixture turned
+// out to still be a boilerplate pointer the lane URL-BOILER guard now correctly rejects for a different
+// reason; both fixes are real and independent, see that file's header).
+test("findSlotSpan: a URL inside the matched window is never truncated at its own domain dot", () => {
   const text =
     "A copy of the Directives referred to in this Explanatory Note may be viewed in the Official " +
-    "Journal of the European Union via the EUR-lex website at http://eur-lex.europa.eu . Merchant " +
+    "Journal of the European Union via the EUR-lex website at " +
+    "http://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0575 . Merchant " +
     "Shipping Notices are published by the Maritime and Coastguard Agency.";
   const span = findSlotSpan("jurisdictional_scope", text);
   assert.ok(span, "must find a span");
   assert.ok(
-    span.includes("http://eur-lex.europa.eu"),
+    span.includes("http://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0575"),
     `span must carry the FULL url, not a domain-dot truncation: ${JSON.stringify(span)}`,
   );
   assert.ok(!span.endsWith("http://eur-lex"), `span must not stop mid-domain: ${JSON.stringify(span)}`);
   assert.ok(text.toLowerCase().includes(span.toLowerCase()), "still verbatim-by-construction");
+});
+
+// lane URL-BOILER (2026-09-04, population runs #17/#18, mint-run-020/021, rows 429c85d2 (UK SI 2013/816)
+// and a980a0b9 (UK SI 2012/2567)). Once URL-GUIL's truncation fix let the URL through WHOLE, both rows
+// still failed criterion 2 with `ungrounded_url: http://eur-lex.europa.eu` -- because the ONLY url in the
+// matched span is a bare EUR-Lex root with no path, and canonicalize_citation_url never normalizes
+// http-vs-https, so it grounds against nothing (confirmed live: the one registered EUR-Lex source is
+// `https://eur-lex.europa.eu/`, a different scheme). The real defect is upstream of grounding: this exact
+// boilerplate sentence -- "may be viewed in the Official Journal of the European Union via the EUR-Lex
+// website at <bare url>" -- tells the reader where to go look up EU law in general; it is not a statement
+// of this instrument's own jurisdictional scope and should never have been accepted as a FACT span.
+test("findSlotSpan: a span whose only URL is a bare-domain pointer is rejected, not accepted as a FACT (row 429c85d2's real boilerplate)", () => {
+  const text =
+    "A copy of the Directives referred to in this Explanatory Note may be viewed in the Official " +
+    "Journal of the European Union via the EUR-lex website at http://eur-lex.europa.eu . Merchant " +
+    "Shipping Notices are published by the Maritime and Coastguard Agency.";
+  assert.equal(
+    findSlotSpan("jurisdictional_scope", text),
+    null,
+    "the bare-domain 'see the website' sentence carries no scope fact and must fall through to GAP",
+  );
+});
+
+test("hasOnlyBareDomainUrls: true for a bare root (with or without trailing slash), false for a URL with a real path/query or no URL at all", () => {
+  assert.equal(hasOnlyBareDomainUrls("see http://eur-lex.europa.eu"), true);
+  assert.equal(hasOnlyBareDomainUrls("see http://eur-lex.europa.eu/"), true);
+  assert.equal(hasOnlyBareDomainUrls("see https://EUR-LEX.europa.eu"), true, "scheme/case do not matter -- only path/query/hash do");
+  assert.equal(
+    hasOnlyBareDomainUrls("see http://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32013R0575"),
+    false,
+    "a real document path disqualifies the guard -- this is a genuine citation",
+  );
+  assert.equal(hasOnlyBareDomainUrls("applies to lighting products placed on the market"), false, "no URL at all -- not disqualified by this guard");
+  assert.equal(isProseSpan("see http://eur-lex.europa.eu"), false, "wired into isProseSpan, the shared guard every extractor above uses");
 });
 
 test("findDueDateMatch / findBindingPositionMatch: the same URL-safe continuation applies to every SLOT_TRIGGERS-style trigger family", () => {
@@ -447,6 +482,71 @@ test("buildRecordPayload: research_finding item_type lifts research_credibility 
 
   const result = validateMintPayload(payload, { baseDir: process.cwd() });
   assert.deepEqual(result.failures, [], `research_finding record payload must clear validate-mint-payload.mjs: ${JSON.stringify(result.failures, null, 2)}`);
+});
+
+// lane URL-BOILER (2026-09-04) — the two named rows' real shape, end to end. `capturedText` reproduces
+// each row's actual boilerplate sentence (population-33823467586 / population-33821410389 snapshots,
+// read via `git show origin/population/<run>:.../census-rows.json`) plus a minimal instrument opening so
+// `extractIdentityFact` still resolves; both rows clear the REAL validator with zero failures once
+// jurisdictional_scope honestly falls to GAP instead of citing the bare EUR-Lex root.
+test("buildRecordPayload: row 429c85d2 (UK SI 2013/816) — the boilerplate sentence never grounds a bad jurisdictional_scope FACT; payload still clears the real validator", () => {
+  const capturedText =
+    "The Renewable Transport Fuel Obligations (Amendment) Order 2013. " +
+    "A copy of the Directives referred to in this Explanatory Note may be viewed in the Official " +
+    "Journal of the European Union via the EUR-lex website at http://eur-lex.europa.eu . Merchant " +
+    "Shipping Notices are published by the Maritime and Coastguard Agency and can be viewed on the " +
+    "agency's website at http://www.dft.gov.uk/mca which also has details of any amendments or replacements.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://www.legislation.gov.uk/uksi/2013/816",
+    itemType: "regulation",
+    title: "The Renewable Transport Fuel Obligations (Amendment) Order 2013",
+    instrumentIdentifier: "UK uksi 2013/816",
+    jurisdictionIso: "GB",
+    source: { id: "s-legislation-gov-uk", url: "https://legislation.gov.uk/", base_tier: 1, tier_override: null, status: "active", institution_id: "inst-1" },
+    capturedText,
+    requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "UK statutory instrument, core vertical" },
+  });
+
+  const scope = payload.claims.find((c) => c.slot_key === "jurisdictional_scope");
+  assert.equal(scope.claim_kind, "GAP", "the bare-EUR-Lex-root boilerplate is not a scope statement");
+  assert.equal(scope.source_span, null);
+  assert.ok(!String(payload.item.full_brief).includes("http://eur-lex.europa.eu"), "the ungrounded bare URL never reaches full_brief");
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `row 429c85d2's shape must clear validate-mint-payload.mjs with zero failures: ${JSON.stringify(result.failures, null, 2)}`);
+  assert.equal(result.valid, true);
+  assert.equal(result.recommended_status, "verified");
+});
+
+test("buildRecordPayload: row a980a0b9 (UK SI 2012/2567) — same boilerplate class, same honest GAP, same clean validator pass", () => {
+  const capturedText =
+    "The Motor Fuel (Composition and Content) (Amendment) Regulations 2012. " +
+    "A copy of the Directives referred to in this Explanatory Note may be obtained from the Office of " +
+    "Public Sector Information or viewed in the Official Journal of the European Union via the EUR-Lex " +
+    "website at http://eur-lex.europa.eu/ . Merchant Shipping Notices are published by the Maritime and " +
+    "Coastguard Agency and can be viewed on the Agency's website at http://www.dft.gov.uk/mca/ which also " +
+    "has details of any amendments or replacements.";
+  const payload = buildRecordPayload({
+    sourceUrl: "https://www.legislation.gov.uk/uksi/2012/2567",
+    itemType: "regulation",
+    title: "The Motor Fuel (Composition and Content) (Amendment) Regulations 2012",
+    instrumentIdentifier: "UK uksi 2012/2567",
+    jurisdictionIso: "GB",
+    source: { id: "s-legislation-gov-uk", url: "https://legislation.gov.uk/", base_tier: 1, tier_override: null, status: "active", institution_id: "inst-1" },
+    capturedText,
+    requiredSlots: ["effective_date", "jurisdictional_scope", "penalty_summary", "primary_deadline"],
+    screen: { verdict: "on_vertical", provenance: "rule", basis: "UK statutory instrument, core vertical" },
+  });
+
+  const scope = payload.claims.find((c) => c.slot_key === "jurisdictional_scope");
+  assert.equal(scope.claim_kind, "GAP");
+  assert.equal(scope.source_span, null);
+
+  const result = validateMintPayload(payload, { baseDir: process.cwd() });
+  assert.deepEqual(result.failures, [], `row a980a0b9's shape must clear validate-mint-payload.mjs with zero failures: ${JSON.stringify(result.failures, null, 2)}`);
+  assert.equal(result.valid, true);
+  assert.equal(result.recommended_status, "verified");
 });
 
 test("buildRecordPayload: throws on missing required inputs rather than minting a hollow payload", () => {
