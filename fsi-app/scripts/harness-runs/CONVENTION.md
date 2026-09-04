@@ -63,6 +63,10 @@ fsi-app/scripts/harness-runs/
     traces/                       # per-run drain reports (full traces) — one level BELOW the family dir,
       propagation-run-001.report.json        # same F28 family-level *.json glob concern as source-sweep
     ...
+  corpus-turn/
+    PENDING-RUN.md               -- first-run acknowledgment (rule (b)) — no corpus-turn-run-NNN.json yet
+    corpus-turn-run-001.json
+    ...
 ```
 
 One directory per harness family. Five exist today: `mint`, `screen`, and `fetch-drain` — matching the
@@ -120,6 +124,27 @@ gate function every `derived_values` consumer calls): a seventh shape, whose "ru
 the `propagation_events` outbox — walking `derivation_edges` from each undrained event, marking the
 transitive closure stale, and recomputing through the registered `METHODS` seam — never a mint, an
 extraction, a fetch-drain replay, nor an enumeration sweep.
+
+`corpus-turn` (lane TURNREQ, 2026-09-04 — closing the 2026-09-04 wiring audit's B1 Gap #2 / B2 §1: "the
+corpus-turn harness family has zero run artifacts... not registered in `scripts/harness-runs/
+governing-files.mjs` either"), registered over the two scripts this lane gave corpus-turn's own real
+selection/export logic for the first time — `scripts/turns/consume-turn-requests.mjs` (bounded,
+oldest-first selection over the `corpus_turn_requests` ticket queue migration 277's trigger fills; ONE
+"what changed" mechanism now, replacing the `last-turn-date.mjs` marker `.github/workflows/corpus-turn.yml`
+used to compute a default `--since` from) and `scripts/turns/export-corpus-for-extraction.mjs` (extended
+this lane with `--ids` so the corpus file `run-extraction.mjs` consumes is built from exactly that
+selection): an eighth shape, whose "runs" are one `.github/workflows/corpus-turn.yml` dispatch — select
+tickets, discover connections, extract + apply forward events, recluster the whole corpus, and (on apply)
+retire exactly the tickets processed, through the guarded path, only after every one of those writes
+succeeded — never a mint, a screen round, an enumeration walk, nor a drain of the propagation outbox.
+Unlike every other family with a canonical `run-*.mjs` entry point, corpus-turn's orchestrator is the
+GitHub Actions workflow itself (`.github/workflows/corpus-turn.yml` chains scripts already governed by
+OTHER families — `discover-for-items.mjs`, and `forward-events`'s own `run-extraction.mjs` — alongside the
+two files this family's own `GOVERNING_FILES` entry lists). See CORPUS-TURN-RUNBOOK.md for the full turn
+shape and `scripts/harness-runs/corpus-turn/PENDING-RUN.md` for why this family starts at zero artifacts
+(no live dispatch was possible from the authoring environment — the same posture `ledger-consume`'s own
+`PENDING-RUN.md` recorded at its own registration, copied here).
+
 `meta-harness-run-001` through `-003` retrofit MH-1, MH-2, and MH-3
 respectively — the same real-evidence retrofit discipline this file's own "screen-v1 loss" section
 applies to the three original families, applied one layer up, to the harness that builds harnesses. A new
@@ -191,6 +216,15 @@ folded into either bucket) — plus *queue depth before/after*, the same "measur
 run's actual invalidation/recompute are reported as the same shape (`invalidate_dependents()`'s own
 dry/apply modes, migration 285), so the two are directly comparable run over run, matching source-sweep's
 own dry-vs-apply comparability above.
+**corpus-turn's standing metric** (build plan §2's "measurement, not assertion," per family): *tickets
+consumed per dispatch* — of the open `corpus_turn_requests` tickets a run selected (`metrics.
+tickets_selected`, bounded by `--limit`), how many were successfully turned AND retired
+(`metrics.consumed`, apply mode only — a dry run always reports `false`, honestly, since it marks
+nothing) — plus *forward events extracted this turn* (`metrics.forward_events_extracted`, read back from
+the SAME turn's own `forward-events` family artifact this dispatch produced, never a fresh count) — the
+corpus-turn-family counterpart to `ledger-consume`'s disposition-mix-per-run: a proposer pass reading this
+family's history sees backlog drawdown (1,709 open at registration, 2026-09-04) alongside what each turn
+actually connected, never one without the other.
 
 **A named risk of self-application** (surfaced by meta-harness's own first proposer pass, Wave MH-4):
 `meta-harness`'s governing files ARE this file and `PROPOSER-RUNBOOK.md` — the two documents every wave
@@ -362,6 +396,7 @@ trusted on faith — this table exists for a human reader, the module is what ev
 | `ledger-consume` | `scripts/turns/run-ledger-consume.mjs`, `../../src/lib/intake/portal-harvest.ts`, `../../src/lib/llm/first-fetch-classify.ts` |
 | `change-detection` | `scripts/turns/run-change-detection.mjs`, `../../src/lib/sources/reconcile.ts`, `../../src/lib/intake/run-intake-cycle.ts` |
 | `propagation` | `scripts/turns/run-propagation-drain.mjs`, `../../src/lib/propagation/drain.ts`, `../../src/lib/propagation/admissible-for.ts` |
+| `corpus-turn` | `scripts/turns/consume-turn-requests.mjs`, `export-corpus-for-extraction.mjs` |
 
 **`ledger-consume`, `change-detection` and `propagation`** were staged in this table by Lane SPEND
 (system-completion train, 2026-09-02) ahead of the lanes that registered them, and all three are now

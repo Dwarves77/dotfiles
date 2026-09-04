@@ -153,4 +153,23 @@ export const GOVERNING_FILES = Object.freeze({
     'src/lib/propagation/drain.ts',
     'src/lib/propagation/admissible-for.ts',
   ]),
+  // corpus-turn (registered by lane TURNREQ, 2026-09-04 — closing the audit's B1 Gap #2 / B2 §1 finding:
+  // "the corpus-turn harness family has zero run artifacts... not registered in governing-files.mjs
+  // either"). Unlike every family above, corpus-turn has no single canonical `run-*.mjs` entry point —
+  // .github/workflows/corpus-turn.yml itself is the orchestrator, chaining scripts that already belong to
+  // OTHER families (discover-for-items.mjs, forward-events's own run-extraction.mjs) with the two scripts
+  // this family actually owns and that this same lane gave their first real corpus-turn wiring:
+  // consume-turn-requests.mjs (the ticket-queue selection this family's own turns now run over — see that
+  // file's header) and export-corpus-for-extraction.mjs (the corpus-file builder those selected ids feed
+  // into run-extraction.mjs through, extended this lane with --ids to accept exactly that selection). A
+  // change to either is a change to what a "corpus turn" actually selects and exports — the governing
+  // files a corpus-turn harness_version should move on, same as any other family's own scoring/export
+  // logic. discover-for-items.mjs and run-extraction.mjs stay OUT of this list deliberately: they are
+  // already governed as part of item_cross_references' plain writer set and the forward-events family
+  // respectively, and CONVENTION.md's own convention is one governing-file set per family, not a file
+  // double-counted into two families' hashes.
+  'corpus-turn': Object.freeze([
+    'scripts/turns/consume-turn-requests.mjs',
+    'scripts/turns/export-corpus-for-extraction.mjs',
+  ]),
 });

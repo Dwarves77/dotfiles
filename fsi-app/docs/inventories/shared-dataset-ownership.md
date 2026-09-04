@@ -423,13 +423,15 @@ rule-16 chokepoints (`mint-item.ts`, `apply-staged-update.ts`) previously left n
 |---|---|---|
 | `supabase/migrations/277_corpus_turn_requests.sql` (`enqueue_corpus_turn_request()` trigger function) | **DB trigger — the primary/mechanical writer.** `AFTER INSERT OR UPDATE OF (provenance_status, is_archived, operational_scenario_tags, compliance_object_tags, topic_tags) ON intelligence_items`; INSERTs `reason ∈ {inserted, verified, unarchived, updated, tags_applied}`. NOT in the JSON allowlist block above — it is SQL, outside the scanner's `scripts/`/`src/` scan scope, same reason `set_provenance_status` (migration 115/209) is absent from every other table's entry in this document. | migration 277's own `CREATE TRIGGER enqueue_corpus_turn_request_trg` |
 | `src/app/api/admin/corpus-turn-requests/route.ts` | POST — operator-triggered `reason='manual'` INSERT, one item (`{itemId}`) or a live-corpus backfill (`{all:true}`, skipping items that already carry an open request) | `.from("corpus_turn_requests").insert(...)`, both the single-item and chunked-backfill call sites |
-| `scripts/turns/consume-turn-requests.mjs` | `--mark-consumed --by <label>` — `guardedUpdate` stamps `consumed_at`/`consumed_by` on exactly the open rows the same run read | `guardedUpdate("corpus_turn_requests", ...)` |
+| `scripts/turns/consume-turn-requests.mjs` | `--mark-consumed --by <label>` (MODE 1, same-process caller) or `--mark-file <path> --by <label>` (MODE 2, a prior `--out` snapshot) — either way `guardedUpdateByIds` stamps `consumed_at`/`consumed_by` on exactly the open rows a run already read, never a fresh re-read | `guardedUpdateByIds("corpus_turn_requests", ...)` |
 
 Readers: `src/app/api/admin/corpus-turn-requests/route.ts` (GET — open requests + last-consumed
 timestamp, for the admin `CorpusTurnPanel`), `scripts/turns/consume-turn-requests.mjs` (`readAll`, the
-producer side of the hand-off to `discover-for-items.mjs --ids`), and — going forward — the corpus-turn
-GitHub Actions workflow a sibling lane (RT) owns, which is expected to invoke
-`consume-turn-requests.mjs` itself rather than read the table directly.
+producer side of the hand-off to `discover-for-items.mjs --ids`), and (lane TURNREQ, 2026-09-04 — closing
+the "going forward" gap this paragraph used to name) `.github/workflows/corpus-turn.yml`, which now
+invokes `consume-turn-requests.mjs` itself as its own default item-selection step (MODE 1 to select the
+scope, MODE 2 to mark it consumed only after the turn's writes succeed) rather than reading the table
+directly — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Item selection" section.
 
 Replace policy: append-only from the trigger and the manual-request route (INSERT only, `manual` is the
 only reason value the trigger itself never writes); `consumed_at`/`consumed_by` is the only ever-mutated

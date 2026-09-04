@@ -1,18 +1,32 @@
 #!/usr/bin/env node
-// last-turn-date.mjs — tiny state helper for .github/workflows/corpus-turn.yml's `--since` resolution.
-// Reads/writes scripts/turns/LAST-TURN.json, the corpus-turn family's own "since when did we last cover
-// the corpus" marker: plain, readable JSON (one field), committed to the turn branch alongside the
-// harness-run artifacts it accompanies (see docs/runbooks/CORPUS-TURN-RUNBOOK.md).
+// last-turn-date.mjs — RETIRED as corpus-turn's own selection mechanism (lane TURNREQ, 2026-09-04; see
+// docs/runbooks/CORPUS-TURN-RUNBOOK.md and B1-modules.md Gap #2/B2 §1 of the 2026-09-04 wiring audit).
+// Was: the tiny state helper for .github/workflows/corpus-turn.yml's default `--since` resolution —
+// reading/writing scripts/turns/LAST-TURN.json, a marker file guessing "since when did we last cover the
+// corpus" from wall-clock time. Now: corpus-turn.yml selects its default item scope from
+// `corpus_turn_requests` (migration 277's trigger-fed ticket queue, via
+// scripts/turns/consume-turn-requests.mjs) instead — a real record of WHICH items changed and WHY, not a
+// date proxy that (a) had no way to express "this specific item needs a turn" versus "everything since a
+// timestamp," and (b) coexisted with the ticket queue as a SECOND "what changed" mechanism that nothing
+// wired to the first ever consumed (1,709 open tickets, 0 consumed, before this lane). `--since` on
+// corpus-turn.yml is now an EXPLICIT BACKFILL OVERRIDE ONLY (bypasses the ticket queue entirely, scopes by
+// date the old way) — it no longer reads this marker for its default; corpus-turn.yml no longer calls
+// this file's `--record` path either. One mechanism, not two.
 //
-// No args: prints the recorded date to stdout — '1970-01-01' (the runbook's own full-backfill value)
-// when no marker exists yet, so a first-ever turn naturally covers the whole live corpus rather than
-// silently covering nothing.
+// WHY THIS FILE STILL EXISTS (grep-confirmed, 2026-09-04): `scripts/turns/run-population-flywheel.mjs`
+// (lane TANDEM's population-turn flywheel driver, its own step 11 "record-last-turn" — outside this
+// lane's write set) still imports `writeLastTurnDate` and calls it after a successful apply, "so a later
+// corpus-turn dispatch's blank --since does not re-cover" — a purpose that no longer exists now that
+// corpus-turn.yml's default path does not read this marker at all. That write is now a residual with no
+// reader (grep across fsi-app/scripts, fsi-app/src, and .github/workflows found no remaining
+// `readLastTurnDate` call site or `node scripts/turns/last-turn-date.mjs` invocation with no --record
+// flag) — a real gap, left for the coordinator: run-population-flywheel.mjs is a different lane's file,
+// not this lane's to edit. Deleting THIS file outright would break that still-landed import, so the
+// module and its exports stay, unchanged, purely as a library any future caller can still use — not
+// wired into corpus-turn.yml's own flow any more.
 //
-// --record <ISO date>: overwrites the marker with the given date. corpus-turn.yml calls this AFTER a
-// successful apply-mode turn, with THAT RUN'S OWN START TIME (not "now" at record time) — so a later
-// turn's --since correctly re-covers anything created mid-run; discover-for-items.mjs and
-// export-corpus-for-extraction.mjs are both idempotent over their own outputs, so a slightly wide
-// re-cover costs nothing (it re-examines a handful of items already handled, not the whole corpus again).
+// No args: prints the recorded date to stdout — '1970-01-01' (EPOCH) when no marker exists yet.
+// --record <ISO date>: overwrites the marker with the given date.
 //
 // Exit 0 always for the no-args read path (a missing/corrupt marker degrades to the epoch default, never
 // a hard failure — this is bookkeeping, not a gate); --record exits 1 on a bad date argument.

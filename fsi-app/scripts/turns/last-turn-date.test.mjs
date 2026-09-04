@@ -1,6 +1,11 @@
 // last-turn-date.test.mjs — proves the marker read/write round-trip and the epoch-default fallback,
 // against a temp file (never the repo's own scripts/turns/LAST-TURN.json). Importing this module never
 // invokes the CLI body (IS_MAIN checks process.argv[1] against the running file).
+//
+// RETIRED as corpus-turn's selection mechanism (lane TURNREQ, 2026-09-04 — see last-turn-date.mjs's own
+// header). These tests still hold: the read/write mechanics this file exports are unchanged, only their
+// caller wiring in corpus-turn.yml is gone. Kept green because `scripts/turns/run-population-flywheel.mjs`
+// (a different lane's file) still imports `writeLastTurnDate`.
 import test from "node:test";
 import assert from "node:assert/strict";
 import { mkdtempSync, writeFileSync } from "node:fs";

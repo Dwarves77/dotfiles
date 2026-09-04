@@ -48,9 +48,19 @@ alone. This file (`F28-harness-run-integrity.mjs`) is UNCHANGED in its four rule
 single-source shape instead of the old hardcoded-with-one-exception shape. `PROPOSER-RUNBOOK.md` and
 `scripts/lib/run-artifact.mjs` are untouched by this lane.
 
-**harness_version at write time:** `sha256:bf7c0e927a84b9f0`
+**harness_version at write time:** `sha256:6be30ff6b965d085` (see Re-pin note below; `sha256:bf7c0e927a84b9f0` is superseded)
 
 **The planned run that supersedes this marker:** the next `meta-harness-run-009.json`, the coordinator's
 next self-application review pass over this wave. Per F28's reverse-audit, this file is deleted the moment
 an artifact carrying the hash above lands (or updated to a newer hash, per rule (c), if a `meta-harness`
 governing file changes again before that run lands).
+
+**Re-pin note (lane TURNREQ, 2026-09-04):** `sha256:bf7c0e927a84b9f0` → `sha256:6be30ff6b965d085`. This
+lane registered the `corpus-turn` harness family (closing the 2026-09-04 wiring audit's B1 Gap #2 / B2 §1
+finding — see `scripts/harness-runs/corpus-turn/PENDING-RUN.md`): `scripts/harness-runs/governing-files.mjs`
+gained a `corpus-turn` entry and its own header/CONVENTION.md prose gained the family's registration note
+— both are `meta-harness`'s own governing files (`governing-files.mjs` and `CONVENTION.md`, per this
+file's own list), so editing them to register a NEW family moves `meta-harness`'s own hash, exactly the
+"the loop applies to itself" mechanism `governing-files.mjs`'s header describes. `F28-harness-run-integrity.
+mjs` and `PROPOSER-RUNBOOK.md` (the other two `meta-harness` governing files) are untouched by this lane.
+The planned run is unchanged.

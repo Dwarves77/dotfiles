@@ -4,7 +4,14 @@
 // is side-effect-free.
 import test from "node:test";
 import assert from "node:assert/strict";
-import { parseArgs, toIdList, formatIdsLine, buildOutputPayload } from "./consume-turn-requests.mjs";
+import {
+  parseArgs,
+  toIdList,
+  formatIdsLine,
+  buildOutputPayload,
+  applyLimit,
+  extractRequestIdsFromSnapshot,
+} from "./consume-turn-requests.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────────
 
@@ -66,6 +73,126 @@ test("parseArgs: order-independent (--by before --mark-consumed)", () => {
   assert.equal(r.ok, true);
   assert.equal(r.markConsumed, true);
   assert.equal(r.by, "operator");
+});
+
+// ── --limit (lane TURNREQ, 2026-09-04 — corpus-turn's bounded ticket-queue selection) ──────────────
+
+test("parseArgs: no --limit -> null (unbounded read, unchanged default)", () => {
+  const r = parseArgs([]);
+  assert.equal(r.ok, true);
+  assert.equal(r.limit, null);
+});
+
+test("parseArgs: --limit accepts a positive integer", () => {
+  const r = parseArgs(["--limit", "200"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.limit, 200);
+});
+
+test("parseArgs: --limit rejects zero, negative, non-integer, and non-numeric", () => {
+  for (const bad of ["0", "-5", "1.5", "abc"]) {
+    const r = parseArgs(["--limit", bad]);
+    assert.equal(r.ok, false, `expected --limit ${bad} to be refused`);
+    assert.match(r.error, /--limit must be a positive integer/);
+  }
+});
+
+test("parseArgs: --limit composes with --out and --mark-consumed --by", () => {
+  const r = parseArgs(["--out", "x.json", "--limit", "50", "--mark-consumed", "--by", "op"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.limit, 50);
+  assert.equal(r.out, "x.json");
+});
+
+// ── --mark-file (MODE 2 — retire exactly a prior snapshot's rows, never a fresh "open" re-read) ────
+
+test("parseArgs: --mark-file requires --by", () => {
+  const r = parseArgs(["--mark-file", "snap.json"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--mark-file requires --by/);
+});
+
+test("parseArgs: --mark-file with no path argument is refused", () => {
+  const r = parseArgs(["--mark-file", "--by", "op"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--mark-file requires a path argument/);
+});
+
+test("parseArgs: --mark-file --by <label> alone is ok", () => {
+  const r = parseArgs(["--mark-file", "snap.json", "--by", "corpus-turn-42"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.markFile, "snap.json");
+  assert.equal(r.by, "corpus-turn-42");
+  assert.equal(r.markConsumed, false);
+});
+
+test("parseArgs: --mark-file cannot be combined with --out, --limit, or --mark-consumed (MODE 1 vs MODE 2)", () => {
+  assert.equal(parseArgs(["--mark-file", "s.json", "--by", "op", "--out", "x.json"]).ok, false);
+  assert.equal(parseArgs(["--mark-file", "s.json", "--by", "op", "--limit", "10"]).ok, false);
+  assert.equal(parseArgs(["--mark-file", "s.json", "--by", "op", "--mark-consumed"]).ok, false);
+});
+
+// ── applyLimit ───────────────────────────────────────────────────────────────────────────────────────
+
+test("applyLimit: no limit -> rows unchanged", () => {
+  const rows = [{ id: "a" }, { id: "b" }];
+  assert.deepEqual(applyLimit(rows, null), rows);
+  assert.deepEqual(applyLimit(rows, undefined), rows);
+});
+
+test("applyLimit: bounds to the first N rows, preserving order (rows are already oldest-first)", () => {
+  const rows = [{ id: "a" }, { id: "b" }, { id: "c" }];
+  assert.deepEqual(applyLimit(rows, 2), [{ id: "a" }, { id: "b" }]);
+});
+
+test("applyLimit: a limit larger than the row count returns every row, no error", () => {
+  const rows = [{ id: "a" }];
+  assert.deepEqual(applyLimit(rows, 500), rows);
+});
+
+test("applyLimit: a non-positive or non-integer limit is treated as unbounded (defensive)", () => {
+  const rows = [{ id: "a" }, { id: "b" }];
+  assert.deepEqual(applyLimit(rows, 0), rows);
+  assert.deepEqual(applyLimit(rows, -1), rows);
+  assert.deepEqual(applyLimit(rows, 1.5), rows);
+});
+
+test("applyLimit: undefined/empty rows -> empty array, never throws", () => {
+  assert.deepEqual(applyLimit(undefined, 5), []);
+  assert.deepEqual(applyLimit([], 5), []);
+});
+
+// ── extractRequestIdsFromSnapshot ───────────────────────────────────────────────────────────────────
+
+test("extractRequestIdsFromSnapshot: pulls the request row ids (never intelligence_item_id)", () => {
+  const payload = {
+    requests: [
+      { id: "req-1", intelligence_item_id: "item-1" },
+      { id: "req-2", intelligence_item_id: "item-2" },
+    ],
+  };
+  assert.deepEqual(extractRequestIdsFromSnapshot(payload), ["req-1", "req-2"]);
+});
+
+test("extractRequestIdsFromSnapshot: empty/malformed payload -> empty array, never throws", () => {
+  assert.deepEqual(extractRequestIdsFromSnapshot({}), []);
+  assert.deepEqual(extractRequestIdsFromSnapshot({ requests: [] }), []);
+  assert.deepEqual(extractRequestIdsFromSnapshot(null), []);
+  assert.deepEqual(extractRequestIdsFromSnapshot(undefined), []);
+});
+
+test("extractRequestIdsFromSnapshot: a request row missing id is skipped, not nulled into the list", () => {
+  const payload = { requests: [{ id: "req-1" }, { intelligence_item_id: "item-2" }, { id: null }] };
+  assert.deepEqual(extractRequestIdsFromSnapshot(payload), ["req-1"]);
+});
+
+test("extractRequestIdsFromSnapshot round-trips buildOutputPayload's own shape", () => {
+  const rows = [
+    { id: "r1", intelligence_item_id: "i1", reason: "verified", requested_at: "2026-09-01T00:00:00Z" },
+    { id: "r2", intelligence_item_id: "i2", reason: "tags_applied", requested_at: "2026-09-01T00:01:00Z" },
+  ];
+  const payload = buildOutputPayload(rows, { generatedAt: "2026-09-01T12:00:00Z" });
+  assert.deepEqual(extractRequestIdsFromSnapshot(payload), ["r1", "r2"]);
 });
 
 // ── toIdList ─────────────────────────────────────────────────────────────────────────────────────────

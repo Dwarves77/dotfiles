@@ -11,10 +11,50 @@ of it actually executes. This closes that gap the exact way `docs/decisions/ADR-
 closed it for the data producers — GitHub Actions, the two repository secrets `.github/workflows/
 producers.yml` and `data-audit-lane.yml` already inject, dispatch-driven, no standing schedule.
 
+## Item selection: the ticket queue (default), `--since` as an explicit backfill override
+
+**Rewired by lane TURNREQ, 2026-09-04** (see the 2026-09-04 wiring audit, B1 Gap #2 / B2 §1): a turn's
+item scope is now ONE mechanism, not two. `corpus_turn_requests` (migration 277) is filled by a DB
+trigger (`enqueue_corpus_turn_request()`) every time an item's provenance/archive/tag state changes
+outside the in-app mint hooks — a real, per-item record of "this item needs a turn," not an inferred
+`created_at` window. `scripts/turns/consume-turn-requests.mjs` is this queue's only reader:
+
+- **MODE 1 (read).** `node scripts/turns/consume-turn-requests.mjs [--out path] [--limit N] [--mark-consumed --by <label>]`
+  reads every OPEN ticket (oldest `requested_at` first — the DB read is already ordered, so `--limit`
+  is a plain slice), optionally writes the full snapshot (id list + per-row reason/requested_at) to
+  `--out`, and prints the distinct `intelligence_item_id` list as its one line of real stdout. Migration
+  277's partial-unique index guarantees at most one OPEN row per item, so bounding rows bounds distinct
+  items 1:1 — "grouped by item" needs no separate dedup step.
+- **MODE 2 (`--mark-file <path> --by <label>`).** Marks EXACTLY the ticket rows named in a PRIOR `--out`
+  snapshot `consumed_at`/`consumed_by`, through the guarded write path (`db.mjs`'s `guardedUpdateByIds`:
+  cite + prior-row snapshot + read-back) — never a fresh "what's open now" re-read, so a caller retires
+  precisely what it already processed even if the open set changed in between. Mutually exclusive with
+  `--out`/`--limit`/`--mark-consumed` (MODE 1's read-shaping flags).
+
+`corpus-turn.yml`'s own shape is MODE 1 (no `--mark-consumed`) as its very first step, then discover →
+export → extract → apply → analyze, and only once every one of those has succeeded, MODE 2 against that
+same snapshot file — GitHub Actions' own step ordering (no `continue-on-error` anywhere in between) IS
+the "only after the turn's writes succeeded" guarantee; no extra bookkeeping is needed.
+
+`since` (the workflow's `since` input, `--since` on `discover-for-items.mjs`/
+`export-corpus-for-extraction.mjs`) is now an **EXPLICIT BACKFILL OVERRIDE ONLY**: set it to bypass the
+ticket queue entirely and rescope the turn to `created_at >=` that date, the pre-2026-09-04 mechanism.
+No ticket is read or marked consumed in that mode. Leave it blank (the default) for ticket-queue mode.
+
+`scripts/turns/last-turn-date.mjs`'s `LAST-TURN.json` marker — the mechanism `since`'s blank default used
+to read — is **retired from this workflow**. It is not deleted: `scripts/turns/run-population-flywheel.mjs`
+(a different family's driver) still calls `writeLastTurnDate` after its own successful apply, for a
+purpose that no longer applies to corpus-turn now that ticket selection is the default; that residual
+write-with-no-corpus-turn-reader is a known, named gap (see `last-turn-date.mjs`'s own header), not
+something this workflow depends on.
+
 ## What a "turn" is
 
 One turn = one pass of the corpus flywheel:
 
+0. **`consume-turn-requests.mjs`** (`fsi-app/scripts/turns/`, MODE 1) — selects this turn's item scope:
+   the oldest `limit` open `corpus_turn_requests` tickets (ticket-queue mode, the default), or skipped
+   entirely when `--since` is an explicit override. See the section above.
 1. **`discover-for-items.mjs`** (`fsi-app/scripts/connections/`) — runs mint-time connection discovery
    for items that bypassed the mint hook (a coordinator-SQL mint, typically), writing edges through the
    same guarded writer (`write-edges.mjs`) mint-time discovery uses.
@@ -65,16 +105,41 @@ records its own `source-sweep` harness-run artifact family every run, in both dr
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`
-(`dry` or `apply`), optionally `since` (an ISO date — items with `created_at >=` this are in scope;
-leave blank to use the last recorded turn date), and `signals` (default `true` — also runs
-`analyze-corpus.mjs`'s `--signals` pass). The workflow creates a fresh `turn/<run-id>` branch off
-whatever ref it dispatched from (normally `master`) and lands the run's own commit there.
+(`dry` or `apply`), `limit` (default `200` — max OPEN `corpus_turn_requests` tickets this turn selects,
+oldest-first; ignored when `since` is set — see "First dispatch" below for the arithmetic behind the
+default), optionally `since` (an ISO date — an EXPLICIT BACKFILL OVERRIDE that bypasses the ticket queue
+and rescopes to `created_at >=` this date instead; leave blank for ticket-queue mode, the default), and
+`signals` (default `true` — also runs `analyze-corpus.mjs`'s `--signals` pass). The workflow creates a
+fresh `turn/<run-id>` branch off whatever ref it dispatched from (normally `master`) and lands the run's
+own commit there.
 
 **Option B — push an empty `turn/**` branch:** a coordinator session that wants a turn without touching
 the Actions UI pushes a branch named `turn/<anything>` (e.g. `turn/2026-09-02`) — content doesn't
 matter, only the branch name and the push event. This ALWAYS runs in `apply` mode (pushing a turn branch
-is, by definition, asking for the real thing) and lands the run's commit directly on that same branch —
-no second branch is created.
+is, by definition, asking for the real thing) with the default `limit` (push events carry no
+`workflow_dispatch` inputs) and lands the run's commit directly on that same branch — no second branch
+is created.
+
+## First dispatch
+
+`corpus_turn_requests` stood at **1,709 open tickets** at registration (2026-09-04 wiring audit). The
+`limit` input's default, **200**, matches THE GATE's own population-slice unit
+(`docs/plans/complete-system-build-plan-2026-09-04.md` §W2.1: "Slices of 200") rather than inventing a
+new one. Arithmetic: 1,709 ÷ 200 ≈ 9 dispatches drains today's backlog; this is a recurring, hand-dispatched
+cadence (rule 16: no schedule during build), not a one-time drain, since new tickets keep arriving via the
+trigger as items change. The 45-minute job timeout comfortably covers 200 items at the per-item costs
+already measured elsewhere in this repo — mint's own batch step runs ~0.45-0.6s/item for full
+validate+insert (heavier than this family's discovery-score + forward-event-extract work), and
+forward-events extraction itself was measured at ~21ms for a whole 89-item batch — with headroom left for
+checkout/`npm ci` and the always-unscoped `analyze-corpus.mjs` pass. A directly-measured corpus-turn-
+specific per-item wall-clock figure does not exist as of this writing — no live dispatch has run in the
+authoring environment (no Supabase credentials, no Actions runner) — so this arithmetic is `[HYPOTHESIS]`
+grounded in the two measurements above, not a `[CONFIRMED]` corpus-turn timing.
+
+Recommended first dispatch: `mode: dry`, `limit: 200`, `since` blank — read the printed plan (tickets
+selected, would-discover/would-extract counts) before ever writing. Follow with `mode: apply` once the
+dry plan looks right; that apply is the run whose own harness-run artifact (`corpus-turn-run-001.json`)
+first discharges `scripts/harness-runs/corpus-turn/PENDING-RUN.md`.
 
 Either way, the workflow ATTEMPTS to end by opening a PR from the turn branch to `master` (skipped if
 one is already open for that branch, and skipped entirely if the run produced no new
@@ -88,9 +153,12 @@ same way any other PR is reviewed; nothing about `corpus-turn.yml` auto-merges.
 
 - `scripts/harness-runs/forward-events/forward-events-run-NNN.json` — `run-extraction.mjs`'s own
   self-emitted artifact, every turn, dry or apply.
-- `scripts/turns/LAST-TURN.json` — the "since when did this turn's `--since` default cover" marker,
-  updated ONLY on a successful apply-mode turn, to that run's own start timestamp (not "now" at the
-  moment it is recorded — see `last-turn-date.mjs`'s own header for why).
+- `scripts/harness-runs/corpus-turn/corpus-turn-run-NNN.json` — this family's own self-emitted artifact
+  (`scripts/turns/emit-corpus-turn-artifact.mjs`), every dispatch, dry or apply, "record it every batch,
+  even when zero" (MINT-RUNBOOK.md's own rule, applied here).
+- `corpus_turn_requests.consumed_at`/`consumed_by` — a DATABASE write, not a local file: apply mode +
+  ticket-queue selection only, and only after every write step above has succeeded (see "Item selection"
+  above). Left untouched in dry mode, in `--since` override mode, and on any failed apply.
 - `scripts/_snapshots/turn-<run-id>/turn-corpus.{json,events.json,skipped.json}` — the turn's FULL
   TRACES for extraction (the corpus slice and `run-extraction.mjs`'s events/skipped outputs, which the
   forward-events artifact's `full_trace_refs` name). Kept here, not on `/tmp`, precisely so the
@@ -168,13 +236,18 @@ also not progress until someone runs these steps.
 
 ## The first full backfill over ALL existing items
 
+**Historical note (pre-2026-09-04):** this section originally described `since: 1970-01-01` as the
+zero-turns-yet default, because `since`'s blank default read `last-turn-date.mjs`'s `LAST-TURN.json`
+marker, which itself defaulted to the epoch with no prior marker. As of lane TURNREQ (2026-09-04) the
+blank default is the ticket queue, not the epoch, and `since` is an explicit override — the text below
+still describes a real, supported path (a full-corpus rescope), just no longer the thing a blank `since`
+does on its own.
+
 Dispatch `corpus-turn.yml` with `mode: apply` and `since: 1970-01-01` — the epoch value
 `export-corpus-for-extraction.mjs`'s own `--since` filter and `discover-for-items.mjs`'s `--since` filter
-both treat as "every item ever created," and the same value `last-turn-date.mjs` returns by default when
-no `scripts/turns/LAST-TURN.json` marker exists yet (a repo that has never run a turn is, by construction,
-already asking for a full backfill the first time it does). This is the intended way to seed the corpus
-flywheel on a repo (or environment) that has run zero turns so far: it is not a special mode, just the
-normal apply path with the widest possible `since`. Every step downstream is already idempotent
+both treat as "every item ever created." This is the way to force a full-corpus rescope regardless of the
+ticket queue's own state: it is not a special mode, just the normal apply path with the widest possible
+explicit `since`. Every step downstream is already idempotent
 (discovery's edges dedupe on the connection signature, extraction's dedupe key is migration 275's, the
 ledger upserts on `UNIQUE url`), so a full backfill can be safely re-dispatched if it fails partway
 through — a re-run only re-covers what a prior partial run did not finish, at the cost of re-examining
@@ -185,8 +258,9 @@ refreshed, 5 skipped as owned by the entity/semantic origin, prior state snapsho
 of 322 live items without a forward event and the extractor confirmed 0 events for them (they are exactly
 forward-events-run-001's no-event set, 322 − 137); analyze persisted 14 themes (replacing 9; delta:
 8 persisted, 1 split, 4 appeared), opened 12 coverage-gap, 7 anticipate and 297 signal-candidate flags,
-and its own VERIFY passed. `scripts/turns/LAST-TURN.json` now carries that run's start time, so the next
-dispatch with a blank `since` is incremental.
+and its own VERIFY passed. `scripts/turns/LAST-TURN.json` carried that run's start time at the time
+(historical — a blank `since` no longer reads that marker; see "Item selection" above), so the next
+dispatch with a blank `since` was incremental under the pre-2026-09-04 mechanism.
 
 A LATER apply (run 33756943043, 2026-09-03) grew the open signal-candidate count to 930
 (`shared_regulation_identifier` 154, `shared_title_entity` 776) under the original "operator review
