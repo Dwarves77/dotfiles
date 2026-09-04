@@ -61,6 +61,30 @@ name: Ledger consume
 # registered in WORKFLOW_SECRETS (secrets-registry.mjs) for the CLI-only `--allow-api` escape hatch a
 # human might run outside this workflow, but this workflow itself never sets it as a job env var and never
 # passes `--allow-api` — see the header above.
+#
+# export_candidates (Lane LEDGER-EXPORT, 2026-09-04 — closes the defect the coordinator confirmed at
+# 16:55: LEDGER-ZERO's `--export-candidates` listed rows WITHOUT page text, its own note said "a session
+# lane must fetch each URL itself" — the coordinator tried that, 1,837 candidates, Haiku classification
+# lanes fetching through WebFetch hit rate limits within minutes and one lane started guessing from URL
+# patterns instead of the page — refused). When this boolean input is `true`, THE JOB RUNS ONLY THE
+# EXPORT — the whole `mode`/`verdicts_file` consume path below is skipped for this dispatch:
+#   node scripts/turns/run-ledger-consume.mjs --export-candidates \
+#     scripts/_snapshots/ledger-candidates/candidates-<run_id>.json --with-text --limit <export_limit> \
+#     [--after <export_after>]
+# `--with-text` fetches every listed candidate's URL through run-ledger-consume.mjs's OWN `buildFetchDoc`
+# (the ConsumeOpts.FetchDocFn contract plan mode already uses — same politeness gap, same 20s timeout, NO
+# second fetcher) and carries the fetched text in the payload, so a classification lane never fetches for
+# itself. `export_limit` (default 400) bounds one batch; `export_after` (a `{"firstSeenAt":"...","id":"..."}`
+# JSON string, default '') resumes a prior batch's keyset cursor (`next_cursor` in that batch's own
+# payload) so several dispatches page through the full backlog (~1,837 candidates at the 2026-09-04 audit)
+# in the SAME (first_seen_at, id) order the consume path itself walks. The export needs NO
+# ANTHROPIC_API_KEY (it never classifies) but DOES need real network egress to fetch every candidate URL —
+# this runner has it; the coordinator's own environment does not (PENDING-RUN.md's own account). The
+# resulting file is delivered the SAME way this family's harness-run artifacts already are — pushed to a
+# branch `ledger-consume/<run_id>` and a PR via `deliver-artifact-branch.sh` (see "What lands where" in
+# `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section) — so the coordinator fetches the
+# branch, never a second delivery mechanism — and ALSO uploaded as a workflow artifact (the existing
+# `scripts/_snapshots` upload step below already covers this path).
 
 on:
   workflow_dispatch:
@@ -84,6 +108,21 @@ on:
         description: 'Restrict to one portal source (uuid). Leave blank to consume across all sources.'
         required: false
         type: string
+      export_candidates:
+        description: 'When true, this job runs ONLY --export-candidates --with-text (mode/verdicts_file/limit/source_id above are ignored) — see this file''s header, "export_candidates". Delivers the candidate rows, WITH each one''s fetched page text, as an artifact branch + PR, exactly like this family''s harness-run artifacts.'
+        required: false
+        default: false
+        type: boolean
+      export_limit:
+        description: 'Max candidates this export batch fetches+lists (export_candidates=true only). See this file''s header for the job-timeout arithmetic this bounds.'
+        required: false
+        default: '400'
+        type: string
+      export_after:
+        description: 'export_candidates=true only: resume a prior export batch''s keyset cursor — paste that batch''s own next_cursor as {"firstSeenAt":"...","id":"..."}. Leave blank to start from the beginning of the (first_seen_at, id) order.'
+        required: false
+        default: ''
+        type: string
   workflow_run:
     workflows: ["Source sweep"]
     types: [completed]
@@ -106,7 +145,17 @@ jobs:
     # failed/cancelled source-sweep produced no new candidates worth a plan pass over.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    # TIMEOUT ARITHMETIC (Lane LEDGER-EXPORT, 2026-09-04). Worst case is an export_candidates=true dispatch
+    # at its default export_limit=400: run-ledger-consume.mjs's --with-text path calls buildFetchDoc's
+    # fetchDoc ONCE PER CANDIDATE, sequentially (the SAME politeness-gapped fetcher plan mode uses — see
+    # this file's header) — each call can wait out the politeness gap (LEDGER_CONSUME_FETCH_GAP_MS, default
+    # 1000ms) and then the fetch's own AbortController timeout (buildFetchDoc's hardcoded timeoutMs,
+    # 20_000ms) if the URL never responds. Worst case per candidate: 1000ms + 20000ms = 21000ms. For
+    # 400 candidates: 400 * 21000ms = 8,400,000ms = 8400s = 140 minutes. 150 minutes budgets a 10-minute
+    # margin on top of that ceiling for checkout/npm ci/commit+push. Ordinary plan/apply consume dispatches
+    # use the SAME fetchDoc but default to --limit 50 (10x fewer candidates) and finish in a small fraction
+    # of this ceiling — it is sized for the export path's larger default limit, not typical runtime.
+    timeout-minutes: 150
     defaults:
       run:
         working-directory: fsi-app
@@ -146,20 +195,39 @@ jobs:
             limit="${{ inputs.limit }}"
             source_id="${{ inputs.source_id }}"
             verdicts_file="${{ inputs.verdicts_file }}"
+            export_candidates="${{ inputs.export_candidates }}"
+            export_limit="${{ inputs.export_limit }}"
+            export_after="${{ inputs.export_after }}"
           else
             mode="plan"
             limit="50"
             source_id=""
             verdicts_file="$(ls scripts/turns/ledger-verdicts/ledger-verdicts-*.json 2>/dev/null | sort | tail -n1 || true)"
+            # export_candidates is workflow_dispatch-only (see this file's header) — a Source-sweep
+            # completion is "check whether there is new work", never "fetch+export a candidate batch now".
+            export_candidates="false"
+            export_limit=""
+            export_after=""
           fi
           echo "mode=$mode" >> "$GITHUB_OUTPUT"
           echo "limit=$limit" >> "$GITHUB_OUTPUT"
           echo "source_id=$source_id" >> "$GITHUB_OUTPUT"
           echo "verdicts_file=$verdicts_file" >> "$GITHUB_OUTPUT"
+          echo "export_candidates=$export_candidates" >> "$GITHUB_OUTPUT"
+          echo "export_limit=$export_limit" >> "$GITHUB_OUTPUT"
+          echo "export_after=$export_after" >> "$GITHUB_OUTPUT"
+          echo "candidates_path=scripts/_snapshots/ledger-candidates/candidates-${{ github.run_id }}.json" >> "$GITHUB_OUTPUT"
 
       - name: This run's gates
         run: |
-          echo "trigger        = ${{ github.event_name }}"
+          echo "trigger           = ${{ github.event_name }}"
+          echo "export_candidates = ${{ steps.params.outputs.export_candidates }}"
+          if [ "${{ steps.params.outputs.export_candidates }}" = "true" ]; then
+            echo "export_limit      = ${{ steps.params.outputs.export_limit }}"
+            echo "export_after      = ${{ steps.params.outputs.export_after }}"
+            echo "NOTE: export_candidates=true runs ONLY --export-candidates --with-text — mode/limit/source_id/verdicts_file above are ignored for this dispatch (see this file's header)."
+            exit 0
+          fi
           echo "mode           = ${{ steps.params.outputs.mode }}"
           echo "limit          = ${{ steps.params.outputs.limit }}"
           echo "source_id      = ${{ steps.params.outputs.source_id }}"
@@ -175,6 +243,7 @@ jobs:
       # master, but artifacts land through a PR — a run dispatched before a prior run's PR merged would
       # otherwise claim the same run_id as that unmerged sibling.
       - name: Hydrate unmerged ledger-consume artifacts from sibling branches (run_id collision guard)
+        if: steps.params.outputs.export_candidates != 'true'
         run: |
           git fetch --no-tags origin '+refs/heads/ledger-consume/*:refs/remotes/origin/ledger-consume/*' || true
           : > /tmp/hydrated-artifacts.txt
@@ -191,6 +260,7 @@ jobs:
           echo "hydrated $(wc -l < /tmp/hydrated-artifacts.txt) unmerged ledger-consume file(s) from sibling branches"
 
       - name: run-ledger-consume.mjs
+        if: steps.params.outputs.export_candidates != 'true'
         run: |
           args=(--mode "${{ steps.params.outputs.mode }}" --limit "${{ steps.params.outputs.limit }}")
           if [ -n "${{ steps.params.outputs.source_id }}" ]; then
@@ -201,19 +271,34 @@ jobs:
           fi
           node scripts/turns/run-ledger-consume.mjs "${args[@]}"
 
+      # ── export_candidates=true: THE ONLY THING THIS DISPATCH DOES (see this file's header) ────────────
+      # --with-text fetches every listed candidate's URL through run-ledger-consume.mjs's OWN buildFetchDoc
+      # (no second fetcher, same politeness gap, same timeout) so the file this step writes carries page
+      # text a classification lane can read directly — never fetch itself. No classify, no DB write, no
+      # harness-run artifact (run-ledger-consume.mjs's own contract for this mode — see its header).
+      - name: run-ledger-consume.mjs --export-candidates --with-text
+        if: steps.params.outputs.export_candidates == 'true'
+        run: |
+          args=(--export-candidates "${{ steps.params.outputs.candidates_path }}" --with-text \
+            --limit "${{ steps.params.outputs.export_limit }}")
+          if [ -n "${{ steps.params.outputs.export_after }}" ]; then
+            args+=(--after "${{ steps.params.outputs.export_after }}")
+          fi
+          node scripts/turns/run-ledger-consume.mjs "${args[@]}"
+
       # Commit the family's own harness-run artifact (scripts/harness-runs/ledger-consume/**) so the run
       # this dispatch produced survives past the Actions log — same posture corpus-turn.yml / source-
       # sweep.yml apply to their own families. A dispatch normally runs against master, which is typically
       # branch-protected, so this lands on its own branch and opens a PR rather than pushing straight to
       # whatever ref triggered the run.
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
-        if: always()
+        if: always() && steps.params.outputs.export_candidates != 'true'
         run: |
           if [ -s /tmp/hydrated-artifacts.txt ]; then xargs -a /tmp/hydrated-artifacts.txt rm -f; fi
           rm -rf scripts/harness-runs/*/.claims
 
       - name: Commit the ledger-consume harness-run artifact and open a PR
-        if: always()
+        if: always() && steps.params.outputs.export_candidates != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -237,6 +322,41 @@ jobs:
             "${{ github.run_id }}" "${{ github.event_name }}" "${{ steps.params.outputs.mode }}" "${{ steps.params.outputs.limit }}" "${{ steps.params.outputs.source_id }}" "${{ steps.params.outputs.verdicts_file }}" > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Ledger consume: mode=${{ steps.params.outputs.mode }} (run ${{ github.run_id }})" /tmp/pr-body.md
 
+      # export_candidates=true's own delivery — THE SAME MECHANISM the harness-run artifact commit above
+      # uses (branch `ledger-consume/<run_id>` + deliver-artifact-branch.sh's PR-or-tracking-issue
+      # fallback), so the coordinator fetches this branch exactly the way it already fetches every other
+      # ledger-consume artifact branch — never a second delivery mechanism. `git add -f` is required: the
+      # candidates file is written under scripts/_snapshots/, which .gitignore excludes (line 64) for
+      # every OTHER use of that directory — this is the one path in it that must reach origin, because
+      # ledger-verdicts/README.md's own reasoning applies here too (a workflow_dispatch reads from origin,
+      # and a coordinator fetching a branch needs the same).
+      - name: Commit the exported candidates file and open a PR
+        if: always() && steps.params.outputs.export_candidates == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -f "${{ steps.params.outputs.candidates_path }}"
+          if git diff --cached --quiet; then
+            echo "No candidates file to commit (the export step did not produce ${{ steps.params.outputs.candidates_path }})."
+            exit 0
+          fi
+          branch="ledger-consume/${{ github.run_id }}"
+          git checkout -b "$branch"
+          git commit -m "ledger-consume export-candidates --with-text (run ${{ github.run_id }}): limit=${{ steps.params.outputs.export_limit }}"
+          # BRANCH-BASE — see the identical comment on the harness-run-artifact commit step above.
+          git fetch --no-tags --depth=50 origin master
+          git rebase --autostash origin/master || { git rebase --abort; echo "::error::export commit does not rebase onto origin/master"; exit 1; }
+          git push origin HEAD:"$branch"
+          printf 'Automated ledger-consume candidate export (run %s).\n\n--export-candidates --with-text, limit=%s, after=%s.\n\nLands %s: candidate rows from portal_link_candidates (status=candidate), each carrying its already-fetched page text (fetched by run-ledger-consume.mjs'"'"'s own buildFetchDoc — same politeness gap, same timeout a consume pass uses; no second fetcher). A classification lane reading this file must NOT fetch these URLs itself — see the file'"'"'s own note_on_fetched_text and run-ledger-consume.mjs'"'"'s header, "THE DEFECT THIS CLOSES".\n' \
+            "${{ github.run_id }}" "${{ steps.params.outputs.export_limit }}" "${{ steps.params.outputs.export_after }}" "${{ steps.params.outputs.candidates_path }}" > /tmp/pr-body.md
+          bash scripts/turns/deliver-artifact-branch.sh "$branch" "Ledger consume: export-candidates --with-text (run ${{ github.run_id }})" /tmp/pr-body.md
+
+      # Covers export_candidates=true too: the candidates file lands under scripts/_snapshots/ledger-
+      # candidates/, inside the glob below — so an export dispatch is ALSO reachable as a workflow
+      # artifact download, on top of the artifact-branch delivery above (both mechanisms, per this file's
+      # header).
       - name: Upload scripts/_snapshots as a workflow artifact
         if: always()
         uses: actions/upload-artifact@v4

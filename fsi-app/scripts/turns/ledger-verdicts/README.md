@@ -40,15 +40,37 @@ sent to the metered API, unless the driver is run with the explicit, CLI-only `-
 
 ## How a session lane produces a batch
 
-1. **List candidates** (read-only, no fetch, no classify, no DB write):
+1. **List candidates, WITH their already-fetched page text** (read-only — no classify, no DB write; the
+   fetch below is the only I/O this step does):
    ```
-   node scripts/turns/run-ledger-consume.mjs --export-candidates scripts/turns/ledger-verdicts/candidates-001.json --limit 200
+   node scripts/turns/run-ledger-consume.mjs --export-candidates scripts/turns/ledger-verdicts/candidates-001.json --with-text --limit 200
    ```
-   This writes `{candidate_id, url, source_id, anchor_text, first_seen_at, source_name,
-   source_category, source_tier}` per row. **It does not include the page's fetched text** —
-   `portal_link_candidates` has no content column (migrations 162/220 only ever added
-   url/anchor_text/status/disposition columns) — so a session lane must fetch each URL itself (the
-   browser tools, or any other available fetch path) before classifying.
+   **`--with-text` (Lane LEDGER-EXPORT, 2026-09-04) is now the sanctioned way to run this step.** Earlier
+   guidance here said "a session lane must fetch each URL itself (e.g. via the browser)" — the
+   coordinator tried exactly that over 1,837 candidates: Haiku classification lanes fetching through
+   WebFetch hit rate limits within minutes, and one lane started guessing a classification from the URL
+   string instead of the fetched page (refused — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger
+   consume" section for the full account). **The browser is no longer the fetch path.**
+
+   `--with-text` fetches each listed candidate's URL through `run-ledger-consume.mjs`'s OWN `buildFetchDoc`
+   — the SAME polite fetcher (politeness gap + timeout) `consumePortalCandidates` itself uses in `plan`/
+   `apply` mode — never a second, hand-rolled fetcher. This step is meant to run in
+   `.github/workflows/ledger-consume.yml` (dispatch with `export_candidates: true`; see that file's header
+   for `export_limit`/`export_after` and the job-timeout arithmetic), which has real network egress this
+   session environment typically does not. It writes, per row: `{candidate_id, url, source_id,
+   anchor_text, first_seen_at, source_name, source_category, source_tier, text, fetched_chars, fetch_ok,
+   fetch_error, fetched_at, transport}` — `text` sliced to `content_max_chars` (the payload's own top-level
+   field, sourced from `first-fetch-classify.ts`'s `CONTENT_MAX_CHARS`). `fetch_ok: false` marks a row that
+   either failed to fetch (`fetch_error` names why) or fell under `portal-harvest.ts`'s own 200-char floor
+   (`fetch_error: "below_floor_200"` — that file's `consumePortalCandidates`, the "1 — FETCH" step,
+   `if (text.trim().length < 200)`); its short text is still carried, but should not be treated as
+   classify-ready. **A classification lane consuming this file must NOT fetch these URLs itself** — use
+   the `text` field carried here.
+
+   Without `--with-text`, this mode is UNCHANGED from before: read-only, no fetch, no classify, no DB
+   write, and the payload's `note_on_fetched_text` explains that `portal_link_candidates` itself has no
+   content column (migrations 162/220 only ever added url/anchor_text/status/disposition columns) and
+   suggests re-dispatching with `--with-text` instead of fetching by hand.
 
 2. **Build the identical prompt.** `src/lib/llm/first-fetch-classify.ts` exports everything needed so a
    session lane's Haiku call and the live spend-chokepoint call are provably the same prompt — ONE BODY,

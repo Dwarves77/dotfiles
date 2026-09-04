@@ -102,6 +102,87 @@ classify-and-stage pass (unmodified, out of scope here) that eventually reaches
 sweep always names a specific walker and window/feed, unlike a turn's empty-branch request shape) and
 records its own `source-sweep` harness-run artifact family every run, in both dry and apply mode.
 
+### The sitemap walker (lane SITEMAP, 2026-09-04; `--all-hosts`/`--check-coverage` added lane SITEMAP-3,
+### 2026-09-04)
+
+`source-sweep.yml`'s fourth `walker` option, `sitemap`, is the answer to the operator's own question:
+"do you do mapping of the sites and store them in supabase so we can use a site map to identify new
+pages?" and "did you do mapping of rss feeds and save them in supabase?" — YES to both, and this section is
+where a coordinator drives it.
+
+**What it does, in order (`src/lib/sources/sitemap-walk.mjs`'s `walkSource`, over an EXISTING `sources`
+row's `url` — never a fixed portal the way the other three walkers work):** (1) is the source's own URL a
+feed document? (2) a `<link rel=alternate>` tag on its homepage, or one of six named common feed paths
+(`src/lib/sources/feed-discovery.mjs`) — first candidate that actually parses as a feed wins, and a
+discovered feed is handed to `feed-walk.mjs`'s existing walker and the source row's `rss_feed_url` is
+recorded through the guarded write path. (3) ONLY when no feed is found: `robots.txt` `Sitemap:` lines,
+else the three conventional fallback paths (`/sitemap.xml`, `/sitemap_index.xml`, `/sitemap-index.xml`),
+bounded fan-out through any `<sitemapindex>`, scoped to the source's own registered path, diffed against
+the previous URL-set snapshot (Supabase Storage, `sitemap-snapshots/<source_id>/current.json.gz` in the
+`raw_fetches` BUCKET — never the `raw_fetches` DB table, which `change-sweep.mjs` already owns for its own
+HTML diff). New locs feed the SAME `portal_link_candidates` ledger every other walker in this family
+writes to; a changed `lastmod` matching a LIVE item's canonical URL on that exact source queues a
+`monitoring_queue` signal (precision-gated — see `shared-dataset-ownership.md`'s `monitoring_queue`
+section). Politeness: the driver's shared `politeFetch` (1 req/s, `SOURCE_SWEEP_FETCH_GAP_MS`) governs
+EVERY fetch this walker makes, feed probes and sitemap documents alike — the same budget every other
+walker in this family already runs under.
+
+**Coverage is now QUERYABLE, not just a side effect of a dispatch.** Migration 304 adds five columns to
+`sources` (`sitemap_url`, `sitemap_last_walked_at`, `sitemap_url_count`, `sitemap_walk_outcome` — walked /
+no_sitemap / bot_wall / feed_only / unfetchable — `feed_last_probed_at`), written by
+`buildSitemapCoveragePatch` through `db.mjs`'s guarded path on EVERY walked row's outcome, apply mode only
+(see `docs/inventories/migrations.md`'s row 304 and `shared-dataset-ownership.md`'s `sources.sitemap_*`
+entry for the one-writer rule and exact column semantics).
+
+**Three ways to dispatch `--walker sitemap`, by scope:**
+
+1. **One row** — `--source-id <uuid>` (ignores `status`; an explicit single-row probe may target a row
+   already marked dead, deliberately).
+2. **One host** — `--host <hostname>` (active rows only, www-insensitive) — walks EVERY active `sources`
+   row on that host (a host with rows scoped to distinct content paths, `sourceContentPath`, needs each
+   walked separately — collapsing to one representative row would silently drop path-scoped candidates for
+   every row but the one walked).
+3. **A backfill slice** — `--all-hosts [--max-hosts N]` (default `N` = `DEFAULT_MAX_HOSTS` = 40, lane
+   SITEMAP-3, 2026-09-04): this is the mode that turns "a backfill of 2,563 sources is 2,563 dispatches"
+   into ~16. It groups every ACTIVE `sources` row by host (`groupActiveSourcesByHost`), orders host groups
+   never-walked-first then oldest-`sitemap_last_walked_at`-first (`orderHostGroupsForSweep` — this IS the
+   resumability property: an identical `sources` snapshot always orders identically, so re-running the same
+   command after a prior apply naturally picks up where coverage is thinnest, no state to hand-carry
+   between dispatches), takes the first `--max-hosts` host groups, and walks every row on each selected
+   host exactly like `--host` would. `run-source-sweep.mjs`'s `DEFAULT_MAX_HOSTS` comment carries the full
+   arithmetic (measured per-row cost from a real dispatch × the live active-hosts/active-rows ratio against
+   the workflow's 30-minute timeout, with a reserve for non-walk overhead) — re-derive it there, not here,
+   if the workflow's `timeout-minutes` or the measured per-row cost ever changes.
+
+   Live counts at the time this was written [CONFIRMED, live SQL, 2026-09-04]: 2,563 `sources` rows total,
+   1,630 active, 646 distinct active hosts, 189 rows already carrying a discovered `rss_feed_url`. At the
+   default 40 hosts/run, `--all-hosts` covers all 646 active hosts once in ⌈646/40⌉ = 17 dispatches.
+
+**A fourth mode that walks nothing** — `--check-coverage` (requires `--mode dry`; refuses alongside
+`--source-id`/`--host`/`--all-hosts`) — a read-only report over the five coverage columns: sources total
+(every status), active total, how many active rows have ever been sitemap-walked vs never, a breakdown by
+`sitemap_walk_outcome` (a never-walked active row counts under the synthetic key `never_walked`), and how
+many rows (any status) carry a populated `rss_feed_url`. Run this before/after an `--all-hosts` sequence to
+see the number move, or on its own to answer "have we mapped this site's sitemap yet" for the corpus as a
+whole without grepping harness-run artifacts by hand.
+
+Every run's `source-sweep` harness-run artifact carries, in addition to the pre-existing per-walker
+metrics, `hosts_walked` / `hosts_skipped_bot_wall` / `feeds_discovered` / `new_locs` / `lastmod_changes`
+(computed for any sitemap dispatch, not only `--all-hosts` — a `--host` run against one host still reports
+"1 host walked") and, for an `--all-hosts` run specifically, `hosts_selected` / `hosts_remaining_unwalked`
+(how many never-walked hosts are STILL never-walked after this run — the number a coordinator watches
+count down across the ~17-dispatch backfill sequence).
+
+**Example dispatches** (GitHub Actions → `source-sweep.yml` → Run workflow, or `gh workflow run
+source-sweep.yml -f ...`):
+
+```
+walker=sitemap  mode=dry    all_hosts=true  max_hosts=5            # preview the next 5 thinnest-covered hosts
+walker=sitemap  mode=apply  all_hosts=true                          # apply a full default-sized (40-host) slice
+walker=sitemap  mode=dry    check_coverage=true                     # where does the backfill stand right now
+walker=sitemap  mode=apply  host=aircargonews.net                   # one named host, e.g. re-checking after a fix
+```
+
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`
@@ -312,13 +393,27 @@ called Haiku (`firstFetchClassify`, ~$0.001/candidate) for every candidate whose
   CLI-only `--allow-api` flag (default `false`). `ledger-consume.yml` does **not** expose `--allow-api`
   as a workflow input, so a workflow dispatch can never spend on classify by omission — only a human
   running the script directly and asking for it by name can.
-- **`--export-candidates <path>`** is a separate, READ-ONLY mode (no fetch, no classify, no DB write, no
-  harness-run artifact — it is a listing utility, not a consume pass): it writes the candidate rows
-  (`candidate_id`, `url`, `source_id`, `anchor_text`, `first_seen_at`, source metadata) a session lane
-  needs to fetch (this runtime does not persist first-fetch page text — `portal_link_candidates` has no
-  content column) and classify offline into a `--verdicts` file, using the SAME prompt the live
-  chokepoint uses (`FIRST_FETCH_HAIKU_SYSTEM_PROMPT` / `buildFirstFetchClassifyUserMessage`, both
-  exported from `first-fetch-classify.ts` for exactly this — ONE BODY, never a second hand-typed copy).
+- **`--export-candidates <path>`** is a separate, READ-ONLY mode (no classify, no DB write, no harness-run
+  artifact — it is a listing utility, not a consume pass): it writes the candidate rows (`candidate_id`,
+  `url`, `source_id`, `anchor_text`, `first_seen_at`, source metadata) to classify offline into a
+  `--verdicts` file, using the SAME prompt the live chokepoint uses (`FIRST_FETCH_HAIKU_SYSTEM_PROMPT` /
+  `buildFirstFetchClassifyUserMessage`, both exported from `first-fetch-classify.ts` for exactly this —
+  ONE BODY, never a second hand-typed copy).
+  - **`--with-text` (Lane LEDGER-EXPORT, 2026-09-04) — the fix for a defect the coordinator confirmed at
+    16:55 the same day.** Without it, the export listed rows with no page text and its own
+    `note_on_fetched_text` said "a session lane must fetch each URL itself (e.g. via the browser)". The
+    coordinator tried exactly that over 1,837 candidates: Haiku classification lanes fetching through
+    WebFetch hit rate limits within minutes, and one lane started guessing a classification from the URL
+    string instead of the fetched page — refused. **The browser is no longer the fetch path.** `--with-
+    text` fetches every listed row's URL through `run-ledger-consume.mjs`'s OWN `buildFetchDoc` — the
+    SAME polite fetcher (politeness gap + 20s timeout) `plan`/`apply` mode already uses to fetch every
+    candidate it classifies; never a second, hand-rolled fetcher — and carries the fetched text (sliced to
+    `first-fetch-classify.ts`'s `CONTENT_MAX_CHARS`, imported not retyped) in the payload: `text`,
+    `fetched_chars`, `fetch_ok`, `fetch_error` (null when ok), `fetched_at`, `transport` per row.
+    `fetch_ok: false` marks a row that failed to fetch (`fetch_error` names why) or fell under
+    `portal-harvest.ts`'s own 200-char floor (`consumePortalCandidates`'s "1 — FETCH" step,
+    `if (text.trim().length < 200)` — `fetch_error: "below_floor_200"`, text still carried, not
+    classify-ready). A classification lane consuming this file must NOT fetch these URLs itself.
 - **`prompt_version`** (`FIRST_FETCH_CLASSIFY_PROMPT_VERSION`, also exported from `first-fetch-
   classify.ts`) is a content hash of the live system prompt, stamped into every verdict entry. A verdict
   whose `prompt_version` does not match the driver's own live constant is excluded from use — per-entry,
@@ -387,6 +482,23 @@ fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, sam
 issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
 `scripts/_snapshots/**` workflow artifact the same way.
 
+**`export_candidates: true` dispatches land on the SAME `ledger-consume/<run-id>` branch pattern, via the
+SAME `deliver-artifact-branch.sh` mechanism** (Lane LEDGER-EXPORT, 2026-09-04) — the ONLY thing that
+differs is what the branch carries: `scripts/_snapshots/ledger-candidates/candidates-<run-id>.json` (the
+`--with-text` export payload), force-added despite `scripts/_snapshots/` being gitignored (`.gitignore`
+line 64 — the same reasoning `ledger-verdicts/README.md` gives for why `--verdicts` files live at a
+committed path instead: a path under `scripts/_snapshots/` never reaches `origin` unless force-added, and
+the coordinator fetches this branch from `origin`), never a `scripts/harness-runs/ledger-consume/**`
+artifact (an export dispatch classifies nothing, mints nothing, and self-emits no harness-run artifact —
+see this section's opening paragraph). This IS the intended re-use: the coordinator fetches
+`ledger-consume/<run-id>` exactly the way it already fetches every other `ledger-consume` artifact branch,
+never a second delivery mechanism for this family. Also uploaded as a `ledger-consume-snapshots-<run-id>`
+workflow artifact, same as any other run (the `scripts/_snapshots/**` glob already covers it).
+`population-turn.yml`'s own `workflow_run` chain off this workflow already treats a `ledger-consume/<run-
+id>` branch carrying no `scripts/harness-runs/ledger-consume/**` file as a graceful no-op ("carries no
+ledger-consume harness-run artifact this checkout doesn't already have") — an export dispatch needed no
+change there.
+
 ### Secrets
 
 `ledger-consume.yml` now references only `NEXT_PUBLIC_SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY` — the
@@ -399,20 +511,42 @@ reports every workflow secret reference registered either way.
 
 ### First dispatch (proves this component per the build plan's §0)
 
+**The export step now comes first, and it is dispatched, not run by hand** (Lane LEDGER-EXPORT,
+2026-09-04 — this session environment has no network egress to fetch ~1,837 candidate URLs; the Actions
+runner does). The exact first dispatch, via `ledger-consume.yml`'s `workflow_dispatch`:
+
+```
+export_candidates=true  export_limit=400  export_after=''
+```
+— equivalently, `node scripts/turns/run-ledger-consume.mjs --export-candidates
+scripts/_snapshots/ledger-candidates/candidates-<run_id>.json --with-text --limit 400`. This fetches (via
+the SAME `buildFetchDoc` a consume pass uses) and lists the FIRST 400 candidates, oldest-first
+(`first_seen_at, id` order — the same order the consume path itself walks), and lands on
+`ledger-consume/<run_id>` (see "What lands where" above). Its own payload's `next_cursor` — a
+`{"firstSeenAt":"...","id":"..."}` object — feeds the SECOND dispatch's `export_after` input, and so on:
+```
+export_candidates=true  export_limit=400  export_after=<next_cursor from the previous batch's payload>
+```
+repeated until a batch's `next_cursor` is `null` (~5 dispatches to cover ~1,837 candidates at 400/batch —
+the last batch shorter). Each batch is then classified by a session-Haiku lane directly from its carried
+`text` field — no browser fetch, no WebFetch rate limit, per the `--with-text` account above — into a
+`--verdicts` file matching `fsi-app/scripts/turns/ledger-verdicts/schema.json`; producing those verdict
+batches is NOT part of this runbook update or Lane LEDGER-EXPORT's write set (the coordinator's Haiku
+lanes' job, per the build plan's own §W1.1) — this entry documents the mechanism and the exact first
+dispatch, both for the export and for the consume pass it feeds:
+
 ```
 node scripts/turns/run-ledger-consume.mjs --mode plan \
   --verdicts scripts/turns/ledger-verdicts/ledger-verdicts-001.json --limit 50
 ```
 — or, via `ledger-consume.yml`: `mode=plan`,
-`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`. `ledger-verdicts-
-001.json` is produced by first dispatching `--export-candidates` (read-only) over the live
-`portal_link_candidates` backlog, then a session-Haiku lane classifying that list into a batch matching
-`fsi-app/scripts/turns/ledger-verdicts/schema.json` — that batch is NOT part of this runbook update or
-Lane LEDGER-ZERO's write set (a live classification pass over ~1,800+ candidates is the coordinator's
-Haiku lanes' job, per the build plan's own §W1.1); this entry documents the mechanism and the exact first
-proving dispatch once that batch exists. Success is: `ledger-consume-run-001.json` lands with
-`metrics.with_verdict > 0`, `metrics.promoted > 0` (once an `apply` dispatch follows a reviewed plan), and
-`metrics.est_usd === 0`.
+`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`. Success for the export
+side is: the `ledger-consume/<run_id>` branch (or its tracking-issue fallback) carries
+`scripts/_snapshots/ledger-candidates/candidates-<run_id>.json` with `count > 0`, `with_text: true`, and
+`fetch_ok_count` accounting for most of `count` (a nonzero `fetch_failed_count` is expected — dead links,
+timeouts — not a failure of the dispatch itself). Success for the consume side, once a verdicts batch
+exists, is unchanged: `ledger-consume-run-001.json` lands with `metrics.with_verdict > 0`,
+`metrics.promoted > 0` (once an `apply` dispatch follows a reviewed plan), and `metrics.est_usd === 0`.
 
 ## Change detection
 

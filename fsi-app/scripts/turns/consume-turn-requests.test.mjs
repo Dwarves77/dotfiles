@@ -11,6 +11,9 @@ import {
   buildOutputPayload,
   applyLimit,
   extractRequestIdsFromSnapshot,
+  partitionByCorpusMembership,
+  extractArchivedRequestIdsFromSnapshot,
+  archivedConsumedBy,
 } from "./consume-turn-requests.mjs";
 
 // ── parseArgs ────────────────────────────────────────────────────────────────────────────────────────
@@ -271,4 +274,58 @@ test("buildOutputPayload: a row with a missing/null reason counts under 'unknown
   const rows = [{ id: "r1", intelligence_item_id: "i1", reason: null, requested_at: "2026-09-01T00:00:00Z" }];
   const payload = buildOutputPayload(rows, { generatedAt: "2026-09-01T12:00:00Z" });
   assert.deepEqual(payload.by_reason, { unknown: 1 });
+});
+
+// ── TICKET-CORPUS (train 39): a ticket is what its item's live state says it is ──────────────────────
+
+const T = (id, item) => ({ id, intelligence_item_id: item, reason: "verified", requested_at: "2026-09-01T00:00:00Z" });
+
+test("partitionByCorpusMembership: verified+live -> selectable; archived -> archived; unverified/unknown -> deferred; order kept", () => {
+  const rows = [T("r1", "i1"), T("r2", "i2"), T("r3", "i3"), T("r4", "i4"), T("r5", "i5")];
+  const states = new Map([
+    ["i1", { provenance_status: "verified", is_archived: false }],
+    ["i2", { provenance_status: "verified", is_archived: true }],
+    ["i3", { provenance_status: "draft", is_archived: false }],
+    ["i5", { provenance_status: "verified", is_archived: false }],
+    // i4 absent: item row gone -> deferred, never consumed
+  ]);
+  const { selectable, archived, deferred } = partitionByCorpusMembership(rows, states);
+  assert.deepEqual(selectable.map((r) => r.id), ["r1", "r5"]);
+  assert.deepEqual(archived.map((r) => r.id), ["r2"]);
+  assert.deepEqual(deferred.map((r) => r.id), ["r3", "r4"]);
+});
+
+test("partitionByCorpusMembership: empty/undefined inputs never throw", () => {
+  assert.deepEqual(partitionByCorpusMembership([], new Map()), { selectable: [], archived: [], deferred: [] });
+  assert.deepEqual(partitionByCorpusMembership(undefined, undefined), { selectable: [], archived: [], deferred: [] });
+});
+
+test("applyLimit bounds the SELECTABLE set only: archived tickets ride along in the snapshot regardless of --limit", () => {
+  const rows = [T("a1", "x1"), T("r1", "i1"), T("a2", "x2"), T("r2", "i2"), T("r3", "i3")];
+  const states = new Map([
+    ["x1", { provenance_status: "verified", is_archived: true }],
+    ["x2", { provenance_status: "verified", is_archived: true }],
+    ["i1", { provenance_status: "verified", is_archived: false }],
+    ["i2", { provenance_status: "verified", is_archived: false }],
+    ["i3", { provenance_status: "verified", is_archived: false }],
+  ]);
+  const { selectable, archived, deferred } = partitionByCorpusMembership(rows, states);
+  const selected = applyLimit(selectable, 2);
+  const payload = buildOutputPayload(selected, { generatedAt: "2026-09-04T00:00:00Z", archivedRows: archived, deferredCount: deferred.length });
+  assert.deepEqual(payload.ids, ["i1", "i2"]);
+  assert.deepEqual(extractRequestIdsFromSnapshot(payload), ["r1", "r2"]);
+  assert.deepEqual(extractArchivedRequestIdsFromSnapshot(payload), ["a1", "a2"]);
+  assert.equal(payload.deferred_not_verified, 0);
+});
+
+test("buildOutputPayload without the new options still carries empty archived_requests and deferred 0 (old callers unchanged)", () => {
+  const payload = buildOutputPayload([T("r1", "i1")], { generatedAt: "2026-09-04T00:00:00Z" });
+  assert.deepEqual(payload.archived_requests, []);
+  assert.equal(payload.deferred_not_verified, 0);
+  assert.deepEqual(extractArchivedRequestIdsFromSnapshot(payload), []);
+  assert.deepEqual(extractArchivedRequestIdsFromSnapshot({}), []);
+});
+
+test("archivedConsumedBy: the label names the run AND the reason", () => {
+  assert.equal(archivedConsumedBy("corpus-turn:33898080197"), "corpus-turn:33898080197:item-archived");
 });

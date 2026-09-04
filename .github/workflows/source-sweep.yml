@@ -36,7 +36,7 @@ on:
   workflow_dispatch:
     inputs:
       walker:
-        description: 'Which enumeration walk to run. "research" is a distinct subject (research-sweep.mjs, lane RSRCH 2026-09-02): a source-sweep over the research-source registry (sources.category = research), not a register/feed walk — it needs no from/to/feed_url. "sitemap" (lane SITEMAP 2026-09-04): feed discovery first, sitemap.xml fallback, over EXISTING sources rows named by source_id or host.'
+        description: 'Which enumeration walk to run. "research" is a distinct subject (research-sweep.mjs, lane RSRCH 2026-09-02): a source-sweep over the research-source registry (sources.category = research), not a register/feed walk — it needs no from/to/feed_url. "sitemap" (lane SITEMAP 2026-09-04): feed discovery first, sitemap.xml fallback, over EXISTING sources rows named by source_id, host, or all_hosts (lane SITEMAP-3, 2026-09-04 — the backfill mode); or a read-only check_coverage report.'
         required: true
         type: choice
         options: [register-eurlex, register-federal-register, feed, research, sitemap]
@@ -53,13 +53,27 @@ on:
         required: false
         type: string
       source_id:
-        description: 'sources.id (sitemap walker only). Exactly one of source_id/host is required when walker=sitemap.'
+        description: 'sources.id (sitemap walker only). Exactly one of source_id/host/all_hosts is required when walker=sitemap (unless check_coverage is set).'
         required: false
         type: string
       host:
-        description: 'Hostname (sitemap walker only) — sweeps every ACTIVE sources row on this host. Exactly one of source_id/host is required when walker=sitemap.'
+        description: 'Hostname (sitemap walker only) — sweeps every ACTIVE sources row on this host. Exactly one of source_id/host/all_hosts is required when walker=sitemap (unless check_coverage is set).'
         required: false
         type: string
+      all_hosts:
+        description: 'Sitemap walker only (lane SITEMAP-3, 2026-09-04): sweep the thinnest-covered ACTIVE hosts (never-walked first, then oldest sitemap_last_walked_at), up to max_hosts per run — the backfill mode for all 2,563 sources without naming one host/id per dispatch. Exactly one of source_id/host/all_hosts is required when walker=sitemap (unless check_coverage is set).'
+        required: false
+        type: boolean
+        default: false
+      max_hosts:
+        description: 'Sitemap walker + all_hosts only: max distinct hosts to walk this run (run-source-sweep.mjs default 40 when left blank — see DEFAULT_MAX_HOSTS for the timeout-budget arithmetic; ~16 dispatches at the default cover all 646 active hosts once).'
+        required: false
+        type: string
+      check_coverage:
+        description: 'Sitemap walker only: read-only report (sources total, active total, walked/unwalked, by outcome, feeds populated) — no walk, no write. Refuses alongside source_id/host/all_hosts; requires mode=dry.'
+        required: false
+        type: boolean
+        default: false
       limit:
         description: 'Sitemap walker only: max scoped url entries diffed/persisted PER SOURCE this run (sitemap-walk.mjs default 5000 when left blank).'
         required: false
@@ -123,13 +137,24 @@ jobs:
             : # research-sweep.mjs selects its own sources from the registry (sources.category='research')
             # and needs no from/to/feed_url -- nothing to validate here.
           elif [ "${{ inputs.walker }}" = "sitemap" ]; then
-            if [ -z "${{ inputs.source_id }}" ] && [ -z "${{ inputs.host }}" ]; then
-              echo "::error::source_id or host is required when walker=sitemap (exactly one)."
-              exit 1
-            fi
-            if [ -n "${{ inputs.source_id }}" ] && [ -n "${{ inputs.host }}" ]; then
-              echo "::error::source_id and host are mutually exclusive when walker=sitemap."
-              exit 1
+            if [ "${{ inputs.check_coverage }}" = "true" ]; then
+              if [ -n "${{ inputs.source_id }}" ] || [ -n "${{ inputs.host }}" ] || [ "${{ inputs.all_hosts }}" = "true" ]; then
+                echo "::error::check_coverage is read-only and takes no selector — source_id/host/all_hosts are refused alongside it."
+                exit 1
+              fi
+              if [ "${{ inputs.mode }}" != "dry" ]; then
+                echo "::error::check_coverage never writes — set mode=dry (there is nothing for mode=apply to do)."
+                exit 1
+              fi
+            else
+              selectors=0
+              [ -n "${{ inputs.source_id }}" ] && selectors=$((selectors + 1))
+              [ -n "${{ inputs.host }}" ] && selectors=$((selectors + 1))
+              [ "${{ inputs.all_hosts }}" = "true" ] && selectors=$((selectors + 1))
+              if [ "$selectors" -ne 1 ]; then
+                echo "::error::exactly one of source_id, host, or all_hosts is required when walker=sitemap."
+                exit 1
+              fi
             fi
           else
             if [ -z "${{ inputs.from }}" ] || [ -z "${{ inputs.to }}" ]; then
@@ -145,6 +170,7 @@ jobs:
           echo "mode    = ${{ inputs.mode }}"
           echo "from/to = ${{ inputs.from }} .. ${{ inputs.to }}"
           echo "feed    = ${{ inputs.feed_url }}"
+          echo "sitemap = source_id=${{ inputs.source_id }} host=${{ inputs.host }} all_hosts=${{ inputs.all_hosts }} max_hosts=${{ inputs.max_hosts }} check_coverage=${{ inputs.check_coverage }}"
 
       # ── hydrate UNMERGED sibling artifacts so this run's run_id cannot collide ──────────────────────
       # claimRunId (scripts/lib/run-artifact.mjs) numbers the next artifact from the files it can see in
@@ -177,8 +203,14 @@ jobs:
           if [ "${{ inputs.walker }}" = "feed" ]; then
             args+=(--feed-url "${{ inputs.feed_url }}")
           elif [ "${{ inputs.walker }}" = "sitemap" ]; then
-            if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
-            if [ -n "${{ inputs.host }}" ]; then args+=(--host "${{ inputs.host }}"); fi
+            if [ "${{ inputs.check_coverage }}" = "true" ]; then
+              args+=(--check-coverage)
+            else
+              if [ -n "${{ inputs.source_id }}" ]; then args+=(--source-id "${{ inputs.source_id }}"); fi
+              if [ -n "${{ inputs.host }}" ]; then args+=(--host "${{ inputs.host }}"); fi
+              if [ "${{ inputs.all_hosts }}" = "true" ]; then args+=(--all-hosts); fi
+              if [ -n "${{ inputs.max_hosts }}" ]; then args+=(--max-hosts "${{ inputs.max_hosts }}"); fi
+            fi
             if [ -n "${{ inputs.limit }}" ]; then args+=(--limit "${{ inputs.limit }}"); fi
           else
             args+=(--from "${{ inputs.from }}" --to "${{ inputs.to }}")
@@ -226,8 +258,8 @@ jobs:
           git fetch --no-tags --depth=50 origin master
           git rebase --autostash origin/master || { git rebase --abort; echo "::error::artifact commit does not rebase onto origin/master"; exit 1; }
           git push origin HEAD:"$branch"
-          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
-            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.limit }}" > /tmp/pr-body.md
+          printf 'Automated source sweep (run %s).\n\nWalker: %s\nMode: %s\nFrom/to: %s .. %s\nFeed: %s\nSource id/host: %s / %s\nAll hosts: %s (max_hosts=%s)\nCheck coverage: %s\nLimit: %s\n\nLands the harness-run artifact for this sweep under scripts/harness-runs/source-sweep/.\n' \
+            "${{ github.run_id }}" "${{ inputs.walker }}" "${{ inputs.mode }}" "${{ inputs.from }}" "${{ inputs.to }}" "${{ inputs.feed_url }}" "${{ inputs.source_id }}" "${{ inputs.host }}" "${{ inputs.all_hosts }}" "${{ inputs.max_hosts }}" "${{ inputs.check_coverage }}" "${{ inputs.limit }}" > /tmp/pr-body.md
           bash scripts/turns/deliver-artifact-branch.sh "$branch" "Source sweep: ${{ inputs.walker }} (mode=${{ inputs.mode }}, run ${{ github.run_id }})" /tmp/pr-body.md
 
       - name: Upload scripts/_snapshots as a workflow artifact

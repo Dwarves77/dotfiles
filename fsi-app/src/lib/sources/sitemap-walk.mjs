@@ -449,10 +449,20 @@ export async function walkSitemap(deps, {
   }
 
   // Bot-wall detection: homepage (robots.txt) and every fallback candidate are 401/403/429
+  //
+  // BUG FOUND WHILE READING THIS FILE IN FULL (lane SITEMAP-3, 2026-09-04, doctrine "no small follow-up
+  // fix, fix it now"): this line called `sitemapsFallbackCandidates` — undefined; the exported function
+  // (line ~160) is `sitemapFallbackCandidates` (no "s" after "sitemap"). `&&` short-circuits, so the
+  // ReferenceError only threw when `isBotWallStatus(robotsStatus)` was already true — i.e. exactly the
+  // case this branch exists to detect (a site that bot-walls its OWN robots.txt, e.g. a Cloudflare/Akamai
+  // challenge in front of everything, not just the sitemap paths) — the one path meant to name a bot wall
+  // instead crashed the whole walk with an unrelated-looking exception. No existing test exercised a
+  // robots.txt fetch itself returning 401/403/429 (every prior bot-wall test 404s/403s the FALLBACK
+  // candidates only, with robots.txt answering 200); regression test added below.
   const fallbackProbes = sitemapsFetched.filter((s) => s.url !== "robots.txt" && s.kind === "error");
   if (
     isBotWallStatus(robotsStatus) &&
-    sitemapsFallbackCandidates(baseUrl).every((c) => fallbackProbes.some((p) => p.url === c && isBotWallStatus(extractHttpStatus(p.error))))
+    sitemapFallbackCandidates(baseUrl).every((c) => fallbackProbes.some((p) => p.url === c && isBotWallStatus(extractHttpStatus(p.error))))
   ) {
     return {
       ok: false, baseUrl,

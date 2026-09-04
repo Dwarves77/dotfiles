@@ -141,6 +141,16 @@ import { fitnessFunction as F34 } from './functions/F34-bundle-safe-module-evalu
 // by a registered UX smoke spec (ux-smoke-specs.mjs; measured at 375 × 812 and 1280 × 800 with
 // ux-assert.mjs) and to carry a data-guard-title attribute for the squeezed-title detector.
 import { fitnessFunction as F35 } from './functions/F35-row-ux-coverage.mjs';
+// Date-format timezone pin (2026-09-04, Lane PERF-8): after diagnosing React #418 on /regulations
+// (RegulationsLedger.tsx's RegRow called toLocaleDateString with no timeZone, so the UTC server render and
+// a west-of-UTC viewer's hydration render disagreed on the calendar day for a date-only value — commit
+// 27f6a358), F36 is the mechanical gate for that class: a "use client" module under src/app/** or
+// src/components/** calling toLocaleDateString/toLocaleTimeString/Intl.DateTimeFormat without a `timeZone`
+// key is a violation. A first codebase-wide run found 15 further files not touched by this lane's
+// diagnosis; they are named debt in PRE_EXISTING_ALLOWLIST (not a safety claim — see the module's own
+// header), so this gate stops NEW instances of the class everywhere and stops any recurrence in the
+// regulations/operations surfaces this lane actually verified.
+import { fitnessFunction as F36 } from './functions/F36-date-format-timezone-pin.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -172,6 +182,7 @@ export const fitnessFunctions = [
   F33,
   F34,
   F35,
+  F36,
 ];
 
 export function getFunctionById(id) {

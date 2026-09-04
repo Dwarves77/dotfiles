@@ -48,6 +48,7 @@ import {
   buildVerdictClassify,
   buildCandidateExportPayload,
   runExportCandidates,
+  shapeCandidateTextFields,
 } from "./run-ledger-consume.mjs";
 
 const PV = "sha256:aaaaaaaaaaaaaaaa"; // a well-formed stand-in prompt_version for fixtures below
@@ -146,6 +147,27 @@ test("parseArgs: --harness-runs-dir / --trace-dir pass through raw", () => {
 test("parseArgs: unknown flag is refused (strict)", () => {
   const r = parseArgs(["--bogus", "x"]);
   assert.equal(r.ok, false);
+});
+
+// ── parseArgs: --with-text ──────────────────────────────────────────────────────────────────────────
+
+test("parseArgs: --with-text defaults false", () => {
+  const r = parseArgs([]);
+  assert.equal(r.ok, true);
+  assert.equal(r.withText, false);
+});
+
+test("parseArgs: --with-text requires --export-candidates — refused loudly, never a silent no-op", () => {
+  const r = parseArgs(["--with-text"]);
+  assert.equal(r.ok, false);
+  assert.match(r.error, /--with-text requires --export-candidates/);
+});
+
+test("parseArgs: --export-candidates --with-text parses fine together", () => {
+  const r = parseArgs(["--export-candidates", "out.json", "--with-text"]);
+  assert.equal(r.ok, true);
+  assert.equal(r.exportCandidates, "out.json");
+  assert.equal(r.withText, true);
 });
 
 // ── resolveApplyGate — the apply-disarmed path ──────────────────────────────────────────────────────
@@ -802,6 +824,166 @@ test("runExportCandidates: writes the shaped payload to outPath via the injected
     const written = JSON.parse(readFileSync(outPath, "utf8"));
     assert.equal(written.count, 1);
     assert.equal(written.candidates[0].candidate_id, "plc-1");
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+// ── shapeCandidateTextFields — the --with-text row shape (Lane LEDGER-EXPORT) ───────────────────────────
+
+test("shapeCandidateTextFields: a successful fetch >=200ch -> fetch_ok true, sliced text, transport carried", () => {
+  const now = () => "2026-09-04T12:00:00.000Z";
+  const r = shapeCandidateTextFields({ ok: true, text: "x".repeat(500), transport: "direct-fetch" }, { maxChars: 6000, now });
+  assert.equal(r.fetch_ok, true);
+  assert.equal(r.fetch_error, null);
+  assert.equal(r.text.length, 500);
+  assert.equal(r.fetched_chars, 500);
+  assert.equal(r.transport, "direct-fetch");
+  assert.equal(r.fetched_at, "2026-09-04T12:00:00.000Z");
+});
+
+test("shapeCandidateTextFields: CONTENT_MAX_CHARS slice — text longer than maxChars is truncated, fetched_chars reflects the slice", () => {
+  const r = shapeCandidateTextFields({ ok: true, text: "y".repeat(9000), transport: "direct-fetch" }, { maxChars: 6000 });
+  assert.equal(r.text.length, 6000);
+  assert.equal(r.fetched_chars, 6000);
+  assert.equal(r.fetch_ok, true, "well over the 200ch floor even after slicing");
+});
+
+test("shapeCandidateTextFields: a fetch failure -> fetch_ok false, text empty, fetch_error is the thrown message, no transport", () => {
+  const r = shapeCandidateTextFields({ ok: false, error: "HTTP 404 for https://x/missing" }, { maxChars: 6000 });
+  assert.equal(r.fetch_ok, false);
+  assert.equal(r.text, "");
+  assert.equal(r.fetched_chars, 0);
+  assert.equal(r.fetch_error, "HTTP 404 for https://x/missing");
+  assert.equal(r.transport, null);
+});
+
+test("shapeCandidateTextFields: below the SAME 200-char floor portal-harvest.ts's fetch step applies — text is KEPT, fetch_ok false, fetch_error='below_floor_200'", () => {
+  const r = shapeCandidateTextFields({ ok: true, text: "too short", transport: "direct-fetch" }, { maxChars: 6000 });
+  assert.equal(r.fetch_ok, false);
+  assert.equal(r.fetch_error, "below_floor_200");
+  assert.equal(r.text, "too short", "the short text is still carried, not discarded");
+  assert.equal(r.fetched_chars, "too short".length);
+});
+
+test("shapeCandidateTextFields: requires opts.maxChars — throws rather than silently falling back to a retyped literal", () => {
+  assert.throws(() => shapeCandidateTextFields({ ok: true, text: "hello" }, {}), /requires opts\.maxChars/);
+  assert.throws(() => shapeCandidateTextFields({ ok: true, text: "hello" }), /requires opts\.maxChars/);
+});
+
+// ── buildCandidateExportPayload — withText merges text fields, changes the honesty note ─────────────────
+
+test("buildCandidateExportPayload: withText=false is byte-identical to the pre-LEDGER-EXPORT shape (no text fields, old note)", () => {
+  const rows = [{ id: "plc-1", url: "https://x/a", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null }];
+  const payload = buildCandidateExportPayload(rows, { limit: 5, now: () => "2026-09-04T00:00:00Z" });
+  assert.equal(payload.with_text, false);
+  assert.equal(payload.content_max_chars, null);
+  assert.equal(payload.fetch_ok_count, null);
+  assert.match(payload.note_on_fetched_text, /does not persist first-fetch page text/);
+  assert.deepEqual(Object.keys(payload.candidates[0]).sort(), ["anchor_text", "candidate_id", "first_seen_at", "source_category", "source_id", "source_name", "source_tier", "url"].sort());
+});
+
+test("buildCandidateExportPayload: withText=true merges text/fetched_chars/fetch_ok/fetch_error/fetched_at/transport per row", () => {
+  const rows = [
+    { id: "plc-1", url: "https://x/ok", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null },
+    { id: "plc-2", url: "https://x/fail", source_id: "s", first_seen_at: "2026-09-02T00:00:00Z", sources: null },
+  ];
+  const textByCandidateId = new Map([
+    ["plc-1", { text: "x".repeat(300), fetched_chars: 300, fetch_ok: true, fetch_error: null, fetched_at: "t1", transport: "direct-fetch" }],
+    ["plc-2", { text: "", fetched_chars: 0, fetch_ok: false, fetch_error: "HTTP 500", fetched_at: "t2", transport: null }],
+  ]);
+  const payload = buildCandidateExportPayload(rows, { limit: 5, withText: true, contentMaxChars: 6000, textByCandidateId });
+  assert.equal(payload.with_text, true);
+  assert.equal(payload.content_max_chars, 6000);
+  assert.equal(payload.fetch_ok_count, 1);
+  assert.equal(payload.fetch_failed_count, 1);
+  assert.match(payload.note_on_fetched_text, /produced with --with-text/);
+  assert.match(payload.note_on_fetched_text, /must NOT fetch these URLs itself/);
+  const byId = Object.fromEntries(payload.candidates.map((c) => [c.candidate_id, c]));
+  assert.equal(byId["plc-1"].text, "x".repeat(300));
+  assert.equal(byId["plc-1"].fetch_ok, true);
+  assert.equal(byId["plc-2"].fetch_ok, false);
+  assert.equal(byId["plc-2"].fetch_error, "HTTP 500");
+});
+
+// ── runExportCandidates — the I/O half with --with-text: injected fetchDoc, no DB write ─────────────────
+
+test("runExportCandidates: withText=true calls the injected fetchDoc once per row, in page order, and writes the fetched text to disk", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-export-text-"));
+  try {
+    const outPath = join(tmpDir, "candidates.json");
+    const rows = [
+      { id: "plc-1", url: "https://x/a", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null },
+      { id: "plc-2", url: "https://x/b", source_id: "s", first_seen_at: "2026-09-02T00:00:00Z", sources: null },
+    ];
+    const selectPage = async () => rows;
+    const fetchCalls = [];
+    const fetchDoc = async (url) => {
+      fetchCalls.push(url);
+      return { text: `content for ${url} `.repeat(50), transport: "direct-fetch" };
+    };
+    const { payload } = await runExportCandidates({
+      selectPage, limit: 5, outPath, withText: true, fetchDoc, maxChars: 6000, now: () => "2026-09-04T00:00:00Z",
+    });
+    assert.deepEqual(fetchCalls, ["https://x/a", "https://x/b"], "fetchDoc called once per row, in page order");
+    assert.equal(payload.with_text, true);
+    const written = JSON.parse(readFileSync(outPath, "utf8"));
+    assert.equal(written.candidates[0].fetch_ok, true);
+    assert.ok(written.candidates[0].text.startsWith("content for https://x/a"));
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("runExportCandidates: withText=true, a per-row fetch throw does not abort the batch — that row is fetch_ok:false, the rest still export", async () => {
+  const rows = [
+    { id: "plc-1", url: "https://x/good", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null },
+    { id: "plc-2", url: "https://x/bad", source_id: "s", first_seen_at: "2026-09-02T00:00:00Z", sources: null },
+  ];
+  const selectPage = async () => rows;
+  const fetchDoc = async (url) => {
+    if (url === "https://x/bad") throw new Error("HTTP 429 for https://x/bad");
+    return { text: "z".repeat(300), transport: "direct-fetch" };
+  };
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-export-text-"));
+  try {
+    const outPath = join(tmpDir, "candidates.json");
+    const { payload, count } = await runExportCandidates({ selectPage, limit: 5, outPath, withText: true, fetchDoc, maxChars: 6000 });
+    assert.equal(count, 2, "both rows still exported despite one fetch throwing");
+    const byId = Object.fromEntries(payload.candidates.map((c) => [c.candidate_id, c]));
+    assert.equal(byId["plc-1"].fetch_ok, true);
+    assert.equal(byId["plc-2"].fetch_ok, false);
+    assert.equal(byId["plc-2"].fetch_error, "HTTP 429 for https://x/bad");
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+test("runExportCandidates: withText=true requires fetchDoc — throws rather than silently exporting with no text", async () => {
+  const selectPage = async () => [{ id: "a", url: "https://x/a", source_id: "s", first_seen_at: "t", sources: null }];
+  await assert.rejects(
+    () => runExportCandidates({ selectPage, limit: 5, outPath: "/dev/null", withText: true, maxChars: 6000 }),
+    /requires opts\.fetchDoc/
+  );
+});
+
+test("runExportCandidates: never touches a database — selectPage (a read) and fetchDoc (plain HTTP) are the ONLY injected calls; no upsert/update/insert/delete-shaped object is ever passed in or called", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-export-nodbwrite-"));
+  try {
+    const outPath = join(tmpDir, "candidates.json");
+    let selectPageCalls = 0;
+    const selectPage = async (opts) => {
+      selectPageCalls += 1;
+      assert.deepEqual(opts, { limit: 3, sourceId: undefined, newestFirst: undefined, after: undefined });
+      return [{ id: "plc-1", url: "https://x/a", source_id: "s", first_seen_at: "2026-09-01T00:00:00Z", sources: null }];
+    };
+    let fetchDocCalls = 0;
+    const fetchDoc = async () => { fetchDocCalls += 1; return { text: "w".repeat(300), transport: "direct-fetch" }; };
+    await runExportCandidates({ selectPage, limit: 3, outPath, withText: true, fetchDoc, maxChars: 6000 });
+    // Exactly one read (the page select) and one fetch (the one candidate row) — no hidden second round
+    // trip that could imply a write-shaped call snuck in anywhere in this function.
+    assert.equal(selectPageCalls, 1);
+    assert.equal(fetchDocCalls, 1);
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }

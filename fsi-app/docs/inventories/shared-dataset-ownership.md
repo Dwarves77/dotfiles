@@ -737,6 +737,25 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   function, the sole sanctioned path to the small-cell-suppressed aggregate view (see migration 287's
   self-check and `docs/inventories/migrations.md`'s row 287 for the k-anonymity threshold and
   refusal-not-raise design).
+- **`sources.sitemap_url` / `sitemap_last_walked_at` / `sitemap_url_count` / `sitemap_walk_outcome` /
+  `feed_last_probed_at`** (migration 304, lane SITEMAP-3, 2026-09-04) — five new nullable columns on
+  `sources`, which this registry's own scanner header already names out-of-scope by design ("a write to an
+  unrelated, non-shared table (e.g. agent_runs, **sources**, holdings_quality) is out of this registry's
+  scope by design" — `.discipline/shared-writer-registry.test.mjs`), same disposition as the
+  `sources.institution_id`/`base_tier`/`effective_tier` columns already named above (lines ~750, ~799 in
+  the Open leaks summary). **ONE-WRITER RULE, stated explicitly because these five columns did not exist
+  before this lane: `fsi-app/scripts/turns/run-source-sweep.mjs` (`--walker sitemap`, via its
+  `buildSitemapCoveragePatch` → `db.mjs`'s `guardedUpdate("sources", ...)` path) is the SOLE writer of all
+  five columns, in both the pre-existing `--source-id`/`--host` dispatch shapes and the new `--all-hosts`
+  mode this same lane adds — no other file in the repo writes any of them (grepped: zero other
+  `.from("sources")` / `guardedUpdate("sources"` write call sites touch any of the five column names).**
+  `--walker sitemap --check-coverage` (same file) is a READER only (a plain `readAll`, no write) — it does
+  not count as a second writer. Any future script that wants to write one of these five columns must
+  either route through this same driver or get a new row added here first — the one-writer property is
+  what lets `--all-hosts`'s ordering (`orderHostGroupsForSweep`, keyed on `sitemap_last_walked_at`) trust
+  that nothing else is racing it to stamp or clear these columns mid-run. `sources.rss_feed_url` (migration
+  056) is a SEPARATE, pre-existing column this same driver also writes (unchanged by this lane) — not one
+  of the five new ones, named here only to avoid the reader assuming otherwise.
 
 Named here for completeness, not because the registry requires it — mirroring the disposition already
 established at line 180 for the migration-282/283 entity tables.

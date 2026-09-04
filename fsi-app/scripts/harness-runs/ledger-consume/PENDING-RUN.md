@@ -31,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:80d15aac9240060d` (see Re-pin note 5 below; `sha256:b12b73cfc8a273af` is superseded)
+**harness_version at write time:** `sha256:2f3138ea51a193ac` (see Re-pin note 6 below; `sha256:80d15aac9240060d` is superseded)
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -88,3 +88,57 @@ NOT produced by this lane (outside its write set — a session-Haiku classificat
 candidates is the coordinator's Haiku lanes' job, per the build plan's own §W1.1); this lane ships the
 contract (`scripts/turns/ledger-verdicts/schema.json` + `README.md`) and the `--export-candidates` mode
 that produces the candidate list those lanes classify from.
+
+**Re-pin note 6 (lane LEDGER-EXPORT, 2026-09-04, coordinator [CONFIRMED] 16:55 — the fetch-rate-limit
+defect in Re-pin note 5's own `--export-candidates`):** `sha256:80d15aac9240060d` → `sha256:2f3138ea51a193ac`.
+
+**What changed.** LEDGER-ZERO's `--export-candidates` listed candidate rows WITHOUT page text (its own
+`note_on_fetched_text` said "a session lane must fetch each URL itself"). The coordinator tried exactly
+that over 1,837 candidates: Haiku classification lanes fetching through WebFetch hit rate limits within
+minutes, and one lane started guessing a classification from the URL string instead of the fetched page —
+refused. TWO of this family's THREE governing files moved bytes in this diff: (1)
+`scripts/turns/run-ledger-consume.mjs` gained `--with-text` (only meaningful with `--export-candidates`;
+refused otherwise, per this file's own never-silently-defaulted discipline) — for each listed candidate it
+calls the SAME `buildFetchDoc` `plan`/`apply` mode already uses (no second fetcher, same politeness gap,
+same 20s timeout) and writes per row `text` (sliced to `CONTENT_MAX_CHARS`, imported from
+`first-fetch-classify.ts`, never retyped), `fetched_chars`, `fetch_ok`, `fetch_error` (null when ok),
+`fetched_at`, `transport`; a row under `portal-harvest.ts`'s own 200-char floor
+(`consumePortalCandidates`, "1 — FETCH" step, `if (text.trim().length < 200)`) keeps its text but
+`fetch_ok:false` / `fetch_error:"below_floor_200"`. New pure helper `shapeCandidateTextFields` (the
+per-row shaping) and the extended `buildCandidateExportPayload`/`runExportCandidates` are exported and
+unit-tested (injected `fetchImpl`: ok / failure / below-floor). `--after` keyset paging was already present
+(Re-pin note 5) and is unchanged. Still no classify, no DB write, no harness-run artifact for this mode —
+only `run-ledger-consume.mjs` itself changed bytes here. (2) `src/lib/llm/first-fetch-classify.ts` exported
+its previously-internal `CONTENT_MAX_CHARS` constant so the driver imports it (via jiti) rather than
+retyping the literal `6000` a second time. (3) `src/lib/intake/portal-harvest.ts` — UNCHANGED in this diff
+(the 200-char floor and `selectCandidateLedgerPage`'s `--after` support this lane depends on were both
+already in place from Re-pin note 5 / LEDGER-ZERO).
+
+`.github/workflows/ledger-consume.yml` (not a governing file, does not move this hash) gained
+`export_candidates` (boolean, default `false`), `export_limit` (default `400`), `export_after` (default
+`''`) workflow-dispatch inputs — when `export_candidates=true` the job runs ONLY `--export-candidates
+scripts/_snapshots/ledger-candidates/candidates-<run_id>.json --with-text --limit <export_limit>
+[--after <export_after>]`, then delivers that file the SAME way this family's harness-run artifacts
+already are: a `ledger-consume/<run_id>` branch + `deliver-artifact-branch.sh` (the candidates file is
+force-added despite `scripts/_snapshots/` being gitignored — see that step's own comment), also uploaded
+as a `ledger-consume-snapshots-<run_id>` workflow artifact via the pre-existing upload step. The job
+timeout moved `30` → `150` minutes: worst case is `export_limit=400` candidates each waiting out
+`buildFetchDoc`'s politeness gap (1000ms default) plus its fetch timeout (20000ms) if every fetch times
+out — `400 * 21000ms = 8,400,000ms = 8400s = 140 minutes`, plus a 10-minute margin.
+
+**The planned first run moves WITH this note, and now has a step in front of it.** The FIRST dispatch is
+now the export, not the plan: `ledger-consume.yml` `workflow_dispatch` with `export_candidates=true`,
+`export_limit=400`, `export_after=''` — this session environment has no network egress to fetch ~1,837
+candidate URLs; the Actions runner does. Its `next_cursor` feeds the next dispatch's `export_after`, and so
+on (~5 dispatches at 400/batch) until every candidate has been exported with text. Each resulting
+`scripts/_snapshots/ledger-candidates/candidates-<run_id>.json` (delivered on its own
+`ledger-consume/<run_id>` branch) is then classified by a session-Haiku lane directly from its carried
+`text` — no browser fetch — into a `ledger-verdicts-NNN.json` batch. The consume-side planned first run is
+otherwise UNCHANGED from Re-pin note 5: **`node scripts/turns/run-ledger-consume.mjs --mode plan
+--verdicts scripts/turns/ledger-verdicts/ledger-verdicts-001.json --limit 50`** (or the equivalent
+`ledger-consume.yml` dispatch with `mode=plan`,
+`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`) — see
+`docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section, "First dispatch", for the full account
+of both. Neither the export batches nor `ledger-verdicts-001.json` are produced by this lane (outside its
+write set — the coordinator's Haiku lanes' job, per the build plan's own §W1.1); this lane ships the
+`--with-text` mechanism and the exact first dispatch.

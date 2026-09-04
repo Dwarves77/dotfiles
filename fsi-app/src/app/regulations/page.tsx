@@ -20,6 +20,7 @@ import { getListingsOnly, getSurfaceCounts } from "@/lib/data";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
+import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
 import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
@@ -67,11 +68,17 @@ export default async function RegulationsPage({
     .filter((d): d is Date => d !== null)
     .reduce<Date | null>((acc, d) => (acc === null || d > acc ? d : acc), null);
   const lastSync = rpcSync ?? rowSync;
+  // HYDRATION-418 follow-on (2026-09-04): this is a Server Component (no client re-render, so no
+  // hydration-diff risk from this call specifically), but it renders on the SAME page under
+  // investigation and the same unpinned-timeZone call is genuinely TZ-dependent — a Vercel Lambda (UTC)
+  // and a viewer's local browser would disagree about which calendar day "last sync" falls on for a
+  // sync near local midnight. Pinned for correctness and consistency with the fix in
+  // RegulationsLedger.tsx / RegulationDetailSurface.tsx just below this page in the tree.
   const lastSyncLabel = lastSync
-    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric" })
+    ? lastSync.toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })
     : null;
 
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" });
 
   const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
   const meta = (
@@ -107,8 +114,14 @@ export default async function RegulationsPage({
           its own data via the request-scoped client, so it needs no props from this page's own fetches
           and soft-fails to nothing (never breaks the page) on a read error. */}
       <UpcomingObligationsStrip variant="list" />
+      {/* PAYLOAD lane (2026-09-04, item 2 of the perf brief): the first-paint SSR payload used to ship
+          the FULL Resource object for all 60 first-page rows — including keyData/reasoning (both
+          detail-page-only fields RegulationsLedger never reads, per toLedgerRowPayload's own header,
+          already trusted by /api/listings/rest's remainder fetch for this exact ledger). Trimming the
+          first-page rows the same way the remainder fetch already is closes the gap that trim's header
+          flagged as untouched ("the first-paint SSR payload (page.tsx) is unaffected"). */}
       <RegulationsLedger
-        initialResources={data.resources}
+        initialResources={data.resources.map(toLedgerRowPayload)}
         initialArchived={data.archived}
         initialOverrides={data.overrides}
         aggregates={aggregates}

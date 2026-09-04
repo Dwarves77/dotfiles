@@ -9964,3 +9964,59 @@ commit and a dirty page for PERF-8, ten dirty files and migration 304 for SITEMA
 FWD-TEXT-4); relaunched at 16:45 on the same worktrees with a resume preamble. No population dispatch,
 no schedule, no API spend. Next: land this train (#585), then T39's proving dispatches in order, the
 Haiku classification lanes over the exported candidates, and T38b when the three lanes report.
+
+### Addendum 85, postscript 50 — the first dispatches that prove train 38, and the loop that moved (2026-09-04)
+
+Train 38 landed as #585 (`e67b3223`). `POPULATION_PAUSED=true` is set as a repository variable, so the
+new ledger-consume → population-turn chain no-ops until T46. Then the proving dispatches, each recorded in
+`docs/ops/dispatch-ledger.jsonl`: Maintenance #45/#46, `institution-canonicalize` dry then apply: the dry
+plan matched T4-OVERRIDE's prediction exactly (3 hosts / 4 rows) and the apply is confirmed live, ifrs.org,
+cdp.net and sciencebasedtargets.org now base_tier 4 (the operator's "you know how to classify, fix it").
+Corpus turn #8, the first ticket-queue run (dry, limit 200): 93 targets, 1,116 edges would be discovered,
+and 107 of the 200 tickets named items "not in the verified/live corpus". Live SQL: 594 of the 1,709 open
+tickets belong to archived items. Left as built they would sit at the head of the oldest-first queue for
+ever, or be stamped consumed by a turn that did nothing on them. TICKET-CORPUS (this train) partitions the
+open queue by the item's live state before the limit: live verified tickets are the turn's scope, archived
+ones ride in the snapshot and are closed by the mark step under `<by>:item-archived`, unverified ones stay
+open and unselected. Propagation drain #4 (dry) then #5 (apply, `backfill_and_statutory`): the first time
+the decision-propagation loop moved since spec 08 was written. Confirmed live after the run:
+derivation_edges 6 → 24, derived_values 6 → 22, propagation_events pending 2,748 → 2,272 (500 drained, 8
+invalidated, 8 recomputed), statutory_computations still 0 because no reviewed ship-year rows-file exists
+(the step is a documented no-op until one does). Both dry and apply artifacts (propagation-run-003/004)
+and corpus-turn-run-001 are folded here; PROPOSER-11/12 name them.
+
+The classification path had to be rebuilt once. LEDGER-ZERO's candidate export carried no page text and
+said "a session lane must fetch each URL itself (e.g. via the browser)". I tried that with two Haiku lanes:
+WebFetch rate-limited within minutes and one lane started classifying from URL patterns instead. Stopped
+it, discarded its output, and gave lane LEDGER-EXPORT the correct design: the runtime already owns the one
+polite fetcher, so `--export-candidates --with-text` fetches in the Actions runner (same `fetchDoc`, same
+gap and timeout, same 200-char floor as portal-harvest.ts:306), pages by keyset (`--after`), and lands on
+a `ledger-consume/<run_id>` artifact branch; the Haiku lanes then classify offline from the carried text
+and never fetch. Job timeout 150 min from 400 × (1 s gap + 20 s worst-case fetch). The 1,837 candidates,
+by host: federalregister.gov 441, smartfreightcentre.org 383, epa.nsw.gov.au 220, eur-lex 164, des.sc.gov
+164, ncleg.gov 145, infrastructure.gov.au 128, the rest under 20 each; 1,437 from regulatory sources.
+
+Also in this train: SITEMAP-3 (all-hosts sitemap backfill mode, 40 hosts per run over 646 active hosts =
+17 dispatches, coverage columns in migration 304, written not applied; plus a real ReferenceError fixed in
+the bot-wall branch of the walker), FWD-TEXT-4 (the last template-displaying forward event: the marker sat
+320 chars before its date, outside the 300-char look-back; a marker-only wider scan, extractor
+fe1-2026-09-04.5), and PERF-8's three commits (timeZone pin closes React #418 on /regulations, SSR payload
+trimmed on /regulations and /operations, F36 fitness function for unpinned date formatting in hydrated
+components, 20 pre-existing call sites named as debt). PERF-8 did not do the caching model, the 4.25 s item
+click, or the five post-render calls; PERF-9 is running on exactly those three with ADR-026 and lands as
+train 40. The three interrupted lanes were resumed on their own worktrees rather than restarted; SITEMAP-3's
+resume found a rounding error in the previous agent's max-hosts arithmetic (16 vs 17) and fixed it in
+three places. Gates on this tree: fitness 30/0, discipline 186/0, closure gate 4/4, tsc, yaml, full suite
+5,243/0. Next: land (#586), apply migration 304, dispatch source-sweep all_hosts and ledger-consume
+export_candidates, corpus-turn apply under TICKET-CORPUS, Haiku classification lanes over the exported text.
+
+UX compliance (PERF-8: /regulations, /operations, the regulation detail surface; no new controls).
+Primary goal: the reader opens /regulations or /operations and sees the ledger rows on first paint
+without the page re-rendering itself; the detail surface shows the same dates the list showed. Path:
+unchanged, no new navigation, no mode switch. One primary action per row: unchanged. Feedback state:
+unchanged (the FIRSTPAGE "Loading N…" band state stays); what changed is that the hydration mismatch
+(React #418) no longer throws, so the first paint is the final paint, and the first-page rows carry only
+the fields the ledger renders, so the document is smaller and the detail fields load with the detail.
+Dates: every milestone and due date on these three surfaces is now formatted in UTC on both server and
+client, so a reader in any time zone sees the calendar day the source states, never a day shifted by the
+viewer's clock. Fitts's-law surface: no new interactive element; F36 guards the date-format class in CI.

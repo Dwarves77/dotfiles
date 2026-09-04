@@ -363,9 +363,58 @@
 //   (itself a verbatim substring of the item's own captured source) — the same "re-check every span before
 //   it is ever emitted" discipline this file's header states for every other hit.
 //
+// RECORD-FACTS TEMPLATE UNWRAP, RESIDUE (lane FWD-TEXT-4, 2026-09-04):
+//   [CONFIRMED, live SQL this lane, project kwrsbpiseruzbfwjpvsp, 2026-09-04] after FWD-TEXT-3 landed
+//   (Maintenance #44 APPLY), exactly ONE `item_forward_events` row still displayed the raw record-facts
+//   template instead of an unwrapped passage: id `4ab41812-cfb2-433c-a1be-077fd128d381`,
+//   `extractor_version` fe1-2026-09-04.3, `source_section_id` c4aae646-…, `obligation_text` = "…The captured
+//   source states, verbatim: «HAS ADOPTED THIS REGULATION: CHAPTER I General provisions Article 1 Scope
+//   This Regulation shall apply to the free allocation of emission allowances under Chapter III (Stationary
+//   installations) of Directive 2003/87/EC as regards the allocation periods as from 2021, with the exce»".
+//   [CONFIRMED, reproduced offline this lane, real `extractForwardEvents` over that row's own live
+//   `content_md` (`intelligence_item_sections` id c4aae646-…) — see this file's own test fixture, cited
+//   there with its SQL] root cause MEASURED, not guessed: the matched date ("2021", via the `from-year`
+//   rule on "...as regards the allocation periods as from 2021...") sits 320 chars after the START of its
+//   own `[operative_provision] ` marker (315 chars after the marker's trailing space, where the trigger
+//   word "from" itself sits) — PAST `DEFAULT_MAX_BEFORE` (300), because `operative_provision`'s own quoted
+//   passage (a legislative recital) runs unusually long before reaching a date at all. `clauseStart`'s
+//   bounded backward scan (maxBefore=300) therefore never reaches the marker: no genuine sentence
+//   terminator, paragraph break, list break, OR marker exists anywhere in its [floor, idx) scan range
+//   either (the quoted recital carries no periods before "2021"), so control fell all the way to the
+//   LAST-RESORT "nearest whitespace at or after floor" fallback, which — because `floor` itself lands just
+//   past the marker's own trailing space — produced a window starting exactly "The captured source states,
+//   verbatim: «…" (marker text absent), prefixed with the fragment ellipsis "…". This IS the coordinator's
+//   hypothesis "the leading-edge snap chose a boundary AFTER the marker", confirmed exactly — refined by
+//   measurement: not a NEARER competing boundary beating the marker (none existed in range), but the marker
+//   itself sitting outside the 300-char look-back entirely. `unwrapRecordFactsTemplate` never even reached
+//   its GAP/FACT-shape checks: `SLOT_MARKER_AT_RE.test(t)` at position 0 failed immediately (the window
+//   does not start with a marker), so it returned `null` (not a `skip`) and `clauseAround` fell through to
+//   ordinary (non-template) display handling — the second hypothesis in the dispatch (date outside the
+//   «…» quote, or a defensive skip) did NOT occur; the quote/date containment check in
+//   `unwrapRecordFactsTemplate` was never reached at all.
+//
+//   THE FIX, entirely in `clauseStart` above (`MAX_BEFORE_FOR_MARKER`, see that constant's own comment):
+//   when the normal `maxBefore`-bounded scan finds no sentence/paragraph/list/marker boundary, a marker is
+//   now looked for again over a SEPARATE, much wider look-back (3000 chars — comfortably above the largest
+//   `record_facts` section measured live, 2478 chars) before falling any further to the weaker clause/
+//   whitespace fallbacks. Only the marker gets the wider reach — the sentence/paragraph/list boundary scan
+//   stays bounded at `maxBefore` exactly as FWD-TEXT-2 calibrated it, so a genuine run-on paragraph still
+//   cannot pull unrelated prior obligation language into a non-record-facts window; a marker's own shape
+//   (`SLOT_MARKER_AT_RE`) is narrow and hand-written enough that looking further back for it specifically
+//   carries no such risk. Two ordinary "captured source" PROSE rows [CONFIRMED, live SQL, no `[slot_key] `
+//   prefix, so `SLOT_MARKER_AT_RE`/`unwrapRecordFactsTemplate` never fire on either]: `item_forward_events`
+//   id `0023163f-…` ("…the specific percentage range could not be independently verified against the
+//   captured source text.", a GAP-labelled sentence, event_kind 'other', section-sourced, unaffected by
+//   this change — same output before and after, see this file's own regression fixture) and
+//   `section_claim_provenance` id `3c32b28e-…` (claim_kind FACT, claim_text "The captured source text
+//   states the figure \"75%\".", no date anywhere in the span, so `scanText` never even calls `clauseAround`
+//   on it) are both fixtured as negative controls. `source_span`/`assertVerbatim` are unaffected — the
+//   matched date substring is unchanged by this fix, still checked against the ORIGINAL unmodified source
+//   text.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.4';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.5';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -582,16 +631,35 @@ function isSlotMarkerStartAt(text, i) {
 const DEFAULT_MAX_BEFORE = 300;
 const DEFAULT_MAX_AFTER = 160;
 
+// Lane FWD-TEXT-4, 2026-09-04 — see this file's header, "RECORD-FACTS TEMPLATE UNWRAP, RESIDUE" for the
+// measurement. A "[slot_key] " marker at or beyond `DEFAULT_MAX_BEFORE` (300) chars back from the date is
+// invisible to `clauseStart`'s normal bounded scan below, so a record-facts quote long enough to push its
+// own date past that bound (measured live: `[operative_provision]` -> "as from 2021" is 320 chars) fell
+// through to the whitespace fallback and landed AFTER the marker, defeating `unwrapRecordFactsTemplate`
+// (which requires the marker at the window's own position 0). A marker is a hand-written, narrowly-shaped
+// token (`SLOT_MARKER_AT_RE`) — unlike a genuine sentence terminator, looking further back for one specifically
+// carries no risk of sweeping in unrelated prior prose, so it gets its OWN, wider look-back: 3000 chars,
+// comfortably above the largest live `record_facts` section measured (2478 chars, `intelligence_item_sections`
+// where `section_key = 'record_facts'`, project kwrsbpiseruzbfwjpvsp, 2026-09-04) — i.e. wide enough to reach
+// a record_facts section's very first marker from its very last character, so no record-facts date can ever
+// again be farther from its own marker than this bound reaches.
+const MAX_BEFORE_FOR_MARKER = 3000;
+
 /**
  * Finds the leading edge of `clauseAround`'s display window: the nearest GENUINE sentence start at or
  * before `idx` (see `isGenuineTerminatorAt`), OR a markdown paragraph break, OR a list-item/heading line
- * start — bounded by `maxBefore` as the OUTER limit. ';' is never treated as a sentence terminator here
- * (that was the pre-fix bug: a clause separator is not a sentence end). When none of those is found in
- * bounds, falls back to the nearest CLAUSE boundary (';', a strictly weaker signal) still in bounds; when
- * even that is absent, falls back to the nearest word boundary — NEVER a raw byte offset that can land
- * mid-word. Returns `{ pos, fragment }`: `fragment: true` whenever the chosen start is NOT a genuine
- * sentence/paragraph/list boundary (either fallback), so the caller can mark the result as an honest
- * fragment instead of silently presenting a clause snippet as if it were a complete sentence.
+ * start, OR a "[slot_key] " marker — bounded by `maxBefore` as the OUTER limit. ';' is never treated as a
+ * sentence terminator here (that was the pre-fix bug: a clause separator is not a sentence end). When none
+ * of those is found within `maxBefore`, a SEPARATE, wider look-back (`MAX_BEFORE_FOR_MARKER`, see its own
+ * comment above) is tried for a marker alone — never for a sentence/paragraph/list boundary, which stay
+ * bounded by `maxBefore` exactly as before, so a genuine run-on paragraph still cannot pull in unrelated
+ * prior obligation language; only the marker's own narrow, unmistakable shape gets the wider reach. Only
+ * after BOTH look-backs find nothing does this fall back to the nearest CLAUSE boundary (';', a strictly
+ * weaker signal) still within `maxBefore`; when even that is absent, falls back to the nearest word boundary
+ * — NEVER a raw byte offset that can land mid-word. Returns `{ pos, fragment }`: `fragment: true` whenever
+ * the chosen start is NOT a genuine sentence/paragraph/list/marker boundary (either fallback), so the caller
+ * can mark the result as an honest fragment instead of silently presenting a clause snippet as if it were a
+ * complete sentence.
  */
 function clauseStart(text, idx, maxBefore) {
   const hardFloor = idx - maxBefore; // may be negative -- NOT yet clamped
@@ -616,7 +684,17 @@ function clauseStart(text, idx, maxBefore) {
   // so nothing was ever truncated and this is not a fragment (there is nothing before it to have cut off).
   if (hardFloor <= 0) return { pos: floor, fragment: false };
 
-  // No sentence/paragraph/list boundary in bounds — fall back to the nearest CLAUSE boundary (';').
+  // No sentence/paragraph/list/marker boundary within `maxBefore` — before falling back to a strictly
+  // weaker clause/whitespace boundary, look further back (bounded by `MAX_BEFORE_FOR_MARKER`, never
+  // unbounded) for a marker specifically (lane FWD-TEXT-4, see that constant's own comment). The normal
+  // bounded loop above already proved no marker sits within `maxBefore`, so any marker found here is
+  // strictly farther back than `floor` — scan from `floor - 1` down to the wider bound.
+  const markerFloor = Math.max(0, idx - MAX_BEFORE_FOR_MARKER);
+  for (let i = floor - 1; i >= markerFloor; i--) {
+    if (isSlotMarkerStartAt(text, i)) return { pos: i, fragment: false };
+  }
+
+  // No sentence/paragraph/list/marker boundary in bounds — fall back to the nearest CLAUSE boundary (';').
   for (let i = idx - 1; i >= floor; i--) {
     if (text[i] === ';') return { pos: i + 1, fragment: true };
   }

@@ -94,13 +94,57 @@ const WALKERS = Object.freeze(["register-eurlex", "register-federal-register", "
 // sitemap while still bounding a single dispatch against a source whose sitemap lists far more.
 export const DEFAULT_SITEMAP_LIMIT = 5000;
 
+// --max-hosts's default for --walker sitemap --all-hosts (lane SITEMAP-3, 2026-09-04). THE ARITHMETIC
+// (the operator's own framing was "a backfill of 2,563 sources is 2,563 dispatches today" — this default
+// is what turns that into ~17):
+//
+//   workflow timeout ............... 1800 s  (.github/workflows/source-sweep.yml `timeout-minutes: 30`)
+//   non-walk overhead reserved ....... 300 s  (checkout + setup-node + `npm ci` + the sibling-artifact
+//                                              hydrate step + the final commit/PR step — none of this is
+//                                              the walk loop; 5 min is a generous, not measured, reserve)
+//   walk budget ..................... 1500 s  (1800 - 300)
+//   measured per-ROW cost .............14 s   [CONFIRMED, source-sweep-run-010, a real dispatch,
+//                                              2026-09-04T04:20:24–04:21:20Z: 4 `sources` rows on ONE
+//                                              host (smartfreightcentre.org), 56 s wall time / 4 rows.
+//                                              --all-hosts still walks every row on a selected host (the
+//                                              existing --host behavior, unchanged — see
+//                                              selectAllHostsTargets's own doc for why: two rows on the
+//                                              same host can be scoped to different paths via
+//                                              sourceContentPath/isUrlWithinSourcePath, so collapsing to
+//                                              one walk per host would silently drop path-scoped
+//                                              candidates for every row but the one walked), so the
+//                                              budget is spent per ROW, grouped by host for SELECTION and
+//                                              ORDERING only.]
+//   active sources ................... 1630   [CONFIRMED SQL, 2026-09-04: `select count(*) from sources
+//                                              where status='active'`]
+//   distinct active hosts .............. 646   [CONFIRMED SQL, 2026-09-04: distinct lower(host), www-
+//                                              stripped, over status='active' rows]
+//   avg rows per active host .......... 2.52   (1630 / 646)
+//   avg cost per host ................ ~35 s   (14 s/row * 2.52 rows/host)
+//   DEFAULT_MAX_HOSTS = floor(1500 / 35) ....... 42, rounded DOWN to a flatter number for headroom
+//                                              against hosts whose sitemap needs index fan-out (more than
+//                                              one document fetch) or whose feed-candidate probing runs
+//                                              the full, unscoped 6-candidate list before falling through
+//                                              to the sitemap path (this repo has no live measurement of
+//                                              THAT worse case yet — 42 already has ~17% headroom built
+//                                              in over the observed-case arithmetic above, so 40 keeps a
+//                                              round number without spending real headroom on rounding).
+//   -> 646 hosts / 40 per run ≈ 16.15, i.e. ceil(16.15) = 17 dispatches (not 2,563) sweep every active
+//   host once (16 full 40-host dispatches cover only 640 of 646 — a 17th, partial, dispatch is still
+//   needed for the remaining 6; matches CORPUS-TURN-RUNBOOK.md's "The sitemap walker" section, which
+//   states the same ⌈646/40⌉ = 17 independently).
+//
+// Always overridable per dispatch via --max-hosts.
+export const DEFAULT_MAX_HOSTS = 40;
+
 function usage() {
   return (
     "Usage: node scripts/turns/run-source-sweep.mjs\n" +
     "         --walker <register-eurlex|register-federal-register|feed|sitemap>\n" +
     "         --mode <dry|apply> [--from ISO-date] [--to ISO-date] [--feed-url url] [--series L|C]\n" +
     "         [--types RULE,PRORULE] [--term text] [--max-pages N] [--per-page N] [--source-name name]\n" +
-    "         [--source-id uuid] [--host hostname] [--limit N] [--max-sitemap-fetches N] [--max-sitemap-entries N]\n" +
+    "         [--source-id uuid | --host hostname | --all-hosts] [--max-hosts N] [--limit N]\n" +
+    "         [--max-sitemap-fetches N] [--max-sitemap-entries N] [--check-coverage]\n" +
     "         [--harness-runs-dir dir] [--out-dir dir]"
   );
 }
@@ -125,6 +169,9 @@ export function parseArgs(argv) {
         "source-name": { type: "string" },
         "source-id": { type: "string" },
         host: { type: "string" },
+        "all-hosts": { type: "boolean", default: false },
+        "max-hosts": { type: "string", default: String(DEFAULT_MAX_HOSTS) },
+        "check-coverage": { type: "boolean", default: false },
         limit: { type: "string" },
         "max-sitemap-fetches": { type: "string", default: String(DEFAULT_MAX_SITEMAP_FETCHES) },
         "max-sitemap-entries": { type: "string", default: String(DEFAULT_MAX_SITEMAP_ENTRIES) },
@@ -147,11 +194,22 @@ export function parseArgs(argv) {
   if (values.walker === "feed") {
     if (!values["feed-url"]) return { ok: false, error: "--feed-url is required for --walker feed." };
   } else if (values.walker === "sitemap") {
-    if (!values["source-id"] && !values.host) {
-      return { ok: false, error: "--source-id or --host is required for --walker sitemap (exactly one)." };
-    }
-    if (values["source-id"] && values.host) {
-      return { ok: false, error: "--source-id and --host are mutually exclusive for --walker sitemap." };
+    if (values["check-coverage"]) {
+      // --check-coverage (lane SITEMAP-3, 2026-09-04): a read-only report over `sources`' sitemap-coverage
+      // columns (migration 304) — it selects no walk targets at all, so --source-id/--host/--all-hosts are
+      // refused alongside it (naming a selector for a mode that never walks anything is a caller mistake,
+      // not a valid combination), and it never writes, so --mode must say so honestly.
+      if (values["source-id"] || values.host || values["all-hosts"]) {
+        return { ok: false, error: "--check-coverage is read-only and takes no selector — --source-id/--host/--all-hosts are refused alongside it." };
+      }
+      if (values.mode !== "dry") {
+        return { ok: false, error: "--check-coverage never writes — pass --mode dry (there is nothing for --mode apply to do)." };
+      }
+    } else {
+      const selectors = ["source-id", "host", "all-hosts"].filter((k) => values[k]);
+      if (selectors.length !== 1) {
+        return { ok: false, error: "--source-id, --host, or --all-hosts is required for --walker sitemap (exactly one)." };
+      }
     }
   } else {
     if (!values.from || Number.isNaN(Date.parse(values.from))) {
@@ -180,6 +238,10 @@ export function parseArgs(argv) {
   if (!Number.isFinite(maxSitemapEntries) || maxSitemapEntries <= 0) {
     return { ok: false, error: "--max-sitemap-entries must be a positive number." };
   }
+  const maxHosts = Number(values["max-hosts"]);
+  if (!Number.isFinite(maxHosts) || maxHosts <= 0) {
+    return { ok: false, error: "--max-hosts must be a positive number." };
+  }
 
   return {
     ok: true,
@@ -196,6 +258,9 @@ export function parseArgs(argv) {
     sourceName: values["source-name"] || null,
     sourceId: values["source-id"] || null,
     host: values.host || null,
+    allHosts: Boolean(values["all-hosts"]),
+    maxHosts,
+    checkCoverage: Boolean(values["check-coverage"]),
     limit,
     maxSitemapFetches,
     maxSitemapEntries,
@@ -247,12 +312,177 @@ export async function upsertPortalLinkCandidates(sb, sourceId, links) {
 export function selectSitemapSources(rows, { sourceId, host }) {
   if (sourceId) return rows.filter((r) => r.id === sourceId);
   const wantHost = String(host || "").toLowerCase().replace(/^www\./, "");
-  return rows.filter((r) => {
-    if (r.status !== "active") return false;
-    let h = "";
-    try { h = new URL(r.url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return false; }
-    return h === wantHost;
-  });
+  return rows.filter((r) => r.status === "active" && hostKeyOf(r.url) === wantHost);
+}
+
+/** Lowercase, www-stripped hostname of a URL, or `null` when it does not parse. PURE. Shared by
+ *  `selectSitemapSources`'s `--host` filter and every `--all-hosts` grouping/ordering function below —
+ *  one definition of "what host does this source belong to," not two independently hand-written ones.
+ *  @param {string} url @returns {string|null} */
+export function hostKeyOf(url) {
+  try { return new URL(url).hostname.toLowerCase().replace(/^www\./, ""); } catch { return null; }
+}
+
+/** Group every ACTIVE `sources` row with a parseable `url` by `hostKeyOf` (lane SITEMAP-3, 2026-09-04:
+ *  `--walker sitemap --all-hosts`'s selection step). A row whose `url` does not parse is silently
+ *  excluded (it could never be walked anyway — `selectSitemapSources`'s own `--host` path has the same
+ *  failure mode via its try/catch). PURE.
+ *  @param {Array<{id:string,url:string,status?:string}>} rows
+ *  @returns {Array<{host:string, rows:object[]}>} insertion-ordered by first sighting of each host */
+export function groupActiveSourcesByHost(rows) {
+  const order = [];
+  const byHost = new Map();
+  for (const r of rows) {
+    if (r.status !== "active") continue;
+    const host = hostKeyOf(r.url);
+    if (!host) continue;
+    if (!byHost.has(host)) { byHost.set(host, []); order.push(host); }
+    byHost.get(host).push(r);
+  }
+  return order.map((host) => ({ host, rows: byHost.get(host) }));
+}
+
+/** One host-group's sitemap-coverage state, read from `sources.sitemap_last_walked_at` (migration 304 —
+ *  present on every row once that migration is applied; `undefined`/`null` on a row from before it, or a
+ *  row this host's own sitemap walk has never reached). `neverWalked` is true only when EVERY row in the
+ *  group has never been walked — a host with one walked row and one never-walked row is NOT "never
+ *  walked" (it has SOME coverage; a fresh dispatch should treat it as "walked, oldest-first," not jump it
+ *  to the front of the never-walked queue ahead of a host with zero coverage at all). PURE.
+ *  @param {Array<{sitemap_last_walked_at?:string|null}>} rows
+ *  @returns {{neverWalked:boolean, oldestWalkedAt:string|null}} */
+export function hostSitemapCoverage(rows) {
+  const stamps = rows.map((r) => r.sitemap_last_walked_at).filter(Boolean).sort();
+  return { neverWalked: stamps.length === 0, oldestWalkedAt: stamps.length ? stamps[0] : null };
+}
+
+/** Order host groups for a sweep: hosts with NO walked row first (this run's whole point — cover
+ *  ground never touched before it re-touches ground it already has), then hosts that HAVE been walked
+ *  before, oldest-coverage-first (a host whose sitemap was last checked longest ago is the thinnest/
+ *  staleest coverage among the ones already covered once). Each bucket is a stable sort (ties broken by
+ *  host name, ascending) so two runs given an identical snapshot of `sources` produce an identical order
+ *  — this IS the resumability property (build plan brief: "resumable because the next run's ordering
+ *  starts where coverage is thinnest"). PURE.
+ *  @param {Array<{host:string, rows:object[]}>} hostGroups
+ *  @returns {Array<{host:string, rows:object[], coverage:{neverWalked:boolean, oldestWalkedAt:string|null}}>} */
+export function orderHostGroupsForSweep(hostGroups) {
+  const withCoverage = hostGroups.map((g) => ({ ...g, coverage: hostSitemapCoverage(g.rows) }));
+  const byHostAsc = (a, b) => (a.host < b.host ? -1 : a.host > b.host ? 1 : 0);
+  const neverWalked = withCoverage.filter((g) => g.coverage.neverWalked).sort(byHostAsc);
+  const walked = withCoverage
+    .filter((g) => !g.coverage.neverWalked)
+    .sort((a, b) => {
+      const ao = a.coverage.oldestWalkedAt, bo = b.coverage.oldestWalkedAt;
+      if (ao < bo) return -1;
+      if (ao > bo) return 1;
+      return byHostAsc(a, b);
+    });
+  return [...neverWalked, ...walked];
+}
+
+/** `--all-hosts`'s full selection: group ACTIVE sources by host, order by coverage thinness
+ *  (`orderHostGroupsForSweep`), take the first `maxHosts` host groups, flatten back to the SOURCE ROWS
+ *  those hosts contain (every row on a selected host is targeted — see `DEFAULT_MAX_HOSTS`'s own comment
+ *  for why a host is not collapsed to one representative row: distinct rows on one host can be scoped to
+ *  distinct content paths). PURE.
+ *  @param {Array<{id:string,url:string,status?:string,sitemap_last_walked_at?:string|null}>} rows
+ *  @param {{maxHosts:number}} opts
+ *  @returns {{
+ *    targets: object[],
+ *    hostsSelected: string[],
+ *    hostsTotalActive: number,
+ *    hostsNeverWalkedBefore: number,
+ *    hostsRemainingUnwalkedAfter: number,
+ *  }} */
+export function selectAllHostsTargets(rows, { maxHosts }) {
+  const ordered = orderHostGroupsForSweep(groupActiveSourcesByHost(rows));
+  const selected = ordered.slice(0, Math.max(0, maxHosts));
+  const hostsNeverWalkedBefore = ordered.filter((g) => g.coverage.neverWalked).length;
+  const neverWalkedSelected = selected.filter((g) => g.coverage.neverWalked).length;
+  return {
+    targets: selected.flatMap((g) => g.rows),
+    hostsSelected: selected.map((g) => g.host),
+    hostsTotalActive: ordered.length,
+    hostsNeverWalkedBefore,
+    hostsRemainingUnwalkedAfter: hostsNeverWalkedBefore - neverWalkedSelected,
+  };
+}
+
+/** The five coverage columns migration 304 adds to `sources`, computed from one targeted row's walk
+ *  `outcome` (as built in `main()`'s sitemap branch — `{kind:'feed'|'sitemap'|'error', ok?, ...}`), for a
+ *  guarded write through `db.mjs`'s existing path. PURE (no I/O, no `Date.now()` — `nowIso` is injected so
+ *  this is independently testable against a fixed clock).
+ *
+ *  WHICH KEYS APPEAR, AND WHY. `walkSource` (sitemap-walk.mjs) always tries feed discovery BEFORE ever
+ *  reaching a sitemap fetch, so by the time `kind` is known to be `'feed'` or `'sitemap'`, a feed probe
+ *  DEFINITELY ran — `feed_last_probed_at` is stamped for both. `kind:'error'` is the one case this driver
+ *  cannot make that claim for (an uncaught exception from `walkSource` — main()'s own per-source try/catch
+ *  — could have thrown before `discoverFeed` even started), so `feed_last_probed_at` is left OUT of an
+ *  error patch rather than asserted on a guess. `sitemap_url`/`sitemap_url_count` are the walk's OWN
+ *  findings about the sitemap itself, so they appear ONLY when a sitemap was actually, successfully
+ *  walked (`kind:'sitemap' && ok:true`) — a `'feed'` outcome (sitemap never reached this walk) or an
+ *  error/`no_sitemap`/`bot_wall` outcome (no reliable sitemap URL to record) leaves them OUT of the patch
+ *  entirely, so a PRIOR walk's still-valid `sitemap_url`/`sitemap_url_count` on that row is never
+ *  overwritten with a null this walk did not actually determine. `sitemap_last_walked_at` and
+ *  `sitemap_walk_outcome`, by contrast, ALWAYS appear (even on `'error'`) — an attempt was made regardless
+ *  of what it found, and stamping the timestamp on every outcome (not only success) is what lets
+ *  `orderHostGroupsForSweep` make forward progress past a host that keeps failing the same way, rather
+ *  than re-selecting it at the front of the "never walked" bucket on every future run forever.
+ *  @param {{kind:'feed'|'sitemap'|'error', ok?:boolean, discoverySource?:string,
+ *           sitemapsFetched?:Array<{url:string}>, urlCount?:number}} outcome
+ *  @param {string} nowIso
+ *  @returns {{sitemap_last_walked_at:string, sitemap_walk_outcome:string, feed_last_probed_at?:string,
+ *             sitemap_url?:string|null, sitemap_url_count?:number}} */
+export function buildSitemapCoveragePatch(outcome, nowIso) {
+  const patch = { sitemap_last_walked_at: nowIso };
+  if (outcome.kind === "feed") {
+    patch.sitemap_walk_outcome = "feed_only";
+    patch.feed_last_probed_at = nowIso;
+  } else if (outcome.kind === "sitemap") {
+    patch.feed_last_probed_at = nowIso; // walkSource always probes feed first, even on the sitemap path
+    if (outcome.ok) {
+      patch.sitemap_walk_outcome = "walked";
+      patch.sitemap_url = outcome.sitemapsFetched?.[0]?.url ?? null;
+      patch.sitemap_url_count = outcome.urlCount ?? 0;
+    } else if (outcome.discoverySource === "bot_wall") {
+      patch.sitemap_walk_outcome = "bot_wall";
+    } else {
+      patch.sitemap_walk_outcome = "no_sitemap";
+    }
+  } else {
+    // kind === "error": an uncaught exception — no reliable claim about which phase failed.
+    patch.sitemap_walk_outcome = "unfetchable";
+  }
+  return patch;
+}
+
+/** `--check-coverage`'s read-only report (lane SITEMAP-3, 2026-09-04): sources total (every status),
+ *  active total, how many of the ACTIVE rows have ever been sitemap-walked vs never, a breakdown by
+ *  `sitemap_walk_outcome` (a never-walked active row counts under the synthetic key `'never_walked'`,
+ *  never silently omitted), and how many rows (any status — matches the operator's own framing, "did you
+ *  do mapping of rss feeds," which was never scoped to active-only) carry a populated `rss_feed_url`. PURE
+ *  — reads exactly the columns `main()`'s sitemap branch already selects, no extra query.
+ *  @param {Array<{status?:string, sitemap_last_walked_at?:string|null, sitemap_walk_outcome?:string|null,
+ *                 rss_feed_url?:string|null}>} rows
+ *  @returns {{sourcesTotalAll:number, sourcesActiveTotal:number, sitemapWalkedActive:number,
+ *             sitemapUnwalkedActive:number, walkOutcomeCounts:Record<string,number>,
+ *             feedUrlPopulated:number}} */
+export function buildCoverageReport(rows) {
+  const active = rows.filter((r) => r.status === "active");
+  const walkOutcomeCounts = {};
+  let walked = 0;
+  for (const r of active) {
+    if (r.sitemap_last_walked_at) walked++;
+    const key = r.sitemap_walk_outcome || "never_walked";
+    walkOutcomeCounts[key] = (walkOutcomeCounts[key] || 0) + 1;
+  }
+  return {
+    sourcesTotalAll: rows.length,
+    sourcesActiveTotal: active.length,
+    sitemapWalkedActive: walked,
+    sitemapUnwalkedActive: active.length - walked,
+    walkOutcomeCounts,
+    feedUrlPopulated: rows.filter((r) => r.rss_feed_url).length,
+  };
 }
 
 /** Build this run's per_item / metrics / inputs_ref / full_trace_refs from one walker's raw result.
@@ -304,6 +534,24 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       total_count: result.totalCount, total_pages: result.totalPages, dropped_pages: result.droppedPages,
     };
     return { perItem, metrics, inputsRef: result.pages.map((p) => p.url), fullTraceRefs: [reportPath] };
+  }
+  if (walker === "sitemap" && result.coverageReport) {
+    // --check-coverage (lane SITEMAP-3, 2026-09-04): a read-only report, no sources walked this run.
+    const c = result.coverageReport;
+    return {
+      perItem: [],
+      metrics: {
+        mode, check_coverage: true,
+        sources_total_all: c.sourcesTotalAll,
+        sources_active_total: c.sourcesActiveTotal,
+        sitemap_walked_active: c.sitemapWalkedActive,
+        sitemap_unwalked_active: c.sitemapUnwalkedActive,
+        walk_outcome_counts: c.walkOutcomeCounts,
+        feed_url_populated: c.feedUrlPopulated,
+      },
+      inputsRef: ["walker=sitemap", "check-coverage=true"],
+      fullTraceRefs: [reportPath],
+    };
   }
   if (walker === "sitemap") {
     // result.sources: one entry per targeted `sources` row (lane SITEMAP, 2026-09-04) — discovery order
@@ -359,6 +607,20 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
     const okSitemapSources = sitemapSources.filter((s) => s.ok);
     const sitemapUpsertedTotal = okSitemapSources.reduce((a, s) => a + (s.upserted ?? 0), 0);
     const feedUpsertedTotal = feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.upserted : 0), 0);
+    const newTotal = okSitemapSources.reduce((a, s) => a + s.diff.addedCount, 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.entries : 0), 0);
+    const changedTotal = okSitemapSources.reduce((a, s) => a + s.diff.changedCount, 0);
+    // hosts_* (lane SITEMAP-3, 2026-09-04): the --all-hosts build plan's own per-run artifact fields —
+    // computed generally (not only under --all-hosts) since "how many distinct hosts did this run touch"
+    // is honest, useful information for a --host/--source-id dispatch too (it is just 1, or 0/1).
+    const hostsOf = (list) => new Set(list.map((s) => hostKeyOf(s.sourceUrl)).filter(Boolean));
+    const hostsWalked = hostsOf(sources);
+    const botWallHostSet = new Set(botWallSources.map((s) => hostKeyOf(s.sourceUrl)).filter(Boolean));
+    // A host counts as "skipped for bot_wall" only when EVERY sitemap-kind row targeted for it this run
+    // hit the wall — one row bot-walled and a sibling row on the same host actually walked is not a
+    // skipped host, it is a partially-successful one.
+    const hostsSkippedBotWall = [...botWallHostSet].filter((h) =>
+      sitemapSources.filter((s) => hostKeyOf(s.sourceUrl) === h).every((s) => !s.ok && s.discoverySource === "bot_wall")
+    );
     const metrics = {
       mode,
       sources_targeted: sources.length,
@@ -367,13 +629,24 @@ export function shapeRunOutput(walker, result, reportPath, mode = "apply") {
       bot_wall_sources: botWallSources.length,
       errors: errorSources.length,
       urls_scoped_total: okSitemapSources.reduce((a, s) => a + (s.urlCount ?? 0), 0),
-      new_total: okSitemapSources.reduce((a, s) => a + s.diff.addedCount, 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.entries : 0), 0),
-      changed_total: okSitemapSources.reduce((a, s) => a + s.diff.changedCount, 0),
+      new_total: newTotal,
+      changed_total: changedTotal,
       removed_total: okSitemapSources.reduce((a, s) => a + s.diff.removedCount, 0),
       partial_coverage_sources: okSitemapSources.filter((s) => !s.coverageComplete).length,
       baseline_deferred_sources: okSitemapSources.filter((s) => s.baselineDeferred).length,
       rss_feed_url_written: feedSources.filter((s) => s.rssFeedUrlWritten).length,
       change_signals_recorded: okSitemapSources.filter((s) => s.changeRecorded).length,
+      // build-plan-named fields (docs/dispatches/ lane brief, 2026-09-04): hosts_walked, hosts_skipped_
+      // bot_wall, feeds_discovered, new_locs, lastmod_changes, hosts_remaining_unwalked — kept ALONGSIDE
+      // the pre-existing names above (feed_found/new_total/changed_total), never replacing them, so
+      // nothing already reading this artifact's metrics loses a field.
+      hosts_walked: hostsWalked.size,
+      hosts_skipped_bot_wall: hostsSkippedBotWall.length,
+      feeds_discovered: feedSources.length,
+      new_locs: newTotal,
+      lastmod_changes: changedTotal,
+      hosts_remaining_unwalked: result.allHosts ? result.allHosts.hostsRemainingUnwalkedAfter : null,
+      hosts_selected: result.allHosts ? result.allHosts.hostsSelected.length : null,
       ...writeMetrics(sitemapUpsertedTotal + feedUpsertedTotal),
       failed: okSitemapSources.reduce((a, s) => a + (s.failed ?? 0), 0) + feedSources.reduce((a, s) => a + (s.feedResult?.ok ? s.feedResult.failed : 0), 0),
       no_targets_reason: result.note ?? null,
@@ -471,7 +744,7 @@ async function main() {
 
   const {
     walker, mode, from, to, feedUrl, series, types, term, maxPages, perPage, sourceName,
-    sourceId: cliSourceId, host, limit, maxSitemapFetches, maxSitemapEntries,
+    sourceId: cliSourceId, host, allHosts, maxHosts, checkCoverage, limit, maxSitemapFetches, maxSitemapEntries,
   } = parsed;
   const harnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
   // The raw walker result (the run's FULL TRACE — per-day act URLs in the EUR-Lex case) is kept in the
@@ -659,59 +932,88 @@ async function main() {
     } else if (walker === "register-federal-register") {
       result = await walkFederalRegister({ fetchJson: fetchJsonImpl, persist }, { from, to, types, term, perPage, maxPages });
     } else if (walker === "sitemap") {
-      const rows = await readAll("sources", "id,url,name,status,access_method,rss_feed_url");
-      const targets = selectSitemapSources(rows, { sourceId: cliSourceId, host });
-      if (!targets.length) {
-        result = {
-          sources: [],
-          note: cliSourceId
-            ? `no source row found for --source-id ${cliSourceId}`
-            : `no active source rows found for --host ${host}`,
-        };
+      // Every column main()'s own coverage-write patch or the coverage-check report reads — migration
+      // 304's five new columns plus the pre-existing status/rss_feed_url this branch already needed.
+      const rows = await readAll(
+        "sources",
+        "id,url,name,status,access_method,rss_feed_url,sitemap_url,sitemap_last_walked_at,sitemap_url_count,sitemap_walk_outcome,feed_last_probed_at"
+      );
+
+      if (checkCoverage) {
+        // Read-only — no walk, no write. See buildCoverageReport's own doc for the shape.
+        result = { coverageReport: buildCoverageReport(rows) };
       } else {
-        const sourceResults = [];
-        for (const src of targets) {
-          const walkDeps = {
-            fetchBytes: fetchBytesImpl,
-            getPreviousSnapshot: () => getSitemapSnapshot(src.id),
-            saveSnapshot: (entries) => saveSitemapSnapshot(src.id, entries),
-            persist: (links) => persistFor(src.id, links),
-            recordChange: (changed) => recordSitemapChange(src.id, changed),
+        const allHostsSelection = allHosts ? selectAllHostsTargets(rows, { maxHosts }) : null;
+        const targets = allHosts ? allHostsSelection.targets : selectSitemapSources(rows, { sourceId: cliSourceId, host });
+        if (!targets.length) {
+          result = {
+            sources: [],
+            allHosts: allHostsSelection,
+            note: allHosts
+              ? "no active source rows found (--all-hosts, empty sources table or nothing active)"
+              : cliSourceId
+                ? `no source row found for --source-id ${cliSourceId}`
+                : `no active source rows found for --host ${host}`,
           };
-          let outcome;
-          try {
-            const r = await walkSource(walkDeps, { sourceUrl: src.url, maxSitemapFetches, maxSitemapEntries, limit });
-            outcome = { sourceId: src.id, sourceName: src.name, sourceUrl: src.url, ...r };
-            if (r.kind === "feed") {
-              const feedResult = await walkFeed(
-                { fetchText: fetchTextImpl, persist: (links) => persistFor(src.id, links) },
-                { feedUrl: r.feedUrl }
-              );
-              outcome.feedResult = feedResult;
-              // Record the discovered feed_url through the SAME guarded writer every script-side mutation
-              // in this repo goes through (db.mjs's rule-015 path — cite + prior-value snapshot), never a
-              // new one. Only when it actually changed (idempotent re-walks write nothing).
-              if (mode === "apply" && src.rss_feed_url !== r.feedUrl) {
-                const upd = await guardedUpdate(
-                  "sources",
-                  (qb) => qb.eq("id", src.id),
-                  { rss_feed_url: r.feedUrl },
-                  { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded discovered feed_url for ${src.url} (${r.discoverySource}).` } }
-                );
-                outcome.rssFeedUrlWritten = (upd.updated ?? 0) > 0;
-              } else {
-                outcome.rssFeedUrlWritten = false;
-              }
-            }
-          } catch (e) {
-            outcome = {
-              sourceId: src.id, sourceName: src.name, sourceUrl: src.url,
-              kind: "error", error: e instanceof Error ? e.message : String(e),
+        } else {
+          const sourceResults = [];
+          for (const src of targets) {
+            const walkDeps = {
+              fetchBytes: fetchBytesImpl,
+              getPreviousSnapshot: () => getSitemapSnapshot(src.id),
+              saveSnapshot: (entries) => saveSitemapSnapshot(src.id, entries),
+              persist: (links) => persistFor(src.id, links),
+              recordChange: (changed) => recordSitemapChange(src.id, changed),
             };
+            let outcome;
+            try {
+              const r = await walkSource(walkDeps, { sourceUrl: src.url, maxSitemapFetches, maxSitemapEntries, limit });
+              outcome = { sourceId: src.id, sourceName: src.name, sourceUrl: src.url, ...r };
+              if (r.kind === "feed") {
+                const feedResult = await walkFeed(
+                  { fetchText: fetchTextImpl, persist: (links) => persistFor(src.id, links) },
+                  { feedUrl: r.feedUrl }
+                );
+                outcome.feedResult = feedResult;
+                // Record the discovered feed_url through the SAME guarded writer every script-side mutation
+                // in this repo goes through (db.mjs's rule-015 path — cite + prior-value snapshot), never a
+                // new one. Only when it actually changed (idempotent re-walks write nothing).
+                if (mode === "apply" && src.rss_feed_url !== r.feedUrl) {
+                  const upd = await guardedUpdate(
+                    "sources",
+                    (qb) => qb.eq("id", src.id),
+                    { rss_feed_url: r.feedUrl },
+                    { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded discovered feed_url for ${src.url} (${r.discoverySource}).` } }
+                  );
+                  outcome.rssFeedUrlWritten = (upd.updated ?? 0) > 0;
+                } else {
+                  outcome.rssFeedUrlWritten = false;
+                }
+              }
+            } catch (e) {
+              outcome = {
+                sourceId: src.id, sourceName: src.name, sourceUrl: src.url,
+                kind: "error", error: e instanceof Error ? e.message : String(e),
+              };
+            }
+            // Sitemap-coverage columns (migration 304) — written on EVERY walked row, every discovery
+            // outcome, through the SAME guarded path the rss_feed_url write above uses; dry mode writes
+            // nothing (buildSitemapCoveragePatch's own doc explains which keys appear for which outcome).
+            const coveragePatch = buildSitemapCoveragePatch(outcome, new Date().toISOString());
+            outcome.coveragePatch = coveragePatch;
+            if (mode === "apply") {
+              const cov = await guardedUpdate(
+                "sources", (qb) => qb.eq("id", src.id), coveragePatch,
+                { cite: { skill: "corpus-turn-runbook", reason: `source-sweep sitemap walk: recorded sitemap-coverage state for ${src.url} (outcome=${coveragePatch.sitemap_walk_outcome}).` } }
+              );
+              outcome.coverageWritten = (cov.updated ?? 0) > 0;
+            } else {
+              outcome.coverageWritten = false;
+            }
+            sourceResults.push(outcome);
           }
-          sourceResults.push(outcome);
+          result = { sources: sourceResults, allHosts: allHostsSelection };
         }
-        result = { sources: sourceResults };
       }
     } else {
       result = await walkFeed({ fetchText: fetchTextImpl, persist }, { feedUrl });
@@ -745,7 +1047,8 @@ async function main() {
         config: {
           walker, mode, from, to, feed_url: feedUrl, series, types, term: term ?? null,
           max_pages: maxPages, per_page: perPage, source_id: sourceId, portal_url: portal?.url ?? null,
-          cli_source_id: cliSourceId, host, limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
+          cli_source_id: cliSourceId, host, all_hosts: allHosts, max_hosts: maxHosts, check_coverage: checkCoverage,
+          limit, max_sitemap_fetches: maxSitemapFetches, max_sitemap_entries: maxSitemapEntries,
         },
         inputs_ref: shaped?.inputsRef ?? [`walker=${walker}`, `from=${from ?? "n/a"}`, `to=${to ?? "n/a"}`],
         per_item: shaped?.perItem ?? [],

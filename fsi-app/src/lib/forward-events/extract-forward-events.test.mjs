@@ -1403,6 +1403,86 @@ describe('extractForwardEvents: end-to-end over real record-facts section conten
 });
 
 // ---------------------------------------------------------------------------
+// FWD-TEXT-4 residue fix, lane FWD-TEXT-4, 2026-09-04 — see this module's own header, "RECORD-FACTS
+// TEMPLATE UNWRAP, RESIDUE", for the full measurement. Fixture below is the verbatim live `content_md`
+// (`intelligence_item_sections` id c4aae646-47ba-4b56-a6b3-5feca772706d`) read this lane via:
+//   SELECT e.*, s.content_md FROM item_forward_events e
+//   JOIN intelligence_item_sections s ON s.id = e.source_section_id
+//   WHERE e.id = '4ab41812-cfb2-433c-a1be-077fd128d381';
+// project kwrsbpiseruzbfwjpvsp, 2026-09-04.
+// ---------------------------------------------------------------------------
+
+describe('extractForwardEvents: FWD-TEXT-4 residue fix (marker beyond DEFAULT_MAX_BEFORE)', () => {
+  test('the ONE live row still showing the raw template after FWD-TEXT-3 (operative_provision, marker 320 chars before its own date) now unwraps', () => {
+    const md =
+      '[effective_date] The captured source states, verbatim: «shall enter into force on the day following that of its publication in the Official Journal of the European Unio»\n' +
+      '[jurisdictional_scope] The captured source states, verbatim: «applies to situations where an operator, for the purpose of updating benchmark values, has to attrib»\n' +
+      '[penalty_summary] The captured source states, verbatim: «fines, fluxes and iron-containing recycling materials with the chemical and physical properties such as the level o»\n' +
+      '[primary_deadline] No verbatim primary deadline statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n' +
+      '[binding_position] The captured source\'s own applicability language places this item at «direct_duty» (Your duty), from the passage: «The operator shall divide the installation concerned in sub-installations in accordance with Article 10»\n' +
+      '[due_date] No verbatim due-date statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n' +
+      '[operative_provision] The captured source states, verbatim: «HAS ADOPTED THIS REGULATION: CHAPTER I General provisions Article 1 Scope This Regulation shall apply to the free allocation of emission allowances under Chapter III (Stationary installations) of Directive 2003/87/EC as regards the allocation periods as from 2021, with the exce»\n' +
+      '[addressee] No verbatim addressee statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n' +
+      '[confirmed_measure] No verbatim confirmed measure statement was located in the captured source text for this record-grade item. A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.\n' +
+      '[in_force_status] No EUR-Lex legal-status indicator markup was located in the captured source text for this record-grade item (the deterministic capture pipeline\'s own clean-text/Cellar endpoints do not carry this widget). A full-brief regrounding will re-examine this gap when this item upgrades from record to brief.';
+
+    // Measured: the marker start sits 315 chars before the "from" trigger and 320 before the date itself --
+    // past DEFAULT_MAX_BEFORE (300), the exact condition this fix (MAX_BEFORE_FOR_MARKER) exists for.
+    const markerIdx = md.indexOf('[operative_provision]');
+    const dateIdx = md.indexOf('2021', md.indexOf('as from 2021'));
+    assert.ok(dateIdx - markerIdx > 300, 'fixture must reproduce the out-of-range condition this test guards');
+
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2021-01-01' && e.source_span === '2021');
+    assert.ok(event, 'expected a 2021-01-01 event on the "2021" span');
+    assert.equal(event.event_kind, 'compliance_deadline');
+    assert.equal(
+      event.obligation_text,
+      'HAS ADOPTED THIS REGULATION: CHAPTER I General provisions Article 1 Scope This Regulation shall apply to the free allocation of emission allowances under Chapter III (Stationary installations) of Directive 2003/87/EC as regards the allocation periods as from 2021, with the exce…'
+    );
+    for (const forbidden of ['captured source', 'verbatim:', 'operative_provision', 'full-brief regrounding']) {
+      assert.ok(!event.obligation_text.includes(forbidden), `still contains "${forbidden}": ${event.obligation_text}`);
+    }
+    assertWellFormedEvent(event, md);
+  });
+
+  test('negative fixture: a GAP-labelled prose sentence using "captured source" as ordinary language (item_forward_events id 0023163f-b057-419a-a2bf-62fe6b8c4b03) is unaffected -- no marker, so unwrapRecordFactsTemplate never fires, and the obligation_text is unchanged from the live row', () => {
+    const md =
+      '### Scale of Transition Required: Quantitative Context\n\n' +
+      "GAP: A cited peer-reviewed study reportedly finds an alternative-fuel penetration requirement well beyond IMO's 5–10% target by 2030, using WtW lifecycle framing; the specific percentage range could not be independently verified against the captured source text.\n" +
+      '*Source: Technical Requirements for 2023 IMO GHG Strategy, MDPI Sustainability, March 2024. https://www.mdpi.com/2071-1050/16/7/2766';
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2030-01-01');
+    assert.ok(event, 'expected the pre-existing 2030-01-01 "other" event, unaffected by this lane\'s fix');
+    assert.equal(event.event_kind, 'other');
+    assert.equal(
+      event.obligation_text,
+      "A cited peer-reviewed study reportedly finds an alternative-fuel penetration requirement well beyond IMO's 5–10% target by 2030, using WtW lifecycle framing; the specific percentage range could not be independently verified against the captured source text."
+    );
+    assertWellFormedEvent(event, md);
+  });
+
+  test('negative fixture: a FACT-labelled brief sentence using "captured source" as ordinary language, no date anywhere in it (section_claim_provenance id 3c32b28e-9fb9-4c6a-8c9e-091c41ee86f4) produces no event and no crash', () => {
+    const claimText = 'The captured source text states the figure "75%".';
+    const { events, skipped } = extractForwardEvents(oneClaim(claimText, { span: '75 %' }));
+    assert.equal(events.length, 0);
+    assert.equal(skipped.length, 0); // no date-shaped trigger anywhere in this span -- nothing for scanText to skip either
+  });
+
+  test('a marker beyond even MAX_BEFORE_FOR_MARKER (3000) still falls back honestly -- never a crash, never a false unwrap', () => {
+    const filler = 'x'.repeat(3100);
+    const md = `[operative_provision] The captured source states, verbatim: «${filler} shall apply from 2021»`;
+    const { events } = extractForwardEvents(oneSection(md));
+    const event = events.find((e) => e.event_date === '2021-01-01');
+    assert.ok(event, 'expected a 2021-01-01 event');
+    // The marker is unreachable even by the widened look-back -- this is the pre-existing (unchanged)
+    // fragment fallback, not a new defect: an honest "…"-prefixed window, never the raw template.
+    assert.ok(event.obligation_text.startsWith('…'), `expected an honest fragment prefix: ${event.obligation_text}`);
+    assert.ok(!event.obligation_text.includes('[operative_provision]'));
+  });
+});
+
+// ---------------------------------------------------------------------------
 // RECORD-FACTS TEMPLATE UNWRAP — corpus-wide property test, lane FWD-TEXT-3, 2026-09-04.
 //
 // Fixture: `scripts/_snapshots/fwdtext3-live-58.json` — read via read-only SQL, project kwrsbpiseruzbfwjpvsp,

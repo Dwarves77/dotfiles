@@ -287,6 +287,25 @@ test("walkSitemap: no sitemap discoverable at all -> ok:false, never throws", as
   assert.match(r.error, /no sitemap discovered/);
 });
 
+test("walkSitemap: robots.txt ITSELF bot-walled (401/403/429) -> ok:false, discoverySource 'bot_wall', never throws (regression, lane SITEMAP-3 2026-09-04: a same-name-typo'd sitemapsFallbackCandidates reference meant this exact branch — robots.txt answering a bot-wall status — threw a ReferenceError instead of ever returning)", async () => {
+  const pages = {}; // robots.txt AND every fallback candidate all answer non-200 -> every fetch throws
+  async function fetchBytes(url) {
+    if (url.endsWith("/robots.txt")) throw new Error(`HTTP 403 for ${url}`);
+    throw new Error(`HTTP 401 for ${url}`); // the three fallback candidates
+  }
+  const deps = {
+    fetchBytes,
+    getPreviousSnapshot: async () => null,
+    saveSnapshot: async () => {},
+    persist: async (l) => ({ upserted: l.length, failed: 0 }),
+    recordChange: async () => {},
+  };
+  const r = await walkSitemap(deps, { baseUrl: "https://walled.example/" });
+  assert.equal(r.ok, false);
+  assert.equal(r.discoverySource, "bot_wall");
+  assert.match(r.error, /bot_wall detected/);
+});
+
 test("walkSitemap: sitemapindex fan-out collects children's urls, bounded document cap reported (never silent), coverage incomplete", async () => {
   const pages = {
     "https://reg.example/robots.txt": "Sitemap: https://reg.example/sitemap_index.xml\n",
