@@ -447,28 +447,44 @@ function gatherCodeFiles() {
 // FOUND overdue; the disposition names the plan item that closes it and the train by which it must.
 export const NEVER_RUN_ALLOWLIST = {
   'maintenance:tier-opinions': {
-    disposition: 'Plan §"Tools already built" / W3.3: NOT RUNNABLE by the step\'s own header — the only upstream (tier_estimate) is the paid LLM brief agent, so no dispatch can ever produce evidence here until W3.3 gives it a deterministic writer (the class table + heal read-back tiers) or the step and table are deleted. Not a closable NEVER-RUN by dispatching it; tracked to W3.3.',
-    expiryTrain: 41,
+    disposition: 'Plan §"Tools already built" / W3.3: NOT RUNNABLE by the step\'s own header — the only upstream (tier_estimate) is the paid LLM brief agent, so no dispatch can ever produce evidence here until W3.3 gives it a deterministic writer (the class table + heal read-back tiers) or the step and table are deleted. Not a closable NEVER-RUN by dispatching it; tracked to W3.3. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   'maintenance:census-off-vertical': {
-    disposition: 'Plan W2.2: the archive path is gated on ruling R-A (open) and has no schema column yet (census_worklist lacks archive columns); park path is a documented no-op. Executed under W2.2 once R-A lands.',
-    expiryTrain: 41,
+    disposition: 'Plan W2.2: the archive path is gated on ruling R-A (open) and has no schema column yet (census_worklist lacks archive columns); park path is a documented no-op. Executed under W2.2 once R-A lands. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   'maintenance:w1-dispositions': {
-    disposition: 'Plan §"Tools already built": report-only step; R-C was taken 2026-09-03 per the plan\'s own text, so this now needs one real apply-mode dispatch to discharge — tracked as the plan\'s own first W7.5 failing row, executed via T45\'s w1-dispositions run.',
-    expiryTrain: 40,
+    disposition: 'Plan §"Tools already built": report-only step; R-C was taken 2026-09-03 per the plan\'s own text, so this now needs one real apply-mode dispatch to discharge — tracked as the plan\'s own first W7.5 failing row, executed via T45\'s w1-dispositions run. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   'maintenance:origin-class-backfill': {
-    disposition: 'A1-runtimes.md §2 [HYPOTHESIS]: the runbook narrative implies R-E was accepted and applied, but no live SQL re-verification exists in this audit. Coordinator re-queries intelligence_items.origin_class distribution and records the outcome in docs/ops/dispatch-ledger.jsonl (or re-dispatches).',
-    expiryTrain: 40,
+    disposition: 'A1-runtimes.md §2 [HYPOTHESIS]: the runbook narrative implies R-E was accepted and applied, but no live SQL re-verification exists in this audit. Coordinator re-queries intelligence_items.origin_class distribution and records the outcome in docs/ops/dispatch-ledger.jsonl (or re-dispatches). RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   'maintenance:spec09-reroute': {
     disposition: 'Plan W5.1 / audit Gap #5: blocked on a second entities kind=\'corridor\' row (only one exists); the step reports the gap rather than writing until the corridor spine grows. Closed under W5.1 or when W4.2\'s corridor seeding produces a second corridor.',
     expiryTrain: 43,
   },
   'workflow:inspect-oil-bulletin.yml': {
-    disposition: 'A1-runtimes.md §1 [HYPOTHESIS]: a one-off scouting tool, superseded once fetch-oil-bulletin.mjs shipped inside producers.yml (2026-08-30); last dispatch pre-dates the audit window by one day. Coordinator either retires the workflow (it has no further loop-stage role) or records a fresh dispatch.',
-    expiryTrain: 41,
+    disposition: 'A1-runtimes.md §1 [HYPOTHESIS]: a one-off scouting tool, superseded once fetch-oil-bulletin.mjs shipped inside producers.yml (2026-08-30); last dispatch pre-dates the audit window by one day. Coordinator either retires the workflow (it has no further loop-stage role) or records a fresh dispatch. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
+  },
+  'maintenance:review-apply-provisional-sources': {
+    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
+    expiryTrain: 46,
+  },
+  'maintenance:review-apply-canonical-candidates': {
+    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
+    expiryTrain: 46,
+  },
+  'maintenance:review-apply-portal-links': {
+    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
+    expiryTrain: 46,
+  },
+  'maintenance:review-apply-coverage-gaps': {
+    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
+    expiryTrain: 46,
   },
 };
 
@@ -481,44 +497,32 @@ export const NEVER_RUN_ALLOWLIST = {
 // on purpose, so a changed row is re-reviewed rather than riding an old allowlist match.
 export const STALE_NEXT_ALLOWLIST = {
   '| **NEXT** | The WO-17 reader (envelope select + index-vs-base cells) is the gate on arming the operations producers. Stage 4-6 surface build-out still needs a spec-from-repo pass per WO before any executor starts. U7 contract advance. ADR-022 (specificity-wins) still owed. Node 20 bump on `caros-ledge-backups` | scope §4 |': {
-    disposition: 'Pre-dates train 5 (last touched 2026-08-29, c6c228ff). T46 full-system validation re-checks every WO-line row against §0; coordinator closes, re-owns to a train, or supersedes with the current wave plan.',
-    expiryTrain: 40,
+    disposition: 'Pre-dates train 5 (last touched 2026-08-29, c6c228ff). T46 full-system validation re-checks every WO-line row against §0; coordinator closes, re-owns to a train, or supersedes with the current wave plan. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT** | Execute the ready four. Then WO-21/13. WO-22 needs one line. WO-23 needs a migration. WO-14 and WO-24 need Jason. U7 stays metered and operator-priced. Node 20 bump on `caros-ledge-backups` still open | scope §4 |': {
-    disposition: 'Pre-dates train 5. Same WO-line series as the row above; T46 supersedes or closes.',
-    expiryTrain: 40,
+    disposition: 'Pre-dates train 5. Same WO-line series as the row above; T46 supersedes or closes. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT** | WO-21 (rides behind WO-10, same file), WO-13 (ready, corrected scope), WO-22 (needs one line: `regions.iso_codes` into the operations select), WO-23 (needs a CHECK-widening migration). WO-14 and WO-24 need Jason. The taxonomy extraction needs a lane. U7 stays metered and operator-priced. Node 20 bump on `caros-ledge-backups` still open | scope §4 |': {
-    disposition: 'Pre-dates train 5. Same WO-line series; T46 supersedes or closes.',
-    expiryTrain: 40,
+    disposition: 'Pre-dates train 5. Same WO-line series; T46 supersedes or closes. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT** | WO-23 needs a CHECK-widening migration (both `org_watchlist` and `user_watchlist`). WO-14 and WO-24 still need Jason — WO-14 has no vault text at all, WO-24 has no join path to `emission_factors.corridor_id`. The severity-enum→UI-bucket mapping needs a ruling. `fetchWorkspaceResources` not populating `jurisdictionIso` is now a named gap. U7 stays metered and operator-priced. Node 20 bump on `caros-ledge-backups` still open | scope §4 |': {
-    disposition: 'Pre-dates train 5. Same WO-line series; T46 supersedes or closes.',
-    expiryTrain: 40,
+    disposition: 'Pre-dates train 5. Same WO-line series; T46 supersedes or closes. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT** | Nothing blocked. Optional: SERIES_ITEM_MAP ratification (attach series to `published_price_statistics`); re-arm schedules in one reviewed diff when build mode ends (operator call) | Addendum 48 |': {
-    disposition: 'Genuinely blocked on the operator\'s own build-mode-end call (rule 16) — not a dropped thread, but still needs a train-owning reference or a CLOSED/DEFERRED state so the row stops reading as open work. Coordinator records the deferral explicitly.',
-    expiryTrain: 40,
-  },
-  '| **NEXT** | Coordinator applies migration 271 (schema-only, additive, 0 rows — safe per the same reasoning 267/268\'s own headers give). After it lands live, `node scripts/gen/assumption-register-seed.mjs --apply` seeds the 10 rows (still requires a human/coordinator decision, per this WO\'s own §5 step 4 — "a separate, later, ratified pass"). Then spec §4\'s admin-panel reader and, later, §4\'s drift-check script | scope §5/§6 |': {
-    disposition: 'OBSOLETE: migration 271 (271_assumption_register.sql) is applied and live on this tree [CONFIRMED, supabase/migrations/]; the row\'s own precondition is satisfied and unrecorded. Coordinator marks DONE/CLOSED and moves the seeder-apply decision to W7.1.',
-    expiryTrain: 40,
-  },
-  '| **NEXT — migration 272** | None of the 8 customer-facing RPCs project `ii.jurisdiction_iso`, so the TS half of the jurisdictionIso fix is dormant by design until the RPCs catch up. Lane `lb` left an exact spec: add `jurisdiction_iso text[]` to the `RETURNS TABLE` + `SELECT` of all eight | Addendum 65 |': {
-    disposition: 'OBSOLETE: migration 272 (272_customer_rpcs_project_jurisdiction_iso.sql) is applied and live on this tree [CONFIRMED, supabase/migrations/]; the row\'s own precondition is satisfied and unrecorded. Coordinator marks DONE/CLOSED.',
-    expiryTrain: 40,
-  },
-  '| **NEXT** | Coordinator applies migration 272. Once live, list/ledger surfaces (`DashboardTopPriority`, `RegulationsLedger`, `MapPageView`, `OperationsItemsView`, `OperationsLedger`, `MarketIntelLedger`, `app/community/page.tsx`) start receiving `jurisdictionIso` with zero further TS change — lane `lb`\'s mapper wiring is already live and dormant | Addendum 63/66 |': {
-    disposition: 'OBSOLETE: same as the migration-272 row above — migration 272 is applied and live [CONFIRMED]. Coordinator marks DONE/CLOSED.',
-    expiryTrain: 40,
+    disposition: 'Genuinely blocked on the operator\'s own build-mode-end call (rule 16) — not a dropped thread, but still needs a train-owning reference or a CLOSED/DEFERRED state so the row stops reading as open work. Coordinator records the deferral explicitly. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT (coordinator)** | corpus-turn (discovery + forward events) over the 53 items → next population slice (limit 50) → browser check of Market Intel / Operations / Research against live data →  → verify `intelligence_items` item_grade=record → ledger-consume plan → change-detection dry → FR + feed dry → ecb-fx and lc_lci_lev dry/apply; read each artifact against the live table | Addendum 84 postscript 7 |': {
-    disposition: 'Superseded by dozens of later trains (Addendum 84 predates the current train regime by two trains\' worth of history). Coordinator marks DONE/CLOSED/SUPERSEDED and points to the current dispatch-next line in the latest session-log addendum.',
-    expiryTrain: 40,
+    disposition: 'Superseded by dozens of later trains (Addendum 84 predates the current train regime by two trains\' worth of history). Coordinator marks DONE/CLOSED/SUPERSEDED and points to the current dispatch-next line in the latest session-log addendum. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
   '| **NEXT** | WO-26 stamp → tag ratification → batch-003 records (mint-run-007) → EIA secret → FR + feed first walks (dry) → ledger consume hop | Addendum 82 postscript |': {
-    disposition: 'Superseded by later trains (Addendum 82 predates the current train regime). Coordinator marks DONE/CLOSED/SUPERSEDED.',
-    expiryTrain: 40,
+    disposition: 'Superseded by later trains (Addendum 82 predates the current train regime). Coordinator marks DONE/CLOSED/SUPERSEDED. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    expiryTrain: 46,
   },
 };
 
