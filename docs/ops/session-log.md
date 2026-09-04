@@ -9728,3 +9728,30 @@ as a no-op; `--arg restore:` reinserts a deleted row from the delete snapshot. L
 form (the rows apply #35 rewrote before it died, plus rows that were clean), an upper bound of 111
 groups / 235 rows sharing the non-text key. 26 tests. Backlog apply #31 dispatched under
 BRANCH-BASE-2. Dispatch next: forward-events-retext dry then apply under this train.
+
+### Addendum 85, postscript 44 — the scanner had two bodies (2026-09-04)
+
+Train/wave32 landed as #579 (`0229ac02`). Backlog apply #31 SUCCEEDED under BRANCH-BASE-2: mint-run-005,
+006, 011, 012, 013 and 014 connected and the artifact branch pushed [CONFIRMED]; eight of the fifteen
+legacy artifacts are now connected, #32 is running over the remaining seven. Heal apply #36 processed
+84 of 87 items and stopped cleanly on its own budget (3 remain for an ids: re-dispatch): 18 sources
+registered, 97 rated, 97 tokens grounded from cited pages, 15 orphans grounded, 1 item healed to
+verified; still failing 83, criterion 7 on 77 items, criterion 4 on 45 [CONFIRMED from the summary].
+
+Lane GATE-A-TOKENS (Sonnet) classified heal dry #34's orphan tokens by syntactic context and found
+the scanner harvesting metadata stamps (22), GAP-boilerplate templates (483), heading and list
+ordinals (1,188), instrument-citation numbers (2,211, e.g. "Law 12,305/2010"), URL-encoded fragments
+(9) and position-nested sub-spans (1,179) as figures; it refuted a blanket skip of headings and table
+rows with counter-examples (a real heading fact, real table-cell obligations). Five rule-based skips,
+each recorded in a new `counts` field, `GATE_A_VERSION` 2026-09-04.1; replay on the live briefs
+[CONFIRMED read-only SQL]: 594 → 504 orphan tokens, 41 items improved, 0 regressed, 2 reach zero.
+Then the lane's own honest scope note: it had changed `scripts/mint/lib/gate-a-scan.mjs`, a hand-
+mirrored COPY, while `write-item.ts`, the heal and the pipeline import `src/lib/agent/gate-a-scan.mjs`.
+Two bodies for one governing rule is the defect CLAUDE.md names; I moved the fixed body into the
+`src/` file, made the kit's two files `export *` re-exports, put the `src/` files into F28's mint
+governing list and CONVENTION.md's table, rewrote MINT-RUNBOOK's "keeping the kit in sync" (there is
+nothing to keep in sync now), and re-pinned the mint (`28c98ae2309a416a`) and meta-harness
+(`ef2b956784ce02e1`, F28 itself changed) markers. 767 mint tests, 257 src tests, 141 discipline,
+tsc clean. The brief-honest strip stays undispatched: with the scanner fixed the heal must re-scan
+first (its STEP 9 writes `item_gate_a_state` through this scanner), then the plans are read again.
+Dispatch next: provenance-heal dry under this train, then apply; retext dry #37 → apply.

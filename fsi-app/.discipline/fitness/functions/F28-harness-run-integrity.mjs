@@ -106,8 +106,10 @@ export const GOVERNING_FILES = Object.freeze({
     'scripts/mint/validate-mint-payload.mjs',
     'scripts/mint/payload-schema.json',
     'scripts/mint/item-type-required-slots.json',
-    'scripts/mint/lib/gate-a-scan.mjs',
-    'scripts/mint/lib/gate-a-match.mjs',
+    'scripts/mint/lib/gate-a-scan.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-scan.mjs (below)
+    'scripts/mint/lib/gate-a-match.mjs', // since 2026-09-04 a re-export of src/lib/agent/gate-a-match.mjs (below)
+    'src/lib/agent/gate-a-scan.mjs', // THE Gate-A scanner (single source since 2026-09-04; the kit copy was drift)
+    'src/lib/agent/gate-a-match.mjs', // THE Gate-A matcher (same)
     'scripts/mint/lib/canonicalize-citation-url.mjs',
     'src/lib/intake/record-facts.mjs', // record-grade payload builder (lane POP, 2026-09-01)
   ]),
