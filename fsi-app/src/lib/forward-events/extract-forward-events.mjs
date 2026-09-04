@@ -149,9 +149,86 @@
 // one encountered first is kept. Every drop is recorded, never silent — see `counts.dedupe_dropped` /
 // `counts.dedupe_dropped_detail` on this function's return.
 //
+// OBLIGATION_TEXT REDONE AS A READABLE, SELF-CONTAINED UNIT (lane FWD-TEXT-2, 2026-09-04):
+//   FWD-TEXT (same day, fe1-2026-09-04.1, above) fixed the mid-WORD start defect and stripped the
+//   defects it had live evidence for. The coordinator then measured the dry-run summary of Maintenance
+//   #32 (654 retext_targets, run 33856356721, `scripts/_snapshots/retext32.json` — gitignored scratch,
+//   not committed) [CONFIRMED, regex over that file this lane]: of the 654 *fe1-2026-09-04.1* `after`
+//   texts, 316 still START with a lowercase letter (clauseAround's leading edge snapped to a mid-sentence
+//   ';' inside a run-on paragraph, not to the actual sentence start — ';' is a CLAUSE separator, not a
+//   sentence end, and the old `clauseStart` treated it as one), 149 start with a non-letter other than a
+//   quote/digit/paren (citation-key tokens, list markers, stray punctuation), 65 still carry a literal
+//   `*`/`**` markdown marker (the old label-strip only fired on a bold span found in the FIRST 150 chars,
+//   with a `**...**` regex whose non-greedy prefix could eat a genuinely earlier real sentence when a
+//   coincidental bold span sat further into the window — see this file's `stripOnePass` note), 11 start
+//   with a bare (unbolded) `FACT:`/label token, 11 still carry a literal `' | '` table-pipe cell, and 1
+//   carries a bare URL tail. Trailing edge: 46 end in a bare ';' (the old trailing search accepted ';' as
+//   a stopping terminator, which is wrong for the SAME reason — a clause separator, not a sentence end)
+//   and 161 end with no terminal punctuation at all (the maxAfter=160 cap was hit with no '.'/'!'/'?' in
+//   reach). A 30-row live-SQL sample (`section_claim_provenance`/`intelligence_item_sections`, project
+//   kwrsbpiseruzbfwjpvsp, read this lane) confirmed the mechanism directly: e.g. row `4fd8ae8b-…`'s
+//   fe1-2026-09-04.1 output is `"date:** Regulation states the Commission …"` — the old whitespace-
+//   fallback landed INSIDE `**Expected date:**`'s own label (after "Expected ", mid-token), stripping the
+//   opening `**` off before the label-detector ever ran, so the label-strip regex (which requires a
+//   literal `**...**` pair) silently failed to fire. Separately [CONFIRMED, ran `normalizeObligationText`
+//   twice on retext32.json's own stored `after` values, this lane]: the fe1-2026-09-04.1 function was NOT
+//   idempotent — `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x)` for
+//   real corpus rows (id `015376ee-…`: one more pass strips a `By 2030 | … | Indicative` table shell down
+//   further than the single production pass had), a real defect independent of any specific corpus text.
+//
+//   THE FIX, entirely in `clauseStart`/`clauseAround`/`normalizeObligationText` below (obligation_text is
+//   the display field this fixes; `source_span`/`assertVerbatim` are untouched and still checked against
+//   the ORIGINAL unmodified source text, never the normalized display text):
+//   - `clauseStart` now recognises a GENUINE sentence start — a '.'/'!'/'?' (never a decimal point)
+//     followed by whitespace and then an uppercase letter, digit, or opening quote — OR a markdown
+//     paragraph break ("\n\n") OR a list-item/heading line start ("\n" then "-"/"*"/"#"/"1."). ';' is no
+//     longer treated as a sentence terminator anywhere in this scan. `maxBefore` is raised 60 → 300 bytes
+//     (measured against the 30-row live sample: real paragraph/label boundaries in this corpus sit
+//     40–110 bytes back in the common case, well inside 300, while still bounded well short of an entire
+//     section so a genuine run-on paragraph cannot pull in unrelated prior obligation language). When NO
+//     such boundary is found in bounds, falls back to the nearest CLAUSE boundary (';') and, failing that,
+//     the nearest word boundary — and reports `fragment: true` in either fallback case, so the caller
+//     knows the window's start is NOT a real sentence beginning.
+//   - `clauseAround` prefixes the window with "…" whenever `clauseStart` reports `fragment: true` —
+//     capitalising nothing and inventing nothing, an honest fragment marker instead of a fake sentence
+//     start — and now threads the event's own matched date text through to `normalizeObligationText` as
+//     `dateSpan`, so table-cell selection (below) can find the RIGHT cell precisely rather than guessing.
+//     The trailing-edge search no longer accepts ';' as a stopping terminator either (only '.'/'!'/'?'),
+//     for the identical reason.
+//   - `normalizeObligationText` is rebuilt as a bounded FIXED-POINT loop over one cleanup pass
+//     (`stripOnePass`) — never a single fixed order of regexes that can leave a residue a second pass
+//     would still catch (the exact non-idempotence measured above) — that: (1) reduces a markdown-table
+//     row (any text carrying '|') to exactly ONE cell via `selectDateCell` — the cell containing the
+//     event's `dateSpan` when supplied, else the first cell this module's own date grammar recognises as
+//     date-shaped; a SHORT (<35 char) date-only cell is treated as a genuine "Date" COLUMN and the cell
+//     immediately after it is kept (the common "Date | Description | Type | Source" table shape measured
+//     in this corpus); a LONG date-bearing cell is kept as-is (the "heading | MONITORING **FACT —
+//     deadline:** "quoted sentence"" shape, where the pipe separates a short heading fragment from the
+//     real claim text, not data columns) — with a safety fallback to the single longest cell when no cell
+//     looks date-shaped, or the chosen cell turns out to be a bare URL or under 12 chars (one measured
+//     row, a citation-metadata table row with no obligation prose in any cell, has no good answer either
+//     way); (2) strips every bold-label span (`**...:**`, any of the 18 distinct label texts measured
+//     live — FACT, Deadline, Domestic harbour craft, Effective date, Detail, "FACT — deadline",
+//     "Primary headline compliance deadline — FACT", etc. — none of them obligation content, all of them
+//     record-facts.mjs/section-heading rendering artifacts) wherever it appears, not only at the window's
+//     edge; (3) strips every remaining `*`/`**` marker anywhere, keeping the text they wrapped; (4) strips
+//     a bare (unbolded) FACT:/GAP:/MONITORING:/ANALYSIS: label unit (42 bare "FACT:" + 2 "FACT —
+//     deadline:" measured), with or without a short dash-qualified prefix, wherever it appears; (5) strips
+//     a leading citation-key token (`32026D1440*`-shaped) and a leading URL-tail token, and any bare
+//     `http(s)://` URL anywhere; (6) collapses whitespace. After the loop stabilises: a result still
+//     starting with a lowercase letter (the fixed-point loop's own backstop for text with no known
+//     position — this is also how `clauseAround`'s `fragment` prefix survives a second, idempotent call,
+//     and how the 654-row corpus-wide property test below can run this function directly against already-
+//     windowed `before` text with no source position to recompute a window from) gets the same "…" prefix;
+//     a result not ending in a real terminator (`.`/`!`/`?`/a closing quote/`…`) has any trailing
+//     ';'/','/':' stripped and gets a trailing "…" — never a bare ';'/',' pretending to be a full stop.
+//   Idempotence (`normalizeObligationText(normalizeObligationText(x)) === normalizeObligationText(x)`)
+//   and the full property set above are enforced by this file's own test suite over every one of
+//   retext32.json's 654 `before` texts (see that file's "OBLIGATION-TEXT REBUILD" describe block).
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.1';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.2';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -312,100 +389,281 @@ function assertVerbatim(sourceText, span) {
   }
 }
 
-// Finds the leading edge of the window for `clauseAround`: the nearest sentence/clause boundary at or
-// before `idx`, bounded by `maxBefore` as the OUTER limit (never earlier than idx - maxBefore). Same
-// terminator rule as `sentenceStart` below (deliberately not a call to it — that function's own `maxBack`
-// default of 200 is tuned for the deontic-window checks, not the display window here, and duplicating the
-// ~6-line loop keeps each caller's bound explicit rather than threading a second parameter through). When
-// no terminator is found in bounds, backs up to the nearest WORD boundary instead of the raw byte offset —
-// this is the actual fix for the "Ve|hicles" / "re|venues" mid-word-start defect (lane FWD-TEXT,
-// 2026-09-04 — see this file's header): a fixed byte offset has no idea where a word starts, a whitespace
-// scan does.
+// A char that legitimately OPENS a new sentence/clause right after a genuine terminator or a paragraph/
+// list boundary: an uppercase letter, a digit, or an opening quote/paren mark.
+const SENTENCE_OPEN_RE = /[A-Z0-9"'“‘«(]/;
+
+/** True when `text[i]` is a genuine sentence terminator: '.'/'!'/'?' (never a decimal point), followed by
+ *  whitespace and then a char `SENTENCE_OPEN_RE` recognises as opening a new sentence. A bare '.'/';' with
+ *  a lowercase continuation right after ("Corp. is...", a mid-list enumeration) is NOT one — this is the
+ *  fix for the pre-fix bug that snapped the window's leading edge to any '.'/';' regardless of what
+ *  followed it. */
+function isGenuineTerminatorAt(text, i) {
+  const ch = text[i];
+  if (ch !== '.' && ch !== '!' && ch !== '?') return false;
+  if (ch === '.' && /\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || '')) return false; // decimal point
+  let j = i + 1;
+  if (!/\s/.test(text[j] || '')) return false;
+  while (/\s/.test(text[j] || '')) j++;
+  return SENTENCE_OPEN_RE.test(text[j] || '');
+}
+
+/** True when `text[i]` is the second '\n' of a "\n\n" paragraph break. */
+function isParagraphBreakAt(text, i) {
+  return text[i] === '\n' && text[i - 1] === '\n';
+}
+
+/** True when `text[i]` is a '\n' immediately followed by a list-item or heading marker
+ *  ("-"/"*"/"#"/"1."). */
+function isListOrHeadingBreakAt(text, i) {
+  if (text[i] !== '\n') return false;
+  return /^(?:[-*#]|\d+\.)\s/.test(text.slice(i + 1, i + 8));
+}
+
+// Raised from the pre-fix 60 (lane FWD-TEXT-2, 2026-09-04) — see this file's own header for the
+// measurement: a 30-row live-SQL sample of this corpus's own claim/section text found the real paragraph/
+// label boundary sitting 40-110 bytes back from the trigger match in the common case; 300 gives that
+// comfortable headroom while staying well short of an entire section, so a genuine run-on paragraph still
+// cannot pull in unrelated prior obligation language.
+const DEFAULT_MAX_BEFORE = 300;
+const DEFAULT_MAX_AFTER = 160;
+
+/**
+ * Finds the leading edge of `clauseAround`'s display window: the nearest GENUINE sentence start at or
+ * before `idx` (see `isGenuineTerminatorAt`), OR a markdown paragraph break, OR a list-item/heading line
+ * start — bounded by `maxBefore` as the OUTER limit. ';' is never treated as a sentence terminator here
+ * (that was the pre-fix bug: a clause separator is not a sentence end). When none of those is found in
+ * bounds, falls back to the nearest CLAUSE boundary (';', a strictly weaker signal) still in bounds; when
+ * even that is absent, falls back to the nearest word boundary — NEVER a raw byte offset that can land
+ * mid-word. Returns `{ pos, fragment }`: `fragment: true` whenever the chosen start is NOT a genuine
+ * sentence/paragraph/list boundary (either fallback), so the caller can mark the result as an honest
+ * fragment instead of silently presenting a clause snippet as if it were a complete sentence.
+ */
 function clauseStart(text, idx, maxBefore) {
   const hardFloor = idx - maxBefore; // may be negative -- NOT yet clamped
   const floor = Math.max(0, hardFloor);
+
   for (let i = idx - 1; i >= floor; i--) {
-    const ch = text[i];
-    if ((ch === '.' || ch === ';') && !(/\d/.test(text[i - 1] || '') && /\d/.test(text[i + 1] || ''))) {
-      return i + 1;
+    if (isGenuineTerminatorAt(text, i)) {
+      let j = i + 1;
+      while (/\s/.test(text[j] || '')) j++;
+      return { pos: j, fragment: false };
     }
+    if (isParagraphBreakAt(text, i)) return { pos: i + 1, fragment: false };
+    if (isListOrHeadingBreakAt(text, i)) return { pos: i + 1, fragment: false };
   }
+
   // hardFloor <= 0 means `floor` IS the true start of `text` — idx is within maxBefore chars of index 0,
-  // so nothing was ever truncated and index 0 can never be "mid-word" (there is nothing before it). The
-  // whitespace fallback below is only needed when hardFloor > 0 — a genuine truncation point that can
-  // land inside a word.
-  if (hardFloor <= 0) return floor;
-  // No terminator within the bound — never start mid-word: advance to the nearest whitespace AT OR AFTER
-  // `floor` (never earlier — floor stays the outer bound) so the window begins at a token boundary.
+  // so nothing was ever truncated and this is not a fragment (there is nothing before it to have cut off).
+  if (hardFloor <= 0) return { pos: floor, fragment: false };
+
+  // No sentence/paragraph/list boundary in bounds — fall back to the nearest CLAUSE boundary (';').
+  for (let i = idx - 1; i >= floor; i--) {
+    if (text[i] === ';') return { pos: i + 1, fragment: true };
+  }
+
+  // Nothing at all — never start mid-word: advance to the nearest whitespace AT OR AFTER `floor`.
   for (let i = floor; i < idx; i++) {
-    if (/\s/.test(text[i])) return i + 1;
+    if (/\s/.test(text[i])) return { pos: i + 1, fragment: true };
   }
-  // One unbroken token spans the whole bound (never observed in this corpus, but not impossible) — the
-  // hard byte offset is the only option left.
-  return floor;
+  // One unbroken token spans the whole bound (never observed in this corpus, but not impossible).
+  return { pos: floor, fragment: true };
 }
 
-// DISPLAY-ONLY normalization of a `clauseAround` window: strips markdown-rendering artifacts a clause
-// boundary alone cannot remove, because they carry no sentence terminator of their own — a `**label:**`
-// bold span (e.g. "**FACT:**", "**FACT — deadline:**", "**Primary headline compliance deadline — FACT:**"),
-// a leading markdown-table pipe cell (e.g. "hicles (M₂, M₃, N₂, N₃) | MONITORING "), and a leaked
-// source-URL tail token (a leading run of non-whitespace characters containing '/', e.g. "7/oj/eng" — the
-// tail of a link `clauseStart` backed up into because the URL itself has no terminator nearby). Applied
-// ONLY to the text this function returns (obligation_text); `source_span` — the actual matched date
-// fragment — is never touched, stays byte-exact, and is checked by `assertVerbatim` against the ORIGINAL,
-// unmodified source string, never against this normalized text. Pure. Exported for testing.
-export function normalizeObligationText(raw) {
-  let t = typeof raw === 'string' ? raw : '';
+// ---------------------------------------------------------------------------
+// Display-text cleanup (lane FWD-TEXT-2, 2026-09-04) — see this file's own header for the measurement
+// that shaped every rule below.
+// ---------------------------------------------------------------------------
 
-  // A stray TRAILING markdown-table fragment at the very end of the window (a short, mostly alphanumeric
-  // cell/label after a stray '|', with no further '|' after it) is stripped FIRST, before any leading-junk
-  // logic below — otherwise a genuine trailing "| NEXT STEPS" is indistinguishable from a LEADING table
-  // cell to the pipe-position heuristic further down (both are "a pipe within the first 100 chars with no
-  // '.'/';' before it" when the real sentence itself is short), and the leading logic would wrongly eat
-  // the entire real sentence in front of it instead.
-  t = t.replace(/\s*\|\s*[A-Za-z0-9][A-Za-z0-9 /_-]{0,40}$/, '');
+const YEAR_TOKEN_RE = /\b(?:1[5-9]|2[0-4])\d{2}\b/;
+const MONTH_TOKEN_RE = new RegExp(`\\b(?:${MONTH_EN_ALT}|${MONTH_PT_ALT})\\b`, 'i');
+const ISO_TOKEN_RE = /\b\d{4}-\d{2}-\d{2}\b/;
 
-  // A markdown bold "**label:**" span near the start of the window (e.g. "**FACT:**", "**FACT —
-  // deadline:**", "**Primary headline compliance deadline — FACT:**") is the reliable anchor: whatever
-  // junk precedes it — a leftover table-cell word once the pipe itself already fell outside the window
-  // (e.g. "MONITORING "), a leaked URL tail, a stray '|' — has no fixed shape of its own, so strip
-  // everything up to and including the label in ONE cut rather than trying to enumerate every possible
-  // prefix shape. Bounded to the first 150 chars so a genuine "**" emphasis span deep in a long clause
-  // is never mistaken for a leading label.
-  const labelMatch = t.match(/^[\s\S]{0,150}?\*\*[^*]{1,120}\*\*\s*/);
-  if (labelMatch) {
-    t = t.slice(labelMatch[0].length);
+function cellLooksDated(cell) {
+  return YEAR_TOKEN_RE.test(cell) || MONTH_TOKEN_RE.test(cell) || ISO_TOKEN_RE.test(cell);
+}
+
+// A date-only cell this short is a genuine "Date" COLUMN in a multi-column table (Date | Description |
+// Type | Source, the shape measured live in this corpus); at or above this length the date-bearing cell
+// already IS the sentence (the "heading | MONITORING **FACT — deadline:** "quoted sentence"" shape, where
+// the pipe separates a short heading fragment from the real claim text, not data columns).
+const SHORT_DATE_CELL_MAX = 35;
+// Below this length (or a bare URL), the chosen cell is not usable as display text on its own.
+const MIN_USABLE_CELL_LEN = 12;
+
+/**
+ * Reduces a markdown-table-row-shaped text (any text carrying '|') to exactly ONE cell: the one that
+ * actually carries the event's obligation prose. Prefers the cell containing `dateSpan` verbatim (the
+ * real production path always has it — `clauseAround` threads the event's own matched date text through);
+ * absent that (this function's own idempotence/property tests run it directly against opaque
+ * already-windowed text with no source position to hand a `dateSpan` through), falls back to the first
+ * cell this module's own date grammar recognises as date-shaped. See `SHORT_DATE_CELL_MAX`'s comment for
+ * the short-column-vs-long-cell rule, and falls back to the single longest cell when no cell looks
+ * date-shaped at all, or the chosen cell is a bare URL or under `MIN_USABLE_CELL_LEN` chars (one measured
+ * corpus row — a citation-metadata table row — has no cell with real obligation prose in it either way;
+ * the longest cell is the least-bad answer). Pure. Exported for testing.
+ */
+export function selectDateCell(text, dateSpan) {
+  if (typeof text !== 'string' || !text.includes('|')) return text ?? '';
+  const cells = text.split('|').map((c) => c.trim()).filter(Boolean);
+  if (cells.length === 0) return '';
+  if (cells.length === 1) return cells[0];
+
+  let dateCellIdx = -1;
+  if (typeof dateSpan === 'string' && dateSpan) {
+    dateCellIdx = cells.findIndex((c) => c.includes(dateSpan));
+  }
+  if (dateCellIdx === -1) dateCellIdx = cells.findIndex(cellLooksDated);
+
+  // Never picks a bare URL as "longest" -- a long URL is still not obligation prose. Falls back to
+  // considering every cell only if literally every cell is a bare URL (degenerate, not observed live).
+  const longest = () => {
+    const nonUrl = cells.filter((c) => !/^https?:\/\//i.test(c));
+    const pool = nonUrl.length ? nonUrl : cells;
+    return pool.reduce((a, b) => (b.length > a.length ? b : a));
+  };
+
+  let chosen;
+  if (dateCellIdx === -1) {
+    chosen = longest();
+  } else if (cells[dateCellIdx].length >= SHORT_DATE_CELL_MAX) {
+    chosen = cells[dateCellIdx];
+  } else if (dateCellIdx + 1 < cells.length) {
+    chosen = cells[dateCellIdx + 1];
   } else {
-    // No bold label in this window — still strip a leading URL-tail token (a run of non-whitespace
-    // characters containing '/', e.g. "7/oj/eng ") and/or a leading table-pipe cell on their own.
-    for (let guard = 0; guard < 4; guard++) {
-      let stripped = false;
-      const urlTail = t.match(/^\S*\/\S*\s+/);
-      if (urlTail) {
-        t = t.slice(urlTail[0].length);
-        stripped = true;
-      }
-      const pipeIdx = t.indexOf('|');
-      if (pipeIdx !== -1 && pipeIdx < 100 && !/[.;]/.test(t.slice(0, pipeIdx))) {
-        t = t.slice(pipeIdx + 1).replace(/^\s+/, '');
-        stripped = true;
-      }
-      if (!stripped) break;
-    }
+    chosen = cells[dateCellIdx];
   }
-  return t.replace(/\s+/g, ' ').trim();
+
+  if (chosen.length < MIN_USABLE_CELL_LEN || /^https?:\/\//i.test(chosen)) {
+    chosen = longest();
+  }
+  return chosen;
 }
 
-function clauseAround(text, start, end, maxBefore = 60, maxAfter = 160) {
-  const from = clauseStart(text, start, maxBefore);
-  // stop the trailing window at the next sentence terminator, or maxAfter,
-  // whichever comes first, so obligation_text reads as one clause/sentence.
+// Any bold "**label:**" span, wherever it appears (not only at the window's edge) — measured live across
+// 18 distinct label texts (FACT, Deadline, Domestic harbour craft, Effective date, Detail, "FACT —
+// deadline", "Primary headline compliance deadline — FACT", etc.): none of them is obligation content,
+// all of them are record-facts.mjs/section-heading rendering artifacts.
+const BOLD_LABEL_RE = /\*\*[^*\n]{1,90}:\*\*\s*/g;
+
+// A bare (unbolded) FACT:/GAP:/MONITORING:/ANALYSIS: label unit, optionally preceded by a short
+// dash-qualified descriptive prefix ("Primary headline compliance deadline — FACT:") and/or followed by a
+// short dash-qualified suffix ("FACT — deadline:") — measured live (42 bare "FACT:", 2 "FACT — deadline:").
+// Deliberately case-SENSITIVE on the label word itself (record-facts.mjs's template is always upper-case)
+// so this never fires on ordinary lowercase English ("as a matter of fact: ...").
+const LABEL_UNIT_RE = new RegExp(
+  "(?:[A-Za-z][A-Za-z0-9 ,'()/]{0,60}[\\u2014\\u2013-]\\s*)?" +
+    '\\b(?:FACT|GAP|MONITORING|ANALYSIS)\\b(?:\\s*[\\u2014\\u2013-]\\s*[a-z][a-z ]{0,24})?\\s*:\\s*',
+  'g'
+);
+
+// A leading citation-key token ("32026D1440*"-shaped): starts with a digit, no whitespace, ends in a
+// literal '*'. Only ever stripped at the true start of the text.
+const LEADING_CITATION_KEY_RE = /^[0-9][A-Za-z0-9]{2,14}\*\s*/;
+// A leading leaked source-URL tail token (a run of non-whitespace containing '/', e.g. "7/oj/eng ") —
+// only ever stripped at the true start of the text.
+const LEADING_URL_TAIL_RE = /^\S*\/\S*\s+/;
+// Any bare http(s) URL, wherever it appears.
+const BARE_URL_RE = /https?:\/\/\S*/gi;
+
+/** One cleanup pass: table-cell selection, then every marker/label/citation/URL strip, then whitespace
+ *  collapse. Called in a bounded fixed-point loop by `normalizeObligationText` (never a single fixed
+ *  order applied once — see this file's header for the measured non-idempotence that was). The two
+ *  LEADING_*_RE strips are skipped once the text already starts with the honest-fragment ellipsis "…" —
+ *  otherwise a second, idempotent call would see e.g. "…Zero/Near-Zero Fuel..." (an ellipsis-prefixed
+ *  heading that happens to contain a '/') and misread it as a leaked URL tail, eating real content a first
+ *  call never touched (a real non-idempotence measured against retext32.json's own corpus while building
+ *  this fix — id `1a193e59-…`). Pure. */
+function stripOnePass(t, dateSpan) {
+  let out = selectDateCell(t, dateSpan);
+  out = out.replace(BOLD_LABEL_RE, '');
+  out = out.replace(/\*\*/g, '');
+  out = out.replace(/\*/g, '');
+  out = out.replace(LABEL_UNIT_RE, '');
+  if (!out.startsWith('…')) {
+    out = out.replace(LEADING_CITATION_KEY_RE, '');
+    out = out.replace(LEADING_URL_TAIL_RE, '');
+  }
+  out = out.replace(BARE_URL_RE, '');
+  return out.replace(/\s+/g, ' ').trim();
+}
+
+// A trailing char this function accepts as a genuine sentence end: '.'/'!'/'?', a closing quote (the
+// common "...shall comply."" shape), or the honest-fragment ellipsis itself (so a second, idempotent call
+// recognises its own prior output as already-terminated).
+const TRAILING_OK_RE = /[.!?"”»…]$/;
+
+// A leading char a genuine sentence, or a deliberately quoted/parenthesised/numbered one, can start with.
+// Letters cover both cases the two branches below split apart (uppercase = a real sentence start; lowercase
+// = the honest-fragment case) — kept as one class here so "does this need ANY leading-edge fix at all" is
+// one test.
+const LEADING_OK_RE = /^[A-Za-z0-9"'“‘«(…]/;
+
+/**
+ * DISPLAY-ONLY normalization of a `clauseAround` window (or, via the corpus-wide property test, of any
+ * already-windowed `obligation_text` with no known source position — see this file's header). `source_span`
+ * — the actual matched date fragment — is never touched, stays byte-exact, and is checked by
+ * `assertVerbatim` against the ORIGINAL, unmodified source string, never against this normalized text.
+ * Runs `stripOnePass` to a bounded fixed point (idempotent by construction: a stable fixed point of a
+ * cleanup pass that is a no-op on already-clean text is stable under re-application), then fixes both
+ * edges, honestly rather than by invention:
+ *   - Leading: text starting with markdown/punctuation debris that carries no sentence content of its own
+ *     (a heading marker, an orphan closing bracket, a stray leading comma/period/colon/dash — measured
+ *     live on retext32.json's own `before` corpus, 44/654 cases) has that debris run stripped, then gets an
+ *     ellipsis PREFIX; text starting with a lowercase letter — the one honest signal available with no
+ *     source position, since a genuine sentence never opens lowercase — gets the same ellipsis PREFIX with
+ *     nothing stripped. Neither branch capitalises or invents anything.
+ *   - Trailing: text not ending in `TRAILING_OK_RE` gets any trailing ';'/','/':' stripped and an ellipsis
+ *     SUFFIX.
+ * Both markers are idempotent: text already starting with "…" already satisfies `LEADING_OK_RE` (so neither
+ * leading branch fires again), and text already ending in "…" already satisfies `TRAILING_OK_RE`.
+ * `opts.dateSpan` — the event's own matched date text — lets `selectDateCell` pick the exact right table
+ * cell when known (the real `clauseAround` path always supplies it); absent it, cell selection falls back
+ * to this module's own date grammar. Pure. Exported for testing.
+ */
+export function normalizeObligationText(raw, opts = {}) {
+  let t = typeof raw === 'string' ? raw : '';
+  if (!t) return '';
+  const dateSpan = typeof opts?.dateSpan === 'string' ? opts.dateSpan : undefined;
+
+  for (let i = 0; i < 6; i++) {
+    const before = t;
+    t = stripOnePass(t, dateSpan);
+    if (t === before) break;
+  }
+  if (!t) return '…'; // fully-emptied by stripping (e.g. the window was nothing but a URL) -- an honest
+  // placeholder beats an empty obligation_text (every caller requires length > 0).
+
+  if (!LEADING_OK_RE.test(t)) {
+    t = t.replace(/^[^A-Za-z0-9"'“‘«(…]+/, '');
+    t = t ? '…' + t : '…';
+  } else if (/^[a-z]/.test(t)) {
+    t = '…' + t;
+  }
+
+  if (!TRAILING_OK_RE.test(t)) {
+    t = t.replace(/[;,:]+$/, '').trim();
+    t = t + '…';
+  }
+
+  return t;
+}
+
+function clauseAround(text, start, end, maxBefore = DEFAULT_MAX_BEFORE, maxAfter = DEFAULT_MAX_AFTER, dateSpan) {
+  const { pos: from, fragment } = clauseStart(text, start, maxBefore);
+  // stop the trailing window at the next SENTENCE terminator ('.'/'!'/'?' — ';' is a clause separator, not
+  // a sentence end, and is never accepted here), or maxAfter, whichever comes first, so obligation_text
+  // reads as one sentence.
   let to = Math.min(text.length, end + maxAfter);
   const tail = text.slice(end, to);
-  const stop = tail.search(/[.;](?!\d)/);
+  const stop = tail.search(/[.!?](?!\d)/);
   if (stop !== -1) to = end + stop + 1;
-  const windowed = text.slice(from, to).replace(/\s+/g, ' ').trim();
-  return normalizeObligationText(windowed);
+  let windowed = text.slice(from, to).replace(/\s+/g, ' ').trim();
+  // The leading edge was NOT a genuine sentence/paragraph/list start (`clauseStart`'s fallback) — mark the
+  // window as an honest fragment rather than silently presenting a clause snippet as a full sentence.
+  // Capitalises nothing, invents nothing.
+  if (fragment && windowed) windowed = '…' + windowed;
+  return normalizeObligationText(windowed, { dateSpan });
 }
 
 // Finds the start of the sentence/clause containing `idx` (the char right
@@ -707,7 +965,7 @@ function scanText(text) {
       }
 
       const dateSpan = text.slice(spanStart, spanEnd);
-      const obligationText = clauseAround(text, m.index, spanEnd);
+      const obligationText = clauseAround(text, m.index, spanEnd, undefined, undefined, dateSpan);
 
       hits.push({
         ruleName: rule.name,
@@ -735,7 +993,7 @@ function scanText(text) {
             spanStart: wSpanStart,
             spanEnd: wSpanEnd,
             dateSpan: text.slice(wSpanStart, wSpanEnd),
-            obligationText: clauseAround(text, m.index, wSpanEnd),
+            obligationText: clauseAround(text, m.index, wSpanEnd, undefined, undefined, text.slice(wSpanStart, wSpanEnd)),
           });
           claimedRanges.push([spanEnd, wSpanEnd]);
         }
@@ -780,7 +1038,8 @@ function scanText(text) {
         continue;
       }
 
-      const obligationText = clauseAround(text, m.index, spanEnd);
+      const candidateDateSpan = text.slice(spanStart, spanEnd);
+      const obligationText = clauseAround(text, m.index, spanEnd, undefined, undefined, candidateDateSpan);
       hits.push({
         ruleName: rule.name,
         kind: 'other',
@@ -788,7 +1047,7 @@ function scanText(text) {
         precision: parsed.precision,
         spanStart,
         spanEnd,
-        dateSpan: text.slice(spanStart, spanEnd),
+        dateSpan: candidateDateSpan,
         obligationText,
       });
       claimedRanges.push([m.index, spanEnd]);

@@ -137,6 +137,28 @@ export function classifyDefects(text) {
   return classes;
 }
 
+/** Which residue class(es) the FRESHLY-recomputed obligation_text still carries, if any (lane FWD-TEXT-2,
+ *  2026-09-04) -- "the retext step's dry report gains the residue classification of the AFTER text so the
+ *  next dry run proves itself". Uses the SAME character-class rules extract-forward-events.mjs's own
+ *  corpus-wide property test enforces (a letter/quote/digit/"("/"…" leading char is fine; the
+ *  honest-fragment "…" marker is fine, never a defect) -- deliberately a SEPARATE function from
+ *  `classifyDefects` above, which targets OLD pre-fix garbled text and flags a bare digit/URL-tail start
+ *  as a defect ON PURPOSE (that is exactly what makes a `before` row a retext target); the same rule
+ *  cannot honestly describe fresh, already-normalized text. Pure. */
+export function classifyAfterResidue(text) {
+  const t = typeof text === "string" ? text : "";
+  if (!t) return ["empty"];
+  const classes = [];
+  if (t.startsWith("…") || t.endsWith("…")) classes.push("honest_fragment_marked");
+  if (!/^[A-Za-z0-9"'“‘«(…]/.test(t)) classes.push("bad_leading_char");
+  if (t.includes("*")) classes.push("contains_star");
+  if (/\s\|\s|^\S*\|/.test(t)) classes.push("contains_pipe_cell");
+  if (/https?:\/\//i.test(t)) classes.push("contains_bare_url");
+  if (!/[.!?"”»…]$/.test(t)) classes.push("bad_trailing_punctuation");
+  if (classes.length === 0) classes.push("clean");
+  return classes;
+}
+
 // ── pure: per-item plan ─────────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -187,6 +209,9 @@ export function planItemRetext({ itemId, existingRows, claims, sections }) {
       before: row.obligation_text,
       after: fresh.obligation_text,
       defect_classes: classifyDefects(row.obligation_text),
+      // The dry report proving itself (lane FWD-TEXT-2): the SAME residue check run over the freshly
+      // recomputed text, so the next dry run over the same items shows this row's own fix held.
+      after_defect_classes: classifyAfterResidue(fresh.obligation_text),
     });
   }
 
@@ -285,14 +310,20 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   }
 
   const byDefectClass = {};
+  const byAfterDefectClass = {};
   for (const t of allRetextTargets) {
     for (const c of t.defect_classes) byDefectClass[c] = (byDefectClass[c] ?? 0) + 1;
+    for (const c of t.after_defect_classes) byAfterDefectClass[c] = (byAfterDefectClass[c] ?? 0) + 1;
   }
 
   summary.counts = {
     items_scanned: itemIds.length,
     retext_target_total: allRetextTargets.length,
     by_defect_class: byDefectClass,
+    // The dry report proving itself (lane FWD-TEXT-2, 2026-09-04): residue classification of the SAME
+    // rows' freshly-recomputed text. "clean" and "honest_fragment_marked" are the two expected buckets on
+    // a healthy run; any other key here means the fix still leaves a defect class live and needs a look.
+    by_after_defect_class: byAfterDefectClass,
     duplicate_group_total: allDuplicateGroups.length,
   };
   summary.retext_targets = allRetextTargets;

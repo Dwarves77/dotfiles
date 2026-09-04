@@ -991,16 +991,42 @@ identical sentence once via a claim (clean) and once via a section's rendered ma
 **Root cause** [CONFIRMED, read `src/lib/forward-events/extract-forward-events.mjs` lines 262-271
 pre-fix]: `clauseAround`'s leading edge (`from = max(0, start - 60)`) was a fixed byte offset, never
 snapped to a sentence/clause boundary, so a section-derived context window could start mid-word or
-mid-markdown-artifact. Fixed in that module, same lane (`EXTRACTOR_VERSION` `fe1-2026-09-04.1`): a new
-`clauseStart` snaps the leading edge to the nearest sentence/clause terminator within `maxBefore` bytes
+mid-markdown-artifact. Fixed in that module, lane FWD-TEXT (`EXTRACTOR_VERSION` `fe1-2026-09-04.1`): a new
+`clauseStart` snapped the leading edge to the nearest sentence/clause terminator within `maxBefore` bytes
 (whitespace fallback only when a hard truncation genuinely occurred; never mid-word), plus a
 `normalizeObligationText` pass (display text only — `source_span` stays byte-verbatim, `assertVerbatim`
-still enforced) that strips a leaked URL tail, a markdown bold label, or a table pipe/cell fragment. A
+still enforced) that stripped a leaked URL tail, a markdown bold label, or a table pipe/cell fragment. A
 new `dedupeEvents` collapses same-run (event_date, event_kind) hits whose text is the SAME obligation
 under a content-similarity check (never a blind date+kind collapse — see that module's own header for
 why: the NZIA item's `(2030-01-01, other)` group holds 4 genuinely distinct section-sourced obligations
 plus 1 unrelated claim, so a blind collapse would have destroyed real content, the same "content loss,
 not deduplication" failure migration 275's own header already names).
+
+**Lane FWD-TEXT-2 (2026-09-04) rebuild — `obligation_text` as a readable, self-contained unit**
+[CONFIRMED, measured over all 654 `retext_targets[]` in `scripts/_snapshots/retext32.json`, the dry-run
+summary of Maintenance #32]: lane FWD-TEXT's own fix above still left residue in the `after` text it
+produced — **316/654 lowercase-start, 149 non-letter-start, 65 star-residue (unstripped `**`/`*`), 11
+bare (unbolded) label, 11 pipe/table-cell fragment, 1 URL-tail; 46 ending in `;`, 161 with no terminal
+punctuation at all**. A 30-row live-Supabase sample additionally surfaced a genuine **non-idempotence
+bug** — `normalizeObligationText(normalizeObligationText(x)) !== normalizeObligationText(x)` for at least
+one stored row — caused by the leading URL-tail stripper matching only on a SECOND pass once an earlier
+strip step had merged what were previously two separate whitespace-delimited runs into one.
+`EXTRACTOR_VERSION` bumped `fe1-2026-09-04.1` → `fe1-2026-09-04.2`. `clauseStart` rewritten to require a
+genuine SENTENCE start (`.`/`!`/`?` + whitespace + an uppercase letter/quote/digit — never a bare `;`/`:`),
+a paragraph break, or a markdown list/heading-item start; `DEFAULT_MAX_BEFORE` raised `60` → `300` bytes
+(measured: the true sentence start for this corpus routinely sits well past the old 60-byte cap). Past the
+cap, falls back to the nearest `;` then a bare whitespace boundary and marks the result an **honest
+fragment** — `normalizeObligationText` prefixes it with `"…"` rather than capitalizing or inventing
+anything. The trailing edge no longer stops at `;`; any window still lacking a terminal `.`/`!`/`?`/quote
+gets `"…"` appended instead. New exported `selectDateCell(text, dateSpan)` distinguishes a genuine
+multi-column date table (short date-only cell → keep the cell AFTER it) from a single stray table-pipe
+artifact (long, already-prose date-bearing cell → keep it, drop the rest). All strip rules now run as a
+**fixed-point loop** (bounded at 6 passes) specifically to close the non-idempotence bug, verified
+idempotent over all 654 corpus rows. Post-fix property sweep over all 654 `before` texts: **zero**
+non-letter starts (other than quote/digit/`(`/`"…"`), **zero** `*`, **zero** `' | '`/leading-pipe, **zero**
+bare `http`, **zero** missing-terminal-punctuation rows — the only remaining lowercase starts are the
+honest `"…"`-prefixed fragments. `sentenceStart` (the separate deontic-window helper) and the
+`source_span`/`assertVerbatim` verbatim law are both completely unchanged by this lane.
 
 **This step is the one-time (and re-runnable) catch-up, forward-only otherwise**: the extractor fix
 changes what a FUTURE extraction produces; migration 274/275's idempotency guarantee is about not
@@ -1031,7 +1057,11 @@ reached via `forward_event_id`. A register row's own denormalized columns are un
 out of this lane's write set.
 
 **Dispatch**: `mode=dry` reports `counts` (`items_scanned`, `retext_target_total`, `by_defect_class`,
-`duplicate_group_total`), `retext_targets` (before/after/defect classes per row), and
+`by_after_defect_class`, `duplicate_group_total`), `retext_targets` (before/after/defect classes per row,
+each row's `after` also classified by the new `classifyAfterResidue` — lane FWD-TEXT-2 — under
+`after_defect_classes`, so a dry run proves the fixed-producer property test against itself: every
+non-empty class there is a residual case worth looking at, and `classifyAfterResidue` returning only
+`["honest_fragment_marked"]` and/or `["clean"]` across the sweep is the expected steady state), and
 `duplicate_groups`; writes nothing. `mode=apply` (no `--arg` required beyond an optional scope) rewrites
 `obligation_text` on every retext target through the guarded `db.mjs` path (cite + snapshot, one
 single-row `guardedUpdate` per target — each carries a *different* new text, unlike
@@ -1050,9 +1080,9 @@ mode, including apply, and stays a report only.
   guesses) any id with no matching snapshot entry, listed in `missing_ids`.
 
 **Artifact / read back**: `summary.json`'s `counts` (`items_scanned`, `retext_target_total`,
-`by_defect_class`, `duplicate_group_total`), `retext_targets`, `duplicate_groups`, `per_item`
-(before/after + `restore_sql` per rewritten row, apply only), and `read_back`
-(`retexted_total`, `not_confirmed_ids`). Confirm against `SELECT id, obligation_text FROM
+`by_defect_class`, `by_after_defect_class`, `duplicate_group_total`), `retext_targets`,
+`duplicate_groups`, `per_item` (before/after + `restore_sql` per rewritten row, apply only), and
+`read_back` (`retexted_total`, `not_confirmed_ids`). Confirm against `SELECT id, obligation_text FROM
 item_forward_events WHERE id = ANY(<retext target ids>)`.
 
 **Registration**: `docs/inventories/shared-dataset-ownership.md`'s `item_forward_events` section (this
