@@ -9026,3 +9026,26 @@ Dispatched on master `a9cf6c93`: Maintenance #17 `provenance-heal quarantined-li
 #18 `institution-canonicalize` dry. Population #17 completed (read next). Train gates: fitness 29/0,
 discipline 141/0, mint+turns 788/0. F28: mint PENDING-RUN at `sha256:ebb4130c5892235d` (record-facts
 and the kit validator moved), discharged by the next population run under this code.
+
+### Addendum 85, postscript 19 — HEAL-4 measured, registry defect fixed live, CITED-HELD (2026-09-04)
+
+HEAL-4 apply (#17) [CONFIRMED, artifact + live SQL]: 1 of 95 healed; 223 re-kinded claims rewritten
+to a verbatim owning sentence, 152 refused (best overlap below 0.15), 164 paragraphs relabelled;
+`analysis_missing_label_syntax` 365 → 148 across 38 items. Gate A's 88 are unchanged: brief-prose
+figures no captured source states, which under $0 and no LLM is the honest end state; the items stay
+quarantined and kept. `institution-canonicalize` dry (#18) planned exactly the two defects SRC-TIER
+named and nothing else; apply (#19) merged the amazonaws.com "Smart Freight Centre" into
+smartfreightcentre.org and set the GLEC v3 PDF source to T4 [CONFIRMED, read_back]. Part C names
+ifrs.org, cdp.net and sciencebasedtargets.org (standards bodies at T5) for the operator's override.
+
+The 67 cited URLs the heal could not capture are the operator's "attach the source" instruction still
+unmet, so lane CITED-HELD (Sonnet, `26c4783c`, 157 tests) built the two $0 paths the residue named:
+EUR-Lex OJ-issue references resolve to the Publications Office OJ endpoint, and a blocked or thin
+capture falls back to the Wayback Machine's raw snapshot through the same extraction path, with the
+publisher's URL kept as `result_url` and the transport labelled in evidence. The container's proxy
+refuses archive.org, so the lane could not probe live; the next heal apply is the measurement.
+
+Migration 300's inventory row had been appended below the table, so the consistency backstop (C3)
+failed on master `8c5656cc` after #557 merged; moved into the table, C3 passes locally. Producers #21
+dry: the EIA producer plans real rows with the operator's key; apply next. Population #18 ran under the
+hold-back fix (read next). Fitness 29/0.
