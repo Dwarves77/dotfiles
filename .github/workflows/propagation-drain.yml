@@ -108,6 +108,11 @@ on:
         required: false
         default: false
         type: boolean
+      backfill_and_statutory:
+        description: 'Lane DAG-AUTHOR (2026-09-04): run scripts/entities/backfill-derivation-edges.mjs (one-time historical DAG-authorship bridge — see that file header for its retirement condition) THEN scripts/propagation/write-statutory.mjs (FuelEU Annex IV statutory_computations writer) before the drain. Honours mode. The statutory writer needs a reviewed --rows-file (no live ship-GHG source exists yet — see that file header); its step is a no-op, not a failure, when scripts/propagation/fixtures/fueleu-annex-iv-rows.json is absent.'
+        required: false
+        default: false
+        type: boolean
   # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule — see this
   # file's own header "CHAINING" section and population-turn.yml's identical rule-16 reading. Fires once
   # per "Data producers" run, any conclusion; the first job step decides whether it earns a drain.
@@ -158,6 +163,7 @@ jobs:
             RUN_BATCH="${{ inputs.batch }}"
             RUN_BACKFILL_ENTITIES="${{ inputs.backfill_entities }}"
             RUN_SEED_DERIVED_VALUES="${{ inputs.seed_derived_values }}"
+            RUN_BACKFILL_AND_STATUTORY="${{ inputs.backfill_and_statutory }}"
 
           elif [ "$EVENT" = "workflow_run" ]; then
             UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
@@ -172,6 +178,7 @@ jobs:
             RUN_BATCH="500"
             RUN_BACKFILL_ENTITIES="false"
             RUN_SEED_DERIVED_VALUES="false"
+            RUN_BACKFILL_AND_STATUTORY="false"
             RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
             echo "trigger_context = $RUN_TRIGGER_CONTEXT"
 
@@ -187,7 +194,7 @@ jobs:
           else
             RUN_SKIP=true
             RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
-            RUN_MODE="dry"; RUN_BATCH="500"; RUN_BACKFILL_ENTITIES="false"; RUN_SEED_DERIVED_VALUES="false"
+            RUN_MODE="dry"; RUN_BATCH="500"; RUN_BACKFILL_ENTITIES="false"; RUN_SEED_DERIVED_VALUES="false"; RUN_BACKFILL_AND_STATUTORY="false"
           fi
 
           {
@@ -195,6 +202,7 @@ jobs:
             echo "RUN_BATCH=$RUN_BATCH"
             echo "RUN_BACKFILL_ENTITIES=$RUN_BACKFILL_ENTITIES"
             echo "RUN_SEED_DERIVED_VALUES=$RUN_SEED_DERIVED_VALUES"
+            echo "RUN_BACKFILL_AND_STATUTORY=$RUN_BACKFILL_AND_STATUTORY"
             echo "RUN_SKIP=$RUN_SKIP"
           } >> "$GITHUB_ENV"
           {
@@ -209,7 +217,7 @@ jobs:
           if [ "$RUN_SKIP" = "true" ]; then
             echo "::notice::propagation-drain NO-OP — $RUN_SKIP_REASON"
           else
-            echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
+            echo "propagation-drain proceeding: mode=$RUN_MODE batch=$RUN_BATCH backfill_entities=$RUN_BACKFILL_ENTITIES seed_derived_values=$RUN_SEED_DERIVED_VALUES backfill_and_statutory=$RUN_BACKFILL_AND_STATUTORY trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
           fi
 
       - uses: actions/setup-node@v4
@@ -277,6 +285,33 @@ jobs:
             node scripts/propagation/seed-derived-values.mjs --apply
           else
             node scripts/propagation/seed-derived-values.mjs --dry
+          fi
+
+      # Lane DAG-AUTHOR (2026-09-04), resolved through the same RUN_* env as the two opt-ins above (train 38
+      # assembly: always "false" on a chained workflow_run dispatch, hand-dispatch only): closes the historical DAG-authorship gap once, then attempts the
+      # first statutory writer run — see each script's own header for the full reasoning (backfill-
+      # derivation-edges.mjs's retirement condition; write-statutory.mjs's rows-file requirement).
+      - name: backfill-derivation-edges.mjs (opt-in)
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/entities/backfill-derivation-edges.mjs --apply
+          else
+            node scripts/entities/backfill-derivation-edges.mjs --dry
+          fi
+
+      - name: write-statutory.mjs (opt-in, no-op without a reviewed rows-file)
+        if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
+        run: |
+          ROWS_FILE=scripts/propagation/fixtures/fueleu-annex-iv-rows.json
+          if [ ! -f "$ROWS_FILE" ]; then
+            echo "write-statutory: $ROWS_FILE not present — no reviewed ship-year rows to compute from yet (see write-statutory.mjs header). Skipping, not failing."
+            exit 0
+          fi
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/propagation/write-statutory.mjs --apply --rows-file "$ROWS_FILE"
+          else
+            node scripts/propagation/write-statutory.mjs --rows-file "$ROWS_FILE"
           fi
 
       # --trigger-context (lane CHAIN, 2026-09-04) passes this dispatch's own RUN_TRIGGER_CONTEXT through

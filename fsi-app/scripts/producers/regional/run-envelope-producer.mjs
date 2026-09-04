@@ -21,6 +21,100 @@
 
 import { readClient, readAll, guardedInsert, guardedUpdate } from "../../../scripts/lib/db.mjs";
 import { buildEnvelopeRow, planUpsert } from "../../../src/lib/regional/regional-facts-envelope.mjs";
+import { authorEdges } from "../../../src/lib/propagation/author-edges.mjs";
+import { isHourlyWageUnit } from "../../../src/lib/operations/automate-vs-hire.mjs";
+import {
+  METHOD_ID as AUTOMATE_METHOD_ID,
+  METHOD_VERSION as AUTOMATE_METHOD_VERSION,
+} from "../../../src/lib/propagation/methods/automate-vs-hire.ts";
+// resolveRegionEntityId is seed-derived-values.mjs's OWN on-demand jurisdiction-entity mint (entity_refs
+// role='jurisdiction', minting through backfill-entities.mjs's exported planning functions when absent) —
+// reused directly rather than a second entity-minting implementation. Safe to import: that module's own
+// `if (IS_MAIN) await main();` guard means importing its named exports runs no top-level side effect.
+import { resolveRegionEntityId } from "../../propagation/seed-derived-values.mjs";
+
+// Cite for the on-demand jurisdiction-entity mint this module's own DAG-authorship hook can trigger via
+// resolveRegionEntityId (see that function's own header — it accepts an injectable cite so a caller other
+// than seed-derived-values.mjs records accurate provenance rather than borrowing that lane's own cite).
+const REGION_ENTITY_CITE = {
+  skill: "remediation-discipline",
+  reason:
+    "Lane DAG-AUTHOR (2026-09-04): mint a jurisdiction entity + entity_refs row for a region a regional_data_facts " +
+    "producer just completed the automate_vs_hire wage+energy pair for, the SAME shape seed-derived-values.mjs's " +
+    "own resolveRegionEntityId already mints (reused directly, never re-implemented) — this is DAG authorship at " +
+    "producer write time (docs/audits/wiring-audit-2026-09-04/C1-loop-map.md §3), not a new mint path.",
+};
+
+/**
+ * DAG AUTHORSHIP AT WRITE TIME for automate_vs_hire (C1-loop-map.md §3: "new producer/mint data ->
+ * derivation_edges | NOBODY does this today"). Called once per producer run, over every DISTINCT region
+ * this run's write touched — NOT only the dimension this specific producer writes, because the pair
+ * (labor_markets + operational_cost) may complete on EITHER producer's run (eurostat-lc-lci-lev/bls-oews
+ * write labor_markets; eurostat-nrg-pc-205 writes operational_cost) and author-edges.mjs's own natural-key
+ * idempotency check makes a redundant call across producers cheap and safe (skipped-already-authored).
+ * Re-reads the region's CURRENT regional_data_facts rows (not this run's own candidates) because the
+ * completing fact may have been written by a DIFFERENT producer's earlier run. Non-fatal: every outcome is
+ * counted, never thrown — this producer's own primary write has already committed by the time this runs.
+ * DRY mode is a true no-op (mirrors seed-derived-values.mjs's own dry/apply posture): no read, no entity
+ * mint, no author-edges call.
+ * @param {Iterable<string>} regionIds
+ * @param {"dry"|"apply"} mode
+ * @param {{
+ *   readClientFn?: typeof readClient, readAllFn?: typeof readAll,
+ *   resolveRegionEntityIdFn?: typeof resolveRegionEntityId, authorEdgesFn?: typeof authorEdges,
+ * }} [deps] Injectable for tests; production callers omit this entirely.
+ */
+export async function authorAutomateVsHireForRegions(regionIds, mode, deps = {}) {
+  const counts = { authored: 0, skippedAlready: 0, skippedIncomplete: 0, skippedNoHourlyWage: 0, skippedNoEntity: 0, refused: 0, unknownMethod: 0, errored: 0 };
+  const ids = [...new Set(regionIds)];
+  if (mode !== "apply" || !ids.length) return counts;
+
+  const readAllFn = deps.readAllFn ?? readAll;
+  const resolveRegionEntityIdFn = deps.resolveRegionEntityIdFn ?? resolveRegionEntityId;
+  const authorEdgesFn = deps.authorEdgesFn ?? authorEdges;
+  const sb = deps.sb ?? (deps.readClientFn ?? readClient)();
+  const mostRecent = (list) => list.slice().sort((a, b) => new Date(b.last_updated) - new Date(a.last_updated))[0];
+
+  for (const regionId of ids) {
+    try {
+      const rows = await readAllFn("regional_data_facts", "id,dimension,value_numeric,unit,last_updated", {
+        match: (qb) => qb.eq("region_id", regionId).in("dimension", ["labor_markets", "operational_cost"]),
+      });
+      const wageRows = rows.filter((r) => r.dimension === "labor_markets" && isHourlyWageUnit(r.unit) && typeof r.value_numeric === "number" && Number.isFinite(r.value_numeric));
+      if (!wageRows.length) { counts.skippedNoHourlyWage += 1; continue; }
+      const energyRows = rows.filter((r) => r.dimension === "operational_cost" && typeof r.value_numeric === "number" && Number.isFinite(r.value_numeric));
+      if (!energyRows.length) { counts.skippedIncomplete += 1; continue; } // pair not complete yet — not an error
+
+      const wage = mostRecent(wageRows);
+      const energy = mostRecent(energyRows);
+
+      const entity = await resolveRegionEntityIdFn(sb, regionId, mode, { cite: REGION_ENTITY_CITE });
+      if (!entity) { counts.skippedNoEntity += 1; continue; }
+
+      const result = await authorEdgesFn(sb, {
+        table: "regional_data_facts",
+        id: wage.id,
+        entity,
+        method: { id: AUTOMATE_METHOD_ID, version: AUTOMATE_METHOD_VERSION },
+        inputs: [
+          { table: "regional_data_facts", pk: wage.id },
+          { table: "regional_data_facts", pk: energy.id },
+        ],
+      });
+      if (!result.ok) {
+        if (result.action === "unknown-method") counts.unknownMethod += 1; else counts.refused += 1;
+      } else if (result.action === "skipped-already-authored") {
+        counts.skippedAlready += 1;
+      } else {
+        counts.authored += 1;
+      }
+    } catch (err) {
+      counts.errored += 1;
+      console.warn(`[author-edges] automate_vs_hire authorship failed for region ${regionId}: ${err.message}`);
+    }
+  }
+  return counts;
+}
 
 const ENVELOPE_SELECT =
   "id, region_id, dimension, fact_label, value, value_numeric, unit, currency, derivation, " +
@@ -176,16 +270,31 @@ export async function runEnvelopeProducer({ producerName, enabled, sourceKey, fe
   if (DRY) return { ran: true, candidates: candidates.length, plan };
 
   let inserted = 0, updated = 0;
+  const touchedRegionIds = new Set();
   for (const row of plan.toInsert) {
     const region_id = codeToId.get(row.region_code);
     const { region_code, ...rest } = row; // region_code is the caller-facing key; the table stores region_id
     const res = await guardedInsert("regional_data_facts", { ...rest, region_id }, { cite });
-    if (res.inserted) inserted++;
+    if (res.inserted) { inserted++; touchedRegionIds.add(region_id); }
   }
   for (const { id, patch } of plan.toUpdate) {
     const res = await guardedUpdate("regional_data_facts", (qb) => qb.eq("id", id), patch, { cite });
     updated += res.updated;
+    const existingRow = existing.find((e) => e.id === id);
+    if (existingRow) touchedRegionIds.add(codeToId.get(existingRow.region_code));
   }
   console.log(`${producerName}: wrote ${inserted} insert(s), ${updated} update(s).`);
-  return { ran: true, candidates: candidates.length, plan, inserted, updated };
+
+  // DAG authorship at write time (see authorAutomateVsHireForRegions's own header) — every region this
+  // run touched, checked against the CURRENT state of both dimensions (not just this run's own rows), so
+  // a pair that completes across two different producers' runs is still authored.
+  const authorCounts = await authorAutomateVsHireForRegions(touchedRegionIds, DRY ? "dry" : "apply");
+  console.log(
+    `${producerName}: DAG authorship (automate_vs_hire): authored=${authorCounts.authored} ` +
+    `already=${authorCounts.skippedAlready} incomplete-pair=${authorCounts.skippedIncomplete} ` +
+    `no-hourly-wage=${authorCounts.skippedNoHourlyWage} no-entity=${authorCounts.skippedNoEntity} ` +
+    `refused=${authorCounts.refused} unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
+  );
+
+  return { ran: true, candidates: candidates.length, plan, inserted, updated, authorCounts };
 }

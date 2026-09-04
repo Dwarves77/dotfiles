@@ -22,7 +22,7 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { toCandidateRows } from "./run-envelope-producer.mjs";
+import { toCandidateRows, authorAutomateVsHireForRegions } from "./run-envelope-producer.mjs";
 
 /**
  * Every column of public.regional_data_facts that is NOT NULL and has NO default, minus `region_id`,
@@ -143,4 +143,126 @@ test("order of arrival does not matter — newest wins from either direction", (
   const a = toCandidateRows([obsForPeriod("2017-S2", "2017-07-01", 1), obsForPeriod("2025-S1", "2025-01-01", 2)]);
   const b = toCandidateRows([obsForPeriod("2025-S1", "2025-01-01", 2), obsForPeriod("2017-S2", "2017-07-01", 1)]);
   assert.deepEqual(latestPerNaturalKey(a), latestPerNaturalKey(b));
+});
+
+// ── DAG authorship at write time (lane DAG-AUTHOR, 2026-09-04) ─────────────────────────────────────
+//
+// C1-loop-map.md §3: "new producer/mint data -> derivation_edges | NOBODY does this today." These prove
+// authorAutomateVsHireForRegions() against fully-injected fakes — no live DB, no real entity mint.
+
+test("authorAutomateVsHireForRegions: dry mode is a true no-op — no read, no entity resolve, no author call", async () => {
+  let readCalled = false;
+  const counts = await authorAutomateVsHireForRegions(["r1"], "dry", {
+    readAllFn: async () => { readCalled = true; return []; },
+    resolveRegionEntityIdFn: async () => { throw new Error("must not be called in dry mode"); },
+    authorEdgesFn: async () => { throw new Error("must not be called in dry mode"); },
+  });
+  assert.equal(readCalled, false);
+  assert.deepEqual(counts, { authored: 0, skippedAlready: 0, skippedIncomplete: 0, skippedNoHourlyWage: 0, skippedNoEntity: 0, refused: 0, unknownMethod: 0, errored: 0 });
+});
+
+test("authorAutomateVsHireForRegions: no region ids -> no-op, no client constructed", async () => {
+  const counts = await authorAutomateVsHireForRegions([], "apply", {
+    readClientFn: () => { throw new Error("must not construct a client with zero region ids"); },
+  });
+  assert.equal(counts.authored, 0);
+});
+
+test("authorAutomateVsHireForRegions: an annual-only wage fact (not hourly) is refused, never treated as hourly", async () => {
+  const counts = await authorAutomateVsHireForRegions(["r1"], "apply", {
+    sb: {},
+    readAllFn: async () => [
+      { id: "wage-annual", dimension: "labor_markets", value_numeric: 80000, unit: "USD/year", last_updated: "2026-01-01" },
+      { id: "energy-1", dimension: "operational_cost", value_numeric: 0.12, unit: "USD/kwh", last_updated: "2026-01-01" },
+    ],
+    resolveRegionEntityIdFn: async () => { throw new Error("must not resolve an entity with no hourly wage fact"); },
+    authorEdgesFn: async () => { throw new Error("must not be called"); },
+  });
+  assert.equal(counts.skippedNoHourlyWage, 1);
+  assert.equal(counts.authored, 0);
+});
+
+test("authorAutomateVsHireForRegions: an hourly wage with no operational_cost fact yet is 'incomplete', not an error", async () => {
+  const counts = await authorAutomateVsHireForRegions(["r1"], "apply", {
+    sb: {},
+    readAllFn: async () => [
+      { id: "wage-1", dimension: "labor_markets", value_numeric: 38.5, unit: "USD/hour", last_updated: "2026-01-01" },
+    ],
+    resolveRegionEntityIdFn: async () => { throw new Error("must not resolve — pair incomplete"); },
+    authorEdgesFn: async () => { throw new Error("must not be called — pair incomplete"); },
+  });
+  assert.equal(counts.skippedIncomplete, 1);
+  assert.equal(counts.authored, 0);
+});
+
+test("authorAutomateVsHireForRegions: a region with no mintable jurisdiction entity is counted, not silently dropped", async () => {
+  const counts = await authorAutomateVsHireForRegions(["r1"], "apply", {
+    sb: {},
+    readAllFn: async () => [
+      { id: "wage-1", dimension: "labor_markets", value_numeric: 38.5, unit: "USD/hour", last_updated: "2026-01-01" },
+      { id: "energy-1", dimension: "operational_cost", value_numeric: 0.12, unit: "USD/kwh", last_updated: "2026-01-01" },
+    ],
+    resolveRegionEntityIdFn: async () => null,
+    authorEdgesFn: async () => { throw new Error("must not be called with no entity"); },
+  });
+  assert.equal(counts.skippedNoEntity, 1);
+});
+
+test("authorAutomateVsHireForRegions: a complete pair authors through author-edges with BOTH inputs, most-recent per dimension", async () => {
+  let seenFigure = null;
+  const counts = await authorAutomateVsHireForRegions(["r1"], "apply", {
+    sb: { marker: "fake-sb" },
+    readAllFn: async () => [
+      { id: "wage-old", dimension: "labor_markets", value_numeric: 30, unit: "USD/hour", last_updated: "2025-01-01" },
+      { id: "wage-new", dimension: "labor_markets", value_numeric: 38.5, unit: "USD/hour", last_updated: "2026-01-01" },
+      { id: "energy-1", dimension: "operational_cost", value_numeric: 0.12, unit: "USD/kwh", last_updated: "2026-01-01" },
+    ],
+    resolveRegionEntityIdFn: async (sb, regionId) => `cl:jurisdiction:${regionId}`,
+    authorEdgesFn: async (sb, figure) => { seenFigure = { sb, figure }; return { ok: true, action: "authored", valueId: "v1" }; },
+  });
+  assert.equal(counts.authored, 1);
+  assert.equal(seenFigure.sb.marker, "fake-sb");
+  assert.equal(seenFigure.figure.table, "regional_data_facts");
+  assert.equal(seenFigure.figure.id, "wage-new", "must pick the MOST RECENT wage row, not the stale one");
+  assert.equal(seenFigure.figure.entity, "cl:jurisdiction:r1");
+  assert.deepEqual(seenFigure.figure.method, { id: "automate_vs_hire", version: "1.0.0" });
+  assert.deepEqual(seenFigure.figure.inputs, [
+    { table: "regional_data_facts", pk: "wage-new" },
+    { table: "regional_data_facts", pk: "energy-1" },
+  ]);
+});
+
+test("authorAutomateVsHireForRegions: 'skipped-already-authored' is counted separately from 'authored'", async () => {
+  const counts = await authorAutomateVsHireForRegions(["r1"], "apply", {
+    sb: {},
+    readAllFn: async () => [
+      { id: "wage-1", dimension: "labor_markets", value_numeric: 38.5, unit: "USD/hour", last_updated: "2026-01-01" },
+      { id: "energy-1", dimension: "operational_cost", value_numeric: 0.12, unit: "USD/kwh", last_updated: "2026-01-01" },
+    ],
+    resolveRegionEntityIdFn: async () => "cl:jurisdiction:r1",
+    authorEdgesFn: async () => ({ ok: true, action: "skipped-already-authored" }),
+  });
+  assert.equal(counts.skippedAlready, 1);
+  assert.equal(counts.authored, 0);
+});
+
+test("authorAutomateVsHireForRegions: duplicate region ids are deduped before any read", async () => {
+  let readCount = 0;
+  await authorAutomateVsHireForRegions(["r1", "r1", "r1"], "apply", {
+    sb: {},
+    readAllFn: async () => { readCount += 1; return []; },
+    resolveRegionEntityIdFn: async () => null,
+    authorEdgesFn: async () => { throw new Error("unreachable"); },
+  });
+  assert.equal(readCount, 1);
+});
+
+test("authorAutomateVsHireForRegions: a thrown error for one region is caught, counted, and does not abort the others", async () => {
+  const counts = await authorAutomateVsHireForRegions(["bad", "good"], "apply", {
+    sb: {},
+    readAllFn: async (table, cols, opts) => { throw new Error("simulated read failure"); },
+    resolveRegionEntityIdFn: async () => "cl:jurisdiction:x",
+    authorEdgesFn: async () => ({ ok: true, action: "authored", valueId: "v1" }),
+  });
+  assert.equal(counts.errored, 2, "both regions hit the same injected read failure");
 });

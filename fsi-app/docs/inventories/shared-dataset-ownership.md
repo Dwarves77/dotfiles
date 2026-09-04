@@ -629,6 +629,23 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   from. Both callers go through the SAME `registerDerivedValue()` → `register_derived_value(...)` RPC, so
   the atomicity/acyclic-by-construction guarantees migration 285's own header states are identical either
   way — this is a second caller of the one write path, not a second write path.
+  **THIRD UPDATE, Lane DAG-AUTHOR, 2026-09-04: DAG authorship moved from one-off scripts to write time.**
+  `fsi-app/src/lib/propagation/author-edges.mjs` (`authorEdges()`) is the ONE DAG-authoring module every
+  producer imports — it too goes through `registerDerivedValue()`/`register_derived_value(...)`, so it is a
+  THIRD caller of the same one write path, never a fourth. Wired at two producer chokepoints (each already
+  the single shared write path for the producers behind it, so hooking authorship there covers every
+  relevant producer with two call sites, not five): `fsi-app/scripts/gen/emission-factors-common.mjs`'s
+  `seedFactors()` calls `authorCarbonIntensityEdges()` after its own guarded insert (covers
+  `emission-factors-desnz.mjs`/`emission-factors-epa.mjs`, licence-gated via `mayEmbedAsSeed`);
+  `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` calls
+  `authorAutomateVsHireForRegions()` over the run's own touched regions (covers
+  `bls-oews-producer.mjs`/`eurostat-lc-lci-lev-producer.mjs`/`eurostat-nrg-pc-205-producer.mjs`).
+  `fsi-app/scripts/entities/backfill-derivation-edges.mjs` (new, this lane) is a ONE-TIME bridge that calls
+  the SAME two functions over historical rows written before this wiring existed — see that file's own
+  header for its retirement condition. `market_series` producers (`eia-v2-petroleum-spot-producer.mjs`,
+  `ecb-fx-producer.mjs`, `eu-weekly-oil-bulletin.mjs`) are deliberately NOT wired: neither registered
+  method (`carbon_intensity_tkm@1.0.0`, `automate_vs_hire@1.0.0`) consumes `market_series` — wiring them
+  would author edges nothing reads.
 - **`statutory_computations`** and **`estimated_values`** (migration 286) — **UPDATE, Lane DP-SURF,
   2026-09-02: `estimated_values` is no longer reserved/unpopulated.**
   `fsi-app/scripts/propagation/seed-derived-values.mjs` (`--apply`) is its first production writer — a
@@ -652,12 +669,25 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   scenario) upsert, never an insert-only append — a re-run of the seed for the SAME region/scenario
   replaces that one row, which is the correct semantics for "the current estimate," not a history log
   (unlike `derived_values`, which is append-only/versioned via `supersedes`).
-  `statutory_computations` remains genuinely reserved: no production writer lands in this lane (this
-  lane's write set built `fsi-app/src/lib/statutory/fueleu-annex-iv.mjs`'s formula and `types.ts`'s
-  Layer-2 type barrier, but no page/route that calls `computeStatutory()` against a real obligation and
-  persists the result — see this lane's final report for why, and
-  `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`'s `StatutoryFigure.tsx` allowlist entry
-  for the matching "published, no consumer yet" disposition on the render side).
+  **UPDATE, Lane DAG-AUTHOR, 2026-09-04: `statutory_computations` is no longer reserved.**
+  `fsi-app/scripts/propagation/write-statutory.mjs` (`--apply`) is its FIRST production writer — reuses
+  DP-SURF's `computeStatutory("fueleu_annex_iv_penalty", ...)` (Layer 2, `src/lib/statutory/types.ts`)
+  unmodified; this lane adds only entity resolution, `admissibleFor()` gating (use='filing') on every
+  caller-asserted input, and the write itself. UNLIKE `derived_values`, this table has no `register_*` RPC
+  (migration 286 gives it a real DB-level `UNIQUE(entity_id, formula_id, formula_version, scenario_key)`
+  and its own purity trigger to do the transactional work), so this writer uses `db.mjs`'s `guardedInsert`
+  (rule-015: cite + snapshot) directly — idempotent on that same natural key (an existing row for the
+  tuple is read and skipped before any insert is attempted, never re-inserted or updated). ROWS-FILE-
+  DRIVEN, NOT A LIVE TABLE READ: neither `market_series` nor `obligations` (migration 290, spec-01's
+  register) carries a ship-level GHG-intensity-actual or energy-used figure anywhere in this corpus
+  (confirmed live, read-only SELECT, 2026-09-04) — see that file's own header for the full finding,
+  including why the one live `obligations` row naming Regulation (EU) 2023/1805 (Commission Implementing
+  Regulation 2024/2027, a verification-activities duty) is NOT used as `obligation_id`'s source; the
+  script instead mints a dedicated `obligation`-kind entity for the penalty obligation itself. First-apply
+  row count against the live DB today is 0 (no rows-file has been prepared/reviewed) — see this lane's
+  final report for the honest count, not a fabricated one. `estimated_values`'s own writer
+  (`seed-derived-values.mjs`, documented above) is unchanged by this lane — its automate-vs-hire sibling
+  already exists and is not duplicated here.
 - **`regional_data_facts`** (migration 106) — **NEW entry, Lane DP-SURF, 2026-09-02, coordinator follow-up
   task 3.** Three writers, all through the same shared envelope orchestrator
   (`fsi-app/scripts/producers/regional/run-envelope-producer.mjs` — `toCandidateRows` /

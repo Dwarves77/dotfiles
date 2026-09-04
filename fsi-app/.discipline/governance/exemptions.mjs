@@ -161,6 +161,22 @@ export const EXEMPTIONS = [
       'own header and the lane\'s final report.',
     by: 'Lane DP-SURF, system-completion train, 2026-09-02',
   },
+  {
+    match: 'fsi-app/scripts/propagation/write-statutory',
+    reason:
+      'write-statutory.mjs performs the SAME class of write as the src/lib/propagation/ entry above ' +
+      '(a statutory_computations row, guarded-inserted after computeStatutory() and admissibleFor() — ' +
+      'corpus infrastructure the propagation/statutory engine owns, migration 286\'s assert_statutory_' +
+      'purity() and F32 (statutory-purity) already enforcing its invariants structurally, not skill-' +
+      'governed content) — this entry exists separately because the file lives under scripts/propagation/, ' +
+      'one root up from src/lib/propagation/, so the existing match prefix does not reach it, matching ' +
+      'the seed-derived-values entry\'s own reasoning exactly. No `kinds` restriction: this also covers ' +
+      'write-statutory.test.mjs\'s ORPHANED-PROOF finding — that test is real and passing (`node --test ' +
+      'scripts/propagation/write-statutory.test.mjs`) but is NOT wired into .discipline/run-test-suite.sh ' +
+      '(scripts/propagation/ is not one of its covered globs, and that file is outside this lane\'s write ' +
+      'set) — the SAME documented, known gap seed-derived-values.test.mjs already carries, not a new one.',
+    by: 'Lane DAG-AUTHOR, propagation build-out, 2026-09-04',
+  },
 ];
 
 export function isExempt(path, kind) {

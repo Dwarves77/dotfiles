@@ -629,3 +629,102 @@ that file's covered globs, and that file is outside this lane's write set) — r
 `.discipline/governance/exemptions.mjs`'s `scripts/propagation/seed-derived-values` entry rather than left
 silent; run it directly with `node --test scripts/propagation/seed-derived-values.test.mjs` until a later
 lane adds the glob.
+
+## DAG authorship at write time
+
+Added by Lane DAG-AUTHOR (propagation build-out, 2026-09-04) — closes the gap
+`docs/audits/wiring-audit-2026-09-04/C1-loop-map.md` §3 named: "new producer/mint data → derivation_edges |
+NOBODY does this today." Before this lane, the ONLY way a `derived_values`/`derivation_edges` pair came
+into existence was a one-off run of `seed-derived-values.mjs` (above) — a producer's own ordinary write
+(a new `emission_factors` row, a new `regional_data_facts` fact) never touched the DAG at all, so the drain
+had nothing new to invalidate/recompute as the corpus grew, only at the moment someone remembered to
+re-run the seed by hand.
+
+**The one authoring module.** `fsi-app/src/lib/propagation/author-edges.mjs` exports `authorEdges(sb,
+figure, deps)` — given a landed figure `{table, id, entity, method: {id, version}, inputs: [{table, pk}]}`,
+it looks up the registered method (`methods/index.ts`'s `getMethod`), checks `hasBeenAuthored()` (every
+declared input scanned against live `derivation_edges` joined to `derived_values` for a matching
+`(method_id, method_version)` — idempotent on that natural key; `derived_values`/`derivation_edges`
+deliberately carry no DB-level unique constraint, since a legitimate recompute/supersede chain repeats
+rows, so idempotency is enforced here, in application code, not the schema), computes the method against
+the resolved inputs, and writes through the SAME `registerDerivedValue()` → `register_derived_value(...)`
+RPC every other caller in this family uses (see "Propagation drain" above) — never a second write path.
+EVERY producer that can feed a registered method imports this ONE module; none reimplements the
+idempotency check or the RPC call itself.
+
+**Wired at two chokepoints, covering five producers with two call sites:**
+- `fsi-app/scripts/gen/emission-factors-common.mjs`'s `seedFactors()` — the shared write path for
+  `emission-factors-desnz.mjs` and `emission-factors-epa.mjs` — calls `authorCarbonIntensityEdges()` right
+  after its own guarded insert, over the rows PostgREST actually reported back (never the pre-insert
+  candidates). Licence-gated: `mayEmbedAsSeed(source_key)` — a non-embeddable source's factor is never
+  turned into a derived value, matching `seed-derived-values.mjs`'s own gate.
+- `fsi-app/scripts/producers/regional/run-envelope-producer.mjs`'s `runEnvelopeProducer()` — the shared
+  write path for `bls-oews-producer.mjs`, `eurostat-lc-lci-lev-producer.mjs`,
+  `eurostat-nrg-pc-205-producer.mjs` — calls `authorAutomateVsHireForRegions()` over the run's own touched
+  region ids. Picks the MOST RECENT hourly-wage (`isHourlyWageUnit`) and operational-cost fact per region;
+  mints the region's jurisdiction entity on demand (via `resolveRegionEntityId`, reused unmodified from
+  `seed-derived-values.mjs`) when absent.
+- `market_series` producers (`eia-v2-petroleum-spot-producer.mjs`, `ecb-fx-producer.mjs`,
+  `eu-weekly-oil-bulletin.mjs`) are deliberately **not wired** — neither registered method consumes
+  `market_series`, so authoring an edge from it would point at nothing any method reads.
+- `src/lib/intake/write-item.ts` (the record-item mint chokepoint) was checked and **refused**: no table it
+  writes is in `derivation_edges`'s `from_table` allowlist (migration 285), and no registered method
+  consumes anything it writes — there is nothing to author there today.
+
+**The one-time historical bridge.** `fsi-app/scripts/entities/backfill-derivation-edges.mjs` (new, this
+lane) closes the gap for rows written BEFORE the wiring above existed — it calls the exact same two
+functions (`authorCarbonIntensityEdges`, `authorAutomateVsHireForRegions`) over every live
+`emission_factors` row and every region carrying a `labor_markets`/`operational_cost` fact, no
+reimplemented logic. `--dry` (default) reports candidate counts; `--apply` authors for real; `--limit N`
+bounds each candidate list for a pilot run. **Retirement condition** (see the file's own header for the
+full statement): run it once unbounded with `--apply`, then run it again unbounded with `--apply`
+immediately after — a second run reporting `candidates: 0` on both counters is the signal every historical
+row is now authored and every future row is already covered by the two chokepoints above, at which point
+the file, its `propagation-drain.yml` checkbox, and this section are deleted.
+
+**How a coordinator requests a backfill run:** the `backfill_and_statutory` checkbox on
+`propagation-drain.yml`'s `workflow_dispatch` (added this lane) runs
+`backfill-derivation-edges.mjs` and then `write-statutory.mjs` (next section) before the drain step,
+honouring the dispatch's own `mode` (`dry`/`apply`). Both steps are independent no-ops when their inputs
+are empty/absent — enabling the checkbox on a routine dispatch cannot fail the run.
+
+## Statutory computations (first writer)
+
+Added by Lane DAG-AUTHOR (propagation build-out, 2026-09-04) — the first `statutory_computations` writer
+(spec 08 §4's FuelEU Maritime worked example, instantiated). `fsi-app/scripts/propagation/write-statutory.mjs`
+reuses `src/lib/statutory/types.ts`'s `computeStatutory("fueleu_annex_iv_penalty", ...)` (Layer 2, built by
+Lane DP-SURF 2026-09-02) unmodified — this script only resolves entities, gates every input through
+`admissibleFor()` (use='filing', spec §3.3's pollution barrier), and writes the row.
+
+**Rows-file-driven, not a live table read — a finding, not a shortcut.** Neither `market_series` nor
+`obligations` (migration 290) carries a ship-level GHG-intensity-actual or energy-used figure anywhere in
+this corpus (confirmed live, read-only SELECT, 2026-09-04) — see the script's own header for the full
+finding, including why the one live `obligations` row naming Regulation (EU) 2023/1805 (an implementing
+verification-activities regulation, not the Annex IV penalty itself) is not used as the obligation source.
+`--rows-file <path>` (JSON) is REQUIRED in both dry and apply mode — each row supplies a `shipKey`,
+`targetYear` (2025 only — see below), and three fully-provenanced `StatutoryInput`-shaped blocks
+(`ghgIntensityActual`, `energyUsedMJ`, `consecutiveDeficitYears`), each checked against `admissibleFor()`
+before the row can be assembled. **No rows-file has been prepared/reviewed as of this writing — the honest
+first-apply count is 0 rows**, not a fabricated number.
+
+**2025-target-only.** Article 4(2) of Regulation (EU) 2023/1805, verified live against EUR-Lex
+CELEX:32023R1805 this session (2026-09-04): the reference value 91.16 gCO2eq/MJ is reduced 2% from
+1 January 2025 (target = 89.3368 gCO2eq/MJ). Every other `targetYear` is refused BY NAME
+(`SUPPORTED_TARGET_YEARS`) — the fetch mentioned a 6% reduction from 2030 without giving verbatim Article
+text, and did not cover 2035/2040/2045/2050 at all, so only 2025 is implemented.
+
+**How to run it:**
+
+```
+node scripts/propagation/write-statutory.mjs --rows-file path/to/rows.json               # dry (default)
+node scripts/propagation/write-statutory.mjs --apply --rows-file path/to/rows.json        # writes
+```
+
+Exit 0 done · 1 unexpected fatal · 2 no DB creds · 3 missing/bad `--rows-file`. Idempotent on the table's
+own natural key (`entity_id, formula_id, formula_version, scenario_key`, migration 286's own UNIQUE
+constraint) — an existing row is read and skipped before any insert, never re-inserted or updated; a
+genuine recompute needs a caller-chosen new `scenario_key` (the same convention migration 286 documents
+for itself).
+
+**`estimated_values`'s automate-vs-hire sibling already exists** — `seed-derived-values.mjs`'s
+`seedAutomateVsHire` (documented above) — and is not duplicated by this lane.
