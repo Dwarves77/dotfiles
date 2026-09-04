@@ -1,0 +1,72 @@
+{
+  "harness_family": "forward-events",
+  "harness_version": "sha256:8cb99f232affa4c5",
+  "run_id": "forward-events-run-034",
+  "started_at": "2026-09-04T14:05:36.787Z",
+  "finished_at": "2026-09-04T14:05:36.794Z",
+  "config": {
+    "input": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029/corpus.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029/corpus.json"
+  ],
+  "per_item": [
+    {
+      "id": "70869a22-39eb-4eb7-ba49-d3826b5b2265",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "32783a47-0073-4cff-a2ae-369508bcdfe9",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "2d306cc6-084d-44d0-ae88-bb391767f787",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "0ee667cc-a403-4fe3-b5f8-4f829a4a9103",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    },
+    {
+      "id": "180b8163-6ae5-4f35-98dd-02e46c06b561",
+      "outcome": "no_events",
+      "verdict": "0 event(s), 0 skip(s)",
+      "evidence_refs": [],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "items_processed": 5,
+    "items_with_events": 0,
+    "events_emitted": 0,
+    "skips": 0,
+    "by_kind": {},
+    "by_confidence": {},
+    "by_precision": {},
+    "by_skip_reason": {},
+    "dedupe_dropped": 0,
+    "extractor_version": "fe1-2026-09-04.4"
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029/corpus.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029/corpus.events.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-flywheel-mint-run-029/corpus.skipped.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-extraction.mjs's own execution path (Wave MH-5) — the family's first versioned, in-repo runner; forward-events-run-001.json was produced by an external scratch script (see its own inputs_ref/full_trace_refs paths under /root/work/forward-events/), which this script replaces going forward."
+}

@@ -1,0 +1,100 @@
+{
+  "harness_family": "mint",
+  "harness_version": "sha256:714d22dadb03b8a1",
+  "run_id": "mint-run-029",
+  "started_at": "2026-09-04T14:04:50.563Z",
+  "finished_at": "2026-09-04T14:04:50.710Z",
+  "config": {
+    "batch_file": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json",
+    "out_dir": "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33881591888",
+    "execute": true,
+    "mode": "execute"
+  },
+  "inputs_ref": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json"
+  ],
+  "per_item": [
+    {
+      "id": "eu-oil-bulletin:eurosuper-95",
+      "outcome": "not_applied_url_holder",
+      "verdict": "valid, 0 failures — recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "holder_item_id": "4fae403a-ced5-4c8f-82b7-af0fd6127061"
+    },
+    {
+      "id": "eu-oil-bulletin:automotive-diesel",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "70869a22-39eb-4eb7-ba49-d3826b5b2265"
+    },
+    {
+      "id": "eu-oil-bulletin:heating-gas-oil",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "32783a47-0073-4cff-a2ae-369508bcdfe9"
+    },
+    {
+      "id": "eu-oil-bulletin:lpg-motor-fuel",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "2d306cc6-084d-44d0-ae88-bb391767f787"
+    },
+    {
+      "id": "eu-oil-bulletin:residual-fuel-oil-1pct",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "0ee667cc-a403-4fe3-b5f8-4f829a4a9103"
+    },
+    {
+      "id": "eu-oil-bulletin:heavy-fuel-oil-3-5pct",
+      "outcome": "minted_verified",
+      "verdict": "row provenance_status=verified; rpc recommended_status=verified",
+      "evidence_refs": [],
+      "error": null,
+      "item_id": "180b8163-6ae5-4f35-98dd-02e46c06b561"
+    }
+  ],
+  "metrics": {
+    "attempted": 6,
+    "valid": 6,
+    "invalid": 0,
+    "build_failed": 0,
+    "validator_first_pass_rate": "6/6 = 100.00%",
+    "db_deltas": {
+      "items": 5,
+      "sections": 10,
+      "claims": 25,
+      "searches": 5,
+      "gate_a": 5,
+      "citations": 0,
+      "sources": 0
+    },
+    "minted": 5,
+    "minted_verified": 5,
+    "minted_unverified": 0,
+    "apply_failed": 0,
+    "census_rows_reconciled": 0,
+    "validation_failed_held": 0,
+    "not_applied_url_holder": 1,
+    "edges_discovered": 50,
+    "forward_events_extracted": 0,
+    "isolated_items": 0,
+    "ids_resolved_by_key": 0
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-browser/oil-bulletin-2026-09-03/census-rows.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33881591888/census-rows.apply-ready.json",
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/_snapshots/population-33881591888/census-rows.mint-batch-report.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-mint-batch.mjs's own execution path (Wave MH-5 — 'emission is in the harness, not the operator,' extended to mint per PROPOSER-RUNBOOK.md §5's named residual). Corpus-outcome metrics (edges_discovered, forward_events_extracted, isolated_items) are not computed by this DB-less runner — see MINT-RUNBOOK.md's post-apply flywheel steps and run this same script again with --outcomes once the coordinator's apply + discovery pass has run.\n\napply-mint-batch.mjs enrichment (2026-09-04T14:05:01.081Z): 5 minted (5 verified, 0 not), 0 apply_failed, 1 not_applied, 0 validation_failed census_worklist row(s) held (dryrun_disposition='hold', see hold_reason/notes — lane URL-GUIL; re-admitted only by scripts/mint/reopen-validation-holds.mjs re-validating against the live gate, never a blind unhold). Discovery + forward-event extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error."
+}
