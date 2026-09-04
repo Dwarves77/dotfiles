@@ -159,6 +159,25 @@ export async function loadMembers(
   }
 }
 
+// PERF-12 (2026-09-04, ADR-027 §5/item 4): a fifth field alongside the existing four, same
+// independent-degrade contract (null on any failure, never throws). `loadMembers` above already
+// calls `resolveOrgIdFromUserId` internally but does not expose the id itself to the response body —
+// this loader is the same resolver, exposed as its own top-level field, so a CLIENT listing route
+// (see /api/listings/cursor/route.ts's own header) can send it back as `X-Org-Id` for the server to
+// VERIFY against the session-derived value on the next request — never as the thing that actually
+// scopes a query (that stays resolveOrgIdFromCookies()/resolveOrgIdFromUserId(), read fresh from the
+// session on every request, exactly as before this lane).
+export async function loadOrgId(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<string | null> {
+  try {
+    return await resolveOrgIdFromUserId(supabase, userId);
+  } catch {
+    return null;
+  }
+}
+
 export async function loadAdminAttention(
   supabase: SupabaseClient,
   userId: string

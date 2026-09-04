@@ -15,7 +15,7 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, emptyListOrderByKey } =
+const { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOrgId, emptyListOrderByKey } =
   await jiti.import("./logic.ts");
 
 // ── loadPersonalState ──
@@ -307,6 +307,47 @@ test("loadMembers: thrown exception → null (fail-soft, never throws)", async (
   const supabase = { from() { throw new Error("boom"); } };
   const members = await loadMembers(supabase, "user-1");
   assert.equal(members, null);
+});
+
+// ── loadOrgId ── (PERF-12, 2026-09-04, ADR-027 §5/item 4)
+
+test("loadOrgId: org found → the org_id (same resolveOrgIdFromUserId call loadMembers already makes)", async () => {
+  const supabase = {
+    from(table) {
+      assert.equal(table, "org_memberships");
+      return {
+        select: () => ({
+          eq: () => ({
+            order: () => ({
+              limit: () => ({ maybeSingle: async () => ({ data: { org_id: "org-1" }, error: null }) }),
+            }),
+          }),
+        }),
+      };
+    },
+  };
+  const orgId = await loadOrgId(supabase, "user-1");
+  assert.equal(orgId, "org-1");
+});
+
+test("loadOrgId: no membership → null (degrades, does not throw)", async () => {
+  const supabase = {
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          order: () => ({ limit: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) }),
+        }),
+      }),
+    }),
+  };
+  const orgId = await loadOrgId(supabase, "user-1");
+  assert.equal(orgId, null);
+});
+
+test("loadOrgId: thrown exception → null (fail-soft, never throws)", async () => {
+  const supabase = { from() { throw new Error("boom"); } };
+  const orgId = await loadOrgId(supabase, "user-1");
+  assert.equal(orgId, null);
 });
 
 // ── loadAdminAttention ──
