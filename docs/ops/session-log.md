@@ -9615,3 +9615,34 @@ cut and the timeout arithmetic, and the strip apply waits for the operator's yes
 Live check after #572: /regulations first paint leads with the 13 IMMEDIATE rows [CONFIRMED]; the
 first capture after the deploy still showed the old order because the data cache serves stale while
 it revalidates. Dispatch next: backlog apply again after this lands.
+
+### Addendum 85, postscript 39 — two legacy artifacts connected, and the obligation text made honest (2026-09-04)
+
+Train/wave27 landed as #574 (`72c8dc44`). Backlog apply #28 (run 33859302019) connected mint-run-001
+and mint-run-004 end to end for the first time [CONFIRMED from the run log and the artifact stamps:
+run-001 edges_discovered 80, forward_events_extracted 40, isolated_items 0, ids_resolved_by_key 6],
+then refused mint-run-005 on "CELEX:32014R0788 via no fields (0 matches)". Reading every mint-run
+artifact showed three legacy id shapes: bare CELEX keys (001–003), `CELEX:`-prefixed keys (005), and
+bare intelligence_items uuids (008/009/010/015, 287 entries) that the resolver only ever tried as a
+canonical key. LEGACY-4 (this train): `legacyKeyOf` strips the prefix and a uuid-shaped id resolves
+directly by `intelligence_items.id`; a missing row is reported, never guessed. The three
+`population/*` artifact branches (runs 33847066554, 33857733835, 33859302019: forward-events-run-006
+to 009 and the stamped mint-run-001/004) are folded in here; run-007 onward carry FWD-TEXT's
+extractor hash, so its marker is discharged. PROPOSER-5 (Haiku) attested runs 006–009 and found that
+the extractor's `counts.dedupe_dropped` never reached an artifact because `run-extraction.mjs`
+destructured only `{ events, skipped }`; DEDUPE-PLUMB (this train) folds the drops into
+`metrics.dedupe_dropped` and `result.dedupeDropped[]`, PROTOCOL §5c documents it.
+
+Retext dry #32 over the existing 654 forward events showed FWD-TEXT's normaliser was not finished:
+316 of its outputs still began at a `;` clause boundary, 149 at a quote or parenthesis, 65 kept `**`,
+11 a bare `FACT:` label, 11 a table cell, 161 had no terminal punctuation [CONFIRMED, regex over the
+run summary], and a live 30-row sample found the normaliser non-idempotent on one row. FWD-TEXT-2
+(Sonnet, extractor `fe1-2026-09-04.2`): the leading edge requires a real sentence start (terminator +
+whitespace + capital/quote/digit, a paragraph break, or a list/heading start; look-back 300 bytes,
+measured), a window that cannot reach one is marked with an honest "…" rather than capitalised, the
+trailing edge ends at a terminator or gets "…", labels and markers are stripped anywhere, a multi-
+column table row keeps the cell holding the date span (`selectDateCell`), the rules run as a bounded
+fixed point (idempotent over all 654 rows), and the property sweep over every `before` text leaves
+zero non-letter starts, zero `*`, zero pipes, zero bare URLs, zero unterminated windows. The retext
+dry report now classifies its own AFTER residue (`by_after_defect_class`) so the next dry run proves
+itself. Dispatch next: backlog apply (mint-run-005 onward), `forward-events-retext` dry then apply.
