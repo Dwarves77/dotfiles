@@ -113,7 +113,7 @@
 -- that never shipped it live). `p_after_id IS NULL` alone gates the entire predicate — passing NULL
 -- (every existing zero/one-arg caller) short-circuits it to TRUE, byte-identical to today.
 --
--- WRITTEN, NOT APPLIED BY THIS LANE. Supabase MCP is read-only for this lane; the coordinator applies
+-- APPLIED LIVE 2026-09-04 22:52 UTC by the coordinator via Supabase MCP (post-check passed). Originally: written, not applied by this lane — Supabase MCP was read-only for the lane; the coordinator applies
 -- this file via Supabase MCP after landing, then the post-check block at the bottom verifies the live
 -- result (same shape as migration 304's own post-check).
 --
