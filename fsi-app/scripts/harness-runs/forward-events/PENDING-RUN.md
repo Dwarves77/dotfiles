@@ -103,7 +103,10 @@ retext.mjs` gained an exported `classifyAfterResidue(text)` (parallel to, and in
 report now proves the fix against itself on every future run. `sentenceStart` (the separate deontic-window
 helper) and the `source_span`/`assertVerbatim` verbatim law are both completely unchanged.
 
-**harness_version at write time:** `sha256:64efbbc192660946`
+**What changed (also on this tree):** `PROTOCOL.md` §5c documents `metrics.dedupe_dropped` (DEDUPE-PLUMB,
+same train) — the combined hash below covers both the FWD-TEXT-2 extractor and that paragraph.
+
+**harness_version at write time:** `sha256:cb4898d073a80ab9`
 
 **The planned run that will supersede this marker:** the next `scripts/forward-events/run-extraction.mjs`
 dispatch under this landed code (or the coordinator's next `population-turn` flywheel pass, which calls
