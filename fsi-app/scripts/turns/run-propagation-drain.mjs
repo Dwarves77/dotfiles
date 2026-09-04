@@ -34,20 +34,17 @@ import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runPropagationDrain } from "../../src/lib/propagation/drain.ts";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "propagation");
 const ROOT = FSI_ROOT;
 
-// This family's governing files — mirrors CONVENTION.md's harness_version table + F28's
-// GOVERNING_FILES.propagation (kept in sync by the CONVENTION-TABLE-PARITY test, same discipline every
-// other family's list already carries).
-export const PROPAGATION_GOVERNING_FILES = Object.freeze([
-  "scripts/turns/run-propagation-drain.mjs",
-  "src/lib/propagation/drain.ts",
-  "src/lib/propagation/admissible-for.ts",
-]);
+// This family's governing files — IMPORTED from scripts/harness-runs/governing-files.mjs (Wave
+// GOV-SINGLE, 2026-09-04), re-exported under this historical name so existing importers keep working
+// unchanged — F28's own copy and this runner's self-hash are now the same array by construction.
+export const PROPAGATION_GOVERNING_FILES = GOVERNING_FILES.propagation;
 
 function usage() {
   return (

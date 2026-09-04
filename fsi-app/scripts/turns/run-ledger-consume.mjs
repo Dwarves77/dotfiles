@@ -77,6 +77,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -84,14 +85,10 @@ const ROOT = FSI_ROOT;
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "ledger-consume");
 
 // This family's governing files — the driver plus the two library modules it gives a production runtime
-// to for the first time. Mirrors CONVENTION.md's harness_version table + F28's
-// GOVERNING_FILES.'ledger-consume' (kept in sync by hand, same discipline every other family's list
-// already carries — see CONVENTION-TABLE-PARITY-style cross-checks in the sibling families' own tests).
-export const LEDGER_CONSUME_GOVERNING_FILES = Object.freeze([
-  "scripts/turns/run-ledger-consume.mjs",
-  "src/lib/intake/portal-harvest.ts",
-  "src/lib/llm/first-fetch-classify.ts",
-]);
+// to for the first time. IMPORTED from scripts/harness-runs/governing-files.mjs (Wave GOV-SINGLE,
+// 2026-09-04), re-exported under this historical name so existing importers keep working unchanged — F28's
+// own copy and this runner's self-hash are now the same array by construction, not two hand-synced ones.
+export const LEDGER_CONSUME_GOVERNING_FILES = GOVERNING_FILES['ledger-consume'];
 
 // THE APPLY GATE (see header). Left FALSE by this lane — ADR-023's reviewed-change gate, applied to a
 // consumer. Flip it in a reviewed diff when an operator arms apply for this family.

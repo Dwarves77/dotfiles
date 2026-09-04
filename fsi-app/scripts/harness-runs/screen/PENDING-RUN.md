@@ -21,7 +21,18 @@ the population export every dispatch (`export-census-rows.mjs` → `lib/screen-v
 that supersedes this marker is the next `population-turn` dispatch's screened export — the screen family
 still has no round-4 `screen-worklist.mjs` batch of its own; that remains the honest gap below.
 
-**harness_version at write time:** `sha256:a6cb87abf8e61cd9`
+**Re-stamped 2026-09-04 (lane GOV-SINGLE, governing-files.mjs single-source refactor):**
+`SCREEN_GOVERNING_FILES` moved from a plain literal array declared inside `screen-worklist.mjs` to
+`export const SCREEN_GOVERNING_FILES = GOVERNING_FILES.screen;`, importing its entry from the new single
+source `scripts/harness-runs/governing-files.mjs` — F28 now imports the SAME array instead of separately
+importing `SCREEN_GOVERNING_FILES` from this file, so the two can no longer drift by construction (they
+already couldn't since Wave MH-2, but the direction of truth was screen-worklist.mjs -> F28; it is now
+governing-files.mjs -> both). The FILE LIST this family's `harness_version` hashes is byte-identical
+(`scripts/mint/screen-rules.mjs`, `scripts/mint/screen-worklist.mjs` — unchanged); only
+`screen-worklist.mjs` itself — one of its own two governing files — changed BYTES (the import line and the
+declaration), which is what moved the hash again. `screen-rules.mjs` is untouched.
+
+**harness_version at write time:** `sha256:bcba50585bb00ce3` (superseded above: `sha256:a6cb87abf8e61cd9`)
 
 **Planned run:** the next real screen batch (round 4, whenever the census worklist next needs a
 re-screen — no round 4 is scheduled by this wave) is what supersedes this marker. Because emission is

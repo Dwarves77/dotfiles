@@ -39,7 +39,17 @@ egress proxy in this build environment refuses connections to the two candidate 
 target, `aircargonews.net` and `aapa-ports.org` — see PROTOCOL.md §7 for the exact refusal text). This
 marker is that honest acknowledgment, not a live-run substitute.
 
-**harness_version at write time:** `sha256:cd5bced124897333`
+**Re-pin note (lane GOV-SINGLE, 2026-09-04, governing-files.mjs single-source refactor):**
+`SOURCE_SWEEP_GOVERNING_FILES` moved from a hand-copied literal array inside `run-source-sweep.mjs` to
+`export const SOURCE_SWEEP_GOVERNING_FILES = GOVERNING_FILES['source-sweep'];`, importing its entry from
+the new single source `scripts/harness-runs/governing-files.mjs` (see that module's own header — this
+closes the "two hand-synced copies of the same fact" defect proven live for `mint`'s own pair; the
+`sitemap-walk.mjs`/`feed-discovery.mjs` non-extension decision this file already documents above is
+unaffected — the FILE LIST hashed is still the same three entries, byte-identical). Only
+`run-source-sweep.mjs` itself — one of its own three governing files — changed BYTES (the import line and
+the declaration), which is what moved the hash again; `register-walk.mjs`/`feed-walk.mjs` are untouched.
+
+**harness_version at write time:** `sha256:a5f3170ef09f94f7` (supersedes `sha256:cd5bced124897333` above)
 
 **The planned run that supersedes this marker:** the first `source-sweep` dispatch run with
 `--walker sitemap --mode dry` (against a verified-feed source, e.g. `--host aircargonews.net`, then a

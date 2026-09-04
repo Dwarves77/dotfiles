@@ -89,6 +89,7 @@ node --test \
   fsi-app/scripts/lib/reachability.selftest.mjs \
   fsi-app/scripts/lib/revalidate.test.mjs \
   fsi-app/scripts/lib/run-artifact.test.mjs \
+  fsi-app/scripts/harness-runs/*.test.mjs \
   fsi-app/scripts/lib/verification-decision.selftest.mjs \
   fsi-app/scripts/lib/verify.selftest.mjs \
   fsi-app/scripts/verify/*.test.mjs \

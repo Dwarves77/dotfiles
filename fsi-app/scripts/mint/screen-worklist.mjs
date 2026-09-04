@@ -62,18 +62,18 @@ import { resolve, dirname, basename, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { classifyRelevance } from "./screen-rules.mjs";
 import { writeRunArtifact, hashHarnessVersion } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "screen");
 
 // The screen family's governing files per scripts/harness-runs/CONVENTION.md's harness_version table —
-// fsi-app-relative, single source of truth this script hashes itself with. F28 (harness-run-integrity)
-// imports this same constant rather than hand-copying it, so the two can never drift apart.
-export const SCREEN_GOVERNING_FILES = [
-  "scripts/mint/screen-rules.mjs",
-  "scripts/mint/screen-worklist.mjs",
-];
+// IMPORTED from scripts/harness-runs/governing-files.mjs (Wave GOV-SINGLE, 2026-09-04; that module is now
+// the single source every family's runner AND F28 both import — see its own header), re-exported under
+// this historical name so existing importers (F28, this file's own self-hash below) keep working
+// unchanged.
+export const SCREEN_GOVERNING_FILES = GOVERNING_FILES.screen;
 
 function parseArgs(argv) {
   const args = { input: null, outDir: null, reviewed: null, outBasename: null, harnessRunsDir: null };

@@ -72,20 +72,17 @@ import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-art
 // main(), which only ever runs when this file is executed directly (IS_MAIN guard below), never on a
 // bare `import` for testing.
 import { CHANGE_SWEEP_STAGED_MARKER } from "../../src/lib/sources/change-sweep.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
 const ROOT = FSI_ROOT;
 const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "change-detection");
 
-// This family's governing files (fsi-app-relative — mirrors CONVENTION.md's harness_version table + F28's
-// GOVERNING_FILES.'change-detection', kept in sync by the CONVENTION-TABLE-PARITY test every other
-// family's list already carries).
-export const CHANGE_DETECTION_GOVERNING_FILES = Object.freeze([
-  "scripts/turns/run-change-detection.mjs",
-  "src/lib/sources/reconcile.ts",
-  "src/lib/intake/run-intake-cycle.ts",
-]);
+// This family's governing files (fsi-app-relative) — IMPORTED from scripts/harness-runs/governing-files.mjs
+// (Wave GOV-SINGLE, 2026-09-04), re-exported under this historical name so existing importers keep
+// working unchanged — F28's own copy and this runner's self-hash are now the same array by construction.
+export const CHANGE_DETECTION_GOVERNING_FILES = GOVERNING_FILES['change-detection'];
 
 // The route's own DEFAULT_CHECK_LIMIT (check-sources/route.ts) — mirrored here as this script's own
 // default for BOTH --check-limit's dry-mode read/report AND (second commit) the `limit` this script sends

@@ -309,17 +309,15 @@ test("CLI --execute: two consecutive real runs claim distinct, incrementing run 
   }
 });
 
-test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's / F28's forward-events entry exactly", async () => {
+test("FORWARD_EVENTS_GOVERNING_FILES matches CONVENTION.md's forward-events entry (documentation, checked against the module by CONVENTION-TABLE-PARITY)", async () => {
   const conventionMd = readFileSync(join(HERE, "..", "harness-runs", "CONVENTION.md"), "utf8");
   assert.ok(conventionMd.includes("extract-forward-events.mjs"), "CONVENTION.md must still name the extractor");
   assert.ok(conventionMd.includes("forward-events/PROTOCOL.md"), "CONVENTION.md must still name PROTOCOL.md");
-  const f28Src = readFileSync(
-    join(HERE, "..", "..", ".discipline", "fitness", "functions", "F28-harness-run-integrity.mjs"),
-    "utf8",
-  );
-  for (const f of FORWARD_EVENTS_GOVERNING_FILES) {
-    assert.ok(f28Src.includes(`'${f}'`), `F28's GOVERNING_FILES['forward-events'] must still list ${f}`);
-  }
+  // The old second half of this test read F28's source text for a literal string match — replaced by ONE
+  // consolidated contract test, scripts/harness-runs/governing-files.test.mjs (Wave GOV-SINGLE,
+  // 2026-09-04): this runner's export is now a direct re-export of governing-files.mjs's
+  // GOVERNING_FILES['forward-events'], so it and F28's own copy cannot drift apart by construction.
+  assert.ok(FORWARD_EVENTS_GOVERNING_FILES.length > 0);
 });
 
 // ── DEDUPE-PLUMB (2026-09-04, PROPOSER-5 finding): the extractor's dedupe counts reach the artifact ──

@@ -62,6 +62,7 @@ import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 // --max-sitemap-fetches/--max-sitemap-entries defaults, mirroring the module's own.
 import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -69,30 +70,21 @@ const DEFAULT_HARNESS_RUNS_DIR = resolve(HERE, "..", "harness-runs", "source-swe
 const ROOT = FSI_ROOT;
 
 // This family's governing files — the driver plus the two dormant walker modules it gives a runtime to.
-// Mirrors CONVENTION.md's harness_version table + F28's GOVERNING_FILES.'source-sweep' (kept in sync by
-// the CONVENTION-TABLE-PARITY test, the same discipline every other family's list already carries).
+// IMPORTED from scripts/harness-runs/governing-files.mjs (Wave GOV-SINGLE, 2026-09-04), re-exported under
+// this historical name so existing importers (including run-source-sweep.test.mjs's own 3-entry assertion
+// below) keep working unchanged — F28's own copy and this runner's self-hash are now the same array by
+// construction, not three hand-synced ones.
 //
 // DELIBERATELY NOT EXTENDED to src/lib/sources/sitemap-walk.mjs / feed-discovery.mjs (lane SITEMAP,
 // 2026-09-04, added the "sitemap" walker below that CALLS both — same "driver calls, never edits, the
 // walker modules" relationship this array already documents for the other two). Adding them here would
 // move this family's `harness_version` hash, which F28's rule (c) (staleness coupling,
 // `.discipline/fitness/functions/F28-harness-run-integrity.mjs`) requires EITHER a fresh valid artifact
-// carrying the new hash, OR a `scripts/harness-runs/source-sweep/PENDING-RUN.md` acknowledging it — and
-// BOTH mechanisms are pinned in a SECOND place this lane's write set does not include:
-// `run-source-sweep.test.mjs`'s `SOURCE_SWEEP_GOVERNING_FILES names the driver plus both walker modules`
-// test asserts this exact 3-entry array, and `F28-harness-run-integrity.mjs`'s own `GOVERNING_FILES.
-// 'source-sweep'` (and `scripts/harness-runs/CONVENTION.md`'s governing-file table row) carry the
-// identical 3-file list independently. Extending the array here without updating all three would either
-// break the pinned test or leave two of the three copies drifted from the third (F28's own
-// CONVENTION-TABLE-PARITY discipline exists to catch exactly that). See PROTOCOL.md's "sitemap" section
-// and the lane's report for the follow-up this leaves: a lane with `run-source-sweep.test.mjs` and
-// `scripts/harness-runs/CONVENTION.md` in its write set should extend all three together, in one commit,
-// once this walker has run for real.
-export const SOURCE_SWEEP_GOVERNING_FILES = Object.freeze([
-  "scripts/turns/run-source-sweep.mjs",
-  "src/lib/sources/register-walk.mjs",
-  "src/lib/sources/feed-walk.mjs",
-]);
+// carrying the new hash, OR a `scripts/harness-runs/source-sweep/PENDING-RUN.md` acknowledging it — a
+// lane extending this family's coverage should edit governing-files.mjs (the single source, since this
+// change) and land the acknowledging marker (or the run) in the same commit; that edit now propagates to
+// F28 and this runner together, by construction, so there is no longer a second or third copy to remember.
+export const SOURCE_SWEEP_GOVERNING_FILES = GOVERNING_FILES['source-sweep'];
 
 const WALKERS = Object.freeze(["register-eurlex", "register-federal-register", "feed", "sitemap"]);
 

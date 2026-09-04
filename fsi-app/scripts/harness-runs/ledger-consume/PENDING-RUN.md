@@ -31,7 +31,7 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:2798bdb08c8e8552`
+**harness_version at write time:** `sha256:b12b73cfc8a273af` (see Re-pin note 4 below; `sha256:2798bdb08c8e8552` is superseded)
 
 **The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
 `node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
@@ -58,3 +58,5 @@ dispatch cannot succeed until that registration lands — see `docs/runbooks/COR
 **Re-pin note 2 (coordinator, 2026-09-02, follow-up integration):** the hash above moved again to `sha256:2798bdb08c8e8552`, this pass over `scripts/turns/run-ledger-consume.mjs` itself — `buildLoggingClassify`, its own `agent_runs` insert, was removed (it would have written a SECOND row per classify now that `spendMessage`/`recordSpendCall` in `spend-client.ts` writes the first one) and replaced with a read-only `collectClassifyTelemetry` that reads `input_tokens`/`output_tokens` back off `FirstFetchClassifyResult` for the artifact; no library governing file changed in this pass. Re-pinned by the coordinator at integration (2026-09-02); the planned first run is unchanged.
 
 **Re-pin note 3 (coordinator, 2026-09-02):** `sha256:e8506362c5e2c2c5` → `sha256:2798bdb08c8e8552`. The rule-016 prose false-positive fix reworded one header comment in `run-ledger-consume.mjs` after the previous pin; PR #517's first CI run caught the drift (NO ARTIFACTS on this family) because the coordinator re-ran the engine and consistency gates after that edit but not F28. The planned first run is unchanged.
+
+**Re-pin note 4 (lane GOV-SINGLE, 2026-09-04):** `sha256:2798bdb08c8e8552` → `sha256:b12b73cfc8a273af`. `LEDGER_CONSUME_GOVERNING_FILES` moved from a hand-copied literal array inside `run-ledger-consume.mjs` to `export const LEDGER_CONSUME_GOVERNING_FILES = GOVERNING_FILES['ledger-consume'];`, importing its entry from the new single source `scripts/harness-runs/governing-files.mjs` (see that module's own header — this closes the "two hand-synced copies of the same fact" defect proven live for `mint`'s own pair). The FILE LIST this family's `harness_version` hashes is byte-identical (`scripts/turns/run-ledger-consume.mjs`, `src/lib/intake/portal-harvest.ts`, `src/lib/llm/first-fetch-classify.ts` — unchanged); only `run-ledger-consume.mjs` itself — one of its own three governing files — changed BYTES (the import line and the declaration), which is what moved the hash. Neither library governing file changed. The planned first run is unchanged.
