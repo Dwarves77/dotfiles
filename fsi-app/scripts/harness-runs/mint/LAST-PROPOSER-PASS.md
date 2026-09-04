@@ -1,7 +1,97 @@
 # Last proposer pass — mint
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **eighteen** artifacts (`mint-run-001` …
-`mint-run-018`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-018**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `mint` now has **twenty-one** artifacts (`mint-run-001`
+… `mint-run-021`); F28's rule (d) requires this file to name the latest verbatim: **mint-run-021**.
+
+## Pass of 2026-09-04 (lane ARTIFACTS-2 — mint-run-019, mint-run-020, mint-run-021: population #17/#18/#19, the URL-GUIL fix confirmed both pre- and post-landing, and the hold-back mechanism proven closing the repeat-failure loop)
+
+**Artifacts read:** mint-run-019 (population-turn run `33817563729`, apply, 2026-09-03T23:31Z, 157
+attempted, `harness_version sha256:c933647da54908a1` — the OLD hash, this run's parent commit predates
+lane URL-GUIL's kit fix), mint-run-020 (population-turn run `33821410389`, apply, 2026-09-04T00:28Z, 153
+attempted, `harness_version sha256:ebb4130c5892235d` — the hash `PENDING-RUN.md` named, the first run
+under the landed fix), and mint-run-021 (population-turn run `33823467586`, apply, 2026-09-04T00:56Z, 142
+attempted, same new hash). All three were pushed to their own `population/<run_id>` branches (Actions
+PR-creation is refused) and landed here by cherry-pick, chronological order, no conflicts.
+
+**Full traces read:** all three runs' `census-rows.json`, `census-rows.held.json`,
+`census-rows.screened-out.json`, `census-rows.mint-batch-report.json`, and `census-rows.apply-ready.json`
+under `scripts/_snapshots/population-33817563729/`, `population-33821410389/`, and
+`population-33823467586/`.
+
+**Metrics [CONFIRMED, read from the artifact JSON]:** mint-run-019: `attempted 157, valid 156, invalid 1,
+minted 156, minted_verified 156, apply_failed 0`; db_deltas items 156 / sections 399 / claims 969 /
+citations 121. mint-run-020: `attempted 153, valid 152, invalid 1, minted 152, minted_verified 152,
+apply_failed 0, validation_failed_held 1`; db_deltas items 152 / sections 398 / claims 957 / citations
+128. mint-run-021: `attempted 142, valid 141, invalid 1, minted 141, minted_verified 141, apply_failed 0,
+validation_failed_held 1`; db_deltas items 141 / sections 362 / claims 882 / citations 118. Held:
+mint-run-019 55 rows (`capture_blocked` 18, `item_type_unmapped` 16, `already_held_by_key` 12,
+`canonical_key_unresolved` 3, `no_capture_path` 6); mint-run-020 59 rows (`item_type_unmapped` 22,
+`capture_blocked` 22, `already_held_by_key` 12, `canonical_key_unresolved` 3); mint-run-021 70 rows
+(`item_type_unmapped` 23, `capture_blocked` 27, `already_held_by_key` 12, `canonical_key_unresolved` 4,
+`institution_category_unmapped` 1 — new class, first appearance, single row, not investigated this pass,
+`no_capture_path` 3). Screened out before any slice was drawn: 1,116 off-vertical all three runs; ambiguous
+243 / 242 / 242.
+
+**Hypotheses (verified, with basis):**
+1. **The guillemet-truncation defect (lane URL-GUIL) is confirmed fixed, by direct before/after
+   comparison inside this very pass.** mint-run-019 (pre-fix hash `sha256:c933647da54908a1`) fails row
+   `429c85d2-4176-4ff5-ab3e-9d98e364a58a` on criterion 2 `ungrounded_url` with the identical truncated
+   URL `http://eur-lex»` this family's prior two passes already named. mint-run-020 (first run under the
+   new hash `sha256:ebb4130c5892235d`, landed on master before this lane's dispatch) fails the SAME row
+   `429c85d2` on criterion 2 again, but the extracted URL is now the FULL untruncated
+   `http://eur-lex.europa.eu` — the guillemet truncation is gone. Basis: read both artifacts'
+   `census-rows.mint-batch-report.json` `results[]` entries for `429c85d2` byte-for-byte.
+2. **The row still fails, but for a legitimate reason now, not a bug.** Read the row's `captured_text`
+   in `census-rows.json`: the URL sits inside UK-legislation boilerplate — "Directives referred to in
+   this Explanatory Note may be obtained from the Office of Public Sector Information or viewed in the
+   Official Journal of the European Union via the EUR-Lex website at http://eur-lex.europa.eu/ . Merchant
+   Shipping Notices are published by..." — a generic portal-homepage pointer, not a citation to the
+   instrument itself. Criterion 2 correctly rejects it as ungrounded; this is the fix working as
+   designed, not a residual defect.
+3. **The new validation-failed hold-back (`resolveValidationFailedHolds`, `apply-mint-batch.mjs`) is
+   confirmed closing the repeat-failure loop the prior pass (mint-run-017/018) proposed.** mint-run-020's
+   `proposer_notes` records `429c85d2` held (`dryrun_disposition='hold'`) after apply. Basis:
+   `429c85d2` is CONFIRMED absent from every file in mint-run-021's snapshot
+   (`census-rows.json`, `census-rows.held.json`, `census-rows.screened-out.json` — zero matches, grepped
+   directly) — the row did not re-select and did not fail a third time. This is the first live proof of
+   the hold-back mechanism working across a run boundary.
+4. **A NEW row hit the identical underlying boilerplate pattern in mint-run-021**, confirming the pattern
+   is a TEMPLATE, not a one-off: row `a980a0b9-f333-47c5-a078-656412b04c1a` (UK SI 2012/2567, "The Motor
+   Fuel (Composition and Content) (Amendment) Regulations 2012") carries the near-identical sentence
+   ("...may be obtained from the Office of Public Sector Information or viewed in the Official Journal of
+   the European Union via the EUR-Lex website at http://eur-lex.europa.eu/ . Merchant Shipping Notices are
+   published by...") and fails criterion 2 `ungrounded_url` the same way, on the same bare
+   `http://eur-lex.europa.eu` URL. mint-run-021's `proposer_notes` confirms it was held the same way
+   (`1 validation_failed census_worklist row(s) held`). Basis: read `census-rows.json` for
+   `a980a0b9`'s `captured_text` directly; read `census-rows.mint-batch-report.json`'s `failures[]` for
+   the same row.
+5. **Validator first-pass rate held at ~99.3% across all three runs** (156/157, 152/153, 141/142) —
+   consistent with the family's recent history, no regression from the kit change.
+6. **Held-class mix scaled with slice composition, nothing else new**: `capture_blocked` (18→22→27) and
+   `item_type_unmapped` (16→22→23) grew across the three runs; `already_held_by_key` held flat at 12 in
+   all three (the canonical-key dedup layer working steadily). `institution_category_unmapped` (1 row,
+   mint-run-021 only) is a first-appearance held class, not investigated this pass — a single occurrence
+   is not evidence of a system-level issue.
+
+**Proposal:** (1) **None warranted on the guillemet-truncation fix itself** — it is confirmed fixed by
+direct pre/post comparison in this very pass, and the hold-back mechanism is confirmed working across a
+run boundary; both close the two items lane URL-GUIL's own dispatch and mint-run-017/018's proposer pass
+opened. (2) **Name the EUR-Lex-portal-boilerplate pattern as its own defect class for a future pass**,
+distinct from the (now-fixed) truncation bug: the sentence template appears in UK legislation.gov.uk
+explanatory notes generally (confirmed twice, two different instruments, near-identical wording) and will
+likely keep recurring — currently held correctly at effectively $0 marginal cost per occurrence (one
+`attempted`/`invalid` row, then held, never re-selected), so this is a candidate for a
+`record-facts.mjs` trigger refinement (recognize "may be obtained from... via the EUR-Lex website at
+`<URL>`" as non-grounding boilerplate and skip it rather than capture it as a FACT's URL span) but not an
+urgent one given the hold-back already bounds its cost. (3) Watch `institution_category_unmapped` (1 row,
+mint-run-021) on the next pass; a single occurrence does not yet warrant investigation.
+
+**Family gates status:** this landing adds three run artifacts (019/020/021) and this attestation only —
+no NEW governing-file change from this lane (lane URL-GUIL's fix already landed on master before this
+lane's dispatch). `PENDING-RUN.md` is discharged and deleted: mint-run-020 is the first landed artifact
+whose `harness_version` (`sha256:ebb4130c5892235d`) matches the hash the marker named, per F28 rule (c)'s
+reverse-audit ("this marker is deleted the moment that artifact lands and its `harness_version` matches
+the hash above").
 
 ## Pass of 2026-09-03, evening (lane ARTIFACTS — mint-run-017, mint-run-018: two more limit-~200 slices, and the first `ungrounded_url` failure in this cycle)
 
