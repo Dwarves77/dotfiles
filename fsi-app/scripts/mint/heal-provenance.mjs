@@ -3480,7 +3480,7 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
  *   registerSource dedup read — small table, not the agent_run_searches full-scan the brief forbids;
  *   optional, defaults to `[]` so a direct healOneItem caller need not supply it),
  *   optionally `requiredSlotsMap` (defaults to loadRequiredSlots()), and (HEAL-BUDGET) optionally
- *   `timeBudgetSeconds` (a positive number — apply mode only; unset/non-positive means no budget, the
+ *   `timeBudgetSeconds` (a positive number — both modes since HEAL-9; unset/non-positive means no budget, the
  *   original unbounded behavior) and `now` (an injectable clock, `() => number`, defaulting to
  *   `() => Date.now()` — this file's own DI mandate; the run loop below is the only place this file reads
  *   elapsed wall time, and it is never read without going through this hook). EIGHTH PASS (2026-09-04,
@@ -3494,13 +3494,19 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
  */
 export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   const apply = mode === "apply";
-  const timeBudgetMs = apply && Number.isFinite(deps.timeBudgetSeconds) && deps.timeBudgetSeconds > 0
+  // HEAL-9 (2026-09-04): the budget binds BOTH modes. Until this pass it was armed under `apply &&`,
+  // on the reasoning that a dry run makes no fetch and so has nothing to bound; since HEAL-7's STEP
+  // SOURCE a dry run does the full candidate-URL lookup and span-location work over every capture
+  // (25 candidates per item), and Maintenance #28 (dry, quarantined-live, 89 items) ran 29 min 36 s
+  // before the job's 30-minute backstop cancelled it [CONFIRMED, run 33851505474]. A dry run that the
+  // runner kills is worse than a budget-stopped one: it leaves the last checkpoint, not a finished plan.
+  const timeBudgetMs = Number.isFinite(deps.timeBudgetSeconds) && deps.timeBudgetSeconds > 0
     ? deps.timeBudgetSeconds * 1000
     : null;
   const now = deps.now ?? (() => Date.now());
-  // The clock is read ONLY when a budget is actually set (apply mode + a positive timeBudgetSeconds) --
-  // a dry run, or an apply run with no budget configured, never calls `now()` at all, so a caller's own
-  // `deps.now` stub can safely assert it is never invoked outside a budgeted apply run.
+  // The clock is read ONLY when a budget is actually set (a positive timeBudgetSeconds, either mode) --
+  // a run with no budget configured never calls `now()` at all, so a caller's own `deps.now` stub can
+  // safely assert it is never invoked outside a budgeted run.
   const startedAt = timeBudgetMs != null ? now() : 0;
 
   const selection = parseSelection(arg);
