@@ -9875,3 +9875,42 @@ import it; the eight per-runner parity tests become one contract test; meta-harn
 Retext dry #43 under FWD-TEXT-3: 132 rewrites, 27 collisions; apply #44 dispatched. Population #38's
 artifacts go to the next train. Dispatch next after landing: R-D six `rows_file` apply (five siblings),
 `ratify-series-items --apply`, `refresh-published-price-statistics`; population applies continue.
+
+### Addendum 85, postscript 48 — the audit, the plan, and the standard that was missing (2026-09-04)
+
+Train/wave36 landed as #583 (`e8cb748f`). The operator stopped me at 14:10 ("you do not start till I say
+so") and again after I acted on rulings during a pause; both were my errors and are on the record. Then
+the rulings: no schedules of any kind ("we are NOT scheduling … stop asking", the last two crons,
+`trust-recompute` monthly and `uptime-probes` daily, disarmed in this train); sitemaps and RSS: yes it is
+in the system, no it is not backfilled (1 host of 2,563 walked; lane SITEMAP-3 adds the all-hosts mode and
+per-source coverage columns); standards bodies at T4 ("you know how to classify, fix it"); ledger-consume
+flipped on the $0 session-Haiku path; grounding through browser lanes; **population stopped until the
+build plan is complete**, then "a full test of the system to validate that every item is used".
+
+The audit (`docs/audits/wiring-audit-2026-09-04.md`, six evidence sections, PRs #474–#583) answered
+"are all of our site tools built and wired": built yes; wired mostly; used half. Closed and running: the
+corpus-growth loop from mint onward (1,101 record-grade verified items, 20,401 edges, 1,149 forward events,
+538 auto-adopted derivations). Open in front of mint: ledger-consume never run (source constant + missing
+secret), 1,837 candidates waiting, `corpus_turn_requests` 1,709 open with no consumer, the four
+review/apply scripts wired to nothing. Inert: decision propagation (2,754 events, a 6-row hand-seeded DAG,
+two drains over the same 6, zero statutory rows, no DAG authorship at write time). Speed, measured in
+Chrome: every route `private/no-store`, 857 KB on /regulations with React #418, 4.25 s item click. Three
+lane claims I corrected before they reached the operator: "24 stranded branches" (all artifacts on master
+but source-sweep-run-012, folded here), "heal 0 healed" (#42 healed 3), "1,101 hollow records" (6).
+
+Why the earlier plans stopped short, checked against the code: the 2026-08-31 register's dispositions
+were half executed (4 of 10 deletes still present, 5 of 8 wires open, `assumption_register` still 0 rows
+with a board row saying "apply migration 271", applied days ago); the 2026-09-02 plan's CONSUME lane was
+counted done when its files landed while the flip and dispatch sat under "operator-only, later"; every
+wave plan defined done at the write set and pushed wiring, running, reading back and surfacing to the
+board as NEXT rows (12) and "dispatch next" lines (19). Nothing fails CI when a step never runs or a NEXT
+row ages. That is the sloppiness the operator named, and he was right.
+
+The plan (`docs/plans/complete-system-build-plan-2026-09-04.md`): a definition of done with six
+conditions (reachable, run, populated, visible, gated, documented) and the evidence each requires;
+existing management tools kept (board, log, register + `w1-dispositions`, resolvers, harness) or retired
+(per-wave plan files as trackers, the duplicate turn-date mechanism, the topic seeder); eight workstreams;
+trains T37–T46, T46 being the full-system validation. Launched now, nine Sonnet lanes in parallel:
+LEDGER-ZERO, REVIEW-WIRE, TURNREQ, T4-OVERRIDE, F25-WIDE, CLOSURE-GATE, CHAIN, DEAD-EXEC, DAG-AUTHOR,
+alongside PERF-8, SITEMAP-3 and FWD-TEXT-4. This train also carries the R-D ratification (six series
+live and mapped), both discharged harness markers, RD-TESTS, PROPOSER-9/10 and source-sweep-run-012.
