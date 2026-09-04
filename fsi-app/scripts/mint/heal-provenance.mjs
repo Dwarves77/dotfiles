@@ -453,6 +453,8 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // supply `basis_claim_id` directly, since a pure-function test constructs its own claim objects, never
 // going through the wrapper's SELECT), and CORRECT, but DORMANT until a one-line change lands elsewhere:
 // adding `basis_claim_id` to that SELECT's column list. See this lane's report for the exact diff.
+// LANDED (train/wave16, 2026-09-04, coordinator): the wrapper's `readClaims` now projects `basis_claim_id`;
+// the Gate-B coverage above is live from the first heal dispatch on that tree.
 //
 // CRITERION 4 — RECLASSIFY/RETROFIT SCOPED THE WRONG WAY. Criterion 4's own SQL (migration 202, re-read
 // verbatim for this lane) checks, for every ANALYSIS claim, whether SOME paragraph in ANY of
