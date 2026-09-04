@@ -1,0 +1,3679 @@
+{
+  "sources": [
+    {
+      "sourceId": "86757088-b639-4083-8af8-cfeaf19842a4",
+      "sourceName": "Climate Action Network Europe",
+      "sourceUrl": "https://1point5.caneurope.org",
+      "kind": "feed",
+      "feedUrl": "https://1point5.caneurope.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 320260,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://1point5.caneurope.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://1point5.caneurope.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:55:51.528Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:55:51.528Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "0e633b61-70ab-4886-80b8-66ef93d20497",
+      "sourceName": "U.S. Department of State",
+      "sourceUrl": "https://2021-2025.state.gov/launching-the-first-movers-coalition-at-the-2021-un-climate-change-conference",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://2021-2025.state.gov/launching-the-first-movers-coalition-at-the-2021-un-climate-change-conference",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://2021-2025.state.gov/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://2021-2025.state.gov/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://2021-2025.state.gov/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:56:08.408Z",
+        "feed_last_probed_at": "2026-09-04T17:56:08.408Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "67d76814-46aa-4146-a668-a07bbba10c1e",
+      "sourceName": "Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)",
+      "sourceUrl": "https://aaa.lrv.lt/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://aaa.lrv.lt/",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://aaa.lrv.lt/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aaa.lrv.lt/sitemap.xml"
+        },
+        {
+          "url": "https://aaa.lrv.lt/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aaa.lrv.lt/sitemap_index.xml"
+        },
+        {
+          "url": "https://aaa.lrv.lt/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aaa.lrv.lt/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:56:19.979Z",
+        "feed_last_probed_at": "2026-09-04T17:56:19.979Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+      "sourceName": "American Alliance of Museums (AAM)",
+      "sourceUrl": "https://aam-us.org/",
+      "kind": "feed",
+      "feedUrl": "https://www.aam-us.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 212545,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.aam-us.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.aam-us.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:56:22.415Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:56:22.415Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "4e1b00cd-82e9-4e27-9f04-5cc86ab074fd",
+      "sourceName": "AAPA (American Association of Port Authorities)",
+      "sourceUrl": "https://aapa-ports.org/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://aapa-ports.org/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://aapa-ports.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://aapa-ports.org/sitemap.xml"
+        },
+        {
+          "url": "https://aapa-ports.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://aapa-ports.org/sitemap_index.xml"
+        },
+        {
+          "url": "https://aapa-ports.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://aapa-ports.org/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:56:33.575Z",
+        "feed_last_probed_at": "2026-09-04T17:56:33.575Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "fa19ea7f-ab82-4eaa-9dd2-9375d8418e87",
+      "sourceName": "BloombergNEF Energy Storage",
+      "sourceUrl": "https://about.bnef.com/energy-storage",
+      "kind": "feed",
+      "feedUrl": "https://about.bnef.com/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 67350,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://about.bnef.com/energy-storage/feed",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://about.bnef.com/energy-storage/rss",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://about.bnef.com/energy-storage/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://about.bnef.com/energy-storage/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://about.bnef.com/energy-storage/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://about.bnef.com/energy-storage/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://about.bnef.com/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://about.bnef.com/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:56:44.259Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:56:44.259Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c1c527fa-fa10-46c9-9667-7c47edc60974",
+      "sourceName": "Estidama Pearl Rating System",
+      "sourceUrl": "https://abudhabi.ae/en/infrastructure-environment/environment/estidama",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://abudhabi.ae/en/infrastructure-environment/environment/estidama",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://abudhabi.ae/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        },
+        {
+          "url": "https://abudhabi.ae/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        },
+        {
+          "url": "https://abudhabi.ae/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:57:12.832Z",
+        "feed_last_probed_at": "2026-09-04T17:57:12.832Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "9b01a831-e570-4ce4-80e1-183af21d9fb5",
+      "sourceName": "Asian Development Bank (ADB)",
+      "sourceUrl": "https://adb.org/what-we-do/topics/transport/overview",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://adb.org/what-we-do/topics/transport/overview",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://adb.org/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:57:29.129Z",
+        "feed_last_probed_at": "2026-09-04T17:57:29.129Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "e3a3818a-7e8b-4aad-8bbb-b7668f0fbc17",
+      "sourceName": "Asian Development Bank (ADB)",
+      "sourceUrl": "https://adb.org/documents/sustainable-transport-initiative-operational-plan",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://adb.org/documents/sustainable-transport-initiative-operational-plan",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://adb.org/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:57:46.132Z",
+        "feed_last_probed_at": "2026-09-04T17:57:46.132Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "f939efd5-a76c-474a-b181-5738e99482ad",
+      "sourceName": "Asian Development Bank (ADB)",
+      "sourceUrl": "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://adb.org/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://adb.org/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:03.135Z",
+        "feed_last_probed_at": "2026-09-04T17:58:03.135Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "adc88972-f034-4e4b-9e23-bb6e89571730",
+      "sourceName": "Alabama Department of Environmental Management (ADEM)",
+      "sourceUrl": "https://adem.alabama.gov/",
+      "kind": "feed",
+      "feedUrl": "https://adem.alabama.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 84268,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://adem.alabama.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://adem.alabama.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://adem.alabama.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://adem.alabama.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:07.976Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:58:07.976Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+      "sourceName": "Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+      "sourceUrl": "https://adeq.state.ar.us/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://adeq.state.ar.us/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://adeq.state.ar.us/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://adeq.state.ar.us/sitemap.xml"
+        },
+        {
+          "url": "https://adeq.state.ar.us/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://adeq.state.ar.us/sitemap_index.xml"
+        },
+        {
+          "url": "https://adeq.state.ar.us/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://adeq.state.ar.us/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:18.969Z",
+        "feed_last_probed_at": "2026-09-04T17:58:18.969Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "f41ff353-d70a-464e-9ead-ed3cc7a2ebde",
+      "sourceName": "Australian Energy Regulator (AER)",
+      "sourceUrl": "https://www.aer.gov.au/",
+      "kind": "feed",
+      "feedUrl": "https://www.aer.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 104766,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.aer.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.aer.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.aer.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.aer.gov.au/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:23.926Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:58:23.926Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "8344c305-bd30-4fea-a2cf-fd51424fb177",
+      "sourceName": "U.S. Department of Energy (DOE) – Alternative Fuels Data Center (AFDC)",
+      "sourceUrl": "https://afdc.energy.gov/laws",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://afdc.energy.gov/laws",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://afdc.energy.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://afdc.energy.gov/sitemap.xml"
+        },
+        {
+          "url": "https://afdc.energy.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://afdc.energy.gov/sitemap_index.xml"
+        },
+        {
+          "url": "https://afdc.energy.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://afdc.energy.gov/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:41.006Z",
+        "feed_last_probed_at": "2026-09-04T17:58:41.006Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "521cfe9f-6f54-4ebb-9654-9274dbfae4aa",
+      "sourceName": "AF Logistics (corporate site)",
+      "sourceUrl": "https://www.aflogistics.com/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.aflogistics.com/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.aflogistics.com/wps/wcm/connect/aflogistics/aflogistics_en/home/sitemap?subtype=xml",
+          "kind": "urlset",
+          "urlCount": 35,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://www.aflogistics.com/wps/wcm/connect/aflogistics/aflogistics_ar/home/sitemap?subtype=xml",
+          "kind": "urlset",
+          "urlCount": 33,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 2,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 68,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 68,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 68,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:58:58.679Z",
+        "feed_last_probed_at": "2026-09-04T17:58:58.679Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.aflogistics.com/wps/wcm/connect/aflogistics/aflogistics_en/home/sitemap?subtype=xml",
+        "sitemap_url_count": 68
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "3f32c41a-ee1f-4694-8d26-608d9a4195d5",
+      "sourceName": "AFS Cooling Blog — F-Gas Portal & Automated Customs Controls Compliance",
+      "sourceUrl": "https://www.afscooling.com/blog/the-digital-backbone-of-f-gas-compliance-navigating-the-f-gas-portal-and-automated-customs-controls",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.afscooling.com/blog/the-digital-backbone-of-f-gas-compliance-navigating-the-f-gas-portal-and-automated-customs-controls",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.afscooling.com/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 163,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 2,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 162,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:59:13.137Z",
+        "feed_last_probed_at": "2026-09-04T17:59:13.137Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.afscooling.com/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+      "sourceName": "Air Cargo News",
+      "sourceUrl": "https://aircargonews.net/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://aircargonews.net/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://aircargonews.net/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap.xml"
+        },
+        {
+          "url": "https://aircargonews.net/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap_index.xml"
+        },
+        {
+          "url": "https://aircargonews.net/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aircargonews.net/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:59:23.856Z",
+        "feed_last_probed_at": "2026-09-04T17:59:23.856Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+      "sourceName": "Alberta Environment and Protected Areas",
+      "sourceUrl": "https://alberta.ca/environment-and-parks.aspx",
+      "kind": "feed",
+      "feedUrl": "https://alberta.ca/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": null,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "fetch failed"
+      },
+      "candidateProbes": [
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/feed",
+          "status": null,
+          "isFeedDocument": false,
+          "reason": "fetch_error"
+        },
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/environment-and-parks.aspx/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://alberta.ca/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://alberta.ca/rss.xml",
+        "entries": 1,
+        "upserted": 1,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:59:37.879Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T17:59:37.879Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "4db5ccb0-f7cb-4d95-afe0-7b90605e7115",
+      "sourceName": "AllBright Law Offices / China Environmental Code Legal Alert",
+      "sourceUrl": "https://www.allbrightlaw.com/en/10531/177523769611f595.aspx",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.allbrightlaw.com/en/10531/177523769611f595.aspx",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.allbrightlaw.com/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.allbrightlaw.com/sitemap.xml"
+        },
+        {
+          "url": "https://www.allbrightlaw.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.allbrightlaw.com/sitemap_index.xml"
+        },
+        {
+          "url": "https://www.allbrightlaw.com/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.allbrightlaw.com/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T17:59:55.159Z",
+        "feed_last_probed_at": "2026-09-04T17:59:55.159Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "214b4415-3c22-4ce6-a72e-05732bfb648a",
+      "sourceName": "Allegiance Trucks — EPA GHG Rescission Fleet Impact Blog",
+      "sourceUrl": "https://allegiancetrucks.com/blog/epa-ghg-rescission-what-it-means-for-your-fleet",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://allegiancetrucks.com/blog/epa-ghg-rescission-what-it-means-for-your-fleet",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://allegiancetrucks.com/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://allegiancetrucks.com/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://allegiancetrucks.com/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:00:12.024Z",
+        "feed_last_probed_at": "2026-09-04T18:00:12.024Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "df4f3ed6-a544-4b9f-b464-5d681972b7f7",
+      "sourceName": "Allens - Mandatory Climate-Related Financial Reporting Legislation Insight",
+      "sourceUrl": "https://www.allens.com.au/insights-news/insights/2024/09/mandatory-climate-related-financial-reporting-legislation/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.allens.com.au/insights-news/insights/2024/09/mandatory-climate-related-financial-reporting-legislation/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.allens.com.au/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3122,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 3121,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:00:27.814Z",
+        "feed_last_probed_at": "2026-09-04T18:00:27.814Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.allens.com.au/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "4f60d453-3dc6-4e87-b3aa-ef96fc4bac35",
+      "sourceName": "J.P. Morgan Eye on the Market (Cembalest)",
+      "sourceUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/eye-on-the-market",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/eye-on-the-market",
+      "sitemapsFetched": [
+        {
+          "url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/sitemaps/sitemap-index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 90,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/hk/zh/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1008,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/hk/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1666,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/hk/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1532,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/hk/zh/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 912,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/au/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1626,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/sg/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 706,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/br/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 112,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/br/pt/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 111,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/mx/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 81,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/mx/es/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 79,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/at/de/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1434,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/at/de/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1250,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/fi/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1739,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/fi/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1091,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/dk/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 985,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/dk/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1660,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/no/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1922,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/no/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1073,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/se/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1104,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/se/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1367,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/de/de/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1545,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/de/de/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 963,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/de/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2374,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2749,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3407,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/de/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2450,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/fr/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2396,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/ch/fr/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2334,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/fr/fr/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1668,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/fr/fr/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1780,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/lu/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3491,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/lu/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2708,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/nl/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2193,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/nl/nl/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 949,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/gb/en/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 916,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/gb/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2809,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/tw/zh/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1145,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/it/it/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 802,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/it/it/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1944,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/us/en/asset-management/adv/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2510,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/jp/ja/asset-management/per/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 262,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/sitemaps/per-hreflang-sitemap.xml.gz",
+          "kind": "urlset",
+          "urlCount": 19808,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/sitemaps/adv-hreflang-sitemap.xml.gz",
+          "kind": "urlset",
+          "urlCount": 26934,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 47,
+      "entriesCapped": true,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 72889,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:01:28.530Z",
+        "feed_last_probed_at": "2026-09-04T18:01:28.530Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://am.jpmorgan.com/content/dam/jpm-am-aem/sitemaps/sitemap-index.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+      "sourceName": "American Samoa Fono (Legislature)",
+      "sourceUrl": "https://americansamoa.gov/legislature",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://americansamoa.gov/legislature",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.americansamoa.gov/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 4,
+          "error": null
+        },
+        {
+          "url": "https://www.americansamoa.gov/blog-posts-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://www.americansamoa.gov/blog-categories-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://www.americansamoa.gov/dynamic-portfolio_p_98f4eb66_0886_4d3e_b7ec_b479942cdb8d_0_5000-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 6,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://www.americansamoa.gov/pages-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 100,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 107,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:01:47.081Z",
+        "feed_last_probed_at": "2026-09-04T18:01:47.081Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.americansamoa.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "d41d618a-5826-436e-bde2-143dde1dcaf8",
+      "sourceName": "Ammonia Energy Association – IMO Interim Guidelines Deep-Dive",
+      "sourceUrl": "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/",
+      "kind": "feed",
+      "feedUrl": "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 103219,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/feed/",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:01:49.866Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:01:49.866Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "cb731c51-69bc-4ffe-bd45-48d3a339bc6a",
+      "sourceName": "AMPECO — EPA Clean Ports Program (EV Charging Grants & Incentives)",
+      "sourceUrl": "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/",
+      "kind": "feed",
+      "feedUrl": "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 550455,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:01:55.232Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:01:55.232Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c20241c2-a712-440a-8e59-be582186517e",
+      "sourceName": "Australian Maritime Safety Authority (AMSA)",
+      "sourceUrl": "https://amsa.gov.au/",
+      "kind": "feed",
+      "feedUrl": "https://amsa.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 153607,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://amsa.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://amsa.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://amsa.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://amsa.gov.au/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:02:02.791Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:02:02.791Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "8045e5d1-6fe1-44f3-ae8a-a0220fe4429a",
+      "sourceName": "ANEEL — Agência Nacional de Energia Elétrica (Brazil Electricity Regulator)",
+      "sourceUrl": "https://www.aneel.gov.br",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.aneel.gov.br",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.aneel.gov.br/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.aneel.gov.br/sitemap.xml"
+        },
+        {
+          "url": "https://www.aneel.gov.br/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.aneel.gov.br/sitemap_index.xml"
+        },
+        {
+          "url": "https://www.aneel.gov.br/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.aneel.gov.br/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:02:13.703Z",
+        "feed_last_probed_at": "2026-09-04T18:02:13.703Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "87894622-d165-4ca0-84dd-13c433058616",
+      "sourceName": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+      "sourceUrl": "https://antt.gov.br/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://antt.gov.br/",
+      "sitemapsFetched": [
+        {
+          "url": "https://antt.gov.br/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1139,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=5&layoutUuid=e72ace09-903a-0128-b8b2-a09a722b67e4&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=30&layoutUuid=bbe1a87f-4451-788e-d110-e217a4961786&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=31&layoutUuid=6d9946b3-6738-671f-5fb7-15e6704ae3ce&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=32&layoutUuid=200ad957-64db-bb50-5e79-5588e2490bbd&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=33&layoutUuid=29e41c2a-e4c2-95ac-22be-5e7e0f583c4b&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=34&layoutUuid=3dcb4816-f596-e15c-fa2c-5a68e55314c0&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=35&layoutUuid=263bdda3-2a73-3cd7-a4e4-a2e91557abe7&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=39&layoutUuid=e6bc88ee-df05-8b12-1e31-1bf01ebcd33b&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=46&layoutUuid=2e55013b-5c06-1558-a0ae-943c6b321ea3&groupId=20122&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=51&layoutUuid=952b8ffa-a0c7-7bea-bae5-0be890df467a&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=69&layoutUuid=11014e4a-1337-59ca-bc98-30b4b8b79c3a&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=71&layoutUuid=fea2239d-ea17-471f-39b3-84a0d017517b&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=80&layoutUuid=4fa3d91a-80e0-f48b-cc8f-705e92e954a1&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=136&layoutUuid=7b300eb1-6e83-68b8-51a7-4087c84bcf3e&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=243&layoutUuid=ab24ee75-e946-9568-4b73-3c8565d92458&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=285&layoutUuid=4c16c8e6-6150-af01-34b3-ffe2b5c674c9&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=337&layoutUuid=8351a3e0-142c-6ef3-d0a0-8caa1e2185d8&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=340&layoutUuid=e06ed41e-ce62-3773-685c-b2fbc11df317&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=341&layoutUuid=a1d8e500-4a00-665c-f096-dafe98e35045&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=342&layoutUuid=9a0535ce-318a-df25-a5de-0f873abc90ca&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=362&layoutUuid=95bf23ab-61f9-e93c-0fd2-4a01de108a86&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=368&layoutUuid=0d4a4994-1743-3564-e77e-c537ee8ffd72&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=378&layoutUuid=ad13aec2-6952-45b7-b4f9-c1ebe3aa359a&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=379&layoutUuid=a35a8f68-85e8-8dc0-6146-4a4c902f7d7d&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=380&layoutUuid=050bddff-bfa6-395c-e172-39e3343a0ac9&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=381&layoutUuid=93d2f029-c665-482f-8c3f-efc05c04ace1&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=382&layoutUuid=f85556e5-195f-fcb4-1313-7bf6bb6a888d&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=383&layoutUuid=1444c1f4-4388-da5c-bb6d-7b0ae8a26452&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=384&layoutUuid=2e91276b-7b1a-4f62-57c9-5a20bdcde7c5&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=385&layoutUuid=38d480a7-2b9d-6303-06b9-ec5cdbc13b07&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=389&layoutUuid=62d9d0aa-a37f-2d2b-f4e2-05070f86aea1&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=414&layoutUuid=a00b9783-bc12-6da8-cff2-8032387acab9&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=416&layoutUuid=963f6b6a-0011-bea9-dd4f-330203a7c2f9&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=418&layoutUuid=3b8d038e-4b5e-59d7-e096-3e9e1ac046c7&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=419&layoutUuid=fd25ef4f-c4ba-4325-e994-bc4953b1e3a8&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=422&layoutUuid=94b85c55-3322-9293-3b19-5438fdc479f8&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=423&layoutUuid=1413898e-556a-1f68-a13c-5c817aa7e17a&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=424&layoutUuid=ebd217ad-1d1c-329e-979d-c57fca35043b&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=428&layoutUuid=12f686d5-9875-963d-623f-11ef0d242337&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=430&layoutUuid=8b3ec6cb-8f1a-05ea-0000-27d002ccd164&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=432&layoutUuid=d763dcf3-03fa-fb1c-3413-aba5f0e4b0ab&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=433&layoutUuid=4800816f-9d75-745f-e35b-4607e1a72894&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=437&layoutUuid=24ac7ff5-abe2-f1ac-cfaf-9084e6906b03&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=438&layoutUuid=f6eb939d-33f8-69cd-73b7-a632ab2dd463&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=439&layoutUuid=eaa42e7e-baaa-8f2d-d111-aac317dc08de&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=444&layoutUuid=ebf2e135-6b77-91db-27e4-6476924cacf7&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=445&layoutUuid=67702832-7b53-ef38-3aca-da9d5c5a00d8&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=446&layoutUuid=a08a1452-177d-edbe-0919-1fa6c0d2ebba&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://portal.antt.gov.br/sitemap.xml?p_l_id=447&layoutUuid=286511e2-0476-8815-9e0b-df1e6073338b&groupId=20122&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 13,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 1090,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 624,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 624,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 624,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:03:23.234Z",
+        "feed_last_probed_at": "2026-09-04T18:03:23.234Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://antt.gov.br/sitemap.xml",
+        "sitemap_url_count": 624
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "fc22dcce-9edb-4559-8ee9-092caa54e9d1",
+      "sourceName": "A&O Shearman – UAE Hydrogen Strategy: Nine Key Takeaways",
+      "sourceUrl": "https://www.aoshearman.com/en/insights/nine-key-takeaways-from-the-uaes-new-hydrogen-strategy",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.aoshearman.com/en/insights/nine-key-takeaways-from-the-uaes-new-hydrogen-strategy",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.aoshearman.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 2,
+          "error": null
+        },
+        {
+          "url": "https://www.aoshearman.com/peoplesitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2882,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://www.aoshearman.com/contentsitemap.xml",
+          "kind": "urlset",
+          "urlCount": 6563,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 9440,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:03:41.736Z",
+        "feed_last_probed_at": "2026-09-04T18:03:41.736Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.aoshearman.com/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+      "sourceName": "Agência Portuguesa do Ambiente (APA)",
+      "sourceUrl": "https://apambiente.pt/",
+      "kind": "feed",
+      "feedUrl": "https://apambiente.pt/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 474323,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://apambiente.pt/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://apambiente.pt/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://apambiente.pt/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://apambiente.pt/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:03:46.118Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:03:46.118Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+      "sourceName": "Washington State Register (WSR) / Washington Administrative Code (WAC)",
+      "sourceUrl": "https://apps.leg.wa.gov/wac",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://apps.leg.wa.gov/wac",
+      "sitemapsFetched": [
+        {
+          "url": "https://apps.leg.wa.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 228,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 225,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:04:01.180Z",
+        "feed_last_probed_at": "2026-09-04T18:04:01.180Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://apps.leg.wa.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "2d083de1-c227-402f-9c8b-b0151d7110cf",
+      "sourceName": "ASEAN — Joint Ministerial Statement, 30th ASEAN Transport Ministers Meeting",
+      "sourceUrl": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/",
+      "kind": "feed",
+      "feedUrl": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 307,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "HTTP 307 for https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/"
+      },
+      "candidateProbes": [
+        {
+          "url": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:04:08.662Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:04:08.662Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "aae0af9b-3dc7-4ca5-91c0-95769b590f8a",
+      "sourceName": "ASEAN Main Portal (asean.org)",
+      "sourceUrl": "https://asean.org/our-communities/economic-community/transport",
+      "kind": "feed",
+      "feedUrl": "https://asean.org/our-communities/economic-community/transport/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 307,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "HTTP 307 for https://asean.org/our-communities/economic-community/transport"
+      },
+      "candidateProbes": [
+        {
+          "url": "https://asean.org/our-communities/economic-community/transport/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://asean.org/our-communities/economic-community/transport/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:04:16.349Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:04:16.349Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+      "sourceName": "ASEAN Main Portal (asean.org)",
+      "sourceUrl": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025",
+      "kind": "feed",
+      "feedUrl": "https://asean.org/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 307,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "HTTP 307 for https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025"
+      },
+      "candidateProbes": [
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/rss",
+          "status": 307,
+          "isFeedDocument": false,
+          "reason": "HTTP 307"
+        },
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://asean.org/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:04:33.845Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:04:33.845Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "fd042e62-8955-4fa7-8248-0a296942f537",
+      "sourceName": "ASEAN Main Portal (asean.org)",
+      "sourceUrl": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf",
+      "kind": "feed",
+      "feedUrl": "https://asean.org/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 7030662,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://asean.org/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://asean.org/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:04:45.302Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:04:45.302Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "a436ef64-3cae-4d55-bc45-416485019d6a",
+      "sourceName": "Asian Transport Observatory — Trends on Green Freight in Asia (PDF)",
+      "sourceUrl": "https://asiantransportobservatory.org/documents/198/trends_on_green_freight_in_asia.pdf",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://asiantransportobservatory.org/documents/198/trends_on_green_freight_in_asia.pdf",
+      "sitemapsFetched": [
+        {
+          "url": "https://asiantransportobservatory.org/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 840,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 840,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:02.010Z",
+        "feed_last_probed_at": "2026-09-04T18:05:02.010Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://asiantransportobservatory.org/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c7cee2e1-1d6c-4e7f-95d0-944de3e4a1d7",
+      "sourceName": "The Aspen Institute",
+      "sourceUrl": "https://aspeninstitute.org/news/zero-emission-maritime-buyers-alliance-launch",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://aspeninstitute.org/news/zero-emission-maritime-buyers-alliance-launch",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://aspeninstitute.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aspeninstitute.org/sitemap.xml"
+        },
+        {
+          "url": "https://aspeninstitute.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aspeninstitute.org/sitemap_index.xml"
+        },
+        {
+          "url": "https://aspeninstitute.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://aspeninstitute.org/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:18.081Z",
+        "feed_last_probed_at": "2026-09-04T18:05:18.081Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "f27f1e92-54b0-4f47-be25-4301025888a7",
+      "sourceName": "Legislative Assembly of Alberta",
+      "sourceUrl": "https://assembly.ab.ca/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://assembly.ab.ca/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.assembly.ab.ca/SiteMapWithTimestamp.xml",
+          "kind": "urlset",
+          "urlCount": 183,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 183,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 183,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 183,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:29.197Z",
+        "feed_last_probed_at": "2026-09-04T18:05:29.197Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.assembly.ab.ca/SiteMapWithTimestamp.xml",
+        "sitemap_url_count": 183
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+      "sourceName": "Northwest Territories Legislative Assembly",
+      "sourceUrl": "https://assembly.gov.nt.ca/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assembly.gov.nt.ca/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assembly.gov.nt.ca/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        },
+        {
+          "url": "https://assembly.gov.nt.ca/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        },
+        {
+          "url": "https://assembly.gov.nt.ca/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:39.643Z",
+        "feed_last_probed_at": "2026-09-04T18:05:39.643Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "b1c023a0-c95e-4ec4-b300-7901f36d8ab1",
+      "sourceName": "Newfoundland and Labrador House of Assembly",
+      "sourceUrl": "https://assembly.nl.ca/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assembly.nl.ca/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assembly.nl.ca/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://assembly.nl.ca/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://assembly.nl.ca/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:50.740Z",
+        "feed_last_probed_at": "2026-09-04T18:05:50.740Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "24f4b92e-6a76-4773-91b4-4463e9f19da9",
+      "sourceName": "Legislative Assembly of Nunavut",
+      "sourceUrl": "https://assembly.nu.ca/",
+      "kind": "feed",
+      "feedUrl": "https://assembly.nu.ca/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 41508,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://assembly.nu.ca/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://assembly.nu.ca/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://assembly.nu.ca/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://assembly.nu.ca/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:05:55.979Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-04T18:05:55.979Z"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+      "sourceName": "Legislative Assembly of Prince Edward Island",
+      "sourceUrl": "https://assembly.pe.ca/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assembly.pe.ca/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assembly.pe.ca/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assembly.pe.ca/sitemap.xml"
+        },
+        {
+          "url": "https://assembly.pe.ca/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assembly.pe.ca/sitemap_index.xml"
+        },
+        {
+          "url": "https://assembly.pe.ca/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assembly.pe.ca/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:06:07.715Z",
+        "feed_last_probed_at": "2026-09-04T18:06:07.715Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+      "sourceName": "UK Department for Transport via assets.publishing.service.gov.uk",
+      "sourceUrl": "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap_index.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:06:25.729Z",
+        "feed_last_probed_at": "2026-09-04T18:06:25.729Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "9564e7d7-15a5-416b-ad8f-e0d2ca5b88b9",
+      "sourceName": "UK Government (publishing.service.gov.uk) — DESNZ / BEIS",
+      "sourceUrl": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1148676/non-dom-private-rented-property-minimum-standard-landlord-guidance.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1148676/non-dom-private-rented-property-minimum-standard-landlord-guidance.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap_index.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:06:49.411Z",
+        "feed_last_probed_at": "2026-09-04T18:06:49.411Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c1bf569d-dce7-4fe8-af09-741e246a087a",
+      "sourceName": "UK Department for Transport via assets.publishing.service.gov.uk",
+      "sourceUrl": "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap_index.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:07:07.481Z",
+        "feed_last_probed_at": "2026-09-04T18:07:07.481Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "c3cd15a9-93f4-4c13-9041-dc229ef7548c",
+      "sourceName": "UK Department for Transport / GOV.UK",
+      "sourceUrl": "https://assets.publishing.service.gov.uk/media/6762717b26a2d1ff182534f7/saf-mandate-compliance-guidance-2025.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assets.publishing.service.gov.uk/media/6762717b26a2d1ff182534f7/saf-mandate-compliance-guidance-2025.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap_index.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:07:24.997Z",
+        "feed_last_probed_at": "2026-09-04T18:07:24.997Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "fd365853-5ed9-4fcf-9e5f-03a4cffdbff3",
+      "sourceName": "UK Gov / Decarbonising Transport - A Better, Greener Britain (Publishing Service PDF)",
+      "sourceUrl": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://assets.publishing.service.gov.uk/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap_index.xml"
+        },
+        {
+          "url": "https://assets.publishing.service.gov.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://assets.publishing.service.gov.uk/sitemap-index.xml"
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:07:43.445Z",
+        "feed_last_probed_at": "2026-09-04T18:07:43.445Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "874767f5-887e-47a1-ab4d-b12924bc6188",
+      "sourceName": "Assemblée nationale du Québec",
+      "sourceUrl": "https://assnat.qc.ca/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://assnat.qc.ca/",
+      "sitemapsFetched": [
+        {
+          "url": "https://assnat.qc.ca/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 402,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 401,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 401,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 401,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:07:53.321Z",
+        "feed_last_probed_at": "2026-09-04T18:07:53.321Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://assnat.qc.ca/sitemap.xml",
+        "sitemap_url_count": 401
+      },
+      "coverageWritten": false
+    },
+    {
+      "sourceId": "0520e0b7-a87c-4cbc-8559-cc674f5327b2",
+      "sourceName": "Asuene Blog — UK ETS 2026 Aviation/Maritime Expansion",
+      "sourceUrl": "https://asuene.com/us/blog/uk-ets-2026-aviation-maritime-and-sector-expansion-explained",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://asuene.com/us/blog/uk-ets-2026-aviation-maritime-and-sector-expansion-explained",
+      "sitemapsFetched": [
+        {
+          "url": "https://asuene.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 5,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/sitemap-product.xml",
+          "kind": "urlset",
+          "urlCount": 253,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/sitemap-corporate.xml",
+          "kind": "urlset",
+          "urlCount": 10,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/sitemap-veritas.xml",
+          "kind": "urlset",
+          "urlCount": 4,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/sitemap-nzero.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://asuene.com/sitemap-nzero.xml"
+        },
+        {
+          "url": "https://asuene.com/career/job/sitemap-index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 2,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/career/job/sitemap-jobs-001.xml",
+          "kind": "urlset",
+          "urlCount": 1000,
+          "childCount": 0,
+          "error": null
+        },
+        {
+          "url": "https://asuene.com/career/job/sitemap-jobs-002.xml",
+          "kind": "urlset",
+          "urlCount": 607,
+          "childCount": 0,
+          "error": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1874,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-04T18:08:15.640Z",
+        "feed_last_probed_at": "2026-09-04T18:08:15.640Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://asuene.com/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": false
+    }
+  ],
+  "allHosts": {
+    "targets": [
+      {
+        "id": "86757088-b639-4083-8af8-cfeaf19842a4",
+        "url": "https://1point5.caneurope.org",
+        "name": "Climate Action Network Europe",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0e633b61-70ab-4886-80b8-66ef93d20497",
+        "url": "https://2021-2025.state.gov/launching-the-first-movers-coalition-at-the-2021-un-climate-change-conference",
+        "name": "U.S. Department of State",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "67d76814-46aa-4146-a668-a07bbba10c1e",
+        "url": "https://aaa.lrv.lt/",
+        "name": "Aplinkos apsaugos agentūra (AAA – Environmental Protection Agency)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0768a0d2-4f2e-4b4f-a84e-05084c107f79",
+        "url": "https://aam-us.org/",
+        "name": "American Alliance of Museums (AAM)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4e1b00cd-82e9-4e27-9f04-5cc86ab074fd",
+        "url": "https://aapa-ports.org/",
+        "name": "AAPA (American Association of Port Authorities)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fa19ea7f-ab82-4eaa-9dd2-9375d8418e87",
+        "url": "https://about.bnef.com/energy-storage",
+        "name": "BloombergNEF Energy Storage",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://about.bnef.com/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c1c527fa-fa10-46c9-9667-7c47edc60974",
+        "url": "https://abudhabi.ae/en/infrastructure-environment/environment/estidama",
+        "name": "Estidama Pearl Rating System",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9b01a831-e570-4ce4-80e1-183af21d9fb5",
+        "url": "https://adb.org/what-we-do/topics/transport/overview",
+        "name": "Asian Development Bank (ADB)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e3a3818a-7e8b-4aad-8bbb-b7668f0fbc17",
+        "url": "https://adb.org/documents/sustainable-transport-initiative-operational-plan",
+        "name": "Asian Development Bank (ADB)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f939efd5-a76c-474a-b181-5738e99482ad",
+        "url": "https://adb.org/sites/default/files/institutional-document/31315/sustainable-transport-initiative.pdf",
+        "name": "Asian Development Bank (ADB)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adb.org/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "adc88972-f034-4e4b-9e23-bb6e89571730",
+        "url": "https://adem.alabama.gov/",
+        "name": "Alabama Department of Environmental Management (ADEM)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.adem.alabama.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f6a642dd-25c6-4a67-ab6d-86df394a2ee9",
+        "url": "https://adeq.state.ar.us/",
+        "name": "Arkansas Department of Environmental Quality (ADEQ / DEQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f41ff353-d70a-464e-9ead-ed3cc7a2ebde",
+        "url": "https://www.aer.gov.au/",
+        "name": "Australian Energy Regulator (AER)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "8344c305-bd30-4fea-a2cf-fd51424fb177",
+        "url": "https://afdc.energy.gov/laws",
+        "name": "U.S. Department of Energy (DOE) – Alternative Fuels Data Center (AFDC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "521cfe9f-6f54-4ebb-9654-9274dbfae4aa",
+        "url": "https://www.aflogistics.com/",
+        "name": "AF Logistics (corporate site)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3f32c41a-ee1f-4694-8d26-608d9a4195d5",
+        "url": "https://www.afscooling.com/blog/the-digital-backbone-of-f-gas-compliance-navigating-the-f-gas-portal-and-automated-customs-controls",
+        "name": "AFS Cooling Blog — F-Gas Portal & Automated Customs Controls Compliance",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1c2b33a5-f9ae-4d2e-977f-5212174814d5",
+        "url": "https://aircargonews.net/",
+        "name": "Air Cargo News",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.aircargonews.net/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "ce9bbe0c-557b-4c93-92f2-1f0711a529ee",
+        "url": "https://alberta.ca/environment-and-parks.aspx",
+        "name": "Alberta Environment and Protected Areas",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.alberta.ca/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4db5ccb0-f7cb-4d95-afe0-7b90605e7115",
+        "url": "https://www.allbrightlaw.com/en/10531/177523769611f595.aspx",
+        "name": "AllBright Law Offices / China Environmental Code Legal Alert",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "214b4415-3c22-4ce6-a72e-05732bfb648a",
+        "url": "https://allegiancetrucks.com/blog/epa-ghg-rescission-what-it-means-for-your-fleet",
+        "name": "Allegiance Trucks — EPA GHG Rescission Fleet Impact Blog",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "df4f3ed6-a544-4b9f-b464-5d681972b7f7",
+        "url": "https://www.allens.com.au/insights-news/insights/2024/09/mandatory-climate-related-financial-reporting-legislation/",
+        "name": "Allens - Mandatory Climate-Related Financial Reporting Legislation Insight",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4f60d453-3dc6-4e87-b3aa-ef96fc4bac35",
+        "url": "https://am.jpmorgan.com/us/en/asset-management/adv/insights/market-insights/eye-on-the-market",
+        "name": "J.P. Morgan Eye on the Market (Cembalest)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2f0e6c2d-29a4-47d7-b467-3708bd2a2001",
+        "url": "https://americansamoa.gov/legislature",
+        "name": "American Samoa Fono (Legislature)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.americansamoa.gov/blog-feed.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d41d618a-5826-436e-bde2-143dde1dcaf8",
+        "url": "https://ammoniaenergy.org/articles/paving-the-way-for-ammonia-as-a-marine-fuel-insights-into-the-imos-interim-guidelines/",
+        "name": "Ammonia Energy Association – IMO Interim Guidelines Deep-Dive",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "cb731c51-69bc-4ffe-bd45-48d3a339bc6a",
+        "url": "https://www.ampeco.com/ev-charging-grants-incentives/epa-clean-ports-program/",
+        "name": "AMPECO — EPA Clean Ports Program (EV Charging Grants & Incentives)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c20241c2-a712-440a-8e59-be582186517e",
+        "url": "https://amsa.gov.au/",
+        "name": "Australian Maritime Safety Authority (AMSA)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.amsa.gov.au/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "8045e5d1-6fe1-44f3-ae8a-a0220fe4429a",
+        "url": "https://www.aneel.gov.br",
+        "name": "ANEEL — Agência Nacional de Energia Elétrica (Brazil Electricity Regulator)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "87894622-d165-4ca0-84dd-13c433058616",
+        "url": "https://antt.gov.br/",
+        "name": "ANTT — Agência Nacional de Transportes Terrestres, Governo Federal do Brasil",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fc22dcce-9edb-4559-8ee9-092caa54e9d1",
+        "url": "https://www.aoshearman.com/en/insights/nine-key-takeaways-from-the-uaes-new-hydrogen-strategy",
+        "name": "A&O Shearman – UAE Hydrogen Strategy: Nine Key Takeaways",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d8859b1a-a9d9-410a-b7cb-039dde1581b7",
+        "url": "https://apambiente.pt/",
+        "name": "Agência Portuguesa do Ambiente (APA)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://apambiente.pt/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c610702c-4ced-4c2d-8316-153edd9e8a76",
+        "url": "https://apps.leg.wa.gov/wac",
+        "name": "Washington State Register (WSR) / Washington Administrative Code (WAC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2d083de1-c227-402f-9c8b-b0151d7110cf",
+        "url": "https://asean.org/joint-ministerial-statement-of-the-thirtieth-asean-transport-ministers-meeting-30th-atm/",
+        "name": "ASEAN — Joint Ministerial Statement, 30th ASEAN Transport Ministers Meeting",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "aae0af9b-3dc7-4ca5-91c0-95769b590f8a",
+        "url": "https://asean.org/our-communities/economic-community/transport",
+        "name": "ASEAN Main Portal (asean.org)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e50b19a7-1ea4-44c7-beb1-33dcc0cc0b38",
+        "url": "https://asean.org/book/kuala-lumpur-transport-strategic-plan-asean-transport-strategic-plan-2016-2025",
+        "name": "ASEAN Main Portal (asean.org)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fd042e62-8955-4fa7-8248-0a296942f537",
+        "url": "https://asean.org/wp-content/uploads/2021/08/KUALA_LUMPUR_TRANSPORT_STRATEGIC_PLAN_2.pdf",
+        "name": "ASEAN Main Portal (asean.org)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://asean.org/feed",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a436ef64-3cae-4d55-bc45-416485019d6a",
+        "url": "https://asiantransportobservatory.org/documents/198/trends_on_green_freight_in_asia.pdf",
+        "name": "Asian Transport Observatory — Trends on Green Freight in Asia (PDF)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c7cee2e1-1d6c-4e7f-95d0-944de3e4a1d7",
+        "url": "https://aspeninstitute.org/news/zero-emission-maritime-buyers-alliance-launch",
+        "name": "The Aspen Institute",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f27f1e92-54b0-4f47-be25-4301025888a7",
+        "url": "https://assembly.ab.ca/",
+        "name": "Legislative Assembly of Alberta",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "77d85d87-5d4d-40f1-a0ed-9d2745f69b68",
+        "url": "https://assembly.gov.nt.ca/",
+        "name": "Northwest Territories Legislative Assembly",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.assembly.gov.nt.ca/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b1c023a0-c95e-4ec4-b300-7901f36d8ab1",
+        "url": "https://assembly.nl.ca/",
+        "name": "Newfoundland and Labrador House of Assembly",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "24f4b92e-6a76-4773-91b4-4463e9f19da9",
+        "url": "https://assembly.nu.ca/",
+        "name": "Legislative Assembly of Nunavut",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://assembly.nu.ca/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b92386d4-9e79-4854-9a0f-8f9c7c79de13",
+        "url": "https://assembly.pe.ca/",
+        "name": "Legislative Assembly of Prince Edward Island",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4ff469ca-5d44-4814-ac28-5bc9cf2d3feb",
+        "url": "https://assets.publishing.service.gov.uk/media/610d63ffe90e0706d92fa282/decarbonising-transport-a-better-greener-britain.pdf",
+        "name": "UK Department for Transport via assets.publishing.service.gov.uk",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9564e7d7-15a5-416b-ad8f-e0d2ca5b88b9",
+        "url": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1148676/non-dom-private-rented-property-minimum-standard-landlord-guidance.pdf",
+        "name": "UK Government (publishing.service.gov.uk) — DESNZ / BEIS",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c1bf569d-dce7-4fe8-af09-741e246a087a",
+        "url": "https://assets.publishing.service.gov.uk/media/62ced7d6e90e071e74883888/Decarbonising-transport-one-year-on-review.pdf",
+        "name": "UK Department for Transport via assets.publishing.service.gov.uk",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c3cd15a9-93f4-4c13-9041-dc229ef7548c",
+        "url": "https://assets.publishing.service.gov.uk/media/6762717b26a2d1ff182534f7/saf-mandate-compliance-guidance-2025.pdf",
+        "name": "UK Department for Transport / GOV.UK",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fd365853-5ed9-4fcf-9e5f-03a4cffdbff3",
+        "url": "https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf",
+        "name": "UK Gov / Decarbonising Transport - A Better, Greener Britain (Publishing Service PDF)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "874767f5-887e-47a1-ab4d-b12924bc6188",
+        "url": "https://assnat.qc.ca/",
+        "name": "Assemblée nationale du Québec",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0520e0b7-a87c-4cbc-8559-cc674f5327b2",
+        "url": "https://asuene.com/us/blog/uk-ets-2026-aviation-maritime-and-sector-expansion-explained",
+        "name": "Asuene Blog — UK ETS 2026 Aviation/Maritime Expansion",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      }
+    ],
+    "hostsSelected": [
+      "1point5.caneurope.org",
+      "2021-2025.state.gov",
+      "aaa.lrv.lt",
+      "aam-us.org",
+      "aapa-ports.org",
+      "about.bnef.com",
+      "abudhabi.ae",
+      "adb.org",
+      "adem.alabama.gov",
+      "adeq.state.ar.us",
+      "aer.gov.au",
+      "afdc.energy.gov",
+      "aflogistics.com",
+      "afscooling.com",
+      "aircargonews.net",
+      "alberta.ca",
+      "allbrightlaw.com",
+      "allegiancetrucks.com",
+      "allens.com.au",
+      "am.jpmorgan.com",
+      "americansamoa.gov",
+      "ammoniaenergy.org",
+      "ampeco.com",
+      "amsa.gov.au",
+      "aneel.gov.br",
+      "antt.gov.br",
+      "aoshearman.com",
+      "apambiente.pt",
+      "apps.leg.wa.gov",
+      "asean.org",
+      "asiantransportobservatory.org",
+      "aspeninstitute.org",
+      "assembly.ab.ca",
+      "assembly.gov.nt.ca",
+      "assembly.nl.ca",
+      "assembly.nu.ca",
+      "assembly.pe.ca",
+      "assets.publishing.service.gov.uk",
+      "assnat.qc.ca",
+      "asuene.com"
+    ],
+    "hostsTotalActive": 646,
+    "hostsNeverWalkedBefore": 646,
+    "hostsRemainingUnwalkedAfter": 606
+  }
+}
