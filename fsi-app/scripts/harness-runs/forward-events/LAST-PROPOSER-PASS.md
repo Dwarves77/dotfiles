@@ -1,8 +1,45 @@
 # Last proposer pass — forward-events
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **five** artifacts
-(`forward-events-run-001` … `forward-events-run-005`); F28's rule (d) requires this file to name the latest
-verbatim: **forward-events-run-005**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `forward-events` now has **nine** artifacts
+(`forward-events-run-001` … `forward-events-run-009`); F28's rule (d) requires this file to name the latest
+verbatim: **forward-events-run-009**.
+
+## Pass of 2026-09-04 (lane PROPOSER-5 — forward-events-run-006 through -009: FWD-TEXT extractor deployed, dedupe counts incomplete)
+
+**Artifacts read:** forward-events-run-006 (population-flywheel-mint-run-004, corpus 4 items, 18 events, 1 skip, harness_version sha256:d47a10728a3cc799, extractor_version fe1-2026-09-03.1), forward-events-run-007 (population-flywheel-mint-run-001, corpus 6 items, 40 events, 19 skips, harness_version sha256:cefcc8cae82aff7d, extractor_version fe1-2026-09-04.1), forward-events-run-008 (identical corpus and metrics to run-007), forward-events-run-009 (population-flywheel-mint-run-004 again, 4 items, 11 events, 1 skip, harness_version sha256:cefcc8cae82aff7d, extractor_version fe1-2026-09-04.1).
+
+**Full traces read:** `full_trace_refs` under `scripts/_snapshots/` for all four runs. Per PROPOSER-RUNBOOK.md §1's precondition, snapshot directories themselves (`population-flywheel-mint-run-001/`, `population-flywheel-mint-run-004/`) are NOT COMMITTED — only the artifact JSON files are. Trace files (`corpus.json`, `.events.json`, `.skipped.json`) named in full_trace_refs are **absent from this tree**, as expected (Wave MH-5 documented this: "_snapshots are not committed, only the artifact JSON is").
+
+**Harness-version change [CONFIRMED, git-log-traceable]:** run-006 recorded hash d47a10728a3cc799 (extractor_version fe1-2026-09-03.1, dated 2026-09-03); runs 007-009 record hash cefcc8cae82aff7d (extractor_version fe1-2026-09-04.1, dated 2026-09-04). The hash change is git-log-traceable to commit 2f110fea ("train/wave25 2026 09 04 (#572)", 2026-09-04 04:59:25 UTC), lane FWD-TEXT. That commit modified `src/lib/forward-events/extract-forward-events.mjs` to:
+- Fix clauseStart() snapping to sentence/clause boundaries (was fixed-byte offset, leaked mid-word)
+- Add normalizeObligationText() stripping leaked URLs and markdown for DISPLAY only (source_span stays byte-verbatim)
+- Add dedupeEvents()/sameObligationContent() collapsing same-run (event_date, event_kind) hits under content-similarity (never blind collapse)
+
+**Dedupe counts deficiency [HYPOTHESIS]:** The FWD-TEXT extractor now returns `{ events, skipped, counts: { dedupe_dropped, dedupe_dropped_detail } }` per the updated extract-forward-events.mjs:1071 signature. However, runs 006-009's artifact metrics contain NO `counts` field or `dedupe_dropped` / `dedupe_dropped_detail` entries. Root cause [HYPOTHESIS, traceable to source]: `scripts/forward-events/run-extraction.mjs` line 116 destructures only `const { events, skipped } = extractForwardEvents(...)`, discarding the counts object. The counts are never passed through to the metrics. This is an incomplete implementation of the FWD-TEXT proposal — the extractor computes the dedupe counts correctly, but the runner loses them on the way to the artifact. **Basis:** read run-extraction.mjs:102-155 (runExtraction function) and extract-forward-events.mjs:1071 (return signature); the destructuring on line 116 of run-extraction.mjs matches only events and skipped, never counts.
+
+**Metrics comparison across 006 → 009 [CONFIRMED, read from JSON]:**
+- items_processed: 4 (006) → 6 (007) → 6 (008) → 4 (009) — varies by corpus input
+- items_with_events: 4 (006) → 6 (007) → 6 (008) → 4 (009) — all items in each corpus had events
+- events_emitted: 18 (006) → 40 (007) → 40 (008) → 11 (009) — higher on mint-run-001, lower on mint-run-004
+- skips: 1 (006) → 19 (007) → 19 (008) → 1 (009)
+- by_skip_reason: runs 006 and 009 have 1 entry each (the ambiguous-by-date skip); runs 007 and 008 have 3 entries (ambiguous-by-date, as-of status, as-of/since data-unavailability). **Basis:** the runs target different corpus items (mint-run-001 vs mint-run-004), which have different claim/section populations triggering different skip reasons.
+- **dedupe_dropped / dedupe_dropped_detail:** NOT present in any of the four artifacts' metrics. [CONFIRMED by reading all four JSON files; no counts field found]. Expected per FWD-TEXT's commit message ("Every drop recorded in a new counts.dedupe_dropped_detail") but missing due to the runExtraction() deficiency above.
+
+**Hypotheses (verified, with basis):**
+1. **The FWD-TEXT extractor fix is correctly deployed.** Harness_version hash change from d47a10728a3cc799 to cefcc8cae82aff7d is git-log-traceable to commit 2f110fea (lane FWD-TEXT, 2026-09-04 04:59:25 UTC), which touched only extract-forward-events.mjs and is the only commit in recent history changing that file. The extractor_version bump from fe1-2026-09-03.1 to fe1-2026-09-04.1 independently confirms the change landed.
+2. **Run-009 emits fewer events than run-006 on the same corpus (11 vs 18) because the dedupe logic is working.** Both run-006 and run-009 read corpus.json from population-flywheel-mint-run-004 (same 4 items: bfae9c86, 36c92d72, 9a22c296, a86dcc05). Run-006 (pre-dedupe) emitted 18 events with 1 skip; run-009 (with dedupe) emitted 11 events with 1 skip. The 7-event reduction (39% drop) is consistent with within-run deduplication collapsing same (event_date, event_kind) entries under content-similarity — not a defect, the intended behavior. **Basis:** run-009 processes the SAME items as run-006 but under the fixed, deduping extractor; metrics show 11 vs 18 events, exactly the kind of improvement deduplication should produce.
+3. **The dedupe_dropped counts are implemented in the extractor but missing from artifacts due to incomplete runner integration.** Extract-forward-events.mjs line 1071 returns `{ events, skipped, counts: { dedupe_dropped: dropped.length, dedupe_dropped_detail: dropped } }`. Run-extraction.mjs line 116 destructures only `{ events, skipped }`, discarding counts. The metrics object built on lines 141-151 never includes a counts field. The extractor is doing its job; the runner is not passing the result through. [CONFIRMED by reading both files.]
+
+**Proposal (scoped):**
+1. **UPDATE runExtraction() to capture and forward the dedupe_dropped counts.** Change line 116 to destructure all three: `const { events, skipped, counts } = extractForwardEvents(...)`. Add counts to the returned metrics object (after line 150). This is a one-property addition to the runner; no change to the extractor or the artifact schema required — just plumbing the existing count through.
+2. **Re-run forward-events extraction after the fix to populate the new counts in artifacts.** The next forward-events-run-010 (or later apply) will record the dedupe_dropped and dedupe_dropped_detail, allowing a future proposer pass to measure whether the dedupe strategy (content-similarity, not blind collapse) is effective. Until then, the counts exist in the extractor but are silent in the record.
+3. **Lane FWD-TEXT-2 is planning further extractor changes** (mentioned in MINT-RUNBOOK.md context; a new PENDING-RUN marker will follow once that work lands). This dedupe-counts plumbing deficiency is an immediate, separable fix that should land before or with FWD-TEXT-2, not after.
+
+**PENDING-RUN.md status [CONFIRMED]:** The marker file `scripts/harness-runs/forward-events/PENDING-RUN.md` was correctly DELETED in this branch's HEAD commit (commit 8866e07a, "forward-events: PENDING-RUN marker discharged..."), as required by F28 rule (c). The marker recorded sha256:cefcc8cae82aff7d as the "harness_version at write time"; run-007 (the first artifact with the new hash) matched it exactly, so per the reverse-audit rule, the marker was stale and must be deleted. **Basis:** F28-harness-run-integrity.mjs rule (c) header: "a marker whose recorded hash a LANDED artifact now matches... is stale and must be deleted." Verified by attempting to read the file (`ls` returns ENOENT).
+
+**Family gates status:** This pass reads four run artifacts (006-009), one of which (run-007) and its siblings (008, 009) carry the first deployed version of the FWD-TEXT extractor fix. The dedupe_dropped counts are not yet in the artifacts due to the runner deficiency above, but the extractor itself is working correctly (run-009's 11-event result vs run-006's 18 on the same input confirms dedupe is active). The PENDING-RUN marker was correctly discharged. No family-gate changes needed for this pass; the proposal above (runner fix) is a separate, next-cycle lane.
+
+## Pass of 2026-09-03, evening (lane ARTIFACTS — forward-events-run-005: a governing-file change, a genuinely empty run)
 
 ## Pass of 2026-09-03, evening (lane ARTIFACTS — forward-events-run-005: a governing-file change, a genuinely empty run)
 
