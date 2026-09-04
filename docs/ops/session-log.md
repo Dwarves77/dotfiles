@@ -9099,3 +9099,12 @@ detection #5 dry (discharges CD-GATE's marker) dispatched. Home page re-measured
 `dpl_6rVU4uhL…`): TTFB 109 ms cold / 73 ms warm, document stream ends 3.85 s cold / 1.53 s warm,
 `/api/user/list-order` 1.36 s and `/api/workspace/personal-state` 1.0–1.4 s are the slow calls; paint
 timings unavailable from a background tab, measured next from a focused one.
+
+### Addendum 85, postscript 22 — heal gets a budget (2026-09-04)
+
+HEAL-BUDGET (Sonnet, background, `3c06b1f8`, 171 tests): the killed run #20 wrote nothing because
+`writeSummary()` runs once after `main()` resolves; the upload step already had `if: always()`, so the
+"no artifact" was an honestly empty directory. Now the loop budgets time before each item, checkpoints
+the summary atomically after each, resumes by ids, and CAPTURE-CITED stops fetching the same cited URL
+once per citing item. Job timeout 30 min, budget 1,500 s. Dispatching the heal again under it next;
+PERF-5 (data layer) still running in the background; ECB-FX apply (#23) and R-D dry (#21) queued.
