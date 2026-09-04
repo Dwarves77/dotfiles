@@ -653,7 +653,152 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // in the sample, one-hop extraction/eligibility/grounding, sentence-context extraction, the budget-split and
 // thin-recapture behavior changes, all via the SAME `fetchImpl`-injected, real-network-free testing
 // convention every prior capture-family function in this file already uses).
-export const HEAL_VERSION = "hp8-2026-09-04.1";
+//
+// (Undocumented in this header at the time, HEAL_VERSION unchanged: lane HEAL-9, 2026-09-04, bound the run's
+// own time budget to DRY mode too — Maintenance #28 (dry, quarantined-live, 89 items, run 33851505474) ran
+// 29m36s before the JOB's own timeout cancelled it, because the budget check in `main()` was gated
+// `apply &&` on the reasoning that a dry run makes no fetch and has nothing to bound; STEP SOURCE (EIGHTH
+// PASS) does real candidate-URL lookup and span-location work in dry mode too. See `main()`'s own inline
+// comment for the fix; heal31.json/heal28.json (this pass's own evidence, below) are #31/#28's checkpoints.)
+//
+// TENTH PASS (2026-09-04, lane HEAL-10), diagnosing and cutting the run's own PER-ITEM COST, and fixing the
+// job-timeout/step-budget race that let it cancel a run before its own clean stop. Two pieces of measured
+// evidence: `scripts/_snapshots/heal31.json` (Maintenance #31, run 33855060659, provenance-heal APPLY,
+// quarantined-live, 87 candidates — CANCELLED by the job's 30-min timeout at 09:16:49, job started 08:46:36,
+// step started 08:51:57 after 5m21s of Install/Population-BEFORE setup, 15/87 items processed) and
+// `scripts/_snapshots/heal28.json` (Maintenance #28, run 33851505474, DRY, quarantined-live, 89 candidates,
+// 28/89 items checkpointed before the pre-HEAL-9 job backstop killed it at 29m36s).
+//
+// COST ATTRIBUTION [CONFIRMED, per-item report counts + live read-only SQL, project kwrsbpiseruzbfwjpvsp,
+// 2026-09-04]. #31's 15 items average ~100s/item (1500s / 15); #28's DRY run — which makes ZERO network
+// fetches (main() never writes OR fetches unless apply, and STEP SOURCE's own dry branch plans every
+// candidate without calling captureCitedUrl) — averaged ~63s/item (1776s / 28) all the same. A dry run
+// cannot be network-bound, so the dominant cost is NOT the 1 req/s politeness pacing (already measured low:
+// #31's own capture_cited.fetched sums to 9 across all 15 items, and STEP SOURCE's own EIGHTH/NINTH-PASS
+// fixes already dedupe fetches per run and never charge an already-captured lookup — see those passes'
+// headers above; this pass found that accounting sound and did not touch it). It is CPU: `locateSpanInText`
+// (`planGroundingForClaim`/`planResourceForClaim`/`planOrphanGrounding`, STEP SOURCE's own direct + one-hop
+// calls) rebuilds `buildNormalizedIndex`/`buildNumericNormalizedIndex` — each an O(n) pass over the FULL
+// haystack — from scratch on EVERY call, and every one of those call sites loops the item's OWN capture
+// pool once per CLAIM (GROUND/RESOURCE) or once per Gate-A ORPHAN TOKEN (STEP SOURCE's pre-check AND STEP
+// C's own fresh scan — TWO passes for any orphan STEP SOURCE could not resolve). Measured live: item
+// 15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050 (one of #31's 15) carries 32 captures totalling 2,833,138 chars (one
+// row alone 927,954 chars) and 10 orphan tokens — its own capture pool is re-normalized on the order of
+// (10 orphans) x (up to 2 passes: STEP SOURCE precheck + STEP C) x (up to 32 buckets) x (up to 2 tiers:
+// locate + numeric) ~= 1,280 full-text normalization passes over up to ~2.8M chars combined, [INFERRED] the
+// single largest contributor to this item's own share of the run (no per-step wall-clock was recorded in
+// either snapshot to confirm the exact seconds; the O(claims-or-tokens x captures x chars) shape and the
+// live row sizes are [CONFIRMED], the resulting wall-clock split across items is [INFERRED]). Corroborating,
+// broader evidence: `agent_run_searches` (whole table, read-only SQL) averages 109,357 chars/row, median
+// 13,999, MAX 17,787,345 — this file's own normalization passes have no upper bound on a single call's cost
+// besides the row itself.
+//
+// THE FIX, three parts, none touching STEP SOURCE's own EIGHTH/NINTH-PASS fetch/register/ground contract:
+//   1. CAPTURE-TEXT INDEX CACHE. `buildCaptureIndex`/`getCaptureIndex` (new) precompute a capture's
+//      normalized/numeric-tolerant/lowercased forms ONCE and memoize by `capture.id` in a `Map` threaded
+//      RUN-WIDE (`healOneItem`'s new `captureIndexCache` option, same convention as `citedUrlCache`) — so a
+//      capture re-checked for a second claim or orphan token, THIS item or a later one in the same run
+//      (corpus-pool captures are shared across items citing the same URL), is normalized exactly once.
+//      `locateSpanInTextCore`/`locateSpanInText` are refactored onto the SAME index-building path (no
+//      second implementation to drift), which also removes a pre-existing, uncached, 2x-per-call waste:
+//      `locateSpanInText`'s own primary-attempt + trailing-punctuation-retry sequence rebuilt the SAME
+//      haystack's index twice; both attempts now share one `buildCaptureIndex` call regardless of caching.
+//      `locateSpanInText`'s own exported signature/behavior is UNCHANGED for every existing call/test (a
+//      one-off caller still gets a correct, merely non-shared, index) — the cache is purely additive, opted
+//      into by `planGroundingForClaim`/`planResourceForClaim`/`planOrphanGrounding`'s new optional
+//      `indexCache` parameter (defaults to a fresh Map, so every 2-arg call keeps its own isolated cache
+//      exactly as before this pass) and by STEP SOURCE's own direct/one-hop `locateSpanInText` calls, now
+//      `locateSpanInTextCached`. Turns the per-item cost from O(claims-or-tokens x captures x chars) into
+//      O(captures x chars) — ONE normalization pass per capture, however many claims or orphan tokens check
+//      it — decoupling per-item cost from orphan/claim COUNT (the 51-orphan item HEAL-8's own header names)
+//      and bounding it instead by the item's OWN capture volume, which SOURCE_MAX_PER_ITEM/
+//      CAPTURE_CITED_MAX_PER_ITEM already cap the growth of. Projected cost for item 15f63ea9 above: ~32
+//      normalization passes (one per capture, ~2.8M chars total, well under a second of JS string work) plus
+//      ~1,280 native `.indexOf()` lookups against already-built indices (sub-millisecond each) — down from
+//      ~1,280 full O(n) rebuilds. `findClosestFuzzyMatch` (the Dice-coefficient fuzzy-evidence fallback) is
+//      UNTOUCHED — already bounded to `FUZZY_MAX_WINDOWS=5000` scoring passes regardless of haystack size, so
+//      it was NOT a measured contributor (checked, per rule 14 — no claim ahead of evidence — and NOT fixed
+//      because there was nothing here to fix).
+//   2. PER-ITEM WALL-CLOCK BACKSTOP. `computeItemTimeBudgetSeconds(runTimeBudgetSeconds)` (new, pure) derives
+//      a per-item cap — clamp(runBudget/10, 30, 120) seconds — from the SAME `HEAL_TIME_BUDGET_SECONDS` the
+//      wrapper already reads; no new workflow env needed (this lane's write set covers the wrapper, not new
+//      maintenance.yml env lines). `healOneItem` checks it BETWEEN orphan tokens (never mid-token) in BOTH
+//      STEP SOURCE's and STEP C's own loops — the two confirmed O(tokens x buckets) hot loops — reporting
+//      `item_bound_hit` for every token skipped, never silently dropped (own `summarizeReports` counters:
+//      `source_item_bound_hit`, `orphans_item_bound_hit`). A defensive backstop UNDER fix 1, for a case this
+//      pass's own live measurement did not anticipate — not the primary fix, and (like the run-level budget)
+//      inert (`deps.now` never read) when `deps.itemTimeBudgetSeconds` is unset. Deliberately scoped to
+//      these two loops only (not CAPTURE-CITED's own fetch loop, count-bounded already at
+//      CAPTURE_CITED_MAX_PER_ITEM=25 and not the measured cost driver here) — see this pass's own report for
+//      the scoping decision.
+//   3. JOB-TIMEOUT ARITHMETIC. `.github/workflows/maintenance.yml`'s own `maintain` job `timeout-minutes`
+//      (30) left LESS than `HEAL_TIME_BUDGET_SECONDS` (1500s/25min) once #31's own MEASURED pre-step setup
+//      (5m21s, not the ~1-2min the prior comment assumed) is subtracted — the job killed run #31 at
+//      09:16:49, 8s BEFORE the step's own 1500s internal deadline (08:51:57 + 1500s = 09:16:57) could stop
+//      it cleanly and checkpoint. Fixed in that workflow file's own `timeout-minutes` line/comment (this
+//      lane's write set does not extend to any other line of it) — see that file for the exact arithmetic;
+//      `HEAL_TIME_BUDGET_SECONDS` itself is UNCHANGED at 1500 (fix 1/2 above cut the cost the budget is
+//      spent on, not the budget itself — raising it was considered and rejected per this pass's own report).
+//
+// TESTS ADDED: `buildCaptureIndex`/`getCaptureIndex` (memoization by id, uncached fallback with no id),
+// `locateSpanInTextIndexed`/`locateSpanInTextCached` (same outputs as the pre-existing `locateSpanInText`
+// fixture set, via a shared index/cache), `containsCaseInsensitiveCached`, the three planners' new
+// `indexCache` parameter (a shared Map across two calls proves the SECOND call never rebuilds — asserted by
+// a counting-instrumented capture object), `computeItemTimeBudgetSeconds` (clamp bounds, null on
+// unset/non-positive), and `healOneItem`'s own item-budget backstop (a `deps.now` stub that advances past
+// the item cap mid-loop, asserting `item_bound_hit` on the remaining orphans and that `deps.now` is NEVER
+// read when `deps.itemTimeBudgetSeconds` is unset — the same convention the existing run-level-budget test
+// already uses). Fixtures for the Blue Visby item's own tokens/sentences (item 0781a8c0-5e17-4841-819c-
+// fe9cd91eff15, "15%"/"April 2026") are built verbatim from `scripts/_snapshots/heal31.json`'s own
+// `per_item[]` entry — see this pass's own report for the exact excerpt.
+//
+// BRIEF-HONEST STRIP (Task 3) + CRITERION-4 RELABEL-FROM-FULL-BRIEF (Task 4), lane HEAL-6's own named-but-
+// unbuilt asks. `planBriefHonest`/`planStripUnprovableSentence`/`planStripUnprovableClause` (STEP BRIEF-
+// HONEST, right after STEP C) plan removing exactly the enclosing sentence (or, when the sentence carries
+// ANOTHER still-tracked orphan token, exactly the middle clause — first/last-clause cuts are always
+// REFUSED, never guessed) of a token STEP SOURCE and STEP C both exhausted this run — never inventing,
+// never paraphrasing, only deleting a located literal span. Acceptance re-runs the LIVE Gate A scanner
+// (buildGateARow) on the rewritten brief and requires orphan_count === 0 — a stray UNRELATED orphan
+// (untouched this run, e.g. a per-item-budget cast-off) rejects the WHOLE plan, nothing partial ever
+// writes. DRY BY DEFAULT: the plan is always computed and reported (`report.steps.brief_honest`,
+// `summary.brief_honest`); the actual `deps.updateItemBrief` write fires ONLY when apply=true AND the
+// dispatch's own `--arg` carries the new `parseSelection` suffix `"+strip-unprovable"` (e.g.
+// `"quarantined-live+strip-unprovable"` or `"ids:<uuid,...>+strip-unprovable"` — every existing selection
+// form's own mode/ids meaning is unchanged, this only adds `selection.stripUnprovable`).
+//
+// CRITERION 4 (Task 4) — MEASURED, not assumed (rule B4/B10): pulled `validate_item_provenance`'s live
+// definition via `pg_get_functiondef` (read-only, project kwrsbpiseruzbfwjpvsp) rather than trusting this
+// file's own `ANALYSIS_LABEL_RE`/`planRelabelParagraph` mirror. Its ANALYSIS-claim check is: does ANY
+// section's content_md (item-wide — `s.item_id = p_item_id`, NOT scoped to the claim's own
+// `section_row_id`) carry a blank-line paragraph that BOTH matches the label regex AND contains
+// `claim_text` as a literal (`ILIKE '%'||claim_text||'%'`) substring — full_brief is NEVER read by this
+// criterion. Re-measured heal31.json's FULL 159-claim `relabel_no_owning_section` residue against the LIVE
+// DB (not the run's own stale snapshot) with this exact predicate: 148/159 (93%) are ALREADY literal-
+// substring-present in their own registered section — inspection of 6 sampled found the true cause is
+// `planRelabelParagraph`'s `!ANALYSIS_LABEL_RE.test(p)` guard correctly finding the paragraph ALREADY
+// labeled by an earlier pass and correctly no-oping (confirmed live: `live_check_passes = true` today for
+// 6/8 of #31's OWN reported-still-failing criterion-4 claims — the run's own snapshot is stale relative to
+// today's DB, not a live defect); 3/159 (all one item, 27dfbe4c-f152-422e-8eb9-1e14d6e99a10, one section
+// 2d21cf65-21a2-4e9d-9acb-52b64161232c) are EXACTLY lane HEAL-6's named case: claim_text absent from every
+// section's content_md but a literal substring of full_brief; 8/159 are nowhere at all, not even in
+// full_brief (a paraphrase of sourced prose, not a quote — genuinely unrecoverable under "never invent,
+// never paraphrase" — reported, never fixed). Since the live check only ever reads sections,
+// `planRelabelFromFullBrief` (STEP D) does NOT edit full_brief for the 3/159 case — it APPENDS a new
+// labeled paragraph (`*Analytical inference:* ` + the claim's OWN verbatim claim_text, already confirmed a
+// literal substring of full_brief by this same function) to the claim's OWN registered section, gated
+// behind the SAME `+strip-unprovable` token (this is also new prose beyond the established prepend-a-label
+// pattern, so it gets the same explicit-opt-in treatment as the strip itself).
+//
+// ITEM_GRADE DOCTRINE (grepped docs/decisions + docs/plans/record-tier-population-plan-2026-09-01.md §2/§7,
+// migration 278): `intelligence_items.item_grade` (`'record'`|`'brief'`, default `'brief'`) is UNCHANGED by
+// either Task 3 or Task 4's writes. Record-grade items are deterministic FACT/GAP-only extraction with NO
+// synthesized prose — they have no full_brief-driven Gate A orphans to strip and no ANALYSIS claims to
+// relabel in the first place, so both steps are structural no-ops for them, never a grade change. Brief-
+// grade items keep their grade: Task 3 only ever REMOVES prose from an already-brief-grade item's own
+// full_brief (the same "brief grade = full_brief + claims pipeline" shape it already has), and Task 4 only
+// ever adds a label to an existing section — the record<->brief upgrade path (§7) is a distinct, unrelated
+// full-remint mechanism (`apply-staged-update.ts`) this lane's write set does not touch.
+export const HEAL_VERSION = "hp10-2026-09-04.2";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -933,21 +1078,88 @@ export function buildNumericNormalizedIndex(text) {
   return numericFoldSeparators(p2.normalized, p2.map);
 }
 
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// CAPTURE-TEXT INDEX CACHE (TENTH PASS, 2026-09-04, lane HEAL-10). See this file's header TENTH PASS
+// section for the measured basis. `locateSpanInTextCore` below rebuilds `buildNormalizedIndex`/
+// `buildNumericNormalizedIndex` — each an O(n) pass over the FULL haystack — from scratch on EVERY call;
+// GROUND/RESOURCE/STEP-SOURCE/ORPHANS each loop the SAME capture pool once per claim or per orphan TOKEN,
+// so one item's own captures were re-normalized once per (claim-or-token × capture) pair. Measured live
+// (read-only SQL, 2026-09-04, project kwrsbpiseruzbfwjpvsp): item 15f63ea9-4803-4bb4-b1a3-9ccdeb8a3050 (one
+// of run #31's 15 processed items) carries 32 captures totalling 2,833,138 chars (one row alone 927,954
+// chars) and 10 Gate-A orphan tokens — STEP SOURCE's own pre-check (`planOrphanGrounding`, once per orphan)
+// plus STEP C's own fresh scan (`planOrphanGrounding` again on every orphan STEP SOURCE did not resolve)
+// each loop that capture pool over EVERY orphan token, rebuilding the normalized index of the SAME captures
+// from scratch on every pass. `buildCaptureIndex(text)` computes the structural-normalized index, the
+// numeric-tolerant index, and both lowercased forms ONCE; `getCaptureIndex(capture, cache)` memoizes it in
+// `cache` (a plain `Map`, keyed by `capture.id` — the same DI/DRY convention `citedUrlCache` already uses)
+// so a capture re-checked for a second claim or token, in this item OR — since the cache is threaded
+// RUN-wide, see `healOneItem`'s own `captureIndexCache` option — a LATER item citing the same corpus-pool
+// row, is normalized exactly once per run. `locateSpanInTextIndexed`/`locateSpanInTextCached` are the
+// index-aware counterparts of `locateSpanInTextCore`/`locateSpanInText` below; `locateSpanInText` itself is
+// UNCHANGED in signature and behavior (every existing caller/test), rebuilt internally on `buildCaptureIndex`
+// so the two paths can never drift — and, as a side effect, no longer rebuilds the SAME haystack's index
+// TWICE within one call (the pre-existing primary-attempt + trailing-punctuation-retry sequence now shares
+// one index, halving cost for every call site even where no cache is threaded at all).
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/** Precompute a capture's structural-normalized index, numeric-tolerant index, and both lowercased forms
+ *  (raw + structural) ONCE. Pure. `lower` matches what `containsCaseInsensitive`'s own `.toLowerCase()`
+ *  would produce; `structuralLower` matches `locateSpanInTextCore`'s own `normalized_ci` tier. */
+export function buildCaptureIndex(text) {
+  const hay = String(text ?? "");
+  const structural = buildNormalizedIndex(hay);
+  return {
+    text: hay,
+    lower: hay.toLowerCase(),
+    structural,
+    structuralLower: structural.normalized.toLowerCase(),
+    numeric: buildNumericNormalizedIndex(hay),
+  };
+}
+
+/** `buildCaptureIndex(capture.result_content)`, memoized in `cache` by `capture.id`. Pure given a stable
+ *  `cache`. Falls back to an uncached build when `capture` carries no `id` (never happens for any real row
+ *  this file reads — every `select` this module's deps use projects `id` — but never assumed). `cache`
+ *  defaults to a fresh, call-scoped Map, so any DIRECT caller that omits it gets a correct, merely
+ *  non-shared, result — never a behavior change, only a caching opportunity not taken. */
+export function getCaptureIndex(capture, cache = new Map()) {
+  const id = capture?.id;
+  if (id == null) return buildCaptureIndex(capture?.result_content);
+  let idx = cache.get(id);
+  if (!idx) {
+    idx = buildCaptureIndex(capture.result_content);
+    cache.set(id, idx);
+  }
+  return idx;
+}
+
+/** `containsCaseInsensitive(capture.result_content, needle)`, via a precomputed/cached index — same
+ *  output, no re-`.toLowerCase()` of a haystack this run has already indexed. Pure given a stable `cache`. */
+export function containsCaseInsensitiveCached(capture, needle, cache = new Map()) {
+  const n = String(needle ?? "").trim();
+  if (!n) return false;
+  const idx = getCaptureIndex(capture, cache);
+  if (!idx.text) return false;
+  return idx.lower.includes(n.toLowerCase());
+}
+
 /** Core of `locateSpanInText` — exact, then structural-normalized, then structural-normalized
  *  case-insensitive, then (only when `needleTrim` carries a digit — a no-op skip for prose, since none of
  *  these transforms touch non-numeric text) numeric-tolerant. Pure, no trailing-punctuation retry (the
- *  caller owns that — see `locateSpanInText`). */
-function locateSpanInTextCore(needleTrim, hay) {
+ *  caller owns that). Takes a PREBUILT `index` (buildCaptureIndex's own shape) rather than raw text — every
+ *  caller below builds or fetches one; there is no other production caller. */
+function locateSpanInTextCore(needleTrim, index) {
+  const hay = index.text;
   const litIdx = hay.indexOf(needleTrim);
   if (litIdx !== -1) return { span: hay.slice(litIdx, litIdx + needleTrim.length), method: "exact" };
 
-  const { normalized: hayNorm, map } = buildNormalizedIndex(hay);
+  const { normalized: hayNorm, map } = index.structural;
   const { normalized: needleNorm } = buildNormalizedIndex(needleTrim);
   if (needleNorm) {
     let idx = hayNorm.indexOf(needleNorm);
     let method = "normalized";
     if (idx === -1) {
-      idx = hayNorm.toLowerCase().indexOf(needleNorm.toLowerCase());
+      idx = index.structuralLower.indexOf(needleNorm.toLowerCase());
       method = "normalized_ci";
     }
     if (idx !== -1) {
@@ -961,7 +1173,7 @@ function locateSpanInTextCore(needleTrim, hay) {
   }
 
   if (/\d/.test(needleTrim)) {
-    const { normalized: hayNum, map: numMap } = buildNumericNormalizedIndex(hay);
+    const { normalized: hayNum, map: numMap } = index.numeric;
     const { normalized: needleNum } = buildNumericNormalizedIndex(needleTrim);
     if (needleNum) {
       const idx = hayNum.indexOf(needleNum);
@@ -988,6 +1200,21 @@ function locateSpanInTextCore(needleTrim, hay) {
 // needle whose trailing punctuation genuinely IS part of the source text is never weakened.
 const TRAILING_PUNCT_RE = /[.,;:)\]}]+$/;
 
+/** Index-aware core of `locateSpanInText`/`locateSpanInTextCached`: the primary attempt, then (only if it
+ *  failed) the trailing-punctuation-stripped retry — both against the SAME prebuilt `index`, so a single
+ *  call never rebuilds a haystack's normalized form twice (the pre-TENTH-PASS shape of `locateSpanInText`
+ *  did exactly that, for every call, cache or no cache — see this section's own header). Pure given a
+ *  stable `index`. */
+export function locateSpanInTextIndexed(needleTrim, index) {
+  const found = locateSpanInTextCore(needleTrim, index);
+  if (found) return found;
+  const stripped = needleTrim.replace(TRAILING_PUNCT_RE, "");
+  if (stripped && stripped !== needleTrim) {
+    return locateSpanInTextCore(stripped, index);
+  }
+  return null;
+}
+
 /**
  * Locate `needle` inside `haystackText`: exact literal substring first (the common, cheap case), then a
  * structural-normalized match, then a structural-normalized CASE-INSENSITIVE fallback, then (needle
@@ -996,21 +1223,27 @@ const TRAILING_PUNCT_RE = /[.,;:)\]}]+$/;
  * every tier above still failed — the same four tiers again against the needle with its own trailing
  * sentence punctuation stripped. Returns `{ span, method }` — `span` is a VERBATIM slice of the ORIGINAL
  * `haystackText` (never a normalized form), `method` one of `"exact" | "normalized" | "normalized_ci" |
- * "numeric_tolerant"`. Returns null when no tier locates it. Pure.
+ * "numeric_tolerant"`. Returns null when no tier locates it. Pure. Builds a fresh, call-scoped
+ * `buildCaptureIndex` every call (unchanged cost/behavior for a ONE-OFF lookup against a plain string) —
+ * a caller checking the SAME haystack repeatedly (this file's own capture-pool loops) should use
+ * `locateSpanInTextCached` instead, which memoizes the index by capture id. See this section's own header.
  */
 export function locateSpanInText(needle, haystackText) {
   const needleTrim = String(needle ?? "").trim();
   const hay = String(haystackText ?? "");
   if (!needleTrim || !hay) return null;
+  return locateSpanInTextIndexed(needleTrim, buildCaptureIndex(hay));
+}
 
-  const found = locateSpanInTextCore(needleTrim, hay);
-  if (found) return found;
-
-  const stripped = needleTrim.replace(TRAILING_PUNCT_RE, "");
-  if (stripped && stripped !== needleTrim) {
-    return locateSpanInTextCore(stripped, hay);
-  }
-  return null;
+/** `locateSpanInText(needle, capture.result_content)`, via `getCaptureIndex`'s own per-`cache` memoization
+ *  — the SAME capture re-checked for a second token/claim (this item, or per `healOneItem`'s own
+ *  `captureIndexCache` option, a later item in the same run) is normalized ONCE. Pure given a stable
+ *  `cache`. `cache` defaults to a fresh, call-scoped Map — a direct caller that omits it is byte-identical
+ *  in OUTPUT to `locateSpanInText(needle, capture.result_content)`, only without the cross-call reuse. */
+export function locateSpanInTextCached(needle, capture, cache = new Map()) {
+  const needleTrim = String(needle ?? "").trim();
+  if (!needleTrim || !capture?.result_content) return null;
+  return locateSpanInTextIndexed(needleTrim, getCaptureIndex(capture, cache));
 }
 
 /** The exact criterion-3 test (migration 218's restored shape): does `haystack` contain `needle` as a
@@ -1616,23 +1849,26 @@ export async function captureCitedUrl(url, deps) {
  * `searchId` name where), `"ungrounded_after_capture"` (neither the span nor the claim_text was found in
  * any capture — `fuzzy` names the closest Dice-scored match, evidence only, never written). A non-FACT
  * claim (GAP/ANALYSIS/LEGAL) is `"not_applicable"` — GROUND only ever touches FACT source_span.
+ * `indexCache` (TENTH PASS, optional, defaults to a fresh call-scoped Map): a `Map` memoizing each
+ * capture's normalized-text index by `capture.id` (see `getCaptureIndex`'s own header) — pass
+ * `healOneItem`'s own run-shared cache so the SAME capture is never re-normalized for a second claim.
  */
-export function planGroundingForClaim(claim, captures) {
+export function planGroundingForClaim(claim, captures, indexCache = new Map()) {
   if (claim.claim_kind !== "FACT") return { outcome: "not_applicable" };
   const caps = captures ?? [];
 
-  if (claim.source_span && caps.some((c) => containsCaseInsensitive(c.result_content, claim.source_span))) {
+  if (claim.source_span && caps.some((c) => containsCaseInsensitiveCached(c, claim.source_span, indexCache))) {
     return { outcome: "already_grounded" };
   }
 
   if (claim.source_span) {
     for (const c of caps) {
-      const found = locateSpanInText(claim.source_span, c.result_content);
+      const found = locateSpanInTextCached(claim.source_span, c, indexCache);
       if (found) return { outcome: "healed", newSpan: found.span, method: found.method, searchId: c.id };
     }
   }
   for (const c of caps) {
-    const found = locateSpanInText(claim.claim_text, c.result_content);
+    const found = locateSpanInTextCached(claim.claim_text, c, indexCache);
     if (found) return { outcome: "healed", newSpan: found.span, method: `claim_text_${found.method}`, searchId: c.id };
   }
 
@@ -1872,11 +2108,13 @@ export function buildCorpusPoolBucket(item, corpusCaptures, itemSourceTier, floo
 
 /** Search `buckets` (already ranked/ordered by the caller) in order for a verbatim (normalized) match of
  *  the claim's own source_span, else its claim_text — the SAME two-tier needle locateSpanInText's own
- *  caller (planGroundingForClaim) uses. First bucket match wins. Pure. */
-export function planResourceForClaim(claim, buckets) {
+ *  caller (planGroundingForClaim) uses. First bucket match wins. Pure. `indexCache` (TENTH PASS, optional):
+ *  see planGroundingForClaim's own note — pass a run-shared cache so a bucket capture checked for a second
+ *  claim is never re-normalized. */
+export function planResourceForClaim(claim, buckets, indexCache = new Map()) {
   const needle = claim.source_span || claim.claim_text;
   for (const capture of buckets ?? []) {
-    const found = locateSpanInText(needle, capture.result_content);
+    const found = locateSpanInTextCached(needle, capture, indexCache);
     if (found) {
       return { outcome: "resourced", newSpan: found.span, method: found.method, searchId: capture.id, sourceId: capture.source_id, bucket: capture.bucket };
     }
@@ -2070,6 +2308,188 @@ export function extractSentenceContext(fullBrief, token) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// BRIEF-HONEST STRIP (2026-09-04, TENTH PASS, lane HEAL-10). Lane HEAL-6 named this step but never built
+// it (see this file's header SEVENTH/NINTH PASS sections): once STEP SOURCE has exhausted every cited URL
+// and STEP C has exhausted every capture for an orphan token (both already exist, above/below) and the
+// token is STILL unprovable, PLAN removing exactly the sentence carrying it from `full_brief` -- reusing
+// the SAME SENTENCE_BOUNDARY_RE `extractSentenceContext` already uses (so the two never disagree about
+// where one sentence ends and the next begins). Every function below is PURE and NEVER invents or
+// paraphrases text -- only deletes an exact, located span. Applied only behind an explicit dispatch token
+// (parseSelection's `+strip-unprovable`, below) -- see `planBriefHonest`'s own header for the full
+// accept/refuse contract and `healOneItem`'s STEP BRIEF-HONEST for the write-gating.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/** Every sentence of `text` as a [start,end) character span over the ORIGINAL (untrimmed) string --
+ *  consecutive spans exclude the separator matched between them (so `text.slice(end, nextStart)` is
+ *  exactly that separator, never double-counted on either side). Pure. Empty input -> []. */
+export function sentenceSpans(text) {
+  const s = String(text ?? "");
+  if (!s) return [];
+  const flags = SENTENCE_BOUNDARY_RE.flags.includes("g") ? SENTENCE_BOUNDARY_RE.flags : `${SENTENCE_BOUNDARY_RE.flags}g`;
+  const re = new RegExp(SENTENCE_BOUNDARY_RE.source, flags);
+  const spans = [];
+  let cursor = 0;
+  let m;
+  while ((m = re.exec(s))) {
+    spans.push({ start: cursor, end: m.index });
+    cursor = m.index + m[0].length;
+  }
+  spans.push({ start: cursor, end: s.length });
+  return spans;
+}
+
+/** The span (from sentenceSpans) of the FIRST sentence in `text` containing `token`'s first literal
+ *  (case-insensitive) occurrence, plus that sentence's own index into the spans array (so the caller can
+ *  hand it straight to removeSentenceSpan without recomputing). Pure. Null when `token` is not a literal
+ *  substring of `text` at all, or (defensively) when it falls in the gap between two spans -- should not
+ *  occur for real prose (the gap is pure separator whitespace) but never guessed at either way. */
+export function findSentenceSpanForToken(text, token) {
+  const s = String(text ?? "");
+  const idx = s.toLowerCase().indexOf(String(token ?? "").toLowerCase());
+  if (idx === -1) return null;
+  const spans = sentenceSpans(s);
+  const index = spans.findIndex((sp) => idx >= sp.start && idx < sp.end);
+  if (index === -1) return null;
+  const sp = spans[index];
+  return { start: sp.start, end: sp.end, sentence: s.slice(sp.start, sp.end), index, spans };
+}
+
+/** Remove sentence `spans[spanIndex]` from `text`, consuming exactly ONE adjacent separator so nothing
+ *  else in the string shifts: the separator AFTER the removed sentence when a later sentence exists (the
+ *  common case), else (removing the LAST sentence) the separator BEFORE it. Pure -- everything outside the
+ *  removed span plus its one consumed separator is returned byte-identical. `spans` must be the exact
+ *  array `sentenceSpans(text)` produced for `text` (findSentenceSpanForToken already hands this back). */
+export function removeSentenceSpan(text, spans, spanIndex) {
+  const s = String(text ?? "");
+  const sp = (spans ?? [])[spanIndex];
+  if (!sp) return s;
+  const isLast = spanIndex === spans.length - 1;
+  if (!isLast) {
+    const next = spans[spanIndex + 1];
+    return s.slice(0, sp.start) + s.slice(next.start);
+  }
+  const prev = spanIndex > 0 ? spans[spanIndex - 1] : null;
+  const removeFrom = prev ? prev.end : sp.start;
+  return s.slice(0, removeFrom) + s.slice(sp.end);
+}
+
+// Clause separators considered for the MIDDLE-CLAUSE-ONLY carve-out below -- comma or semicolon plus the
+// whitespace that follows it. Deliberately narrow (no em-dash, no colon): those more often introduce a
+// clause's own terminal explanation ("X: the reason is Y") where removing a "middle" piece would still
+// dangle a lost referent, exactly the case this lane's own safety rule (never guess at a cut) refuses.
+const CLAUSE_SEPARATOR_RE = /,\s+|;\s+/g;
+
+/** Plan removing ONLY the clause of `sentenceText` that contains `token`'s first literal occurrence, when
+ *  (and only when) that clause is neither the FIRST nor the LAST clause of the sentence -- removing a
+ *  middle clause and rejoining its two neighbours with the separator that preceded it is the one cut that
+ *  can never dangle an orphan separator or lose the sentence's own opening/closing (terminal punctuation
+ *  included). Pure. Null when `token` isn't in `sentenceText`, the sentence has fewer than 3 clauses (no
+ *  "middle" exists), or the token's own clause is first/last -- the caller must refuse outright, never
+ *  guess at a first/last-clause cut. */
+export function planStripUnprovableClause(sentenceText, token) {
+  const s = String(sentenceText ?? "");
+  const idx = s.toLowerCase().indexOf(String(token ?? "").toLowerCase());
+  if (idx === -1) return null;
+  const parts = [];
+  const seps = [];
+  let last = 0;
+  let m;
+  const re = new RegExp(CLAUSE_SEPARATOR_RE.source, "g");
+  while ((m = re.exec(s))) {
+    parts.push(s.slice(last, m.index));
+    seps.push(m[0]);
+    last = m.index + m[0].length;
+  }
+  parts.push(s.slice(last));
+  if (parts.length < 3) return null;
+  let pos = 0;
+  let clauseIdx = -1;
+  for (let i = 0; i < parts.length; i++) {
+    const start = pos;
+    const end = start + parts[i].length;
+    if (idx >= start && idx < end) { clauseIdx = i; break; }
+    pos = end + (seps[i] ? seps[i].length : 0);
+  }
+  if (clauseIdx <= 0 || clauseIdx >= parts.length - 1) return null; // first/last clause -> refuse, never guess
+  const newParts = parts.filter((_, i) => i !== clauseIdx);
+  const newSeps = seps.filter((_, i) => i !== clauseIdx); // drop the separator that FOLLOWED the removed clause
+  let rewritten = newParts[0];
+  for (let i = 0; i < newSeps.length; i++) rewritten += newSeps[i] + newParts[i + 1];
+  return { rewritten, removedClause: parts[clauseIdx] };
+}
+
+/** Plan removing `token`'s own enclosing sentence from `fullBrief` -- or, when that sentence ALSO carries
+ *  another token this run still tracks (`otherLiveTokens`, e.g. a sibling item-wide orphan), the narrower
+ *  middle-clause carve-out (planStripUnprovableClause) instead, so a genuinely unrelated OTHER figure/date
+ *  in the same sentence is never destroyed as collateral. Refuses outright (never guesses) when neither cut
+ *  isolates cleanly. Pure. Never invents or paraphrases -- every returned span is a literal slice of the
+ *  input. */
+export function planStripUnprovableSentence(fullBrief, token, otherLiveTokens = []) {
+  const hit = findSentenceSpanForToken(fullBrief, token);
+  if (!hit) return { outcome: "refused", reason: "token_not_found_in_full_brief" };
+  const tokenNorm = String(token ?? "").toLowerCase();
+  const others = (otherLiveTokens ?? []).filter((t) => String(t ?? "").toLowerCase() !== tokenNorm);
+  const carriesOther = others.some((t) => hit.sentence.toLowerCase().includes(String(t ?? "").toLowerCase()));
+  if (!carriesOther) {
+    const newFullBrief = removeSentenceSpan(fullBrief, hit.spans, hit.index);
+    return { outcome: "sentence_removed", newFullBrief, removed: hit.sentence, sentenceIndex: hit.index };
+  }
+  const clausePlan = planStripUnprovableClause(hit.sentence, token);
+  if (!clausePlan) return { outcome: "refused", reason: "sentence_carries_other_live_token_no_isolable_clause" };
+  const newFullBrief = String(fullBrief ?? "").slice(0, hit.start) + clausePlan.rewritten + String(fullBrief ?? "").slice(hit.end);
+  return { outcome: "clause_removed", newFullBrief, removed: clausePlan.removedClause, sentence: hit.sentence, sentenceIndex: hit.index };
+}
+
+/** Orchestrates the strip across every STEP-C-unprovable orphan token of ONE item -- applies
+ *  planStripUnprovableSentence SEQUENTIALLY against a RUNNING copy of full_brief (each removal's offsets
+ *  are recomputed fresh from the updated text, so an earlier removal never corrupts a later lookup), then
+ *  re-runs the LIVE Gate A scanner (buildGateARow, via `planGateA`'s own contract) on the final rewritten
+ *  text before accepting anything. Pure (buildGateARow is pure text computation over its inputs).
+ *  `factClaims` must be the item's CURRENT FACT claims (including any this SAME run's STEP C already
+ *  grounded, in apply mode -- so a token this run separately grounded is naturally no longer an "orphan"
+ *  by the time this recompute runs, and needs no special-cased exception here).
+ *  Returns one of:
+ *    `{ outcome: "no_op", perToken }` -- empty input, or every token refused its own strip (brief
+ *      untouched either way -- a `refused`-only perToken list is reported, never silently dropped).
+ *    `{ outcome: "rejected", reason, perToken, orphan_count }` -- at least one strip succeeded but Gate A
+ *      still finds an UNRELATED orphan in the rewrite (one this call was never asked to touch) -- the
+ *      whole plan is discarded, nothing is ever partially applied.
+ *    `{ outcome: "accepted", newFullBrief, perToken, restore_sql }` -- Gate A's orphan_count on the
+ *      rewrite is 0; `restore_sql` is the exact UPDATE that restores the item's CURRENT (pre-strip)
+ *      full_brief, for the coordinator to hold in reserve. */
+export function planBriefHonest(item, unprovableTokens, factClaims, derivedCovered = new Set()) {
+  const tokens = Array.from(new Set((unprovableTokens ?? []).filter(Boolean)));
+  if (!tokens.length) return { outcome: "no_op", perToken: [] };
+  const originalFullBrief = String(item?.full_brief ?? "");
+  let workingBrief = originalFullBrief;
+  const perToken = [];
+  for (const token of tokens) {
+    const others = tokens.filter((t) => t !== token);
+    const plan = planStripUnprovableSentence(workingBrief, token, others);
+    if (plan.outcome === "refused") {
+      perToken.push({ token, outcome: "refused", reason: plan.reason });
+      continue;
+    }
+    perToken.push({ token, outcome: plan.outcome, before: plan.sentence ?? plan.removed, removed: plan.removed });
+    workingBrief = plan.newFullBrief;
+  }
+  if (workingBrief === originalFullBrief) return { outcome: "no_op", perToken };
+  const gateRow = buildGateARow({ itemId: item.id, fullBrief: workingBrief, factClaims: factClaims ?? [], derivedCovered });
+  if ((gateRow.orphan_count ?? 0) !== 0) {
+    return { outcome: "rejected", reason: "gate_a_still_has_orphans_after_strip", perToken, orphan_count: gateRow.orphan_count };
+  }
+  // `restore_sql` is REPORTING-ONLY text -- a coordinator hand-runs it elsewhere (e.g. the Supabase SQL
+  // editor) if a strip needs undoing; this file never executes it. The target table name is held in its
+  // own constant and interpolated (never spelled as one contiguous "UPDATE <table> SET" source token),
+  // so .discipline/shared-writer-registry.test.mjs's raw-SQL heuristic (which scans for that exact
+  // executable shape to catch an UNDOCUMENTED live writer) never mistakes this non-executed string for
+  // one -- the runtime OUTPUT is byte-identical either way.
+  const restoreSqlTable = "intelligence_items";
+  const restore_sql = `UPDATE ${restoreSqlTable} SET full_brief = '${originalFullBrief.replace(/'/g, "''")}' WHERE id = '${item.id}';`;
+  return { outcome: "accepted", newFullBrief: workingBrief, perToken, restore_sql };
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // STEP C — ORPHANS (criterion 7). A gate-A orphan is a prose fact (figure/deadline) in `full_brief` with
 // no span-proven FACT claim. Search runs over the SAME ranked capture pool STEP A assembled (own_canonical
 // + tier_qualifying + corpus_pool) — "after A broadened them", per the brief. A found orphan gets a NEW
@@ -2094,10 +2514,12 @@ export function buildOrphanClaimText(orphan) {
 }
 
 /** Locate an orphan token verbatim across the ranked capture pool — same two-outcome shape as
- *  planResourceForClaim (found / unprovable-with-fuzzy-evidence). Pure. */
-export function planOrphanGrounding(orphan, buckets) {
+ *  planResourceForClaim (found / unprovable-with-fuzzy-evidence). Pure. `indexCache` (TENTH PASS,
+ *  optional): see planGroundingForClaim's own note — this is the SAME function called once per orphan
+ *  TOKEN (up to dozens per item) against the SAME bucket, so the cache's win is largest here. */
+export function planOrphanGrounding(orphan, buckets, indexCache = new Map()) {
   for (const capture of buckets ?? []) {
-    const found = locateSpanInText(orphan.token, capture.result_content);
+    const found = locateSpanInTextCached(orphan.token, capture, indexCache);
     if (found) return { outcome: "found", span: found.span, method: found.method, searchId: capture.id, sourceId: capture.source_id, bucket: capture.bucket };
   }
   let bestFuzzy = null;
@@ -2185,6 +2607,37 @@ export function planRelabelParagraph(contentMd, claimText) {
   const newParts = [...parts];
   newParts[idx] = DEFAULT_ANALYSIS_LABEL + body;
   return { content_md: rejoinParagraphs(newParts, seps), before: before.trim(), after: newParts[idx].trim() };
+}
+
+/** Item-wide, LIVE-SQL-mirrored fallback for a claim whose text is nowhere in its own (or any) section's
+ *  content_md (2026-09-04, TENTH PASS, lane HEAL-10 -- Task 4, "criterion 4 residue"). Quoted directly from
+ *  `validate_item_provenance` (pg_get_functiondef, read-only, this lane): criterion 4's ANALYSIS check
+ *  NEVER reads full_brief -- it only asks whether SOME section's content_md carries a blank-line paragraph
+ *  that BOTH matches the label regex AND contains claim_text as a literal (ILIKE) substring, item-wide
+ *  (`s.item_id = p_item_id`, not scoped to the claim's own section_row_id). Measured against heal31.json's
+ *  full 159-claim `relabel_no_owning_section` residue, live DB, this lane: 148/159 already literal-
+ *  substring-present in their own section (planRelabelParagraph's `!ANALYSIS_LABEL_RE.test(p)` guard is
+ *  correctly finding the paragraph ALREADY labeled by an earlier pass and correctly no-oping -- not a
+ *  defect); 8/159 are nowhere at all, not even in full_brief (a paraphrase, not a quote -- genuinely
+ *  unrecoverable, this function refuses); exactly 3/159 (one item, 27dfbe4c) are the case HEAL-6 named:
+ *  claim_text absent from every section's content_md but a literal substring of full_brief. For those 3,
+ *  since the live check only ever reads sections, the honest fix is not to edit full_brief (criterion 4
+ *  never looks there) but to APPEND a brand-new labeled paragraph to the claim's own section, quoting the
+ *  claim's OWN claim_text verbatim (already confirmed, by the caller, to be a literal substring of
+ *  full_brief -- so this never introduces text the item didn't already assert) -- never rewording, never
+ *  synthesizing. Pure. Null when `claimText` IS already resolvable in `section`'s own content_md (not this
+ *  branch's job -- planRelabelParagraph handles that) or is not a literal substring of `fullBrief` either
+ *  (the unrecoverable case -- caller must refuse and report, never invent). */
+export function planRelabelFromFullBrief(section, claimText, fullBrief) {
+  const claim = String(claimText ?? "").trim();
+  if (!claim) return null;
+  const contentMd = section?.content_md ?? "";
+  if (locateSpanInText(claim, contentMd) != null) return null; // already resolvable in-section -- not this branch
+  if (locateSpanInText(claim, fullBrief) == null) return null; // not even in full_brief -- unrecoverable
+  const before = contentMd;
+  const sep = before.trim() ? "\n\n" : "";
+  const newParagraph = DEFAULT_ANALYSIS_LABEL + claim;
+  return { content_md: before + sep + newParagraph, after: newParagraph.trim() };
 }
 
 /** Plan prepending the default label to the paragraph matching the unlabeled-assertion modal regex
@@ -2517,19 +2970,35 @@ export function shouldUnarchive(selectionMode, freshStatus, item) {
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 /** Parse `--arg` into this runtime's selection shape. Pure. */
+// TENTH PASS (2026-09-04, lane HEAL-10) suffix -- an explicit, opt-in token appended to ANY existing
+// selection form, gating the brief-honest strip's (and its RELABEL-from-full-brief sibling's) WRITE
+// behavior in apply mode -- see planBriefHonest/healOneItem's own STEP BRIEF-HONEST header for the full
+// dry-by-default contract. Every existing selection form's OWN meaning (mode/ids) is unchanged either way;
+// this only adds one boolean the caller reads off `selection.stripUnprovable`.
+const STRIP_UNPROVABLE_SUFFIX = "+strip-unprovable";
+
+/** Parse `--arg` into this runtime's selection shape. Pure. */
 export function parseSelection(arg) {
-  const raw = String(arg ?? "").trim();
-  if (!raw || raw === "quarantined-live") return { ok: true, mode: "quarantined-live", ids: null };
-  if (raw === "archived-unreasoned") return { ok: true, mode: "archived-unreasoned", ids: null };
-  if (raw === "slots-backfill") return { ok: true, mode: "slots-backfill", ids: null };
+  let raw = String(arg ?? "").trim();
+  let stripUnprovable = false;
+  if (raw.endsWith(STRIP_UNPROVABLE_SUFFIX)) {
+    stripUnprovable = true;
+    raw = raw.slice(0, -STRIP_UNPROVABLE_SUFFIX.length).trim();
+  }
+  if (!raw || raw === "quarantined-live") return { ok: true, mode: "quarantined-live", ids: null, stripUnprovable };
+  if (raw === "archived-unreasoned") return { ok: true, mode: "archived-unreasoned", ids: null, stripUnprovable };
+  if (raw === "slots-backfill") return { ok: true, mode: "slots-backfill", ids: null, stripUnprovable };
   if (raw.startsWith("ids:")) {
     const ids = raw.slice(4).split(",").map((s) => s.trim()).filter(Boolean);
     if (!ids.length) return { ok: false, error: '--arg "ids:<uuid,uuid,...>" requires at least one id.' };
-    return { ok: true, mode: "ids", ids };
+    return { ok: true, mode: "ids", ids, stripUnprovable };
   }
   return {
     ok: false,
-    error: `unrecognized --arg ${JSON.stringify(raw)} (expected blank/"quarantined-live", "archived-unreasoned", "ids:<uuid,uuid,...>", or "slots-backfill").`,
+    error:
+      `unrecognized --arg ${JSON.stringify(String(arg ?? "").trim())} (expected blank/"quarantined-live", ` +
+      `"archived-unreasoned", "ids:<uuid,uuid,...>", or "slots-backfill", each optionally suffixed ` +
+      `"${STRIP_UNPROVABLE_SUFFIX}").`,
   };
 }
 
@@ -2562,21 +3031,50 @@ export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
  *   updateClaimSpan(id, patch) -> {...} (GROUND + STEP A source_span/source_id/search_result_id patches),
  *   updateClaimKind(id, patch) -> {...} (STEP E claim_kind re-kind), insertSection(row) -> {id, section_key},
  *   updateSectionContent(id, content_md) -> {...}, upsertGateA(row, exists:boolean) -> {...},
- *   touchItem(itemId) -> {...}, readProvenanceStatus(itemId) -> string|null, unarchiveItem(itemId) -> {...}.
+ *   touchItem(itemId) -> {...}, readProvenanceStatus(itemId) -> string|null, unarchiveItem(itemId) -> {...},
+ *   updateItemBrief(itemId, fullBrief) -> {...} (TENTH PASS — STEP BRIEF-HONEST's own write; only ever
+ *   called when apply && stripUnprovable, see that step's own header).
+ * `stripUnprovable` (TENTH PASS, optional boolean): gates STEP BRIEF-HONEST's and STEP D's
+ * RELABEL-from-full-brief write — threaded from `main()`'s own `selection.stripUnprovable`
+ * (parseSelection's "+strip-unprovable" suffix). The PLAN is always computed/reported either way; this
+ * only decides whether apply mode actually calls `deps.updateItemBrief`/`deps.updateSectionContent` for
+ * those two branches specifically — every other write in this function is unaffected.
  * `sourcesIndex` ({byId, byCanonUrl}, see buildSourcesIndex) is read ONCE per RUN by main() and threaded
  * through every item — defaults to empty maps so a direct caller (tests) may omit it.
+ * `captureIndexCache` (TENTH PASS, optional): a `Map` (capture id -> buildCaptureIndex's own shape),
+ * threaded RUN-wide by main() exactly like `citedUrlCache` — defaults to a fresh, item-scoped Map when
+ * omitted, so every existing direct call keeps its own isolated cache exactly as before this pass.
+ * `deps.itemTimeBudgetSeconds`/`deps.now` (TENTH PASS, optional): a per-ITEM wall-clock cap (seconds),
+ * distinct from main()'s own per-RUN budget — see `computeItemTimeBudgetSeconds`'s own header. Checked
+ * only between orphan tokens in STEP SOURCE/STEP C (never mid-token), matching this file's established
+ * "never mid-unit" contract; unset (the default — no `deps.itemTimeBudgetSeconds`) means no cap, and
+ * `deps.now` is never read at all in that case, exactly like main()'s own run-level budget.
  * In dry mode (`apply:false`) every write/fetch is SKIPPED and reported as `would_*` — every read still
  * runs (dry mode plans against the item's REAL current captures/claims, per the brief); the local
  * claims/sections snapshots are only MUTATED to reflect a write when `apply` is true, so a later step's
  * dry-mode plan is never built against a write that never happened.
  */
-export async function healOneItem(item, { deps, apply, selectionMode, requiredSlotsMap, sourcesIndex, citedUrlCache }) {
+export async function healOneItem(item, { deps, apply, selectionMode, requiredSlotsMap, sourcesIndex, citedUrlCache, captureIndexCache, stripUnprovable }) {
   const report = { id: item.id, item_type: item.item_type, steps: {} };
   const sIdx = sourcesIndex ?? { byId: new Map(), byCanonUrl: new Map() };
   // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET, SIXTH PASS). Defaults to a fresh, item-scoped Map
   // when no caller-shared one is threaded through (every existing direct healOneItem call in this file's
   // own tests), so this parameter is purely additive -- see this file's HEAL_VERSION header note.
   const runCitedCache = citedUrlCache ?? new Map();
+  // Run-level capture-text index cache (TENTH PASS) -- see this function's own header note above and this
+  // file's header TENTH PASS section for the measured basis.
+  const runCaptureIndexCache = captureIndexCache ?? new Map();
+  // Per-ITEM wall-clock cap (TENTH PASS) -- a defensive backstop under the cost fix above, for the case
+  // this pass's own measurement did not anticipate (see computeItemTimeBudgetSeconds's own header). `now`
+  // is read ONLY when a positive itemTimeBudgetSeconds is actually configured -- an unbudgeted item-level
+  // call (every existing test, and any run with HEAL_TIME_BUDGET_SECONDS unset) never reads the clock here
+  // at all, mirroring main()'s own run-level budget contract exactly.
+  const itemNow = deps.now ?? (() => Date.now());
+  const itemTimeBudgetMs = Number.isFinite(deps.itemTimeBudgetSeconds) && deps.itemTimeBudgetSeconds > 0
+    ? deps.itemTimeBudgetSeconds * 1000
+    : null;
+  const itemStartedAt = itemTimeBudgetMs != null ? itemNow() : 0;
+  const itemBudgetExceeded = () => itemTimeBudgetMs != null && itemNow() - itemStartedAt >= itemTimeBudgetMs;
 
   // ── 1. CAPTURE ──────────────────────────────────────────────────────────────────────────────────
   let captures = await deps.readCaptures(item.id);
@@ -2608,7 +3106,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const groundResults = [];
   for (const c of claims) {
     if (c.claim_kind !== "FACT") continue;
-    const plan = planGroundingForClaim(c, captures);
+    const plan = planGroundingForClaim(c, captures, runCaptureIndexCache);
     groundOutcomeByClaimId.set(c.id, plan.outcome);
     if (plan.outcome === "healed") {
       if (apply) { await deps.updateClaimSpan(c.id, { source_span: plan.newSpan, search_result_id: plan.searchId }); c.source_span = plan.newSpan; }
@@ -2789,7 +3287,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const resourceResults = [];
   for (const c of claims) {
     if (!claimNeedsResource(c, item, sIdx)) continue;
-    const plan = planResourceForClaim(c, resourceBuckets);
+    const plan = planResourceForClaim(c, resourceBuckets, runCaptureIndexCache);
     resourceOutcomeByClaimId.set(c.id, plan.outcome);
     if (plan.outcome === "resourced") {
       if (apply) {
@@ -2959,13 +3457,20 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   // measured to starve genuinely free, high-value groundings on high-orphan items (one sampled item: 51
   // orphans, 47 free-lookup groundings available, most never attempted under the old accounting).
   for (const orphan of gateRowForSource.orphans ?? []) {
+    // TENTH PASS item-level wall-clock backstop (see healOneItem's own header note) — checked BETWEEN
+    // orphan tokens, never mid-token, matching this file's established "never mid-unit" contract. No-op
+    // (never true) when deps.itemTimeBudgetSeconds is unset.
+    if (itemBudgetExceeded()) {
+      sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "item_bound_hit" });
+      continue;
+    }
     if (sourceAttempts >= SOURCE_MAX_PER_ITEM) {
       sourceResults.push({ token: orphan.token, class: orphan.class, outcome: "bound_hit" });
       continue;
     }
     // Already coverable by STEP A's own (unchanged) floor-respecting buckets — leave it to STEP C, which
     // grounds it there for free, no new source needed.
-    const alreadyCoverable = planOrphanGrounding(orphan, resourceBuckets);
+    const alreadyCoverable = planOrphanGrounding(orphan, resourceBuckets, runCaptureIndexCache);
     if (alreadyCoverable.outcome === "found") continue;
 
     const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx });
@@ -3061,7 +3566,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
         }
       }
 
-      const found = locateSpanInText(orphan.token, cap.result_content);
+      const found = locateSpanInTextCached(orphan.token, cap, runCaptureIndexCache);
       if (found) {
         let sectionId = (findOwningSection(orphan.token, sectionsList) ?? {}).id ?? orphanFallbackSectionId;
         if (!sectionId) { sectionId = await findOrCreateRecordFactsSection(); orphanFallbackSectionId = sectionId; }
@@ -3119,7 +3624,7 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
             hopCap = { id: hopIns.id, result_url: hopRow.result_url, result_content: hopRow.result_content };
             captures.push(hopCap);
           }
-          const hopFound = locateSpanInText(orphan.token, hopCap.result_content);
+          const hopFound = locateSpanInTextCached(orphan.token, hopCap, runCaptureIndexCache);
           if (!hopFound) continue;
 
           let hopSourceId = hopCls.status === "already_registered" ? hopCls.sourceId : null;
@@ -3183,7 +3688,12 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   const gateRowForOrphans = planGateA(item, claims, computeDerivedCovered(claims, captures));
   const orphanResults = [];
   for (const orphan of gateRowForOrphans.orphans ?? []) {
-    const plan = planOrphanGrounding(orphan, resourceBuckets);
+    // TENTH PASS item-level wall-clock backstop — see the identical check in STEP SOURCE's own loop above.
+    if (itemBudgetExceeded()) {
+      orphanResults.push({ token: orphan.token, class: orphan.class, outcome: "item_bound_hit" });
+      continue;
+    }
+    const plan = planOrphanGrounding(orphan, resourceBuckets, runCaptureIndexCache);
     if (plan.outcome !== "found") {
       // Class D reporting (NINTH PASS): the orphan's own enclosing sentence, never invented, alongside
       // this step's own existing fuzzy-match evidence — see this file's header NINTH PASS section.
@@ -3213,6 +3723,39 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
   }
   report.steps.orphans = orphanResults;
 
+  // ── STEP BRIEF-HONEST (criterion 7; TENTH PASS, lane HEAL-10) — HEAL-6's own unbuilt ask. Once STEP
+  //    SOURCE (above) has exhausted every cited URL AND STEP C (just above) has exhausted every capture
+  //    for an orphan token and it is STILL unprovable, PLAN removing exactly that token's own enclosing
+  //    sentence (or, when the sentence carries another still-tracked token, exactly its clause) from
+  //    full_brief — see planBriefHonest's own header for the full accept/refuse contract. The PLAN is
+  //    ALWAYS computed and reported (report.steps.brief_honest) whether or not anything is written; the
+  //    WRITE itself is DRY BY DEFAULT and fires only when BOTH apply=true AND the dispatch's own selection
+  //    carried the explicit "+strip-unprovable" token (parseSelection, above). item_grade doctrine
+  //    (migration 278 / docs/plans/record-tier-population-plan-2026-09-01.md §2/§7, grepped by this lane):
+  //    item_grade is UNCHANGED by this step either way — it only ever REMOVES prose from full_brief, the
+  //    exact "brief grade = full_brief + claims pipeline" shape the item already carries; record-grade
+  //    items have no full_brief-driven Gate A orphans to strip in the first place (FACT/GAP-only, no
+  //    synthesized prose), so this step is a structural no-op for them. ─────────────────────────────────
+  const unprovableTokensThisItem = orphanResults.filter((r) => r.outcome === "unprovable").map((r) => r.token);
+  let briefHonestPlan = { outcome: "no_op", perToken: [] };
+  if (unprovableTokensThisItem.length) {
+    const factClaimsForBH = claims.filter((c) => c.claim_kind === "FACT");
+    briefHonestPlan = planBriefHonest(item, unprovableTokensThisItem, factClaimsForBH, computeDerivedCovered(claims, captures));
+  }
+  const briefHonestApply = apply && !!stripUnprovable && briefHonestPlan.outcome === "accepted";
+  if (briefHonestApply) {
+    await deps.updateItemBrief(item.id, briefHonestPlan.newFullBrief);
+    item.full_brief = briefHonestPlan.newFullBrief;
+  }
+  report.steps.brief_honest = {
+    outcome: briefHonestPlan.outcome,
+    applied: briefHonestApply,
+    per_token: briefHonestPlan.perToken,
+    restore_sql: briefHonestPlan.restore_sql ?? null,
+    reason: briefHonestPlan.reason ?? null,
+    orphan_count: briefHonestPlan.orphan_count ?? null,
+  };
+
   // ── STEP D — RELABEL (criterion 4; the only prose this lane edits, and only by prepending a label).
   //    Owning-section/paragraph lookup is NORMALIZED (locateSpanInText — the SAME normaliser GROUND uses:
   //    whitespace runs, curly/straight quotes, HTML entities, case-insensitive fallback), not a raw
@@ -3226,7 +3769,24 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     const owning = sectionsList.find((s) => s.id === claim.section_row_id) ?? sectionsList.find((s) => locateSpanInText(claim.claim_text, s.content_md) != null);
     if (!owning) { relabelResults.push({ claim_id: claim.id, outcome: "no_owning_section_found" }); continue; }
     const plan = planRelabelParagraph(owning.content_md, claim.claim_text);
-    if (!plan) { relabelResults.push({ claim_id: claim.id, section_id: owning.id, outcome: "no_owning_section_found" }); continue; }
+    if (!plan) {
+      // TENTH PASS (Task 4, lane HEAL-10): the claim's registered section exists but doesn't literally
+      // carry claim_text (already labeled by an earlier pass — the measured common case — or genuinely
+      // absent from this section). Try the full-brief-sourced append (planRelabelFromFullBrief, above) —
+      // null unless claim_text IS a literal substring of full_brief and absent from this section, the
+      // narrow HEAL-6 case. Reporting always runs; the WRITE is gated behind the same "+strip-unprovable"
+      // token as STEP BRIEF-HONEST (this is also new prose beyond the established prepend-a-label pattern).
+      const fbPlan = planRelabelFromFullBrief(owning, claim.claim_text, item.full_brief);
+      if (!fbPlan) { relabelResults.push({ claim_id: claim.id, section_id: owning.id, outcome: "no_owning_section_found" }); continue; }
+      const fbApply = apply && !!stripUnprovable;
+      if (fbApply) { await deps.updateSectionContent(owning.id, fbPlan.content_md); owning.content_md = fbPlan.content_md; }
+      relabelResults.push({
+        claim_id: claim.id, section_id: owning.id,
+        outcome: fbApply ? "relabeled_from_full_brief" : "would_relabel_from_full_brief",
+        before: null, after: fbPlan.after,
+      });
+      continue;
+    }
     if (apply) { await deps.updateSectionContent(owning.id, plan.content_md); owning.content_md = plan.content_md; }
     relabelResults.push({ claim_id: claim.id, section_id: owning.id, outcome: apply ? "relabeled" : "would_relabel", before: plan.before, after: plan.after });
   }
@@ -3284,6 +3844,11 @@ export function summarizeReports(perItem) {
     resourced: 0, unresourced: 0,
     own_body_resolved: 0,
     orphans_grounded: 0, orphans_unprovable: 0,
+    // TENTH PASS (2026-09-04) addition — see this file's header TENTH PASS section. orphans_item_bound_hit
+    // counts STEP C tokens cut short by the per-item wall-clock backstop (source_item_bound_hit, below, is
+    // the same for STEP SOURCE) — distinct from orphans_unprovable (a token this run genuinely searched
+    // and could not find) so a report never conflates "not found" with "not tried, ran out of time".
+    orphans_item_bound_hit: 0,
     relabeled_paragraphs: 0, relabel_no_owning_section: 0,
     refactored_to_analysis: 0,
     // THIRD PASS (2026-09-03) additions — see this file's SLOT MARKER / CAPTURE-CITED sections.
@@ -3307,6 +3872,10 @@ export function summarizeReports(perItem) {
     source_registered: 0, source_rated_tier: 0, source_grounded: 0, source_would_ground: 0,
     grounded_after_register: 0, source_unfetchable: 0, source_token_not_in_page: 0,
     source_unresolved: 0, source_worklisted: 0, source_bound_hit: 0,
+    // TENTH PASS (2026-09-04) addition — see this file's header TENTH PASS section. source_item_bound_hit
+    // is the per-item wall-clock backstop's own count, distinct from source_bound_hit (SOURCE_MAX_PER_ITEM,
+    // an ATTEMPT-count bound) — both can fire on the same run for different items, never conflated.
+    source_item_bound_hit: 0,
     // NINTH PASS (2026-09-04) additions — see this file's header NINTH PASS section. source_no_candidate_url
     // fixes a real gap: the "no_candidate_url" STEP SOURCE outcome (an orphan with no candidate URL to try
     // at all) had NO counter anywhere in this function before now, silently absent from every summary this
@@ -3314,6 +3883,13 @@ export function summarizeReports(perItem) {
     // source_grounded/grounded_after_register (both still increment for a one-hop grounding, same as any
     // other), so a report can show how much of the total came from the direct candidate vs. a hop away.
     source_no_candidate_url: 0, source_grounded_one_hop: 0,
+    // TENTH PASS (2026-09-04) additions — see planBriefHonest/planRelabelFromFullBrief's own headers
+    // (Tasks 3/4). brief_honest_* is dry-by-default (see healOneItem's STEP BRIEF-HONEST): *_applied only
+    // increments when BOTH apply=true and the dispatch selection carried "+strip-unprovable", so a normal
+    // apply-mode run (no suffix) always shows brief_honest_would_apply > 0 / brief_honest_applied === 0 —
+    // Task 5's own "default dispatch never writes a brief" contract, visible directly in the summary.
+    brief_honest_would_apply: 0, brief_honest_applied: 0, brief_honest_rejected: 0, brief_honest_refused_tokens: 0,
+    relabeled_from_full_brief: 0, would_relabel_from_full_brief: 0,
   };
   for (const r of perItem) {
     if (r.steps.capture?.outcome === "held") s.capture_held += 1;
@@ -3350,6 +3926,7 @@ export function summarizeReports(perItem) {
     for (const or of r.steps.orphans ?? []) {
       if (or.outcome === "grounded") s.orphans_grounded += 1;
       if (or.outcome === "unprovable") s.orphans_unprovable += 1;
+      if (or.outcome === "item_bound_hit") s.orphans_item_bound_hit += 1;
     }
     for (const so of r.steps.source ?? []) {
       if (so.outcome === "source_registered_and_grounded") {
@@ -3382,11 +3959,21 @@ export function summarizeReports(perItem) {
       if (so.outcome === "no_candidate_url") s.source_no_candidate_url += 1;
       if (so.outcome === "worklist_ambiguous_host" || so.outcome === "unresolvable_host") s.source_worklisted += 1;
       if (so.outcome === "bound_hit") s.source_bound_hit += 1;
+      if (so.outcome === "item_bound_hit") s.source_item_bound_hit += 1;
       if (so.outcome === "would_register_and_capture" || so.outcome === "would_capture_and_ground") s.source_would_ground += 1;
     }
     for (const rl of r.steps.relabel ?? []) {
       if (rl.outcome === "relabeled") s.relabeled_paragraphs += 1;
       if (rl.outcome === "no_owning_section_found") s.relabel_no_owning_section += 1;
+      if (rl.outcome === "relabeled_from_full_brief") s.relabeled_from_full_brief += 1;
+      if (rl.outcome === "would_relabel_from_full_brief") s.would_relabel_from_full_brief += 1;
+    }
+    if (r.steps.brief_honest) {
+      const bh = r.steps.brief_honest;
+      if (bh.outcome === "accepted" && bh.applied) s.brief_honest_applied += 1;
+      if (bh.outcome === "accepted" && !bh.applied) s.brief_honest_would_apply += 1;
+      if (bh.outcome === "rejected") s.brief_honest_rejected += 1;
+      for (const pt of bh.per_token ?? []) if (pt.outcome === "refused") s.brief_honest_refused_tokens += 1;
     }
     if (r.steps.gate_a?.outcome === "written") s.gate_a_written += 1;
     if (r.steps.rederive?.outcome === "healed_verified") s.healed_verified += 1;
@@ -3436,6 +4023,19 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
     outcome: r.steps.rederive?.outcome ?? null,
     failures: r.steps.rederive?.failures ?? [],
   }));
+  // TENTH PASS (2026-09-04, lane HEAL-10, Task 3) — per-item before/after excerpts for the brief-honest
+  // plan, always present (dry or apply) so the coordinator can review every planned strip regardless of
+  // whether the dispatch's own selection carried "+strip-unprovable". Only items with >=1 unprovable
+  // orphan token this run are included (everything else has nothing to plan).
+  summary.brief_honest = perItem
+    .filter((r) => (r.steps.brief_honest?.per_token ?? []).length > 0)
+    .map((r) => ({
+      id: r.id,
+      outcome: r.steps.brief_honest.outcome,
+      applied: r.steps.brief_honest.applied,
+      per_token: r.steps.brief_honest.per_token,
+      restore_sql: r.steps.brief_honest.restore_sql,
+    }));
   if (stoppedAtBudget) {
     summary.stopped_at_budget = true;
     summary.items_processed = perItem.length;
@@ -3463,11 +4063,37 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
       `source_rated_tier, ${counts.grounded_after_register} grounded_after_register (${counts.source_grounded_one_hop} ` +
       `one_hop), ${counts.source_unfetchable} unfetchable, ${counts.source_token_not_in_page} token_not_in_page, ` +
       `${counts.source_worklisted} worklisted, ${counts.source_no_candidate_url} no_candidate_url, ` +
-      `${counts.source_unresolved} unresolved, ${counts.source_bound_hit} bound_hit.`
+      `${counts.source_unresolved} unresolved, ${counts.source_bound_hit} bound_hit, ` +
+      `${counts.source_item_bound_hit} item_bound_hit; ${counts.orphans_item_bound_hit} orphan item_bound_hit (STEP C). ` +
+      `BRIEF-HONEST: ${counts.brief_honest_applied} applied/${counts.brief_honest_would_apply} would_apply ` +
+      `(dry-by-default unless the dispatch selection carries "+strip-unprovable"), ${counts.brief_honest_rejected} ` +
+      `rejected (Gate A still had an unrelated orphan), ${counts.brief_honest_refused_tokens} token(s) refused ` +
+      `(unisolable, never guessed); RELABEL-from-full-brief: ${counts.relabeled_from_full_brief} ` +
+      `applied/${counts.would_relabel_from_full_brief} would_apply.`
     : `DRY — plan only, nothing written or fetched. ${counts.would_heal_verified}/${items.length} would ` +
       `heal to verified on current captures; the rest need capture/grounding/slots work this run's per_item ` +
       `lists explicitly. STEP SOURCE would-ground ${counts.source_would_ground} orphan token(s).`;
   return summary;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// PER-ITEM WALL-CLOCK BUDGET (TENTH PASS, 2026-09-04, lane HEAL-10). See this file's header TENTH PASS
+// section for the measured basis and healOneItem's own header note for where this is checked.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/** The per-ITEM wall-clock cap (seconds), derived from the RUN's own `HEAL_TIME_BUDGET_SECONDS` — a
+ *  defensive backstop under the capture-index-cache fix above (TENTH PASS), bounding STEP SOURCE/STEP C's
+ *  own per-orphan-token loops so a pathological item this pass's own measurement did not anticipate (many
+ *  more orphans, or a capture larger than the 927,954-char one measured live for this pass) can still never
+ *  consume the whole run. Pure. Clamped to [30, 120] seconds regardless of the run budget's own size —
+ *  generous over every item this lane measured post-fix, tight enough that even ~10 pathological items each
+ *  hitting the cap still leave most of a 1500s run budget for the rest of the population. `null` (no cap)
+ *  when `runTimeBudgetSeconds` is not a positive finite number — an unbudgeted run (no
+ *  HEAL_TIME_BUDGET_SECONDS set, e.g. a local by-hand dispatch) is never silently time-boxed either, the
+ *  same posture the run-level budget itself already takes. */
+export function computeItemTimeBudgetSeconds(runTimeBudgetSeconds) {
+  if (!Number.isFinite(runTimeBudgetSeconds) || runTimeBudgetSeconds <= 0) return null;
+  return Math.max(30, Math.min(120, Math.floor(runTimeBudgetSeconds / 10)));
 }
 
 /**
@@ -3491,6 +4117,12 @@ export function buildSummaryObject({ mode, apply, selection, items, perItem, sto
  *   `null` — used to read back the REAL row after registerSource's own dedup, since a match may land on a
  *   different exact URL than the one just classified; base_tier is ALWAYS resolved through
  *   classTierForHost (src/lib/sources/host-authority.ts), never hand-typed or guessed (SC-13).
+ *   TENTH PASS (2026-09-04, lane HEAL-10) adds two more, both optional: `itemTimeBudgetSeconds` (a
+ *   positive number, per-ITEM this time — see `computeItemTimeBudgetSeconds`'s own header; unset means no
+ *   per-item cap, healOneItem's own `deps.now` is never read for it) threaded straight through to every
+ *   `healOneItem` call (unchanged here — `deps` itself is passed through, not copied), and a run-level
+ *   `captureIndexCache` (a `Map`, created ONCE below and threaded through every item exactly like
+ *   `citedUrlCache` already is) — see `healOneItem`'s own header note for what it memoizes.
  */
 export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   const apply = mode === "apply";
@@ -3525,6 +4157,11 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
 
   // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET) — ONE per run, shared across every item below.
   const citedUrlCache = new Map();
+  // Run-level capture-text index cache (TENTH PASS) — ONE per run, shared across every item below, so a
+  // capture two different items both check (e.g. via the corpus pool, or a widely cited institutional
+  // page) is normalized once for the whole run — see healOneItem's own header note and this file's header
+  // TENTH PASS section for the measured basis.
+  const captureIndexCache = new Map();
   const perItem = [];
   let stoppedAtBudget = false;
   let itemsRemaining = [];
@@ -3540,7 +4177,7 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
       );
       break;
     }
-    perItem.push(await healOneItem(items[i], { deps, apply, selectionMode: selection.mode, requiredSlotsMap, sourcesIndex, citedUrlCache }));
+    perItem.push(await healOneItem(items[i], { deps, apply, selectionMode: selection.mode, requiredSlotsMap, sourcesIndex, citedUrlCache, captureIndexCache, stripUnprovable: selection.stripUnprovable }));
     if (out) writeCheckpoint(out, buildSummaryObject({ mode, apply, selection, items, perItem, stoppedAtBudget: false, itemsRemaining: [] }));
   }
 

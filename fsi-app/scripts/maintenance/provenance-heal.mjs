@@ -24,13 +24,21 @@
 //   (archive_reason stays null — never invented). An item still failing after all five steps is left
 //   exactly as it is, reported with the remaining criterion.
 //
-// TIME BUDGET (lane HEAL-BUDGET, 2026-09-04): apply-mode runs stop cleanly (never mid-item) once
-// HEAL_TIME_BUDGET_SECONDS (a step env this workflow sets, see maintenance.yml's own timeout-minutes
-// comment) is spent, writing summary.json's `stopped_at_budget`/`items_remaining` rather than letting the
-// job's own timeout-minutes kill the process with nothing written. Re-dispatch with
-// --arg "ids:<items_remaining>" (from that run's own artifact) to finish the rest — see
-// docs/runbooks/MAINTENANCE-RUNBOOK.md's provenance-heal section. Every item's five-step sequence still
-// runs to completion or not at all; only the NEXT item is ever skipped by a budget stop.
+// TIME BUDGET (lane HEAL-BUDGET, 2026-09-04; dry mode too since lane HEAL-9): runs of EITHER mode stop
+// cleanly (never mid-item) once HEAL_TIME_BUDGET_SECONDS (a step env this workflow sets, see
+// maintenance.yml's own timeout-minutes comment) is spent, writing summary.json's
+// `stopped_at_budget`/`items_remaining` rather than letting the job's own timeout-minutes kill the process
+// with nothing written. Re-dispatch with --arg "ids:<items_remaining>" (from that run's own artifact) to
+// finish the rest — see docs/runbooks/MAINTENANCE-RUNBOOK.md's provenance-heal section. Every item's
+// five/ten-step sequence still runs to completion or not at all; only the NEXT item is ever skipped by a
+// run-level budget stop.
+//
+// PER-ITEM WALL-CLOCK BACKSTOP (lane HEAL-10, 2026-09-04): `itemTimeBudgetSeconds`, derived below from the
+// SAME HEAL_TIME_BUDGET_SECONDS (no new workflow env), caps how long any ONE item's STEP SOURCE/STEP C
+// orphan-token search can run — the confirmed dominant per-item cost (see heal-provenance.mjs's own header
+// TENTH PASS section for the measured basis). A token skipped by this cap is reported `item_bound_hit`,
+// never silently dropped; the item still finishes its remaining steps (Gate A + re-derive) on whatever
+// grounding it reached.
 //
 // `--arg` selects the population:
 //   (blank) or "quarantined-live" — every live (is_archived=false), quarantined intelligence_items row
@@ -41,13 +49,20 @@
 //   "slots-backfill"              — every verified, live market_signal/initiative/research_finding item
 //     missing a slot item-type-required-slots.json now requires (migration 299's still-unapplied "149";
 //     see docs/runbooks/MAINTENANCE-RUNBOOK.md for the sequencing this satisfies).
+// Any of the four forms above may carry the suffix "+strip-unprovable" (e.g.
+// "quarantined-live+strip-unprovable", "ids:<uuid,...>+strip-unprovable") — an explicit, opt-in token
+// (lane HEAL-10, 2026-09-04) that, in apply mode ONLY, additionally lets STEP BRIEF-HONEST write a
+// full_brief with an exhausted-unprovable token's own sentence/clause removed, and lets STEP D append a
+// RELABEL-from-full-brief paragraph — both PLANNED and reported on every dispatch regardless of the
+// suffix; see heal-provenance.mjs's header TENTH PASS section for the full accept/refuse contract and
+// docs/runbooks/MAINTENANCE-RUNBOOK.md's provenance-heal section for dispatch examples.
 // apply mode does NOT require --arg beyond a valid selection — this mirrors tag-proposals.mjs's own
 // posture (see this repo's other MAINT steps): a healing write is additive/reversible (nothing here
 // deletes or downgrades a row; the provenance-flip binding, ADR-017, only ever lets THIS path escalate
 // toward `verified`, never force it), not the single-named-id gate a blanket tag-apply needs.
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { main as healMain, parseSelection, loadRequiredSlots } from "../mint/heal-provenance.mjs";
+import { main as healMain, parseSelection, loadRequiredSlots, computeItemTimeBudgetSeconds } from "../mint/heal-provenance.mjs";
 import { makePoliteFetch } from "../mint/export-census-rows.mjs";
 import { runCli } from "./lib/cli.mjs";
 
@@ -101,11 +116,17 @@ if (IS_MAIN) {
       // behavior) — a local by-hand run with no env set is never silently time-boxed.
       const rawBudget = Number(process.env.HEAL_TIME_BUDGET_SECONDS);
       const timeBudgetSeconds = Number.isFinite(rawBudget) && rawBudget > 0 ? rawBudget : null;
+      // TENTH PASS (2026-09-04, lane HEAL-10): derived from the SAME HEAL_TIME_BUDGET_SECONDS the run-level
+      // budget already reads — no new workflow env needed. null (no cap) when the run itself is unbudgeted,
+      // matching timeBudgetSeconds's own posture. See computeItemTimeBudgetSeconds's own header and
+      // heal-provenance.mjs's header TENTH PASS section for the measured basis.
+      const itemTimeBudgetSeconds = timeBudgetSeconds != null ? computeItemTimeBudgetSeconds(timeBudgetSeconds) : null;
 
       return {
         fetchImpl: makePoliteFetch({ fetchImpl: fetch }), // 1 req/s, $0 — same politeness gap export-census-rows.mjs uses
         requiredSlotsMap: loadRequiredSlots(),
         timeBudgetSeconds, // HEAL-BUDGET — heal-provenance.mjs's main() stops cleanly before this is exceeded
+        itemTimeBudgetSeconds, // TENTH PASS — per-item wall-clock backstop under STEP SOURCE/STEP C's own loops
 
         // ── selection reads ──────────────────────────────────────────────────────────────────────
         readQuarantinedLive: () => readAll("intelligence_items", ITEM_COLUMNS, {
@@ -201,6 +222,12 @@ if (IS_MAIN) {
           return r.inserted;
         },
         updateSectionContent: (id, content_md) => guardedUpdate("intelligence_item_sections", (q) => q.eq("id", id), { content_md }, { cite: CITE }),
+        // STEP BRIEF-HONEST (TENTH PASS, 2026-09-04, lane HEAL-10, Task 3) — only ever called when
+        // apply=true AND the dispatch's own --arg carries "+strip-unprovable" (heal-provenance.mjs's own
+        // healOneItem gates this; the wrapper never gates it independently, matching every other write
+        // here). Writes full_brief with the sentence/clause removed that planBriefHonest already re-
+        // verified passes Gate A on the rewrite — never a synthesized/paraphrased replacement.
+        updateItemBrief: (itemId, full_brief) => guardedUpdate("intelligence_items", (q) => q.eq("id", itemId), { full_brief }, { cite: CITE }),
         upsertGateA: (row, exists) =>
           exists
             ? guardedUpdate("item_gate_a_state", (q) => q.eq("intelligence_item_id", row.intelligence_item_id), row, { cite: CITE })
