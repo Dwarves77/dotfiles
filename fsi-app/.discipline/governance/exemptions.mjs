@@ -154,11 +154,14 @@ export const EXEMPTIONS = [
       'corpus infrastructure the propagation engine owns, not skill-governed content) — this entry exists ' +
       'separately because the file lives under scripts/propagation/, one root up from src/lib/propagation/, ' +
       'so the existing match prefix does not reach it. No `kinds` restriction (unlike the entry above): ' +
-      'this also covers seed-derived-values.test.mjs\'s ORPHANED-PROOF finding — that test is real and ' +
-      'passing (`node --test scripts/propagation/seed-derived-values.test.mjs`) but is NOT wired into ' +
-      '.discipline/run-test-suite.sh (scripts/propagation/ is not one of its covered globs, and that file ' +
-      'is outside this lane\'s write set) — a documented, known gap, not an oversight; see the test file\'s ' +
-      'own header and the lane\'s final report.',
+      'this also covers seed-derived-values.test.mjs for `isExempt(rel, undefined)`\'s sake, though as of ' +
+      '2026-09-05 (lane CORRIDORS-STATUTORY) it is no longer load-bearing for that purpose — ' +
+      '`.discipline/run-test-suite.sh` now carries `fsi-app/scripts/propagation/*.test.mjs`, so ' +
+      'seed-derived-values.test.mjs is execution-wired and would read COVERED without this entry too; the ' +
+      'entry stays for the WRITES-governance-mapping disposition below, which is unrelated to the test-' +
+      'wiring question. CORRECTED IN PLACE (CLAUDE.md rule 14): this entry previously stated the test ' +
+      '"is NOT wired into run-test-suite.sh... a documented, known gap" — that was true when written ' +
+      '(2026-09-02) and is no longer true.',
     by: 'Lane DP-SURF, system-completion train, 2026-09-02',
   },
   {
@@ -171,10 +174,11 @@ export const EXEMPTIONS = [
       'governed content) — this entry exists separately because the file lives under scripts/propagation/, ' +
       'one root up from src/lib/propagation/, so the existing match prefix does not reach it, matching ' +
       'the seed-derived-values entry\'s own reasoning exactly. No `kinds` restriction: this also covers ' +
-      'write-statutory.test.mjs\'s ORPHANED-PROOF finding — that test is real and passing (`node --test ' +
-      'scripts/propagation/write-statutory.test.mjs`) but is NOT wired into .discipline/run-test-suite.sh ' +
-      '(scripts/propagation/ is not one of its covered globs, and that file is outside this lane\'s write ' +
-      'set) — the SAME documented, known gap seed-derived-values.test.mjs already carries, not a new one.',
+      'write-statutory.test.mjs for `isExempt(rel, undefined)`\'s sake, though as of 2026-09-05 (lane ' +
+      'CORRIDORS-STATUTORY) it is no longer load-bearing for that purpose — see the seed-derived-values ' +
+      'entry above (the same fix). CORRECTED IN PLACE (CLAUDE.md rule 14): this entry previously stated ' +
+      'the test "is NOT wired into run-test-suite.sh... the SAME documented, known gap" — that was true ' +
+      'when written (2026-09-04) and is no longer true.',
     by: 'Lane DAG-AUTHOR, propagation build-out, 2026-09-04',
   },
 ];
