@@ -1,0 +1,20 @@
+{
+  "_status": "DRAFT — NOT reviewed, NOT applied. citation.url is a [HYPOTHESIS] candidate lead (Ofgem's Connections Reform DNO Connections Register), not a live-fetched confirmation (this sandbox's egress proxy 403s ofgem.gov.uk and every other non-allowlisted host). A browser lane must open the URL, confirm a structured (table/CSV) demand-side connection-queue-months figure actually exists at this granularity (jurisdiction + DSO + capacity band + as-of date), confirm the quote appears verbatim, and confirm the numbers before this file is used with --apply. If no such structured demand-side table exists, record that refutation in scripts/spec09/SOURCES.md rather than forcing a row through.",
+  "rows": [
+    {
+      "jurisdiction_name": "GB",
+      "dso_name": "REPLACE-WITH-REAL-DNO-NAME",
+      "capacity_band_mw": "REPLACE-WITH-REAL-BAND (e.g. \"1-5MW\")",
+      "queue_months_p50": null,
+      "queue_months_p90": null,
+      "as_of": "PENDING-BROWSER-VERIFICATION",
+      "obs_status": "A",
+      "citation": {
+        "url": "https://www.ofgem.gov.uk/publications",
+        "title": "Ofgem — Connections Reform / DNO Connections Register (candidate landing page, not a specific dataset)",
+        "retrieved_at": "PENDING-BROWSER-VERIFICATION",
+        "quote": "PENDING-BROWSER-VERIFICATION — replace with the verbatim text the page actually carries once found"
+      }
+    }
+  ]
+}

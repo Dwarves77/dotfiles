@@ -1,0 +1,23 @@
+{
+  "_status": "DRAFT — NOT reviewed, NOT applied. citation.url is a [HYPOTHESIS] candidate lead (CALSTART's Global Commercial Vehicle Drive to Zero ZETI tool), not a live-fetched confirmation (this sandbox's egress proxy 403s every non-allowlisted host). A browser lane must open globaldrivetozero.org/tools/zeti-tool/, confirm the real column shape and commercial-availability vocabulary, confirm the quote appears verbatim, and confirm the numbers before this file is used with --apply. manufacturer_name below MUST match an existing entities(kind='organisation').canonical_name exactly (e.g. 'volvotrucks.com', confirmed live 2026-09-05) — this producer never mints a manufacturer entity.",
+  "rows": [
+    {
+      "manufacturer_name": "volvotrucks.com",
+      "tech_category": "heavy_battery",
+      "commercial_stage": "PENDING-BROWSER-VERIFICATION (one of announced/pilot_demonstration/small_batch_fleet/mass_series_production)",
+      "target_year": null,
+      "energy_density_wh_kg": null,
+      "density_basis": null,
+      "confidence_admiralty": "B2",
+      "announced_at": "PENDING-BROWSER-VERIFICATION",
+      "origin_class": "community",
+      "derivation": "observed",
+      "citation": {
+        "url": "https://globaldrivetozero.org/tools/zeti-tool/",
+        "title": "CALSTART Global Drive to Zero — Zero-Emission Technology Inventory (ZETI)",
+        "retrieved_at": "PENDING-BROWSER-VERIFICATION",
+        "quote": "PENDING-BROWSER-VERIFICATION — replace with the verbatim text the tool actually carries once found"
+      }
+    }
+  ]
+}

@@ -1771,14 +1771,137 @@ guardedInsertMany})`.
 
 **Ruling**: none — the gap is structural (corridor-entity count), not a ruling-gated decision.
 
-**Dispatch**: no `arg`. `mode=dry` reads the live `entities WHERE kind='corridor'` count and reports the
-gap (`counts.corridor_entities_found`, `gap` — a human-readable string naming exactly what's missing).
-`mode=apply` calls `guardedInsertMany("reroute_events", [], ...)` — an empty-array insert, i.e. `applied:
-0` always, until a second corridor entity exists AND a producer-confirmed reroute pairing (cause +
-`fuel_burn_multiplier`, sourced and dated) is built — neither of which this producer alone decides (per
-its own `evaluateCorridorReadiness`, `ready` is never `true` from corridor count alone).
+**Dispatch (no `arg`, legacy corridor-gap report)**: `mode=dry` reads the live `entities
+WHERE kind='corridor'` count and reports the gap (`counts.corridor_entities_found`, `gap` — a
+human-readable string naming exactly what's missing). `mode=apply` calls
+`guardedInsertMany("reroute_events", [], ...)` — an empty-array insert, i.e. `applied: 0` always, until a
+second corridor entity exists AND a producer-confirmed reroute pairing (cause + `fuel_burn_multiplier`,
+sourced and dated) is built — neither of which this producer alone decides (per its own
+`evaluateCorridorReadiness`, `ready` is never `true` from corridor count alone).
 
-**Artifact / read back**: `summary.json`'s `counts.corridor_entities_found` / `counts.to_insert` (always
-0 today) and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and `SELECT
-count(*) FROM reroute_events` (both expected unchanged by any dispatch until the corridor-entity gap
-closes).
+**Artifact / read back (no-`arg` path)**: `summary.json`'s `counts.corridor_entities_found` /
+`counts.to_insert` and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and
+`SELECT count(*) FROM reroute_events`.
+
+**Lane SPEC09-A extension, 2026-09-05 — `--rows-file` path (unblocked by lane CORRIDORS-STATUTORY's
+corridor seed, which brought the live corridor-entity count to >=2)**: with `arg` set to a rows-file JSON
+path (`scripts/maintenance/lib/cli.mjs`'s `runCli` passes `arg` straight through as `--arg`), the
+producer instead loads that file via `scripts/spec09/lib/rows-file.mjs`, and for each row: validates
+`baseline_corridor_name` / `reroute_corridor_name` / `cause` / `fuel_burn_multiplier` (> 0) /
+`effective_from` (and `effective_to >= effective_from` when present) are present and well-formed (throws
+— a malformed row is a producer bug, not a sourcing gap); resolves both corridor names against the live
+`entities(kind='corridor')` spine by exact `canonical_name` — an unresolved name, or the same corridor on
+both sides, is a **refusal** (reported, not thrown — an honest "can't place this row" is expected input,
+not a bug); registers the row's own `citation` block through `registerCitedSource`
+(`src/lib/sources/host-authority.ts`'s `classTierForHost` — never a hand-typed tier; a host the class
+table can't place is refused, never guessed). Only rows that clear every check are written. `mode=apply`
+calls `guardedInsertMany("reroute_events", [...], {skill, reason})` **once per row**, each with that
+row's own citation as its rule-18 provenance. This producer never mints a corridor entity — an unresolved
+corridor name stays refused, not fabricated.
+
+**Artifact / read back (`--rows-file` path)**: `summary.json`'s `rows_total` / `rows_written` /
+`refusals` (each with its row index and reason). Confirm against `SELECT count(*) FROM reroute_events`
+and `SELECT id, canonical_name FROM entities WHERE kind='corridor'` (needs >=2 distinct corridors for any
+row to place).
+
+**No reviewed rows-file exists yet.** `scripts/spec09/reroute-rows-file.example.json` is an unreviewed
+DRAFT template only (placeholder values, `PENDING-BROWSER-VERIFICATION` fields) — see
+`scripts/spec09/SOURCES.md`'s `reroute_events` row for the named candidate source lead ([HYPOTHESIS], not
+confirmed this session — this sandbox's egress proxy blocks every non-allowlisted host) that a
+browser-capable lane must open, verify, and turn into a real rows-file before any `--apply` dispatch
+against this path is meaningful.
+
+---
+
+## 20. `spec09-grid-queue`
+
+**New this runbook, Lane SPEC09-A, 2026-09-05.** Written from `scripts/spec09/grid-queue-producer.mjs`'s
+own header.
+
+**Purpose**: `grid_connection_queues` (migration 297, spec 09 §?) producer — DSO/TSO connection-queue
+months by capacity band. **$0 SOURCING STATUS: GAP, none confirmed this lane** — see
+`scripts/spec09/SOURCES.md`'s `grid_connection_queues` row: UK National Grid ESO's TEC register and ENA's
+Distribution Future Energy Scenarios describe GENERATION connection queues, not the DEMAND-side queue
+this table needs, and no $0 structured feed for the demand side was confirmed. Ships 0 rows from any live
+fetch (there is no live fetch — this producer has never had one; it is rows-file-only from its first
+version).
+
+**Upstream**: `scripts/spec09/grid-queue-producer.mjs`'s own `parseGridQueueRow(row, index, jurisdictions,
+deps)` (pure per-row validation + resolution, unit-tested against fixtures) + `main({mode, arg}, deps)`.
+Shares `scripts/spec09/lib/rows-file.mjs` with `spec09-reroute` and `spec09-oem-roadmap`
+(`loadRowsFile`, `requireCitation`, `registerCitedSource`, `resolveEntityByName` — one module, three
+callers, no copies).
+
+**Ruling**: none — the gap is a sourcing gap (no confirmed $0 feed), not a ruling-gated decision.
+
+**Dispatch**: `arg` is a rows-file JSON path. Each row requires `jurisdiction_name` / `dso_name` /
+`capacity_band_mw` / `as_of`, at least one of the p10/p50/p90 percentile fields (non-negative, and
+`p90 >= p50` when both present — violated ordering is a **refusal**, not a throw, since it can arise from
+a genuinely mis-transcribed source figure rather than a producer bug), and a valid `obs_status` (the
+16-code SDMX set, default `'A'`). `jurisdiction_id` resolves against the live
+`entities(kind='jurisdiction')` spine (63 rows live, e.g. `GB`) by exact `canonical_name` — never minted;
+an unresolved name is a refusal. The row's `citation` registers through the same `registerCitedSource`
+path as `spec09-reroute`. `grid_connection_queues` carries no `source_id` column, so a row's citation
+gates whether it is written at all but is not itself stored as a foreign key on the row.
+`mode=apply` calls `guardedInsertMany("grid_connection_queues", [...], {skill, reason})` once per row.
+
+**Artifact / read back**: `summary.json`'s `rows_total` / `rows_written` / `refusals`. Confirm against
+`SELECT count(*) FROM grid_connection_queues` and `SELECT id, canonical_name FROM entities WHERE
+kind='jurisdiction'`.
+
+**No reviewed rows-file exists yet.** `scripts/spec09/grid-queue-rows-file.example.json` is an unreviewed
+DRAFT template only. `scripts/spec09/SOURCES.md`'s `grid_connection_queues` row names the candidate lead
+for the browser-lane worklist ([HYPOTHESIS], not confirmed this session): Ofgem's Connections Reform DNO
+Connections Register / ENA's Open Data Portal — and specifically whether either actually publishes a
+DEMAND-side (not generation-side) queue-months table at this granularity, which is the open question a
+browser-capable lane must resolve before any real rows-file can be written.
+
+---
+
+## 21. `spec09-oem-roadmap`
+
+**New this runbook, Lane SPEC09-A, 2026-09-05.** Written from `scripts/spec09/oem-roadmap-producer.mjs`'s
+own header.
+
+**Purpose**: `oem_tech_roadmaps` (migration 296, spec 09 §?) producer — OEM commercial-stage technology
+roadmap announcements (battery/fuel-cell/etc. by manufacturer). **$0 SOURCING STATUS: GAP, none
+confirmed this lane** — see `scripts/spec09/SOURCES.md`'s `oem_tech_roadmaps` row: these announcements
+live on manufacturer press pages, not a structured bulk feed, and parsing free-text press releases
+without an LLM (the $0/no-LLM rule) is not viable at useful accuracy. Ships 0 rows from any live fetch —
+rows-file-only from its first version, same as `spec09-grid-queue`.
+
+**Upstream**: `scripts/spec09/oem-roadmap-producer.mjs`'s own `parseOemRoadmapRow(row, index,
+manufacturers, deps)` (pure per-row validation + resolution, unit-tested against fixtures) + `main({mode,
+arg}, deps)`. Shares `scripts/spec09/lib/rows-file.mjs` with the other two spec09 rows-file producers.
+
+**Ruling**: none — the gap is a sourcing gap, not a ruling-gated decision. **One open item that IS
+ruling-shaped, named for the operator, not decided here**: `oem_tech_roadmaps.source_id` is `NOT NULL`
+(unlike `reroute_events` / `grid_connection_queues`, which carry no `source_id` column at all), so a row
+whose citation host does not classify under the current institution class table
+(`src/lib/sources/host-authority.ts`) is refused outright — and neither the named candidate lead
+(`globaldrivetozero.org`) nor a manufacturer's own press site currently classifies. Adding either requires
+an operator ruling on the class table, not a producer-side workaround.
+
+**Dispatch**: `arg` is a rows-file JSON path. Each row requires `manufacturer_name` / `tech_category` /
+`commercial_stage` / `announced_at`, with enum checks for `tech_category` (8 values), `commercial_stage`
+(4 values), `density_basis` (3 values, required together with `energy_density_wh_kg` — one without the
+other is a refusal), `origin_class` (7 values, default `'community'`), `derivation` (9 values, default
+`'observed'`), and a `confidence_admiralty` code matching `^[A-F][1-6]$`. `manufacturer_name` resolves
+against the live `entities(kind='organisation')` spine (1,293 rows, e.g. `volvotrucks.com`) by exact
+`canonical_name` — never minted. The row's citation registers through `registerCitedSource`; because
+`source_id` is `NOT NULL` on this table, a citation refusal here refuses the whole row (unlike the other
+two producers, where citation only gates whether the row is written, not a stored column). `mode=apply`
+calls `guardedInsertMany("oem_tech_roadmaps", [...], {skill, reason})` once per row, `source_id` set from
+the registered citation's `source_id`.
+
+**Artifact / read back**: `summary.json`'s `rows_total` / `rows_written` / `refusals`. Confirm against
+`SELECT count(*) FROM oem_tech_roadmaps` and `SELECT id, canonical_name FROM entities
+WHERE kind='organisation' AND canonical_name = 'volvotrucks.com'`.
+
+**No reviewed rows-file exists yet.** `scripts/spec09/oem-roadmap-rows-file.example.json` is an
+unreviewed DRAFT template only. `scripts/spec09/SOURCES.md`'s `oem_tech_roadmaps` row names the candidate
+lead for the browser-lane worklist ([HYPOTHESIS], not confirmed this session): CALSTART's Global
+Commercial Vehicle Drive to Zero Zero-Emission Technology Inventory (ZETI),
+`globaldrivetozero.org/tools/zeti-tool/` — plus the host-authority.ts class-table gap named above, which
+blocks this source (and any manufacturer press site) from ever producing a written row until an operator
+ruling adds a class-table entry for it.
