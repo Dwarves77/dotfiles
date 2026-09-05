@@ -1,73 +1,140 @@
-// tier-opinions.mjs — MAINT dispatch step investigating "the upstream that produces tier opinions".
+#!/usr/bin/env node
+// tier-opinions.mjs — MAINT dispatch step (Lane ATTACH-SOURCES, 2026-09-05, W3.3 per
+// docs/plans/complete-system-build-plan-2026-09-04.md).
 //
-// FINDING (Lane MAINT, 2026-09-02), reported per the dispatch's own instruction rather than built
-// around: source_tier_opinions (migration 091) sits at 0 rows because its writer never ran, not
-// because it doesn't exist or is broken.
+// HISTORY: this step previously reported "NOT RUNNABLE" (Lane MAINT, 2026-09-02) because the ONLY
+// upstream that fed `source_tier_opinions` (migration 091) was the LLM brief-generation agent's own
+// "New Sources Identified" table (`registerCitedSources` in source-growth.ts, stamped
+// `opinion_source: 'haiku_brief_classifier'`) — out of scope for a $0, no-LLM MAINT runtime. That
+// finding is still true of THAT upstream; it has not changed. What changed: a genuinely deterministic,
+// $0, no-LLM SECOND upstream already exists elsewhere in this repo and simply had no writer wired to
+// it — the SC-13 class table (`classTierForHost` in src/lib/sources/host-authority.ts) that
+// `heal-provenance.mjs`'s STEP SOURCE and `institution-canonicalize.mjs`'s Part C already use to
+// classify a host's tier with zero guessing. This step IS that writer, scoped to the whole `sources`
+// table (Part C above only ever looked at `source_role='standards_body'` rows en route to an
+// AUTO-APPLIED base_tier override — a credibility ruling, gated by ADR-002 and ITS OWN "operator
+// ruling" ceremony). This step never touches `sources.base_tier` — it only RECORDS an OPINION
+// (migration 091's own table, built for exactly this: a repeatable, non-authoritative tier estimate
+// from a process OTHER than brief generation, aggregated by `get_tier_opinion_disagreements` toward the
+// admin review surface at /api/admin/sources/tier-opinions, migration 099).
 //
-//   THE WRITER EXISTS AND IS WIRED. recordTierOpinion (src/lib/sources/tier-opinion-writer.ts) is
-//   called from registerCitedSources (src/lib/sources/source-growth.ts:139), which is real, tested
-//   production code — `git log --oneline -- src/lib/sources/tier-opinion-writer.ts` shows one commit
-//   (1a4c7cf5), which is the S2 lane's double-invocation dedup fix (registerBriefSources vs.
-//   growSourcesFromBrief calling registerCitedSources twice for the same cited list — see that file's
-//   own `skipTierOpinions` doc comment). The writer is not a stub and not dead code.
+// THE PLAN. For every `sources` row with a non-null `url`: resolve `host = hostOf(url)`, then
+// `classTier = classTierForHost(host)`. A host the class table does not recognize (`classTier === null`)
+// is skipped — SC-13's own no-guess posture, applied here unchanged. A host the class table DOES
+// recognize, whose class tier DISAGREES with the row's current `base_tier`, is a disagreement: record
+// one opinion (`opinion_source: 'host_class_table'`, migration 309) with `opined_tier = classTier`
+// against `target_source_id = source.id`. A row where the class table AGREES with `base_tier` records
+// nothing (there is no disagreement to preserve).
 //
-//   THE UPSTREAM THAT FEEDS IT IS BRIEF GENERATION. registerCitedSources only records an opinion when
-//   `cs.tier_estimate != null` (source-growth.ts:138) — and tier_estimate is populated exactly once in
-//   this codebase, by registerBriefSources / growSourcesFromBrief, which are called from inside
-//   canonical-pipeline.ts's brief-generation path (generate-brief.ts). tier_estimate is the LLM agent's
-//   own guess at a cited source's tier, read off the brief's "New Sources Identified" table
-//   (source-growth.ts:24's import comment; the insert itself is stamped `opinion_source:
-//   "haiku_brief_classifier"` — tier-opinion-writer.ts:73). There is no non-LLM path anywhere in this
-//   repo that produces a tier_estimate to write.
+// WHY REPEAT RUNS ARE NOT SUPPRESSED (no dedup-before-insert here, matching
+// `recordTierOpinion`'s own no-dedup contract — see tier-opinion-writer.ts and
+// docs/inventories/shared-dataset-ownership.md's `source_tier_opinions` section). Migration 091's Q3
+// design counts REPEAT opinions across a 90-day window (`get_tier_opinion_disagreements`) — a
+// disagreement this step still finds on a LATER dispatch is real, additional evidence that the
+// mismatch persists, never a duplicate to collapse. Re-dispatching this step is still safe to repeat
+// (nothing is EVER written twice for the "same" reason in a way that corrupts state — every row is an
+// honest, independent observation, and the table is INSERT-only/append-only by design), it just is not
+// idempotent in the "produces zero new rows the second time" sense `attach-found-sources` is. This
+// step has no live schedule (operator ruling: no crons) — its dispatch cadence is whatever the operator
+// or coordinator chooses by hand.
 //
-//   THEREFORE: NOT RUNNABLE from a $0, no-LLM, service-role-only GitHub Actions runner. Running it
-//   would mean generating a brief (a paid Anthropic call) — out of scope for every $0 runtime in this
-//   repo (COMMON's standing ruling; finish-plan-2026-09-02.md's own header: "$0 and no LLM on the
-//   population path"). The live count is 0 because no brief has been generated since the writer was
-//   fixed and wired (2026-09-02), not because anything here is defective.
-//
-// This step therefore does no DB work at all (needsDb: false below) — there is nothing to dry-run or
-// apply. It exists so the dispatch has a named, documented answer instead of a missing `step` choice.
-
+// migration 309 extends the `opinion_source` CHECK constraint (091) to add the `'host_class_table'`
+// literal this step's writes use — `recordTierOpinion`'s `opinionSource` parameter (this lane) is the
+// only caller of that new literal.
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { hostOf } from "../lib/institution-key.mjs";
+import { classTierForHost } from "../../src/lib/sources/host-authority.ts";
+import { recordTierOpinion } from "../../src/lib/sources/tier-opinion-writer.ts";
 import { runCli } from "./lib/cli.mjs";
 
-export const FINDING = Object.freeze({
-  upstream:
-    "src/lib/sources/tier-opinion-writer.ts (recordTierOpinion), called from " +
-    "src/lib/sources/source-growth.ts's registerCitedSources (line ~139), itself called only from " +
-    "registerBriefSources / growSourcesFromBrief inside brief generation (canonical-pipeline.ts / " +
-    "generate-brief.ts).",
-  writer_status: "EXISTS, WIRED, correct — one commit (1a4c7cf5, the S2 double-invocation dedup fix). Not dead code.",
-  why_not_runnable:
-    "tier_estimate (the value recordTierOpinion writes) is produced ONLY by the LLM brief-generation " +
-    "agent's own 'New Sources Identified' table (opinion_source stamped 'haiku_brief_classifier'). No " +
-    "non-LLM path in this repo produces a tier_estimate. This MAINT runtime is $0/no-LLM per the " +
-    "standing build-mode ruling — a service-role key alone cannot run this upstream.",
-  live_count_explanation:
-    "0 rows because no brief has been generated since the writer was fixed and wired (2026-09-02) — " +
-    "brief generation is a separate, paid, dispatch-only path out of this runtime's scope, not because " +
-    "the writer is broken or unwired.",
+export const CITE = Object.freeze({
+  skill: "tier-opinions-2026-09-05",
+  reason:
+    "MAINT tier-opinions dispatch (Lane ATTACH-SOURCES, W3.3): records a source_tier_opinions row " +
+    "(opinion_source='host_class_table', migration 309) for every source whose host the SC-13 class " +
+    "table (classTierForHost) recognizes and whose class tier disagrees with the source's current " +
+    "base_tier — a deterministic, $0, no-LLM second upstream for migration 091's aggregator, never a " +
+    "base_tier write itself (that stays institution-canonicalize.mjs Part C's gated, operator-ruled path).",
 });
 
-/** @param {{ mode?: "dry"|"apply" }} opts */
-export async function main({ mode = "dry" } = {}) {
+/**
+ * PURE planner. `sources`: [{ id, url, base_tier }]. Returns one entry per DISAGREEING source:
+ *   { source_id, url, host, current_tier, class_tier }
+ * A source with no url, an unresolvable host, or a host the class table does not recognize
+ * (`classTierForHost` returns null) is excluded — never guessed. A source whose class tier already
+ * MATCHES its base_tier is excluded — nothing to opine.
+ */
+export function planTierOpinions(sources) {
+  const plan = [];
+  for (const s of sources ?? []) {
+    if (!s?.url) continue;
+    const host = hostOf(s.url);
+    if (!host) continue;
+    const classTier = classTierForHost(host);
+    if (classTier == null) continue;
+    if (classTier === s.base_tier) continue;
+    plan.push({ source_id: s.id, url: s.url, host, current_tier: s.base_tier, class_tier: classTier });
+  }
+  return plan;
+}
+
+/**
+ * @param {{ mode?: "dry"|"apply" }} opts
+ * @param {{ readSources: () => Promise<Array<{id:string,url:string,base_tier:number}>>,
+ *            supabase: import("../../src/lib/sources/tier-opinion-writer.ts").MinimalSupabaseClient }} deps
+ */
+export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
-  return {
+  const sources = await deps.readSources();
+  const plan = planTierOpinions(sources);
+
+  const summary = {
     step: "tier-opinions",
     mode,
-    runnable: false,
-    counts: {},
+    counts: {
+      sources_scanned: sources.length,
+      disagreements: plan.length,
+      plan,
+    },
     applied: 0,
     read_back: {},
-    finding: FINDING,
-    note: `NOT RUNNABLE: ${FINDING.why_not_runnable}`,
-    exitCode: apply ? 2 : 0,
+    exitCode: 0,
   };
+
+  if (!apply) return summary;
+
+  const results = [];
+  let written = 0;
+  for (const p of plan) {
+    const res = await recordTierOpinion(deps.supabase, {
+      targetSourceId: p.source_id,
+      opinedTier: p.class_tier,
+      opinionSource: "host_class_table",
+    });
+    results.push({ source_id: p.source_id, host: p.host, class_tier: p.class_tier, ok: res.ok, error: res.error ?? null });
+    if (res.ok) written += 1;
+  }
+  summary.applied = written;
+  summary.read_back = { opinions_written: written, opinions_attempted: plan.length, results };
+  if (written < plan.length) summary.exitCode = 1; // at least one insert failed — surfaced, never swallowed at this layer
+  return summary;
 }
 
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) {
-  await runCli({ step: "tier-opinions", main, needsDb: false });
+  await runCli({
+    step: "tier-opinions",
+    main,
+    needsDb: true,
+    buildDeps: async () => {
+      const { readAll } = await import("../lib/db.mjs");
+      const { createClient } = await import("@supabase/supabase-js");
+      const sb = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+      return {
+        readSources: () => readAll("sources", "id, url, base_tier"),
+        supabase: sb,
+      };
+    },
+  });
 }

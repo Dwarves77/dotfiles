@@ -42,6 +42,16 @@ test("recordTierOpinion: writes target_source_id, opined_tier, and opinion_sourc
   });
 });
 
+test("recordTierOpinion: opinionSource overrides the default 'haiku_brief_classifier' (migration 309's 'host_class_table', Lane ATTACH-SOURCES)", async () => {
+  const { client, calls } = fakeClient({ error: null });
+  await recordTierOpinion(client, {
+    targetSourceId: "src-1",
+    opinedTier: 4,
+    opinionSource: "host_class_table",
+  });
+  assert.equal(calls[0].row.opinion_source, "host_class_table");
+});
+
 test("recordTierOpinion: passes through opining_source_id and intelligence_item_id when given", async () => {
   const { client, calls } = fakeClient({ error: null });
   await recordTierOpinion(client, {

@@ -176,6 +176,10 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/scan/route.ts",
       "src/lib/intake/run-intake-cycle.ts",
       "src/lib/sources/change-sweep.mjs"
+    ],
+    "source_tier_opinions": [
+      "src/lib/sources/tier-opinion-writer.ts",
+      "src/app/api/admin/sources/tier-opinions/route.ts"
     ]
   }
 }
@@ -553,6 +557,34 @@ apply-mode `runIntakeCycle` invocation is actively dispositioning — for `new_i
 just inserted in the same pass; for `update_item` it is a row a DIFFERENT writer (`change-sweep.mjs`)
 staged earlier, selected only by the `pending` + change-sweep-marker filter — no writer ever updates a row
 outside that filter, and a row processed once (status flipped off `pending`) is never re-selected.
+
+### `source_tier_opinions` — registered by lane ATTACH-SOURCES (W3.3, 2026-09-05), migration 091 (+308)
+
+Not part of the original operator-named harness/flywheel seed list, but it now has TWO independent callers
+of the same writer function, which is exactly this document's own stated criterion for registering a table.
+`source_tier_opinions` records tier ESTIMATES about an EXISTING `sources` row from more than one process
+(`opinion_source` enum column, migration 091); `get_tier_opinion_disagreements(window_days)` (>=5
+disagreeing opinions in 90 days) drives the admin review surface at `/api/admin/sources/tier-opinions`
+(migration 099). There is exactly ONE literal write call site in the whole tree — `recordTierOpinion` in
+`src/lib/sources/tier-opinion-writer.ts` (`.from("source_tier_opinions").insert(...)`, best-effort,
+never throws) — so that one file is the authorized writer; both callers below go through it, never around
+it ("one writer per shared dataset" as one writer *function*, many call sites — the same shape
+`registerSource`/`guardedUpdate` already establish elsewhere in this codebase). No dedup read guards the
+insert (by migration 091's own Q3 design, REPEAT opinions about the same source are the intended shape —
+`get_tier_opinion_disagreements` counts opinions across a 90-day window, so the SAME disagreement observed
+on separate runs is real, additional evidence, never a duplicate to suppress); `tier-opinions.mjs`'s own
+idempotence is therefore about not re-opining every run regardless of change — see that step's own header.
+
+| Caller | Operation | Evidence |
+|---|---|---|
+| `src/lib/sources/source-growth.ts` (`registerCitedSources`) | INSERT via `recordTierOpinion`, `opinion_source='haiku_brief_classifier'` (default, pre-existing) — only when the LLM brief-generation path supplies a non-null `tier_estimate`; `opts?.skipTierOpinions` guards against double-invocation | pre-existing, read in full this lane |
+| `scripts/maintenance/tier-opinions.mjs` (new, MAINT step, this lane) | INSERT via `recordTierOpinion`, `opinion_source='host_class_table'` (new, migration 309) — a deterministic, $0, no-LLM upstream: scans `sources` and compares each `hostOf(url)`'s existing `tier` against `classTierForHost(host)` (the SAME SC-13 class table `heal-provenance.mjs`'s STEP SOURCE and `institution-canonicalize.mjs` already use); records an opinion only where the class table both recognizes the host (non-null) and disagrees with the source's current `tier` | this lane, see the step's own header for the full design rationale |
+| `src/app/api/admin/sources/tier-opinions/route.ts` (pre-existing, migration 099's admin-review surface) | UPDATE only — `action='dismiss'` stamps `dismissed_at`/`dismissed_by`/`dismissed_reason` on the SAME target source's open (`dismissed_at IS NULL`) opinion rows; never an INSERT, never a second write path into the table's core columns | `.from("source_tier_opinions").update({dismissed_at, dismissed_by, dismissed_reason}).eq("target_source_id", sourceId).is("dismissed_at", null)` |
+
+Replace policy: append-only INSERT for the two opinion-recording callers above, mediated entirely by
+`recordTierOpinion` (no dedup-before-insert — see above); `dismissed_at`/`dismissed_by`/`dismissed_reason`
+UPDATE is the admin-review route's own scoped column set (migration 099), never touching
+`target_source_id`/`opined_tier`/`opinion_source` on an existing row. No DELETE path exists anywhere.
 
 ---
 

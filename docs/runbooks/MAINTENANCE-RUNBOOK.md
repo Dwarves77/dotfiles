@@ -96,23 +96,56 @@ structural RLS defect this same idea would repeat.
 
 ## 2. `tier-opinions`
 
-**Finding, not a build**: `source_tier_opinions` sits at 0 rows because its writer never ran, not
-because it's missing or broken. `recordTierOpinion`
-(`fsi-app/src/lib/sources/tier-opinion-writer.ts`) is called from `registerCitedSources`
-(`fsi-app/src/lib/sources/source-growth.ts:139`), itself called only from `registerBriefSources` /
-`growSourcesFromBrief` inside brief generation (`canonical-pipeline.ts` / `generate-brief.ts`).
-`registerCitedSources` only records an opinion when `tier_estimate != null`, and `tier_estimate` is
-populated exactly once in this codebase: by the LLM brief-generation agent's own "New Sources
-Identified" table (insert stamped `opinion_source: "haiku_brief_classifier"`).
+**RUNNABLE as of Lane ATTACH-SOURCES (2026-09-05), W3.3.** Previously (Lane MAINT, 2026-09-02) this
+step reported a "NOT RUNNABLE" finding: the only upstream that fed `source_tier_opinions` was the LLM
+brief-generation agent's own "New Sources Identified" table (`registerCitedSources` in
+`fsi-app/src/lib/sources/source-growth.ts`, stamped `opinion_source: "haiku_brief_classifier"` via
+`recordTierOpinion` in `fsi-app/src/lib/sources/tier-opinion-writer.ts`) — out of scope for a $0,
+no-LLM MAINT runtime. **That finding still stands for that upstream** — it has not changed and this
+step still never touches it. What changed: a genuinely deterministic, $0, no-LLM SECOND upstream
+already existed elsewhere in this repo with no writer wired to it — the SC-13 class table
+(`classTierForHost` in `fsi-app/src/lib/sources/host-authority.ts`) that `heal-provenance.mjs`'s STEP
+SOURCE and `institution-canonicalize.mjs`'s Part C already use.
 
-**Ruling**: the standing $0 / no-LLM build-mode ruling (finish-plan-2026-09-02.md header) — there is no
-non-LLM path anywhere in this repo that produces a `tier_estimate`.
+**Purpose**: `fsi-app/scripts/maintenance/tier-opinions.mjs` scans every `sources` row, resolves
+`host = hostOf(url)`, then `classTier = classTierForHost(host)`. A host the class table does not
+recognize (`classTier === null`) is skipped — SC-13's own no-guess posture, unchanged. A host it DOES
+recognize, whose class tier disagrees with the row's current `base_tier`, is recorded as one
+`source_tier_opinions` row (`opinion_source: "host_class_table"`, migration 309) via `recordTierOpinion`
+— the SAME single writer function `source-growth.ts` already calls, extended with an optional
+`opinionSource` parameter (default unchanged: `"haiku_brief_classifier"`). **This step never writes
+`sources.base_tier` itself** — an opinion is a non-authoritative estimate (migration 091's own design);
+raising a `base_tier` stays `institution-canonicalize.mjs` Part C's separate, ADR-002-gated path.
 
-**Runnable today: NO.** This step does no DB work — it has nothing to dry-run or apply. Dispatching it
-prints the finding above and exits 0 in `mode=dry`, exits 2 in `mode=apply` (by design — an expected
-outcome, not a failure to fix).
+**Migration required before the first apply dispatch**: `fsi-app/supabase/migrations/
+309_source_tier_opinions_host_class_table.sql` extends the `opinion_source` CHECK constraint (091) to
+allow `'host_class_table'`. Apply it before dispatching `tier-opinions --mode apply` — every insert
+otherwise fails the CHECK and `recordTierOpinion`'s own catch-and-swallow contract (never throws) means
+the run reports `applied: 0`, every `read_back.results[].ok === false`, `exitCode: 1`, rather than an
+exception — read the artifact's `read_back.results[].error` to confirm the CHECK-violation message if
+this happens.
 
-**Dispatch**: no `arg`. `read_back` is always empty.
+**Ruling**: none — a class-table disagreement opinion is never a `base_tier` write, so it carries no
+ADR-002 gate; no `--arg` token is required.
+
+**Idempotency**: NOT idempotent in the "zero new rows on a re-dispatch" sense (unlike
+`attach-found-sources`) — by design. Migration 091's Q3 aggregator
+(`get_tier_opinion_disagreements(window_days)`) counts REPEAT opinions across a 90-day window; the SAME
+disagreement this step still finds on a later dispatch is real, additional evidence the mismatch
+persists, never a duplicate to suppress. `source_tier_opinions` is append-only — no dedup-before-insert
+guards this step's writes (see `docs/inventories/shared-dataset-ownership.md`'s `source_tier_opinions`
+section for the full reasoning). No standing schedule exists (operator ruling: no crons) — dispatch
+cadence is whatever the operator/coordinator chooses by hand.
+
+**Dispatch**: no `arg`. `mode=dry` returns `counts.plan` (`[{source_id, url, host, current_tier,
+class_tier}]`) with zero writes. `mode=apply` writes one opinion per plan row and returns
+`read_back.opinions_written` / `opinions_attempted` / `results` (`{source_id, host, class_tier, ok,
+error}` per attempted row).
+
+**Artifact / read back**: confirm against
+`SELECT opinion_source, count(*) FROM source_tier_opinions GROUP BY 1` (expect `host_class_table` rows
+to appear after the first apply) and `SELECT * FROM get_tier_opinion_disagreements(90)` (migration 091)
+for anything now crossing the 5-opinions-in-90-days admin-review threshold.
 
 ---
 
@@ -1125,6 +1158,79 @@ should be empty (or list only hosts the class table still leaves ambiguous) afte
    `part_c_class_override.plan` (expect the 3 hosts / 4 rows above) before applying.
 2. `step=institution-canonicalize`, `mode=apply` — writes Part A/B/C through the guarded path in one run;
    confirm the artifact's `read_back` and re-run the `SELECT` above.
+
+---
+
+## 8b. `attach-found-sources`
+
+**Purpose** (Lane ATTACH-SOURCES, 2026-09-05, W3.1). `docs/audits/wiring-audit-2026-09-04.md` gap 4 /
+the `provenance-heal` row above: HEAL apply #42 (2026-09-04) measured **443 Gate-A orphan figures on 76
+quarantined items** that `heal-provenance.mjs`'s own STEP SOURCE could not resolve at $0 — every
+candidate URL it could derive from the item's OWN citations (`candidateUrlsForOrphan`) was tried and
+exhausted (`no_candidate_url` / `unresolved`). The operator's standing ruling on this file (verbatim,
+2026-09-03): "if items are being flagged as not credible for the site because of not having sources that
+is an issue with finding the source not that item. you need to attach a source." The $0, no-LLM lever
+this step arms: a session **Haiku browser lane** (never this runtime, never an API call from here) does
+the web search a human would do, and hands back a **worklist**. This step consumes that worklist THROUGH
+`heal-provenance.mjs`'s own STEP SOURCE (ELEVENTH PASS there, `deps.foundSourcesForItem` — see that
+file's own header) — never a second grounding mechanism: the SAME class-table tier (SC-13, never
+invented), the SAME verbatim `locateSpanInText` requirement, and the SAME guarded
+`insertClaim`/`registerSource` write path every other STEP SOURCE outcome already uses.
+
+**The worklist contract** — a committed JSON file, an array of:
+```json
+{ "item_id": "uuid", "token": "€2,500,000", "url": "https://...", "quote": "the verbatim sentence the page states the figure in" }
+```
+`item_id` and `token` come from the SEED (below) **verbatim, never retyped** — a token this step tries
+must be byte-identical to the Gate-A orphan token actually measured. `url` is the page the Haiku browser
+lane found stating the figure; `quote` is the verbatim sentence/clause it read there — **evidence for
+the coordinator/operator to cross-check, never itself the grounding needle**: GROUND still requires
+`token` verbatim on the FETCHED page, under `heal-provenance.mjs`'s normal normalization (exact →
+normalized → normalized_ci → numeric_tolerant). A row missing `url` or `quote` is a bare, not-yet-filled
+seed row — skipped as NOT READY, never an error; dispatching against a raw, unfilled seed is always a
+safe no-op. Fixture: `fsi-app/scripts/_worklists/attach-found-sources.fixture.json` (2 rows, fictitious
+data, proves the dry-run path with zero fetches/writes — see
+`fsi-app/scripts/maintenance/attach-found-sources.test.mjs`).
+
+**The SEED — how the coordinator generates the real 443-orphan worklist for the browser lane to fill**:
+1. Dispatch `step=provenance-heal`, `mode=dry`, `arg=quarantined-live` (or `ids:<the 76 item ids>` once
+   named) — this reads the item's REAL current captures/claims and reports every orphan STEP SOURCE
+   tried and could not resolve, with **no write and no fetch beyond what dry already means there**.
+2. Download that run's `summary.json` artifact (`maintenance-provenance-heal-<run_id>`).
+3. Run `node scripts/maintenance/lib/extract-worklist-seed.mjs <summary.json> scripts/_worklists/
+   attach-found-sources.seed.json` — pulls every `steps.source[]` entry whose `outcome` is
+   `no_candidate_url` or `unresolved` into `{item_id, token}` seed rows, deduplicated, deterministically
+   ordered (item_id then token, both ascending — a re-run over the same summary.json is byte-identical,
+   safe to diff). **This is heal-provenance.mjs's OWN measurement, never a second orphan-detection
+   mechanism** — the extraction utility only reshapes `per_item[].steps.source[]`, it never re-scans
+   anything itself.
+4. Commit the seed file under `scripts/_worklists/` (WITHOUT `url`/`quote` — the browser lane fills
+   those next) and hand it to the Haiku browser lane.
+5. The browser lane fills `url` + `quote` for as many rows as it can find a source for, leaves a row
+   bare (seed-only) where it found nothing, and returns the completed worklist file.
+
+**Ruling**: none — the operator's "attach a source, don't blame the item" ruling above is the gate; no
+`--arg` token beyond the worklist path is required.
+
+**Idempotent by construction, not by extra bookkeeping**: a token STEP SOURCE has already grounded (this
+dispatch or an earlier one) is no longer a Gate-A orphan on the next fresh scan, so it is never offered a
+worklist candidate to try again — re-dispatching the SAME worklist against an item with no remaining
+orphans is a clean no-op, never a duplicate write.
+
+**Dispatch**: `--arg` IS the worklist file path (e.g. `scripts/_worklists/attach-found-sources.seed.json`),
+**required in both modes** — there is no default population the way `provenance-heal`'s blank arg means.
+`mode=dry` reads the SAME selection and runs the SAME STEP SOURCE plan as `mode=apply` with zero writes
+and zero fetches beyond what `mode=dry` already means for `heal-provenance.mjs`. `mode=apply` writes
+through the SAME guarded path `provenance-heal` uses (`buildHealDeps`, re-exported from that step's own
+wrapper so there is exactly one DB-wiring block for both steps — rule 015, "one guarded write path").
+
+**Artifact / read back**: `summary.json`'s `counts.worklist_rows` / `worklist_ready` /
+`worklist_not_ready` / `worklist_malformed`, `counts.items_selected`, `counts.grounded_via_worklist`
+(every `via: "worklist"` outcome across the underlying heal run's `per_item[].steps.source[]`), and
+`counts.heal` (the full `heal-provenance.mjs` counts for the selected items). Confirm against
+`SELECT count(*) FROM section_claim_provenance WHERE ... ` for the newly-inserted claim ids the heal
+summary's own `per_item[].steps.source[].claim_id` names, and re-run the same Gate-A orphan measurement
+(`provenance-heal --mode dry` on the same 76 items) to confirm the grounded tokens no longer appear.
 
 ---
 

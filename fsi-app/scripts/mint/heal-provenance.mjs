@@ -798,7 +798,30 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // full_brief (the same "brief grade = full_brief + claims pipeline" shape it already has), and Task 4 only
 // ever adds a label to an existing section — the record<->brief upgrade path (§7) is a distinct, unrelated
 // full-remint mechanism (`apply-staged-update.ts`) this lane's write set does not touch.
-export const HEAL_VERSION = "hp10-2026-09-04.2";
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1). Audit finding (wiring-audit-2026-09-04.md gap 4 /
+// C1-loop-map.md §6): apply #42 measured 443 orphan tokens on 76 items that STEP SOURCE's OWN candidate
+// search (`candidateUrlsForOrphan`, scoped to the item's OWN cited URLs) could not resolve at $0 — every
+// candidate this file could derive from the item's own citations was tried and exhausted. The operator's
+// standing ruling (STEP SOURCE's own header) is "you need to attach a source", not "stay quarantined until
+// a paid search API is authorized" — and rule 18 already gates $0/no-LLM. The $0 lever left is a session
+// Haiku browser lane doing the actual web search a human would do (free, no API spend, no runtime LLM
+// call) and handing back what it found. This pass adds exactly ONE new input to STEP SOURCE's EXISTING
+// candidate-URL list, nothing else: `deps.foundSourcesForItem(itemId)` (optional; absent/undefined for
+// every dispatch that isn't `attach-found-sources` — provenance-heal's own default dispatch behavior is
+// therefore BYTE-IDENTICAL to before this pass) returns `{ [token]: [{ url, quote }, ...] }` for that
+// item — a worklist a Haiku lane filled with a URL it found and the quote it read there. Those URLs are
+// PREPENDED to `candidateUrlsForOrphan`'s own result (never replacing it — an item's own citations are
+// still tried too) and then run through the EXACT SAME classify/fetch/register/locate sequence every
+// other candidate already goes through below: SC-13's class table still decides the tier (never the
+// worklist's own say-so), `locateSpanInText` still requires the TOKEN verbatim on the fetched page (never
+// trusting the worklist's `quote` as a substitute proof), and a URL whose host the class table leaves
+// ambiguous still worklists rather than registering. `quote` is carried into the reported outcome only as
+// audit evidence (cross-referenced against the URL a human/Haiku actually read) — it is never itself the
+// needle GROUND locates. This is additive and idempotent by construction: a token STEP SOURCE already
+// grounded (from this run or an earlier one) is no longer a Gate-A orphan, so it is never re-offered a
+// worklist candidate to try again; re-dispatching the SAME worklist against an item with no remaining
+// orphans is a clean no-op, not a duplicate write.
+export const HEAL_VERSION = "hp11-2026-09-05.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -2182,17 +2205,22 @@ export function classifyCitedUrlForOrphan(url, sourcesIndex) {
 }
 
 /**
- * The candidate cited URLs to try sourcing an orphan `token` against: every URL cited in the token's
- * OWNING SECTION (findOwningSection, unchanged), or — when the token owns no section — every URL the
- * item cites at all (collectCitedUrls over every section, the same "search across the item's citations"
- * fallback the brief names). Bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN. Pure; adds NO new
- * URL-discovery mechanism — both helpers it calls already exist and are reused verbatim.
+ * The candidate cited URLs to try sourcing an orphan `token` against: `foundUrls` (ELEVENTH PASS, ATTACH-
+ * SOURCES — a Haiku browser lane's own worklist finds for this exact token, empty/omitted for every
+ * dispatch that carries no worklist, so every pre-existing caller is unaffected) FIRST, then every URL
+ * cited in the token's OWNING SECTION (findOwningSection, unchanged), or — when the token owns no section
+ * — every URL the item cites at all (collectCitedUrls over every section, the same "search across the
+ * item's citations" fallback the brief names). Deduplicated (a worklist URL that is ALSO already cited is
+ * tried once, first), bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN. Pure; adds NO new URL-discovery
+ * mechanism of its own — every URL still goes through classifyCitedUrlForOrphan's SAME class-table/
+ * already-registered check below, never trusted just because a worklist named it.
  */
-export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex }) {
+export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex, foundUrls = [] }) {
   const owning = findOwningSection(token, sections);
   const scopedSections = owning ? [owning] : sections;
-  const urls = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
-  return urls.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
+  const cited = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
+  const merged = [...foundUrls, ...cited].filter((u, i, arr) => arr.indexOf(u) === i);
+  return merged.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -3510,7 +3538,12 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     const alreadyCoverable = planOrphanGrounding(orphan, resourceBuckets, runCaptureIndexCache);
     if (alreadyCoverable.outcome === "found") continue;
 
-    const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx });
+    // ELEVENTH PASS (ATTACH-SOURCES) — a worklist a Haiku browser lane filled for THIS item/token, if the
+    // attach-found-sources dispatch supplied one via deps.foundSourcesForItem; every OTHER caller (a plain
+    // provenance-heal dispatch) never sets this dep, so foundEntries is always [] there — byte-identical.
+    const foundEntries = deps.foundSourcesForItem ? (deps.foundSourcesForItem(item.id)?.[orphan.token] ?? []) : [];
+    const foundUrls = foundEntries.map((f) => f.url);
+    const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx, foundUrls });
     if (!candidateUrls.length) {
       // Class D reporting (NINTH PASS): the sentence carries context for the coordinator/operator even
       // though no candidate URL exists to try at all — never invented, a literal slice of full_brief.
@@ -3619,10 +3652,15 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
         };
         const ins = await deps.insertClaim(claimRow);
         claims.push({ id: ins.id, claim_kind: "FACT", claim_text: claimRow.claim_text, source_span: claimRow.source_span, source_id: sourceId, section_row_id: sectionId });
+        // ELEVENTH PASS: `via`/`quote` are audit evidence ONLY — the quote is never the needle GROUND
+        // located (that is always `found.span`, the verbatim token match on the fetched page above); this
+        // just cross-references the worklist row a human/Haiku lane actually supplied for this outcome.
+        const foundMatch = foundEntries.find((f) => f.url === url);
         sourceResults.push({
           token: orphan.token, class: orphan.class, url,
           outcome: cls.status === "registerable" ? "source_registered_and_grounded" : "grounded_on_existing_source",
           claim_id: ins.id, source_id: sourceId, source_tier: sourceTier, register: registerOutcome, match_method: found.method,
+          ...(foundMatch ? { via: "worklist", quote: foundMatch.quote } : {}),
         });
         grounded = true;
         break;
