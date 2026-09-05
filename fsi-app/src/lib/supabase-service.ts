@@ -5,13 +5,6 @@
 // defect). Every service-role client construction routes through here; F19 forbids the `SERVICE_ROLE || ANON`
 // downgrade anywhere in src.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-
-// MEMOIZED (diagnosis 2026-07-13): the client is stateless (persistSession:false, service-role) so it is safe
-// to reuse across requests. The detail-route prefetch fan-out built a fresh client per render (per round-trip
-// site) — pure churn under burst. One instance per server process; the fail-closed key check still runs on the
-// first call (a later env change requires a redeploy anyway, so caching the constructed client is sound).
-let cached: SupabaseClient | null = null;
-
 // CAP-1000 FIX (2026-09-05): the single predicate for "is a service-role read even possible right
 // now" — getServiceSupabase's own fail-closed throw below checks exactly this. Exported so a caller
 // that needs to KNOW in advance (rather than throw-and-catch) has one place to ask, instead of
@@ -19,9 +12,19 @@ let cached: SupabaseClient | null = null;
 // src/lib/data.ts's fetchAllPublicListingSlugs for the caller this was extracted for (build-proof CI
 // runs `next build` with real node_modules but no Supabase credentials at all; generateStaticParams
 // must detect that BEFORE attempting a service-role read, not after one throws mid-page-collection).
-export function isServiceSupabaseConfigured(): boolean {
-  return !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-}
+// MOVED to its own npm-free leaf module (ASSEMBLE-47, 2026-09-05): this file's top-level
+// `@supabase/supabase-js` import makes the WHOLE module unresolvable without node_modules, but
+// data-public-surface-slugs.test.mjs (one of run-test-suite.sh's named no-npm-ci files) needs the
+// REAL predicate, not a reimplementation. Logic lives in ONE place (supabase-service-config.mjs);
+// this is a re-export, not a copy — see that file's header for the full rationale.
+import { isServiceSupabaseConfigured } from "./supabase-service-config.mjs";
+export { isServiceSupabaseConfigured };
+
+// MEMOIZED (diagnosis 2026-07-13): the client is stateless (persistSession:false, service-role) so it is safe
+// to reuse across requests. The detail-route prefetch fan-out built a fresh client per render (per round-trip
+// site) — pure churn under burst. One instance per server process; the fail-closed key check still runs on the
+// first call (a later env change requires a redeploy anyway, so caching the constructed client is sound).
+let cached: SupabaseClient | null = null;
 
 export function getServiceSupabase() {
   if (cached) return cached;

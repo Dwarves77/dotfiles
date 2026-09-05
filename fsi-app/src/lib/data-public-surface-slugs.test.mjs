@@ -43,7 +43,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchAllRows } from "./db/paginate.mjs";
-import { isServiceSupabaseConfigured } from "./supabase-service.ts";
+// NOTE (ASSEMBLE-47, 2026-09-05): imported from supabase-service-config.mjs, NOT supabase-service.ts —
+// that file's top-level `@supabase/supabase-js` import makes it unresolvable in this no-npm-ci suite
+// (run-test-suite.sh). supabase-service.ts re-exports the SAME function from this module (one home for
+// the logic); this is the real predicate, not a reimplementation.
+import { isServiceSupabaseConfigured } from "./supabase-service-config.mjs";
 
 const SRC = dirname(fileURLToPath(import.meta.url));
 const CODE = readFileSync(join(SRC, "data.ts"), "utf8");

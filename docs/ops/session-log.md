@@ -10475,6 +10475,25 @@ By the time this train lands, "closure-gate 4/4" is true of the delivered tree �
 tree at the moment it was first written, and this note exists so that gap is on the record rather than
 quietly absorbed.
 
+**Second correction, same session, found running `run-test-suite.sh` WITHOUT the `node_modules`
+symlink** [CONFIRMED]: `data-public-surface-slugs.test.mjs` — one of `run-test-suite.sh`'s named
+no-npm-ci files, already landed on `origin/master` by train 46's own CAP-1000 lane, untouched by any
+of this train's eleven folds — imported `isServiceSupabaseConfigured` from `supabase-service.ts`,
+whose top-level `@supabase/supabase-js` import makes the whole module unresolvable with no
+`node_modules` (`ERR_MODULE_NOT_FOUND`). `test-discipline-engine` in `.github/workflows/discipline.yml`
+runs `run-test-suite.sh` on a bare checkout with no `npm ci` step before it — so this was a real,
+already-merged CI-breaking defect, not a hypothetical. Not caused by any of this train's lanes, but
+caught while running this train's own gates, so fixed now (rule 13): split the one-line predicate into
+a new npm-free leaf module, `src/lib/supabase-service-config.mjs` — `supabase-service.ts` now imports
+and re-exports it (one home for the logic, unchanged for every other caller) and the test imports it
+directly. Re-ran `run-test-suite.sh` both WITH and WITHOUT the symlink after the fix: WITH — 5648/5653
+pass, 0 fail, 5 skipped; WITHOUT — 5646/5653 pass, 0 fail, 7 skipped. [CONFIRMED, checked both logs
+line-by-line] the two additional skips without the symlink are unrelated pre-existing, self-aware
+guards (`captureCitedUrl`'s two PDF-codec subtests, `# SKIP unpdf not installed in this environment`) —
+not `data-public-surface-slugs.test.mjs`, which behaves identically with or without `node_modules`
+after this fix (18/18 pass either way). `tsc --noEmit`,
+`closure-gate.mjs`, the fitness runner, and the rendering guard were all re-run clean after this fix too.
+
 UX compliance (the folded lanes touched `.tsx` across Market/Operations/Regulations, plus this lane's
 own F35 registration). Primary goal per surface: notices — a viewer sees a recalculation notice for a
 watched item wherever they'd expect one (Market index + all four detail surfaces), not only on
