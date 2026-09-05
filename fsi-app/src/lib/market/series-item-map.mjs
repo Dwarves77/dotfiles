@@ -11,23 +11,30 @@
 // forward, now encoded in .discipline: nothing under src/lib may read the filesystem at module evaluation.
 //
 // Ratified series_key -> published_price_statistics attachment map (WO-16.2 mechanism; the ATTACHMENT
-// ITSELF is ruling R-D, 'attach the six oil-bulletin series to published_price_statistics via new
-// record items', unratified as of 2026-09-02 — see refresh-published-price-statistics.mjs's own header
-// for why an unratified attachment is never guessed).
-// 
-// Lane PROD-FIX built the MECHANISM, not the ruling: every key below is one of the six series
-// eu-weekly-oil-bulletin.mjs's PRODUCTS vocabulary emits (src/lib/market/parsers/
-// eu-weekly-oil-bulletin.mjs), each with item_id: null and status: 'pending_R-D' — deriveDisplayRows()
-// in refresh-published-price-statistics.mjs treats item_id === null as UNRATIFIED and skips it exactly
-// as it skipped a key absent from the map entirely before this file existed; the refresher still plans
-// and writes ZERO rows today. `proposed_item` is the record-grade mint payload's identity triple
+// ITSELF was ruling R-D, 'attach the six oil-bulletin series to published_price_statistics via new
+// record items' — RATIFIED, session log Addendum 85 postscript 47. All six entries below carry a real
+// intelligence_items uuid and status: 'ratified' (CORRECTED 2026-09-05, lane NOTICES/W5.2 — this
+// paragraph and refresh-published-price-statistics.mjs's own header previously described the
+// pre-ratification 'pending_R-D'/item_id:null state, which no longer matches this file's own six
+// entries below; CLAUDE.md rule 14, corrected in place rather than left to mislead the next reader).
+// deriveDisplayRows() in refresh-published-price-statistics.mjs now includes all six series on a run of
+// the refresh producer (scripts/producers/market/refresh-published-price-statistics.mjs) — see that
+// module's own header for the dispatch this lane names to actually RUN it (the ratification alone does
+// not populate published_price_statistics; a producer dispatch/apply still has to execute the upsert).
+//
+// Lane PROD-FIX built the MECHANISM the ratification above now uses: every key below is one of the six
+// series eu-weekly-oil-bulletin.mjs's PRODUCTS vocabulary emits (src/lib/market/parsers/
+// eu-weekly-oil-bulletin.mjs). `proposed_item` is the record-grade mint payload's identity triple
 // (title/source_url/item_type) that scripts/producers/market/refresh-published-price-statistics.mjs
 // --propose-items builds into a full payload via src/lib/intake/record-facts.mjs's buildRecordPayload —
-// see that flag's own code for the full payload shape.
-// 
-// TO RATIFY AN ENTRY (operator action, not a lane's to take): set item_id to the real intelligence_items
-// uuid once mint-run applies the record for that series, and status to 'ratified'. Once ratified,
-// deriveDisplayRows() will include it on the next refresh run — no code change needed, only this file.
+// kept here as the historical record of what was proposed and later minted/ratified into each item_id,
+// not consulted by deriveDisplayRows() once an entry is ratified.
+//
+// A FUTURE UNRATIFIED ENTRY (this map growing a 7th series before its item is ratified) still works the
+// same way this file's own mechanism always supported: item_id: null and status: 'pending_R-D' —
+// deriveDisplayRows() treats item_id === null as UNRATIFIED and skips it exactly as it skips a key
+// absent from the map entirely. TO RATIFY: set item_id to the real intelligence_items uuid once mint-run
+// applies the record for that series, and status to 'ratified' — no code change needed, only this file.
 // 
 // sort_order in the eventual published_price_statistics row is NOT stored here: it is the entry's
 // position in this object (Object.keys() insertion order, index 0-5 below), so re-ordering the six

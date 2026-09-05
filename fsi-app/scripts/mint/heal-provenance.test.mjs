@@ -30,6 +30,9 @@ import {
   shouldUnarchive,
   parseSelection,
   resolveSlotsBackfillCandidates,
+  // KIT-BACKFILL (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4)
+  requiredSlotItemTypes,
+  resolveKitBackfillCandidates,
   healOneItem,
   summarizeReports,
   main,
@@ -118,7 +121,7 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp10-/);
+  assert.match(HEAL_VERSION, /^hp11-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -594,15 +597,19 @@ test("parseSelection: blank/default is quarantined-live", () => {
   assert.deepEqual(parseSelection(undefined), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: false });
 });
 
-test("parseSelection: the other three named selections", () => {
+test("parseSelection: the other four named selections", () => {
   assert.equal(parseSelection("archived-unreasoned").mode, "archived-unreasoned");
   assert.equal(parseSelection("slots-backfill").mode, "slots-backfill");
+  // KIT-BACKFILL (2026-09-05): the generalized (every item_type, archived included) sibling.
+  assert.deepEqual(parseSelection("kit-backfill"), { ok: true, mode: "kit-backfill", ids: null, stripUnprovable: false });
   assert.deepEqual(parseSelection("ids: a-1, b-2"), { ok: true, mode: "ids", ids: ["a-1", "b-2"], stripUnprovable: false });
 });
 
-test("parseSelection: bad input refused", () => {
+test("parseSelection: bad input refused, error names kit-backfill among the valid forms", () => {
   assert.equal(parseSelection("ids:").ok, false);
-  assert.equal(parseSelection("bogus").ok, false);
+  const bad = parseSelection("bogus");
+  assert.equal(bad.ok, false);
+  assert.match(bad.error, /kit-backfill/);
 });
 
 // TENTH PASS (lane HEAL-10, Task 3) — the "+strip-unprovable" suffix on every existing selection form.
@@ -611,6 +618,7 @@ test("parseSelection: +strip-unprovable suffix sets stripUnprovable, preserves e
   assert.deepEqual(parseSelection("quarantined-live+strip-unprovable"), { ok: true, mode: "quarantined-live", ids: null, stripUnprovable: true });
   assert.deepEqual(parseSelection("archived-unreasoned+strip-unprovable"), { ok: true, mode: "archived-unreasoned", ids: null, stripUnprovable: true });
   assert.deepEqual(parseSelection("slots-backfill+strip-unprovable"), { ok: true, mode: "slots-backfill", ids: null, stripUnprovable: true });
+  assert.deepEqual(parseSelection("kit-backfill+strip-unprovable"), { ok: true, mode: "kit-backfill", ids: null, stripUnprovable: true });
   assert.deepEqual(
     parseSelection("ids: a-1, b-2+strip-unprovable"),
     { ok: true, mode: "ids", ids: ["a-1", "b-2"], stripUnprovable: true },
@@ -636,6 +644,67 @@ test("resolveSlotsBackfillCandidates: narrows to items ACTUALLY missing a slot",
   };
   return resolveSlotsBackfillCandidates(deps, map).then((kept) => {
     assert.deepEqual(kept.map((i) => i.id), ["i1"]);
+  });
+});
+
+test("resolveSlotsBackfillCandidates: still calls readCandidateTypeItems with exactly the original three types and includeArchived:false (unchanged 2026-09-05 default)", () => {
+  const calls = [];
+  const deps = {
+    readCandidateTypeItems: async (...a) => { calls.push(a); return []; },
+    readClaims: async () => [],
+  };
+  return resolveSlotsBackfillCandidates(deps, {}).then(() => {
+    assert.deepEqual(calls, [[["market_signal", "initiative", "research_finding"], { includeArchived: false }]]);
+  });
+});
+
+// ── KIT-BACKFILL (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4) ─────────────────────────────────────────
+
+test("requiredSlotItemTypes: every real item_type key, meta keys (_comment/_grade_note/_intake_note) excluded", () => {
+  const map = { _comment: "x", _grade_note: "y", _intake_note: "z", regulation: ["effective_date"], market_signal: ["corridor_identity"] };
+  assert.deepEqual(requiredSlotItemTypes(map), ["regulation", "market_signal"]);
+  assert.deepEqual(requiredSlotItemTypes({}), []);
+});
+
+test("resolveKitBackfillCandidates: defaults itemTypes to EVERY non-meta key and includeArchived to false", () => {
+  const calls = [];
+  const map = { _comment: "x", regulation: ["effective_date"], market_signal: ["corridor_identity"] };
+  const deps = {
+    readCandidateTypeItems: async (...a) => { calls.push(a); return []; },
+    readClaims: async () => [],
+  };
+  return resolveKitBackfillCandidates(deps, map).then(() => {
+    assert.deepEqual(calls, [[["regulation", "market_signal"], { includeArchived: false }]]);
+  });
+});
+
+test("resolveKitBackfillCandidates: opts.itemTypes and opts.includeArchived both pass through to readCandidateTypeItems", () => {
+  const calls = [];
+  const deps = {
+    readCandidateTypeItems: async (...a) => { calls.push(a); return []; },
+    readClaims: async () => [],
+  };
+  return resolveKitBackfillCandidates(deps, {}, { itemTypes: ["research_finding"], includeArchived: true }).then(() => {
+    assert.deepEqual(calls, [[["research_finding"], { includeArchived: true }]]);
+  });
+});
+
+test("resolveKitBackfillCandidates: narrows to items ACTUALLY missing a slot, same shape as resolveSlotsBackfillCandidates", () => {
+  const map = { regulation: ["effective_date"] };
+  const items = [
+    { id: "r1", item_type: "regulation" },
+    { id: "r2", item_type: "regulation" },
+  ];
+  const claimsById = {
+    r1: [], // missing effective_date
+    r2: [{ claim_kind: "FACT", claim_text: "[effective_date] 1 January 2026" }], // already covered
+  };
+  const deps = {
+    readCandidateTypeItems: async () => items,
+    readClaims: async (id) => claimsById[id],
+  };
+  return resolveKitBackfillCandidates(deps, map, { itemTypes: ["regulation"], includeArchived: true }).then((kept) => {
+    assert.deepEqual(kept.map((i) => i.id), ["r1"]);
   });
 });
 
@@ -825,6 +894,22 @@ test("main: slots-backfill selection narrows via resolveSlotsBackfillCandidates 
   });
   const r = await main({ mode: "dry", arg: "slots-backfill" }, deps);
   assert.equal(r.counts.candidates, 1);
+});
+
+test("main: kit-backfill selection narrows via resolveKitBackfillCandidates, includeArchived:true reaches an archived item slots-backfill would miss", async () => {
+  const archivedNeedsSlot = { id: "item-62", item_type: "initiative", full_brief: "", source_url: null, is_archived: true, archive_reason: "out_of_scope_wo26" };
+  const calls = [];
+  const deps = baseDeps({
+    requiredSlotsMap: { initiative: ["corridor_identity"] },
+    readCandidateTypeItems: async (itemTypes, opts) => { calls.push([itemTypes, opts]); return [archivedNeedsSlot]; },
+    readClaims: async () => [],
+  });
+  const r = await main({ mode: "dry", arg: "kit-backfill" }, deps);
+  assert.equal(r.counts.selection.mode, "kit-backfill");
+  assert.equal(r.counts.candidates, 1);
+  // requiredSlotsMap here has exactly one real key ("initiative") -- confirms the default itemTypes really
+  // is derived from the map, and includeArchived:true is really threaded through (not defaulted away).
+  assert.deepEqual(calls, [[["initiative"], { includeArchived: true }]]);
 });
 
 test("main: bad --arg refuses before any read, exitCode 1", async () => {
@@ -2427,6 +2512,22 @@ test("candidateUrlsForOrphan: bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN", 
   assert.equal(urls.length, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
 });
 
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1) — foundUrls (the attach-found-sources worklist).
+test("candidateUrlsForOrphan: foundUrls are tried FIRST, ahead of the item's own citations, deduplicated", () => {
+  const sections = [{ id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "See https://example.com/cited for detail." }];
+  const urls = candidateUrlsForOrphan("a token nowhere in either section", {
+    sections, claims: [], sourcesIndex: buildSourcesIndex([]),
+    foundUrls: ["https://found.example/page", "https://example.com/cited"],
+  });
+  assert.deepEqual(urls, ["https://found.example/page", "https://example.com/cited"]);
+});
+
+test("candidateUrlsForOrphan: no foundUrls (every existing caller) behaves byte-identically to before this pass", () => {
+  const sections = [{ id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "https://example.com/a" }];
+  const urls = candidateUrlsForOrphan("a token nowhere in either section", { sections, claims: [], sourcesIndex: buildSourcesIndex([]) });
+  assert.deepEqual(urls, ["https://example.com/a"]);
+});
+
 test("healOneItem STEP SOURCE: the 167 no-source-row case — a registerable host is registered (base_tier from classTierForHost, never hand-typed), captured, and the orphan is grounded", async () => {
   const item = {
     id: "item-src1", item_type: "regulation", source_id: "src-own", source_url: "https://example-regulator.gov/x",
@@ -2964,6 +3065,53 @@ test("healOneItem STEP SOURCE: no_candidate_url and unresolved outcomes carry th
   const noCandidate = r.steps.source.find((s) => s.outcome === "no_candidate_url");
   assert.ok(noCandidate, JSON.stringify(r.steps.source));
   assert.equal(noCandidate.sentence, "The levy is set at €911,000 under this measure.");
+});
+
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1) — deps.foundSourcesForItem (attach-found-sources'
+// own worklist input into STEP SOURCE). Same item as the no_candidate_url case above (zero citations of
+// its own) but with a worklist entry for the exact orphan token — proves the SAME STEP SOURCE mechanism
+// (class table tier, verbatim locate, guarded insertClaim) grounds it instead of reporting no_candidate_url.
+test("healOneItem STEP SOURCE: a worklist URL with no item citation of its own is tried, classified by the SAME class table, and grounds the orphan (attach-found-sources path)", async () => {
+  const item = {
+    id: "item-src-wl1", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €911,000 under this measure.",
+  };
+  const fetchImpl = async (url) => (
+    String(url).includes("notices.example.gov")
+      ? { ok: true, status: 200, text: async () => "The levy is set at €911,000 under this measure, per the official notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) }
+      : { ok: true, status: 200, text: async () => "should not be fetched in this test" }
+  );
+  const deps = baseDeps({
+    fetchImpl,
+    readClaims: async () => [],
+    readSections: async () => [],
+    foundSourcesForItem: (itemId) => (itemId === "item-src-wl1"
+      ? { "€911,000": [{ url: "https://notices.example.gov/levy", quote: "The levy is set at €911,000 under this measure." }] }
+      : {}),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const entry = r.steps.source.find((s) => s.outcome === "source_registered_and_grounded");
+  assert.ok(entry, JSON.stringify(r.steps.source));
+  assert.equal(entry.url, "https://notices.example.gov/levy");
+  assert.equal(entry.via, "worklist");
+  assert.equal(entry.quote, "The levy is set at €911,000 under this measure.");
+  assert.ok(!r.steps.source.some((s) => s.outcome === "no_candidate_url"), "the worklist URL supplied a candidate where the item's own citations had none");
+
+  const claimCall = deps.calls.find((c) => c[0] === "insertClaim");
+  assert.ok(claimCall, "grounded through the SAME guarded insertClaim path every other STEP SOURCE outcome uses");
+  assert.ok(claimCall[1].source_span.includes("911,000"), "GROUND still requires the token verbatim on the fetched page — never the worklist's quote as a substitute");
+});
+
+test("healOneItem STEP SOURCE: no deps.foundSourcesForItem (a plain provenance-heal dispatch) is unaffected — still reports no_candidate_url", async () => {
+  const item = {
+    id: "item-src-wl2", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €913,000 under this measure.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  assert.equal(deps.foundSourcesForItem, undefined);
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.ok(r.steps.source.some((s) => s.outcome === "no_candidate_url"));
 });
 
 test("healOneItem STEP C: an unprovable orphan carries its own enclosing sentence alongside the existing fuzzy evidence", async () => {

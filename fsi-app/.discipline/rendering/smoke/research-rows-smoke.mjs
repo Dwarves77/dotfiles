@@ -65,7 +65,11 @@ function finding(i, { long = false } = {}) {
     lastCitedAt: '2026-08-01',
     baseTier: (i % 7) + 1,
     effectiveTier: (i % 7) + 1,
-    biasTags: [],
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): was always `[]` — every fixture row rendered
+    // CredibilityChipEvidence's unflagged state only, never exercising the GRADE-modifier-ledger's
+    // "risk of bias" row. One in three rows now flagged, matching the ratio this lane used for the
+    // other three surfaces' fixtures (see regulations-rows-smoke.mjs / operations-rows-smoke.mjs).
+    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
     owner: long ? LONG(3, 'Very-Long-Owner-Name-Segment') : 'Jane Doe',
     partnerFlagged: false,
     whatItChanges: long ? LONG(20, 'long-analysis-word') : '',

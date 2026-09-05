@@ -60,6 +60,10 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/OperationsDetailSurface.tsx': 'same header shape as the regulation detail (read)',
   'src/components/research/ResearchFindingDetailSurface.tsx': 'same header shape as the regulation detail (read)',
   'src/components/pages/MarketSignalDetailSurface.tsx': 'the market detail surface; same header shape (read)',
+  // lane NOTICES (2026-09-05): the entity-label link sat below the law-2 44/24px interactive-target
+  // floor and an unbroken long entity name overflowed the row — found by notices-rail-smoke.mjs, which
+  // mounts the real component (via NoticesRail, the shared rail Market and all four detail surfaces use).
+  'src/components/figures/RecalculationNotice.tsx': 'notices-rail-smoke.mjs (law-2 target-floor + overflow fixes, lane NOTICES)',
 });
 
 /** Strip line and block comments (keeping newlines). Pure. */

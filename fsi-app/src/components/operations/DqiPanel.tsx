@@ -11,22 +11,27 @@
  * values, using dqi.mjs's isPrimaryLeg() for the same >=0.5 threshold rollupDqi() itself uses, so a
  * future shipment-grouped view (once a grouping key exists) applies the identical cutoff.
  *
+ * ORG SCOPE (migration 311, lane SPEC09-B, 2026-09-05): see market/SurchargeAuditPanel.tsx's header — the
+ * same reasoning and the same resolveOrgIdFromCookies() resolver apply here.
+ *
  * VIEW/FETCH SPLIT: this file is data-only. The render code lives in the separate file `DqiPanelView.tsx`
  * — see market/SurchargeAuditPanelView.tsx's header for why the split is a separate module.
  */
 
 import { isSupabaseConfigured, getServiceSupabase } from "@/lib/supabase-server";
+import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { DqiPanelView, type DqiRow } from "./DqiPanelView";
 
 const ROW_LIMIT = 25;
 
-async function fetchRows(): Promise<DqiRow[]> {
-  if (!isSupabaseConfigured()) return [];
+async function fetchRows(orgId: string | null): Promise<DqiRow[]> {
+  if (!isSupabaseConfigured() || !orgId) return [];
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .from("tce_data_quality")
       .select("dqi_id, tce_id, reliability, completeness, temporal_correlation, geographical_correlation, technological_correlation, primary_data_share")
+      .eq("org_id", orgId)
       .order("created_at", { ascending: false })
       .limit(ROW_LIMIT);
     if (error) {
@@ -41,6 +46,7 @@ async function fetchRows(): Promise<DqiRow[]> {
 }
 
 export async function DqiPanel() {
-  const rows = await fetchRows();
+  const orgId = await resolveOrgIdFromCookies();
+  const rows = await fetchRows(orgId);
   return <DqiPanelView rows={rows} />;
 }

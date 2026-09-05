@@ -83,6 +83,17 @@ test("dry, ids selection narrows to exactly the named items", async () => {
   assert.equal(r.counts.candidates, 2);
 });
 
+// KIT-BACKFILL (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4): the generalized (every item_type, archived
+// included) sibling of slots-backfill — see heal-provenance.test.mjs for the exhaustive resolver contract;
+// this file only pins the wrapper's own re-export wiring reaches it, and that readCandidateTypeItems is
+// wired to accept the (itemTypes, {includeArchived}) shape kit-backfill calls it with.
+test("dry, kit-backfill selection reaches the wrapper's re-exported main unmodified", async () => {
+  const deps = fakeDeps();
+  const r = await main({ mode: "dry", arg: "kit-backfill" }, deps);
+  assert.equal(r.counts.selection.mode, "kit-backfill");
+  assert.deepEqual(deps.calls, []);
+});
+
 test("apply refuses a still-failing item's rederivation cleanly (never touches a row the RPC still rejects)", async () => {
   const deps = fakeDeps({
     fetchImpl: async () => ({ ok: true, status: 200, text: async () => "x".repeat(300) }),

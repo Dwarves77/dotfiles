@@ -91,7 +91,9 @@ export const CITE = Object.freeze({
 // migration 258's post-check collision-proof hashes two routings of (`cl_corridor_id('CNSHA','NLRTM',
 // 'ocean', 1, 'suez', ARRAY['EGSUZ'])` vs the 'cape' variant) — at the FINER emission_factors.corridor_id
 // granularity, not this coarse spine identity, but the same two ports, same mode, confirming this is a
-// real, ADR-anchored example rather than an invented one.
+// real, ADR-anchored example rather than an invented one. `sourceUrl` here names the internal design
+// document that chose this pair as the illustration (an ADR, not a claim about live trade volumes) — see
+// NAMED_CORRIDOR_SEEDS below for corridors whose SOURCE is an external, published claim.
 export const ADR_EXAMPLE_CORRIDORS = Object.freeze([
   Object.freeze({
     origin: "CNSHA",
@@ -100,8 +102,52 @@ export const ADR_EXAMPLE_CORRIDORS = Object.freeze([
     note:
       "ADR-024 §4 worked example (\"Shanghai–Rotterdam, ocean\"); the same port pair migration 258's " +
       "cl_corridor_id() collision-proof post-check uses at the finer routing-leg granularity.",
+    sourceUrl: "docs/decisions/ADR-024-decision-propagation.md#4-corridor-identity-unlocode-port-pair--mode",
   }),
 ]);
+
+// Corridors BEYOND the one worked example (this lane, 2026-09-05, W4.2 "corridors beyond the one worked
+// example"). Each is a named lane of Drewry's World Container Index (WCI) — the same public composite
+// index spec 02 §"the one thing that makes it different" and spec 06/07 cite by name as the benchmark
+// Market Intel's corridor rate board sits beside ("Drewry already includes the EU ETS surcharge inside
+// its World Container Index"). CONFIRMED live this session (2026-09-05, WebFetch, two independent
+// fetches — drewry.co.uk's own WCI report page and a container-news.com summary of the same report —
+// corroborating each other) as four of the WCI's eight named East-West lanes; the remaining four legs of
+// the composite (the reverse-direction lanes) could not be confirmed by name in this session's network
+// access (see this lane's own REPORT) and are NOT guessed here (rule 2). Shanghai (CNSHA) is already the
+// worked-example origin above; the three destinations here are its OTHER three confirmed WCI lanes.
+// UN/LOCODE codes: ITGOA (Genoa), USNYC (New York), USLAX (Los Angeles) — standard, published codes, not
+// derived or guessed.
+export const NAMED_CORRIDOR_SEEDS = Object.freeze([
+  Object.freeze({
+    origin: "CNSHA",
+    dest: "ITGOA",
+    mode: "ocean",
+    note: "Drewry World Container Index (WCI) tracked lane, Shanghai-Genoa (Asia-Mediterranean).",
+    sourceUrl: "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+  }),
+  Object.freeze({
+    origin: "CNSHA",
+    dest: "USNYC",
+    mode: "ocean",
+    note: "Drewry World Container Index (WCI) tracked lane, Shanghai-New York (Transpacific).",
+    sourceUrl: "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+  }),
+  Object.freeze({
+    origin: "CNSHA",
+    dest: "USLAX",
+    mode: "ocean",
+    note: "Drewry World Container Index (WCI) tracked lane, Shanghai-Los Angeles (Transpacific).",
+    sourceUrl: "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+  }),
+]);
+
+// The full fallback set: the ADR's own worked example plus the named WCI corridors, used together
+// whenever live data names no corridor pair (true for every run against today's live data — see file
+// header). Kept as a separate constant (rather than merging the two arrays in place) so
+// ADR_EXAMPLE_CORRIDORS keeps its own identity as "exactly the ADR-024 worked example" for any caller
+// that wants that narrower set specifically (e.g. a test asserting the ADR's own example is well-formed).
+export const FALLBACK_CORRIDOR_SEEDS = Object.freeze([...ADR_EXAMPLE_CORRIDORS, ...NAMED_CORRIDOR_SEEDS]);
 
 // The one series_key / fact_label convention this script recognises as corridor-shaped: a namespaced
 // ADR-024 seed, "corridor:<ORIGIN-UNLOCODE>-<DEST-UNLOCODE>:<mode>". Not used by any live producer or
@@ -168,7 +214,7 @@ export function resolveCorridorCandidates({ marketSeries = [], regionalFacts = [
   const uniqueDerived = [...seen.values()];
   const usingFallback = uniqueDerived.length === 0;
   return {
-    candidates: usingFallback ? ADR_EXAMPLE_CORRIDORS.map((c) => ({ ...c })) : uniqueDerived,
+    candidates: usingFallback ? FALLBACK_CORRIDOR_SEEDS.map((c) => ({ ...c })) : uniqueDerived,
     usingFallback,
     checked: { marketSeries: marketSeries.length, regionalFacts: regionalFacts.length, items: items.length },
   };
@@ -246,7 +292,8 @@ export async function main({ apply = false } = {}, deps) {
 
   const { entities, planned, skipped } = planCorridorEntities(candidates, existingEntityIds);
   for (const p of planned) {
-    console.log(`   ${p.seed} -> ${p.entityId}${p.alreadyExists ? " (existing)" : " (would_create)"}`);
+    const sourceUrl = p.candidate?.sourceUrl ? ` [source: ${p.candidate.sourceUrl}]` : "";
+    console.log(`   ${p.seed} -> ${p.entityId}${p.alreadyExists ? " (existing)" : " (would_create)"}${sourceUrl}`);
   }
   for (const s of skipped) {
     console.error(`[seed-corridors] SKIPPED candidate ${JSON.stringify(s.candidate)}: ${s.reason}`);

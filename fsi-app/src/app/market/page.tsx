@@ -72,15 +72,17 @@ import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors
 // parameter on read-upcoming.mjs (outside this lane's write set); stated honestly in the section's own
 // copy below rather than presented as market-specific.
 import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
-// Spec 09 §1.1/§1.2/§1.7 (lane SPEC-09, wave 3, 2026-09-03): three self-contained server components, each
-// reading its own table via the request-scoped service client (no props from this page's own fetches, no
-// client fetch, no polling — see each component's own header). Order follows spec 09 §4's sequencing:
-// surcharge audit first ("the only [Market Intel component] with an immediate cash payback"), then OEM
-// roadmap, then rerouting. Indexation (§1.3) has no dedicated index-page component in this lane's write
-// set — mechanics/arithmetic only, no customer-facing clause surface yet.
+// Spec 09 §1.1/§1.2/§1.3/§1.7: four self-contained server components, each reading its own table via the
+// request-scoped service client (no props from this page's own fetches, no client fetch, no polling — see
+// each component's own header). Order follows spec 09 §4's sequencing: surcharge audit first ("the only
+// [Market Intel component] with an immediate cash payback"), then OEM roadmap, then rerouting.
+// IndexationPanel (§1.3, lane SPEC09-B, 2026-09-05) is the reader this table lacked at wave 3 — mechanics/
+// arithmetic only (see that component's own header for why it never renders a computed "current" figure).
+import { NoticesRail } from "@/components/figures/NoticesRail";
 import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
 import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
 import { ReroutingPanel } from "@/components/market/ReroutingPanel";
+import { IndexationPanel } from "@/components/market/IndexationPanel";
 
 const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 
@@ -207,14 +209,23 @@ export default async function Market() {
           feed Regulations mounts, not yet filtered to market-relevant modes specifically.
         </p>
       </div>
+      {/* Recalculation notices (docs/specs/08-flywheel-design.md §2.2 Part 3 / §4 Layer 4; complete-system
+          build plan W4.3, lane NOTICES 2026-09-05): org-watchlist-scoped, fed by GET /api/notices via
+          NoticesRail (src/components/figures/NoticesRail.tsx) — the same rail Operations' calculator
+          mounts. Renders the honest "no recalculations" empty state today (derived_values carries 0
+          superseded pairs live, per lane NOTICES's own report) rather than nothing at all. */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>
+        <NoticesRail />
+      </div>
       <UpcomingObligationsStrip variant="list" />
       {/* Spec 09 §1.2/§1.1/§1.7 (lane SPEC-09, wave 3, 2026-09-03): surcharge audit first per spec §4's
           own sequencing, then OEM roadmap, then rerouting. Each renders a single short "no rows yet"
-          line when its table is empty (today's live state for all three — see scripts/spec09/SOURCES.md)
-          rather than an empty card. */}
+          line when its table is empty rather than an empty card. IndexationPanel (§1.3, lane SPEC09-B,
+          2026-09-05) added last — the CSV-upload customer-data reader this table lacked at wave 3. */}
       <SurchargeAuditPanel />
       <OemRoadmapPanel />
       <ReroutingPanel />
+      <IndexationPanel />
     </>
   );
 }

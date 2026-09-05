@@ -1,0 +1,51 @@
+{
+  "_file_status": "FIXTURE — dry-run pipeline proof only, reviewed for this lane's own dry-run evidence. NOT sourced from a real ship's MRV filing and NOT to be applied to production as-is. A real, reviewed rows-file needs primary-sourced per-ship data — see the companion worklist: scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05.BROWSER-WORKLIST.md, which names the exact fetches a browser-capable lane needs to run to replace this file's rows with real ones.",
+  "_schema": {
+    "shipKey": "string — the ship's IMO number (or another stable per-ship key). This lane's fixture row uses an obviously-synthetic key so it can never be mistaken for a real vessel.",
+    "targetYear": "integer — must be a key of write-statutory.mjs's SUPPORTED_TARGET_YEARS. Only 2025 is implemented today (Regulation (EU) 2023/1805 Art. 4(2), verified live against EUR-Lex CELEX:32023R1805 by lane DAG-AUTHOR, 2026-09-04 — see write-statutory.mjs's own file header). Every other target year is refused by name, never guessed.",
+    "scenarioKey": "optional string, defaults to 'default' (write-statutory.mjs)",
+    "obligationSeed": "optional string, defaults to write-statutory.mjs's DEFAULT_OBLIGATION_SEED ('fueleu-maritime-annex-iv-penalty')",
+    "ghgIntensityActual": "StatutoryInput {value: number (gCO2eq/MJ), unit: string, citation: string, asOf: {eventDate: 'YYYY-MM-DD'}, derivation: Contractable ('observed'|'transacted_index'|'assessed'|'calculated'), originClass: string, lifecycle: string, admissibility: string, baseConfidence: number} — the ship-year's actual well-to-wake GHG intensity of energy used on board, per Regulation (EU) 2023/1805 Art. 4/Annex I methodology.",
+    "energyUsedMJ": "StatutoryInput, same shape, unit 'MJ' — total energy used on board for the ship-year (Annex I).",
+    "consecutiveDeficitYears": "StatutoryInput, same shape, unit 'count' — the ship's consecutive-year compliance-deficit count (Art. 20's escalating penalty multiplier input)."
+  },
+  "rows": [
+    {
+      "shipKey": "FIXTURE-PIPELINE-PROOF-1",
+      "targetYear": 2025,
+      "ghgIntensityActual": {
+        "value": 95.0,
+        "unit": "gCO2eq/MJ",
+        "citation": "SYNTHETIC FIXTURE VALUE — asserted by lane CORRIDORS-STATUTORY, 2026-09-05, for pipeline dry-run proof only. Illustrates a ship above the CONFIRMED 2025 statutory target of 89.3368 gCO2eq/MJ (Regulation (EU) 2023/1805 Art. 4(2), 91.16 x (1 - 0.02); verified live against EUR-Lex CELEX:32023R1805 by lane DAG-AUTHOR, 2026-09-04). A REAL value for this field requires per-ship EMSA THETIS-MRV sourcing — see the companion browser-lane worklist, item 3.",
+        "asOf": { "eventDate": "2026-01-15" },
+        "derivation": "assessed",
+        "originClass": "verified",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.95
+      },
+      "energyUsedMJ": {
+        "value": 500000000,
+        "unit": "MJ",
+        "citation": "SYNTHETIC FIXTURE VALUE — asserted by lane CORRIDORS-STATUTORY, 2026-09-05, for pipeline dry-run proof only (an order-of-magnitude-plausible ship-year energy figure, not a measurement). See ghgIntensityActual's citation for the same caveat and the real-sourcing path.",
+        "asOf": { "eventDate": "2026-01-15" },
+        "derivation": "assessed",
+        "originClass": "verified",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.95
+      },
+      "consecutiveDeficitYears": {
+        "value": 1,
+        "unit": "count",
+        "citation": "SYNTHETIC FIXTURE VALUE — asserted by lane CORRIDORS-STATUTORY, 2026-09-05, for pipeline dry-run proof only. See ghgIntensityActual's citation for the same caveat and the real-sourcing path.",
+        "asOf": { "eventDate": "2026-01-15" },
+        "derivation": "assessed",
+        "originClass": "verified",
+        "lifecycle": "verified",
+        "admissibility": "filing_ok",
+        "baseConfidence": 0.95
+      }
+    }
+  ]
+}

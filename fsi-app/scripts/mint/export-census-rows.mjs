@@ -644,11 +644,18 @@ export function partitionByScreen(rows, reviewed = {}) {
   return { mintable, screenedOut };
 }
 
-/** Select the would_mint census rows this run will consider, in order: disposition filter, then the
- *  optional --source-id / --celex-prefix narrowing, then --limit. Pure. */
+/** Select the would_mint census rows this run will consider, in order: disposition filter, archive
+ *  exclusion, then the optional --source-id / --celex-prefix narrowing, then --limit. Pure.
+ *
+ *  ARCHIVE EXCLUSION (migration 308, W2.2 / ruling R-A): `!r.is_archived` — a row
+ *  scripts/maintenance/census-off-vertical.mjs's `arg=archive` path has archived must never re-enter the
+ *  export pool, or the archive would be defeated the next population-turn run. `is_archived` is absent on
+ *  every row fixture predating migration 308 (undefined is falsy), so this is additive: no existing
+ *  caller or test that never sets the field is affected. */
 export function selectCensusRows(censusRows, { sourceId = null, celexPrefix = null, limit = 50 } = {}) {
   return (censusRows ?? [])
     .filter((r) => r?.dryrun_disposition === "would_mint")
+    .filter((r) => !r?.is_archived)
     .filter((r) => !sourceId || r.source_id === sourceId)
     .filter((r) => !celexPrefix || String(r.instrument_identifier ?? "").startsWith(celexPrefix))
     .slice(0, limit == null ? undefined : limit); // null = no cap (main() caps AFTER the held-exclusion)
@@ -1352,11 +1359,13 @@ export async function main() {
   // batch-scoped: census rows first (would_mint only), the selection applied, and only THEN the captures,
   // holder urls and sources for the selected rows, fetched by `in (...)` in chunks. Nothing here reads a
   // table it does not need whole.
-  console.log("export-census-rows: reading census_worklist (would_mint)...");
+  console.log("export-census-rows: reading census_worklist (would_mint, not archived)...");
   const censusRows = await readAll(
     "census_worklist",
-    "id, source_id, document_url, title, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier",
-    { match: (q) => q.eq("dryrun_disposition", "would_mint") }, // readAll's match is a query fn (db.mjs:135), not an object
+    "id, source_id, document_url, title, lane, shape_class, enumeration_status, dryrun_disposition, hold_reason, surface_tags, instrument_identifier, is_archived",
+    // migration 308 (W2.2 / R-A): is_archived=false at the SQL level too, mirroring selectCensusRows'
+    // own `!r.is_archived` filter below — a row census-off-vertical.mjs archived must never come back.
+    { match: (q) => q.eq("dryrun_disposition", "would_mint").eq("is_archived", false) },
   );
   const preselected = selectCensusRows(censusRows, {
     sourceId: values["source-id"] || null,

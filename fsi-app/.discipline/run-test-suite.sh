@@ -74,6 +74,7 @@ node --test \
   fsi-app/.discipline/fitness/functions/*.test.mjs \
   fsi-app/.discipline/fitness/runner.test.mjs \
   fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
+  fsi-app/scripts/lib/assemble-train.test.mjs \
   fsi-app/scripts/lib/canonical-key.selftest.mjs \
   fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
   fsi-app/scripts/lib/db-register-source-role.test.mjs \
@@ -109,6 +110,8 @@ node --test \
   fsi-app/scripts/producers/*/*.test.mjs \
   fsi-app/scripts/entities/*.test.mjs \
   fsi-app/scripts/sources/*.test.mjs \
+  fsi-app/scripts/propagation/*.test.mjs \
+  fsi-app/scripts/_worklists/*.test.mjs \
   fsi-app/src/__tests__/*.test.mjs \
   fsi-app/src/lib/credibility/*.test.mjs \
   fsi-app/src/lib/sources/*.test.mjs \
@@ -152,5 +155,6 @@ node --test \
   fsi-app/src/lib/propagation/methods/*.test.mjs \
   fsi-app/src/lib/spec09/*.test.mjs \
   fsi-app/scripts/spec09/*.test.mjs \
+  fsi-app/scripts/spec09/lib/*.test.mjs \
   fsi-app/src/lib/community/*.test.mjs \
   fsi-app/scripts/community/*.test.mjs

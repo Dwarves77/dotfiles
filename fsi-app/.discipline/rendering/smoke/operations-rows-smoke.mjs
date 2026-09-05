@@ -116,6 +116,14 @@ function opsItem(i, { long = false } = {}) {
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
     sourceTier: 3,
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): OperationsItemsView's card is the one row
+    // mount that additionally carries RecordGradeBadge (Operations had no RecordGradeBadge mount
+    // anywhere before this lane) alongside the shared CredibilityChipEvidence/Authority pair —
+    // these three fields exercise the populated-data path for both. Ratios match the same
+    // measurement basis as the Regulations fixture (see perf-budget.mjs evidence).
+    citationCount: i % 4 === 0 ? null : 2,
+    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    itemGrade: i % 5 === 4 ? undefined : 'record',
     reasoning: '',
     tags: [],
   };

@@ -447,7 +447,7 @@ function gatherCodeFiles() {
 // FOUND overdue; the disposition names the plan item that closes it and the train by which it must.
 export const NEVER_RUN_ALLOWLIST = {
   'maintenance:tier-opinions': {
-    disposition: 'Plan §"Tools already built" / W3.3: NOT RUNNABLE by the step\'s own header — the only upstream (tier_estimate) is the paid LLM brief agent, so no dispatch can ever produce evidence here until W3.3 gives it a deterministic writer (the class table + heal read-back tiers) or the step and table are deleted. Not a closable NEVER-RUN by dispatching it; tracked to W3.3. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
+    disposition: 'Lane ATTACH-SOURCES (W3.3, 2026-09-05) BUILT the deterministic writer this entry\'s prior disposition named as the closing condition: scripts/maintenance/tier-opinions.mjs now compares every sources.base_tier against host-authority.ts\'s classTierForHost (the class table), recording a source_tier_opinions row (opinion_source=host_class_table) on disagreement, via the SAME recordTierOpinion writer source-growth.ts already uses. The step is RUNNABLE and unit-tested (11 tests, no live DB). REMAINING before this entry can close: (1) coordinator applies migration 309 (adds host_class_table to the opinion_source CHECK — this lane wrote it but has no DB credentials to apply it), (2) one real maintenance dispatch (mode=dry then apply) against the live sources table, recorded in the runbook §2 section or docs/ops/dispatch-ledger.jsonl. T46 validation fails this entry if no such dispatch has landed by then.',
     expiryTrain: 46,
   },
   'maintenance:census-off-vertical': {
@@ -538,7 +538,32 @@ export const STALE_NEXT_ALLOWLIST = {
 // #5), not code-level half-slices. The live run below found ZERO real orphans among the 34 tables; the
 // allowlist is therefore empty by measurement, not by omission — the ratchet holds it at 0 going
 // forward, so any new writer-only or reader-only table among migrations >= 266 fails immediately.
-export const WRITER_READER_ALLOWLIST = {};
+//
+// entity_scope ADDED 2026-09-05 (ASSEMBLE-47, folding lane CORRIDORS-STATUTORY): migration 282 creates
+// entity_scope (>= 266, in this check's scope) and scripts/entities/write-entity-scope.mjs — wired into
+// seed-corridors.mjs, a live maintenance.yml step — is its first and only writer. It also does its own
+// `readAllFn("entity_scope", ...)` for idempotency (skip already-scoped pairs), but that is a dedup
+// check on the writer's OWN output, not a consumer reading the data for a surface — this scanner
+// correctly does not count it as a reader (GUARDED_WRITE_RE matches insertFn/guardedInsertMany calls;
+// there is no matching read-classification for a bare readAllFn call, by design — see file header).
+// Same fact already recorded in producer-consumer-orphan.mjs's TERMINAL_SINK_ALLOWLIST (F14) for the
+// identical reason: the spec (docs/specs/08-flywheel-design.md §1.2) names entity_scope's PURPOSE — make
+// any entity addressable from any surface — but not a first consumer, and building one (a corridor-detail
+// view, a jurisdiction-scoped query) is a feature-shaped decision outside this fold lane's write set.
+// DISPOSITION PENDING — grandfathered, not ratified. expiryTrain 52 mirrors this same train's F25/F38
+// ratchet re-grants (a ~5-train buffer, not indefinite): a future lane either wires the first reader,
+// or re-confirms/re-disposes this entry before wave52 lands.
+export const WRITER_READER_ALLOWLIST = {
+  entity_scope: {
+    disposition:
+      'FIRST WRITER 2026-09-05 (Lane CORRIDORS-STATUTORY via ASSEMBLE-47): scripts/entities/write-entity-scope.mjs ' +
+      '(wired into seed-corridors.mjs, a live maintenance.yml step) derives corridor-to-jurisdiction rows. No ' +
+      'consumer exists yet — the spec names the table\'s purpose, not a first reader. DISPOSITION PENDING (build ' +
+      'the first surface/query vs ratify permanently write-only) — grandfathered, not ratified. See matching ' +
+      'entry in producer-consumer-orphan.mjs TERMINAL_SINK_ALLOWLIST for the fuller writeup.',
+    expiryTrain: 52,
+  },
+};
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // RUN — one function per check, plus the combined report.

@@ -35,9 +35,9 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, provenance-heal, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv]
       arg:
-        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, or a comma-separated proposal-id list — see the runbook for which steps require one and what value they need).'
+        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
         default: ''
         type: string
@@ -141,13 +141,18 @@ jobs:
         run: node scripts/verify/population-report.mjs
 
       - name: tier-opinions
-        # NOT RUNNABLE (see the step's own header + docs/runbooks/MAINTENANCE-RUNBOOK.md): the upstream
-        # that would produce tier_estimate is the paid LLM brief-generation agent. This step reports that
-        # finding and exits 2 in apply mode by design — an expected, documented outcome, not a bug.
+        # Lane ATTACH-SOURCES (2026-09-05), W3.3. RUNNABLE (was NOT RUNNABLE before this lane — see the
+        # step's own header for the full history): a deterministic, $0, no-LLM upstream now exists —
+        # every `sources` row's host is compared against the SC-13 class table (classTierForHost); a
+        # disagreement with the row's current base_tier is recorded as a source_tier_opinions row
+        # (opinion_source='host_class_table', migration 308 — MUST be applied before this step's first
+        # apply dispatch, or every insert fails the CHECK and this step reports opinions_written=0,
+        # exitCode 1). No --arg required; no ruling gate (an opinion is never a base_tier write itself —
+        # that stays institution-canonicalize.mjs Part C's separate, gated path).
         if: env.RUN_STEP == 'tier-opinions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/tier-opinions"
-          node scripts/maintenance/tier-opinions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/tier-opinions" || true
+          node scripts/maintenance/tier-opinions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/tier-opinions"
 
       - name: w1-dispositions
         # Gated on ruling R-C (finish-plan-2026-09-02.md §1). apply mode makes NO code edit — see the
@@ -288,13 +293,35 @@ jobs:
       - name: spec09-reroute
         # Wave 3 lane SPEC-09 (spec 09 §1.7): reroute_events readiness monitor. Reads the live corridor
         # entity count; reports the named gap (needs two distinct corridor entities; one exists) until
-        # a second corridor is minted, then proposes rows. Dry by default; the other six spec09
-        # producers ship their tables empty with the gap named in scripts/spec09/SOURCES.md and have
-        # no dispatch step until a $0 source exists.
+        # a second corridor is minted. Lane SPEC09-A (2026-09-05) added a --rows-file mode: `arg` (a
+        # checked-in path, e.g. scripts/spec09/reroute-rows-file.example.json) is passed through as
+        # --arg so a reviewed, fully-cited rows-file can be applied once >=2 corridors exist — no
+        # rows-file (arg empty) keeps the original corridor-count-gap-only behaviour. See
+        # docs/runbooks/MAINTENANCE-RUNBOOK.md §19.
         if: env.RUN_STEP == 'spec09-reroute' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/spec09-reroute"
-          node scripts/spec09/reroute-producer.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/spec09-reroute"
+          node scripts/spec09/reroute-producer.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/spec09-reroute"
+
+      - name: spec09-grid-queue
+        # Lane SPEC09-A (2026-09-05, plan §W5.1): grid_connection_queues producer, spec 09 §1.6. No $0
+        # feed confirmed (scripts/spec09/SOURCES.md); ships 0 rows with no `arg`. `arg` (a checked-in
+        # --rows-file path, e.g. scripts/spec09/grid-queue-rows-file.example.json) applies a reviewed,
+        # fully-cited rows-file instead — see docs/runbooks/MAINTENANCE-RUNBOOK.md §20.
+        if: env.RUN_STEP == 'spec09-grid-queue' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/spec09-grid-queue"
+          node scripts/spec09/grid-queue-producer.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/spec09-grid-queue"
+
+      - name: spec09-oem-roadmap
+        # Lane SPEC09-A (2026-09-05, plan §W5.1): oem_tech_roadmaps producer, spec 09 §1.1. No $0 feed
+        # confirmed (scripts/spec09/SOURCES.md); ships 0 rows with no `arg`. `arg` (a checked-in
+        # --rows-file path, e.g. scripts/spec09/oem-roadmap-rows-file.example.json) applies a reviewed,
+        # fully-cited rows-file instead — see docs/runbooks/MAINTENANCE-RUNBOOK.md §21.
+        if: env.RUN_STEP == 'spec09-oem-roadmap' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/spec09-oem-roadmap"
+          node scripts/spec09/oem-roadmap-producer.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/spec09-oem-roadmap"
 
       - name: provenance-heal
         # Lane HEAL (2026-09-03), operator ruling verbatim: a quarantined/archived-unreasoned item is not
@@ -302,8 +329,10 @@ jobs:
         # attaches it (capture -> ground -> slots -> Gate A -> re-derive), never fabricating a claim; an item
         # still failing after all five steps is left exactly as it is, reported with the remaining criterion.
         # apply needs no --arg beyond a valid selection (default quarantined-live) — see the step's own
-        # header and docs/runbooks/MAINTENANCE-RUNBOOK.md for the other three selections (archived-unreasoned,
-        # ids:<uuid,...>, slots-backfill).
+        # header and docs/runbooks/MAINTENANCE-RUNBOOK.md for the other four selections (archived-unreasoned,
+        # ids:<uuid,...>, slots-backfill, kit-backfill — the last added 2026-09-05, lane KIT-BACKFILL,
+        # W2.3/W2.4: the same slot-missing narrowing generalized to every item_type and archived items too,
+        # closing migration-299-precheck.mjs's guard).
         if: env.RUN_STEP == 'provenance-heal' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         env:
           # HEAL-BUDGET (2026-09-04), UNCHANGED at 1500s (25 min) by lane HEAL-10 (2026-09-04) — see this
@@ -321,6 +350,43 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/provenance-heal"
           node scripts/maintenance/provenance-heal.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/provenance-heal"
+
+      - name: migration-299-precheck
+        # Lane KIT-BACKFILL (2026-09-05, W2.3): the executable guard for migration 299 — see
+        # scripts/mint/migration-299-precheck.mjs's own header and docs/runbooks/MAINTENANCE-RUNBOOK.md §8's
+        # "kit-backfill and migration 299" subsection. Read-only (no DB write, `mode` is not read by the
+        # script itself — dry and apply behave identically); exits 1 while N > 0, which `|| true` tolerates
+        # so an 'all' dry fan-out or a legitimately-still-refusing named dispatch does not fail the job —
+        # the coordinator reads exit-code intent from this step's own printed JSON / summary.json, same
+        # posture as reopen-validation-holds's own `|| true` above. `arg: "post"` runs the POST-CHECK
+        # (`--post`) instead of the default PRE-CHECK — dispatch that ONLY after `apply_migration` for 299
+        # has actually landed.
+        if: env.RUN_STEP == 'migration-299-precheck' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/migration-299-precheck"
+          if [ "$RUN_ARG" = "post" ]; then
+            node scripts/mint/migration-299-precheck.mjs --post | tee "$OUT_ROOT/migration-299-precheck/summary.json" || true
+          else
+            node scripts/mint/migration-299-precheck.mjs | tee "$OUT_ROOT/migration-299-precheck/summary.json" || true
+          fi
+
+      - name: attach-found-sources
+        # Lane ATTACH-SOURCES (2026-09-05), W3.1. wiring-audit-2026-09-04.md gap 4: HEAL apply #42
+        # measured 443 Gate-A orphan figures on 76 quarantined items STEP SOURCE could not resolve from
+        # the item's own citations at $0. This step consumes a WORKLIST a Haiku browser lane fills
+        # ({item_id, token, url, quote} JSON rows) through heal-provenance.mjs's own STEP SOURCE (never a
+        # second grounding mechanism) — see the step's own header and docs/runbooks/MAINTENANCE-RUNBOOK.md
+        # for the full contract, and scripts/maintenance/lib/extract-worklist-seed.mjs for how the
+        # coordinator turns a `provenance-heal` dry-run summary.json into the {item_id, token} SEED the
+        # browser lane fills in. `--arg` IS the required worklist file path, gated in BOTH modes (there is
+        # nothing to select without one) — `|| true` so an 'all' dry fan-out with no arg does not fail the
+        # job. Dispatch it NAMED, with a real worklist path — never from 'all'.
+        if: env.RUN_STEP == 'attach-found-sources' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        env:
+          HEAL_TIME_BUDGET_SECONDS: '1500'
+        run: |
+          mkdir -p "$OUT_ROOT/attach-found-sources"
+          node scripts/maintenance/attach-found-sources.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/attach-found-sources" || true
 
       - name: institution-canonicalize
         # Lane SRC-TIER (2026-09-03), source-credibility-model SKILL.md §3 "Canonical institutional tier
@@ -397,6 +463,188 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/forward-events-retext"
           node scripts/maintenance/forward-events-retext.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/forward-events-retext"
+
+      - name: propose-classifications
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, F25 allowlist entry now removed): Phase 2/3 of the
+        # 5-axis source-classification framework — proposes Axis 3/4/5 classification-gap/drift/anomaly
+        # findings as integrity_flags rows for operator ratification (never writes sources or
+        # intelligence_items directly — see the script's own header). Sibling of the apply-classifications
+        # step above, which already wraps its own separate builders; this step runs
+        # propose-classifications.mjs's own CLI directly (--execute is that script's own apply flag, not
+        # a --mode wrapper) since no MAINT wrapper exists or is needed for a pure propose pass.
+        if: env.RUN_STEP == 'propose-classifications' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/classification/propose-classifications.mjs --execute; else node scripts/classification/propose-classifications.mjs; fi
+
+      - name: generate-theme-brief
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): theme_briefs' (migration 266) only writer (see the
+        # script's own header — no other writer exists; src/lib/research/theme-brief.mjs is READ-ONLY).
+        # `arg` is REQUIRED in both modes (`|| true`, same posture as reopen-validation-holds) and takes
+        # one of two forms:
+        #   theme:<connection_themes-id>     -- assemble + print that theme's brief input bundle
+        #                                        (read-only in both modes; a human or in-session agent
+        #                                        authors the brief prose from this bundle, per the
+        #                                        script's own $0/no-LLM-inside-this-script posture).
+        #   write:<path-to-authored-payload>  -- validate an authored brief (.json or .md+frontmatter)
+        #                                        against the theme's LIVE membership; apply mode adds
+        #                                        --execute to persist the theme_briefs row via the
+        #                                        guarded path (rule 015), dry mode only validates+reports.
+        if: env.RUN_STEP == 'generate-theme-brief' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "generate-theme-brief: arg is required -- 'theme:<id>' or 'write:<path>'. Skipping (no target named)."
+          elif [ "${RUN_ARG#theme:}" != "$RUN_ARG" ]; then
+            node scripts/connections/generate-theme-brief.mjs --theme "${RUN_ARG#theme:}"
+          elif [ "${RUN_ARG#write:}" != "$RUN_ARG" ]; then
+            if [ "$RUN_MODE" = "apply" ]; then
+              node scripts/connections/generate-theme-brief.mjs --write "${RUN_ARG#write:}" --execute
+            else
+              node scripts/connections/generate-theme-brief.mjs --write "${RUN_ARG#write:}"
+            fi
+          else
+            echo "::error::generate-theme-brief: arg must start with 'theme:' or 'write:' (got '$RUN_ARG')."
+            exit 1
+          fi
+
+      - name: ratify-flag-to-census
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): the flywheel-to-harness feed — promotes an
+        # operator-ratified integrity_flags finding (resolution_note carrying the 'ratify:census' marker
+        # — see the script's own header for the full format) into a census_worklist row. `arg` IS the
+        # integrity_flags id to ratify, required in both modes (`|| true`, same posture as
+        # reopen-validation-holds — there is no meaningful blank-arg run for a single-flag operation).
+        if: env.RUN_STEP == 'ratify-flag-to-census' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "ratify-flag-to-census: arg is required -- the integrity_flags id to ratify. Skipping (no target named)."
+          elif [ "$RUN_MODE" = "apply" ]; then
+            node scripts/connections/ratify-flag-to-census.mjs --flag "$RUN_ARG" --execute
+          else
+            node scripts/connections/ratify-flag-to-census.mjs --flag "$RUN_ARG"
+          fi
+
+      - name: assumption-register-seed
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, B1 Gap #4): seeds the 10 catalogued WO-20 modelling
+        # constants (docs/plans/wo20-assumption-register-spec.md §2) into assumption_register (migration
+        # 271, live). Idempotent on the natural key (assumption_key). Raw-CLI invoked (its own --apply
+        # flag, same shape as seed-benchmark-instruments/spec09-reroute above) — no MAINT wrapper exists
+        # or is needed for a single fixed-fixture seed.
+        if: env.RUN_STEP == 'assumption-register-seed' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/gen/assumption-register-seed.mjs --apply; else node scripts/gen/assumption-register-seed.mjs; fi
+
+      - name: backfill-lineage-edges
+        # Lane W71-WIRE (2026-09-05, plan §W7.1/§W4.1, B1 Ranked Gap #5): the $0 whole-corpus backfill
+        # feeding the typed-lineage-edge capability (PR #481) that shipped with 0 live typed edges — see
+        # the script's own header. Distinct from DAG-AUTHOR's backfill-derivation-edges.mjs (a different
+        # module, a different table — derivation_edges — already wired into propagation-drain.yml's
+        # backfill_and_statutory checkbox); this one writes item_cross_references and had no dispatch
+        # root anywhere until this step. `arg`, if given, is passed as --limit N for a bounded pilot run;
+        # omit it for the full corpus.
+        if: env.RUN_STEP == 'backfill-lineage-edges' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          EXTRA=""
+          if [ -n "$RUN_ARG" ]; then EXTRA="--limit $RUN_ARG"; fi
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/entities/backfill-lineage-edges.mjs --apply $EXTRA; else node scripts/entities/backfill-lineage-edges.mjs $EXTRA; fi
+
+      - name: screen-worklist
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): screen-worklist.mjs is MINT-RUNBOOK.md's documented
+        # pre-population-turn manual procedure, proven run by hand 3 times (scripts/harness-runs/screen/
+        # screen-run-{001,002,003}.json) but never given a dispatch root of its own. No DB access, no
+        # network, $0 — mode is honored for shape only. `arg` IS REQUIRED (both modes) and is the
+        # repo-relative path to a COORDINATOR-COMMITTED census-worklist dump JSON (this step never calls
+        # export-census-rows.mjs itself). Output paths point INSIDE this run's own $OUT_ROOT (never the
+        # live repo tree), so the results/summary/harness-run artifact land ONLY as this run's uploaded
+        # artifact; the coordinator downloads it and commits the harness-run JSON into
+        # scripts/harness-runs/screen/ by hand afterward, same as every prior run.
+        if: env.RUN_STEP == 'screen-worklist' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "screen-worklist: arg is required -- the repo-relative path to a committed census-worklist dump JSON. Skipping (no input named)."
+          else
+            mkdir -p "$OUT_ROOT/screen-worklist"
+            node scripts/mint/screen-worklist.mjs --input "$RUN_ARG" --out-dir "$OUT_ROOT/screen-worklist" --harness-runs-dir "$OUT_ROOT/screen-worklist/harness-runs"
+          fi
+
+      - name: verification-audit-report
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, B1 Ranked Gap #8): W2.F provenance + F28 harness-run
+        # legibility report (intelligence_items provenance matrix, claims citation split, sections
+        # missing source_span, F28 harness-run markers). Read-only, $0 — not a pass/fail gate (same
+        # posture as population-report.mjs), so mode only changes nothing here; both modes just write the
+        # report into this run's artifact.
+        if: env.RUN_STEP == 'verification-audit-report' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/verification-audit-report"
+          node scripts/verify/verification-audit-report.mjs --out "$OUT_ROOT/verification-audit-report/report.md"
+
+      # ── The four spec09 customer-CSV producers (lane SPEC09-B, 2026-09-05, plan §W5.1): each was
+      # rewired from a permanent no-op into the CLI half of the customer CSV upload flow
+      # (src/lib/spec09/csv-upload-contract.mjs, scripts/spec09/SOURCES.md) but shipped with no
+      # maintenance.yml step — the lane's own F25 allowlist entries named this "coordinator follow-up,
+      # same class as reopen-validation-holds.mjs's wrapper pattern". Wired here by the ASSEMBLE-47
+      # coordinator lane (2026-09-05), matching that exact pattern: `arg` IS REQUIRED in both modes
+      # (there is no meaningful blank-arg run — the six tables are genuinely customer-supplied data, so a
+      # dry run with no CSV has nothing to validate) and takes `<csv-path>,<org-id>` — csv-path a
+      # repo-relative path to a reviewed customer CSV, org-id the receiving org's uuid. See
+      # docs/runbooks/MAINTENANCE-RUNBOOK.md §29-32.
+      - name: spec09-surcharge-audit-csv
+        if: env.RUN_STEP == 'spec09-surcharge-audit-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-surcharge-audit-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-surcharge-audit-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/surcharge-audit-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-dqi-csv
+        if: env.RUN_STEP == 'spec09-dqi-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-dqi-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-dqi-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/dqi-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-auxiliary-energy-csv
+        if: env.RUN_STEP == 'spec09-auxiliary-energy-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-auxiliary-energy-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-auxiliary-energy-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/auxiliary-energy-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-indexation-csv
+        if: env.RUN_STEP == 'spec09-indexation-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-indexation-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-indexation-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/indexation-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

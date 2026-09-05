@@ -14,6 +14,7 @@ import { runSmoke as runHomeSectionsSmoke } from './home-sections-smoke.mjs';
 import { runSmoke as runCommunitySmoke } from './community-smoke.mjs';
 import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
 import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
+import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -24,4 +25,9 @@ export const UX_SMOKE_SPECS = [
   { name: "community-surface", run: runCommunitySmoke }, // lane COMMUNITY-B
   { name: "spec09-panels", run: runSpec09Smoke }, // lane SPEC-09
   { name: "detail-surfaces", run: runDetailSurfacesSmoke }, // lane MOBILE-2 (the four detail surfaces)
+  // lane NOTICES, 2026-09-05: notices-rail-smoke.mjs mounts the real RecalculationNotice.tsx (via
+  // NoticesRail). Registered here by the ASSEMBLE-47 coordinator lane at landing, per
+  // lane-common-contract.md's UX contract — proved GREEN locally by the authoring lane (see its report's
+  // "UX smoke specs:" output); the matching F35 ROW_COMPONENTS entry is added in the same commit.
+  { name: "notices-rail", run: runNoticesRailSmoke },
 ];

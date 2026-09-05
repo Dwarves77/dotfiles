@@ -275,6 +275,13 @@ export interface Resource {
   // sourceId is absent, in which case the chips suppress themselves.
   citationCount?: number | null;
   lastCitedAt?: string | null;
+  // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): source_bias_tags (migration 092), keyed by
+  // sourceId, the same generalized `enrichCategoryRows` bias-tag fetch that already fed Research's
+  // ResearchPipelineRow.biasTags (fetchResearchPipelineRows). Empty array (never undefined) once
+  // enrichment has run and the source has no tags — CredibilityChipEvidence/Ledger contract treats
+  // an empty array and "no enrichment happened yet" identically (render "not scored"), so this is
+  // safe to leave undefined on any Resource path that opts out of the enrichBiasTags pass.
+  biasTags?: Array<{ dimension: "funding" | "methodology" | "stakeholder"; tag: string; confidence: number | null }>;
 }
 
 // ── Share Package ──

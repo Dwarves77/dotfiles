@@ -3,6 +3,7 @@ import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { fetchSourceData } from "@/lib/supabase-server";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
 import type { ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
+import type { AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
 
 export default async function AdminPage() {
   const t0 = Date.now();
@@ -63,6 +64,27 @@ export default async function AdminPage() {
     }
   };
 
+  // WO-20 spec §4's mandated minimum first reader (lane W71-WIRE, 2026-09-05, plan §W7.1):
+  // assumption_register (migration 271, live) shipped with no reader anywhere in the repo — same
+  // soft-fail shape as fetchMtdSpend/fetchErrorGroups above, so a pre-migration environment or an
+  // unseeded (0-row) table both render an honest empty panel, never a 500. Ordered subsystem then
+  // assumption_key per the spec's own column list.
+  const fetchAssumptionRegister = async (): Promise<AssumptionRegisterRow[]> => {
+    try {
+      const { data, error } = await supabase
+        .from("assumption_register")
+        .select(
+          "assumption_key, subsystem, label, value_numeric, unit, derivation, origin_class, governing_decision, code_location, status, as_at_date"
+        )
+        .order("subsystem", { ascending: true })
+        .order("assumption_key", { ascending: true });
+      if (error || !data) return [];
+      return data as AssumptionRegisterRow[];
+    } catch {
+      return [];
+    }
+  };
+
   const [
     sourceData,
     orgsRes,
@@ -70,6 +92,7 @@ export default async function AdminPage() {
     stagedRes,
     mtdSpend,
     errorGroups,
+    assumptionRegister,
   ] = await Promise.all([
     fetchSourceData(true),
     supabase
@@ -101,6 +124,7 @@ export default async function AdminPage() {
       .limit(100),
     fetchMtdSpend(),
     fetchErrorGroups(),
+    fetchAssumptionRegister(),
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
@@ -118,6 +142,7 @@ export default async function AdminPage() {
       initialMtdRuns={mtdSpend.runs}
       initialMtdErrors={mtdSpend.errors}
       initialErrorGroups={errorGroups}
+      initialAssumptionRegister={assumptionRegister}
     />
   );
 }

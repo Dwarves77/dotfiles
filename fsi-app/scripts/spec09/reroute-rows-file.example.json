@@ -1,0 +1,22 @@
+{
+  "_status": "DRAFT — NOT reviewed, NOT applied. Every citation below is a [HYPOTHESIS] candidate lead from training knowledge, not a live-fetched confirmation (this sandbox's egress proxy 403s imo.org and every other non-allowlisted host). A browser lane must open each citation.url, confirm the quote appears verbatim on the page, and confirm the numeric figures against the real page before this file is used with --apply. See scripts/spec09/SOURCES.md and docs/runbooks/MAINTENANCE-RUNBOOK.md §19 for the dispatch this file is for.",
+  "_prerequisite": "reroute-producer.mjs refuses every row here until a SECOND entities.kind='corridor' row exists in the live spine (only 'CNSHA-NLRTM:ocean' exists as of 2026-09-05; lane CORRIDORS-STATUTORY is seeding a second corridor concurrently) — update baseline_corridor_name/reroute_corridor_name below to match whatever canonical_name that lane actually mints before dispatching.",
+  "rows": [
+    {
+      "baseline_corridor_name": "CNSHA-NLRTM:ocean",
+      "reroute_corridor_name": "REPLACE-WITH-REAL-CAPE-CORRIDOR-CANONICAL-NAME",
+      "cause": "Red Sea diversion: Houthi attacks on shipping in the Bab-el-Mandeb strait / southern Red Sea led major carriers to reroute Asia-Europe traffic via the Cape of Good Hope from December 2023 onward.",
+      "distance_delta_nm": null,
+      "transit_delta_days": null,
+      "fuel_burn_multiplier": null,
+      "effective_from": "2023-12-15",
+      "effective_to": null,
+      "citation": {
+        "url": "https://www.imo.org/en/MediaCentre/PressBriefings/pages/default.aspx",
+        "title": "IMO — press briefings on the Red Sea situation (candidate landing page, not a specific article)",
+        "retrieved_at": "PENDING-BROWSER-VERIFICATION",
+        "quote": "PENDING-BROWSER-VERIFICATION — replace with the verbatim sentence the page actually carries once found, per rule 18/ADR-016 (a span must be verbatim in the capture, never paraphrased)"
+      }
+    }
+  ]
+}

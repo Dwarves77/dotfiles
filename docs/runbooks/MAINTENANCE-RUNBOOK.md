@@ -96,23 +96,56 @@ structural RLS defect this same idea would repeat.
 
 ## 2. `tier-opinions`
 
-**Finding, not a build**: `source_tier_opinions` sits at 0 rows because its writer never ran, not
-because it's missing or broken. `recordTierOpinion`
-(`fsi-app/src/lib/sources/tier-opinion-writer.ts`) is called from `registerCitedSources`
-(`fsi-app/src/lib/sources/source-growth.ts:139`), itself called only from `registerBriefSources` /
-`growSourcesFromBrief` inside brief generation (`canonical-pipeline.ts` / `generate-brief.ts`).
-`registerCitedSources` only records an opinion when `tier_estimate != null`, and `tier_estimate` is
-populated exactly once in this codebase: by the LLM brief-generation agent's own "New Sources
-Identified" table (insert stamped `opinion_source: "haiku_brief_classifier"`).
+**RUNNABLE as of Lane ATTACH-SOURCES (2026-09-05), W3.3.** Previously (Lane MAINT, 2026-09-02) this
+step reported a "NOT RUNNABLE" finding: the only upstream that fed `source_tier_opinions` was the LLM
+brief-generation agent's own "New Sources Identified" table (`registerCitedSources` in
+`fsi-app/src/lib/sources/source-growth.ts`, stamped `opinion_source: "haiku_brief_classifier"` via
+`recordTierOpinion` in `fsi-app/src/lib/sources/tier-opinion-writer.ts`) — out of scope for a $0,
+no-LLM MAINT runtime. **That finding still stands for that upstream** — it has not changed and this
+step still never touches it. What changed: a genuinely deterministic, $0, no-LLM SECOND upstream
+already existed elsewhere in this repo with no writer wired to it — the SC-13 class table
+(`classTierForHost` in `fsi-app/src/lib/sources/host-authority.ts`) that `heal-provenance.mjs`'s STEP
+SOURCE and `institution-canonicalize.mjs`'s Part C already use.
 
-**Ruling**: the standing $0 / no-LLM build-mode ruling (finish-plan-2026-09-02.md header) — there is no
-non-LLM path anywhere in this repo that produces a `tier_estimate`.
+**Purpose**: `fsi-app/scripts/maintenance/tier-opinions.mjs` scans every `sources` row, resolves
+`host = hostOf(url)`, then `classTier = classTierForHost(host)`. A host the class table does not
+recognize (`classTier === null`) is skipped — SC-13's own no-guess posture, unchanged. A host it DOES
+recognize, whose class tier disagrees with the row's current `base_tier`, is recorded as one
+`source_tier_opinions` row (`opinion_source: "host_class_table"`, migration 309) via `recordTierOpinion`
+— the SAME single writer function `source-growth.ts` already calls, extended with an optional
+`opinionSource` parameter (default unchanged: `"haiku_brief_classifier"`). **This step never writes
+`sources.base_tier` itself** — an opinion is a non-authoritative estimate (migration 091's own design);
+raising a `base_tier` stays `institution-canonicalize.mjs` Part C's separate, ADR-002-gated path.
 
-**Runnable today: NO.** This step does no DB work — it has nothing to dry-run or apply. Dispatching it
-prints the finding above and exits 0 in `mode=dry`, exits 2 in `mode=apply` (by design — an expected
-outcome, not a failure to fix).
+**Migration required before the first apply dispatch**: `fsi-app/supabase/migrations/
+309_source_tier_opinions_host_class_table.sql` extends the `opinion_source` CHECK constraint (091) to
+allow `'host_class_table'`. Apply it before dispatching `tier-opinions --mode apply` — every insert
+otherwise fails the CHECK and `recordTierOpinion`'s own catch-and-swallow contract (never throws) means
+the run reports `applied: 0`, every `read_back.results[].ok === false`, `exitCode: 1`, rather than an
+exception — read the artifact's `read_back.results[].error` to confirm the CHECK-violation message if
+this happens.
 
-**Dispatch**: no `arg`. `read_back` is always empty.
+**Ruling**: none — a class-table disagreement opinion is never a `base_tier` write, so it carries no
+ADR-002 gate; no `--arg` token is required.
+
+**Idempotency**: NOT idempotent in the "zero new rows on a re-dispatch" sense (unlike
+`attach-found-sources`) — by design. Migration 091's Q3 aggregator
+(`get_tier_opinion_disagreements(window_days)`) counts REPEAT opinions across a 90-day window; the SAME
+disagreement this step still finds on a later dispatch is real, additional evidence the mismatch
+persists, never a duplicate to suppress. `source_tier_opinions` is append-only — no dedup-before-insert
+guards this step's writes (see `docs/inventories/shared-dataset-ownership.md`'s `source_tier_opinions`
+section for the full reasoning). No standing schedule exists (operator ruling: no crons) — dispatch
+cadence is whatever the operator/coordinator chooses by hand.
+
+**Dispatch**: no `arg`. `mode=dry` returns `counts.plan` (`[{source_id, url, host, current_tier,
+class_tier}]`) with zero writes. `mode=apply` writes one opinion per plan row and returns
+`read_back.opinions_written` / `opinions_attempted` / `results` (`{source_id, host, class_tier, ok,
+error}` per attempted row).
+
+**Artifact / read back**: confirm against
+`SELECT opinion_source, count(*) FROM source_tier_opinions GROUP BY 1` (expect `host_class_table` rows
+to appear after the first apply) and `SELECT * FROM get_tier_opinion_disagreements(90)` (migration 091)
+for anything now crossing the 5-opinions-in-90-days admin-review threshold.
 
 ---
 
@@ -165,6 +198,21 @@ unmapped, per the plan's own flagged row awaiting a separate ruling). `mode=appl
 
 **Artifact / read back**: `summary.json`'s `read_back.by_origin_class` — confirm against
 `SELECT origin_class, count(*) FROM intelligence_items GROUP BY origin_class`.
+
+**Re-measured live (lane RULINGS-EXEC, read-only SQL, project kwrsbpiseruzbfwjpvsp, 2026-09-05)**: the
+audit's own §2 flagged this step's outcome as unverified this window. `intelligence_items.origin_class`
+distribution today: `official` 1384, NULL **1222**, `community-corroborated` 80, `verified` 54, `partner`
+15, `community` 11 (2766 total). The R-E mapping DID apply at some point (the audit is correct that the
+runbook narrative implies it): population growth since the last apply (the corpus grew past 1,410 items
+after that pass) produced the ~1,000 new NULL rows on file today, not a failed apply — every one of the
+new rows minted since is a fresh candidate this step has never seen. Confirmed by driving the ACTUAL
+`main()` above (unmodified) with a live snapshot of every NULL-`origin_class` row + its source's tier
+instead of a fixture: `null_candidates` 1222, `no_source_id_stays_null` 12, `no_rule_stays_null` 31,
+`would_classify` 1179 (`official` 1173, `community-corroborated` 6). R-E's mapping is already accepted
+(no new ruling needed) — this is a straight re-dispatch. Coordinator dispatch to close this backlog:
+`maintenance`, `mode=dry, step=origin-class-backfill` (confirm the 1179/43 split against live before
+applying), then `mode=apply, step=origin-class-backfill, arg=R-E-accepted` — expected read-back
+`origin_class_not_null_total` ≈ 2723 (1384 + 1179 + 80 + 54 + 15 + 11), NULL remainder ≈ 43.
 
 ---
 
@@ -240,18 +288,33 @@ ones through the guarded path and reads back every `kind='corridor'` entity id.
 **Ruling**: R-A (finish-plan-2026-09-02 §1, **open**) — archive (reversible) or park.
 
 **Dispatch**:
-- `mode=dry` — reads every `dryrun_disposition='would_mint'` row, partitions by the shared screen, and
-  counts `on_vertical` / `off_vertical` / `ambiguous`.
+- `mode=dry` — reads every `dryrun_disposition='would_mint', is_archived=false` row, partitions by the
+  shared screen, and counts `on_vertical` / `off_vertical` / `ambiguous`, plus a titled sample of up to 20
+  rows per off_vertical/ambiguous class (`summary.sample_off_vertical` / `summary.sample_ambiguous`) — the
+  list the coordinator puts in front of the operator for R-A's ruling.
 - `mode=apply, arg=park` — no-op. The export gate (`export-census-rows.mjs`'s own `partitionByScreen`)
   already withholds these rows from minting; "park" is the status quo.
-- `mode=apply, arg=archive` — **NOT RUNNABLE today.** `census_worklist` (migration 221) has no
-  `is_archived` / `archive_reason` columns — only `flagged_reason`/`flagged_at` (a narrower
-  "malformed/incomplete" vocabulary) and the `enumeration_status` ladder. `archivePatch("census_worklist",
-  ...)` has nothing to set on this table. This step stays dry-only for `archive` until either a
-  migration adds archive columns, or R-A is decided as `park` (no schema change needed).
+- `mode=apply, arg=archive` — **RUNNABLE as of migration 308** (lane RULINGS-EXEC, 2026-09-05):
+  `census_worklist` now carries `is_archived`/`archive_reason` (intelligence_items' own pair, verbatim).
+  Archives every `off_vertical` row via `guardedUpdateByIds` + `db.mjs`'s table-generic
+  `archivePatch("census_worklist", "off_vertical")` — the same helper `screen-reconcile-records.mjs`
+  already uses for R-B's live-record side. Idempotent (`applyMatch` re-checks
+  `dryrun_disposition='would_mint' AND is_archived=false` per chunk). Every live reader of the would_mint
+  pool (`export-census-rows.mjs`'s live read and its `selectCensusRows` pure filter) excludes
+  `is_archived=true` rows in the same commit, so an archived row can never re-enter export.
 
-**Artifact / read back**: `summary.json` counts. No write happens under either apply arg today, so
-nothing to read back yet.
+**Re-measured live (lane RULINGS-EXEC, read-only SQL snapshot, project kwrsbpiseruzbfwjpvsp, 2026-09-05,
+fed through the ACTUAL `main()` above unmodified, not a re-derivation)**: `would_mint_total` 3461,
+`on_vertical` 1550, **`off_vertical` 1655**, `ambiguous` 256 — the 1,655 matches the plan's own figure
+exactly. R-A remains an open ruling (archive vs. park); this session did not decide it, only made the
+archive path real and produced the lists the ruling needs. Coordinator dispatch once R-A is ruled
+"archive": `maintenance`, `mode=dry, step=census-off-vertical` (re-confirm the split immediately before
+applying — the would_mint pool moves between dispatches), then `mode=apply, step=census-off-vertical,
+arg=archive` — expected `read_back.archived` = the dry run's `off_vertical` count at apply time.
+
+**Artifact / read back**: `summary.json`'s `counts` (dry) or `read_back.{would_archive,archived}` (apply,
+`arg=archive`) — confirm against
+`SELECT count(*) FROM census_worklist WHERE is_archived AND archive_reason = 'off_vertical'`.
 
 ---
 
@@ -437,14 +500,23 @@ population:
 - (blank) or `quarantined-live` — every live (`is_archived=false`), `quarantined` item (the default).
 - `archived-unreasoned` — archived items with `archive_reason IS NULL` (the same ruling, archive side).
 - `ids:<uuid,uuid,...>` — exactly these items, any current status.
-- `slots-backfill` — every verified, live `market_signal`/`initiative`/`research_finding` item ACTUALLY
-  missing a slot the kit's `item-type-required-slots.json` now requires (narrowed live, not just by
-  item_type — an item already carrying the new slot's FACT-or-GAP claim is skipped). **Sequencing note**:
-  migration 299 (the matching LIVE `item_type_required_slots` rows for `corridor_identity` /
-  `evidence_agreement_signal` / `source_authority_signal`) is written but **not applied** — the kit
-  (`item-type-required-slots.json`) is deliberately stricter than the live table until this selection has
-  run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE the migration
-  lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+- `slots-backfill` — every verified, **live** (`is_archived=false`) `market_signal`/`initiative`/
+  `research_finding` item ACTUALLY missing a slot the kit's `item-type-required-slots.json` now requires
+  (narrowed live, not just by item_type — an item already carrying the new slot's FACT-or-GAP claim is
+  skipped). **Sequencing note**: migration 299 (the matching LIVE `item_type_required_slots` rows for
+  `corridor_identity` / `evidence_agreement_signal` / `source_authority_signal`) is written but **not
+  applied** — the kit (`item-type-required-slots.json`) is deliberately stricter than the live table until
+  this selection has run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE
+  the migration lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+  **Does not reach an archived item** — see `kit-backfill` below, and its own subsection at the end of this
+  section, for why that matters for migration 299 specifically.
+- `kit-backfill` (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4) — the generalized superset of `slots-backfill`:
+  every verified item of **every** item_type `item-type-required-slots.json` has an entry for (not only the
+  three above), **archived items included**, missing >=1 required slot. Same underlying resolver
+  (`resolveKitBackfillCandidates` in `scripts/mint/heal-provenance.mjs`; `slots-backfill` is now a thin call
+  into it with its original three-type/live-only defaults, byte-identical behavior, unchanged). See this
+  section's own "`kit-backfill` and migration 299" subsection below for the live counts and the exact
+  migration-299 dispatch sequence this selection completes.
 
 **Dispatch**: `mode=dry` reads every selected item's REAL current captures/claims/sections live and plans
 all five steps (which claims would ground, which slots would fill FACT vs GAP, what Gate A would say, what
@@ -915,6 +987,98 @@ token this run, dry or apply). New wrapper dep: `updateItemBrief(itemId, full_br
    lane's own tests assert directly (`healOneItem`'s default-apply-mode test: `applied: false`, zero
    `updateItemBrief` calls, `item.full_brief` unchanged).
 
+**`kit-backfill` and migration 299** (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4). `scripts/mint/
+migration-299-precheck.mjs` is the executable form of migration 299's own header self-check: it exits 1
+(refuses) while `N > 0`, printing the per-`(item_type, slot_key)` breakdown and the exact failing item ids.
+Run it (no `--arg`) BEFORE `apply_migration` for 299; run it again with `--post` AFTER, to read back that
+no live item is now `quarantined` for one of the three new slots.
+
+**[CONFIRMED, live SQL, 2026-09-05] N = 149**, not 87 — a reconciliation this lane had to do itself. Two
+measurements of "verified items missing the new required-slot coverage" disagreed (149 vs 87) until the
+`is_archived` split was run:
+
+| item_type | live (`is_archived=false`) | archived (`is_archived=true`, all `archive_reason` NOT NULL) | total |
+|---|---|---|---|
+| initiative | 20 | 50 | 70 |
+| market_signal | 36 | 10 | 46 |
+| research_finding | 31 | 2 | 33 |
+| **total** | **87** | **62** | **149** |
+
+**Why the archived 62 count too** [CONFIRMED, read `115_set_provenance_status_trigger.sql` in full]: the
+`set_provenance_status` trigger fires `AFTER INSERT OR UPDATE` on `intelligence_items` /
+`intelligence_item_sections` / `section_claim_provenance` with **no `is_archived` exclusion** — an archived
+row is not inert to criterion 5, only rows nothing ever writes to again are. Migration 299's own header SQL
+(reproduced above this section) never filters `is_archived` either — its `N` was always meant to be 149, and
+this lane's dispatch naming "the 149 pre-kit items" is exact, not approximate. `migration-299-precheck.mjs`
+therefore does **not** filter `is_archived` (a change from this lane's own first draft, which wrongly did
+and read 87 — corrected before landing). `slots-backfill` (unchanged, `is_archived=false` only) can close
+the 87; only `kit-backfill` (`includeArchived: true`) reaches the other 62.
+
+**Capture availability for the 149** [CONFIRMED, live SQL, 2026-09-05]: 148 of 149 have a usable
+(`>200 char`) capture and would receive a real FACT-or-GAP slot claim on the first `kit-backfill` apply run,
+closing the guard for that item outright (criterion 5 accepts GAP; the extractor always emits one or the
+other, never skips). The one exception — `cdd54edb-042c-4508-98f5-bd77058c34d1` (`research_finding`,
+"Special Report No 1/93 on the financing of transport infrastructure...") — has **zero** `agent_run_searches`
+rows at all, so `kit-backfill` reports it `held_no_capture` and cannot close its guard row by re-extraction.
+It is already `is_archived=true` with `archive_reason='out_of_scope_wo26'` (a prior, deliberate, reasoned
+archival) — `heal-provenance.mjs`'s own `archived-unreasoned` selection only ever re-touches an archive with
+`archive_reason IS NULL`, so as long as it stays archived-and-reasoned, no known automated path re-touches
+it and migration 299's guard counting it is conservative, not a live risk. **Disposition: no action** — do
+not un-archive it to "fix" the guard; the guard's own conservatism is intentional (see the header note on
+`migration-299-precheck.mjs`'s CLI query for why the archived/reasoned distinction was deliberately NOT used
+to narrow the guard itself).
+
+**Coordinator dispatch — three runs, in order** (closes migration 299's guard to N=0, then applies it):
+1. `provenance-heal`, `mode: dry`, `arg: "kit-backfill"` — review the plan over the full 149 (plus whatever
+   of the 575/6 population below also qualifies); confirm 148 `would_write` and exactly 1
+   `held_no_capture` (the item above).
+2. `provenance-heal`, `mode: apply`, `arg: "kit-backfill"` — writes the 148 slot claims (FACT or honest
+   GAP). Idempotent: a second apply run finds nothing left to backfill (missingRequiredSlots returns `[]`
+   for every item this pass already covered).
+3. `node scripts/mint/migration-299-precheck.mjs` — expect `{"mode":"pre","ok":true,"n":1,...}` (the one
+   `held_no_capture` item still counts against N structurally, but see the disposition above for why this
+   is expected and acceptable) — **coordinator decision needed**: either accept `apply_migration` for 299
+   with this one known, reasoned, archived exception (migration 299 itself never claims N must reach
+   literal zero, only that the coordinator has "re-minted those N items" — 148 of 149 — before applying),
+   or run `provenance-heal --arg "ids:cdd54edb-042c-4508-98f5-bd77058c34d1"` first to attempt a fresh capture
+   (STEP 1/CAPTURE) before falling back to accepting the exception. Then `apply_migration` for 299, then
+   `node scripts/mint/migration-299-precheck.mjs --post` to read back zero new quarantines.
+
+**The 6 zero-FACT / 575 one-or-two-FACT population (W2.4)** [CONFIRMED, live SQL, 2026-09-05] — the OTHER
+half of this lane's dispatch, outside migration 299's own scope (these items already clear criterion 5;
+this is about kit currency, older `RECORD_FACTS_VERSION` mints missing later additive slots):
+- **6 zero-FACT, live, `item_grade='record'`**: 5 are `market_signal` items with `instrument_identifier`
+  `eu-oil-bulletin:*` (the ratified oil-bulletin series, `src/lib/market/series-item-map.mjs`) — their
+  substance lives in `market_series`, not FACT claims; zero FACT is correct by design, not a defect. The
+  6th, `7e554d10-…` (`framework`, item_grade **`brief`** not `record`), already carries all 4 required
+  `framework` slots as honest GAP claims (a genuinely content-thin EU Decision: no obligations, no
+  deadline, no penalty, no scope stated) — already fully compliant with criterion 5; `kit-backfill`'s own
+  `missingRequiredSlots` check finds nothing to add for it. **Disposition for all 6: no action needed** —
+  neither "re-mint" nor "archive record_hollow" applies; both dispositions this lane's dispatch offered
+  were written before this reconciliation.
+- **575 one-or-two-FACT, live, `item_grade='record'`**: `kit-backfill` (default `--arg`, or scoped via
+  `ids:`) is the general mechanism — it re-runs the SAME per-slot extractors (`record-facts.mjs` /
+  `record-facts-research.mjs`, via `buildSlotClaim`, imported unmodified) against each item's existing best
+  capture and adds any still-missing required-slot claim (FACT or honest GAP), the same "claims added, item
+  untouched" shape as `slots-backfill`/`rederive-record-provenance.mjs`. Not separately re-measured item-
+  by-item in this pass beyond the 149 above — dispatch `provenance-heal --arg kit-backfill --mode dry` for
+  the current worklist and counts before an apply run.
+
+**[FLAG, out of this lane's write set, decision-ready] `record-hollow-sweep.mjs`'s own selection has no
+series exemption** [CONFIRMED, live SQL, 2026-09-05]: its `readTargetCandidates` filters only
+`is_archived=false, provenance_status='verified', item_grade='record'` — no `item_type` exclusion — and
+`isTitleOnlyFacts` is vacuously `true` for zero FACT claims. All 5 oil-bulletin `market_signal` items above
+ARE `item_grade='record'` and currently have 0 FACT claims, so they **would be selected and archived as
+`record_hollow`** by any future `record-hollow-sweep --apply` run as written today — wrongly, since their
+substance is legitimately in `market_series`. This lane's own authoring-time measurement (this section,
+above) predates these items reaching this state (its own "by item_type" breakdown has no `market_signal`
+row at all), so this is a newly-live exposure, not a previously-known-and-accepted one. **Recommended fix**
+(not made here — `record-hollow-sweep.mjs` is not in this lane's write set and another lane may be
+mid-work on it): exclude `market_signal` items whose `instrument_identifier` matches a
+`SERIES_ITEM_MAP_RAW` entry from `planSelection`'s target set, or exclude `item_type='market_signal'`
+entirely if no `market_signal` item is ever meant to be `record_hollow`-eligible. **Do not dispatch
+`record-hollow-sweep --apply` until this is resolved or explicitly accepted.**
+
 ---
 
 ## 8a. `institution-canonicalize`
@@ -997,6 +1161,79 @@ should be empty (or list only hosts the class table still leaves ambiguous) afte
 
 ---
 
+## 8b. `attach-found-sources`
+
+**Purpose** (Lane ATTACH-SOURCES, 2026-09-05, W3.1). `docs/audits/wiring-audit-2026-09-04.md` gap 4 /
+the `provenance-heal` row above: HEAL apply #42 (2026-09-04) measured **443 Gate-A orphan figures on 76
+quarantined items** that `heal-provenance.mjs`'s own STEP SOURCE could not resolve at $0 — every
+candidate URL it could derive from the item's OWN citations (`candidateUrlsForOrphan`) was tried and
+exhausted (`no_candidate_url` / `unresolved`). The operator's standing ruling on this file (verbatim,
+2026-09-03): "if items are being flagged as not credible for the site because of not having sources that
+is an issue with finding the source not that item. you need to attach a source." The $0, no-LLM lever
+this step arms: a session **Haiku browser lane** (never this runtime, never an API call from here) does
+the web search a human would do, and hands back a **worklist**. This step consumes that worklist THROUGH
+`heal-provenance.mjs`'s own STEP SOURCE (ELEVENTH PASS there, `deps.foundSourcesForItem` — see that
+file's own header) — never a second grounding mechanism: the SAME class-table tier (SC-13, never
+invented), the SAME verbatim `locateSpanInText` requirement, and the SAME guarded
+`insertClaim`/`registerSource` write path every other STEP SOURCE outcome already uses.
+
+**The worklist contract** — a committed JSON file, an array of:
+```json
+{ "item_id": "uuid", "token": "€2,500,000", "url": "https://...", "quote": "the verbatim sentence the page states the figure in" }
+```
+`item_id` and `token` come from the SEED (below) **verbatim, never retyped** — a token this step tries
+must be byte-identical to the Gate-A orphan token actually measured. `url` is the page the Haiku browser
+lane found stating the figure; `quote` is the verbatim sentence/clause it read there — **evidence for
+the coordinator/operator to cross-check, never itself the grounding needle**: GROUND still requires
+`token` verbatim on the FETCHED page, under `heal-provenance.mjs`'s normal normalization (exact →
+normalized → normalized_ci → numeric_tolerant). A row missing `url` or `quote` is a bare, not-yet-filled
+seed row — skipped as NOT READY, never an error; dispatching against a raw, unfilled seed is always a
+safe no-op. Fixture: `fsi-app/scripts/_worklists/attach-found-sources.fixture.json` (2 rows, fictitious
+data, proves the dry-run path with zero fetches/writes — see
+`fsi-app/scripts/maintenance/attach-found-sources.test.mjs`).
+
+**The SEED — how the coordinator generates the real 443-orphan worklist for the browser lane to fill**:
+1. Dispatch `step=provenance-heal`, `mode=dry`, `arg=quarantined-live` (or `ids:<the 76 item ids>` once
+   named) — this reads the item's REAL current captures/claims and reports every orphan STEP SOURCE
+   tried and could not resolve, with **no write and no fetch beyond what dry already means there**.
+2. Download that run's `summary.json` artifact (`maintenance-provenance-heal-<run_id>`).
+3. Run `node scripts/maintenance/lib/extract-worklist-seed.mjs <summary.json> scripts/_worklists/
+   attach-found-sources.seed.json` — pulls every `steps.source[]` entry whose `outcome` is
+   `no_candidate_url` or `unresolved` into `{item_id, token}` seed rows, deduplicated, deterministically
+   ordered (item_id then token, both ascending — a re-run over the same summary.json is byte-identical,
+   safe to diff). **This is heal-provenance.mjs's OWN measurement, never a second orphan-detection
+   mechanism** — the extraction utility only reshapes `per_item[].steps.source[]`, it never re-scans
+   anything itself.
+4. Commit the seed file under `scripts/_worklists/` (WITHOUT `url`/`quote` — the browser lane fills
+   those next) and hand it to the Haiku browser lane.
+5. The browser lane fills `url` + `quote` for as many rows as it can find a source for, leaves a row
+   bare (seed-only) where it found nothing, and returns the completed worklist file.
+
+**Ruling**: none — the operator's "attach a source, don't blame the item" ruling above is the gate; no
+`--arg` token beyond the worklist path is required.
+
+**Idempotent by construction, not by extra bookkeeping**: a token STEP SOURCE has already grounded (this
+dispatch or an earlier one) is no longer a Gate-A orphan on the next fresh scan, so it is never offered a
+worklist candidate to try again — re-dispatching the SAME worklist against an item with no remaining
+orphans is a clean no-op, never a duplicate write.
+
+**Dispatch**: `--arg` IS the worklist file path (e.g. `scripts/_worklists/attach-found-sources.seed.json`),
+**required in both modes** — there is no default population the way `provenance-heal`'s blank arg means.
+`mode=dry` reads the SAME selection and runs the SAME STEP SOURCE plan as `mode=apply` with zero writes
+and zero fetches beyond what `mode=dry` already means for `heal-provenance.mjs`. `mode=apply` writes
+through the SAME guarded path `provenance-heal` uses (`buildHealDeps`, re-exported from that step's own
+wrapper so there is exactly one DB-wiring block for both steps — rule 015, "one guarded write path").
+
+**Artifact / read back**: `summary.json`'s `counts.worklist_rows` / `worklist_ready` /
+`worklist_not_ready` / `worklist_malformed`, `counts.items_selected`, `counts.grounded_via_worklist`
+(every `via: "worklist"` outcome across the underlying heal run's `per_item[].steps.source[]`), and
+`counts.heal` (the full `heal-provenance.mjs` counts for the selected items). Confirm against
+`SELECT count(*) FROM section_claim_provenance WHERE ... ` for the newly-inserted claim ids the heal
+summary's own `per_item[].steps.source[].claim_id` names, and re-run the same Gate-A orphan measurement
+(`provenance-heal --mode dry` on the same 76 items) to confirm the grounded tokens no longer appear.
+
+---
+
 ## 9. `reopen-validation-holds`
 
 **Purpose**: re-admit `census_worklist` rows a mint-batch-report held (`dryrun_disposition='hold'`,
@@ -1063,6 +1300,17 @@ claim at all. They render on every customer surface with an empty Summary. By `i
 `legislation.gov.uk` 149, `federalregister.gov` 21, `climate.ec.europa.eu` 1, `sdir.no` 1. Exact selection
 SQL: the step's own `SELECTION_SQL` export (identical to what `planSelection` computes from two `readAll`
 reads — no live SQL round trip at apply time).
+
+**[FLAG, 2026-09-05, lane KIT-BACKFILL] This selection has no series exemption, and the live population has
+since grown a false-positive case**: as of 2026-09-05, 5 `market_signal` items (the ratified oil-bulletin
+series, `instrument_identifier` `eu-oil-bulletin:*`) are ALSO `item_grade='record'`, verified, live, and
+carry 0 FACT claims — `planSelection`'s `isTitleOnlyFacts` is vacuously `true` for an empty FACT array, so
+these WOULD be selected and archived as `record_hollow` by the next `--apply` run, wrongly: their substance
+is legitimately in `market_series`, not FACT claims. Not present in the `market_signal`-absent breakdown
+above (minted/finalized after this section's 2026-09-04 measurement). See §8's "`kit-backfill` and
+migration 299" subsection for the full finding and recommended fix (a series/`market_signal` exemption in
+`planSelection`, not made here — out of this lane's write set). **Do not dispatch `--apply` until this is
+resolved or explicitly accepted.**
 
 **Which flag hides an item from every customer surface** [CONFIRMED, read this session — not
 `hidden_reason`, not `pipeline_stage`]: `is_archived` (+ `archive_reason`), the SAME gate
@@ -1808,14 +2056,460 @@ guardedInsertMany})`.
 
 **Ruling**: none — the gap is structural (corridor-entity count), not a ruling-gated decision.
 
-**Dispatch**: no `arg`. `mode=dry` reads the live `entities WHERE kind='corridor'` count and reports the
-gap (`counts.corridor_entities_found`, `gap` — a human-readable string naming exactly what's missing).
-`mode=apply` calls `guardedInsertMany("reroute_events", [], ...)` — an empty-array insert, i.e. `applied:
-0` always, until a second corridor entity exists AND a producer-confirmed reroute pairing (cause +
-`fuel_burn_multiplier`, sourced and dated) is built — neither of which this producer alone decides (per
-its own `evaluateCorridorReadiness`, `ready` is never `true` from corridor count alone).
+**Dispatch (no `arg`, legacy corridor-gap report)**: `mode=dry` reads the live `entities
+WHERE kind='corridor'` count and reports the gap (`counts.corridor_entities_found`, `gap` — a
+human-readable string naming exactly what's missing). `mode=apply` calls
+`guardedInsertMany("reroute_events", [], ...)` — an empty-array insert, i.e. `applied: 0` always, until a
+second corridor entity exists AND a producer-confirmed reroute pairing (cause + `fuel_burn_multiplier`,
+sourced and dated) is built — neither of which this producer alone decides (per its own
+`evaluateCorridorReadiness`, `ready` is never `true` from corridor count alone).
 
-**Artifact / read back**: `summary.json`'s `counts.corridor_entities_found` / `counts.to_insert` (always
-0 today) and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and `SELECT
-count(*) FROM reroute_events` (both expected unchanged by any dispatch until the corridor-entity gap
-closes).
+**Artifact / read back (no-`arg` path)**: `summary.json`'s `counts.corridor_entities_found` /
+`counts.to_insert` and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and
+`SELECT count(*) FROM reroute_events`.
+
+**Lane SPEC09-A extension, 2026-09-05 — `--rows-file` path (this mechanism is what lane CORRIDORS-STATUTORY's
+corridor seed unblocks — it, not this producer, mints the second `entities.kind='corridor'` row; **live SQL,
+2026-09-05: corridor entity count is still 1** — the seed had not landed at time of this dispatch, so
+`--rows-file` correctly refuses today and will start placing rows the moment a second corridor exists)**:
+with `arg` set to a rows-file JSON
+path (`scripts/maintenance/lib/cli.mjs`'s `runCli` passes `arg` straight through as `--arg`), the
+producer instead loads that file via `scripts/spec09/lib/rows-file.mjs`, and for each row: validates
+`baseline_corridor_name` / `reroute_corridor_name` / `cause` / `fuel_burn_multiplier` (> 0) /
+`effective_from` (and `effective_to >= effective_from` when present) are present and well-formed (throws
+— a malformed row is a producer bug, not a sourcing gap); resolves both corridor names against the live
+`entities(kind='corridor')` spine by exact `canonical_name` — an unresolved name, or the same corridor on
+both sides, is a **refusal** (reported, not thrown — an honest "can't place this row" is expected input,
+not a bug); registers the row's own `citation` block through `registerCitedSource`
+(`src/lib/sources/host-authority.ts`'s `classTierForHost` — never a hand-typed tier; a host the class
+table can't place is refused, never guessed). Only rows that clear every check are written. `mode=apply`
+calls `guardedInsertMany("reroute_events", [...], {skill, reason})` **once per row**, each with that
+row's own citation as its rule-18 provenance. This producer never mints a corridor entity — an unresolved
+corridor name stays refused, not fabricated.
+
+**Artifact / read back (`--rows-file` path)**: `summary.json`'s `rows_total` / `rows_written` /
+`refusals` (each with its row index and reason). Confirm against `SELECT count(*) FROM reroute_events`
+and `SELECT id, canonical_name FROM entities WHERE kind='corridor'` (needs >=2 distinct corridors for any
+row to place).
+
+**No reviewed rows-file exists yet.** `scripts/spec09/reroute-rows-file.example.json` is an unreviewed
+DRAFT template only (placeholder values, `PENDING-BROWSER-VERIFICATION` fields) — see
+`scripts/spec09/SOURCES.md`'s `reroute_events` row for the named candidate source lead ([HYPOTHESIS], not
+confirmed this session — this sandbox's egress proxy blocks every non-allowlisted host) that a
+browser-capable lane must open, verify, and turn into a real rows-file before any `--apply` dispatch
+against this path is meaningful.
+
+---
+
+## 20. `spec09-grid-queue`
+
+**New this runbook, Lane SPEC09-A, 2026-09-05.** Written from `scripts/spec09/grid-queue-producer.mjs`'s
+own header.
+
+**Purpose**: `grid_connection_queues` (migration 297, spec 09 §?) producer — DSO/TSO connection-queue
+months by capacity band. **$0 SOURCING STATUS: GAP, none confirmed this lane** — see
+`scripts/spec09/SOURCES.md`'s `grid_connection_queues` row: UK National Grid ESO's TEC register and ENA's
+Distribution Future Energy Scenarios describe GENERATION connection queues, not the DEMAND-side queue
+this table needs, and no $0 structured feed for the demand side was confirmed. Ships 0 rows from any live
+fetch (there is no live fetch — this producer has never had one; it is rows-file-only from its first
+version).
+
+**Upstream**: `scripts/spec09/grid-queue-producer.mjs`'s own `parseGridQueueRow(row, index, jurisdictions,
+deps)` (pure per-row validation + resolution, unit-tested against fixtures) + `main({mode, arg}, deps)`.
+Shares `scripts/spec09/lib/rows-file.mjs` with `spec09-reroute` and `spec09-oem-roadmap`
+(`loadRowsFile`, `requireCitation`, `registerCitedSource`, `resolveEntityByName` — one module, three
+callers, no copies).
+
+**Ruling**: none — the gap is a sourcing gap (no confirmed $0 feed), not a ruling-gated decision.
+
+**Dispatch**: `arg` is a rows-file JSON path. Each row requires `jurisdiction_name` / `dso_name` /
+`capacity_band_mw` / `as_of`, at least one of the p10/p50/p90 percentile fields (non-negative, and
+`p90 >= p50` when both present — violated ordering is a **refusal**, not a throw, since it can arise from
+a genuinely mis-transcribed source figure rather than a producer bug), and a valid `obs_status` (the
+16-code SDMX set, default `'A'`). `jurisdiction_id` resolves against the live
+`entities(kind='jurisdiction')` spine (63 rows live, e.g. `GB`) by exact `canonical_name` — never minted;
+an unresolved name is a refusal. The row's `citation` registers through the same `registerCitedSource`
+path as `spec09-reroute`. `grid_connection_queues` carries no `source_id` column, so a row's citation
+gates whether it is written at all but is not itself stored as a foreign key on the row.
+`mode=apply` calls `guardedInsertMany("grid_connection_queues", [...], {skill, reason})` once per row.
+
+**Artifact / read back**: `summary.json`'s `rows_total` / `rows_written` / `refusals`. Confirm against
+`SELECT count(*) FROM grid_connection_queues` and `SELECT id, canonical_name FROM entities WHERE
+kind='jurisdiction'`.
+
+**No reviewed rows-file exists yet.** `scripts/spec09/grid-queue-rows-file.example.json` is an unreviewed
+DRAFT template only. `scripts/spec09/SOURCES.md`'s `grid_connection_queues` row names the candidate lead
+for the browser-lane worklist ([HYPOTHESIS], not confirmed this session): Ofgem's Connections Reform DNO
+Connections Register / ENA's Open Data Portal — and specifically whether either actually publishes a
+DEMAND-side (not generation-side) queue-months table at this granularity, which is the open question a
+browser-capable lane must resolve before any real rows-file can be written.
+
+---
+
+## 21. `spec09-oem-roadmap`
+
+**New this runbook, Lane SPEC09-A, 2026-09-05.** Written from `scripts/spec09/oem-roadmap-producer.mjs`'s
+own header.
+
+**Purpose**: `oem_tech_roadmaps` (migration 296, spec 09 §?) producer — OEM commercial-stage technology
+roadmap announcements (battery/fuel-cell/etc. by manufacturer). **$0 SOURCING STATUS: GAP, none
+confirmed this lane** — see `scripts/spec09/SOURCES.md`'s `oem_tech_roadmaps` row: these announcements
+live on manufacturer press pages, not a structured bulk feed, and parsing free-text press releases
+without an LLM (the $0/no-LLM rule) is not viable at useful accuracy. Ships 0 rows from any live fetch —
+rows-file-only from its first version, same as `spec09-grid-queue`.
+
+**Upstream**: `scripts/spec09/oem-roadmap-producer.mjs`'s own `parseOemRoadmapRow(row, index,
+manufacturers, deps)` (pure per-row validation + resolution, unit-tested against fixtures) + `main({mode,
+arg}, deps)`. Shares `scripts/spec09/lib/rows-file.mjs` with the other two spec09 rows-file producers.
+
+**Ruling**: none — the gap is a sourcing gap, not a ruling-gated decision. **One open item that IS
+ruling-shaped, named for the operator, not decided here**: `oem_tech_roadmaps.source_id` is `NOT NULL`
+(unlike `reroute_events` / `grid_connection_queues`, which carry no `source_id` column at all), so a row
+whose citation host does not classify under the current institution class table
+(`src/lib/sources/host-authority.ts`) is refused outright — and neither the named candidate lead
+(`globaldrivetozero.org`) nor a manufacturer's own press site currently classifies. Adding either requires
+an operator ruling on the class table, not a producer-side workaround.
+
+**Dispatch**: `arg` is a rows-file JSON path. Each row requires `manufacturer_name` / `tech_category` /
+`commercial_stage` / `announced_at`, with enum checks for `tech_category` (8 values), `commercial_stage`
+(4 values), `density_basis` (3 values, required together with `energy_density_wh_kg` — one without the
+other is a refusal), `origin_class` (7 values, default `'community'`), `derivation` (9 values, default
+`'observed'`), and a `confidence_admiralty` code matching `^[A-F][1-6]$`. `manufacturer_name` resolves
+against the live `entities(kind='organisation')` spine (1,293 rows, e.g. `volvotrucks.com`) by exact
+`canonical_name` — never minted. The row's citation registers through `registerCitedSource`; because
+`source_id` is `NOT NULL` on this table, a citation refusal here refuses the whole row (unlike the other
+two producers, where citation only gates whether the row is written, not a stored column). `mode=apply`
+calls `guardedInsertMany("oem_tech_roadmaps", [...], {skill, reason})` once per row, `source_id` set from
+the registered citation's `source_id`.
+
+**Artifact / read back**: `summary.json`'s `rows_total` / `rows_written` / `refusals`. Confirm against
+`SELECT count(*) FROM oem_tech_roadmaps` and `SELECT id, canonical_name FROM entities
+WHERE kind='organisation' AND canonical_name = 'volvotrucks.com'`.
+
+**No reviewed rows-file exists yet.** `scripts/spec09/oem-roadmap-rows-file.example.json` is an
+unreviewed DRAFT template only. `scripts/spec09/SOURCES.md`'s `oem_tech_roadmaps` row names the candidate
+lead for the browser-lane worklist ([HYPOTHESIS], not confirmed this session): CALSTART's Global
+Commercial Vehicle Drive to Zero Zero-Emission Technology Inventory (ZETI),
+`globaldrivetozero.org/tools/zeti-tool/` — plus the host-authority.ts class-table gap named above, which
+blocks this source (and any manufacturer press site) from ever producing a written row until an operator
+ruling adds a class-table entry for it.
+
+---
+
+## 22. `propose-classifications`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed — the
+script had only its own `.test.mjs` as an importer, no workflow reference). Written from
+`scripts/classification/propose-classifications.mjs`'s own header.
+
+**Purpose**: Phase 2/3 of the 5-axis source-classification framework
+(`docs/plans/source-classification-framework-2026-05-10.md`). Computes three finding subtypes —
+`--classify` (Axis 3/4/5 field gaps per source), `--drift` (a source's observed item-category
+distribution deviating from its registered `expected_output`), `--anomalies` (an item classified into a
+category its source's distribution says is improbable) — and writes each as an `integrity_flags` row
+(namespace `AXIS_NAMESPACE`) for operator ratification. No mode flag runs all three (the default).
+
+**What it does NOT do**: never writes `sources` or `intelligence_items` directly — every finding is a
+flag proposal only. Applying a ratified finding is `apply-classifications.mjs`'s job (already wired as
+this runbook's own `apply-classifications` step, §17 above), not this script's.
+
+**Upstream**: `src/lib/classification/classify-source.mjs` (`proposeSourceAxisClassification`),
+`src/lib/classification/routing.mjs` (`detectDrift`/`isAnomalousCategory`), `planReflect` imported
+unmodified from `scripts/connections/propose-tags.mjs` (the shared dedup-before-insert/resolve-if-stale
+plan — never a second implementation).
+
+**Ruling**: none by token — Phase 2/3 findings-visibility is the framework's own design; auto-adoption of
+the RESULTING flags is `apply-classifications.mjs`'s separate, already-ruled-on mechanism (§17).
+
+**Dispatch**: no `arg`. This step calls the script's own CLI directly (`--execute` is that script's own
+apply flag; there is no `cli.mjs` wrapper for a pure propose pass). `mode=dry` computes fresh
+classify/drift/anomaly findings and reports the plan (new/stale/unchanged per subtype), writing nothing.
+`mode=apply` adds `--execute`: writes new `integrity_flags` rows via `guardedInsertMany` and resolves
+stale ones via `guardedUpdate` (rule 015).
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json` — see Dispatch).
+Confirm against `SELECT created_by, status, count(*) FROM integrity_flags WHERE created_by LIKE 'axis:%'
+GROUP BY 1, 2` (the exact `AXIS_NAMESPACE`-prefixed `created_by` values are `flags.mjs`'s
+`SOURCE_CLASSIFICATION_SUBTYPE`/`SOURCE_DRIFT_SUBTYPE`/`ITEM_ANOMALY_SUBTYPE`).
+
+---
+
+## 23. `generate-theme-brief`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed).
+Written from `scripts/connections/generate-theme-brief.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/shared-dataset-ownership.md`**: that document previously listed `theme_briefs` as
+having two writers (this script and `src/lib/research/theme-brief.mjs`) with an open "supersession
+TO-VERIFY" — reading `theme-brief.mjs` end to end (this lane, 2026-09-05) shows it is READ-ONLY (its own
+header: "This module never writes, never clusters, never calls an LLM") and carries zero write calls; the
+document is corrected accordingly. `theme_briefs` (migration 266) had exactly one real writer all along —
+this script — and it was simply never given a dispatch root.
+
+**Purpose**: assembles a theme's brief input bundle (`--theme <id>`: member items, intra-theme edges,
+forward events, `member_hash`) for a human or in-session agent to author brief prose from ($0, no LLM
+call inside this script), then validates and persists an authored payload (`--write <file>`) into
+`theme_briefs` via the guarded path — check-then-branch insert/update (no `guardedUpsert` exists;
+`theme_id` is PRIMARY KEY). Refuses a `--write` whose `member_hash` no longer matches the theme's LIVE
+membership (staleness detected at write time, never silently accepted).
+
+**What it does NOT do**: never calls an LLM, never invents brief prose — the prose is supplied by the
+`--write` payload's author.
+
+**Upstream**: `src/lib/connections/brief-staleness.mjs` (`computeMemberHash` — the ONE hash-recipe home,
+imported here, never re-implemented).
+
+**Ruling**: none by token — U6 (flywheel build plan 2026-08-10) is the standing design; this is its only
+writer.
+
+**Dispatch**: `arg` IS REQUIRED (both modes, `|| true`-equivalent graceful skip on blank) and takes one of
+two forms: `theme:<connection_themes-id>` (assemble + print that theme's bundle — read-only in both
+modes) or `write:<path-to-authored-payload>` (validate against live membership; `mode=apply` adds
+`--execute` to persist via `guardedInsert`/`guardedUpdate`, `mode=dry` only validates + reports).
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT theme_id, title, member_hash, generated_by, generated_at FROM theme_briefs ORDER BY generated_at
+DESC`. **Live evidence already exists**: 9 rows, all `generated_by='session-executor'` (this script's own
+`validateAgainstLiveMembers` value), dated 2026-08-21 — a prior session already ran `--write ...
+--execute` through the guarded path before this dispatch route existed; this step gives that proven write
+path a CI home, it does not newly prove it works.
+
+---
+
+## 24. `ratify-flag-to-census`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed).
+Written from `scripts/connections/ratify-flag-to-census.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/shared-dataset-ownership.md`**: that document previously flagged this script
+"pre-registered (parallel lane) — not yet present" against `census_worklist`/`integrity_flags` with two
+open TO-VERIFYs (which `created_by` namespace it consumes; whether it satisfies `census_worklist`'s
+`(lane, created_by)` identity-preservation rule). Both resolved by reading the script end to end (see the
+doc's corrected entries): it consumes ANY namespace (gated on a `ratify:census` marker an operator adds
+by hand, not a fixed `created_by`), and it does not touch the identity-preservation path at all — a
+ratified flag mints a brand-new `census_worklist` identity (`created_by: "flywheel-ratified:<flagId>"`),
+never claiming to be a continuation of an existing discoverer's row.
+
+**Purpose**: the flywheel-to-harness feed. Given `--flag <id>`, requires the `integrity_flags` row to be
+operator-resolved (`status='resolved'`, `resolved_by` set) with `resolution_note` carrying the
+`ratify:census` marker plus `source_id=<uuid> url=<document-url>` (format in the script's own header),
+and idempotently creates a `census_worklist` row (skip-if-exists on `(source_id, document_url)`) so the
+operator's own mid-investigation document discovery enters the same gap-census pipeline (migration 221)
+real census producers feed.
+
+**What it does NOT do**: it is not an automatic resolver for any specific flag namespace — see
+`docs/inventories/shared-dataset-ownership.md`'s corrected "Open leaks summary" item 1: it does NOT close
+the `intake-seek-study`/`intake-relevance` open leaks, since neither namespace's flags carry a document
+url an operator could cite without doing the marker-authoring work by hand regardless.
+
+**Upstream**: none beyond `scripts/lib/db.mjs`'s `guardedInsert` — the decision logic
+(`parseRatificationNote`/`evaluateRatification`/`buildCensusRow`) is pure, unit-tested without a DB.
+
+**Ruling**: none by token beyond the marker convention itself (an operator-authored `resolution_note`,
+not a ruling requiring a separate citation).
+
+**Dispatch**: `arg` IS REQUIRED (both modes) — the `integrity_flags` id to ratify. `mode=dry` (default
+`--dry`) computes + reports the would-be `census_worklist` row, writing nothing. `mode=apply` adds
+`--execute`, inserting via `guardedInsert` (rule 015).
+
+**Artifact / read back**: this step's own console output. Confirm against `SELECT id, source_id,
+document_url, created_by FROM census_worklist WHERE created_by LIKE 'flywheel-ratified:%'`.
+
+---
+
+## 25. `assumption-register-seed`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1, B1 Gap #4). Written from
+`scripts/gen/assumption-register-seed.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/migrations.md` row 271**: that row previously read "NOT YET APPLIED" — confirmed live
+2026-09-05 via read-only SQL (`list_migrations` shows version `20260830201604` applied; `assumption_
+register` carries 20 live columns, 0 rows) that the coordinator applied it at some point before this
+lane's pass; the row is corrected accordingly.
+
+**Purpose**: seeds the 10 catalogued WO-20 modelling constants
+(`docs/plans/wo20-assumption-register-spec.md` §2) from the committed fixture
+`scripts/gen/fixtures/assumption-register/wo20-catalogued-assumptions-2026-08-30.json` into
+`assumption_register` (migration 271, live) via `guardedInsertMany`. Idempotent on the natural key
+`assumption_key`.
+
+**What it does NOT do**: does not create or alter the table (schema landed with migration 271, separately
+and earlier) and does not read or write anything else.
+
+**Upstream**: `scripts/gen/assumption-register-common.mjs` (`loadFixtureRows`, `seedAssumptions`) — the
+one seeding-mechanics home this script and any future re-seed both share.
+
+**Ruling**: none by token — the 10 constants and their `code_location`/`governing_decision` pointers are
+the catalogued spec content itself (§2), not an operator ruling requiring a separate citation.
+
+**Dispatch**: no `arg`. Raw-CLI invoked (the script's own `--apply` flag, same shape as
+`seed-benchmark-instruments`/`spec09-reroute` above — no `cli.mjs` wrapper). `mode=dry` reports what
+would be inserted (idempotent skip on rows already present); writes nothing. `mode=apply` adds `--apply`.
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT assumption_key, subsystem, label FROM assumption_register ORDER BY assumption_key` (expect 10
+rows after the first successful apply; 0 as of 2026-09-05, unrun).
+
+**Reader**: per `docs/plans/wo20-assumption-register-spec.md` §4, the admin `/admin` page now carries an
+"Assumptions" panel (`fetchAssumptionRegister()` in `src/app/admin/page.tsx` +
+`src/components/admin/AdminDashboard.tsx`) — see this lane's report for the exact files. This is the
+minimum first reader the spec names; the table is no longer write-only.
+
+---
+
+## 26. `backfill-lineage-edges`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1/§W4.1, B1 Ranked Gap #5). Written
+from `scripts/entities/backfill-lineage-edges.mjs`'s own header. **Distinct from
+`backfill-derivation-edges.mjs`** (DAG-AUTHOR lane, wired into `propagation-drain.yml`'s
+`backfill_and_statutory` checkbox): that script writes `derivation_edges`; this one writes
+`item_cross_references` — different tables, different capabilities, both real, both now wired, on their
+own dispatch roots. Do not conflate the two or delete either believing it duplicates the other.
+
+**Purpose**: the $0 whole-corpus backfill feeding the typed-lineage-edge capability (PR #481:
+`classifyRelationship`/`planLinkWrites`, `item_cross_references.relationship` in
+`{implements,amends,depends_on,...}`) that shipped with 0 live typed edges — the only caller of
+`linkItems` is `generate-brief.ts`'s metered `linkStep`, which never ran at whole-corpus scale. Runs
+every non-archived item through the SAME `planLinkWrites` the runtime calls (zero re-implemented typing
+logic — see `src/lib/entities/lineage-backfill.mjs`'s `partitionLineageWrites` for the pure
+insert/upgrade/skip-foreign/unchanged decision), writing via `guardedInsertMany`/`guardedUpdate`/
+`guardedInsert` (rule 015), with a prior-state snapshot (row count + md5) printed before any write.
+
+**What it does NOT do**: never touches a pair already owned by a foreign origin (manual/agent_semantic/
+provenance_discovery) — counted as `skippedForeign`, never clobbered.
+
+**Upstream**: `planLinkWrites` (`src/lib/entities/entity-resolve.mjs`), `partitionLineageWrites`
+(`src/lib/entities/lineage-backfill.mjs`).
+
+**Ruling**: none by token — this is a backfill for an already-shipped, already-ruled-on capability, not a
+new decision.
+
+**Dispatch**: `arg`, if given, is passed as `--limit N` for a bounded pilot run (omit for the full
+corpus). Raw-CLI invoked (`--apply`/default-dry, `--dry` is the DEFAULT here, a deliberately safer default
+than `backfill-edges.mjs`'s write-by-default posture, per the script's own header). `mode=dry` computes
+and reports the full plan (relationship-type counts, insert/upgrade/skip/unchanged tallies) without
+`--apply`, writing nothing. `mode=apply` adds `--apply`.
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT relationship, count(*) FROM item_cross_references GROUP BY relationship` (live 2026-09-05: 21,973
+total rows, only 5 non-`'related'` — this backfill has never run to completion; a first `mode=apply` run
+should raise that count substantially) and the run's own printed prior-state snapshot for the reversibility
+record.
+
+---
+
+## 27. `screen-worklist`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1). Written from
+`scripts/mint/screen-worklist.mjs`'s own header. B1 classifies this WIRED already (manual-only,
+artifact-proven — `scripts/harness-runs/screen/screen-run-{001,002,003}.json`), but the mechanical
+graph+workflow check cannot see hand-run evidence; this step gives it a CI dispatch root without changing
+what it does.
+
+**Purpose**: the $0, rule-based relevance re-screen (`screen-rules.mjs`) against a JSON dump of
+`census_worklist` rows. No DB access, no network — reads one input file the coordinator exported,
+classifies every row with `classifyRelevance()`, writes a results JSON + human-readable summary, and (per
+Wave MH-2) its own `scripts/harness-runs/screen/` run artifact as part of the same execution path.
+
+**What it does NOT do**: never talks to Supabase itself (MINT-RUNBOOK.md's $0/no-DB-writes-from-a-mint-
+lane rule) — the coordinator exports the census dump and applies this script's recommended dispositions
+separately.
+
+**Upstream**: `scripts/mint/screen-rules.mjs` (`classifyRelevance`), `scripts/lib/run-artifact.mjs`
+(`writeRunArtifact`).
+
+**Ruling**: none by token — the rule engine's on/off-vertical/ambiguous verdicts are the standing
+mechanism (MINT-RUNBOOK.md), not a per-dispatch ruling.
+
+**Dispatch**: `arg` IS REQUIRED (both modes — there is no DB-side "dry" concept here since the script
+never touches Supabase) and is the repo-relative path to a COORDINATOR-COMMITTED census-worklist dump
+JSON (this step never calls `export-census-rows.mjs` itself). `--out-dir`/`--harness-runs-dir` point
+INSIDE this run's own `$OUT_ROOT` (never the live repo tree), so results/summary/harness-run artifacts
+land ONLY as this run's uploaded GitHub Actions artifact.
+
+**Artifact / read back**: `$OUT_ROOT/screen-worklist/` holds `<basename>.screen-results.json`,
+`<basename>.screen-summary.md`, and `harness-runs/screen-run-NNN.json` — all three uploaded as this run's
+artifact. **The coordinator must download this run's artifact and commit `screen-run-NNN.json` into
+`scripts/harness-runs/screen/` by hand afterward** (mirroring the existing manual-hand-run workflow, now
+CI-dispatched instead of locally shelled) — this step does not commit anything itself.
+
+---
+
+## 28. `verification-audit-report`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1, B1 Ranked Gap #8). Written from
+`scripts/verify/verification-audit-report.mjs`'s own header.
+
+**Purpose**: W2.F provenance + F28 harness-run legibility report — `intelligence_items` provenance matrix
+(grade × status × item_type), `section_claim_provenance` claims citation split by `claim_kind`, sections
+carrying a FACT claim missing `source_span`, and F28's registered harness families' run-history markers
+(same posture as `population-report.mjs`: legibility, not a pass/fail gate — a corpus mid-verification
+legitimately has unverified/pending rows).
+
+**What it does NOT do**: never writes anything; $0, read-only against `intelligence_items` and
+`section_claim_provenance` plus a filesystem read of `scripts/harness-runs/`.
+
+**Upstream**: `scripts/lib/run-artifact.mjs` (`readRunHistory`, `DEFAULT_HARNESS_RUNS_ROOT`),
+`.discipline/fitness/functions/F28-harness-run-integrity.mjs` (`GOVERNING_FILES` — the registered-family
+list, never re-derived by hand here).
+
+**Ruling**: none — a report, not a gate.
+
+**Dispatch**: no `arg`. Not a pass/fail check, so `mode` only changes nothing here — both `dry` and
+`apply` write the same report into this run's artifact.
+
+**Artifact / read back**: `$OUT_ROOT/verification-audit-report/report.md` (+ a `.json` twin at the same
+path) — uploaded as this run's artifact. Confirm the report's own counts against a direct read, e.g.
+`SELECT item_grade, provenance_status, count(*) FROM intelligence_items GROUP BY 1,2 ORDER BY 3 DESC`.
+
+---
+
+## 29. `spec09-surcharge-audit-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1, coordinator follow-up named by lane
+SPEC09-B's own F25-module-liveness.mjs allowlist entry). Written from
+`scripts/spec09/surcharge-audit-producer.mjs`'s own header, same pattern as §22-25's
+`generate-theme-brief`/`ratify-flag-to-census` wiring.
+
+**Purpose**: dispatches the CLI half of the `surcharge_audits` customer-CSV upload flow
+(`scripts/spec09/SOURCES.md`) for a reviewed batch file — e.g. a bulk backfill from a customer's own
+spreadsheet, rather than the interactive `POST /api/workspace/spec09-upload` path.
+
+**Upstream**: `src/lib/spec09/csv-upload-contract.mjs` (`parseCsvUpload`), `scripts/spec09/lib/cli-csv-args.mjs`
+(`readCliCsvArgs` — the one shared `--csv`/`--org-id` argv reader every spec09 CSV producer uses).
+
+**Ruling**: none — the org id is always the dispatcher-supplied `--org-id`, never inferred; a customer
+CSV never carries `org_id` itself (rule: org scope is server/coordinator-asserted, never client-supplied).
+
+**Dispatch**: `arg` IS REQUIRED in both modes — `<csv-path>,<org-id>` (csv-path a repo-relative path to a
+reviewed customer CSV checked into the repo; org-id the receiving org's uuid). `mode=dry` parses and
+reports accept/reject counts, writing nothing. `mode=apply` calls `guardedInsertMany("surcharge_audits",
+...)` for every accepted row.
+
+**Artifact / read back**: this step's own console output (`summary.json`'s shape — see the producer's own
+`main()`). Confirm against `SELECT count(*) FROM surcharge_audits`.
+
+---
+
+## 30. `spec09-dqi-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/dqi-producer.mjs` / `tce_data_quality`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
+Confirm against `SELECT count(*) FROM tce_data_quality`.
+
+---
+
+## 31. `spec09-auxiliary-energy-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/auxiliary-energy-producer.mjs` / `auxiliary_energy_profiles`. `arg` IS REQUIRED —
+`<csv-path>,<org-id>`. Confirm against `SELECT count(*) FROM auxiliary_energy_profiles`.
+
+---
+
+## 32. `spec09-indexation-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/indexation-producer.mjs` / `indexation_clauses`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
+Confirm against `SELECT count(*) FROM indexation_clauses`. Note: `surcharge_audits`, `tce_data_quality`,
+`auxiliary_energy_profiles`, `eudr_plot_claims`/`custody_chains` (the latter two share
+`scripts/spec09/eudr-custody-producer.mjs`, still without a maintenance.yml step) round out the six
+customer-CSV tables `scripts/spec09/SOURCES.md` names; the EUDR/custody pair is left for a future lane
+since it takes a second `--custody-csv` flag `readCliCsvArgs` already supports but no step here uses yet.

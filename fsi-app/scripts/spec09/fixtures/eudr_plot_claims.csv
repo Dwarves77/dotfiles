@@ -1,0 +1,7 @@
+consignment_ref,geometry_json,area_ha,validation_state,hold_risk,dds_reference
+CONSIG-2026-0091,"{""type"":""Point"",""coordinates"":[10.1,45.2]}",2.3,valid,none,DDS-2026-0091
+CONSIG-2026-0092,,,missing,border_hold,
+CONSIG-2026-0093,"{""type"":""Polygon""}",6.8,fails_cutoff,documentary,DDS-2026-0093
+CONSIG-2026-0094,"{not valid json}",4.1,valid,none,DDS-2026-0094
+CONSIG-2026-0095,"{""type"":""Point""}",1.0,pending_review,none,DDS-2026-0095
+CONSIG-2026-0096,,,valid,,DDS-2026-0096

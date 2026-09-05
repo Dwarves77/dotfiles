@@ -122,12 +122,58 @@
 // payload, in the Actions runner (which has real network access this environment does not), delivered as
 // a workflow artifact branch — never a second, hand-rolled fetcher, and never a classification lane
 // fetching for itself.
+//
+// THE CHAINING DEFECT THIS CLOSES (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 — see
+// scripts/harness-runs/ledger-consume/LAST-PROPOSER-PASS.md's own record of the defect this fixes).
+// ledger-consume-run-001 and -002, the ONLY two real dispatches this family had, are byte-for-byte the
+// same unit of work: a `workflow_run` chain always ran `mode=plan, limit 50, after=null`, so both runs
+// re-walked the SAME oldest 50 ledger rows, fetched all 50 (paying the fetch even though neither run
+// carried a verdict for any of them), and classified zero. Two runs, 100 fetches, zero information
+// gained. Three changes close this:
+//
+// (1) VERDICT LOOKUP BEFORE ANY FETCH. Previously `--verdicts <path>` only bypassed the CLASSIFY call for
+//     a hit — a miss still paid the full fetch (see buildFetchDoc below) before the classify step ever
+//     discovered there was nothing to classify it with. `buildClassifyGate` (below) makes the SAME
+//     verdict-or-allow-api decision `buildVerdictClassify` already made at classify time, but exposes it
+//     as a plain `(url) => {willClassify, reason}` predicate `consumePortalCandidates`
+//     (portal-harvest.ts) now calls BEFORE its own fetch step. A candidate with no classification source
+//     is `disposition:"skipped", reason:"skipped-no-verdict: ..."` with `fetched:0` for that row — the
+//     fetch this run cannot use is never made. One decision, read twice (by the fetch gate and by the
+//     classify step), never two independently-maintained rules that could drift apart.
+//
+// (2) EVERY COMMITTED VERDICT BATCH, NOT ONLY THE NEWEST. Before this diff, `--verdicts` named exactly
+//     one file, and the `workflow_run` chain's own "Resolve dispatch parameters" step picked only the
+//     LEXICOGRAPHICALLY NEWEST `ledger-verdicts-*.json` batch (`ls ... | sort | tail -n1`) — so a
+//     candidate covered only by an OLDER batch (e.g. `ledger-verdicts-001.json`'s 30 entries, once
+//     `-002.json` landed) would never be looked up again. `discoverVerdictsFiles` +
+//     `sortVerdictsBatchFilenames` (below) enumerate and merge EVERY `ledger-verdicts-*.json` file under
+//     this directory when `--verdicts` is omitted (a workflow_dispatch with `verdicts_file` left blank,
+//     or the `workflow_run` chain, which no longer picks a single "newest" file — see
+//     `.github/workflows/ledger-consume.yml`'s "Resolve dispatch parameters" step) — a candidate's verdict
+//     is looked up across the UNION of all committed batches, keyed by URL, later batch wins on a
+//     duplicate (the same "last entry wins" rule `indexVerdictsByUrl` already applied within one file,
+//     now applied across files in ascending `NNN` order too). `config.verdicts_files` (plural, an array —
+//     replacing the old singular `config.verdicts_file`) records every batch this run actually read.
+//
+// (3) THE EXPORT STEP PERSISTS ITS OWN CURSOR, SO CONSECUTIVE DISPATCHES ADVANCE. Before this diff,
+//     `--export-candidates` was READ-ONLY in the strongest sense — no DB write, but also no artifact of
+//     its own — so nothing durable recorded where one export batch ended and the next should begin
+//     except the payload file itself (gitignored, delivered once on a branch, easy to lose track of).
+//     `--export-candidates` (without `--allow-api`, unaffected) now ALSO self-emits a `ledger-consume`
+//     harness-run artifact (`buildExportRunArtifact`, same family, same `claimRunId`/`writeRunArtifact`
+//     convention every consume run already uses — `config.action:"export"` distinguishes it from a
+//     `config.action:"consume"` plan/apply run) whose `metrics.next_cursor` is exactly the keyset position
+//     the NEXT export should resume from. When `--after` is omitted, `resolveExportAfter` reads the
+//     newest EXPORT-type artifact in this family's own directory and resumes from ITS `next_cursor`
+//     automatically — an explicit `--after` (a human's hand dispatch keeping every input, build plan
+//     W1.4 item 2) always wins over the auto-resolved one. Two chained exports with no `--after` given
+//     therefore walk disjoint windows instead of both restarting from the beginning.
 
 import { parseArgs as nodeParseArgs } from "node:util";
-import { writeFileSync, mkdirSync, readFileSync } from "node:fs";
+import { writeFileSync, mkdirSync, readFileSync, readdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { writeRunArtifact, hashHarnessVersion, claimRunId, readRunHistory } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
 // THE DEFECT LEDGER-TEXT CLOSES (coordinator [CONFIRMED], first export run 33902755838, 2026-09-04 17:51
 // — see buildFetchDoc's own comment below for the full account): these three imports are plain ESM (no
@@ -597,6 +643,58 @@ export function partitionVerdictsByPromptVersion(entries, currentPromptVersion) 
   return { current, stale };
 }
 
+// ── verdict-batch discovery — ALL committed batches, not only the newest (Lane LEDGER-CHAIN-2, 2026-09-05,
+// build plan W1.4 item 1: "a candidate's verdict is looked up ... in any committed ledger-verdicts-*.json
+// batch (all batches, not only the newest)"). Before this, `--verdicts` named exactly one file and the
+// `workflow_run` chain's own dispatch-parameter step picked only the lexicographically newest one — a
+// candidate covered ONLY by an older batch (e.g. ledger-verdicts-001.json's 30 rows, once -002.json
+// landed) would never be looked up again once a newer batch existed. Below: pure filename matching/sort,
+// then an injectable-I/O directory listing — the SAME "pure decision, injected I/O" split every other
+// filesystem seam in this file uses (buildFetchDoc's fetchImpl, runExportCandidates' selectPage).
+
+const VERDICTS_BATCH_FILENAME_RE = /^ledger-verdicts-(\d+)\.json$/;
+
+/** Does `name` look like a committed verdict-batch file (`ledger-verdicts-NNN.json`) — excludes
+ *  `README.md`/`schema.json`/anything else in the same directory. PURE. @param {string} name */
+export function isVerdictsBatchFilename(name) {
+  return VERDICTS_BATCH_FILENAME_RE.test(name);
+}
+
+/** Sort verdict-batch filenames ascending by their zero-padded `NNN` suffix — same order
+ *  `ledger-verdicts/README.md` documents ("naming convention: ledger-verdicts-NNN.json, zero-padded,
+ *  incrementing") and the SAME order a later batch's duplicate URL should win in (ascending, so the
+ *  merge below applies `indexVerdictsByUrl`'s "last wins" rule to the numerically LATEST batch, not
+ *  whichever happened to sort last lexicographically for a non-numeric reason). Non-matching names sort
+ *  after all matching ones, alphabetically among themselves (defensive — the caller should have filtered
+ *  with `isVerdictsBatchFilename` first). PURE. @param {string[]} names */
+export function sortVerdictsBatchFilenames(names) {
+  const numbered = [];
+  const other = [];
+  for (const name of names) {
+    const m = VERDICTS_BATCH_FILENAME_RE.exec(name);
+    if (m) numbered.push({ name, n: Number.parseInt(m[1], 10) });
+    else other.push(name);
+  }
+  numbered.sort((a, b) => a.n - b.n || (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+  other.sort();
+  return [...numbered.map((x) => x.name), ...other];
+}
+
+/** List every committed verdict-batch file under `dir`, ascending by batch number, as ABSOLUTE paths.
+ *  Injectable `readdirSyncImpl` for tests (no real filesystem needed); a missing directory yields `[]`,
+ *  not a throw — the ledger-verdicts directory not existing means "no batches yet", not an error.
+ *  @param {string} dir @param {{readdirSyncImpl?: (d:string)=>string[]}} [opts] @returns {string[]} */
+export function discoverVerdictsFiles(dir, opts = {}) {
+  const readdirImpl = opts.readdirSyncImpl ?? readdirSync;
+  let names;
+  try {
+    names = readdirImpl(dir);
+  } catch {
+    return [];
+  }
+  return sortVerdictsBatchFilenames(names.filter(isVerdictsBatchFilename)).map((name) => join(dir, name));
+}
+
 /**
  * Index verdict entries by URL — the field the `classify` injection point actually receives
  * (ConsumeOpts.classify's `input.source_url`; the ledger row's own id never reaches it — see
@@ -644,6 +742,36 @@ export function verdictEntryToClassifyOutput(entry) {
   };
 }
 
+// THE NO-CLASSIFICATION-SOURCE REASON, ONE STRING — read by both buildClassifyGate (the pre-fetch gate)
+// and buildVerdictClassify (the classify-time bypass/skip) so the fetch-time skip and the classify-time
+// skip can never print two different explanations for the identical decision.
+const NO_VERDICT_REASON =
+  "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — " +
+  "never sent to the API";
+
+/**
+ * THE ONE DECISION (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4): does this URL have a
+ * classification source at all — a session verdict, or `--allow-api`? — and, if so, does producing that
+ * classification need the candidate's fetched page text? PURE, no I/O, no telemetry side-effect (that
+ * stays in `buildVerdictClassify`, which calls this for its own branch decision). Read from TWO call
+ * sites that must never disagree: `run-ledger-consume.mjs`'s main() wires this as `ConsumeOpts.
+ * classifyGate` so `consumePortalCandidates` (portal-harvest.ts) can skip the FETCH — entirely, for a
+ * no-source candidate; just the fetch, for a verdict-covered one, since a verdict is built from the
+ * verdict object alone — for any candidate this run does not need to fetch a page for; `buildVerdictClassify`
+ * below calls it to decide whether to bypass, skip, or fall through to a real classify call. One rule,
+ * read twice, never drifting.
+ * @param {{url: string, verdictsByUrl: Map<string,object>, allowApi: boolean}} opts
+ * @returns {{willClassify: boolean, needsFetch: boolean, source: "session-verdict"|"skipped-no-verdict"|"api", reason?: string, verdict?: object}}
+ */
+export function buildClassifyGate({ verdictsByUrl, allowApi }) {
+  return function classifyGate(url) {
+    const verdict = verdictsByUrl.get(url);
+    if (verdict) return { willClassify: true, needsFetch: false, source: "session-verdict", verdict };
+    if (allowApi) return { willClassify: true, needsFetch: true, source: "api" };
+    return { willClassify: false, needsFetch: false, source: "skipped-no-verdict", reason: NO_VERDICT_REASON };
+  };
+}
+
 /**
  * Compose the driver's actual `classify` injection point: a verdict hit is used for $0 (classify
  * bypassed entirely — the base classify function below is never called for it); a miss with
@@ -654,14 +782,18 @@ export function verdictEntryToClassifyOutput(entry) {
  * into the SAME `telemetry` Map `baseClassify`'s own wrapper (collectClassifyTelemetry) already writes
  * to, tagged with `source` ("session-verdict" | "skipped-no-verdict" | whatever baseClassify itself
  * tagged, "api" for the live wrapper) — one telemetry map, one shaping pass (shapeConsumeResult), no
- * second bookkeeping structure to keep in sync.
+ * second bookkeeping structure to keep in sync. Internally delegates the hit/miss/allow-api decision to
+ * `buildClassifyGate` (above) — the SAME decision `ConsumeOpts.classifyGate` makes BEFORE the fetch step
+ * in portal-harvest.ts, so the two can never disagree about which candidates have a classification source.
  * @param {{verdictsByUrl: Map<string,object>, allowApi: boolean, baseClassify: Function, telemetry: Map}} opts
  * @returns {Function} a ConsumeOpts.classify-shaped function
  */
 export function buildVerdictClassify({ verdictsByUrl, allowApi, baseClassify, telemetry }) {
+  const gate = buildClassifyGate({ verdictsByUrl, allowApi });
   return async function classifyWithVerdicts(input, apiKey) {
-    const verdict = verdictsByUrl.get(input.source_url);
-    if (verdict) {
+    const decision = gate(input.source_url);
+    if (decision.source === "session-verdict") {
+      const verdict = decision.verdict;
       telemetry.set(input.source_url, {
         sourceId: input.source_id ?? null,
         costUsd: 0,
@@ -676,10 +808,7 @@ export function buildVerdictClassify({ verdictsByUrl, allowApi, baseClassify, te
       });
       return { ok: true, result: verdictEntryToClassifyOutput(verdict) };
     }
-    if (!allowApi) {
-      const reason =
-        "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — " +
-        "never sent to the API";
+    if (!decision.willClassify) {
       telemetry.set(input.source_url, {
         sourceId: input.source_id ?? null,
         costUsd: 0,
@@ -687,13 +816,13 @@ export function buildVerdictClassify({ verdictsByUrl, allowApi, baseClassify, te
         inputTokens: 0,
         outputTokens: 0,
         ok: false,
-        error: reason,
+        error: decision.reason,
         source: "skipped-no-verdict",
       });
       // portal-harvest.ts treats {ok:false} as INCONCLUSIVE (fetchOk discipline) — the row stays
       // 'candidate', untouched, exactly the "SKIPPED with a named outcome" contract asks for. Prefixed so
       // this driver's own artifact reason text is greppably distinct from a real API failure.
-      return { ok: false, error: `skipped-no-verdict: ${reason}` };
+      return { ok: false, error: `skipped-no-verdict: ${decision.reason}` };
     }
     return baseClassify(input, apiKey);
   };
@@ -724,7 +853,7 @@ export const REJECTED_LIKE_DISPOSITIONS = Object.freeze(["rejected", "would_reje
  * run-source-sweep.mjs's header on why a walker's own query is mirrored, never independently re-derived).
  * @param {object} result ConsumeResult
  * @param {Map<string, {sourceId: string|null, costUsd: number, renderMs: number|null, inputTokens: number, outputTokens: number, ok: boolean, error: string|null, source?: string, verdictCandidateId?: string|null, confidence?: number|null}>} telemetryByUrl
- * @param {{sourceIdFilter?: string|null}} [opts]
+ * @param {{sourceIdFilter?: string|null, verdictBatchesRead?: number}} [opts]
  */
 export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
   const sourceIdFilter = opts.sourceIdFilter ?? null;
@@ -768,14 +897,27 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
   let inputTokensTotal = 0;
   let outputTokensTotal = 0;
   let withVerdict = 0;
-  let withoutVerdictSkipped = 0;
+  let withoutVerdictSkippedFromTelemetry = 0;
   for (const t of telemetryByUrl.values()) {
     estUsdTotal += t.costUsd;
     inputTokensTotal += t.inputTokens ?? 0;
     outputTokensTotal += t.outputTokens ?? 0;
     if (t.source === "session-verdict") withVerdict += 1;
-    else if (t.source === "skipped-no-verdict") withoutVerdictSkipped += 1;
+    else if (t.source === "skipped-no-verdict") withoutVerdictSkippedFromTelemetry += 1;
   }
+  // withoutVerdictSkipped ALSO counts a candidate the PRE-FETCH classifyGate (Lane LEDGER-CHAIN-2,
+  // 2026-09-05, build plan W1.4) skipped before classify() was ever called — those rows leave NO
+  // telemetry entry at all (telemetry is only written from inside the classify() injection point, and
+  // the whole point of the gate is that classify() is never reached for them), so the telemetry-only
+  // count above would silently undercount to 0 in production even though every skipped row's own
+  // outcome.reason names the same "skipped-no-verdict:" text. Counted from outcomes whose URL has NO
+  // telemetry entry, so a row that DID reach classify() and was skipped there (buildVerdictClassify's own
+  // defense-in-depth branch, still reachable by a caller that omits classifyGate, and by unit tests that
+  // exercise classify() directly) is counted exactly once, via telemetry, never twice.
+  const withoutVerdictSkippedFromOutcomes = result.outcomes.filter(
+    (o) => o.disposition === "skipped" && /skipped-no-verdict:/.test(o.reason ?? "") && !telemetryByUrl.has(o.url)
+  ).length;
+  const withoutVerdictSkipped = withoutVerdictSkippedFromTelemetry + withoutVerdictSkippedFromOutcomes;
   // "uncertain" — entity_verdict='uncertain' outcomes, matched off portal-harvest.ts's own
   // `entity-gate: ${cls.entity_verdict} — ...` reason text (the only place entity_verdict itself survives
   // into a CandidateOutcome — see that file's not_an_item branch). Distinct from "portal" (also
@@ -792,7 +934,14 @@ export function shapeConsumeResult(result, telemetryByUrl, opts = {}) {
     fetched: result.fetched,
     classified: result.classified,
     with_verdict: withVerdict,
+    // "matched" — build plan W1.4's own vocabulary for this same number ("ledger-consume-run-003 shows
+    // matched 386, fetched 0 for them"). Alias of with_verdict, not a second count to keep in sync.
+    matched: withVerdict,
     without_verdict_skipped: withoutVerdictSkipped,
+    // How many verdict-batch files this run actually read — whether an explicit --verdicts path (1) or
+    // every scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch auto-discovered because --verdicts
+    // was omitted (build plan W1.4 item 3: "verdict batches read ... recorded"). 0 when none exist.
+    verdict_batches_read: opts.verdictBatchesRead ?? 0,
     uncertain: uncertainCount,
     promoted: result.outcomes.filter((o) => PROMOTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
     rejected: result.outcomes.filter((o) => REJECTED_LIKE_DISPOSITIONS.includes(o.disposition)).length,
@@ -1111,6 +1260,97 @@ export async function runExportCandidates(opts) {
   return { path: outPath, count: candidates.length, payload };
 }
 
+// ── export cursor persistence — so consecutive chained exports advance, never restart ──────────────────
+// (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 item 1). Before this, `--export-candidates` was
+// read-only in the strongest sense: no DB write, but also no artifact of its own, so nothing durable
+// recorded where one export batch ended and the next should resume except the (gitignored) payload file
+// itself. `buildExportRunArtifact` gives an export dispatch the SAME `ledger-consume` family harness-run
+// artifact a plan/apply dispatch already self-emits (`config.action:"export"` distinguishes the two);
+// `resolveExportAfter` reads the newest one back to auto-resume the next export.
+
+/**
+ * PURE: does the NEXT export dispatch resume from an explicit `--after`, or from the previous export's
+ * own recorded `next_cursor`? An explicit `after` ALWAYS wins (build plan W1.4 item 2: "hand dispatch
+ * keeps every input") — auto-resolution only fills in when the caller gave none. `latestExportArtifact`
+ * is the newest `ledger-consume` family artifact whose `config.action === "export"` (a plan/apply
+ * artifact's `metrics.next_cursor` describes the CONSUME cursor, a different keyset walk over a different
+ * default page size — never conflated with the export cursor). `null` when there is no explicit `after`
+ * and no prior export artifact (or the prior export's own window was exhausted, `next_cursor: null`) —
+ * the honest "start from the beginning" default this family has always had.
+ * @param {{explicitAfter: {firstSeenAt:string,id:string}|null, latestExportArtifact: object|null}} opts
+ * @returns {{firstSeenAt:string,id:string}|null}
+ */
+export function resolveExportAfter({ explicitAfter, latestExportArtifact }) {
+  if (explicitAfter) return explicitAfter;
+  if (latestExportArtifact?.config?.action === "export") {
+    return latestExportArtifact.metrics?.next_cursor ?? null;
+  }
+  return null;
+}
+
+/**
+ * Find the newest `ledger-consume` family artifact in `dir` whose `config.action === "export"` — the
+ * one `resolveExportAfter` needs. Injectable `readRunHistoryImpl` for tests. I/O wrapper only; the
+ * filtering/selection itself has no logic beyond "last one in `readRunHistory`'s ascending-by-started_at
+ * order", so it is not split into a separate pure function.
+ * @param {string} dir @param {{readRunHistoryImpl?: (d:string)=>{runs:object[]}}} [opts]
+ * @returns {object|null}
+ */
+export function findLatestExportArtifact(dir, opts = {}) {
+  const readHistory = opts.readRunHistoryImpl ?? readRunHistory;
+  const { runs } = readHistory(dir);
+  const exportRuns = runs.filter((r) => r?.config?.action === "export");
+  return exportRuns.length ? exportRuns[exportRuns.length - 1] : null;
+}
+
+/**
+ * Build an `--export-candidates` dispatch's own CONVENTION.md-shaped `ledger-consume` family artifact.
+ * PURE. `config.action:"export"` is the ONE field `resolveExportAfter`/`findLatestExportArtifact` key
+ * on to tell an export artifact apart from a plan/apply consume artifact in the same family directory —
+ * both share the SAME `<family>-run-NNN` numbering sequence (one `claimRunId` counter, one directory,
+ * per CONVENTION.md), so an export dispatch and a consume dispatch landing between two trains never
+ * collide on a run number.
+ * @param {{runId:string, harnessVersion:string, startedAt:string, finishedAt:string, config:object, inputsRef:string[], payload:object, outPath:string}} args
+ */
+export function buildExportRunArtifact({ runId, harnessVersion, startedAt, finishedAt, config, inputsRef, payload, outPath }) {
+  const perItem = payload.candidates.map((c) => ({
+    id: c.candidate_id,
+    candidate_id: c.candidate_id,
+    url: c.url,
+    source_id: c.source_id ?? null,
+    outcome: !payload.with_text ? "listed" : c.fetch_ok ? "fetch_ok" : "fetch_failed",
+    reason: !payload.with_text ? null : c.fetch_error ?? null,
+    evidence_refs: [c.url],
+  }));
+  return {
+    harness_family: "ledger-consume",
+    harness_version: harnessVersion,
+    run_id: runId,
+    started_at: startedAt,
+    finished_at: finishedAt,
+    config,
+    inputs_ref: inputsRef,
+    per_item: perItem,
+    metrics: {
+      mode: "export",
+      count: payload.count,
+      with_text: payload.with_text,
+      fetch_ok_count: payload.fetch_ok_count ?? null,
+      fetch_failed_count: payload.fetch_failed_count ?? null,
+      after: config.after ?? null,
+      next_cursor: payload.next_cursor ?? null,
+    },
+    defects_found: [],
+    full_trace_refs: [outPath],
+    proposer_notes:
+      "Auto-emitted by run-ledger-consume.mjs's --export-candidates mode (Lane LEDGER-CHAIN-2, 2026-09-05, " +
+      "build plan W1.4 item 1) — no classify, no DB write; this artifact exists so the NEXT export " +
+      "dispatch can auto-resume from metrics.next_cursor (resolveExportAfter) instead of both restarting " +
+      "from the same window (the exact defect ledger-consume-run-001/002 recorded on the consume side). " +
+      "See scripts/turns/ledger-verdicts/README.md and this file's own header for the full account.",
+  };
+}
+
 const IS_MAIN = process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (IS_MAIN) await main();
 
@@ -1144,20 +1384,36 @@ async function main() {
     "../../src/lib/llm/first-fetch-classify.ts"
   );
 
-  // ── --export-candidates: a DISTINCT, READ-ONLY action — no classify, no DB write, no harness-run
-  // artifact (this is a listing utility for offline classification, not a consume pass — see this file's
-  // header). Exits here; never falls through to the consume path below. Without --with-text: no fetch
-  // either, unchanged from Lane LEDGER-ZERO. WITH --with-text: fetches through the SAME buildFetchDoc a
-  // consume pass uses below (no second fetcher, same politeness gap, same timeout) — see this file's
-  // header, "THE DEFECT THIS CLOSES".
+  // ── --export-candidates: a DISTINCT, READ-ONLY action — no classify, no DB write (this is a listing
+  // utility for offline classification, not a consume pass — see this file's header). Exits here; never
+  // falls through to the consume path below. Without --with-text: no fetch either, unchanged from Lane
+  // LEDGER-ZERO. WITH --with-text: fetches through the SAME buildFetchDoc a consume pass uses below (no
+  // second fetcher, same politeness gap, same timeout) — see this file's header, "THE DEFECT THIS CLOSES".
+  //
+  // CURSOR AUTO-RESOLUTION (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 item 1): as of this diff,
+  // this mode ALSO self-emits a `ledger-consume` family harness-run artifact (`buildExportRunArtifact`)
+  // recording `metrics.next_cursor` — an explicit `--after` always wins (build item 2: hand dispatch
+  // keeps every input); when `--after` is omitted, `resolveExportAfter` resumes from the newest prior
+  // export artifact's own `next_cursor` instead of restarting from the beginning every time.
   if (parsed.exportCandidates) {
+    const exportHarnessRunsDir = resolve(parsed.harnessRunsDir || DEFAULT_HARNESS_RUNS_DIR);
+    const latestExportArtifact = findLatestExportArtifact(exportHarnessRunsDir);
+    const effectiveAfter = resolveExportAfter({ explicitAfter: parsed.after, latestExportArtifact });
+    if (!parsed.after && effectiveAfter) {
+      console.log(
+        `run-ledger-consume --export-candidates: no --after given — auto-resuming past the previous ` +
+          `export artifact's next_cursor ${JSON.stringify(effectiveAfter)} (pass --after explicitly to override).`
+      );
+    }
+
     const selectPage = (opts) => selectCandidateLedgerPage(sb, opts);
-    const { path, count } = await runExportCandidates({
+    const exportStartedAt = new Date().toISOString();
+    const { path, count, payload } = await runExportCandidates({
       selectPage,
       limit: parsed.limit,
       sourceId: parsed.sourceId,
       newestFirst: parsed.newestFirst,
-      after: parsed.after,
+      after: effectiveAfter,
       promptVersion: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
       outPath: parsed.exportCandidates,
       withText: parsed.withText,
@@ -1167,32 +1423,79 @@ async function main() {
     console.log(
       `run-ledger-consume --export-candidates${parsed.withText ? " --with-text" : ""}: wrote ${count} candidate(s) to ${path}`
     );
+
+    const exportRunId = claimRunId(exportHarnessRunsDir, "ledger-consume");
+    const exportHarnessVersion = hashHarnessVersion(LEDGER_CONSUME_GOVERNING_FILES, FSI_ROOT);
+    const exportConfig = {
+      action: "export",
+      limit: parsed.limit,
+      source_id: parsed.sourceId,
+      newest_first: parsed.newestFirst,
+      after: effectiveAfter,
+      after_source: parsed.after ? "explicit" : effectiveAfter ? "auto-resumed" : "start",
+      with_text: parsed.withText,
+      prompt_version: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
+    };
+    const exportArtifact = buildExportRunArtifact({
+      runId: exportRunId,
+      harnessVersion: exportHarnessVersion,
+      startedAt: exportStartedAt,
+      finishedAt: new Date().toISOString(),
+      config: exportConfig,
+      inputsRef: [
+        "portal_link_candidates: status=candidate" +
+          (parsed.sourceId ? ` source_id=${parsed.sourceId}` : "") +
+          ` limit=${parsed.limit} order=${parsed.newestFirst ? "desc" : "asc"}(first_seen_at,id)` +
+          (effectiveAfter ? ` after=${JSON.stringify(effectiveAfter)} (${exportConfig.after_source})` : " after=start"),
+      ],
+      payload,
+      outPath: path,
+    });
+    const exportArtifactPath = writeRunArtifact(exportHarnessRunsDir, exportArtifact);
+    console.log(
+      `Wrote ${exportArtifactPath} (next_cursor=${JSON.stringify(payload.next_cursor ?? null)} — the next ` +
+        `export dispatch with no --after resumes from here automatically).`
+    );
     process.exit(0);
   }
 
-  // ── --verdicts (optional): load + fail-closed validate a session-verdict batch before anything else
-  // runs, so a malformed file is caught immediately, not partway through a live consume pass.
+  // ── --verdicts (optional): load + fail-closed validate every session-verdict batch before anything
+  // else runs, so a malformed file is caught immediately, not partway through a live consume pass.
+  //
+  // AUTO-DISCOVERY OF EVERY COMMITTED BATCH (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 item 1):
+  // an explicit `--verdicts <path>` names exactly that one file, unchanged from before this diff. When
+  // `--verdicts` is OMITTED (a `workflow_dispatch` with `verdicts_file` left blank, or the `workflow_run`
+  // chain, which no longer picks a single "newest" file — see `.github/workflows/ledger-consume.yml`'s
+  // "Resolve dispatch parameters" step), every `scripts/turns/ledger-verdicts/ledger-verdicts-*.json`
+  // batch is read and merged, ascending by batch number (`discoverVerdictsFiles`) — a candidate's verdict
+  // is looked up across the UNION of all committed batches, not only the newest, and a later batch's
+  // duplicate URL wins (`indexVerdictsByUrl`'s existing "last wins" rule, now applied across files too).
+  const verdictsFilePaths = parsed.verdicts
+    ? [resolve(parsed.verdicts)]
+    : discoverVerdictsFiles(resolve(ROOT, "scripts", "turns", "ledger-verdicts"));
+
   let verdictsByUrl = new Map();
-  let verdictsInfo = null;
-  if (parsed.verdicts) {
+  const verdictsFilesInfo = [];
+  let allCurrentEntries = [];
+  for (const filePath of verdictsFilePaths) {
     let raw;
     try {
-      raw = readFileSync(resolve(parsed.verdicts), "utf8");
+      raw = readFileSync(filePath, "utf8");
     } catch (err) {
-      console.error(`run-ledger-consume: cannot read --verdicts file "${parsed.verdicts}": ${err.message} (exit 4).`);
+      console.error(`run-ledger-consume: cannot read verdicts file "${filePath}": ${err.message} (exit 4).`);
       process.exit(4);
     }
     let parsedVerdicts;
     try {
       parsedVerdicts = JSON.parse(raw);
     } catch (err) {
-      console.error(`run-ledger-consume: --verdicts file "${parsed.verdicts}" is not valid JSON: ${err.message} (exit 4).`);
+      console.error(`run-ledger-consume: verdicts file "${filePath}" is not valid JSON: ${err.message} (exit 4).`);
       process.exit(4);
     }
     const schemaErrors = validateVerdictsFile(parsedVerdicts);
     if (schemaErrors.length) {
       console.error(
-        `run-ledger-consume: --verdicts file "${parsed.verdicts}" failed schema validation ` +
+        `run-ledger-consume: verdicts file "${filePath}" failed schema validation ` +
           `(scripts/turns/ledger-verdicts/schema.json) — exit 4:\n  ${schemaErrors.join("\n  ")}`
       );
       process.exit(4);
@@ -1200,19 +1503,30 @@ async function main() {
     const { current, stale } = partitionVerdictsByPromptVersion(parsedVerdicts.entries, FIRST_FETCH_CLASSIFY_PROMPT_VERSION);
     if (stale.length) {
       console.log(
-        `run-ledger-consume: ${stale.length}/${parsedVerdicts.entries.length} verdict(s) in "${parsed.verdicts}" ` +
+        `run-ledger-consume: ${stale.length}/${parsedVerdicts.entries.length} verdict(s) in "${filePath}" ` +
           `carry a prompt_version other than the live ${FIRST_FETCH_CLASSIFY_PROMPT_VERSION} — excluded, treated ` +
           `as no-verdict for their URLs (never silently accepted as current).`
       );
     }
-    verdictsByUrl = indexVerdictsByUrl(current);
-    verdictsInfo = {
-      path: parsed.verdicts,
+    allCurrentEntries = allCurrentEntries.concat(current); // ascending batch order — later batch wins on a duplicate URL
+    verdictsFilesInfo.push({
+      path: filePath,
       batch: parsedVerdicts.batch,
       total_entries: parsedVerdicts.entries.length,
       usable_entries: current.length,
       stale_prompt_version_entries: stale.length,
-    };
+    });
+  }
+  verdictsByUrl = indexVerdictsByUrl(allCurrentEntries);
+  if (!parsed.verdicts) {
+    console.log(
+      verdictsFilesInfo.length
+        ? `run-ledger-consume: no --verdicts given — auto-discovered ${verdictsFilesInfo.length} committed ` +
+          `batch(es) (${verdictsFilesInfo.map((v) => v.batch).join(", ")}), ${verdictsByUrl.size} usable ` +
+          `URL(s) total.`
+        : "run-ledger-consume: no --verdicts given and no committed ledger-verdicts-*.json batches found — " +
+          "every candidate this run touches will be skipped for want of a verdict."
+    );
   }
 
   // --allow-api is the ONLY path that can still spend on Haiku — see this file's header. ANTHROPIC_API_KEY
@@ -1233,11 +1547,11 @@ async function main() {
     LEDGER_CONSUME_APPLY_ENABLED
   );
   if (applyGateMessage) console.log(applyGateMessage);
-  if (effectiveMode === "apply" && !parsed.verdicts && !parsed.allowApi) {
+  if (effectiveMode === "apply" && verdictsByUrl.size === 0 && !parsed.allowApi) {
     console.log(
-      "run-ledger-consume: apply requested with no --verdicts and no --allow-api — every candidate this " +
-        "run touches will be SKIPPED (no classification source), so this apply will mint nothing. Not an " +
-        "error: an honest no-op, recorded as such in this run's own artifact."
+      "run-ledger-consume: apply requested with no usable verdicts (none given/discovered) and no " +
+        "--allow-api — every candidate this run touches will be SKIPPED (no classification source), so " +
+        "this apply will mint nothing. Not an error: an honest no-op, recorded as such in this run's own artifact."
     );
   }
 
@@ -1252,8 +1566,14 @@ async function main() {
     baseClassify: apiClassify,
     telemetry,
   });
+  // THE PRE-FETCH GATE (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 item 1): the SAME decision
+  // buildVerdictClassify makes at classify time, read again by consumePortalCandidates BEFORE its own
+  // fetch step — see ConsumeOpts.classifyGate's own doc (portal-harvest.ts) and buildClassifyGate's own
+  // doc (above) for why the two can never disagree.
+  const classifyGate = buildClassifyGate({ verdictsByUrl, allowApi: parsed.allowApi });
 
   const config = {
+    action: "consume",
     requested_mode: requestedMode,
     mode: effectiveMode,
     apply_disarmed: applyDisarmed,
@@ -1263,7 +1583,10 @@ async function main() {
     newest_first: parsed.newestFirst,
     after: parsed.after,
     fetch_gap_ms: Number(process.env.LEDGER_CONSUME_FETCH_GAP_MS ?? 1000),
-    verdicts_file: verdictsInfo,
+    // verdicts_files (plural, ALWAYS an array — replacing the old singular verdicts_file): every batch
+    // this run actually read, whether an explicit --verdicts path (length 1) or every auto-discovered
+    // scripts/turns/ledger-verdicts/ledger-verdicts-*.json batch (length 0 when none exist).
+    verdicts_files: verdictsFilesInfo,
     allow_api: parsed.allowApi,
     prompt_version: FIRST_FETCH_CLASSIFY_PROMPT_VERSION,
   };
@@ -1272,8 +1595,10 @@ async function main() {
       (parsed.sourceId ? ` source_id=${parsed.sourceId}` : "") +
       ` limit=${parsed.limit} order=${parsed.newestFirst ? "desc" : "asc"}(first_seen_at,id)` +
       (parsed.after ? ` after=${JSON.stringify(parsed.after)}` : ""),
-    parsed.verdicts
-      ? `session-verdicts: ${parsed.verdicts} (batch=${verdictsInfo.batch}, usable=${verdictsInfo.usable_entries}/${verdictsInfo.total_entries})`
+    verdictsFilesInfo.length
+      ? `session-verdicts: ${verdictsFilesInfo.length} batch(es) (${verdictsFilesInfo.map((v) => v.batch).join(", ")}), ` +
+        `usable=${verdictsByUrl.size}/${verdictsFilesInfo.reduce((n, v) => n + v.total_entries, 0)} total` +
+        (parsed.verdicts ? " (explicit --verdicts)" : " (auto-discovered, all committed batches)")
       : "session-verdicts: none — every candidate without --allow-api is skipped, never sent to the API",
   ];
 
@@ -1296,6 +1621,7 @@ async function main() {
       after: parsed.after ?? undefined,
       fetchDoc,
       classify,
+      classifyGate,
       anthropicKey,
       caller: "ledger-consume-turn",
     });
@@ -1313,7 +1639,9 @@ async function main() {
   } finally {
     if (runId) {
       const harnessVersion = hashHarnessVersion(LEDGER_CONSUME_GOVERNING_FILES, FSI_ROOT);
-      const shaped = result ? shapeConsumeResult(result, telemetry, { sourceIdFilter: parsed.sourceId }) : null;
+      const shaped = result
+        ? shapeConsumeResult(result, telemetry, { sourceIdFilter: parsed.sourceId, verdictBatchesRead: verdictsFilesInfo.length })
+        : null;
       const artifact = buildRunArtifact({
         runId,
         harnessVersion,

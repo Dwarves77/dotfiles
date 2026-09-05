@@ -16,6 +16,23 @@
 // Auth: cookie session (read-only; no antitrust-sensitive write happens on this route — submitting a
 // response is a separate, not-yet-built write path this lane's interface contract does not name).
 // Rate limit: standard 60/min/user.
+//
+// PUBLISH_AGGREGATE() WIRING (lane NOTICES, complete-system build plan, 2026-09-05). Migration 287
+// shipped `publish_aggregate()` complete and self-tested but with "NOTHING TO GATE YET" (its own header,
+// verbatim); migration 294 gave it a real, registered subject
+// (`community_benchmark_responses.value_numeric`) and re-proved the gate live in its own post-check —
+// but neither migration added a RUNTIME caller: this route, the one place a benchmark aggregate is ever
+// served to a reader, computed and returned `aggregateBenchmarkResponses()`'s JS-only gate alone. Every
+// instrument with at least one response (an all-zero pool has no real cohort worth a DB round trip or a
+// log row) now also gets `publish_aggregate('community_benchmark_responses', 'value_numeric', ...)`
+// consulted — member_ids only, no member_values (see benchmark.mjs's own header for why the DB's
+// generic sum would be the wrong statistic for a rate/percentage field) — and its refusal, when one
+// comes back, overrides the JS gate's own "publishable" (applyPublishAggregateGate,
+// src/lib/community/benchmark.mjs): the DB gate's durable audit log and its freeze / tracker-attack /
+// complementary-suppression defences are real protections the JS-only gate does not attempt (that
+// module's own header). An RPC error is fail-soft — the JS gate's own k_min=5/max_share_pct=25/
+// min_lag_days=90 floors (the SAME numbers migration 294 registered) still govern; a transient failure
+// to reach the extra DB-side defences degrades to that floor, never to "publish anything."
 
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -24,7 +41,42 @@ import {
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { scopeBenchmarksForReader, aggregateBenchmarkResponses } from "@/lib/community/index.mjs";
+import {
+  scopeBenchmarksForReader,
+  aggregateBenchmarkResponses,
+  distinctOrganisationKeys,
+  applyPublishAggregateGate,
+} from "@/lib/community/index.mjs";
+
+interface PublishAggregateResult {
+  refused: boolean;
+  reason: string | null;
+}
+
+/** Calls the DB gate for one instrument's current cohort. Never throws — an RPC error or a
+ *  malformed/absent response yields `null` (this route's own header: fail-soft to the JS gate's floor). */
+async function consultPublishAggregateGate(
+  service: ReturnType<typeof getServiceSupabase>,
+  memberIds: string[],
+  periodEnd: string
+): Promise<PublishAggregateResult | null> {
+  if (memberIds.length === 0) return null;
+  try {
+    const { data, error } = await service.rpc("publish_aggregate", {
+      p_table: "community_benchmark_responses",
+      p_column: "value_numeric",
+      p_cohort_filter: { member_ids: memberIds, period_end: periodEnd },
+    });
+    if (error || !data || typeof data !== "object") return null;
+    const payload = data as Record<string, unknown>;
+    return {
+      refused: payload.refused === true,
+      reason: typeof payload.reason === "string" ? payload.reason : null,
+    };
+  } catch {
+    return null;
+  }
+}
 
 interface InstrumentRow {
   id: string;
@@ -103,7 +155,15 @@ export async function GET(request: NextRequest) {
         { key: instrument.key, periodEnd: instrument.period_end },
         pool
       );
-      return { instrument, aggregate };
+
+      // publish_aggregate() gate (see this file's own header) — the real, audited, attack-resistant
+      // second opinion on top of the JS-only gate above.
+      const gateResult = await consultPublishAggregateGate(
+        service,
+        distinctOrganisationKeys(pool),
+        instrument.period_end
+      );
+      return { instrument, aggregate: applyPublishAggregateGate(aggregate, gateResult) };
     })
   );
 

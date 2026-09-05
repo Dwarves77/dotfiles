@@ -19,16 +19,17 @@
  * admissibleFor() evaluates it exactly as it would a persisted row; a live, unstored preview cannot be
  * called MORE trustworthy than a persisted one, so it gets the same gate, not a bypass.
  *
- * RecalculationNotice list underneath is fed by GET /api/notices — Bearer-token auth via the browser
- * session, same idiom WatchButton.tsx already establishes for this codebase's client-side auth calls.
+ * RecalculationNotice list underneath is fed by GET /api/notices via NoticesRail
+ * (src/components/figures/NoticesRail.tsx, lane NOTICES 2026-09-05) — extracted from this file's own
+ * former inline fetch-and-render copy once the Market index page and the four item detail surfaces needed
+ * the identical sequence (CLAUDE.md "no copies of logic"); behaviour here is unchanged, only the fetch
+ * itself moved to a shared module.
  */
 
-import { useEffect, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useMemo, useState } from "react";
 import { automateVsHire, DEFAULT_SCENARIO } from "@/lib/operations/automate-vs-hire.mjs";
 import { EstimatedFigure } from "@/components/figures/EstimatedFigure";
-import { RecalculationNotice } from "@/components/figures/RecalculationNotice";
-import type { RecalculationNoticeItem } from "@/components/figures/RecalculationNotice";
+import { NoticesRail } from "@/components/figures/NoticesRail";
 import type { Value } from "@/lib/propagation/types.ts";
 
 interface FormState {
@@ -91,33 +92,9 @@ function makeSyntheticValue(scenario: ReturnType<typeof automateVsHire>): Value 
 
 export function AutomateVsHireCalculator() {
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
-  const [notices, setNotices] = useState<RecalculationNoticeItem[]>([]);
-  const [noticesLoading, setNoticesLoading] = useState(true);
 
   const scenario = useMemo(() => automateVsHire(form), [form]);
   const figure = useMemo(() => makeSyntheticValue(scenario), [scenario]);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch("/api/notices", {
-          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-          cache: "no-store",
-        });
-        if (!res.ok) return;
-        const json = await res.json();
-        if (!cancelled && Array.isArray(json.notices)) setNotices(json.notices);
-      } catch {
-        // Fail soft — the notices rail is a courtesy, never a blocker for the calculator itself.
-      } finally {
-        if (!cancelled) setNoticesLoading(false);
-      }
-    })();
-    return () => { cancelled = true; };
-  }, []);
 
   function update(key: keyof FormState, raw: string) {
     const n = Number(raw);
@@ -187,12 +164,7 @@ export function AutomateVsHireCalculator() {
       />
 
       <div style={{ marginTop: 20 }}>
-        <div className="cl-section-label" style={{ marginBottom: 8 }}>Recent recalculations</div>
-        {noticesLoading ? (
-          <div className="cl-card-meta">Loading…</div>
-        ) : (
-          <RecalculationNotice notices={notices} emptyMessage="No recalculations on your team's watchlist since your last visit." />
-        )}
+        <NoticesRail heading="Recent recalculations" bare />
       </div>
     </section>
   );

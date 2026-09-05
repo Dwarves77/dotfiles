@@ -92,9 +92,14 @@ on:
         # the credential as a GitHub Actions secret and adding its name to WORKFLOW_SECRETS (both outside
         # this lane's write set) is the prerequisite; once done, a run step mirroring the EU Weekly Oil
         # Bulletin step's dry/apply shape is the remaining wiring.
-        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics]
+        options: [all, eurostat-nrg-pc-205, eurostat-lc-lci-lev, bls-oews, eu-weekly-oil-bulletin, ecb-fx, desnz-emission-factors, epa-emission-factors, eia-v2-petroleum-spot, refresh-published-price-statistics, build-oil-bulletin-rows, ratify-series-items]
       since:
         description: 'Optional backfill start date (YYYY-MM-DD) for the EU Weekly Oil Bulletin history file. Leave empty for the normal latest-week fetch. Ignored by every other producer.'
+        required: false
+        default: ''
+        type: string
+      mint_run:
+        description: 'Repo-relative path to a committed mint-run-NNN.json artifact. Required by, and only used by, ratify-series-items (ruling R-D).'
         required: false
         default: ''
         type: string
@@ -117,6 +122,7 @@ env:
   RUN_MODE: ${{ inputs.mode }}
   RUN_PRODUCER: ${{ inputs.producer }}
   RUN_SINCE: ${{ inputs.since }}
+  RUN_MINT_RUN: ${{ inputs.mint_run }}
 
 jobs:
   produce:
@@ -379,6 +385,50 @@ jobs:
             node scripts/gen/emission-factors-epa.mjs --apply
           else
             node scripts/gen/emission-factors-epa.mjs
+          fi
+
+      - name: build-oil-bulletin-rows (R-D mint-harness input -- six enriched census rows)
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): ruling R-D (2026-09-03, see the script's own header) --
+        # pure, $0, no DB, no fetch, no LLM -- builds the six enriched census rows the mint family's
+        # MINT-RUNBOOK.md §11 browser-capture escape hatch needs to mint the six EU Weekly Oil Bulletin
+        # series as published_price_statistics record-grade market_signal items. NOT in 'all' -- a
+        # one-off mint-harness input generator, not a recurring source fetch (same posture as the
+        # DESNZ/EPA one-off seeders above). The script has no --apply/--dry distinction of its own (it
+        # never writes a database); this step always writes the rows file and uploads it as this run's
+        # artifact for the coordinator to review and commit into
+        # scripts/_snapshots/population-browser/<batch>/census-rows.json per MINT-RUNBOOK.md §11.
+        if: env.RUN_PRODUCER == 'build-oil-bulletin-rows'
+        run: |
+          mkdir -p /tmp/oil-bulletin-rows
+          node scripts/producers/market/build-oil-bulletin-rows.mjs --out /tmp/oil-bulletin-rows/census-rows.json
+
+      - name: Upload build-oil-bulletin-rows census-rows.json
+        if: env.RUN_PRODUCER == 'build-oil-bulletin-rows' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: oil-bulletin-census-rows
+          path: /tmp/oil-bulletin-rows/census-rows.json
+          if-no-files-found: warn
+
+      - name: ratify-series-items (R-D ratification -- mint-run outcome -> series-item-map.mjs)
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): ruling R-D's ratification half (see the script's own
+        # header). Requires the `mint_run` input -- a repo-relative path to an already-committed
+        # mint-run-NNN.json artifact this run's checkout carries (the coordinator commits it after a
+        # mint batch completes, same posture as every other artifact-gated step in this repo). Rewrites
+        # src/lib/market/series-item-map.mjs in place on --apply (never hand-edited -- see the script's
+        # own header on why the ratification target is a bundled .mjs module, not JSON); the coordinator
+        # reviews and commits that diff like any other producer output. NOT in 'all' -- a one-off
+        # ratification step, run by name once a mint batch exists, never a recurring sweep.
+        if: env.RUN_PRODUCER == 'ratify-series-items'
+        run: |
+          if [ -z "$RUN_MINT_RUN" ]; then
+            echo "::error::ratify-series-items: the mint_run input is required (path to a committed mint-run-NNN.json)."
+            exit 1
+          fi
+          if [ "$RUN_MODE" = "apply" ]; then
+            node scripts/producers/market/ratify-series-items.mjs --mint-run "$RUN_MINT_RUN" --apply
+          else
+            node scripts/producers/market/ratify-series-items.mjs --mint-run "$RUN_MINT_RUN"
           fi
 
       # Runs even when a producer failed, so the log always ends with the true state of the stores

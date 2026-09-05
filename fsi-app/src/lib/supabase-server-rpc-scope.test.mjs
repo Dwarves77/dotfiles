@@ -199,15 +199,51 @@ test("no org-scoped cursor migration file exists (PERF-12's original 5-arg overl
       "org-scoped cursor migration must stay deleted (never applied); the only live cursor-carrying " +
       "signature is get_workspace_intelligence_listings_public inside migration 306",
   );
-  const cursorGrantFiles = files.filter((f) => {
-    if (!f.endsWith(".sql")) return false;
+  // The cursor param belongs to exactly ONE function: get_workspace_intelligence_listings_public
+  // (migration 306). A LATER migration extending that SAME function in place (CREATE OR REPLACE with
+  // the identical parameter list — e.g. migration 310 appending a trailing `item_grade` RETURNS TABLE
+  // column, lane CHIPS 2026-09-05) is legitimate maintenance, not a second/different cursor-scoped
+  // overload — the defect this test guards against is a NEW function, or a DIFFERENT parameter list,
+  // introducing a second signature. So: extract every file's parameter list for that one function name
+  // and require it to be byte-identical to migration 306's, and require p_after_priority to appear
+  // ONLY inside that function's own declaration (never bound to some other function name).
+  const SIGNATURE_RE =
+    /CREATE OR REPLACE FUNCTION public\.get_workspace_intelligence_listings_public\(([\s\S]*?)\)\s*\n RETURNS TABLE/;
+  const canonicalSql = readFileSync(join(migDir, "306_public_workspace_intelligence_listings.sql"), "utf8");
+  const canonicalParams = canonicalSql.match(SIGNATURE_RE)?.[1]?.trim();
+  assert.ok(canonicalParams, "migration 306 must declare get_workspace_intelligence_listings_public's parameter list");
+
+  for (const f of files) {
+    if (!f.endsWith(".sql")) continue;
     const sql = readFileSync(join(migDir, f), "utf8");
-    return /p_after_priority/.test(sql);
-  });
-  assert.deepEqual(
-    cursorGrantFiles,
-    ["306_public_workspace_intelligence_listings.sql"],
-    `p_after_priority appears in migration file(s) ${cursorGrantFiles.join(", ")} — expected it to ` +
-      "appear in exactly migration 306 (the org-independent public RPC) and nowhere else",
-  );
+    if (!/p_after_priority/.test(sql)) continue;
+    if (f === "306_public_workspace_intelligence_listings.sql") continue;
+    const params = sql.match(SIGNATURE_RE)?.[1]?.trim();
+    assert.ok(
+      params,
+      `${f} mentions p_after_priority but does not (re)declare ` +
+        "get_workspace_intelligence_listings_public with a matching signature block — a cursor param " +
+        "bound to any other function name is exactly the second-overload defect this test guards against",
+    );
+    assert.equal(
+      params,
+      canonicalParams,
+      `${f} redeclares get_workspace_intelligence_listings_public with a parameter list that differs ` +
+        "from migration 306's — that is a second, incompatible overload (the PERF-12 defect), not a " +
+        "legitimate in-place extension",
+    );
+    // The whole file's occurrence(s) of p_after_priority must all sit inside that one function's own
+    // CREATE-statement block, not leak into some other function's parameter list.
+    const otherFunctionParamLists = [
+      ...sql.matchAll(/CREATE OR REPLACE FUNCTION public\.(\w+)\(([\s\S]*?)\)\s*\n RETURNS/g),
+    ].filter((m) => m[1] !== "get_workspace_intelligence_listings_public");
+    for (const m of otherFunctionParamLists) {
+      assert.doesNotMatch(
+        m[2],
+        /p_after_priority/,
+        `${f}: function ${m[1]} must not carry a p_after_priority parameter — only ` +
+          "get_workspace_intelligence_listings_public is cursor-scoped",
+      );
+    }
+  }
 });

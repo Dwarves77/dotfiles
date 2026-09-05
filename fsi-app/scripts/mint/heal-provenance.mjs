@@ -798,7 +798,30 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 // full_brief (the same "brief grade = full_brief + claims pipeline" shape it already has), and Task 4 only
 // ever adds a label to an existing section — the record<->brief upgrade path (§7) is a distinct, unrelated
 // full-remint mechanism (`apply-staged-update.ts`) this lane's write set does not touch.
-export const HEAL_VERSION = "hp10-2026-09-04.2";
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1). Audit finding (wiring-audit-2026-09-04.md gap 4 /
+// C1-loop-map.md §6): apply #42 measured 443 orphan tokens on 76 items that STEP SOURCE's OWN candidate
+// search (`candidateUrlsForOrphan`, scoped to the item's OWN cited URLs) could not resolve at $0 — every
+// candidate this file could derive from the item's own citations was tried and exhausted. The operator's
+// standing ruling (STEP SOURCE's own header) is "you need to attach a source", not "stay quarantined until
+// a paid search API is authorized" — and rule 18 already gates $0/no-LLM. The $0 lever left is a session
+// Haiku browser lane doing the actual web search a human would do (free, no API spend, no runtime LLM
+// call) and handing back what it found. This pass adds exactly ONE new input to STEP SOURCE's EXISTING
+// candidate-URL list, nothing else: `deps.foundSourcesForItem(itemId)` (optional; absent/undefined for
+// every dispatch that isn't `attach-found-sources` — provenance-heal's own default dispatch behavior is
+// therefore BYTE-IDENTICAL to before this pass) returns `{ [token]: [{ url, quote }, ...] }` for that
+// item — a worklist a Haiku lane filled with a URL it found and the quote it read there. Those URLs are
+// PREPENDED to `candidateUrlsForOrphan`'s own result (never replacing it — an item's own citations are
+// still tried too) and then run through the EXACT SAME classify/fetch/register/locate sequence every
+// other candidate already goes through below: SC-13's class table still decides the tier (never the
+// worklist's own say-so), `locateSpanInText` still requires the TOKEN verbatim on the fetched page (never
+// trusting the worklist's `quote` as a substitute proof), and a URL whose host the class table leaves
+// ambiguous still worklists rather than registering. `quote` is carried into the reported outcome only as
+// audit evidence (cross-referenced against the URL a human/Haiku actually read) — it is never itself the
+// needle GROUND locates. This is additive and idempotent by construction: a token STEP SOURCE already
+// grounded (from this run or an earlier one) is no longer a Gate-A orphan, so it is never re-offered a
+// worklist candidate to try again; re-dispatching the SAME worklist against an item with no remaining
+// orphans is a clean no-op, not a duplicate write.
+export const HEAL_VERSION = "hp11-2026-09-05.1";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const DEFAULT_SLOTS_PATH = resolve(HERE, "item-type-required-slots.json");
@@ -2182,17 +2205,22 @@ export function classifyCitedUrlForOrphan(url, sourcesIndex) {
 }
 
 /**
- * The candidate cited URLs to try sourcing an orphan `token` against: every URL cited in the token's
- * OWNING SECTION (findOwningSection, unchanged), or — when the token owns no section — every URL the
- * item cites at all (collectCitedUrls over every section, the same "search across the item's citations"
- * fallback the brief names). Bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN. Pure; adds NO new
- * URL-discovery mechanism — both helpers it calls already exist and are reused verbatim.
+ * The candidate cited URLs to try sourcing an orphan `token` against: `foundUrls` (ELEVENTH PASS, ATTACH-
+ * SOURCES — a Haiku browser lane's own worklist finds for this exact token, empty/omitted for every
+ * dispatch that carries no worklist, so every pre-existing caller is unaffected) FIRST, then every URL
+ * cited in the token's OWNING SECTION (findOwningSection, unchanged), or — when the token owns no section
+ * — every URL the item cites at all (collectCitedUrls over every section, the same "search across the
+ * item's citations" fallback the brief names). Deduplicated (a worklist URL that is ALSO already cited is
+ * tried once, first), bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN. Pure; adds NO new URL-discovery
+ * mechanism of its own — every URL still goes through classifyCitedUrlForOrphan's SAME class-table/
+ * already-registered check below, never trusted just because a worklist named it.
  */
-export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex }) {
+export function candidateUrlsForOrphan(token, { sections, claims, sourcesIndex, foundUrls = [] }) {
   const owning = findOwningSection(token, sections);
   const scopedSections = owning ? [owning] : sections;
-  const urls = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
-  return urls.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
+  const cited = collectCitedUrls({ sections: scopedSections, claims, sourcesIndex });
+  const merged = [...foundUrls, ...cited].filter((u, i, arr) => arr.indexOf(u) === i);
+  return merged.slice(0, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -2988,6 +3016,16 @@ export function parseSelection(arg) {
   if (!raw || raw === "quarantined-live") return { ok: true, mode: "quarantined-live", ids: null, stripUnprovable };
   if (raw === "archived-unreasoned") return { ok: true, mode: "archived-unreasoned", ids: null, stripUnprovable };
   if (raw === "slots-backfill") return { ok: true, mode: "slots-backfill", ids: null, stripUnprovable };
+  // kit-backfill (Lane KIT-BACKFILL, 2026-09-05, W2.3/W2.4): the SAME slot-missing narrowing
+  // slots-backfill already does, generalized two ways — (1) every item_type item-type-required-slots.json
+  // has an entry for (not only market_signal/initiative/research_finding), so the 575 one-or-two-FACT
+  // regulation-family/initiative items outside those three types are reachable too; (2) archived items are
+  // included (see resolveKitBackfillCandidates's own header and migration-299-precheck.mjs's header for why
+  // an archived-but-verified item is not inert to criterion 5) — this is what actually closes migration
+  // 299's guard to N=0 for the 62 of the 149 that are archived, which slots-backfill's own narrower,
+  // non-archived-only candidate set cannot reach. slots-backfill's existing selection/behavior/tests are
+  // UNCHANGED — see resolveKitBackfillCandidates below.
+  if (raw === "kit-backfill") return { ok: true, mode: "kit-backfill", ids: null, stripUnprovable };
   if (raw.startsWith("ids:")) {
     const ids = raw.slice(4).split(",").map((s) => s.trim()).filter(Boolean);
     if (!ids.length) return { ok: false, error: '--arg "ids:<uuid,uuid,...>" requires at least one id.' };
@@ -2997,23 +3035,50 @@ export function parseSelection(arg) {
     ok: false,
     error:
       `unrecognized --arg ${JSON.stringify(String(arg ?? "").trim())} (expected blank/"quarantined-live", ` +
-      `"archived-unreasoned", "ids:<uuid,uuid,...>", or "slots-backfill", each optionally suffixed ` +
-      `"${STRIP_UNPROVABLE_SUFFIX}").`,
+      `"archived-unreasoned", "ids:<uuid,uuid,...>", "slots-backfill", or "kit-backfill", each optionally ` +
+      `suffixed "${STRIP_UNPROVABLE_SUFFIX}").`,
   };
 }
 
-/** The slots-backfill candidate set: every item deps.readCandidateTypeItems returns (market_signal /
- *  initiative / research_finding, verified, live) that is ACTUALLY missing >=1 kit-required slot right
- *  now — narrowed here (not left to the caller) so a dispatch of this selection never runs the pipeline
- *  over an item that has nothing to backfill. */
-export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
-  const items = await deps.readCandidateTypeItems(["market_signal", "initiative", "research_finding"]);
+/** Every real (non-meta, i.e. not "_comment"/"_grade_note"/"_intake_note"-prefixed) item_type key in a
+ *  requiredSlotsMap shaped like item-type-required-slots.json. Pure. */
+export function requiredSlotItemTypes(requiredSlotsMap) {
+  return Object.keys(requiredSlotsMap ?? {}).filter((k) => !k.startsWith("_"));
+}
+
+/** THE generalized slot-missing candidate resolver both slots-backfill and kit-backfill narrow through —
+ *  every item `deps.readCandidateTypeItems(itemTypes, { includeArchived })` returns (verified; live unless
+ *  `includeArchived`) that is ACTUALLY missing >=1 kit-required slot right now — narrowed here (not left to
+ *  the caller) so a dispatch of either selection never runs the pipeline over an item that has nothing to
+ *  backfill. `itemTypes` defaults to EVERY item_type item-type-required-slots.json has an entry for (the
+ *  kit-backfill breadth); `includeArchived` defaults to false (the slots-backfill posture — an archived
+ *  item is not "live" for that mode's own narrower intent). Grade-agnostic by design: the per-slot
+ *  extractors this file's SLOTS step calls (buildSlotClaim) work off captured text alone, the same for a
+ *  `record`- or `brief`-grade item (grep-verified 2026-09-05: no item_grade branch anywhere in that
+ *  function or its callees) — matching precedent (`readCandidateTypeItems` itself has never filtered
+ *  `item_grade`). */
+export async function resolveKitBackfillCandidates(deps, requiredSlotsMap, opts = {}) {
+  const itemTypes = opts.itemTypes ?? requiredSlotItemTypes(requiredSlotsMap);
+  const includeArchived = opts.includeArchived ?? false;
+  const items = await deps.readCandidateTypeItems(itemTypes, { includeArchived });
   const kept = [];
   for (const item of items) {
     const claims = await deps.readClaims(item.id);
     if (missingRequiredSlots(item.item_type, claims, requiredSlotsMap).length) kept.push(item);
   }
   return kept;
+}
+
+/** The slots-backfill candidate set: UNCHANGED (2026-09-03, lane HEAL-6) — every item
+ *  deps.readCandidateTypeItems returns (market_signal / initiative / research_finding, verified, live)
+ *  that is ACTUALLY missing >=1 kit-required slot right now. Now a thin call into the generalized
+ *  resolveKitBackfillCandidates above (2026-09-05, lane KIT-BACKFILL) — same three item_types, same
+ *  `includeArchived: false` default this mode always had — so this mode's own selection, behavior, and
+ *  every existing test of it are byte-for-byte unchanged. */
+export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
+  return resolveKitBackfillCandidates(deps, requiredSlotsMap, {
+    itemTypes: ["market_signal", "initiative", "research_finding"],
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -3473,7 +3538,12 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
     const alreadyCoverable = planOrphanGrounding(orphan, resourceBuckets, runCaptureIndexCache);
     if (alreadyCoverable.outcome === "found") continue;
 
-    const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx });
+    // ELEVENTH PASS (ATTACH-SOURCES) — a worklist a Haiku browser lane filled for THIS item/token, if the
+    // attach-found-sources dispatch supplied one via deps.foundSourcesForItem; every OTHER caller (a plain
+    // provenance-heal dispatch) never sets this dep, so foundEntries is always [] there — byte-identical.
+    const foundEntries = deps.foundSourcesForItem ? (deps.foundSourcesForItem(item.id)?.[orphan.token] ?? []) : [];
+    const foundUrls = foundEntries.map((f) => f.url);
+    const candidateUrls = candidateUrlsForOrphan(orphan.token, { sections: sectionsList, claims, sourcesIndex: sIdx, foundUrls });
     if (!candidateUrls.length) {
       // Class D reporting (NINTH PASS): the sentence carries context for the coordinator/operator even
       // though no candidate URL exists to try at all — never invented, a literal slice of full_brief.
@@ -3582,10 +3652,15 @@ export async function healOneItem(item, { deps, apply, selectionMode, requiredSl
         };
         const ins = await deps.insertClaim(claimRow);
         claims.push({ id: ins.id, claim_kind: "FACT", claim_text: claimRow.claim_text, source_span: claimRow.source_span, source_id: sourceId, section_row_id: sectionId });
+        // ELEVENTH PASS: `via`/`quote` are audit evidence ONLY — the quote is never the needle GROUND
+        // located (that is always `found.span`, the verbatim token match on the fetched page above); this
+        // just cross-references the worklist row a human/Haiku lane actually supplied for this outcome.
+        const foundMatch = foundEntries.find((f) => f.url === url);
         sourceResults.push({
           token: orphan.token, class: orphan.class, url,
           outcome: cls.status === "registerable" ? "source_registered_and_grounded" : "grounded_on_existing_source",
           claim_id: ins.id, source_id: sourceId, source_tier: sourceTier, register: registerOutcome, match_method: found.method,
+          ...(foundMatch ? { via: "worklist", quote: foundMatch.quote } : {}),
         });
         grounded = true;
         break;
@@ -4101,7 +4176,10 @@ export function computeItemTimeBudgetSeconds(runTimeBudgetSeconds) {
  *   run's checkpoint/artifact directory (cli.mjs's own `--out`, threaded through unmodified); a summary.json
  *   is written there atomically after EVERY item, not only at the end (HEAL-BUDGET).
  * @param {object} deps — see healOneItem's own header, plus selection resolvers:
- *   readQuarantinedLive(), readArchivedUnreasoned(), readCandidateTypeItems(itemTypes), readByIds(ids),
+ *   readQuarantinedLive(), readArchivedUnreasoned(),
+ *   readCandidateTypeItems(itemTypes, { includeArchived }={}) (the `includeArchived` opt added 2026-09-05,
+ *   lane KIT-BACKFILL — see resolveKitBackfillCandidates's own header; every existing caller passes just
+ *   `itemTypes`, which a deps implementation must still treat as `includeArchived: false`), readByIds(ids),
  *   readAllSources() -> the `sources` registry (read ONCE per run, same precedent as db.mjs's own
  *   registerSource dedup read — small table, not the agent_run_searches full-scan the brief forbids;
  *   optional, defaults to `[]` so a direct healOneItem caller need not supply it),
@@ -4153,6 +4231,11 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   if (selection.mode === "quarantined-live") items = await deps.readQuarantinedLive();
   else if (selection.mode === "archived-unreasoned") items = await deps.readArchivedUnreasoned();
   else if (selection.mode === "slots-backfill") items = await resolveSlotsBackfillCandidates(deps, requiredSlotsMap);
+  // kit-backfill (2026-09-05, lane KIT-BACKFILL): every item_type, archived included — see
+  // resolveKitBackfillCandidates's own header for why both broadenings are needed to actually close
+  // migration 299's guard (migration-299-precheck.mjs) to N=0 and cover the wider one-or-two-FACT
+  // population outside the three criterion-5-only types.
+  else if (selection.mode === "kit-backfill") items = await resolveKitBackfillCandidates(deps, requiredSlotsMap, { includeArchived: true });
   else items = await deps.readByIds(selection.ids);
 
   // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET) — ONE per run, shared across every item below.

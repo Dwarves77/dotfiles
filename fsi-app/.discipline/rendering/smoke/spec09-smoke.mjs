@@ -1,6 +1,7 @@
 // UX smoke spec: spec 09 panels (SurchargeAuditPanel, OemRoadmapPanel, ReroutingPanel, DqiPanel,
-// AuxiliaryEnergyPanel, GridQueuePanel, EudrCustodyPanel). Lane SPEC-09, wave 3, 2026-09-03
-// (docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md; RD-60; F35
+// AuxiliaryEnergyPanel, GridQueuePanel, EudrCustodyPanel, IndexationPanel). Lane SPEC-09, wave 3,
+// 2026-09-03; IndexationPanel added by lane SPEC09-B, 2026-09-05 (the reader indexation_clauses lacked at
+// wave 3 — docs/dispatches/lane-common-contract.md UX contract; docs/design/ux-laws.md; RD-60; F35
 // row-ux-coverage).
 //
 // WHAT THIS MOUNTS, AND WHY NOT THE ASYNC PANELS THEMSELVES. Every panel is a self-contained async
@@ -58,6 +59,7 @@ import { DqiPanelView } from '@/components/operations/DqiPanelView';
 import { AuxiliaryEnergyPanelView } from '@/components/operations/AuxiliaryEnergyPanelView';
 import { GridQueuePanelView } from '@/components/operations/GridQueuePanelView';
 import { EudrCustodyPanelView } from '@/components/regulations/EudrCustodyPanelView';
+import { IndexationPanelView } from '@/components/market/IndexationPanelView';
 
 function Spec09SmokeRoot(props) {
   return React.createElement(React.Fragment, null,
@@ -68,6 +70,7 @@ function Spec09SmokeRoot(props) {
     React.createElement(AuxiliaryEnergyPanelView, { rows: props.aux }),
     React.createElement(GridQueuePanelView, { rows: props.grid }),
     React.createElement(EudrCustodyPanelView, { plotClaims: props.eudrPlot, custodyChains: props.eudrCustody }),
+    React.createElement(IndexationPanelView, { rows: props.indexation }),
   );
 }
 
@@ -80,7 +83,7 @@ window.__mount = (props) => {
 `;
 
 const EMPTY_STATE = Object.freeze({
-  surcharge: [], oem: [], reroute: [], dqi: [], aux: [], grid: [], eudrPlot: [], eudrCustody: [],
+  surcharge: [], oem: [], reroute: [], dqi: [], aux: [], grid: [], eudrPlot: [], eudrCustody: [], indexation: [],
 });
 
 const LONG = (n, word) => Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
@@ -123,12 +126,16 @@ function extremeState() {
       { custody_id: 'c1', credit_type: 'saf_bnc', scheme: `${LONG(5, 'extremely-long-certification-scheme-name-segment')}`, double_count_check: 'conflict_detected' },
       { custody_id: 'c2', credit_type: 'green_methanol', scheme: 'ISCC PLUS', double_count_check: 'single_claim_confirmed' },
     ],
+    indexation: [
+      { clause_id: 'i1', contract_ref: `${LONG(6, 'extremely-long-contract-reference-token')}`, corridor_id: 'cl:corridor:0000000000000101', index_id: 'cl:instrument:eua-front-dec', base_value: 80, base_date: '2026-01-01', passthrough_pct: 70, cap_pct: 20, floor_pct: -10, review_cadence: 'quarterly', rounding_rule: 'round to nearest cent' },
+      { clause_id: 'i2', contract_ref: null, corridor_id: null, index_id: 'cl:instrument:uka', base_value: 45, base_date: '2026-03-01', passthrough_pct: 100, cap_pct: null, floor_pct: null, review_cadence: 'monthly', rounding_rule: 'round to nearest whole unit' },
+    ],
   };
 }
 
 const STATES = [
   { label: 'empty', props: EMPTY_STATE, expectTitles: 0 },
-  { label: 'extreme', props: extremeState(), expectTitles: 7 },
+  { label: 'extreme', props: extremeState(), expectTitles: 8 },
 ];
 
 export async function runSmoke(browser) {
@@ -156,14 +163,14 @@ export async function runSmoke(browser) {
           failures.push(`${label}: expected >=${state.expectTitles} [data-guard-title] element(s), found ${ux.titles.length} (spec cannot pass by rendering nothing)`);
         }
 
-        // Empty state: every one of the seven "no rows yet" gap lines renders (honest omission, never a
+        // Empty state: every one of the eight "no rows yet" gap lines renders (honest omission, never a
         // silently blank panel) — law 15's "explain what went wrong" applied to an absent-data state.
         if (state.label === 'empty') {
           checks += 1;
           const text = await page.textContent('body');
-          const gapCount = (text.match(/No rows yet|no rows yet/g) || []).length;
-          if (gapCount < 7) {
-            failures.push(`${label}: expected 7 "no rows yet" gap lines (one per panel), found ${gapCount}.`);
+          const gapCount = (text.match(/No rows yet/gi) || []).length;
+          if (gapCount < 8) {
+            failures.push(`${label}: expected 8 "no rows yet" gap lines (one per panel), found ${gapCount}.`);
           }
         }
 

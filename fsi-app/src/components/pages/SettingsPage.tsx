@@ -34,6 +34,7 @@ const DataSummary = dynamic(() => import("@/components/settings/DataSummary").th
 const SupersessionHistory = dynamic(() => import("@/components/settings/SupersessionHistory").then((m) => ({ default: m.SupersessionHistory })), { ssr: false });
 const ArchiveViewer = dynamic(() => import("@/components/settings/ArchiveViewer").then((m) => ({ default: m.ArchiveViewer })), { ssr: false });
 const SavedSearchesSection = dynamic(() => import("@/components/settings/SavedSearchesSection").then((m) => ({ default: m.SavedSearchesSection })), { ssr: false });
+const Spec09CsvUpload = dynamic(() => import("@/components/settings/Spec09CsvUpload").then((m) => ({ default: m.Spec09CsvUpload })), { ssr: false });
 
 interface Props {
   initialResources: Resource[];
@@ -166,6 +167,12 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
           <div style={{ display: "grid", gap: 16 }}>
             <AccountCard title="Data summary">
               <DataSummary resources={initialResources} archived={initialArchived} />
+            </AccountCard>
+            <AccountCard
+              title="Upload operational data (CSV)"
+              meta="Surcharge audits · DQI · auxiliary energy · EUDR claims · custody chains · indexation terms"
+            >
+              <Spec09CsvUpload />
             </AccountCard>
             <AccountCard title="Supersession history">
               <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />

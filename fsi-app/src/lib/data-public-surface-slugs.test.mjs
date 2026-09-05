@@ -45,6 +45,11 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchAllRows } from "./db/paginate.mjs";
+// NOTE (2026-09-05): imported from supabase-env.ts — a pure, dependency-free module (no
+// @supabase/supabase-js, no next/cache) — NOT supabase-service.ts, whose top-level
+// `@supabase/supabase-js` import makes it unresolvable in this no-npm-ci suite (run-test-suite.sh).
+// supabase-service.ts re-exports the SAME function from this module (one home for the logic); this is
+// the real predicate, not a reimplementation.
 import { isServiceSupabaseConfigured } from "./supabase-env.ts";
 
 const SRC = dirname(fileURLToPath(import.meta.url));

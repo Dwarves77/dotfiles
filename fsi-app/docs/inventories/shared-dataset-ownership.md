@@ -62,7 +62,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/maintenance/record-hollow-sweep.mjs",
       "scripts/maintenance/canonical-key-dedup.mjs",
       "scripts/turns/run-population-flywheel.mjs",
-      "scripts/review/apply-canonical-candidates.mjs"
+      "scripts/review/apply-canonical-candidates.mjs",
+      "scripts/maintenance/origin-class-backfill.mjs"
     ],
     "item_cross_references": [
       "src/lib/intake/mint-item.ts",
@@ -115,7 +116,8 @@ who may write a shared table; the test enforces it on every future PR.
       "scripts/mint/apply-mint-batch.mjs",
       "scripts/mint/reopen-validation-holds.mjs",
       "scripts/maintenance/record-hollow-sweep.mjs",
-            "scripts/maintenance/canonical-key-dedup.mjs"
+            "scripts/maintenance/canonical-key-dedup.mjs",
+      "scripts/maintenance/census-off-vertical.mjs"
     ],
     "item_forward_events": [
       "scripts/forward-events/run-extraction.mjs",
@@ -174,6 +176,10 @@ who may write a shared table; the test enforces it on every future PR.
       "src/app/api/admin/scan/route.ts",
       "src/lib/intake/run-intake-cycle.ts",
       "src/lib/sources/change-sweep.mjs"
+    ],
+    "source_tier_opinions": [
+      "src/lib/sources/tier-opinion-writer.ts",
+      "src/app/api/admin/sources/tier-opinions/route.ts"
     ]
   }
 }
@@ -236,6 +242,7 @@ narrow-touch-for-recompute / tombstone-delete), not a data column.
 | `scripts/maintenance/tag-ratification.mjs` (Lane MAINT, 2026-09-02; auto-adoption arm 2026-09-03) | UPDATE (`intelligence_items`, `integrity_flags`) — the MAINT dispatch runtime for `scripts/connections/apply-tags.mjs`'s existing guarded apply paths (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §7); its `buildDeps().updateItem`/`resolveFlag` are second call sites of the SAME merge-only tag write and SAME flag-resolve `apply-tags.mjs`'s own `main()` makes (row above) — not a second write path, a second caller reached from a GitHub Actions dispatch instead of a CLI invocation, gated the same way (`arg`=id list → per-flag `ratify:tags` marker, `evaluateApplication`/`applyTags` imported unmodified; `arg="auto"` → `evaluateAutoAdoption`/`autoAdoptTags` imported unmodified) | `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateItem`; `guardedUpdate("integrity_flags", (qb) => qb.eq("id", id), {...}, { cite: CITE })` in `buildDeps().resolveFlag` |
 | `scripts/maintenance/record-hollow-sweep.mjs` (Lane HOLLOW-SWEEP, 2026-09-04) | UPDATE — archives a live verified `item_grade='record'` row whose FACT claims are title-only (`archive_reason='record_hollow'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived row stops matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` (both hold archived rows as blockers too — see the step's own header) and the census row can re-mint. `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches `section_claim_provenance`/`intelligence_item_sections`/`item_cross_references` — claims, sections, and edges are left exactly as they are. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
 | `scripts/maintenance/canonical-key-dedup.mjs` (Lane DEDUP, 2026-09-04) | UPDATE — keeps the single live verified row per `canonical_instrument_key`, archives the others (`archive_reason='duplicate_of_verified'`, `provenance_status→'unverified'`) AND, in the SAME write, releases `canonical_instrument_key`/`instrument_identifier`/`source_url` (to `null`/`null`/`''`) so the archived duplicate rows stop matching `apply-mint-batch.mjs`'s `checkM4` / `export-census-rows.mjs`'s `buildHeldKeyIndex` and the census row can re-mint. Enforces invariant EP-11 (ADR-021). `--arg restore:<id,...>` reverses via `guardedUpdate` from this same script's own prior-state snapshot. Never touches claims, sections, or edges. | `guardedUpdateByIds("intelligence_items", ids, patch, { cite: CITE, applyMatch, select })` in `buildDeps().archiveTargets`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: CITE })` in `buildDeps().updateKeepers`; `guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: RESTORE_CITE, select })` in `buildDeps().restoreOne` |
+| `scripts/maintenance/origin-class-backfill.mjs` (Lane MAINT, 2026-09-02; registered here lane RULINGS-EXEC, 2026-09-05 — a pre-existing gap: this writer predates this row but was never added to the allowlist, missed by the scanner's `guardedUpdateByIds(` regex, see `.discipline/shared-writer-registry.test.mjs`'s `GUARDED_RE`, which matches `guardedUpdate(` but not the `ByIds` suffix) | UPDATE — `origin_class` only, per `item_type`+`sources.tier` group (`scripts/maintenance/lib/origin-class-map.mjs`'s `originClassFor`, ruling R-E), on every `intelligence_items` row with `origin_class IS NULL` and a resolvable rule. Idempotent (`applyMatch` re-checks `origin_class IS NULL` per chunk); `arg=tool` and any no-rule/no-source_id row are deliberately left NULL, never guessed. | `guardedUpdateByIds("intelligence_items", ids, { origin_class: oc }, { cite: CITE, applyMatch: (q) => q.is("origin_class", null) })` |
 | `scripts/turns/run-population-flywheel.mjs` (Lane TANDEM, 2026-09-04) | UPDATE (`intelligence_items`, `integrity_flags`) — THE FLYWHEEL, MINT-RUNBOOK.md §8/§9: `.github/workflows/population-turn.yml`'s own post-apply step, run automatically after every batch apply, never a separate hand-run pass (THE DEFECT this lane closed: population runs #15-#20 minted ~650 items with zero downstream connection/tag/obligation writes because nothing triggered §8/§9 before this driver existed). Its `buildTagProposalsDeps`/`buildTagRatificationDeps` are third and fourth call sites of the SAME `tag-proposals.mjs`/`tag-ratification.mjs` merge-only tag write and flag-resolve/flag-insert paths the two rows above already register — this driver imports and calls those scripts' own exported `main(opts, deps)` unmodified (never re-implements their write logic), passing deps shaped identically to their own `IS_MAIN` blocks so the literal `guardedInsertMany`/`guardedUpdate`/`.from(...).update(...)` call sites live in THIS file (hence a new registry entry) while the decision logic they invoke stays in `tag-proposals.mjs`/`tag-ratification.mjs` unchanged. Scoped to exactly the batch's own minted item ids (`--arg ids:<...>` for tag-proposals; `tag-ratification.mjs --arg auto` runs its normal system-wide auto-adoption sweep, honestly noted in this driver's own comments as the one step not batch-scoped). | `db.guardedInsertMany("integrity_flags", rows, { cite: TAG_PROPOSALS_CITE, select: "id" })` in the tag-proposals deps' `insertMany`; `db.guardedUpdate("intelligence_items", (qb) => qb.eq("id", id), patch, { cite: TAG_RATIFICATION_CITE })` and `sb.from("integrity_flags").update(...)` / `.select(...)` in the tag-ratification deps' `updateItem`/`resolveFlag`/`readFlag` |
 | `scripts/review/apply-canonical-candidates.mjs` (Lane REVIEW-WIRE, 2026-09-04) | UPDATE (`intelligence_items`, narrow) — the "accept" arm of the `canonical_source_candidates` ratification-digest apply (see that table's own section below, and `docs/runbooks/MAINTENANCE-RUNBOOK.md` §14). A ruled `decision:"accept"` group is a two-phase write: it first resolves whether the candidate's canonical URL is ALREADY a registered `sources` row; only when it is does it repoint the single citing `intelligence_items` row's `source_id`/`source_url` onto that existing source (never mints a new `sources` row itself — an unresolvable candidate is routed to `needs_individual_review` instead, a report-only outcome with no write). This is the table's ONLY writer that touches `source_id`/`source_url` outside the intake/mint chokepoints (`mint-item.ts`, `apply-staged-update.ts`) and outside `canonical-pipeline.ts`'s own re-grounding path — narrow by construction: at most one row per ruled-and-resolvable candidate, gated behind an operator-signed ruling file (`validateRuling` refuses any group with no `decision` set) and a staleness check (`isRulingStale` refuses a ruling whose `generated_at` predates the row's own `updated_at`). Dispatched via the new MAINT step `review-apply-canonical-candidates` (`fsi-app/scripts/maintenance/review-apply-canonical-candidates.mjs`), which imports this file's exported `main({rulingPath, apply}, deps)` unmodified and never re-implements the accept/resolve logic. | `guardedUpdateByIds("intelligence_items", [itemId], { source_id, source_url }, { cite: CITE, applyMatch, select })` in `apply-canonical-candidates.mjs`'s per-group accept branch |
 
@@ -293,7 +300,7 @@ other producer below.
 | `flywheel-defect:discovery` / `:forward-events` / `:stale-events` | `src/lib/intake/flywheel-defect.ts` (`recordFlywheelDefect`, rule 16(d) — moved 2026-09-01 from a private export in mint-item.ts so mint-item.ts and apply-staged-update.ts share ONE writer shape) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. | flywheel-defect.ts; called from mint-item.ts (mint time) and apply-staged-update.ts (`update_item`, substantive updates only) |
 | `flywheel-gap:jurisdiction_span_gap` / `:surface_gap` / `:pivot_operations_gap` | `scripts/connections/analyze-corpus.mjs` | **Self-resolving** — the same script closes any of its own open flags whose gap no longer reproduces on the latest pass (lines 143-152, `guardedUpdate(..., status: "resolved", resolved_by: "analyze-corpus.mjs")`). Not an open leak. | analyze-corpus.mjs lines 118-152 |
 | (entity-link candidate/lineage-gap namespace, exact value set by `entity-resolve.mjs`) | `src/lib/entities/link-items.ts` | **TO-VERIFY** — idempotent one-open-flag-per-namespace-per-item guard exists (lines 59-64), but no resolver was located for this namespace in the time available. | link-items.ts lines 58-64 |
-| (ratified-to-census namespace) | `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — its own name implies it is itself a *resolver* for some existing flag category, converting a flag into a `census_worklist` entry. **TO-VERIFY at merge** which `created_by` namespace(s) it consumes, and whether it closes the two OPEN leaks above. | not yet present |
+| (any namespace, operator-gated) | `scripts/connections/ratify-flag-to-census.mjs` | **RESOLVED (lane W71-WIRE, 2026-09-05):** read end to end — it does NOT consume a specific `created_by` namespace at all. It requires the flag's `resolution_note` to carry the literal `ratify:census` marker plus `source_id=<uuid> url=<document-url>` (see the script's own header) — a marker an OPERATOR adds by hand while manually investigating any flag, regardless of namespace. It therefore does NOT automatically close the two `intake-seek-study`/`intake-relevance` OPEN leaks above (neither namespace's flags carry a document url an operator could cite without doing the same manual work this marker already requires) — it is a generic ratification vehicle an operator can apply to ANY flag once they've found the document, not a targeted resolver for those two namespaces. Now wired as a `maintenance.yml` step (dry/apply, `arg`=flag id). | ratify-flag-to-census.mjs's own `parseRatificationNote`/`evaluateRatification` (lines 62-109) |
 | `capture-worker` (fixed literal, `created_by: "capture-worker"`) | `supabase/functions/capture-worker/index.ts` (Edge Function — the ADR-016 storage-ceiling truncation guard, filed only after a capture lands) | **OPEN — no automated resolver found**, same posture as `intake-seek-study`/`intake-relevance` above; resolved today only via the generic manual admin endpoint. Found 2026-09-01 when the writer-registry test's scan roots were widened to include `supabase/functions/**` (this table was previously invisible to the registry on the Edge Function side). | index.ts lines 554-567, `category: "coverage_gap"` |
 | `flywheel-tag:empty-signature` | `scripts/connections/propose-tags.mjs` (lane TAG, 2026-09-01 — reflects a `derive-tags.mjs` tag-proposal finding, one row per item whose `operational_scenario_tags`/`compliance_object_tags`/`topic_tags` are all empty, so `discover.mjs` can never score it an edge) | **Self-resolving, same convention as `flywheel-gap:*`** — a full `--untagged` run closes any of its own open flags whose item no longer reproduces (now tagged, or fell out of the corpus); a narrow `--ids`/`--since` run resolves ONLY flags inside its own selection (see `planReflect`'s `scopeSubjectRefs`, a deliberate narrowing of the `analyze-corpus.mjs` convention this file's own header names). Also consumed downstream: `scripts/connections/apply-tags.mjs` READS this namespace's rows, applying a row's `PROPOSALS_JSON` to `intelligence_items` either once an operator resolves it with `resolution_note` containing `ratify:tags`, or (2026-09-03 ruling) automatically once its `confidence:"high"` proposals are written — in the latter case it also WRITES this same namespace, resolving the flag it just read (`resolution_note:'auto-adopted:tags:<threshold>'`) when no lower-confidence residue remains; see `intelligence_items`' writer entry above for the full rule. | propose-tags.mjs (`planReflect`, `buildFlagRow`); apply-tags.mjs (`evaluateApplication`, `evaluateAutoAdoption`) |
 | `flywheel-tag:empty-signature` (same namespace, second caller) | `scripts/maintenance/tag-proposals.mjs` (Lane TAG-PROPOSALS, 2026-09-03) | The MAINT dispatch runtime for `propose-tags.mjs`'s `--execute` path (`docs/runbooks/MAINTENANCE-RUNBOOK.md` §6a): calls the exported `proposeTags()` core unmodified with deps built from `db.mjs`, so it is a second CALLER of the same insert/resolve plan (`planReflect`), not a second write path; same self-resolving convention, same narrow-run scoping. Writes proposals only, never `intelligence_items`. | tag-proposals.mjs (`proposeTags` imported from propose-tags.mjs) |
@@ -315,11 +322,12 @@ raises. Documented and implemented in `src/lib/intake/census-writer.mjs:98-165`.
 | Writer | Evidence |
 |---|---|
 | `src/lib/intake/census-writer.mjs` (`writeCensusRows`) | lines 136-165, upsert under a per-source `withLease` mutation lease |
-| `scripts/connections/ratify-flag-to-census.mjs` | **Pre-registered (parallel lane)** — not yet present; **TO-VERIFY** how it satisfies the identity-preservation rule above (does it look up existing `(lane, created_by)` the way `writeCensusRows` does, or does it mint a fresh worklist identity for a ratified flag?) |
+| `scripts/connections/ratify-flag-to-census.mjs` | **RESOLVED (lane W71-WIRE, 2026-09-05):** it does NOT go through `writeCensusRows`'s identity-preservation path at all — a ratified flag is, by construction, a document with no PRIOR `census_worklist` row (the whole point is minting a fresh worklist entry from an operator's own finding), so there is no existing `(lane, created_by)` to preserve. `buildCensusRow` sets `created_by: "flywheel-ratified:<flagId>"` (a new, distinct identity namespace, never colliding with a live-discovery lane's own `created_by`) and `lane` from the note's own `lane=` field (default `'C'`). Idempotent on the table's own `(source_id, document_url)` unique key via a pre-insert existence check (`findExisting`), same skip-if-exists posture as every other writer here. Now wired as a `maintenance.yml` step (dry/apply, `arg`=flag id). |
 | `scripts/mint/apply-mint-batch.mjs` (Lane POP, 2026-09-02; hold-back added lane URL-GUIL, 2026-09-03) | UPDATE — `enumeration_status = 'reconciled'` only, on the one row a successfully-minted payload traces back to via its `row_id` (a `not_applied_*` payload's row is left untouched — see `mint-run-006.json`'s own precedent). SEPARATELY, `dryrun_disposition = 'hold'` + `hold_reason` (`validation_failed:<criterion>:<reason>`) + `notes` (the failure JSON), on every row the sibling `mint-batch-report.json` reports `valid:false` for — see `resolveValidationFailedHolds`; excludes the row from every future `selectCensusRows` filter (`dryrun_disposition === 'would_mint'`) with no new filter code | `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", rowId), { enumeration_status: "reconciled" }, ...)`; `ctx.db.guardedUpdate("census_worklist", (qb) => qb.eq("id", hold.rowId), { dryrun_disposition: "hold", hold_reason, notes }, ...)` |
 | `scripts/mint/reopen-validation-holds.mjs` (Lane URL-GUIL, 2026-09-03) | UPDATE — the symmetric reversal, coordinator-invoked and `--reason-contains`-scoped only (never a blanket sweep): `dryrun_disposition = 'would_mint'`, `hold_reason = null`, `notes` appended (not overwritten) with a reopen marker, on every row currently held with a `validation_failed:` reason matching the caller's substring | `guardedUpdate("census_worklist", (qb) => qb.eq("id", t.id), { dryrun_disposition: "would_mint", hold_reason: null, notes }, ...)` |
 | `scripts/maintenance/record-hollow-sweep.mjs` (Lane HOLLOW-SWEEP, 2026-09-04) | UPDATE — `dryrun_disposition = 'would_mint'` (idempotent; the live matched rows are already there) + `notes` appended (never overwritten, same convention as `reopen-validation-holds.mjs` above) with a marker naming this sweep, on every `census_worklist` row whose `document_url` equals a just-archived hollow item's `source_url` — so the next population apply re-selects and re-mints the same document through the improved record-facts extractor | `guardedUpdateByIds("census_worklist", ids, { dryrun_disposition: "would_mint", notes }, { cite: CITE })` in `buildDeps().censusReturnShared`; `guardedUpdate("census_worklist", (qb) => qb.eq("id", id), { dryrun_disposition: "would_mint", notes }, { cite: CITE })` in `buildDeps().censusReturnOne` (rows that already carried other notes) |
 | `scripts/maintenance/canonical-key-dedup.mjs` (Lane DEDUP, 2026-09-04) | SELECT (no writes) — reads `census_worklist` rows to check whether any match the just-archived duplicate items' `source_url` values (if yes, would return them to `would_mint` for re-minting; in the live 2026-09-04 population, no matches found). Keeps rows in `would_mint` state unchanged (idempotent). |
+| `scripts/maintenance/census-off-vertical.mjs` (Lane MAINT, 2026-09-02; archive path added lane RULINGS-EXEC, 2026-09-05) | UPDATE — `arg=archive` (ruling R-A) archives every `would_mint`, not-yet-archived row the shared relevance screen calls `off_vertical`: `is_archived=true`, `archive_reason='off_vertical'` via `scripts/lib/db.mjs`'s table-generic `archivePatch()` (migration 308 added the columns; no new archive-write helper). Idempotent (`applyMatch` re-checks `dryrun_disposition='would_mint' AND is_archived=false` per chunk). `arg=park` is a no-op (nothing to write). | `guardedUpdateByIds("census_worklist", ids, archivePatch("census_worklist", "off_vertical"), { cite: CITE, applyMatch })` |
 
 ### `item_forward_events`
 
@@ -404,17 +412,25 @@ regardless of which of the two source tables backs it.
 
 ### `theme_briefs`
 
-Migration 266. **Two writers found, one current and one pre-registered — supersession TO-VERIFY.**
+Migration 266. **RESOLVED (lane W71-WIRE, 2026-09-05, plan §W7.1): ONE writer, not two.**
+`src/lib/research/theme-brief.mjs` is READ-ONLY — its own header says so verbatim ("READ-ONLY, $0, NO
+GENERATION... This module never writes, never clusters, never calls an LLM") and it carries no
+`.from("theme_briefs")` write call, no `guardedInsert`/`guardedUpdate` — it only mentions the table name in
+comments. It was listed as a "writer" below because the shared-writer-registry scanner's heuristic matched
+those comment mentions, a false positive this lane confirmed by reading the file end to end (zero write
+calls). `scripts/connections/generate-theme-brief.mjs` is the ONLY real writer — its own header says the
+same thing from the other side ("theme_briefs ... has NO WRITER anywhere in the repo... This is that
+writer"). No supersession question: there was never a second write path to supersede. Now wired as a
+`maintenance.yml` step (dry/apply) — see `docs/runbooks/MAINTENANCE-RUNBOOK.md`. Live evidence (read
+2026-09-05): `theme_briefs` carries 9 rows, all `generated_by='session-executor'` — the exact value
+`generate-theme-brief.mjs`'s `validateAgainstLiveMembers` sets — dated 2026-08-21, proving this script
+already ran `--write ... --execute` in a prior session, through the guarded path, before this lane gave it
+a CI dispatch root.
 
 | Writer | Status | Evidence |
 |---|---|---|
-| `src/lib/research/theme-brief.mjs` | **Current, live** — referenced from `src/app/api/admin/themes/route.ts`, `src/app/research/[slug]/page.tsx`, `src/components/research/ResearchFindingDetailSurface.tsx`, `src/lib/agent/canonical-pipeline.ts`, `src/lib/connections/brief-candidates.mjs`/`brief-staleness.mjs` | `grep -rln theme_briefs` across `src/` |
-| `scripts/connections/generate-theme-brief.mjs` | **Pre-registered (parallel lane)** | not yet present |
-
-**TO-VERIFY**: whether `generate-theme-brief.mjs` is meant to replace `src/lib/research/theme-brief.mjs`'s
-write path outright (in which case this document should be updated post-merge to drop the superseded
-entry) or the two are meant to coexist on a partition not yet visible from this worktree (e.g. one writes
-research-triggered briefs, the other flywheel-clustered-theme briefs). Flagging rather than guessing.
+| `src/lib/research/theme-brief.mjs` | **NOT a writer — read-only** (corrected 2026-09-05; see above) | `grep -n "guardedInsert\|guardedUpdate\|\.from(" src/lib/research/theme-brief.mjs` → 0 matches |
+| `scripts/connections/generate-theme-brief.mjs` | **The sole live writer**, now CI-dispatched | `guardedInsert`/`guardedUpdate` calls (lines 235/238 of that file); 9 live rows, `generated_by='session-executor'` |
 
 ### `section_claim_provenance` — a 9th shared dataset found by evidence, not on the operator's seed list
 
@@ -550,6 +566,34 @@ just inserted in the same pass; for `update_item` it is a row a DIFFERENT writer
 staged earlier, selected only by the `pending` + change-sweep-marker filter — no writer ever updates a row
 outside that filter, and a row processed once (status flipped off `pending`) is never re-selected.
 
+### `source_tier_opinions` — registered by lane ATTACH-SOURCES (W3.3, 2026-09-05), migration 091 (+308)
+
+Not part of the original operator-named harness/flywheel seed list, but it now has TWO independent callers
+of the same writer function, which is exactly this document's own stated criterion for registering a table.
+`source_tier_opinions` records tier ESTIMATES about an EXISTING `sources` row from more than one process
+(`opinion_source` enum column, migration 091); `get_tier_opinion_disagreements(window_days)` (>=5
+disagreeing opinions in 90 days) drives the admin review surface at `/api/admin/sources/tier-opinions`
+(migration 099). There is exactly ONE literal write call site in the whole tree — `recordTierOpinion` in
+`src/lib/sources/tier-opinion-writer.ts` (`.from("source_tier_opinions").insert(...)`, best-effort,
+never throws) — so that one file is the authorized writer; both callers below go through it, never around
+it ("one writer per shared dataset" as one writer *function*, many call sites — the same shape
+`registerSource`/`guardedUpdate` already establish elsewhere in this codebase). No dedup read guards the
+insert (by migration 091's own Q3 design, REPEAT opinions about the same source are the intended shape —
+`get_tier_opinion_disagreements` counts opinions across a 90-day window, so the SAME disagreement observed
+on separate runs is real, additional evidence, never a duplicate to suppress); `tier-opinions.mjs`'s own
+idempotence is therefore about not re-opining every run regardless of change — see that step's own header.
+
+| Caller | Operation | Evidence |
+|---|---|---|
+| `src/lib/sources/source-growth.ts` (`registerCitedSources`) | INSERT via `recordTierOpinion`, `opinion_source='haiku_brief_classifier'` (default, pre-existing) — only when the LLM brief-generation path supplies a non-null `tier_estimate`; `opts?.skipTierOpinions` guards against double-invocation | pre-existing, read in full this lane |
+| `scripts/maintenance/tier-opinions.mjs` (new, MAINT step, this lane) | INSERT via `recordTierOpinion`, `opinion_source='host_class_table'` (new, migration 309) — a deterministic, $0, no-LLM upstream: scans `sources` and compares each `hostOf(url)`'s existing `tier` against `classTierForHost(host)` (the SAME SC-13 class table `heal-provenance.mjs`'s STEP SOURCE and `institution-canonicalize.mjs` already use); records an opinion only where the class table both recognizes the host (non-null) and disagrees with the source's current `tier` | this lane, see the step's own header for the full design rationale |
+| `src/app/api/admin/sources/tier-opinions/route.ts` (pre-existing, migration 099's admin-review surface) | UPDATE only — `action='dismiss'` stamps `dismissed_at`/`dismissed_by`/`dismissed_reason` on the SAME target source's open (`dismissed_at IS NULL`) opinion rows; never an INSERT, never a second write path into the table's core columns | `.from("source_tier_opinions").update({dismissed_at, dismissed_by, dismissed_reason}).eq("target_source_id", sourceId).is("dismissed_at", null)` |
+
+Replace policy: append-only INSERT for the two opinion-recording callers above, mediated entirely by
+`recordTierOpinion` (no dedup-before-insert — see above); `dismissed_at`/`dismissed_by`/`dismissed_reason`
+UPDATE is the admin-review route's own scoped column set (migration 099), never touching
+`target_source_id`/`opined_tier`/`opinion_source` on an existing row. No DELETE path exists anywhere.
+
 ---
 
 ## KEEP-verdict scripts that write a shared dataset (task-1 cross-reference)
@@ -616,7 +660,7 @@ section is the missing prose for them, grouped by table, so the doc stays honest
 rather than presenting the allowlist as more manually-audited than it is.
 
 - **`intelligence_items`** — `scripts/lib/db.mjs` (the shared guarded-write library itself: `archiveRows("intelligence_items", ...)` inside `reclassifyToSource`, line 395); `src/lib/agent/canonical-pipeline.ts` and `src/workflows/generate-brief.ts` (the live mint/ground pipeline and its workflow entry point); `scripts/remediation/acquire-primaries-batch.mjs` (live remediation batch tool, operator dispatch 2026-07-16, not evaluated by this lane's task-1 seed list — **TO-VERIFY** in a future sunset pass); `src/app/api/admin/canonical-sources/{bulk-approve,decide}/route.ts` and `src/app/api/admin/integrity-flags/[id]/resolve/route.ts` and `src/app/api/admin/triage/pending-jurisdiction-review/route.ts` (live admin UI/API routes — human-approved writes).
-- **`item_cross_references`** — `scripts/entities/backfill-lineage-edges.mjs` (WO-28 Phase D lineage-edge backfill; its own header notes it feeds a capability "never connected to a producer that runs unmetered" — **TO-VERIFY**, out of this lane's task-1 seed list, flagged for a future sunset evaluation, not archived here).
+- **`item_cross_references`** — `scripts/entities/backfill-lineage-edges.mjs` (WO-28 Phase D lineage-edge backfill; its own header notes it feeds a capability "never connected to a producer that runs unmetered"). **RESOLVED (lane W71-WIRE, 2026-09-05, plan §W7.1):** now wired as a `maintenance.yml` step (dry by default, `--apply` to write; `arg` optionally sets `--limit N` for a bounded pilot run). Confirmed distinct from DAG-AUTHOR's `backfill-derivation-edges.mjs`, which writes a different table (`derivation_edges`, wired into `propagation-drain.yml`'s `backfill_and_statutory` checkbox) — the two are not duplicates despite similar names, both are kept, both wired, on their own tables.
 - **`integrity_flags`** — `src/lib/agent/canonical-pipeline.ts`, `src/workflows/generate-brief.ts` (live pipeline); `src/lib/d3/hooks.mjs` (the D3 investigation framework's "route a finding to the durable queue" hook) — its former real-infrastructure reconstruction proof, `src/lib/d3/hooks-reconstruction.mjs`, was ARCHIVED 2026-09-01 (lane hyg, F25 module-liveness sunset: zero production importer; `git mv`'d to `src/_archive/lib/d3/hooks-reconstruction.mjs`, content untouched, see `scripts/_archive/README.md`) and removed from the allowlist above accordingly — it no longer runs, so it no longer writes anything; `src/lib/notifications/seed-fallback-flag.ts`; `src/lib/sources/verify-item.mjs` (the RD-24 "ONE verify-item entry" `regen-quarantined.mjs` calls); `src/lib/sources/seek-more.mjs` (a real write site, though **note**: `.discipline/fitness/functions/F25-module-liveness.mjs`'s own header names this exact module as "fully built, unit-tested, ZERO live callers, dormant" — registered because the write call is real code in the tree, not because it is known to run); `scripts/audit-skill-conformance.mjs`, `scripts/entities/backfill-lineage-edges.mjs`, `scripts/remediation/{acquire-primaries-batch,refetch-capped-worklist}.mjs`, `scripts/verify/{run-data-audit-lane,surface-visibility-audit}.mjs` (live standing audit/remediation scripts, outside this lane's task-1 seed list); `src/app/api/admin/integrity-flags/route.ts`, `src/app/api/admin/sources/bulk-import/route.ts` (live admin routes).
 - **`section_claim_provenance`** — `src/lib/agent/canonical-pipeline.ts`, `src/workflows/generate-brief.ts` (both call through to `ledger-apply.mjs`'s writes, and/or write directly at the workflow layer — **TO-VERIFY** the exact call shape if this is ever load-bearing to a future refactor).
 
@@ -779,6 +823,35 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   056) is a SEPARATE, pre-existing column this same driver also writes (unchanged by this lane) — not one
   of the five new ones, named here only to avoid the reader assuming otherwise.
 
+- **`surcharge_audits`, `tce_data_quality`, `auxiliary_energy_profiles`, `eudr_plot_claims`,
+  `custody_chains`, `indexation_clauses`** (migrations 296-298, spec 09's Market/Operations/Regulations
+  panels) — added by Lane SPEC09-B, 2026-09-05. Same not-shared-8 basis as every other entry in this
+  section (`.discipline/shared-writer-registry.test.mjs`'s own header scope statement) — these are
+  customer-uploaded operational tables, not harness/flywheel corpus tables, so they are not added to the
+  enforced JSON allowlist. Each of the six now has exactly TWO writers, sharing ONE parsing/validation body
+  so neither can drift from the other's row-acceptance rules:
+  - `fsi-app/src/lib/spec09/csv-upload-contract.mjs` — the shared column contract (`TABLE_CONTRACTS`,
+    `parseCsvUpload`) both writers below import; it is not itself a writer, it is the one body the "no
+    duplicate logic" rule requires.
+  - `fsi-app/scripts/spec09/{surcharge-audit,dqi,auxiliary-energy,eudr-custody,indexation}-producer.mjs` —
+    the CLI/coordinator-dispatch path (`--mode apply --csv <path> --org-id <uuid>`), writing via
+    `guardedInsertMany` (cite `SPEC09_CSV_UPLOAD`), for a coordinator or admin importing a reviewed batch
+    file directly.
+  - `fsi-app/src/app/api/workspace/spec09-upload/route.ts` (logic in the sibling `logic.ts` per F34) — the
+    authenticated, org-scoped HTTP path a signed-in user's browser session drives from the Operations
+    settings/workspace surface, org id always server-resolved (`resolveOrgMembershipFromUserId`), never
+    trusted from the request body.
+  Partitioned by `org_id` (added to all six tables by this lane's migration — see
+  `docs/inventories/migrations.md` for the number once assigned/landed); RLS restricts `SELECT` to members
+  of the row's own org (`user_belongs_to_org(org_id)`), replacing the six tables' original
+  `USING (true)` policies. Replace policy: append-only INSERT only — a CSV upload adds new audit/claim/
+  profile rows, it never updates or deletes an existing one; a corrected re-upload lands as new rows, the
+  same "history accumulates" shape `intelligence_changes` and `derived_values` already use elsewhere in
+  this document. `carrier_compliance_pools` (migration 296) is DROPPED by this lane's migration (0 rows
+  confirmed live, read-only SELECT, 2026-09-05) rather than given a reader spec 09 never named a consumer
+  for — see this lane's own report for the full reasoning; it is removed from this document's scope along
+  with the table itself, not carried forward as a phantom entry.
+
 Named here for completeness, not because the registry requires it — mirroring the disposition already
 established at line 180 for the migration-282/283 entity tables.
 
@@ -786,8 +859,11 @@ established at line 180 for the migration-282/283 entity tables.
 
 1. **`integrity_flags` / `created_by ∈ {intake-seek-study, intake-relevance}`** — producer
    `src/lib/intake/mint-item.ts`, **no automated resolver**. Only the generic manual admin-resolve API
-   route closes these today. If `scripts/connections/ratify-flag-to-census.mjs` (pre-registered, parallel
-   lane) is meant to close this gap, that should be confirmed and this document updated at merge.
+   route closes these today. **RESOLVED (lane W71-WIRE, 2026-09-05):** confirmed `scripts/connections/
+   ratify-flag-to-census.mjs` (now wired, see `theme_briefs`/`census_worklist` sections above) does NOT
+   close this gap — it requires an operator-supplied `source_id`/`url` neither namespace's flags carry by
+   construction, so it is a generic ratification vehicle, not a resolver for these two namespaces. This
+   leak remains open.
 2. **`integrity_flags` / entity-link candidate namespace** (producer `src/lib/entities/link-items.ts`) —
    resolver **TO-VERIFY**, not located in the time available.
 3. **`item_forward_events`** — the loader that performed the recorded 901-event run
@@ -795,8 +871,9 @@ established at line 180 for the migration-282/283 entity tables.
    under either of the two candidate names (`load-forward-events.mjs` per PROTOCOL.md,
    `run-extraction.mjs` per this task's brief). Both names are pre-registered so neither breaks the
    writer-registry test; the actual file needs to land and this note needs to be resolved.
-4. **`theme_briefs`** — two writers, no documented supersession decision found between the current
-   `src/lib/research/theme-brief.mjs` and the pre-registered `scripts/connections/generate-theme-brief.mjs`.
+4. **`theme_briefs`** — RESOLVED (lane W71-WIRE, 2026-09-05): only one real writer
+   (`scripts/connections/generate-theme-brief.mjs`, now CI-dispatched); `src/lib/research/theme-brief.mjs`
+   is read-only. See the `theme_briefs` section above.
 5. **`scripts/holdings-audit.mjs` / `holdings_quality`** — not a shared-8 table (no harness/flywheel writer
    found), kept out of the allowlist above on that basis, but flagged here because the KEEP verdict itself
    rests on an unconfirmed completion state (see the KEEP table above).
