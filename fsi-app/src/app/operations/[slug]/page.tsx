@@ -45,6 +45,7 @@ import { OperationsDetailSurface } from "@/components/operations/OperationsDetai
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import { formatLocaleDate } from "@/lib/format";
+import { NoticesRail } from "@/components/figures/NoticesRail";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -318,6 +319,13 @@ export default async function OperationsDetailPage({
         relevance={relevance}
         resourceLookup={resourceLookup}
       />
+      {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
+          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). This
+          surface has no PeersDiscussingStrip mount (pre-existing, unrelated to this addition — no
+          peersEntityId is computed on this route today). */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>
+        <NoticesRail />
+      </div>
     </>
   );
 }

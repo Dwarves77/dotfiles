@@ -630,6 +630,29 @@ export const LEGACY_ALLOWLIST = [
     ];
   })(),
 
+  // ── lane NOTICES, complete-system build plan W4.3, 2026-09-05: a UX smoke spec deliberately
+  // committed unregistered ──────────────────────────────────────────────────────────────────────────
+  // .discipline/rendering/smoke/notices-rail-smoke.mjs mounts the REAL RecalculationNotice.tsx (F35
+  // ROW_COMPONENTS candidate — see that spec file's own header) and was run GREEN locally, temporarily
+  // registered in ux-smoke-specs.mjs, per lane-common-contract.md's UX contract ("Run ... with your spec
+  // temporarily registered in your worktree (revert the registry before commit) and paste the UX smoke
+  // specs: line") — see this lane's REPORT for that output line. The registry edit was then reverted
+  // before this commit, per that same instruction: registering it (and adding the matching F35
+  // ROW_COMPONENTS entry) is the coordinator's one-line wiring at landing, the same division of labour
+  // ux-smoke-specs.mjs's own header states ("the registry is the coordinator's one-line wiring"). This
+  // entry is therefore expected to go RED the moment it is registered (which is correct — delete this
+  // entry in that same commit) and is not a claim that the spec is meant to stay unwired.
+  {
+    file: 'fsi-app/.discipline/rendering/smoke/notices-rail-smoke.mjs',
+    reason:
+      'Proven GREEN locally (temporarily registered, per the UX contract) and then deliberately left ' +
+      'unregistered at commit, per lane-common-contract.md: the executor lane proves the spec and reports ' +
+      'it; the coordinator registers it in ux-smoke-specs.mjs (and adds the matching F35 ROW_COMPONENTS ' +
+      'entry) at landing. Not dormant code awaiting a wiring decision — awaiting one specific, already-named ' +
+      'coordinator action.',
+    reviewByPhase: 'coordinator landing of lane NOTICES (register in ux-smoke-specs.mjs; delete this entry the same commit)',
+  },
+
 ];
 
 const ALLOWED = new Map(LEGACY_ALLOWLIST.map((e) => [e.file, e]));

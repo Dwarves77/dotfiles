@@ -24,4 +24,9 @@ export const UX_SMOKE_SPECS = [
   { name: "community-surface", run: runCommunitySmoke }, // lane COMMUNITY-B
   { name: "spec09-panels", run: runSpec09Smoke }, // lane SPEC-09
   { name: "detail-surfaces", run: runDetailSurfacesSmoke }, // lane MOBILE-2 (the four detail surfaces)
+  // lane NOTICES, 2026-09-05: notices-rail-smoke.mjs (mounts RecalculationNotice.tsx) proved GREEN
+  // locally with this line present — see that lane's REPORT for the "UX smoke specs:" output. Not
+  // registered here; the coordinator adds this line (and the matching F35 ROW_COMPONENTS entry) at
+  // landing, per lane-common-contract.md's UX contract.
+  // { name: "notices-rail", run: runNoticesRailSmoke },
 ];

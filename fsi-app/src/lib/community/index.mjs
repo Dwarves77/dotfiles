@@ -16,6 +16,10 @@
 //   deriveOrganisationKey({domain, verified, salt}) -> { organisationKey, refused, reason }
 //   sanitizeMemberWrite(body) -> { ok, data } | { ok: false, error } — strips verification columns
 //   evaluateResponseSubmission({...}) -> { accepted } | { accepted: false, reason }
+//
+// Lane NOTICES addition (2026-09-05): publish_aggregate() (migration 287/294) runtime wiring —
+//   distinctOrganisationKeys(responses) -> string[] (the RPC's member_ids cohort)
+//   applyPublishAggregateGate(aggregate, gateResult) -> aggregate, refusal-overridden when the RPC refused
 
 export { evaluateAntitrustGuard, kAnonymity, dominanceCap, threeMonthLag, SENSITIVE_FIELDS } from "./antitrust.mjs";
 export { projectAuthorIdentity, ORG_TYPES } from "./identity.mjs";
@@ -23,7 +27,13 @@ export { corroborationCount } from "./corroboration.mjs";
 export { promotionState, buildTransition, originClassFor, PROMOTION_STATES } from "./promotion.mjs";
 export { evidenceAge } from "./decay.mjs";
 export { isAdmissibleInCalculation, isCitableAsFact, filterOperationsAdmissible, recordsNotCitableAsFact } from "./lineage-guard.mjs";
-export { aggregateBenchmarkResponses, scopeBenchmarksForReader, isOpenForResponses } from "./benchmark.mjs";
+export {
+  aggregateBenchmarkResponses,
+  scopeBenchmarksForReader,
+  isOpenForResponses,
+  distinctOrganisationKeys,
+  applyPublishAggregateGate,
+} from "./benchmark.mjs";
 export {
   deriveOrganisationKey,
   domainFromEmail,

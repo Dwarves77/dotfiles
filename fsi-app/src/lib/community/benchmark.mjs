@@ -16,6 +16,19 @@
 
 import { kAnonymity, dominanceCap, threeMonthLag } from "./antitrust.mjs";
 
+// LANE NOTICES ADDITION (complete-system build plan W4.3/publish_aggregate() wiring, 2026-09-05):
+// publish_aggregate() (migration 287) got a real, registered subject in migration 294
+// (community_benchmark_responses.value_numeric) but, until this lane, no runtime caller — the aggregate
+// route below computed and served this module's JS-only gate and never called the DB function at all.
+// distinctOrganisationKeys() + applyPublishAggregateGate() are the two small, pure pieces the route
+// needs to call the RPC and fold its verdict in; see GET /api/community/benchmarks/current/route.ts for
+// the actual call and its own header for why publish_aggregate() is consulted WITHOUT `member_values`
+// (its generic (table,column) policy sums rather than averages, which would be a wrong published figure
+// for a rate/percentage field — this module's own aggregateBenchmarkResponses() below already computes
+// the correct statistic; publish_aggregate() instead supplies the real audit log and the longitudinal
+// freeze / tracker-attack / complementary-suppression defences this module's own header says it does not
+// attempt to model).
+
 /**
  * Filters+shapes a pool of raw responses into `{organisationKey, value}` rows, deduplicating so a
  * repeat submission from the same organisation for the same instrument never inflates the pool (spec
@@ -78,6 +91,48 @@ export function aggregateBenchmarkResponses(instrument, responses, now = new Dat
     value: publishable ? mean : null,
     responseCount: pool.length,
     reason: publishable ? null : `not yet publishable: ${failing.join(", ")}`,
+  };
+}
+
+/**
+ * The antitrust COHORT for one instrument's response pool — the distinct, deduplicated organisation
+ * keys `publish_aggregate()`'s `member_ids` cohort filter expects (migration 287 §5.2's k-anonymity,
+ * freeze and tracker-attack checks all key off this exact set). Reuses `dedupeByOrganisation`'s own
+ * "most recent submission per organisation" rule so the cohort passed to the DB gate is always the SAME
+ * set `aggregateBenchmarkResponses()` above counted for its own k-anonymity check — one dedup rule, not
+ * two independently-maintained copies of it.
+ *
+ * @param {Array<{ organisationKey: string, valueNumeric?: number|null, submittedAt: string }>} responses
+ * @returns {string[]}
+ */
+export function distinctOrganisationKeys(responses) {
+  return dedupeByOrganisation(responses).map((r) => r.organisationKey);
+}
+
+/**
+ * Folds `publish_aggregate()`'s verdict into this module's own JS-computed aggregate. The RPC is
+ * consulted for its REFUSAL only (see this file's header for why its `value` is never used here); when
+ * it refuses, that refusal OVERRIDES an otherwise-publishable JS aggregate — the DB gate's freeze /
+ * tracker-attack / complementary-suppression checks are real protections the JS gate above does not
+ * attempt, so a "yes" from the JS gate is never the last word once the RPC actually answered. When the
+ * RPC did not run or did not answer (`gateResult` null/undefined, or `refused` not `true`), the JS
+ * aggregate passes through unchanged — the fail-soft posture GET .../current/route.ts documents for an
+ * RPC error or a zero-response instrument (nothing to gate).
+ *
+ * @template {{ publishable: boolean, value: number|null, reason: string|null }} T
+ * @param {T} aggregate the full aggregateBenchmarkResponses() result (or any object at least that
+ *   shaped) — generic so the caller's extra fields (distinctOrganisations, minContributors, etc.) pass
+ *   through untouched rather than being narrowed away by this function's own return type.
+ * @param {{ refused: boolean, reason: string|null }|null|undefined} gateResult
+ * @returns {T}
+ */
+export function applyPublishAggregateGate(aggregate, gateResult) {
+  if (!gateResult || gateResult.refused !== true) return aggregate;
+  return {
+    ...aggregate,
+    publishable: false,
+    value: null,
+    reason: gateResult.reason || aggregate.reason || "refused by publish_aggregate()",
   };
 }
 
