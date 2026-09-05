@@ -1,11 +1,36 @@
 # Last proposer pass — source-sweep
 
-Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **fourteen** artifacts
-(`source-sweep-run-001` … `source-sweep-run-014`); F28's rule (d) requires this file to name the latest
-verbatim: **source-sweep-run-014**.
+Per `PROPOSER-RUNBOOK.md` §2's attestation format. `source-sweep` now has **fifteen** artifacts
+(`source-sweep-run-001` … `source-sweep-run-015`); F28's rule (d) requires this file to name the latest
+verbatim: **source-sweep-run-015**.
 
 ---
 
+## Pass over source-sweep-run-015 (2026-09-05, lane PROPOSER-16)
+
+**Artifacts read:** source-sweep-run-014 (2026-09-04T18:11–18:25Z, `harness_version sha256:925c102302270e6e`, apply, all-hosts sitemap walk, 40 hosts selected) and source-sweep-run-015 (2026-09-04T23:18–23:44Z, `harness_version sha256:447d5399c5f2946e`, apply, all-hosts sitemap walk, 40 hosts selected, FIRST dispatch under lane SWEEP-BUDGET with 1500s wall-clock time budget).
+
+**Full traces read:** `traces/source-sweep-run-014.raw-result.json` (per-source metrics, per-host URL counts, error classifications) and `traces/source-sweep-run-015.raw-result.json` (same structure, per-source outcomes for the budget-constrained run); both artifacts' metrics blocks and per_item verdict arrays in full.
+
+**Hypotheses (verified, with basis):**
+
+1. **Run-015 is the first dispatch under lane SWEEP-BUDGET and the first source-sweep run to measure and enforce a wall-clock time budget.** Run-015 config includes `time_budget_seconds: 1500` and metrics include `budget_seconds: 1500`, `elapsed_seconds: 1533.159`, and `budget_exhausted: true`. The walk selected 40 hosts (DEFAULT_MAX_HOSTS), walked 35 of them fully, targeted 48 sources across those 35 hosts, and completed in 1533.159 seconds — 33.159 seconds OVER the 1500-second budget. The `sources_not_reached` list names 5 specific source IDs that were selected but never walked because the time-budget check (`walkTargetsWithinBudget` in run-source-sweep.mjs line 145–147) triggered before those sources' walks began. This is correct behavior: the walk exits 0 with an honest record of what completed within time. Basis: run-015's config, metrics, and sources_not_reached fields; run-source-sweep.mjs lines 152–167 documenting the budget mechanism.
+
+2. **Large sitemaps on this host slice caused run-015 to exceed the 35 s/host average budget from the DEFAULT_MAX_HOSTS comment.** Compare run-014 (834 seconds elapsed / 40 hosts walked ≈ 20.8 s/host) to run-015 (1533 seconds elapsed / 35 hosts walked ≈ 43.8 s/host). Run-015 selected a different 40-host slice that included sites with large, multi-page sitemaps: cepal.org (5000 URLs from 31 pages, PARTIAL COVERAGE), cer-rec.gc.ca (5000 URLs, PARTIAL COVERAGE), clecat.org (2642 URLs from 7 pages, PARTIAL COVERAGE), cityofsydney.nsw.gov.au (2410 URLs), am.jpmorgan.com (0 URLs but 44 sitemaps fetched, PARTIAL COVERAGE), cms.law (0 URLs but 30+ sitemaps per locale, PARTIAL COVERAGE). On a per-source basis: run-014 averaged 834s / 49 sources ≈ 17 s/source; run-015 averaged 1533s / 48 sources ≈ 31.9 s/source. This 1.9x cost increase is driven by large-sitemap hosts. Basis: run-014 and run-015 metrics; per_item verdict text naming partial-coverage sources and URL counts; raw-result traces showing sitemapsFetched counts per source.
+
+3. **The 12 errors in run-015 are genuine content-discovery failures, not benign no-sitemap outcomes.** Run-015 metrics record `errors: 12`. All 12 error-outcome entries carry verdict: null and error: "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (...)". The raw trace confirms each: either robots.txt fetch failed (HTTP 404) or robots.txt was fetched but contained no Sitemap: directives, and all fallback candidates failed to parse as valid sitemaps. These are real failures to discover content structure. The "error" label is correct. Basis: per_item verdict entries; raw-result sitemapsFetched arrays for each error source.
+
+4. **The 5 sources_not_reached are genuinely not reached, distinct from the 12-error sources.** Run-015 walked 48 sources (per_item array length); the IDs in sources_not_reached do not appear in that array — they were selected but the time-budget check halted the loop before those 5 sources' walks began. This is distinct from the 12-error sources, which were walked to completion. Basis: per_item array size; sources_not_reached list; budget-exhaustion logic in run-source-sweep.mjs.
+
+5. **Budget arithmetic: run-015's 43.8 s/host observed cost exceeds the DEFAULT_MAX_HOSTS comment's 35 s/host average, confirming the proposal to lower max_hosts for the next dispatch.** Run-source-sweep.mjs lines 97–135 derive 35 s/host from measured per-row cost (14 s/row from run-010) and average rows per host (2.52). That holds for typical hosts. Run-015's 43.8 s/host reflects a large-sitemap host slice. To stay within 1500s budget, the next dispatch should use lower max_hosts. Arithmetic: 1500 s / 43.8 s/host ≈ 34.2 hosts. For conservative headroom, propose max_hosts = 30, yielding 1500 / 30 ≈ 50 s/host budget per host (vs 43.8 observed). Basis: run-source-sweep.mjs lines 97–135; run-014 and run-015 metrics; per_item verdict text.
+
+6. **Run-015 correctly implements budget-exhaustion signaling: walk exits 0 with metrics recorded, not an error.** Per run-source-sweep.mjs lines 164–167, "When the budget runs out the run still exits 0: a bounded, complete unit of work, not an error." Run-015's artifact carries budget_exhausted and sources_not_reached fields, allowing a proposer or dispatcher to decide next action. Basis: run-015 artifact fields; run-source-sweep.mjs design documentation.
+
+**Proposal:** Next dispatch to use `--max-hosts 30` instead of DEFAULT_MAX_HOSTS (40). Run-015 observed 43.8 s/host under a large-sitemap slice; max_hosts = 30 yields 1500 / 30 ≈ 50 s/host budget, providing headroom over observed worst case. No governing-file edits warranted. Run-015 carries the current harness_version (sha256:447d5399c5f2946e [CONFIRMED]); the walker, time-budget checking, error labeling, and budget-exhaustion handling all function as designed.
+
+**Family gates status:** No new defects found. Run-015 carries the current harness version; no changes to governing files are required. The budget mechanism is proven by run-015 itself: it ran 33 seconds over without crashing, gracefully skipped the final 5 sources, and recorded the outcome honestly. The next lane will confirm whether max_hosts = 30 keeps runs within budget across the remaining 523 hosts.
+
+---
 ## Pass over source-sweep-run-013 and -014 (2026-09-04, lane PROPOSER-14)
 
 **Artifacts read:** source-sweep-run-013 (dry, `harness_version sha256:925c102302270e6e`) and source-sweep-run-014 (apply, same hash). Both runs are the first --all-hosts sitemap sweeps performed by lane SITEMAP-3, targeting 49 sources across 40 hosts with a limit of 5,000 URLs per run and 100,000 entries per sitemap.
