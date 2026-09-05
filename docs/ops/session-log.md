@@ -10606,3 +10606,64 @@ committed verdict batches; `attach-found-sources`/`tier-opinions` apply dispatch
 spec09-CSV producer dispatches now that migration 311 is live); the NEVER-RUN follow-on once
 W7.1-CLOSE reports; train 48 assembly once W7.1-CLOSE lands and the closure gate is genuinely
 clean, not merely not-yet-expired.
+
+### Addendum 85, postscript 59 — lane W71-D: the closure gate's own docs half, and why the discipline engine was red (2026-09-05)
+
+**Root cause of the red master, stated once, plainly.** The closure gate (postscript 58) and the F25/F38
+liveness ratchets exist to stop a "temporary" exemption from becoming permanent by nobody ever coming
+back to it: an allowlist entry names a disposition and an expiry train, and the gate fails once the
+current train passes that expiry — the same shape F23/F30 already use. What actually happened is the
+inverse of the design: three trains in a row (41, 43, 46) found the same ~49 F25/F38 entries and the 7
+STALE-NEXT board rows expired, and each time the coordinator's own honest disclosure ("re-granting the
+expiry rather than resolving it, because reading and dispositioning ~49 scripts is a distinct
+workstream from this train's own folds") became the mechanism by which the exemption stayed alive —
+41 → 43 → 46 → 52. Every individual re-grant was truthful and reasoned (I read all three; none silently
+re-stamped anything), but three truthful re-grants in a row are structurally identical to one permanent
+exemption: the ratchet's whole point — that *somebody* eventually reads the file — never happened,
+because every train that touched it was itself under time pressure from something else (the 2026-09-04
+speed emergency, the eleven-lane fold) and treated the re-grant as the responsible choice rather than
+the deferred one. NEVER-RUN and STALE-NEXT are still 10/7 as of train 47 for the identical structural
+reason: nine `maintenance:*` steps and one workflow never got a real dispatch across three grace windows,
+and seven board rows sat as `NEXT` since before train 5 while the work they named moved on without ever
+being written back. **The rule now in force, and it is a rule, not a preference: an allowlist entry
+(F25, F38, closure-gate NEVER_RUN / STALE_NEXT / WRITER_READER) is granted once, by a named lane, with a
+named expiry — and when that expiry arrives, the choices are wire it, delete it, or hand it by name to a
+new lane that actually reads the file. Re-granting the same expiry to the same entry a second time,
+under any justification, is the defect this postscript exists to name, not a legitimate outcome of the
+ratchet.**
+
+**The split.** This train's W7.1-CLOSE follow-up (07a6210b, "wire worktree-isolation-hook.mjs +
+check-pretooluse-wired.mjs via hook-source dispatch root") closed two class-(A) F25 entries and stopped;
+the coordinator split what remained into four disjoint-write-set lanes so the closure gate's own four
+checks and the two duplicate-module questions the 2026-09-05 tools audit raised could all be worked in
+parallel: **W71-A**, **W71-C**, **W71-D** (this lane), **W71-F14**. This lane's own scope was (D) the
+closure gate's docs half — the 7 STALE-NEXT board rows and the 10th NEVER_RUN entry
+(`workflow:inspect-oil-bulletin.yml`) — and (E) two duplicate-module questions the tools audit raised.
+The other three lanes' dispositions (F25 allowlist entries, F38, F14 write-orphans) are summarized by
+the assembly lane; cite them by lane name only here.
+
+**This lane's disposition table.**
+
+| Item | Class | Disposition | Evidence |
+|---|---|---|---|
+| 7 STALE-NEXT board rows (docs/PROGRAM-BOARD.md lines 1557/1578/1596/1614/1636/1880/1899) | stale docs | 6 rewritten CLOSED/SUPERSEDED (the work they named — WO-17/21/13/22/23/14/24, ADR-022, Node 20, severity-enum, jurisdictionIso, WO-26, corpus-turn/ledger-consume chain — was finished by later waves/trains, cited by row and Addendum number in place); 1 rewritten DEFERRED (SERIES_ITEM_MAP + schedule re-arm, genuinely blocked on CLAUDE.md rule 16's build-mode-end call, not a dropped thread) | PROGRAM-BOARD.md rows now read CLOSED/SUPERSEDED/DEFERRED with the closing train/Addendum cited in each; `checkStaleNext` returns 0 FAILING, 0 allowlist entries |
+| `STALE_NEXT_ALLOWLIST` (closure-gate.mjs) | allowlist cleanup | all 7 entries deleted (their rows no longer match — the gate's own stale-entry audit would otherwise flag them) | `closure-gate.mjs` `STALE_NEXT_ALLOWLIST = {}`; live run confirms STALE-NEXT PASS |
+| `workflow:inspect-oil-bulletin.yml` | never-run, class B | deleted (`.github/workflows/inspect-oil-bulletin.yml`) — the entry's own [HYPOTHESIS] was CONFIRMED: `producers.yml`'s "EU Weekly Oil Bulletin -> market_series" step really does run `fetch-oil-bulletin.mjs` then `eu-weekly-oil-bulletin.mjs --input`, doing for real what the read-only scouting workflow existed only to scout; no script, runbook or inventory line referenced it outside the allowlist entry itself | `producers.yml` lines ~213-227; `NEVER_RUN_ALLOWLIST` entry removed |
+| `scripts/maintenance/reopen-validation-holds.mjs` vs `scripts/mint/reopen-validation-holds.mjs` | suspected duplicate, REFUTED | not a duplicate: the maintenance file is a thin CI-dispatch wrapper (lane REOPEN-STEP, 2026-09-04) that imports and calls the mint file's exported `main()` unmodified — the "one module every caller imports" pattern working correctly, same shape as every other MAINT wrapper around a DB-writing script this repo already has | diff read in full both directions; wrapper's own header states the delegation, confirmed against the actual code (no independent selection/write logic in the wrapper) |
+| `scripts/entities/backfill-lineage-edges.mjs` vs `backfill-derivation-edges.mjs` | suspected duplicate, REFUTED | not a duplicate: different tables (`item_cross_references` vs `derivation_edges`), different mechanisms (WO-28 typed-lineage-edge backfill vs DAG-AUTHOR's one-time derivation-edge bridge), both already wired to distinct real workflow steps (`maintenance.yml`'s `backfill-lineage-edges`, `propagation-drain.yml`'s `backfill_and_statutory` checkbox) — the 2026-09-05 tools-inventory audit itself already reaches this conclusion ("Not duplicates, but lineage-edges has no input data and has never run"), which this lane verified rather than took on faith | both file headers read in full; `maintenance.yml`:538's own comment already disambiguates them; tools-inventory-unused-duplicates.md line 240 |
+
+Per CLAUDE.md rule 14 (a finding is a hypothesis until verified, and a refuted flag is corrected in
+place, not silently dropped): both duplicate-module flags in this lane's brief were investigated and
+found false. No module was deleted for either; the brief's premise that "exactly one lineage backfill"
+mechanism should survive was itself the thing that needed checking, and checking it found two
+legitimately distinct mechanisms instead.
+
+**Gates, this lane's own tree** (worktree `w71d`, base `07a6210b` on train 47 `c3003233`): closure gate
+STALE-NEXT 0 FAILING / 0 allowlist entries (was 7/7); NEVER-RUN 9 FAILING (the 9 `maintenance:*` entries
+this brief said to leave alone — the coordinator's own dispatch-ledger follow-up closes those, not this
+lane); WRITER-READER and LANE-CONTRACT unaffected, both PASS. No `.tsx` touched. No F25/F38 entries
+touched by this lane (neither duplicate pair carried one).
+
+**PROGRAM-BOARD W7.1 row**: set to IN PROGRESS, naming all four lanes and the two conditions that close
+it — 0 entries with an expiry anywhere in F25/F38/F14/closure-gate, and NEVER-RUN at 0 once the
+coordinator's dispatch-ledger rows land for the 9 remaining `maintenance:*` steps.
