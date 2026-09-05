@@ -29,6 +29,14 @@ export interface MinimalSupabaseClient {
   };
 }
 
+/** The `opinion_source` CHECK constraint's literal values (migration 091 + 308). Every INSERT must use
+ *  one of these — the DB itself rejects anything else. */
+export type TierOpinionSource =
+  | "haiku_brief_classifier"
+  | "haiku_verification"
+  | "operator_review"
+  | "host_class_table";
+
 export interface TierOpinionInput {
   /** The source the opinion is ABOUT — must be a PRE-EXISTING sources.id (never a source just
    *  minted by this same registration pass; the table exists to preserve REPEAT opinions about an
@@ -42,6 +50,11 @@ export interface TierOpinionInput {
   opiningSourceId?: string | null;
   /** The intelligence_items row whose generation produced this estimate. Nullable. */
   intelligenceItemId?: string | null;
+  /** Which process formed this opinion (migration 091's `opinion_source` CHECK). Defaults to
+   *  `"haiku_brief_classifier"` — the original, pre-existing caller (`source-growth.ts`) never has to
+   *  pass this. A deterministic caller (e.g. `scripts/maintenance/tier-opinions.mjs`) passes
+   *  `"host_class_table"` explicitly (migration 308 added that literal to the CHECK constraint). */
+  opinionSource?: TierOpinionSource;
 }
 
 /** Renders a Postgrest-shaped error's full diagnostic surface (message + details + hint + code).
@@ -73,7 +86,7 @@ export async function recordTierOpinion(
     const { error } = await supabase.from("source_tier_opinions").insert({
       target_source_id: input.targetSourceId,
       opined_tier: input.opinedTier,
-      opinion_source: "haiku_brief_classifier",
+      opinion_source: input.opinionSource ?? "haiku_brief_classifier",
       opining_source_id: input.opiningSourceId ?? null,
       intelligence_item_id: input.intelligenceItemId ?? null,
     });

@@ -1,0 +1,14 @@
+[
+  {
+    "item_id": "00000000-0000-0000-0000-000000000001",
+    "token": "€2,500,000",
+    "url": "https://example-regulator.gov/notices/2026-fixture-notice",
+    "quote": "The penalty for non-compliance is set at €2,500,000 under this measure."
+  },
+  {
+    "item_id": "00000000-0000-0000-0000-000000000002",
+    "token": "1 January 2027",
+    "url": "https://example-regulator.gov/notices/2026-fixture-effective-date",
+    "quote": "This measure enters into force on 1 January 2027."
+  }
+]

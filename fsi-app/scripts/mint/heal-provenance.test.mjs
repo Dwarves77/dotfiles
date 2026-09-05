@@ -118,7 +118,7 @@ import { norm } from "../../src/lib/agent/gate-a-match.mjs";
 const HERE = dirname(fileURLToPath(import.meta.url));
 
 test("HEAL_VERSION is a stamped string", () => {
-  assert.match(HEAL_VERSION, /^hp10-/);
+  assert.match(HEAL_VERSION, /^hp11-/);
 });
 
 // ── loadRequiredSlots / claimCoversSlot / missingRequiredSlots ──────────────────────────────────────
@@ -2427,6 +2427,22 @@ test("candidateUrlsForOrphan: bounded to SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN", 
   assert.equal(urls.length, SOURCE_MAX_CANDIDATE_URLS_PER_ORPHAN);
 });
 
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1) — foundUrls (the attach-found-sources worklist).
+test("candidateUrlsForOrphan: foundUrls are tried FIRST, ahead of the item's own citations, deduplicated", () => {
+  const sections = [{ id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "See https://example.com/cited for detail." }];
+  const urls = candidateUrlsForOrphan("a token nowhere in either section", {
+    sections, claims: [], sourcesIndex: buildSourcesIndex([]),
+    foundUrls: ["https://found.example/page", "https://example.com/cited"],
+  });
+  assert.deepEqual(urls, ["https://found.example/page", "https://example.com/cited"]);
+});
+
+test("candidateUrlsForOrphan: no foundUrls (every existing caller) behaves byte-identically to before this pass", () => {
+  const sections = [{ id: "sec-1", item_id: "i1", section_key: "body", section_order: 1, content_md: "https://example.com/a" }];
+  const urls = candidateUrlsForOrphan("a token nowhere in either section", { sections, claims: [], sourcesIndex: buildSourcesIndex([]) });
+  assert.deepEqual(urls, ["https://example.com/a"]);
+});
+
 test("healOneItem STEP SOURCE: the 167 no-source-row case — a registerable host is registered (base_tier from classTierForHost, never hand-typed), captured, and the orphan is grounded", async () => {
   const item = {
     id: "item-src1", item_type: "regulation", source_id: "src-own", source_url: "https://example-regulator.gov/x",
@@ -2964,6 +2980,53 @@ test("healOneItem STEP SOURCE: no_candidate_url and unresolved outcomes carry th
   const noCandidate = r.steps.source.find((s) => s.outcome === "no_candidate_url");
   assert.ok(noCandidate, JSON.stringify(r.steps.source));
   assert.equal(noCandidate.sentence, "The levy is set at €911,000 under this measure.");
+});
+
+// ELEVENTH PASS (2026-09-05, lane ATTACH-SOURCES, W3.1) — deps.foundSourcesForItem (attach-found-sources'
+// own worklist input into STEP SOURCE). Same item as the no_candidate_url case above (zero citations of
+// its own) but with a worklist entry for the exact orphan token — proves the SAME STEP SOURCE mechanism
+// (class table tier, verbatim locate, guarded insertClaim) grounds it instead of reporting no_candidate_url.
+test("healOneItem STEP SOURCE: a worklist URL with no item citation of its own is tried, classified by the SAME class table, and grounds the orphan (attach-found-sources path)", async () => {
+  const item = {
+    id: "item-src-wl1", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €911,000 under this measure.",
+  };
+  const fetchImpl = async (url) => (
+    String(url).includes("notices.example.gov")
+      ? { ok: true, status: 200, text: async () => "The levy is set at €911,000 under this measure, per the official notice. " + "Padding text so this body clears the 200-char usability floor. ".repeat(3) }
+      : { ok: true, status: 200, text: async () => "should not be fetched in this test" }
+  );
+  const deps = baseDeps({
+    fetchImpl,
+    readClaims: async () => [],
+    readSections: async () => [],
+    foundSourcesForItem: (itemId) => (itemId === "item-src-wl1"
+      ? { "€911,000": [{ url: "https://notices.example.gov/levy", quote: "The levy is set at €911,000 under this measure." }] }
+      : {}),
+  });
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+
+  const entry = r.steps.source.find((s) => s.outcome === "source_registered_and_grounded");
+  assert.ok(entry, JSON.stringify(r.steps.source));
+  assert.equal(entry.url, "https://notices.example.gov/levy");
+  assert.equal(entry.via, "worklist");
+  assert.equal(entry.quote, "The levy is set at €911,000 under this measure.");
+  assert.ok(!r.steps.source.some((s) => s.outcome === "no_candidate_url"), "the worklist URL supplied a candidate where the item's own citations had none");
+
+  const claimCall = deps.calls.find((c) => c[0] === "insertClaim");
+  assert.ok(claimCall, "grounded through the SAME guarded insertClaim path every other STEP SOURCE outcome uses");
+  assert.ok(claimCall[1].source_span.includes("911,000"), "GROUND still requires the token verbatim on the fetched page — never the worklist's quote as a substitute");
+});
+
+test("healOneItem STEP SOURCE: no deps.foundSourcesForItem (a plain provenance-heal dispatch) is unaffected — still reports no_candidate_url", async () => {
+  const item = {
+    id: "item-src-wl2", item_type: "regulation", source_url: null,
+    full_brief: "The levy is set at €913,000 under this measure.",
+  };
+  const deps = baseDeps({ readClaims: async () => [], readSections: async () => [] });
+  assert.equal(deps.foundSourcesForItem, undefined);
+  const r = await healOneItem(item, { deps, apply: true, selectionMode: "quarantined-live", requiredSlotsMap: {} });
+  assert.ok(r.steps.source.some((s) => s.outcome === "no_candidate_url"));
 });
 
 test("healOneItem STEP C: an unprovable orphan carries its own enclosing sentence alongside the existing fuzzy evidence", async () => {
