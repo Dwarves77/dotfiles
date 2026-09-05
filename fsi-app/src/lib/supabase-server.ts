@@ -75,8 +75,8 @@ function describeSupabaseError(error: {
 // Canonical home moved to ./supabase-service (C1 consolidation, 2026-07-12). Import for this module's own
 // internal callers AND re-export so existing `import { getServiceSupabase } from "@/lib/supabase-server"`
 // callers are unchanged. Fail-closed lives there (throws on missing key; never downgrades to anon).
-import { getServiceSupabase } from "./supabase-service";
-export { getServiceSupabase };
+import { getServiceSupabase, isServiceSupabaseConfigured } from "./supabase-service";
+export { getServiceSupabase, isServiceSupabaseConfigured };
 
 // ── Fetch Functions ──────────────────────────────────────────
 // All reads are against the new item_* schema (Phase A.5.b). UUID

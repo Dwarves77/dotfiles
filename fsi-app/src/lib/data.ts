@@ -30,6 +30,7 @@ import {
   fetchResearchSourceCoverage,
   getServiceSupabase,
   isSupabaseConfigured,
+  isServiceSupabaseConfigured,
   SEED_FALLBACK_ERROR,
   type ScopeFilter,
   type CategoryRoutedResult,
@@ -495,8 +496,45 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
  * (getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems) now page internally too
  * (supabase-server.ts's `runCategoryRpcPublic` fix, same audit) — this function's existing one-call-each
  * shape already returns their complete corpus as a result of that shared fix, not a second one here.
+ *
+ * CAP-1000-FIX (2026-09-05, PR #593 build-proof failure — check "Build proof (deployed-bundle
+ * gate)/next build", run 33940507368): the fail-closed guarantee above ("never silently prerender a
+ * truncated set") is correct for a REAL deploy but was firing in an environment that has no Supabase
+ * credentials AT ALL — the build-proof CI job runs `npx next build` with real node_modules on
+ * purpose (it exists to catch real bundler defects) but deliberately sets no
+ * `SUPABASE_SERVICE_ROLE_KEY` (.github/workflows/build-proof.yml's own header: "SUPABASE_SERVICE_
+ * ROLE_KEY is asserted nowhere at build time... its absence is itself proven harmless"). Before
+ * CAP-1000, the enumerator degraded to `[]` in that case; CAP-1000's fail-closed `fetchAllRows` now
+ * THROWS instead — `getPublicListingsOnly` catches `getServiceSupabase()`'s fail-closed throw and
+ * returns its `_error` sentinel rather than propagating it, and this function's own page factory
+ * turns that sentinel into a page `error`, which `fetchAllRows` (correctly, per its own contract)
+ * raises as a real failure — aborting `next build` at `generateStaticParams` for
+ * `/regulations/[slug]`.
+ *
+ * THE RULE, unchanged in a real deploy, extended for "no credentials at all": a service-role key
+ * configured means a genuine attempt to enumerate the full corpus, and ANY page failure during that
+ * attempt still fails the build (no silent truncation — CAP-1000's guarantee stands). NO service-role
+ * key configured (this CI job; a local placeholder build) means enumeration was never going to
+ * succeed regardless of how many pages it tried, so it is skipped up front with one log line naming
+ * the reason, and the route falls back to `dynamicParams` (default `true` — see this file's own
+ * `getPublicSurfaceSlugs` doc block above and each `[slug]/page.tsx`'s own comment), the exact
+ * degrade path CAP-1000's fail-closed rule intentionally does NOT touch. Detected via
+ * `isServiceSupabaseConfigured()` (supabase-service.ts) — the SAME predicate `getServiceSupabase()`
+ * itself checks before throwing — imported rather than re-implemented, so this can never drift from
+ * what "configured" actually means; this is not a catch-all try/catch around the enumeration (that
+ * would also swallow a genuine mid-walk page failure with real credentials, exactly what CAP-1000
+ * exists to prevent).
  */
 async function fetchAllPublicListingSlugs(): Promise<string[]> {
+  if (!isServiceSupabaseConfigured()) {
+    console.warn(
+      "[getPublicSurfaceSlugs] SUPABASE_SERVICE_ROLE_KEY is not configured — skipping full " +
+        "regulations slug enumeration (e.g. build-proof CI, a local placeholder build); " +
+        "/regulations/[slug] routes will fall back to on-demand rendering via dynamicParams " +
+        "instead of being statically prerendered."
+    );
+    return [];
+  }
   const rows = await fetchAllRows<{ id: string }>(
     async (from, to) => {
       const { resources, _error } = await getPublicListingsOnly({
