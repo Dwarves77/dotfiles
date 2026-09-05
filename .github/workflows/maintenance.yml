@@ -404,6 +404,27 @@ jobs:
         if: always()
         run: node scripts/verify/population-report.mjs
 
+      # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). BEFORE THIS
+      # FIX: this job's own env block above (APP_URL/WORKER_SECRET) was added by the 2026-09-03 PERF train
+      # with a comment promising a flush "after a real apply" — but no step here ever called
+      # scripts/lib/revalidate.mjs. Maintenance #47 (forward-events-retext apply) deleted 331 forward
+      # events and 331 obligations at 01:20 UTC on 2026-09-05 and /regulations (static,
+      # PUBLIC_ITEMS_REVALIDATE_SECONDS 6h) still served the pre-cleanup register at 01:35 — the exact gap
+      # this step closes. Every named maintenance step can touch rows the four public ledgers or their
+      # detail pages read (intelligence_items, obligations, item_forward_events, sources, tags,
+      # integrity_flags), so this flushes unconditionally on any real apply rather than auditing each of
+      # the 22 steps individually — revalidateTag is idempotent and cheap; an occasional redundant flush
+      # costs nothing, a missed one serves stale data for up to PUBLIC_ITEMS_REVALIDATE_SECONDS. Reuses
+      # the SAME CLI apply-mint-batch.mjs's own in-process call already exercises (scripts/lib/
+      # revalidate.mjs's `main()`, tested in scripts/lib/revalidate.test.mjs) — no second copy of the
+      # POST-to-/api/revalidate logic. `|| true`: best-effort, same "no APP_URL: say so, never fail the
+      # job" contract revalidate.mjs's own revalidateTags() already implements (a missing secret pair or a
+      # non-2xx response is logged and skipped, not fatal — the 60s/300s cache backstops still bound
+      # staleness either way).
+      - name: Flush public/detail caches after a real apply (every apply, not mint alone)
+        if: always() && env.RUN_MODE == 'apply'
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
       - name: Upload this run's step artifact(s)
         if: always()
         uses: actions/upload-artifact@v4

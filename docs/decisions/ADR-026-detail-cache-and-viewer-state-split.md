@@ -218,3 +218,47 @@ and `/community/[slug]` remain `ƒ`, deliberately and out of this lane's scope (
 route-table diff and the two `getServiceSupabase()` production defects this lane found and fixed while
 proving the build). Cache Components (this ADR's second Follow-up bullet) remains untouched, still
 deferred, still available to a future lane exactly as this ADR left it.
+
+### Addendum — CAP-1000 (2026-09-05): revalidation is a property of every apply, not of mint alone
+
+**TWO DEFECTS, ONE CAUSE** [CONFIRMED]: PostgREST's `db-max-rows` setting caps ANY response at 1000 rows
+regardless of what `.limit(N)` asks for or whether the query carries no `.limit()`/`.range()` at all.
+This addendum's own PERF-13 (above) built `getPublicSurfaceSlugs`'s `generateStaticParams` enumeration on
+a bare `.limit(BUILD_TIME_SLUG_ENUM_LIMIT = 20000)` RPC call — with the live regulations corpus at 1,312+
+rows, only the FIRST 1,000 were ever prerendered (measured live on carosledge.com: slug index 900 was a
+prerender HIT, 1000/1050/1200/1311 were all MISS). The obligations register's `fetchObligationRegister
+Page` (`src/lib/obligations/read-register.mjs`) carried the identical bug wearing a different name
+(`OVERFETCH_CAP = 2000`, then a JS-side filter/count over the truncated array — the masthead read "60 of
+1000" against a live 1,141-row table). Both fixed this lane by routing through ONE shared helper,
+`fetchAllRows`/`exactCount` (`src/lib/db/paginate.mjs`) — `fetchAllRows` walks `.range()` pages until a
+short page, `exactCount` asks Postgres for a real `COUNT(*)` via `{ count: 'exact', head: true }` instead
+of trusting a fetched array's `.length`. A THIRD instance of the same class was found and fixed in the
+same lane: `supabase-server.ts`'s `runCategoryRpc`/`runCategoryRpcPublic` (the org-scoped and public
+category RPCs this ADR's own PUBLIC_ITEMS_TAG addendum names) called their RPC with no `.range()`/
+`.limit()` at all — also now routed through the same helper (`fetchAllCategoryRows`). See
+`.discipline/fitness/functions/F38-unbounded-supabase-read.mjs` for the mechanical backstop this lane
+added against a recurrence, and this lane's own CAP-1000 REPORT for the full site-by-site audit table.
+
+**THE SEPARATE GAP THIS ADDENDUM ACTUALLY AMENDS THIS ADR FOR**: this ADR's PERF-10 addendum (above)
+established `PUBLIC_ITEMS_TAG`, "revalidated at the same population/maintenance apply completion point
+ADR-023 names" — but the ONLY actual call site of `revalidateTags` (`scripts/lib/revalidate.mjs`) in the
+whole repository was, and until this lane remained, `scripts/mint/apply-mint-batch.mjs`'s own in-process
+call after a mint. `maintenance.yml` and `population-turn.yml` had ALREADY had `APP_URL`/`WORKER_SECRET`
+added to their job-level `env` blocks by the 2026-09-03 PERF train, each with a comment promising a flush
+"after a real apply" — but no step in either workflow ever called `revalidate.mjs`. The gap was not
+theoretical: Maintenance run #47 (`forward-events-retext` apply) deleted 331 forward events and 331
+obligations at 01:20 UTC on 2026-09-05, and `/regulations` (static, `PUBLIC_ITEMS_REVALIDATE_SECONDS` 6h)
+still served the pre-cleanup register at 01:35 — the cache tags this ADR designed were never flushed
+because nothing outside one mint script ever called the flush.
+
+**THE FIX**: revalidation is a property of every apply that touches a row the public ledgers or their
+detail pages read, not a property of minting specifically. Every apply-mode job in `maintenance.yml`,
+`corpus-turn.yml`, `propagation-drain.yml`, `producers.yml`, and `population-turn.yml` now ends with one
+best-effort step calling `scripts/lib/revalidate.mjs`'s own existing CLI (`node scripts/lib/revalidate.mjs
+--apply <tags...>`, already tested in `revalidate.test.mjs` — no second copy of the POST-to-`/api/
+revalidate` logic) to flush `APP_DATA_TAG` + `PUBLIC_ITEMS_TAG` + all four `<surface>-detail` tags.
+`source-sweep.yml` and `ledger-consume.yml` were read and confirmed NOT to need this step: the first
+writes only `portal_link_candidates`, the second only `census_worklist` — neither table any public cache
+this ADR governs ever reads. See `docs/runbooks/MAINTENANCE-RUNBOOK.md`'s "Cache flush after apply"
+section for the coordinator-facing summary and this lane's CAP-1000 REPORT for the exact diff per
+workflow.

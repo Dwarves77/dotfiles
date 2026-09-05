@@ -107,11 +107,18 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // of docs/decisions/ADR-027-*.md — the operator's own "clicking into any item ... takes WAY too long"
 // diagnosis (docs/audits/perf-waterfall-2026-09-04.md). No citingFiles change, same posture as the
 // category 36 re-pin above (the files below cite the skill as a whole, not this section specifically).
+// 2026-09-05 (Lane CAP-1000, "two defects one cause"): remediation-discipline re-pinned — added "Section 4
+// — category 38: A capped read that claims to fetch 'the whole set' pages, it does not lean on a bigger
+// .limit()" (invariant RD-63, F38) — PostgREST's db-max-rows=1000 silently truncating PERF-13's slug
+// enumeration, the obligations register's OVERFETCH_CAP, community/directory's profiles aggregate, and
+// run-change-detection.mjs's backlog overflow count, all one root cause. No citingFiles change, same
+// posture as the category 36/37 re-pins above (the files below cite the skill as a whole, not this
+// section specifically).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '98510eec7fe56dca907028dadb264614fa66b762f2250f11456a5866e783b148',
+    contentHash: '3799fc8ebfad134db3e7898146b0621d2b3035c0d2c45c2325dc3f799baf2452',
     citingFiles: [
       'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',

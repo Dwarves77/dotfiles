@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { CommunityShell } from "@/components/community/CommunityShell";
 import {
   PeerOrgDirectoryTable,
@@ -142,16 +143,33 @@ export default async function CommunityDirectoryPage() {
 
   // ── Aggregate peer-org data ───────────────────────────────────────────
   // Counts only, computed server-side from columns that are themselves never a name or company
-  // (affiliation_type/region/sector_overrides/verifier_status). Capped at 5000 rows defensively —
-  // this platform's member count is well under that; a future scale-up would need a DB-side
-  // aggregate (RPC) rather than this in-memory group-by.
-  const { data: profileRows, error: aggErr } = await supabase
-    .from("profiles")
-    .select("affiliation_type, region, sector_overrides, verifier_status")
-    .limit(5000);
+  // (affiliation_type/region/sector_overrides/verifier_status).
+  //
+  // FIXED (CAP-1000, 2026-09-05, "two defects one cause" audit): this used to be a single
+  // `.limit(5000)` call — PostgREST's db-max-rows setting caps ANY response at 1000 rows regardless
+  // of what `.limit()` asks for, so the "well under 5000" comment's assumption was never actually
+  // enforced past 1000 profiles; a silent undercount in byOrgTypeAndRegion/bySector below would have
+  // had no signal at all (the exact PERF-13/OVERFETCH_CAP defect class this lane's audit named). Now
+  // walks every row via fetchAllRows (paginate.mjs), ordered by the table's PK for the total order
+  // offset paging requires, so the aggregate is exact at any member count.
+  let profileRows: ProfileAggRow[] = [];
+  let aggErr: { message: string } | null = null;
+  try {
+    profileRows = await fetchAllRows<ProfileAggRow>(
+      (from, to) =>
+        supabase
+          .from("profiles")
+          .select("affiliation_type, region, sector_overrides, verifier_status, id")
+          .order("id", { ascending: true })
+          .range(from, to),
+      { pageSize: 1000 }
+    );
+  } catch (e) {
+    aggErr = { message: e instanceof Error ? e.message : String(e) };
+  }
   if (aggErr) console.warn("community/directory: profile aggregate read failed", aggErr.message);
 
-  const rows = (profileRows ?? []) as ProfileAggRow[];
+  const rows = profileRows;
 
   const byOrgTypeAndRegionMap = new Map<string, OrgTypeRegionRow>();
   const bySectorMap = new Map<string, number>();

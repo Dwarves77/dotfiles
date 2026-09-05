@@ -8,6 +8,7 @@ import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import { RESEARCH_CANDIDATE_OR } from "@/lib/research/surface-candidate.mjs";
 import { canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
 import { stalenessOf } from "@/lib/contracts/envelope.mjs";
@@ -74,8 +75,8 @@ function describeSupabaseError(error: {
 // Canonical home moved to ./supabase-service (C1 consolidation, 2026-07-12). Import for this module's own
 // internal callers AND re-export so existing `import { getServiceSupabase } from "@/lib/supabase-server"`
 // callers are unchanged. Fail-closed lives there (throws on missing key; never downgrades to anon).
-import { getServiceSupabase } from "./supabase-service";
-export { getServiceSupabase };
+import { getServiceSupabase, isServiceSupabaseConfigured } from "./supabase-service";
+export { getServiceSupabase, isServiceSupabaseConfigured };
 
 // ── Fetch Functions ──────────────────────────────────────────
 // All reads are against the new item_* schema (Phase A.5.b). UUID
@@ -1642,6 +1643,31 @@ async function enrichCategoryRows(
   }
 }
 
+// CAP-1000 (2026-09-05, "two defects one cause" audit). Both runCategoryRpc and runCategoryRpcPublic
+// below used to call their RPC with NO `.range()`/`.limit()` at all — a bare `serviceClient.rpc(name,
+// args)`. That is the SAME PostgREST-max-rows defect class as PERF-13's slug enumeration and the
+// obligations register's OVERFETCH_CAP, just not yet tripped: today's live corpus (market 55 /
+// operations 25 / research 39 / technology, measured via Supabase MCP, 2026-09-05) sits well under the
+// 1000-row cap, so the un-ranged call happens to return everything — but nothing protected it, and a
+// population turn crossing 1000 items on any one surface would have silently served a partial ledger
+// with no error, no flag, and a masthead count that still claimed completeness. All four RPCs' own
+// `RETURN QUERY ... ORDER BY` ends `..., ii.id ASC` [CONFIRMED, live `pg_get_functiondef` via Supabase
+// MCP against migrations 272 (org-scoped) and 306 (public)] — a genuine total order, so `.range()`
+// paging is lossless (paginate.mjs's own contract). Routed through the SAME `fetchAllRows` helper
+// db.mjs's readAll and supabase-server.ts's other paged fetchers use — one mechanism, not a new one.
+const CATEGORY_RPC_PAGE_SIZE = 1000;
+
+async function fetchAllCategoryRows(
+  serviceClient: ReturnType<typeof getServiceSupabase>,
+  rpcName: string,
+  rpcArgs: Record<string, unknown>
+): Promise<any[]> {
+  return fetchAllRows(
+    (from, to) => serviceClient.rpc(rpcName, rpcArgs).range(from, to),
+    { pageSize: CATEGORY_RPC_PAGE_SIZE }
+  );
+}
+
 // Internal helper. Calls the category-routing RPC; projects rows to
 // Resource[]. The RPC body itself enforces routing via sources.category
 // (migration 084); no src-side filtering needed.
@@ -1659,14 +1685,11 @@ async function runCategoryRpc(
   }
   try {
     const serviceClient = getServiceSupabase();
-    const { data: rows, error } = await serviceClient.rpc(rpcName, {
-      p_org_id: orgId,
-    });
-    if (error || !rows) {
-      console.error(`[category-routing] ${rpcName} error:`, error);
+    const rows = await fetchAllCategoryRows(serviceClient, rpcName, { p_org_id: orgId });
+    if (!rows.length) {
       return { resources: [], total: 0 };
     }
-    const resources = (rows as any[]).map(rpcRowToResource);
+    const resources = rows.map(rpcRowToResource);
     await enrichCategoryRows(serviceClient, resources, rpcName, opts);
     return { resources, total: resources.length };
   } catch (e) {
@@ -1693,12 +1716,11 @@ async function runCategoryRpcPublic(
   }
   try {
     const serviceClient = getServiceSupabase();
-    const { data: rows, error } = await serviceClient.rpc(rpcName);
-    if (error || !rows) {
-      console.error(`[category-routing] ${rpcName} error:`, error);
+    const rows = await fetchAllCategoryRows(serviceClient, rpcName, {});
+    if (!rows.length) {
       return { resources: [], total: 0 };
     }
-    const resources = (rows as any[]).map(rpcRowToResource);
+    const resources = rows.map(rpcRowToResource);
     await enrichCategoryRows(serviceClient, resources, rpcName, opts);
     return { resources, total: resources.length };
   } catch (e) {

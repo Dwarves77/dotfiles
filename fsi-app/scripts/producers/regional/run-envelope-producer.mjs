@@ -136,22 +136,17 @@ async function resolveRegionIds(regionCodes) {
 
 /** Read every existing regional_data_facts row for one source_key, scoped so a re-run's read stays small
  *  and never touches another producer's rows. Attaches region_code (not just region_id) so planUpsert can
- *  key on it the same way the candidate rows do. */
+ *  key on it the same way the candidate rows do.
+ *
+ * CAP-1000 (2026-09-05, "two defects one cause" audit): was a hand-rolled `.range(from, from+999)` loop
+ * — an exact duplicate of db.mjs's own `readAll` (already imported two lines up, for the `regions` read)
+ * — silently reintroducing the class of bug that helper exists to close. One call, not a second copy. */
 async function readExistingForSource(sourceKey, regionIdToCode) {
-  const sb = readClient();
-  const rows = [];
-  for (let from = 0; ; from += 1000) {
-    const { data, error } = await sb
-      .from("regional_data_facts")
-      .select(ENVELOPE_SELECT)
-      .eq("source_key", sourceKey)
-      .order("id", { ascending: true })
-      .range(from, from + 999);
-    if (error) throw new Error(`run-envelope-producer: existing-row read failed: ${error.message}`);
-    for (const r of data ?? []) rows.push({ ...r, region_code: regionIdToCode.get(r.region_id) ?? null });
-    if (!data || data.length < 1000) break;
-  }
-  return rows;
+  const rows = await readAll("regional_data_facts", ENVELOPE_SELECT, {
+    match: (qb) => qb.eq("source_key", sourceKey),
+    orderBy: "id",
+  });
+  return rows.map((r) => ({ ...r, region_code: regionIdToCode.get(r.region_id) ?? null }));
 }
 
 /**

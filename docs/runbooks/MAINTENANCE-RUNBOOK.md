@@ -30,6 +30,43 @@ containing one `<step>/summary.json` per step that ran — `{ step, mode, counts
 ... }`. Read every artifact against the live table it claims to have changed before the next dispatch
 (finish-plan-2026-09-02.md §4) — the sections below name what to read back for each step.
 
+## Cache flush after apply (CAP-1000, 2026-09-05)
+
+**Every apply-mode dispatch of this workflow ends with one more step: "Flush public/detail caches after
+a real apply."** It runs whenever `mode=apply` (any step, `always()` so a failure earlier in the job does
+not skip it), and calls `scripts/lib/revalidate.mjs`'s own CLI —
+
+```
+node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail
+```
+
+— flushing `APP_DATA_TAG` (the org-scoped index ledgers), `PUBLIC_ITEMS_TAG` (the public, org-independent
+`/regulations` `/market` `/operations` `/research` index reads, ADR-026's PERF-10 addendum), and all four
+coarse `<surface>-detail` tags (every item-scoped detail-page cache, ADR-026's own subject). It needs
+`APP_URL` + `WORKER_SECRET` (repository secrets, same pair `change-detection.yml` already uses) — with
+either unset it logs "skipped (no APP_URL/WORKER_SECRET)" and exits clean; the run's own dry/apply outcome
+is never affected by this step (`|| true`). The 60s (`APP_DATA_TAG` consumers)/300s (detail cache)/6h
+(`PUBLIC_ITEMS_REVALIDATE_SECONDS`) backstops still bound staleness on top of this, but this step is what
+makes a real apply visible on the public site within seconds instead of waiting for those backstops.
+
+**WHY EVERY STEP, not just the ones that obviously touch a public table**: revalidation is a property of
+every apply that writes a row a public cache reads, not a property of `apply-mint-batch.mjs`'s own mint
+path alone (that script already had its own in-process flush, unconditionally, since PERF-10 — this
+workflow-level step is the SAME mechanism reused for every OTHER apply that never routed through it).
+`revalidateTag` is idempotent and cheap; flushing on a step that turns out not to have touched a
+public-visible table costs nothing, while missing one serves stale data for up to
+`PUBLIC_ITEMS_REVALIDATE_SECONDS` (6h) with zero signal — exactly what happened on Maintenance #47
+(`forward-events-retext` apply, 01:20 UTC 2026-09-05: 331 forward events + 331 obligations deleted;
+`/regulations` still served the pre-cleanup register at 01:35). See `docs/decisions/
+ADR-026-detail-cache-and-viewer-state-split.md`'s CAP-1000 addendum for the full defect history, and this
+lane's REPORT for the audit of every `.limit()`/full-table-read site that motivated it.
+
+**The same step (same CLI, same tags) was added to `corpus-turn.yml`, `propagation-drain.yml`,
+`producers.yml`, and `population-turn.yml`** — every workflow whose apply-mode jobs write
+`intelligence_items`/`obligations`/`item_forward_events`/`market_series`/`entities`/`derived_values`.
+`source-sweep.yml` (writes only `portal_link_candidates`) and `ledger-consume.yml` (writes only
+`census_worklist`) do NOT carry this step — neither table is read by a cache this ADR or PERF-10 governs.
+
 ---
 
 ## 1. `community-topics-seed` — RETIRED (Lane REVIEW-WIRE, 2026-09-04)

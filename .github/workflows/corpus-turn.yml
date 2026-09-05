@@ -129,6 +129,11 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Cache flush after a real apply (CAP-1000, 2026-09-05): scripts/lib/revalidate.mjs POSTs the
+      # ledger/detail cache tags to /api/revalidate. Same secret pair maintenance.yml/change-detection.yml
+      # already use; absent, the helper skips and the 60s/300s cache backstops bound staleness.
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -317,6 +322,18 @@ jobs:
       - name: Mark consumed tickets (apply mode, ticket-queue selection, after this turn's writes succeeded)
         if: steps.turn.outputs.mode == 'apply' && steps.scope.outputs.selection == 'tickets' && steps.scope.outputs.has_scope == 'true'
         run: node scripts/turns/consume-turn-requests.mjs --mark-file "${{ steps.scope.outputs.tickets_path }}" --by "corpus-turn-${{ github.run_id }}"
+
+      # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). Step 5
+      # (apply-extraction-output.mjs) writes item_forward_events through the guarded path in apply mode —
+      # rows the obligations register embeds (item_forward_events(obligation_text)) and derive-obligations
+      # later turns into obligations rows read straight off it. Flushes unconditionally on any real apply
+      # (revalidateTag is idempotent/cheap). Reuses the SAME CLI apply-mint-batch.mjs's own in-process call
+      # already exercises (scripts/lib/revalidate.mjs's `main()`, tested in revalidate.test.mjs) — no
+      # second copy of the POST-to-/api/revalidate logic. `|| true`: best-effort, same "no APP_URL: say so,
+      # never fail the job" contract revalidate.mjs's own revalidateTags() already implements.
+      - name: Flush public/detail caches after a real apply (every apply, not mint alone)
+        if: always() && steps.turn.outputs.mode == 'apply'
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
 
       # ── 8. record THIS family's own harness-run artifact (F28 / CONVENTION.md) ─────────────────────────
       # "Emission is CODE" — the same posture run-mint-batch.mjs / run-extraction.mjs / screen-worklist.mjs

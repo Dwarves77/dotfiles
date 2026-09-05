@@ -1,0 +1,3919 @@
+{
+  "sources": [
+    {
+      "sourceId": "d9f498dd-1125-4f8a-b0d4-2387ee7bb082",
+      "sourceName": "EcoEnclose (sustainable packaging vendor)",
+      "sourceUrl": "https://ecoenclose.com",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ecoenclose.com",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.ecoenclose.com/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 446,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 446,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 446,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 446,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:44:59.362Z",
+        "feed_last_probed_at": "2026-09-05T01:44:59.362Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.ecoenclose.com/sitemap.xml",
+        "sitemap_url_count": 446
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "664e8147-3199-4159-8c7f-05e6e7ba0e82",
+      "sourceName": "ECOLEX",
+      "sourceUrl": "https://ecolex.org/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ecolex.org/",
+      "sitemapsFetched": [
+        {
+          "url": "https://ecolex.org/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:45:09.251Z",
+        "feed_last_probed_at": "2026-09-05T01:45:09.251Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ecolex.org/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+      "sourceName": "Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+      "sourceUrl": "https://ecologie.gouv.fr/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ecologie.gouv.fr/",
+      "sitemapsFetched": [
+        {
+          "url": "https://ecologie.gouv.fr/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 16,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_magazine/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 21,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_project/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_press/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 3,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_page/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 12,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_news/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 379,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_mini_site/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 26,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_ministry/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 36,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_minister/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 11,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 7,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_list_page/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 122,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_landing_page/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 22,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_home_page/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 4,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_file/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 99,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_campaign/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 55,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_appointment/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 194,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_public_policy/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1088,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 158,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 157,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 5000,
+      "urlsOverLimit": 12982,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 5000,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 5000,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:55:01.930Z",
+        "feed_last_probed_at": "2026-09-05T01:55:01.930Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ecologie.gouv.fr/sitemap.xml",
+        "sitemap_url_count": 5000
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d57b213b-01d7-443b-817d-9f03943aa3a9",
+      "sourceName": "Washington State Department of Ecology – Air & Climate Division",
+      "sourceUrl": "https://ecology.wa.gov/air-climate",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ecology.wa.gov/air-climate",
+      "sitemapsFetched": [
+        {
+          "url": "https://ecy.wa.gov/SearchEngineSiteMap",
+          "kind": "urlset",
+          "urlCount": 6568,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 6483,
+      "urlCount": 85,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 85,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 85,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:55:24.309Z",
+        "feed_last_probed_at": "2026-09-05T01:55:24.309Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ecy.wa.gov/SearchEngineSiteMap",
+        "sitemap_url_count": 85
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "413c42ec-ff72-4a5b-a85a-ff5c1bf532fd",
+      "sourceName": "European Sea Ports Organisation (ESPO) / EcoPorts",
+      "sourceUrl": "https://ecoports.com/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://ecoports.com/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://ecoports.com/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://ecoports.com/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ecoports.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://ecoports.com/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ecoports.com/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://ecoports.com/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:55:36.706Z",
+        "feed_last_probed_at": "2026-09-05T01:55:36.706Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b3fb01c5-4089-4b2b-9706-874ee7f1a552",
+      "sourceName": "EcoPorts/ESPO — ESPO Green Guide 2021 Publication Page",
+      "sourceUrl": "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.ecoports.com/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.ecoports.com/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.ecoports.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.ecoports.com/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.ecoports.com/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.ecoports.com/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:55:53.601Z",
+        "feed_last_probed_at": "2026-09-05T01:55:53.601Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "sourceName": "EcoVadis",
+      "sourceUrl": "https://ecovadis.com/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ecovadis.com/",
+      "sitemapsFetched": [
+        {
+          "url": "https://ecovadis.com/sitemap_index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 6,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/page-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 68,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/authors-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 40,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/blog-post-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 158,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/academy_partners-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 34,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/regulation-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 23,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ecovadis.com/blog-category-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 14,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 337,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 337,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 337,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:56:38.626Z",
+        "feed_last_probed_at": "2026-09-05T01:56:38.626Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ecovadis.com/sitemap_index.xml",
+        "sitemap_url_count": 337
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "97b017a6-0600-4f1f-89ed-f0ddc856dc07",
+      "sourceName": "Edhat — California v. Trump EPA Endangerment Finding Repeal Suit",
+      "sourceUrl": "https://www.edhat.com/california/news/california-sues-trump-administration-over-repeal-of-epa-endangerment-finding/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.edhat.com/california/news/california-sues-trump-administration-over-repeal-of-epa-endangerment-finding/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.edhat.com/sitemap-news.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.edhat.com/sitemap-news.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.edhat.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.edhat.com/sitemap_index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 2,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:56:54.300Z",
+        "feed_last_probed_at": "2026-09-05T01:56:54.300Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.edhat.com/sitemap-news.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f1d93783-84c7-452e-b1e3-7a5af48f001f",
+      "sourceName": "Edie",
+      "sourceUrl": "https://edie.net/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://edie.net/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.edie.net/sitemaps.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.edie.net/sitemaps.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:03.267Z",
+        "feed_last_probed_at": "2026-09-05T01:57:03.267Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.edie.net/sitemaps.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "253e0eb6-e9ad-4d9e-91f7-736320c015e3",
+      "sourceName": "Arkansas Pollution Control and Ecology Commission (APC&EC)",
+      "sourceUrl": "https://ee.arkansas.gov/environment",
+      "kind": "feed",
+      "feedUrl": "https://ee.arkansas.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 170444,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://ee.arkansas.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://ee.arkansas.gov/feed/",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:05.892Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:57:05.892Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "3ab405f6-8b50-4101-9c60-16f71ffd8aef",
+      "sourceName": "EEA EU ETS Data Viewer",
+      "sourceUrl": "https://eea.europa.eu/en/analysis/maps-and-charts/emissions-trading-viewer-1-dashboards",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://eea.europa.eu/en/analysis/maps-and-charts/emissions-trading-viewer-1-dashboards",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://eea.europa.eu/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://eea.europa.eu/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://eea.europa.eu/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:23.921Z",
+        "feed_last_probed_at": "2026-09-05T01:57:23.921Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d8ca8c47-29d2-474a-8548-038651717d15",
+      "sourceName": "European Environment Agency",
+      "sourceUrl": "https://eea.europa.eu/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://eea.europa.eu/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://eea.europa.eu/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://eea.europa.eu/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://eea.europa.eu/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:34.925Z",
+        "feed_last_probed_at": "2026-09-05T01:57:34.925Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "5671ef10-ce91-4fa5-a974-704007fdc30a",
+      "sourceName": "E&E News — Trump Stalls Port of LA Electrification Funding",
+      "sourceUrl": "https://www.eenews.net/articles/trump-stalls-1b-push-to-electrify-trucking-at-port-of-la/",
+      "kind": "feed",
+      "feedUrl": "https://www.eenews.net/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 101492,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.eenews.net/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.eenews.net/feed/",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:37.836Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:57:37.836Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "3177adf4-fa70-4c3c-91c6-110ce01cc4d9",
+      "sourceName": "eFuel Alliance e.V.",
+      "sourceUrl": "https://efuel-alliance.eu/initiative",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://efuel-alliance.eu/initiative",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.efuel-alliance.eu/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.efuel-alliance.eu/sitemap.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:57:53.230Z",
+        "feed_last_probed_at": "2026-09-05T01:57:53.230Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.efuel-alliance.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "22e4e428-f280-4484-ae8f-05b7bddb590d",
+      "sourceName": "Gazette of India eGazette",
+      "sourceUrl": "https://egazette.gov.in/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://egazette.gov.in/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://egazette.gov.in/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://egazette.gov.in/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://egazette.gov.in/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:58:05.370Z",
+        "feed_last_probed_at": "2026-09-05T01:58:05.370Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e043dd0d-18d1-461f-9e5e-f3d9aca1d364",
+      "sourceName": "Government of India e-Gazette Notification No. 249377 (2023)",
+      "sourceUrl": "https://egazette.gov.in/writereaddata/2023/249377.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://egazette.gov.in/writereaddata/2023/249377.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://egazette.gov.in/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://egazette.gov.in/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://egazette.gov.in/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:58:23.135Z",
+        "feed_last_probed_at": "2026-09-05T01:58:23.135Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "0091e1d0-afb5-4d0c-bf1a-b2c3faedda7c",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/todayinenergy/prices.php",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/todayinenergy/prices.php",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 131,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:58:38.576Z",
+        "feed_last_probed_at": "2026-09-05T01:58:38.576Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "130e05c2-2d5b-441b-ba8a-56f815e2d724",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/naturalgas/data.php",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/naturalgas/data.php",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 130,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:58:53.604Z",
+        "feed_last_probed_at": "2026-09-05T01:58:53.604Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "63f3ac51-55b1-460e-bebd-bcce00413583",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/dnav/ng/ng_pri_fut_s1_d.htm",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/dnav/ng/ng_pri_fut_s1_d.htm",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 131,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:59:08.604Z",
+        "feed_last_probed_at": "2026-09-05T01:59:08.604Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "6901afb7-faaf-4156-9492-9907a09c5daf",
+      "sourceName": "US EIA Petroleum Spot Prices",
+      "sourceUrl": "https://eia.gov/dnav/pet/pet_pri_spt_s1_d.htm",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/dnav/pet/pet_pri_spt_s1_d.htm",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 131,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:59:23.468Z",
+        "feed_last_probed_at": "2026-09-05T01:59:23.468Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7fa29bcb-32eb-4d94-afe7-ebb2e2f624eb",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 131,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:59:38.751Z",
+        "feed_last_probed_at": "2026-09-05T01:59:38.751Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "924fe43e-a7ff-4f3b-bf4c-2040567f0d23",
+      "sourceName": "US EIA Short-Term Energy Outlook",
+      "sourceUrl": "https://eia.gov/outlooks/steo",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/outlooks/steo",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 128,
+      "urlCount": 3,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 3,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 3,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:59:54.161Z",
+        "feed_last_probed_at": "2026-09-05T01:59:54.161Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 3
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b0cece2a-bb98-4ac7-85d4-e53994767ef9",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/naturalgas/weekly",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/naturalgas/weekly",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 130,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:00:09.066Z",
+        "feed_last_probed_at": "2026-09-05T02:00:09.066Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "cd8da726-1422-4d22-8f7c-4038cef55e18",
+      "sourceName": "U.S. Energy Information Administration (EIA)",
+      "sourceUrl": "https://eia.gov/dnav/pet/pet_pri_spt_s1_m.htm",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/dnav/pet/pet_pri_spt_s1_m.htm",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 131,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:00:23.972Z",
+        "feed_last_probed_at": "2026-09-05T02:00:23.972Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d2d7bd93-ba75-4d69-b92f-09912c78e9a4",
+      "sourceName": "US EIA Open Data API",
+      "sourceUrl": "https://eia.gov/opendata",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://eia.gov/opendata",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.eia.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 132,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 129,
+      "urlCount": 2,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 2,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 2,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:00:40.754Z",
+        "feed_last_probed_at": "2026-09-05T02:00:40.754Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.eia.gov/sitemap.xml",
+        "sitemap_url_count": 2
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "69d34c1d-8cdd-4098-9c7e-4d6882d2bff1",
+      "sourceName": "European Labour Authority: EU rules for LCVs in international transport",
+      "sourceUrl": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport",
+      "kind": "feed",
+      "feedUrl": "https://www.ela.europa.eu/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 42326,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.ela.europa.eu/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:00:52.683Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:00:52.683Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7f34295c-270c-47cd-a315-e1782bcc3159",
+      "sourceName": "European Labour Authority: LCV 2026 assets page",
+      "sourceUrl": "https://www.ela.europa.eu/assets/lcv2026/index.html",
+      "kind": "feed",
+      "feedUrl": "https://www.ela.europa.eu/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 767130,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/feed",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/rss",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/rss.xml",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/atom.xml",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/feed.xml",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/assets/lcv2026/index.html/index.xml",
+          "status": 403,
+          "isFeedDocument": false,
+          "reason": "HTTP 403"
+        },
+        {
+          "url": "https://www.ela.europa.eu/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.ela.europa.eu/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.ela.europa.eu/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:01:03.927Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:01:03.927Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+      "sourceName": "Statutes of the Republic of Korea",
+      "sourceUrl": "https://elaw.klri.re.kr/eng_service/main.do",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://elaw.klri.re.kr/eng_service/main.do",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://elaw.klri.re.kr/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://elaw.klri.re.kr/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://elaw.klri.re.kr/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://elaw.klri.re.kr/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://elaw.klri.re.kr/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://elaw.klri.re.kr/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:01:26.088Z",
+        "feed_last_probed_at": "2026-09-05T02:01:26.088Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "20fb520a-38d2-4c68-928c-e359d9ff5d41",
+      "sourceName": "Electrek",
+      "sourceUrl": "https://electrek.co/",
+      "kind": "feed",
+      "feedUrl": "https://electrek.co/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 294147,
+        "contentType": "",
+        "alternateLinksFound": 3,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://electrek.co/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://electrek.co/feed/",
+        "entries": 100,
+        "upserted": 100,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:01:37.909Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:01:37.909Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "651e761f-edf8-41b5-9403-38da1aef5840",
+      "sourceName": "EMSA — FuelEU Maritime: full application 1 January 2025 (Latest News)",
+      "sourceUrl": "https://www.emsa.europa.eu/newsroom/latest-news/item/5385-fueleu-maritime-full-application-1-january-2025.html",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.emsa.europa.eu/newsroom/latest-news/item/5385-fueleu-maritime-full-application-1-january-2025.html",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.emsa.europa.eu/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.emsa.europa.eu/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.emsa.europa.eu/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.emsa.europa.eu/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.emsa.europa.eu/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.emsa.europa.eu/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:01:56.689Z",
+        "feed_last_probed_at": "2026-09-05T02:01:56.689Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f9d6e12d-f220-41fa-81e6-a251b3a0eec6",
+      "sourceName": "EMSA: FuelEU Maritime Regulation page",
+      "sourceUrl": "https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://emsa.europa.eu/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://emsa.europa.eu/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://emsa.europa.eu/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://emsa.europa.eu/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://emsa.europa.eu/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://emsa.europa.eu/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:02:14.082Z",
+        "feed_last_probed_at": "2026-09-05T02:02:14.082Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7a9bc9f5-4b80-469d-92f5-23813e638339",
+      "sourceName": "REACH24H / China Ecological Environment Code Insight",
+      "sourceUrl": "https://en.reach24h.com/news/insights/chemical/china-ecological-environment-code",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://en.reach24h.com/news/insights/chemical/china-ecological-environment-code",
+      "sitemapsFetched": [
+        {
+          "url": "https://en.reach24h.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 5,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://en.reach24h.com/sitemap-en-pages.xml",
+          "kind": "urlset",
+          "urlCount": 6,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://en.reach24h.com/sitemap-en-services.xml",
+          "kind": "urlset",
+          "urlCount": 220,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://en.reach24h.com/sitemap-en-news.xml",
+          "kind": "urlset",
+          "urlCount": 1040,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://en.reach24h.com/sitemap-en-events.xml",
+          "kind": "urlset",
+          "urlCount": 91,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://en.reach24h.com/sitemap-en-insights.xml",
+          "kind": "urlset",
+          "urlCount": 164,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1520,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:02:36.401Z",
+        "feed_last_probed_at": "2026-09-05T02:02:36.401Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://en.reach24h.com/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "05d49ef3-8e8a-4cda-98f7-ca8b5e4a54c8",
+      "sourceName": "Enbridge — Norman Wells Pipeline (Line 21) Public Awareness",
+      "sourceUrl": "https://www.enbridge.com/projects-and-infrastructure/public-awareness/norman-wells-line-21",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.enbridge.com/projects-and-infrastructure/public-awareness/norman-wells-line-21",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.enbridge.com/sitemap-enbridge.xml",
+          "kind": "urlset",
+          "urlCount": 1633,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.enbridgesustain.com/sitemap-sustain.xml",
+          "kind": "urlset",
+          "urlCount": 454,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 2,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 2087,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:02:52.992Z",
+        "feed_last_probed_at": "2026-09-05T02:02:52.992Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.enbridge.com/sitemap-enbridge.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "be692ebf-2713-4f08-91a7-fac7b1ec3577",
+      "sourceName": "GX Policy — Achieving Decarbonization and Economic Growth Together, METI/ANRE",
+      "sourceUrl": "https://www.enecho.meti.go.jp/en/category/special/article/detail_214.html",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.enecho.meti.go.jp/en/category/special/article/detail_214.html",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.enecho.meti.go.jp/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.enecho.meti.go.jp/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.enecho.meti.go.jp/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.enecho.meti.go.jp/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.enecho.meti.go.jp/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.enecho.meti.go.jp/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:03:09.221Z",
+        "feed_last_probed_at": "2026-09-05T02:03:09.221Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f7e0cad5-bdd1-4022-8351-b2663f319ae9",
+      "sourceName": "California Energy Commission (CEC) – Fuels and Transportation Division",
+      "sourceUrl": "https://energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.ca.gov/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://energy.ca.gov/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://energy.ca.gov/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:03:26.383Z",
+        "feed_last_probed_at": "2026-09-05T02:03:26.383Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2a7cb270-1e64-41b4-a3ee-c3859c6612b6",
+      "sourceName": "European Commission – DG Energy",
+      "sourceUrl": "https://energy.ec.europa.eu/topics/markets-and-consumers_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://energy.ec.europa.eu/topics/markets-and-consumers_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2181,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 2180,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:03:44.781Z",
+        "feed_last_probed_at": "2026-09-05T02:03:44.781Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://energy.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "89fae12f-63e6-472a-bf11-1fafa6f7b4ec",
+      "sourceName": "European Commission – DG Energy",
+      "sourceUrl": "https://energy.ec.europa.eu/data-and-analysis/market-analysis_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://energy.ec.europa.eu/data-and-analysis/market-analysis_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2181,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 2180,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:03:59.864Z",
+        "feed_last_probed_at": "2026-09-05T02:03:59.864Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://energy.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "sourceName": "European Commission – DG Energy",
+      "sourceUrl": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2181,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 2180,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:04:14.855Z",
+        "feed_last_probed_at": "2026-09-05T02:04:14.855Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://energy.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e421ae49-28a2-40ec-8c52-81133a0b87f3",
+      "sourceName": "EU EPBD Recast — Energy Performance of Buildings",
+      "sourceUrl": "https://energy.ec.europa.eu/topics/energy-efficiency/energy-efficient-buildings/energy-performance-buildings-directive_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://energy.ec.europa.eu/topics/energy-efficiency/energy-efficient-buildings/energy-performance-buildings-directive_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 2181,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 2181,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:04:29.517Z",
+        "feed_last_probed_at": "2026-09-05T02:04:29.517Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://energy.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "be28ea3d-17f5-4327-9aba-8ada0144c56f",
+      "sourceName": "DOE Transportation Technologies Office",
+      "sourceUrl": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office",
+      "kind": "feed",
+      "feedUrl": "https://www.energy.gov/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 138541,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.energy.gov/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.energy.gov/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:04:39.504Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:04:39.504Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9aa0b256-d317-4a56-927b-715327590ed9",
+      "sourceName": "Victoria (AU) Dept of Energy: Electric/efficiency standards for buildings",
+      "sourceUrl": "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.energy.vic.gov.au/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.energy.vic.gov.au/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.energy.vic.gov.au/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.energy.vic.gov.au/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.energy.vic.gov.au/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://www.energy.vic.gov.au/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:04:55.821Z",
+        "feed_last_probed_at": "2026-09-05T02:04:55.821Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b8917aa2-062c-497c-9fcc-20cb51156bb4",
+      "sourceName": "Victorian Department of Energy, Environment and Climate Action (DEECA)",
+      "sourceUrl": "https://energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://energy.vic.gov.au/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://energy.vic.gov.au/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://energy.vic.gov.au/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://energy.vic.gov.au/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://energy.vic.gov.au/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://energy.vic.gov.au/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:05:12.918Z",
+        "feed_last_probed_at": "2026-09-05T02:05:12.918Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9c079185-6315-4924-b3bf-5e58f599aca5",
+      "sourceName": "Energy Advice Hub — SECR Update Blog",
+      "sourceUrl": "https://energyadvicehub.org/whats-happening-with-secr/",
+      "kind": "feed",
+      "feedUrl": "https://energyadvicehub.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 194837,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://energyadvicehub.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://energyadvicehub.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:05:16.869Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:05:16.869Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f9c5be81-f2ef-41a9-b12b-09d598a9fb7a",
+      "sourceName": "Energy Advice Hub — Non-Domestic MEES Update Blog",
+      "sourceUrl": "https://energyadvicehub.org/whats-happening-with-the-non-domestic-minimum-energy-efficiency-standards/",
+      "kind": "feed",
+      "feedUrl": "https://energyadvicehub.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 195177,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://energyadvicehub.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://energyadvicehub.org/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:05:20.076Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:05:20.076Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "81d5ee4d-7604-4e8e-8b22-d8e3b62c4406",
+      "sourceName": "ENERGY STAR Portfolio Manager",
+      "sourceUrl": "https://energystar.gov/buildings/benchmark",
+      "kind": "feed",
+      "feedUrl": "https://energystar.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 52802,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "\n\n<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\" prefix=\"og: https://ogp.me/ns#\" class=\"no-js\">\n  <head>\n    <meta charset=\"utf-8\" />\n<noscript><style>form.antibot > * { display: none !important; } form.an"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://energystar.gov/buildings/benchmark/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/buildings/benchmark/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/buildings/benchmark/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/buildings/benchmark/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/buildings/benchmark/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/buildings/benchmark/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://energystar.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://energystar.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:05:31.673Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:05:31.673Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4c97d1ce-7153-4474-a990-d4e85f113646",
+      "sourceName": "Ministry of Ecology and Environment (MEE), People's Republic of China",
+      "sourceUrl": "https://english.mee.gov.cn/international_cooperation/CCICED",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://english.mee.gov.cn/international_cooperation/CCICED",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://english.mee.gov.cn/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://english.mee.gov.cn/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://english.mee.gov.cn/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:05:49.348Z",
+        "feed_last_probed_at": "2026-09-05T02:05:49.348Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d4f39f17-6dae-4402-a9aa-51b2dee5514c",
+      "sourceName": "english.www.gov.cn",
+      "sourceUrl": "https://english.www.gov.cn/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://english.www.gov.cn/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://english.www.gov.cn/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://english.www.gov.cn/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://english.www.gov.cn/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:06:00.545Z",
+        "feed_last_probed_at": "2026-09-05T02:06:00.545Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a442f853-53a6-4ecd-b15c-65d642326c22",
+      "sourceName": "Enova SF — Norwegian state enterprise (Ministry of Climate and Environment)",
+      "sourceUrl": "https://www.enova.no",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.enova.no",
+      "sitemapsFetched": [
+        {
+          "url": "https://enova.no/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 394,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 394,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 394,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 394,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:06:40.759Z",
+        "feed_last_probed_at": "2026-09-05T02:06:40.759Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://enova.no/sitemap.xml",
+        "sitemap_url_count": 394
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "sourceName": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+      "sourceUrl": "https://www.env.go.jp/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://www.env.go.jp/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.env.go.jp/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.env.go.jp/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.env.go.jp/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.env.go.jp/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://www.env.go.jp/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://www.env.go.jp/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:06:53.040Z",
+        "feed_last_probed_at": "2026-09-05T02:06:53.040Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "198a631e-1b2d-4e17-9dc6-3ea113ff7eed",
+      "sourceName": "New Mexico Environment Department (NMED) – Air Quality Bureau",
+      "sourceUrl": "https://env.nm.gov/air-quality",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://env.nm.gov/air-quality",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://env.nm.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://env.nm.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://env.nm.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:07:09.451Z",
+        "feed_last_probed_at": "2026-09-05T02:07:09.451Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "db3f0b0c-7723-4328-b4b1-ec97008b850e",
+      "sourceName": "Envigilance - NYC Local Law 97 Warehouse Compliance Guide",
+      "sourceUrl": "https://envigilance.com/energy-monitoring/nyc-building-energy-laws/local-law-97/ll97-warehouse/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://envigilance.com/energy-monitoring/nyc-building-energy-laws/local-law-97/ll97-warehouse/",
+      "error": "bot_wall detected: https://envigilance.com/sitemap.xml returned a 200 OK bot_challenge shell in place of a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://envigilance.com/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "bot_challenge",
+            "evidence": "<html><head><link rel=\"icon\" href=\"data:;\"><meta http-equiv=\"refresh\" content=\"0;/.well-known/sgcaptcha/?r=%2Fsitemap.xml&y=ipc:135.119.78.133:1788574044.361\"></meta></head></html>"
+          }
+        },
+        {
+          "url": "https://envigilance.com/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "bot_challenge",
+            "evidence": "<html><head><link rel=\"icon\" href=\"data:;\"><meta http-equiv=\"refresh\" content=\"0;/.well-known/sgcaptcha/?r=%2Fsitemap_index.xml&y=ipc:135.119.78.133:1788574045.407\"></meta></head></html>"
+          }
+        },
+        {
+          "url": "https://envigilance.com/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "bot_challenge",
+            "evidence": "<html><head><link rel=\"icon\" href=\"data:;\"><meta http-equiv=\"refresh\" content=\"0;/.well-known/sgcaptcha/?r=%2Fsitemap-index.xml&y=ipc:135.119.78.133:1788574046.364\"></meta></head></html>"
+          }
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:07:26.382Z",
+        "feed_last_probed_at": "2026-09-05T02:07:26.382Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "275ad555-7e43-4b81-9187-2e3c59daf627",
+      "sourceName": "Keskkonnaministeerium (KKM – Estonian Ministry of Climate / Environment)",
+      "sourceUrl": "https://envir.ee/",
+      "kind": "feed",
+      "feedUrl": "https://envir.ee/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 201370,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "<!DOCTYPE html>\n<html lang=\"et\" dir=\"ltr\" prefix=\"og: https://ogp.me/ns#\">\n  <head>\n    <meta charset=\"utf-8\" />\n<noscript><style>form.antibot > * { display: none !important; } form.antibot noscript {"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://envir.ee/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://envir.ee/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://envir.ee/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://envir.ee/rss.xml",
+        "entries": 100,
+        "upserted": 100,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:07:41.293Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:07:41.293Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e704ae4d-f366-49c9-b154-702098df587b",
+      "sourceName": "Environment ACT (Environment, Planning and Sustainable Development Directorate)",
+      "sourceUrl": "https://environment.act.gov.au/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://environment.act.gov.au/",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://environment.act.gov.au/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.act.gov.au/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environment.act.gov.au/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.act.gov.au/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environment.act.gov.au/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.act.gov.au/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:07:51.511Z",
+        "feed_last_probed_at": "2026-09-05T02:07:51.511Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "495d392a-7439-498c-923b-10564050d9a6",
+      "sourceName": "Queensland Department of Environment, Tourism, Science and Innovation (DETSI / DES)",
+      "sourceUrl": "https://environment.des.qld.gov.au/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://environment.des.qld.gov.au/",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://environment.des.qld.gov.au/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.des.qld.gov.au/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environment.des.qld.gov.au/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.des.qld.gov.au/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environment.des.qld.gov.au/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environment.des.qld.gov.au/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:08:02.739Z",
+        "feed_last_probed_at": "2026-09-05T02:08:02.739Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9a8840c8-2715-49be-8799-7d3ef0d44531",
+      "sourceName": "European Commission — Directorate-General for Environment",
+      "sourceUrl": "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-waste_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-waste_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://environment.ec.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1828,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1827,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:08:18.193Z",
+        "feed_last_probed_at": "2026-09-05T02:08:18.193Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://environment.ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "099a7d8e-faf3-4495-993c-9dcf42af319e",
+      "sourceName": "Environmental Finance",
+      "sourceUrl": "https://environmental-finance.com/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://environmental-finance.com/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://environmental-finance.com/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environmental-finance.com/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environmental-finance.com/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environmental-finance.com/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environmental-finance.com/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://environmental-finance.com/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:08:28.520Z",
+        "feed_last_probed_at": "2026-09-05T02:08:28.520Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e1c1d4ea-61a1-4c0a-80b2-e0d6e71ba5ef",
+      "sourceName": "Sidley Austin LLP — EPA GHG Phase 3 Standards Briefing",
+      "sourceUrl": "https://environmentalhealthsafetybrief.sidley.com/2024/04/03/the-newest-phase-of-epas-greenhouse-gas-emissions-standards-phase-3/",
+      "kind": "feed",
+      "feedUrl": "https://environmentalhealthsafetybrief.sidley.com/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 112311,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://environmentalhealthsafetybrief.sidley.com/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://environmentalhealthsafetybrief.sidley.com/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:08:32.685Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T02:08:32.685Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "586ebf7c-0146-4d0e-871d-db604490e358",
+      "sourceName": "Ministère de l'Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs (MELCCFP)",
+      "sourceUrl": "https://environnement.gouv.qc.ca/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://environnement.gouv.qc.ca/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://environnement.gouv.qc.ca/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://environnement.gouv.qc.ca/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environnement.gouv.qc.ca/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://environnement.gouv.qc.ca/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://environnement.gouv.qc.ca/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://environnement.gouv.qc.ca/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T02:08:42.960Z",
+        "feed_last_probed_at": "2026-09-05T02:08:42.960Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    }
+  ],
+  "allHosts": {
+    "targets": [
+      {
+        "id": "d9f498dd-1125-4f8a-b0d4-2387ee7bb082",
+        "url": "https://ecoenclose.com",
+        "name": "EcoEnclose (sustainable packaging vendor)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "664e8147-3199-4159-8c7f-05e6e7ba0e82",
+        "url": "https://ecolex.org/",
+        "name": "ECOLEX",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+        "url": "https://ecologie.gouv.fr/",
+        "name": "Ministère de la Transition écologique et de la Cohésion des territoires (MITECO)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d57b213b-01d7-443b-817d-9f03943aa3a9",
+        "url": "https://ecology.wa.gov/air-climate",
+        "name": "Washington State Department of Ecology – Air & Climate Division",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "413c42ec-ff72-4a5b-a85a-ff5c1bf532fd",
+        "url": "https://ecoports.com/",
+        "name": "European Sea Ports Organisation (ESPO) / EcoPorts",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b3fb01c5-4089-4b2b-9706-874ee7f1a552",
+        "url": "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future",
+        "name": "EcoPorts/ESPO — ESPO Green Guide 2021 Publication Page",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+        "url": "https://ecovadis.com/",
+        "name": "EcoVadis",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "97b017a6-0600-4f1f-89ed-f0ddc856dc07",
+        "url": "https://www.edhat.com/california/news/california-sues-trump-administration-over-repeal-of-epa-endangerment-finding/",
+        "name": "Edhat — California v. Trump EPA Endangerment Finding Repeal Suit",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f1d93783-84c7-452e-b1e3-7a5af48f001f",
+        "url": "https://edie.net/",
+        "name": "Edie",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "253e0eb6-e9ad-4d9e-91f7-736320c015e3",
+        "url": "https://ee.arkansas.gov/environment",
+        "name": "Arkansas Pollution Control and Ecology Commission (APC&EC)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ee.arkansas.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3ab405f6-8b50-4101-9c60-16f71ffd8aef",
+        "url": "https://eea.europa.eu/en/analysis/maps-and-charts/emissions-trading-viewer-1-dashboards",
+        "name": "EEA EU ETS Data Viewer",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d8ca8c47-29d2-474a-8548-038651717d15",
+        "url": "https://eea.europa.eu/",
+        "name": "European Environment Agency",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "5671ef10-ce91-4fa5-a974-704007fdc30a",
+        "url": "https://www.eenews.net/articles/trump-stalls-1b-push-to-electrify-trucking-at-port-of-la/",
+        "name": "E&E News — Trump Stalls Port of LA Electrification Funding",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3177adf4-fa70-4c3c-91c6-110ce01cc4d9",
+        "url": "https://efuel-alliance.eu/initiative",
+        "name": "eFuel Alliance e.V.",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "22e4e428-f280-4484-ae8f-05b7bddb590d",
+        "url": "https://egazette.gov.in/",
+        "name": "Gazette of India eGazette",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e043dd0d-18d1-461f-9e5e-f3d9aca1d364",
+        "url": "https://egazette.gov.in/writereaddata/2023/249377.pdf",
+        "name": "Government of India e-Gazette Notification No. 249377 (2023)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0091e1d0-afb5-4d0c-bf1a-b2c3faedda7c",
+        "url": "https://eia.gov/todayinenergy/prices.php",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "130e05c2-2d5b-441b-ba8a-56f815e2d724",
+        "url": "https://eia.gov/naturalgas/data.php",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "63f3ac51-55b1-460e-bebd-bcce00413583",
+        "url": "https://eia.gov/dnav/ng/ng_pri_fut_s1_d.htm",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "6901afb7-faaf-4156-9492-9907a09c5daf",
+        "url": "https://eia.gov/dnav/pet/pet_pri_spt_s1_d.htm",
+        "name": "US EIA Petroleum Spot Prices",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7fa29bcb-32eb-4d94-afe7-ebb2e2f624eb",
+        "url": "https://eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "924fe43e-a7ff-4f3b-bf4c-2040567f0d23",
+        "url": "https://eia.gov/outlooks/steo",
+        "name": "US EIA Short-Term Energy Outlook",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b0cece2a-bb98-4ac7-85d4-e53994767ef9",
+        "url": "https://eia.gov/naturalgas/weekly",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "cd8da726-1422-4d22-8f7c-4038cef55e18",
+        "url": "https://eia.gov/dnav/pet/pet_pri_spt_s1_m.htm",
+        "name": "U.S. Energy Information Administration (EIA)",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d2d7bd93-ba75-4d69-b92f-09912c78e9a4",
+        "url": "https://eia.gov/opendata",
+        "name": "US EIA Open Data API",
+        "status": "active",
+        "access_method": "api",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "69d34c1d-8cdd-4098-9c7e-4d6882d2bff1",
+        "url": "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport",
+        "name": "European Labour Authority: EU rules for LCVs in international transport",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7f34295c-270c-47cd-a315-e1782bcc3159",
+        "url": "https://www.ela.europa.eu/assets/lcv2026/index.html",
+        "name": "European Labour Authority: LCV 2026 assets page",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+        "url": "https://elaw.klri.re.kr/eng_service/main.do",
+        "name": "Statutes of the Republic of Korea",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "20fb520a-38d2-4c68-928c-e359d9ff5d41",
+        "url": "https://electrek.co/",
+        "name": "Electrek",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://electrek.co/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "651e761f-edf8-41b5-9403-38da1aef5840",
+        "url": "https://www.emsa.europa.eu/newsroom/latest-news/item/5385-fueleu-maritime-full-application-1-january-2025.html",
+        "name": "EMSA — FuelEU Maritime: full application 1 January 2025 (Latest News)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f9d6e12d-f220-41fa-81e6-a251b3a0eec6",
+        "url": "https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html",
+        "name": "EMSA: FuelEU Maritime Regulation page",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7a9bc9f5-4b80-469d-92f5-23813e638339",
+        "url": "https://en.reach24h.com/news/insights/chemical/china-ecological-environment-code",
+        "name": "REACH24H / China Ecological Environment Code Insight",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "05d49ef3-8e8a-4cda-98f7-ca8b5e4a54c8",
+        "url": "https://www.enbridge.com/projects-and-infrastructure/public-awareness/norman-wells-line-21",
+        "name": "Enbridge — Norman Wells Pipeline (Line 21) Public Awareness",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "be692ebf-2713-4f08-91a7-fac7b1ec3577",
+        "url": "https://www.enecho.meti.go.jp/en/category/special/article/detail_214.html",
+        "name": "GX Policy — Achieving Decarbonization and Economic Growth Together, METI/ANRE",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f7e0cad5-bdd1-4022-8351-b2663f319ae9",
+        "url": "https://energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+        "name": "California Energy Commission (CEC) – Fuels and Transportation Division",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.energy.ca.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2a7cb270-1e64-41b4-a3ee-c3859c6612b6",
+        "url": "https://energy.ec.europa.eu/topics/markets-and-consumers_en",
+        "name": "European Commission – DG Energy",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "89fae12f-63e6-472a-bf11-1fafa6f7b4ec",
+        "url": "https://energy.ec.europa.eu/data-and-analysis/market-analysis_en",
+        "name": "European Commission – DG Energy",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+        "url": "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+        "name": "European Commission – DG Energy",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e421ae49-28a2-40ec-8c52-81133a0b87f3",
+        "url": "https://energy.ec.europa.eu/topics/energy-efficiency/energy-efficient-buildings/energy-performance-buildings-directive_en",
+        "name": "EU EPBD Recast — Energy Performance of Buildings",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "be28ea3d-17f5-4327-9aba-8ada0144c56f",
+        "url": "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office",
+        "name": "DOE Transportation Technologies Office",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9aa0b256-d317-4a56-927b-715327590ed9",
+        "url": "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+        "name": "Victoria (AU) Dept of Energy: Electric/efficiency standards for buildings",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b8917aa2-062c-497c-9fcc-20cb51156bb4",
+        "url": "https://energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+        "name": "Victorian Department of Energy, Environment and Climate Action (DEECA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9c079185-6315-4924-b3bf-5e58f599aca5",
+        "url": "https://energyadvicehub.org/whats-happening-with-secr/",
+        "name": "Energy Advice Hub — SECR Update Blog",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f9c5be81-f2ef-41a9-b12b-09d598a9fb7a",
+        "url": "https://energyadvicehub.org/whats-happening-with-the-non-domestic-minimum-energy-efficiency-standards/",
+        "name": "Energy Advice Hub — Non-Domestic MEES Update Blog",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "81d5ee4d-7604-4e8e-8b22-d8e3b62c4406",
+        "url": "https://energystar.gov/buildings/benchmark",
+        "name": "ENERGY STAR Portfolio Manager",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.energystar.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4c97d1ce-7153-4474-a990-d4e85f113646",
+        "url": "https://english.mee.gov.cn/international_cooperation/CCICED",
+        "name": "Ministry of Ecology and Environment (MEE), People's Republic of China",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d4f39f17-6dae-4402-a9aa-51b2dee5514c",
+        "url": "https://english.www.gov.cn/",
+        "name": "english.www.gov.cn",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a442f853-53a6-4ecd-b15c-65d642326c22",
+        "url": "https://www.enova.no",
+        "name": "Enova SF — Norwegian state enterprise (Ministry of Climate and Environment)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+        "url": "https://www.env.go.jp/",
+        "name": "Ministry of the Environment of Japan (環境省 / MOEJ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "198a631e-1b2d-4e17-9dc6-3ea113ff7eed",
+        "url": "https://env.nm.gov/air-quality",
+        "name": "New Mexico Environment Department (NMED) – Air Quality Bureau",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.env.nm.gov/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "db3f0b0c-7723-4328-b4b1-ec97008b850e",
+        "url": "https://envigilance.com/energy-monitoring/nyc-building-energy-laws/local-law-97/ll97-warehouse/",
+        "name": "Envigilance - NYC Local Law 97 Warehouse Compliance Guide",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "275ad555-7e43-4b81-9187-2e3c59daf627",
+        "url": "https://envir.ee/",
+        "name": "Keskkonnaministeerium (KKM – Estonian Ministry of Climate / Environment)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.envir.ee/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e704ae4d-f366-49c9-b154-702098df587b",
+        "url": "https://environment.act.gov.au/",
+        "name": "Environment ACT (Environment, Planning and Sustainable Development Directorate)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "495d392a-7439-498c-923b-10564050d9a6",
+        "url": "https://environment.des.qld.gov.au/",
+        "name": "Queensland Department of Environment, Tourism, Science and Innovation (DETSI / DES)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9a8840c8-2715-49be-8799-7d3ef0d44531",
+        "url": "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-waste_en",
+        "name": "European Commission — Directorate-General for Environment",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "099a7d8e-faf3-4495-993c-9dcf42af319e",
+        "url": "https://environmental-finance.com/",
+        "name": "Environmental Finance",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e1c1d4ea-61a1-4c0a-80b2-e0d6e71ba5ef",
+        "url": "https://environmentalhealthsafetybrief.sidley.com/2024/04/03/the-newest-phase-of-epas-greenhouse-gas-emissions-standards-phase-3/",
+        "name": "Sidley Austin LLP — EPA GHG Phase 3 Standards Briefing",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "586ebf7c-0146-4d0e-871d-db604490e358",
+        "url": "https://environnement.gouv.qc.ca/",
+        "name": "Ministère de l'Environnement, de la Lutte contre les changements climatiques, de la Faune et des Parcs (MELCCFP)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      }
+    ],
+    "hostsSelected": [
+      "ecoenclose.com",
+      "ecolex.org",
+      "ecologie.gouv.fr",
+      "ecology.wa.gov",
+      "ecoports.com",
+      "ecovadis.com",
+      "edhat.com",
+      "edie.net",
+      "ee.arkansas.gov",
+      "eea.europa.eu",
+      "eenews.net",
+      "efuel-alliance.eu",
+      "egazette.gov.in",
+      "eia.gov",
+      "ela.europa.eu",
+      "elaw.klri.re.kr",
+      "electrek.co",
+      "emsa.europa.eu",
+      "en.reach24h.com",
+      "enbridge.com",
+      "enecho.meti.go.jp",
+      "energy.ca.gov",
+      "energy.ec.europa.eu",
+      "energy.gov",
+      "energy.vic.gov.au",
+      "energyadvicehub.org",
+      "energystar.gov",
+      "english.mee.gov.cn",
+      "english.www.gov.cn",
+      "enova.no",
+      "env.go.jp",
+      "env.nm.gov",
+      "envigilance.com",
+      "envir.ee",
+      "environment.act.gov.au",
+      "environment.des.qld.gov.au",
+      "environment.ec.europa.eu",
+      "environmental-finance.com",
+      "environmentalhealthsafetybrief.sidley.com",
+      "environnement.gouv.qc.ca"
+    ],
+    "hostsTotalActive": 646,
+    "hostsNeverWalkedBefore": 443,
+    "hostsRemainingUnwalkedAfter": 403
+  },
+  "budget": {
+    "budgetSeconds": 1500,
+    "elapsedSeconds": 1457.617,
+    "exhausted": false,
+    "sourcesWalked": 58,
+    "sourcesNotReached": {
+      "count": 0,
+      "ids": []
+    }
+  }
+}

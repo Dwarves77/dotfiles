@@ -39,6 +39,14 @@ import {
   type ResourcePage,
 } from "@/lib/supabase-server";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
+// CAP-1000-FIX-2 (2026-09-05): imported from the pure supabase-env module directly, not via
+// supabase-server (which imports @supabase/supabase-js + next/cache at module scope). This file is
+// never itself in the no-npm-ci discipline glob, but the predicate check below is duplicated
+// verbatim as source-text WIRING proof in data-public-surface-slugs.test.mjs, which IS in that glob
+// and therefore imports isServiceSupabaseConfigured from this same pure module — see that test's own
+// header for why.
+import { isServiceSupabaseConfigured } from "@/lib/supabase-env";
 import {
   fetchObligationRegisterPage,
   fetchForwardEventCount,
@@ -468,27 +476,101 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
  * ONE function reused by all four `generateStaticParams` exports, sourced through the SAME public
  * data path each surface's own index page already reads (getPublicListingsOnly/
  * getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems, all above) — no
- * second query, no hand-rolled duplicate of the domain-routing rule (src/lib/domains.ts). A limit
- * high enough to be effectively unbounded for the live corpus (1,312 regulations + 55 market + 25
- * operations + 39 research = 1,431 verified non-archived items, measured via Supabase MCP
- * `get_workspace_intelligence_slim_public()`/`get_market_intel_items_public()`/etc., 2026-09-04) —
- * NOT the deleted `LIST_REMAINDER_LIMIT` anti-pattern (list-pagination.ts's own header): that
- * constant gated a PER-REQUEST response payload; this one gates a single build-time query that
- * runs once per `next build`, never shipped to a browser.
+ * second query, no hand-rolled duplicate of the domain-routing rule (src/lib/domains.ts).
+ *
+ * CAP-1000 (2026-09-05, "two defects one cause" audit — [CONFIRMED] the ROOT CAUSE of PERF-13's own
+ * live symptom: measured on carosledge.com, slug index 900 in the cursor order was a PRERENDER hit
+ * (293 ms) and indices 1000/1050/1200/1311 were all MISS, rendered on demand — exactly the first 1,000
+ * were prerendered). `getPublicListingsOnly({ limit: BUILD_TIME_SLUG_ENUM_LIMIT, offset: 0, ... })`
+ * used to ask for one giant page in a SINGLE `.range(0, limit-1)` call — PostgREST's db-max-rows
+ * setting caps that response at 1000 rows regardless of how wide the requested range is (the exact bug
+ * class `scripts/lib/db.mjs`'s `readAll` already names and pages around for scripts). The regulations
+ * surface's live count is 1,316 (measured, Supabase MCP `surface_of()` group-by, 2026-09-05) — over the
+ * cap — so 316 slugs were silently never enumerated and their FIRST visitor always paid the on-demand
+ * render this lane's own live measurement caught.
+ *
+ * THE FIX: walk pages of `getPublicListingsOnly` via the shared `fetchAllRows` helper (the SAME
+ * mechanism db.mjs's `readAll` and supabase-server.ts's category-RPC fetchers now use — one paging
+ * mechanism, not a fourth hand-rolled copy) — `get_workspace_intelligence_listings_public` (migration
+ * 306) ends its own `RETURN QUERY ... ORDER BY` at `ii.id ASC` [CONFIRMED, live `pg_get_functiondef`],
+ * a genuine total order, so offset-`.range()` paging across multiple calls is lossless. `cap: 20000`
+ * keeps the "effectively unbounded but not silently runaway" ceiling the deleted constant's own header
+ * described — now a genuine safety assertion (fetchAllRows throws past it) rather than a per-request
+ * limit that PostgREST silently overrode anyway.
+ *
+ * market/operations/research need NO change here: their category-routed fetchers
+ * (getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems) now page internally too
+ * (supabase-server.ts's `runCategoryRpcPublic` fix, same audit) — this function's existing one-call-each
+ * shape already returns their complete corpus as a result of that shared fix, not a second one here.
+ *
+ * CAP-1000-FIX (2026-09-05, PR #593 build-proof failure — check "Build proof (deployed-bundle
+ * gate)/next build", run 33940507368): the fail-closed guarantee above ("never silently prerender a
+ * truncated set") is correct for a REAL deploy but was firing in an environment that has no Supabase
+ * credentials AT ALL — the build-proof CI job runs `npx next build` with real node_modules on
+ * purpose (it exists to catch real bundler defects) but deliberately sets no
+ * `SUPABASE_SERVICE_ROLE_KEY` (.github/workflows/build-proof.yml's own header: "SUPABASE_SERVICE_
+ * ROLE_KEY is asserted nowhere at build time... its absence is itself proven harmless"). Before
+ * CAP-1000, the enumerator degraded to `[]` in that case; CAP-1000's fail-closed `fetchAllRows` now
+ * THROWS instead — `getPublicListingsOnly` catches `getServiceSupabase()`'s fail-closed throw and
+ * returns its `_error` sentinel rather than propagating it, and this function's own page factory
+ * turns that sentinel into a page `error`, which `fetchAllRows` (correctly, per its own contract)
+ * raises as a real failure — aborting `next build` at `generateStaticParams` for
+ * `/regulations/[slug]`.
+ *
+ * THE RULE, unchanged in a real deploy, extended for "no credentials at all": a service-role key
+ * configured means a genuine attempt to enumerate the full corpus, and ANY page failure during that
+ * attempt still fails the build (no silent truncation — CAP-1000's guarantee stands). NO service-role
+ * key configured (this CI job; a local placeholder build) means enumeration was never going to
+ * succeed regardless of how many pages it tried, so it is skipped up front with one log line naming
+ * the reason, and the route falls back to `dynamicParams` (default `true` — see this file's own
+ * `getPublicSurfaceSlugs` doc block above and each `[slug]/page.tsx`'s own comment), the exact
+ * degrade path CAP-1000's fail-closed rule intentionally does NOT touch. Detected via
+ * `isServiceSupabaseConfigured()` (imported from the pure `@/lib/supabase-env` module, also
+ * re-exported by `supabase-service.ts` so `getServiceSupabase()` itself checks the SAME predicate
+ * before throwing) rather than re-implemented, so this can never drift from what "configured"
+ * actually means; this is not a catch-all try/catch around the enumeration (that would also swallow
+ * a genuine mid-walk page failure with real credentials, exactly what CAP-1000 exists to prevent).
+ *
+ * CAP-1000-FIX-2 (2026-09-05, PR #593 discipline-suite failure): this predicate used to be imported
+ * from `@/lib/supabase-server`, whose own top-level `@supabase/supabase-js` + `next/cache` imports
+ * are fine for THIS file (never run by the no-npm-ci discipline suite) but broke
+ * `data-public-surface-slugs.test.mjs`, which imported the same predicate straight from
+ * `supabase-service.ts` for its own executable gate tests — `run-test-suite.sh` runs `node --test`
+ * with no `npm ci`, so resolving `@supabase/supabase-js` there threw ERR_MODULE_NOT_FOUND before a
+ * single assertion ran. Moving the predicate to `@/lib/supabase-env` (no npm-package import at all)
+ * fixes the test without changing this call site's behavior.
  */
-const BUILD_TIME_SLUG_ENUM_LIMIT = 20000;
+async function fetchAllPublicListingSlugs(): Promise<string[]> {
+  if (!isServiceSupabaseConfigured()) {
+    console.warn(
+      "[getPublicSurfaceSlugs] SUPABASE_SERVICE_ROLE_KEY is not configured — skipping full " +
+        "regulations slug enumeration (e.g. build-proof CI, a local placeholder build); " +
+        "/regulations/[slug] routes will fall back to on-demand rendering via dynamicParams " +
+        "instead of being statically prerendered."
+    );
+    return [];
+  }
+  const rows = await fetchAllRows<{ id: string }>(
+    async (from, to) => {
+      const { resources, _error } = await getPublicListingsOnly({
+        limit: to - from + 1,
+        offset: from,
+        domain: REGULATIONS_DOMAIN,
+      });
+      if (_error) return { data: null, error: { message: _error } };
+      return { data: resources.map((r) => ({ id: r.id })), error: null };
+    },
+    { pageSize: 1000, cap: 20000 }
+  );
+  return rows.map((r) => r.id).filter(Boolean);
+}
 
 export async function getPublicSurfaceSlugs(
   surface: "regulations" | "market" | "operations" | "research"
 ): Promise<string[]> {
   switch (surface) {
     case "regulations": {
-      const { resources } = await getPublicListingsOnly({
-        limit: BUILD_TIME_SLUG_ENUM_LIMIT,
-        offset: 0,
-        domain: REGULATIONS_DOMAIN,
-      });
-      return resources.map((r) => r.id).filter(Boolean);
+      return fetchAllPublicListingSlugs();
     }
     case "market": {
       const { resources } = await getPublicMarketIntelItems();

@@ -612,6 +612,21 @@ jobs:
           if [ -n "$RUN_BACKLOG_MAX_ARTIFACTS" ]; then args+=(--max-artifacts "$RUN_BACKLOG_MAX_ARTIFACTS"); fi
           node scripts/turns/run-population-flywheel.mjs "${args[@]}"
 
+      # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). apply-
+      # mint-batch.mjs already flushes in-process when it mints (minted > 0) — but rederive-record-
+      # provenance.mjs (provenance_status), screen-reconcile-records.mjs (is_archived — items disappear
+      # from listings), and run-population-flywheel.mjs (obligations via derive-obligations.mjs, tags via
+      # tag-ratification.mjs) all write through the guarded path in apply mode with NO flush of their own,
+      # in both the normal path and --backlog mode. Flushes unconditionally on any real (non-skipped)
+      # apply — revalidateTag is idempotent/cheap, so this is a harmless no-op alongside apply-mint-
+      # batch.mjs's own flush, not a duplicate write. Reuses the SAME CLI (scripts/lib/revalidate.mjs's
+      # `main()`, tested in revalidate.test.mjs) — no second copy of the POST-to-/api/revalidate logic.
+      # `|| true`: best-effort, same "no APP_URL: say so, never fail the job" contract revalidate.mjs's own
+      # revalidateTags() already implements.
+      - name: Flush public/detail caches after a real apply (every apply, not mint alone)
+        if: ${{ always() && env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' }}
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
       - name: Remove hydrated sibling artifacts (they belong to their own branches)
         if: always()
         run: |

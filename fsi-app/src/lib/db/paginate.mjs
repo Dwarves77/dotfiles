@@ -48,3 +48,24 @@ export function assertBound(rowCount, bound, label) {
     throw new Error(`${label}: bounded read returned ${rowCount} rows == its ${bound}-row bound — result is likely TRUNCATED. Paginate via fetchAllRows, or raise the bound if a complete read genuinely fits under it.`);
   }
 }
+
+/**
+ * CAP-1000 (2026-09-05, "two defects one cause" audit — PERF-13's slug-cap truncation and the
+ * obligations register's OVERFETCH_CAP were the same PostgREST-max-rows bug wearing two names).
+ * The exact-count half of the same rule fetchAllRows already states: a total/verdict fed by a fetched
+ * array's `.length` is the read-cap defect class read from the WRONG end — `.length` can never exceed
+ * whatever page happened to come back, so it silently reports "N of N" when N is really the page size,
+ * not the true count. `{ count: 'exact', head: true }` asks Postgres for the real count via a COUNT(*)
+ * plan, independent of any row page — this helper is the one call site so `head: true` (no row payload)
+ * and the `error`-vs-`null count` failure shape are asserted once, not re-typed at every count site.
+ * @param {PromiseLike<{ count: number | null, error: { message: string } | null }>} countQuery
+ *   A query builder already carrying `.select(<col>, { count: 'exact', head: true })` and every filter
+ *   the count must respect — this helper only awaits it and validates the shape.
+ * @returns {Promise<number>} the exact count. THROWS on error (fail-closed, same posture as fetchAllRows).
+ */
+export async function exactCount(countQuery) {
+  const { count, error } = await countQuery;
+  if (error) throw new Error(`exact count failed: ${error.message}`);
+  if (typeof count !== "number") throw new Error("exact count failed: no count returned — was the query built with { count: 'exact', head: true }?");
+  return count;
+}
