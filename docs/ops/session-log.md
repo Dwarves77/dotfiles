@@ -10238,3 +10238,54 @@ own `isFetchingNextPage`; a failed page shows an explicit message and a retry, n
 counts bind to the surface-count RPC, so the masthead is honest at 30 rows and at 754. Fitts's-law
 surface: no control moved or shrank; the virtualized rows keep their height and hit area. The
 "No workspace yet" banner renders only on a resolved no-org state, never during resolution.
+
+### Addendum 85, postscript 56 — train 45: measured live, then fixed what the measurement showed (2026-09-05)
+
+Train 44 landed as #591 (`1ae31181`) and I measured it in the operator's Chrome rather than describing
+it: /regulations TTFB 21 ms (edge HIT), 39 KB transferred / 277 KB decoded (was 886 KB), DCL 657 ms,
+12 virtualized rows, no React #418, no false banner; cursor pages 3–4 KB transferred at 320–440 ms. A
+row click: 150–165 ms for a slug already rendered, 760–950 ms for one never rendered (the `[slug]`
+routes had `generateStaticParams() { return [] }`, so every first visit rendered on demand in sfo1
+while the operator sits behind iad1), and during that time nothing on screen changed at all: a
+MutationObserver saw zero DOM mutations until the whole detail arrived at 893 ms, because a segment's
+`loading.tsx` does not show on client navigation to an un-prefetched static route (Next issue 77322).
+Then four requests after render, one of them a duplicate. Scrolling to the bottom fired no cursor
+page (only the button did, and it fetched four at once). The Awareness band read "Loading 169
+regulations…" permanently. And the obligations register showed every row twice.
+
+Each has a cause on record now. PERF-13: the four detail routes enumerate every verified slug at build
+(1,431 pages via one `getPublicSurfaceSlugs` over the public RPCs), so every click is an edge hit;
+`PUBLIC_ITEMS_REVALIDATE_SECONDS` 60 s → 6 h and the detail window 5 min → 1 h, because
+`revalidateTag` at mint apply is the freshness mechanism and the window is only the safety net; the
+sentinel had two bugs (AppShell's `<main>` used `min-h-screen`, so it never overflowed and the
+"nearest scroll parent" test only read the CSS property; and the observer was recreated on every
+`enabled` toggle, which re-delivers the current intersection and cascades) and fires once per viewport
+in Playwright; a band says "Loading" only while `isFetchingNextPage`, otherwise its true count and a
+per-band "Load more (N in this band)"; the duplicate `/api/obligations/upcoming` was one React element
+rendered at two tree positions. The lane rejected a page-per-band RPC as disproportionate and Cache
+Components as a prior decision (PERF-9) not to reopen here. FE-DEDUP: the register duplicates were
+claim-backed and section-backed forward events for the same span, and the extractor's own dedupe
+missed them because its 40-char floor (meant for fuzzy prefix matches) was applied to byte-identical
+strings too, while migration 275's unique key discriminated on the source object so both inserted
+cleanly; fixed in the extractor (`fe1-2026-09-04.6`, the live pair as a fixture), the retext
+maintenance step now deletes the section-backed twin through the existing guarded delete
+(`obligations` follows by ON DELETE CASCADE, no second writer), and migration 307 tightens the key to
+(item, kind, date, md5(text)) with a pre-check that refuses to apply until the cleanup has run. The
+lane corrected my number: 296 rows go, obligations 1,149 → 853, not 562, because distinct multi-event
+obligations on one date (Euro 7's schedule, NZIA's four 2030 targets) are real and stay. REG-GRAIN
+(below) makes them distinguishable on the page.
+
+Runtimes on the new master: Source sweep #18, the first run under SWEEP-BUDGET, stopped itself at
+1,533 s with 35 of 40 hosts walked, 5 sources named as not reached, 15,371 candidates upserted (a slice
+of large sitemaps), the artifact written and exit 0; the proposer pass measured 44 s/host on that
+slice against the 35 s/host arithmetic and proposes max_hosts 30. Ledger export #8 through the
+LEDGER-WALLS transports: 231 federalregister.gov rows with real document text via the JSON API, 155
+EUR-Lex via `/TXT/HTML/`, 14 walls marked honestly; 356 texts classified by eight in-session Haiku
+lanes ($0) into `ledger-verdicts-002.json`, all specific_document, 136 under the relevance floor
+(surface-only at the chokepoint; the off-vertical ruling decides them before any apply). The closure
+gate's `spec09-reroute` entry expired when train 44 landed (missed in train 43's re-grant) and is
+re-granted to 46; the source-sweep marker was discharged by run-015.
+
+Next, in order: land, dispatch the forward-events retext apply (the cleanup), apply 307, re-measure
+click-to-content and the register; sweep #20 at 30 hosts; ledger-consume plan with verdicts 001+002;
+then T46.
