@@ -10508,3 +10508,22 @@ CI-registered — found and fixed two real violations upstream (the entity-label
 target floor; an unbroken long entity name overflowed the row) before this lane folded it; nothing new
 introduced by the fold or the registration itself. Rendering guard green (9 UX smoke specs including
 `notices-rail`, 0 failures).
+
+## Addendum 86 — 2026-09-05 (cloud session): handoff
+
+This coordinator session is ending here; the operator is starting a fresh one in a new
+container, and only what lands in this commit survives that reset. What landed on master this
+session: train 46 (`012b10a2`, PR #593) — nothing further from this session lands on master
+itself, since the F25/F38 ratchet it exposed is the very thing the next session must close
+before anything else goes in. What is folded but not yet landed: eleven wave-F lanes, assembled
+by lane ASSEMBLE-47 onto local branch `train/wave47-2026-09-05` (tip `0fc9e5c5`), gated green
+on its own terms but carrying a disclosed, undischarged F25/F38 re-grant (~43 entries pushed to
+wave52) that is not a fix. I dispatched lane HANDOFF to absorb my own raw state dump, verify it
+against the repo and the lane branches, and write the actual resume document, since that
+document needed independent checking I could not give it from inside the same context that
+produced the dump. The handoff document is `docs/ops/handoff-2026-09-05.md`, indexed in
+`docs/INDEX.md` and pointed to from the top of `docs/PROGRAM-BOARD.md`; it also carries a
+corrected finding my own dump got wrong (`lane/reggrain-2026-09-05` is not landed, contrary to
+what I wrote). The single next step for whoever picks this up: land train 47 through the
+browser transport, apply migrations 308-311, then dispatch lane W7.1-CLOSE to close the
+F25/F38 ratchet for real — no further re-grants.
