@@ -86,6 +86,15 @@ Files with no `meta` export (`wave-f-common.mjs`) are the shared template, not a
 | `audit-a.js` | audit-a | Wiring audit 2026-09-04 part A: runtimes/workflows and customer surfaces landed since 2026-08-21 (PRs #474-#583) |
 | `audit-b.js` | audit-b | Wiring audit part B: libraries/modules built since 2026-08-21, and the data layer (migrations, tables, RPCs) |
 | `audit-c.js` | audit-c | Wiring audit part C: the flywheel loop map with every handoff, and rulings/ADRs/specs vs. implementation |
+| `audit-a-plan-completion.js` | AUDIT-W1-W2, AUDIT-W3-W4 (2 Sonnet) | Plan-completion audit lanes: AUDIT-W1-W2 + AUDIT-W3-W4 |
+| `audit-b-plan-completion.js` | AUDIT-W5-W6-W7, AUDIT-LOOP (2 Sonnet) | Plan-completion audit lanes: AUDIT-W5-W6-W7 + AUDIT-LOOP |
+| `audit-c-plan-completion.js` | AUDIT-SKILLS-RULES, AUDIT-TOOLS (2 Haiku) | Plan-completion audit lanes: AUDIT-SKILLS-RULES + AUDIT-TOOLS |
+
+*Naming note*: the coordinator's own local files for the 2026-09-05 plan-completion audit
+dispatch were named `audit-a.js`/`audit-b.js`/`audit-c.js` on the operator's machine — the same
+names this folder already used for the 2026-09-04 wiring-audit dispatch (the three rows
+immediately above). Copied in verbatim under the `-plan-completion` suffix rather than
+overwriting the existing, already-indexed 2026-09-04 briefs.
 | `haiku-classify-text.js` | (2 Haiku) | Classify exported `portal_link_candidates` batches offline, with page text already fetched, into ledger-verdicts entries |
 | `haiku-classify.js` | (2 Haiku) | Classify `portal_link_candidates` batches offline ($0) into ledger-verdicts entries using the exported first-fetch prompt verbatim |
 | `haiku-rulings.js` | (2 Haiku) | Draft proposed decisions for the four review-queue ratification digests (Maintenance #48); decisions stay `null` until the operator rules |
@@ -116,11 +125,14 @@ Files with no `meta` export (`wave-f-common.mjs`) are the shared template, not a
 | `lane-ledgertext.js` | LEDGER-TEXT | ledger-consume feeds the classifier raw HTML with boilerplate; one exported `htmlToText` replaces three private copies |
 | `lane-legacy.js` | BACKLOG-LEGACY | `mint-run-001`/`005` predate `per_item.item_id` so the backlog flywheel can't select them; resolve their items by CELEX/canonical key |
 | `lane-meta8.js` | META-8 | Write `meta-harness-run-008.json`, the coordinator's self-application review of the 2026-09-04 wave, to discharge the meta-harness F28 marker |
+| `lane-mig310fix.js` | MIG310-FIX | Migration 310 cannot apply (CREATE OR REPLACE cannot change RETURNS TABLE, error 42P13 reproduced live); rewrite it on the migration-272 pattern (DROP, re-create, re-grant) so the coordinator can apply it |
+| `lane-mig311fix.js` | MIG311-FIX | Migration 311's in-transaction adversarial RLS proof cannot pass live (`org_memberships.user_id` FK to `profiles(id)`; `surcharge_audits` `corridor_id`/`carrier_id` FK to `entities`); make the proof executable for real |
 | `lane-perf5.js` … `lane-perf13` (via `wave-perf13-fededup.js`) | PERF-5 .. PERF-13, PERF-ARCH, PERF-MERGE, PERF-12-MERGE | The performance workstream: query-level fixes (PERF-5), Auth round-trip removal (PERF-7), full measurement + ADR-027 (PERF-ARCH), the three-part caching/RSC/API fix (PERF-8/9), static+SSG+public-RPC listing pages (PERF-10), cutting `/regulations` payload (PERF-11), cursor+virtualized listings (PERF-12), landing/merging those onto later trains (PERF-MERGE, PERF-12-MERGE), and the final "every click an edge hit" pass (PERF-13, paired with FE-DEDUP in the same file) |
 | `lane-proposer3.js` .. `lane-proposer12.js`, `proposer-13-15.js`, `proposer-16..19.js` | PROPOSER-3 .. PROPOSER-19 | Successive proposer passes (F28 rule (d)) over mint/change-detection/forward-events/propagation/source-sweep/corpus-turn artifacts, naming each family's latest run so `LAST-PROPOSER-PASS.md` stays current |
 | `lane-rdm4.js` | RD-M4 | Population apply #34 (rows_file) blocked 5 of 6 sibling-series rows on a same-URL holder check; make the check series-aware |
 | `lane-rdm4b.js` | RD-M4b | `export-census-rows.mjs`'s exclude-held filter and RD-M4's same-URL check must share one instrument-identity predicate |
 | `lane-rdtests.js` | RD-TESTS | Ratified all six R-D series; make the three market tests that asserted them "unratified" fixture-driven instead of asserting the live map's current state |
+| `lane-rebase47.js` | REBASE-47 | Merge origin/master (train 46, `012b10a2`) into `train/wave47-2026-09-05`, resolve the 8 conflicts, drop the `supabase-service-config.mjs` duplicate of master's `supabase-env.ts`, re-run every gate |
 | `lane-recordsurface.js` | RECORD-SURFACE | Record-grade item detail page never renders title-only |
 | `lane-reggrain.js` | REG-GRAIN | The obligations register must show what each obligation IS, so two distinct obligations on the same item/kind/date are distinguishable |
 | `lane-retext3.js` | RETEXT-COLLIDE | forward-events-retext apply #35 died on a dedupe unique-index collision; collapse byte-identical derived duplicates (snapshotted, reversible) before the update |
@@ -133,6 +145,7 @@ Files with no `meta` export (`wave-f-common.mjs`) are the shared template, not a
 | `lane-tandem2.js` | TANDEM-2 | THE GATE must see every unconnected apply slice, not only the newest artifact; a dispatchable backlog mode runs the flywheel over the ~650-item backlog |
 | `lane-tierchip.js` | TIER-CHIP | Rule 18 publishes a figure WITH its source rating; the record-grade fact renderer must show the claim tier via the existing `TierBadge` |
 | `lane-w71close.js` | W7.1-CLOSE | Close the W7.1 F25/F38 ratchet for real (wire by construction, or delete with tests and inventory rows) — no re-grants. **This is the next session's first substantive dispatch; see `handoff-2026-09-05.md` §7.** |
+| `lane-w71close-v2.js` | W7.1-CLOSE (v2) | Sonnet lane W7.1-CLOSE (v2, re-briefed on master `c3003233` after train 47 landed): disposition every F25/F38/F14 allowlist entry that carries an expiry (all re-granted to wave52 by ASSEMBLE-47, a disclosed non-fix), close the closure-gate STALE-NEXT rows, retire `inspect-oil-bulletin.yml`; zero re-grants |
 | `proposer-13-15.js` | (2 Haiku) | Proposer passes: forward-events-run-035, source-sweep-run-014, then corpus-turn's first attestation |
 | `proposer-16.js` .. `proposer-19.js` | (1 Haiku each) | Proposer passes over source-sweep-run-015 through -018 (the four budgeted sweep runs) |
 | `wave-a.js` | LEDGER-ZERO, REVIEW-WIRE | Plan T39: ledger-consume at $0 with session verdicts + flip; four ratification apply steps wired into maintenance.yml |
