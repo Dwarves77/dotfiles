@@ -1,0 +1,688 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:447d5399c5f2946e",
+  "run_id": "source-sweep-run-018",
+  "started_at": "2026-09-05T01:44:14.464Z",
+  "finished_at": "2026-09-05T02:08:43.317Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "apply",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": true,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://ecoenclose.com",
+    "https://ecolex.org/",
+    "https://ecologie.gouv.fr/",
+    "https://ecology.wa.gov/air-climate",
+    "https://ecoports.com/",
+    "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future",
+    "https://ecovadis.com/",
+    "https://www.edhat.com/california/news/california-sues-trump-administration-over-repeal-of-epa-endangerment-finding/",
+    "https://edie.net/",
+    "https://ee.arkansas.gov/environment",
+    "https://eea.europa.eu/en/analysis/maps-and-charts/emissions-trading-viewer-1-dashboards",
+    "https://eea.europa.eu/",
+    "https://www.eenews.net/articles/trump-stalls-1b-push-to-electrify-trucking-at-port-of-la/",
+    "https://efuel-alliance.eu/initiative",
+    "https://egazette.gov.in/",
+    "https://egazette.gov.in/writereaddata/2023/249377.pdf",
+    "https://eia.gov/todayinenergy/prices.php",
+    "https://eia.gov/naturalgas/data.php",
+    "https://eia.gov/dnav/ng/ng_pri_fut_s1_d.htm",
+    "https://eia.gov/dnav/pet/pet_pri_spt_s1_d.htm",
+    "https://eia.gov/international/analysis/special-topics/World_Oil_Transit_Chokepoints",
+    "https://eia.gov/outlooks/steo",
+    "https://eia.gov/naturalgas/weekly",
+    "https://eia.gov/dnav/pet/pet_pri_spt_s1_m.htm",
+    "https://eia.gov/opendata",
+    "https://www.ela.europa.eu/en/news-event/events/understanding-eu-rules-light-commercial-vehicles-lcvs-international-transport",
+    "https://www.ela.europa.eu/assets/lcv2026/index.html",
+    "https://elaw.klri.re.kr/eng_service/main.do",
+    "https://electrek.co/",
+    "https://www.emsa.europa.eu/newsroom/latest-news/item/5385-fueleu-maritime-full-application-1-january-2025.html",
+    "https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html",
+    "https://en.reach24h.com/news/insights/chemical/china-ecological-environment-code",
+    "https://www.enbridge.com/projects-and-infrastructure/public-awareness/norman-wells-line-21",
+    "https://www.enecho.meti.go.jp/en/category/special/article/detail_214.html",
+    "https://energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division",
+    "https://energy.ec.europa.eu/topics/markets-and-consumers_en",
+    "https://energy.ec.europa.eu/data-and-analysis/market-analysis_en",
+    "https://energy.ec.europa.eu/data-and-analysis/energy-prices-and-costs-europe_en",
+    "https://energy.ec.europa.eu/topics/energy-efficiency/energy-efficient-buildings/energy-performance-buildings-directive_en",
+    "https://www.energy.gov/cmei/vehicles/vehicle-technologies-office",
+    "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+    "https://energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings",
+    "https://energyadvicehub.org/whats-happening-with-secr/",
+    "https://energyadvicehub.org/whats-happening-with-the-non-domestic-minimum-energy-efficiency-standards/",
+    "https://energystar.gov/buildings/benchmark",
+    "https://english.mee.gov.cn/international_cooperation/CCICED",
+    "https://english.www.gov.cn/",
+    "https://www.enova.no",
+    "https://www.env.go.jp/",
+    "https://env.nm.gov/air-quality",
+    "https://envigilance.com/energy-monitoring/nyc-building-energy-laws/local-law-97/ll97-warehouse/",
+    "https://envir.ee/",
+    "https://environment.act.gov.au/",
+    "https://environment.des.qld.gov.au/",
+    "https://environment.ec.europa.eu/topics/waste-and-recycling/packaging-waste_en",
+    "https://environmental-finance.com/",
+    "https://environmentalhealthsafetybrief.sidley.com/2024/04/03/the-newest-phase-of-epas-greenhouse-gas-emissions-standards-phase-3/",
+    "https://environnement.gouv.qc.ca/"
+  ],
+  "per_item": [
+    {
+      "id": "d9f498dd-1125-4f8a-b0d4-2387ee7bb082",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 446 url(s) scoped, 446 new (446 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.ecoenclose.com/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "664e8147-3199-4159-8c7f-05e6e7ba0e82",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://ecolex.org/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "81df8e97-9b84-45c3-94a5-5e9e5838c10a",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 5000 url(s) scoped, 5000 new (5000 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://ecologie.gouv.fr/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_media_magazine/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_project/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_press/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_page/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_news/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_mini_site/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_ministry/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_minister/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_media_document/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_list_page/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_landing_page/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_home_page/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_file/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_campaign/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_appointment/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_public_policy/sitemap.xml",
+        "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=1",
+        "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=2",
+        "https://www.ecologie.gouv.fr/variant_press/sitemap.xml?page=3",
+        "… +7 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "d57b213b-01d7-443b-817d-9f03943aa3a9",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 85 url(s) scoped, 85 new (85 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://ecy.wa.gov/SearchEngineSiteMap"
+      ],
+      "error": null
+    },
+    {
+      "id": "413c42ec-ff72-4a5b-a85a-ff5c1bf532fd",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://ecoports.com/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "b3fb01c5-4089-4b2b-9706-874ee7f1a552",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.ecoports.com/publications/espo-green-guide-2021-a-manual-for-european-ports-towards-a-green-future"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "4a956756-9117-451e-b3f1-1e976dd79e39",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 337 url(s) scoped, 337 new (337 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://ecovadis.com/sitemap_index.xml",
+        "https://ecovadis.com/page-sitemap.xml",
+        "https://ecovadis.com/authors-sitemap.xml",
+        "https://ecovadis.com/blog-post-sitemap.xml",
+        "https://ecovadis.com/academy_partners-sitemap.xml",
+        "https://ecovadis.com/regulation-sitemap.xml",
+        "https://ecovadis.com/blog-category-sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "97b017a6-0600-4f1f-89ed-f0ddc856dc07",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://www.edhat.com/sitemap-news.xml",
+        "https://www.edhat.com/sitemap_index.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f1d93783-84c7-452e-b1e3-7a5af48f001f",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://www.edie.net/sitemaps.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "253e0eb6-e9ad-4d9e-91f7-736320c015e3",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 0 entries, 0 upserted",
+      "evidence_refs": [
+        "https://ee.arkansas.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "3ab405f6-8b50-4101-9c60-16f71ffd8aef",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://eea.europa.eu/en/analysis/maps-and-charts/emissions-trading-viewer-1-dashboards"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "d8ca8c47-29d2-474a-8548-038651717d15",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://eea.europa.eu/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "5671ef10-ce91-4fa5-a974-704007fdc30a",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.eenews.net/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "3177adf4-fa70-4c3c-91c6-110ce01cc4d9",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://www.efuel-alliance.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "22e4e428-f280-4484-ae8f-05b7bddb590d",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://egazette.gov.in/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "e043dd0d-18d1-461f-9e5e-f3d9aca1d364",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://egazette.gov.in/writereaddata/2023/249377.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "0091e1d0-afb5-4d0c-bf1a-b2c3faedda7c",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "130e05c2-2d5b-441b-ba8a-56f815e2d724",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "63f3ac51-55b1-460e-bebd-bcce00413583",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "6901afb7-faaf-4156-9492-9907a09c5daf",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "7fa29bcb-32eb-4d94-afe7-ebb2e2f624eb",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "924fe43e-a7ff-4f3b-bf4c-2040567f0d23",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 3 url(s) scoped, 3 new (3 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b0cece2a-bb98-4ac7-85d4-e53994767ef9",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "cd8da726-1422-4d22-8f7c-4038cef55e18",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d2d7bd93-ba75-4d69-b92f-09912c78e9a4",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 2 url(s) scoped, 2 new (2 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.eia.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "69d34c1d-8cdd-4098-9c7e-4d6882d2bff1",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.ela.europa.eu/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "7f34295c-270c-47cd-a315-e1782bcc3159",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.ela.europa.eu/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "29845b19-7004-485e-86f3-fdd84f8aa3f5",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://elaw.klri.re.kr/eng_service/main.do"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "20fb520a-38d2-4c68-928c-e359d9ff5d41",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 100 entries, 100 upserted",
+      "evidence_refs": [
+        "https://electrek.co/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "651e761f-edf8-41b5-9403-38da1aef5840",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.emsa.europa.eu/newsroom/latest-news/item/5385-fueleu-maritime-full-application-1-january-2025.html"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "f9d6e12d-f220-41fa-81e6-a251b3a0eec6",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://emsa.europa.eu/reducing-emissions/fuel-eu-maritime-regulation.html"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "7a9bc9f5-4b80-469d-92f5-23813e638339",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://en.reach24h.com/sitemap.xml",
+        "https://en.reach24h.com/sitemap-en-pages.xml",
+        "https://en.reach24h.com/sitemap-en-services.xml",
+        "https://en.reach24h.com/sitemap-en-news.xml",
+        "https://en.reach24h.com/sitemap-en-events.xml",
+        "https://en.reach24h.com/sitemap-en-insights.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "05d49ef3-8e8a-4cda-98f7-ca8b5e4a54c8",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.enbridge.com/sitemap-enbridge.xml",
+        "https://www.enbridgesustain.com/sitemap-sustain.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "be692ebf-2713-4f08-91a7-fac7b1ec3577",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://www.enecho.meti.go.jp/en/category/special/article/detail_214.html"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "f7e0cad5-bdd1-4022-8351-b2663f319ae9",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://energy.ca.gov/about/divisions-and-offices/fuels-and-transportation-division"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "2a7cb270-1e64-41b4-a3ee-c3859c6612b6",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://energy.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "89fae12f-63e6-472a-bf11-1fafa6f7b4ec",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://energy.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "cb816051-80d0-463b-95b2-551cf70c1c91",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://energy.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "e421ae49-28a2-40ec-8c52-81133a0b87f3",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://energy.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "be28ea3d-17f5-4327-9aba-8ada0144c56f",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.energy.gov/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "9aa0b256-d317-4a56-927b-715327590ed9",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://www.energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "b8917aa2-062c-497c-9fcc-20cb51156bb4",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://energy.vic.gov.au/households/electric-and-efficiency-standards-for-buildings"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "9c079185-6315-4924-b3bf-5e58f599aca5",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://energyadvicehub.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "f9c5be81-f2ef-41a9-b12b-09d598a9fb7a",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://energyadvicehub.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "81d5ee4d-7604-4e8e-8b22-d8e3b62c4406",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://energystar.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4c97d1ce-7153-4474-a990-d4e85f113646",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://english.mee.gov.cn/international_cooperation/CCICED"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "d4f39f17-6dae-4402-a9aa-51b2dee5514c",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://english.www.gov.cn/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "a442f853-53a6-4ecd-b15c-65d642326c22",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 394 url(s) scoped, 394 new (394 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://enova.no/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4106260f-f2d2-49e7-b238-c9aaf3e15487",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://www.env.go.jp/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "198a631e-1b2d-4e17-9dc6-3ea113ff7eed",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://env.nm.gov/air-quality"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "db3f0b0c-7723-4328-b4b1-ec97008b850e",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://envigilance.com/energy-monitoring/nyc-building-energy-laws/local-law-97/ll97-warehouse/"
+      ],
+      "error": "bot_wall detected: https://envigilance.com/sitemap.xml returned a 200 OK bot_challenge shell in place of a sitemap"
+    },
+    {
+      "id": "275ad555-7e43-4b81-9187-2e3c59daf627",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 100 entries, 100 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://envir.ee/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "e704ae4d-f366-49c9-b154-702098df587b",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://environment.act.gov.au/"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "495d392a-7439-498c-923b-10564050d9a6",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://environment.des.qld.gov.au/"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "9a8840c8-2715-49be-8799-7d3ef0d44531",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://environment.ec.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "099a7d8e-faf3-4495-993c-9dcf42af319e",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://environmental-finance.com/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "e1c1d4ea-61a1-4c0a-80b2-e0d6e71ba5ef",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://environmentalhealthsafetybrief.sidley.com/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "586ebf7c-0146-4d0e-871d-db604490e358",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://environnement.gouv.qc.ca/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "sources_targeted": 58,
+    "feed_found": 11,
+    "sitemap_only": 47,
+    "bot_wall_sources": 6,
+    "errors": 16,
+    "urls_scoped_total": 6274,
+    "new_total": 6544,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 4,
+    "baseline_deferred_sources": 4,
+    "rss_feed_url_written": 9,
+    "change_signals_recorded": 0,
+    "hosts_walked": 40,
+    "hosts_skipped_bot_wall": 5,
+    "feeds_discovered": 11,
+    "new_locs": 6544,
+    "lastmod_changes": 0,
+    "hosts_remaining_unwalked": 403,
+    "hosts_selected": 40,
+    "upserted": 6544,
+    "failed": 0,
+    "no_targets_reason": null,
+    "budget_seconds": 1500,
+    "elapsed_seconds": 1457.617,
+    "sources_walked": 58,
+    "sources_not_reached": {
+      "count": 0,
+      "ids": []
+    },
+    "budget_exhausted": false
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-018.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
