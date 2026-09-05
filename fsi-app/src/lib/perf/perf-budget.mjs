@@ -33,6 +33,14 @@
 // measurement, docs/audits/perf-load-times-2026-09-03.md's own [CONFIRMED] figures, carried
 // forward with their original citation and NOT re-labeled [CONFIRMED] by this file — see each
 // entry's own `evidence` string for its real status.
+//
+// PERF-13 (2026-09-04, item 6): added clickToFirstPaintMs/clickToContentMs to "regulations-detail"
+// and tightened "regulations-list".documentBytes, both sourced from
+// docs/audits/perf-clickthrough-2026-09-04.md — the coordinator's own live Chrome capture against
+// carosledge.com (2026-09-04 23:10-23:20 UTC), relayed to this lane as its dispatch and written up
+// in that file specifically so these citations point at a real document (this lane's sandbox has no
+// route to carosledge.com to re-run the capture itself — see that file's own header for the exact
+// evidence-status caveat, and this lane's REPORT for the sandbox limitation in full).
 
 export const REQUIRED_ROUTES = Object.freeze([
   "regulations-list",
@@ -43,14 +51,23 @@ export const REQUIRED_ROUTES = Object.freeze([
 export const PERF_BUDGET_REGISTRY = Object.freeze({
   "regulations-list": {
     documentBytes: {
-      ratchet: 886_000,
+      // PERF-13 (2026-09-04, item 6): TIGHTENED from 886_000 (2026-09-03 pre-lane figure, kept in
+      // this evidence string's history rather than silently dropped — CLAUDE.md rule 14). The
+      // coordinator's later live capture (docs/audits/perf-clickthrough-2026-09-04.md, 2026-09-04
+      // 23:10-23:20 UTC) measured /regulations at 277 KB decoded — the intervening drop is PERF-11's
+      // own windowing/payload-trim work (this file's F37 registry does not itself attribute WHICH
+      // lane closed the gap; see PERF-11's own commits for that) landing between the two capture
+      // dates. ratchet moves to the newer, lower, more-recently-observed number per this registry's
+      // own rule: a re-measurement may LOWER the ratchet freely.
+      ratchet: 277_000,
       target: 200_000,
-      measuredAt: "2026-09-03",
+      measuredAt: "2026-09-04",
       evidence:
-        '[CONFIRMED] docs/audits/perf-load-times-2026-09-03.md: "/regulations 886 KB decoded" ' +
-        '(the operator\'s own pre-lane figure, carried forward — this lane\'s container has no ' +
-        'live browser to re-measure decoded document bytes; PERF-11 owns the listing-payload trim ' +
-        'this number tracks).',
+        '[CONFIRMED, coordinator live Chrome measurement against carosledge.com, 2026-09-04 ' +
+        '23:10-23:20 UTC, docs/audits/perf-clickthrough-2026-09-04.md] "/regulations 277 KB ' +
+        "decoded\" — this lane's own sandbox has no route to carosledge.com to independently " +
+        "re-run the capture (see this lane's REPORT for the exact limitation); relayed as this " +
+        "lane's dispatch and recorded there so this citation points at a real, findable document.",
     },
     nextFBytes: {
       ratchet: 401_000,
@@ -116,8 +133,84 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
         "remainder of the corpus (the old LIST_REMAINDER_LIMIT=5000-row one-shot fetch this lane " +
         "deleted — see list-pagination.ts's own header).",
     },
+    // REG-GRAIN (2026-09-05): docs/specs/01-regulations.md's own defect — the obligation register
+    // rendered one row per (item, event_kind, due_date) with no obligation text at all, so genuinely
+    // distinct obligations sharing those three fields (Euro 7's phase-out schedule, NZIA's several
+    // 2030-01-01 targets) were indistinguishable. Measured (Supabase MCP, 2026-09-05): of 1,141 live
+    // `obligations` rows, 927 survive FE-DEDUP's exact-text-twin removal, and 583 of those 927 (63%)
+    // still share (item, kind, due_date) with a sibling whose text differs. The fix
+    // (read-register.mjs) embeds item_forward_events.obligation_text via the existing forward_event_id
+    // FK — one query, no added round trip — and trims it to OBLIGATION_TEXT_TRIM_LENGTH (160 chars).
+    obligationRegisterBytesPerPage: {
+      // ratchet: the WORST-CASE per-page byte cost this trim can ever produce (every one of
+      // LIST_FIRST_PAGE_SIZE=60 rows carrying an obligation_text at the full 160-char trim ceiling) —
+      // stated as the ceiling itself, not today's average, since a future extraction run can only
+      // ever raise average text length up to that ceiling, never past it (the trim is unconditional).
+      ratchet: 42_673,
+      // target: today's MEASURED average-case cost (60 rows at the live corpus's actual average
+      // obligation_text length, 74.8 chars) — the ratchet only reaches its worst case if every row's
+      // source text happens to be long; the common case is already close to this number.
+      target: 37_573,
+      measuredAt: "2026-09-05",
+      evidence:
+        "[CONFIRMED, by measurement — Buffer.byteLength of JSON.stringify against fixture rows built " +
+        "in the exact ObligationRow shape (60 rows, LIST_FIRST_PAGE_SIZE), text lengths driven by a " +
+        "real Supabase MCP query against the live corpus (project kwrsbpiseruzbfwjpvsp): the 60 " +
+        "soonest-due obligations' item_forward_events.obligation_text averages 74.8 chars (max 222, " +
+        "well over the 160-char trim ceiling this lane adds)] before this lane's field addition, the " +
+        "same 60-row page (no obligation_text) serialized to 31,813 bytes; adding obligation_text at " +
+        "the live average (no row needed the 160-char cap) raised it to 37,573 bytes (+5,760 total, " +
+        "+96 bytes/row average); every row forced to the full 160-char trim ceiling (the worst case " +
+        "the read-time trim permits) raises it to 42,673 bytes (+10,860 total, +181 bytes/row worst " +
+        "case). This is a NEW metric (the register's own per-page payload had no prior budget entry — " +
+        "documentBytes above tracks the WHOLE /regulations SSR document, of which this endpoint's " +
+        "first-page response is one contributor); this lane's sandbox has no route to carosledge.com " +
+        "to fold this delta into a fresh live documentBytes capture, so documentBytes' own ratchet is " +
+        "left untouched here rather than guessed at — see this lane's REPORT.",
+    },
   },
   "regulations-detail": {
+    // PERF-13 (2026-09-04, item 6): click-to-content is the metric the operator's own bar ("every
+    // click should show items on a page instantly") actually names — coldRscMs/warmRscMs below
+    // measure SERVER render time, not what the user's screen does. These two are new.
+    clickToFirstPaintMs: {
+      ratchet: 950,
+      target: 165,
+      measuredAt: "2026-09-04",
+      evidence:
+        "[CONFIRMED, coordinator live Chrome measurement against carosledge.com, 2026-09-04 " +
+        "23:10-23:20 UTC, docs/audits/perf-clickthrough-2026-09-04.md §(a)/§(b)/§(c)] an " +
+        "already-rendered (statically built) slug painted in 150-165ms; a never-rendered slug " +
+        "(on-demand static generation, the whole corpus's steady state before this lane's item 1 " +
+        "fix) cost 760-950ms with a MutationObserver on document.body recording ZERO mutations " +
+        "for ~900ms of it — no first paint at all until the complete page arrived. ratchet=950 is " +
+        "the worst observed point (honest starting ceiling, this registry's own rule); target=165 " +
+        "is the ALREADY-ACHIEVED already-built-slug figure — item 1 (generateStaticParams " +
+        "enumerating every verified slug) makes 165ms the outcome for the entire corpus that " +
+        "exists at build time, closing most of the 950ms tail structurally rather than by tuning " +
+        "this one route's own render path further. The residual (items minted after the last " +
+        "deploy) is addressed by docs/runbooks/warm-static-detail-routes.md, not by this budget.",
+    },
+    clickToContentMs: {
+      ratchet: 950,
+      target: 165,
+      measuredAt: "2026-09-04",
+      evidence:
+        "[CONFIRMED, coordinator live Chrome measurement, same capture as clickToFirstPaintMs " +
+        "above, docs/audits/perf-clickthrough-2026-09-04.md §(a)/§(b)/§(c)] this route currently " +
+        "has no INTERNAL Suspense boundary splitting 'shell painted' from 'content painted' — " +
+        "page.tsx (src/app/regulations/[slug]/page.tsx) is one monolithic async Server Component " +
+        "that awaits loadDetail(...) before returning any JSX at all, so first-paint and " +
+        "content-paint are the SAME event on this route today (confirmed by reading, not a second " +
+        "live measurement) — hence the identical ratchet/target to clickToFirstPaintMs. A nested " +
+        "Suspense around the data-dependent body would only decouple these two numbers under " +
+        "Next 16's cacheComponents flag (PPR's replacement); PERF-9 already scoped enabling that " +
+        "flag OUT of a single lane's work (fsi-app/next.config.ts, PERF-9 comment, citing ADR-026 " +
+        "§2) — a binding prior decision this lane did not reopen. Two separate entries are kept " +
+        "(rather than one) so a future lane that DOES split shell-from-content under " +
+        "cacheComponents has somewhere to record the resulting divergence without inventing a new " +
+        "metric name.",
+    },
     coldRscMs: {
       ratchet: 1_257,
       target: 300,

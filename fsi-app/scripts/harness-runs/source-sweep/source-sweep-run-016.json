@@ -1,0 +1,590 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:447d5399c5f2946e",
+  "run_id": "source-sweep-run-016",
+  "started_at": "2026-09-05T00:03:43.627Z",
+  "finished_at": "2026-09-05T00:14:08.775Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "apply",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": true,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://code.dccouncil.gov/",
+    "https://codes.ohio.gov/",
+    "https://codot.gov/programs/environmental/greenhousegas",
+    "https://commerce.gov.in",
+    "https://commerce.wa.gov/growing-the-economy/energy",
+    "https://commission.europa.eu/topics/climate-action/delivering-european-green-deal/fit-55-delivering-proposals_en",
+    "https://commission.europa.eu/document/download/0affa9a8-2ac5-46a9-98f8-19205bf61eb5_en?filename=COM_2025_80_EN.pdf",
+    "https://committees.parliament.uk/writtenevidence/38693/html/",
+    "https://www.complianceandrisks.com/blog/regulation-eu-2024-573-european-commission-adopts-new-f-gas-regulation/",
+    "https://congreso.es/",
+    "https://consilium.europa.eu/en/policies/fit-for-55",
+    "https://www.convey-tech.com/lcv2026regulations/",
+    "https://cordis.europa.eu/project/id/101036594",
+    "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+    "https://council.nyc.gov/",
+    "https://cpuc.ca.gov/",
+    "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+    "https://csrf.ac.uk/",
+    "https://csrf.ac.uk/about",
+    "https://www.cssf.lu/en/omnibus-package/",
+    "https://ctl.mit.edu/",
+    "https://customs-taxation.learning.europa.eu",
+    "https://www.customs.go.jp/english/index.htm",
+    "https://cvsa.org",
+    "https://www.cvworkshop.ie/2026/05/new-rules-will-apply-to-lcvs-from-1-july-2026/",
+    "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/",
+    "https://daera-ni.gov.uk/topics/environment",
+    "https://danr.sd.gov/",
+    "https://darrp.noaa.gov",
+    "http://data.europa.eu/eli/reg/2019/424/oj",
+    "https://dbs.lacity.gov/services/green-building-sustainability",
+    "https://dbs.lacity.gov/services/green-building-sustainability/ebewe",
+    "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf",
+    "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf",
+    "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency",
+    "https://dcceew.gov.au/",
+    "https://dcregs.dc.gov/",
+    "https://dec.alaska.gov/",
+    "https://www.dec.ny.gov/",
+    "https://dec.ny.gov/regulatory",
+    "https://dec.vermont.gov/",
+    "https://decarbonization.unido.org",
+    "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/",
+    "https://dee.ne.gov/",
+    "https://www.defence.gov.au/",
+    "https://www.dehst.de/EN/Topics/EU-ETS-1/Maritime-Transport/EU-ETS-1-Maritime-Transport/eu-ets-1-maritime-transport_node.html",
+    "https://www.dehst.de/en/topics/nehs/eu-ets-2/reporting-phase-2024-2026/eu-ets2_node.html",
+    "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change",
+    "https://dep.wv.gov/daq/pages/default.aspx"
+  ],
+  "per_item": [
+    {
+      "id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://code.dccouncil.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "1d166acf-5328-4965-8c37-5be7d2b57456",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://codes.ohio.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://codot.gov/programs/environmental/greenhousegas/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "40766f22-7780-41d6-bdf2-b4534a103b5e",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://commerce.gov.in"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://commerce.gov.in/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "a5a3569d-02a8-4d83-ba9d-21e3cad15070",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted",
+      "evidence_refs": [
+        "https://www.commerce.wa.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "9046973b-95ef-47cc-aa65-95cea516936b",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://commission.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f4e5735f-46e4-4b32-aaa1-e02611ff632d",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://commission.europa.eu/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "6b2408e6-489a-4df5-8e22-f72b3523c0c6",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://committees.parliament.uk/writtenevidence/38693/html/"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "31e595ec-13cc-446b-aa18-48192cb3860f",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.adherent.com/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://congreso.es/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "fbbacc94-d511-4f3e-8738-64f861ed2851",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://consilium.europa.eu/en/policies/fit-for-55"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "13c60800-4c13-493c-b6c6-378a23204b19",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.convey-tech.com/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "ee77b56f-092c-419d-a5ab-9ec6e750bd07",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://cordis.europa.eu/sitemapindex.xml",
+        "https://cordis.europa.eu/project_sitemap_en_1.xml",
+        "https://cordis.europa.eu/project_sitemap_en_2.xml",
+        "https://cordis.europa.eu/project_sitemap_en_3.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "327c59bb-e243-494f-a962-b9ee1147d760",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.corepower.energy/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 8 entries, 8 upserted",
+      "evidence_refs": [
+        "https://council.nyc.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "a6fde226-f3b2-4b54-9574-aaa2716a61ec",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://cpuc.ca.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://cpuc.ca.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 47 url(s) scoped, 47 new (47 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.cranfield.ac.uk/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "071dff9e-4841-4955-8c04-9012c7836a49",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 89 entries, 89 upserted",
+      "evidence_refs": [
+        "https://www.csrf.ac.uk/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 89 entries, 89 upserted",
+      "evidence_refs": [
+        "https://www.csrf.ac.uk/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "9bc659b3-d6f1-4b5f-bf00-f9e2f9cc0efe",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.cssf.lu/en/omnibus-package/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "da604866-450e-47c0-9d2b-04d606bc6267",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted",
+      "evidence_refs": [
+        "https://ctl.mit.edu/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "7fe10b21-c6f7-433e-b2d8-cbd9eac4d8db",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://customs-taxation.learning.europa.eu"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.customs.go.jp/sitemap_00.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "73bca1ab-d94a-4cb6-b462-651afeeb4772",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 2 entries, 2 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://cvsa.org/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "667da510-14ea-4732-aee7-d0042f419641",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.cvworkshop.ie/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "988a09a1-c359-42ed-a4f5-b34dbab90414",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "0b594fec-503d-4f89-82f3-958062ff6eea",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://daera-ni.gov.uk/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 500 url(s) scoped, 500 new (500 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://danr.sd.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "c0321fce-cbe5-42ae-b7bf-16787f65bfd7",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://darrp.noaa.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "926f8ab6-e6a6-4179-a6a0-402bb0558653",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://data.europa.eu/sitemap.xml",
+        "https://data.europa.eu/en/sitemap.xml",
+        "https://data.europa.eu/dashboard/sitemap.xml",
+        "https://data.europa.eu/dashboard/en/sitemap.xml",
+        "https://data.europa.eu/data/sitemap_datasets_1.xml",
+        "https://data.europa.eu/data/sitemap_datasets_2.xml",
+        "https://data.europa.eu/data/sitemap_datasets_3.xml",
+        "https://data.europa.eu/data/sitemap_datasets_4.xml",
+        "https://data.europa.eu/data/sitemap_datasets_5.xml",
+        "https://data.europa.eu/data/sitemap_datasets_6.xml",
+        "https://data.europa.eu/data/sitemap_datasets_7.xml",
+        "https://data.europa.eu/data/sitemap_datasets_8.xml",
+        "https://data.europa.eu/data/sitemap_datasets_9.xml",
+        "https://data.europa.eu/data/sitemap_datasets_10.xml",
+        "https://data.europa.eu/data/sitemap_datasets_11.xml",
+        "https://data.europa.eu/data/sitemap_datasets_12.xml",
+        "https://data.europa.eu/data/sitemap_datasets_13.xml",
+        "https://data.europa.eu/data/sitemap_datasets_14.xml",
+        "https://data.europa.eu/data/sitemap_datasets_15.xml",
+        "https://data.europa.eu/data/sitemap_datasets_16.xml",
+        "… +4 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "1b9c9d45-61e2-47bf-b799-ed506760c61b",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dbs.lacity.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "48cc84e3-d78e-4fec-8923-5cdc4ecb652d",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted",
+      "evidence_refs": [
+        "https://dbs.lacity.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "6fad3393-3a75-434d-b354-a09659fe091b",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted",
+      "evidence_refs": [
+        "https://dbs.lacity.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "9c909419-f36e-4a20-ae3a-28fc52c0a094",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dbs.lacity.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "9f6fd0e5-7a4e-4df5-a361-e916d78ce402",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dbs.lacity.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 36 url(s) scoped, 36 new (36 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://dcceew.gov.au/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dcregs.dc.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dec.alaska.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 403 for https://dec.alaska.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "2b768d0d-8820-43df-9510-dcaa11761f87",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.dec.ny.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted",
+      "evidence_refs": [
+        "https://dec.ny.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "44e3ea14-8246-43b0-a01c-28fd3ccdcb8e",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dec.vermont.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "310cc094-34d2-45c1-bae3-ab9a12caef02",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://decarbonization.unido.org"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "6bb0e123-2b42-4437-a7db-cafd9dbab7fb",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/"
+      ],
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429"
+    },
+    {
+      "id": "9af7f2c3-1538-44d9-bf74-988868410c6a",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dee.ne.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "a64502dd-18c8-428f-a878-9542d5f6cd8e",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.defence.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "97a22037-d8b8-4686-9217-6ac3c0a4b303",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://www.dehst.de/Sitemap_Index.xml",
+        "https://www.dehst.de/Sitemap_Aktuelles.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b7351058-65a7-4291-b62d-6f6a7d5b7f03",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://www.dehst.de/Sitemap_Index.xml",
+        "https://www.dehst.de/Sitemap_Aktuelles.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "87b241da-8864-4273-8cb9-f935e7c3614f",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 2 entries, 2 upserted",
+      "evidence_refs": [
+        "https://dem.ri.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "ac866c6b-7aad-4354-9f1e-ba5355ecc7fe",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dep.wv.gov/daq/pages/default.aspx"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dep.wv.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "sources_targeted": 49,
+    "feed_found": 24,
+    "sitemap_only": 25,
+    "bot_wall_sources": 4,
+    "errors": 10,
+    "urls_scoped_total": 585,
+    "new_total": 895,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 4,
+    "baseline_deferred_sources": 4,
+    "rss_feed_url_written": 15,
+    "change_signals_recorded": 0,
+    "hosts_walked": 40,
+    "hosts_skipped_bot_wall": 3,
+    "feeds_discovered": 24,
+    "new_locs": 895,
+    "lastmod_changes": 0,
+    "hosts_remaining_unwalked": 483,
+    "hosts_selected": 40,
+    "upserted": 895,
+    "failed": 0,
+    "no_targets_reason": null,
+    "budget_seconds": 1500,
+    "elapsed_seconds": 606.72,
+    "sources_walked": 49,
+    "sources_not_reached": {
+      "count": 0,
+      "ids": []
+    },
+    "budget_exhausted": false
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-016.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}

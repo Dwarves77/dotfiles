@@ -441,7 +441,6 @@ export function RegulationDetailSurface({
               connections={connections}
               supersessions={supersessions}
               resourceLookup={resourceLookup}
-              upcomingObligations={upcomingObligations}
               onOpenTimeline={() => setTab("timeline")}
             />
           )}
@@ -675,7 +674,6 @@ function SummaryTab({
   connections,
   supersessions,
   resourceLookup,
-  upcomingObligations,
   onOpenTimeline,
 }: {
   r: Resource;
@@ -686,7 +684,6 @@ function SummaryTab({
   connections: ItemConnection[];
   supersessions: Supersession[];
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
-  upcomingObligations: React.ReactNode;
   onOpenTimeline: () => void;
 }) {
   const impact = r.impactScores ?? scoreResource(r);
@@ -706,7 +703,6 @@ function SummaryTab({
         connections={connections}
         supersessions={supersessions}
         resourceLookup={resourceLookup}
-        upcomingObligations={upcomingObligations}
         impact={impact}
         onOpenTimeline={onOpenTimeline}
         changelog={changelog}
@@ -961,7 +957,6 @@ function RecordGradeSummary({
   connections,
   supersessions,
   resourceLookup,
-  upcomingObligations,
   impact,
   onOpenTimeline,
   changelog,
@@ -973,7 +968,6 @@ function RecordGradeSummary({
   connections: ItemConnection[];
   supersessions: Supersession[];
   resourceLookup: Record<string, { id: string; title: string; priority: string }>;
-  upcomingObligations: React.ReactNode;
   impact: ReturnType<typeof scoreResource>;
   onOpenTimeline: () => void;
   changelog: ChangeLogEntry[];
@@ -1091,26 +1085,19 @@ function RecordGradeSummary({
         </div>
       </Card>
 
-      {/* Upcoming obligations / forward events — the SAME pre-rendered node the page already computes
-          for the meta rail (loadRegulationDetailObligations -> UpcomingObligationsStripView, honest
-          omission when the item has none: that component returns null itself). Rendered directly, not
-          wrapped in a second "Upcoming" header, since it is already a fully self-headered card — a
-          matching-style honest empty card fills the slot when it is null so the section is never just
-          silently absent. */}
-      <div style={{ marginBottom: 14 }}>
-        {upcomingObligations ?? (
-          <Card style={{ overflow: "hidden" }}>
-            <div style={{ padding: "12px 20px", background: C.plate, borderBottom: `1px solid ${C.hairSoft}` }}>
-              <span style={{ fontSize: 12.5, fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase" }}>Upcoming</span>
-            </div>
-            <div style={{ padding: "14px 20px" }}>
-              <p style={{ fontSize: 12, lineHeight: 1.6, color: C.muted, margin: 0, fontStyle: "italic" }}>
-                No upcoming obligations on file for this item yet.
-              </p>
-            </div>
-          </Card>
-        )}
-      </div>
+      {/* PERF-13 (2026-09-04, docs/audits/perf-clickthrough-2026-09-04.md §(e)): the "Upcoming
+          obligations" card used to be rendered a SECOND time here, from the SAME `upcomingObligations`
+          element the parent already renders unconditionally in the meta rail (RegulationDetailSurface,
+          `{upcomingObligations}` a few hundred lines up). That was safe when this was a
+          server-pre-rendered, static ReactNode (the comment this replaces said as much: "the SAME
+          pre-rendered node"), but PERF-10 (2026-09-04) converted `UpcomingObligationsStrip` into a
+          CLIENT component with its own `useEffect` fetch — reusing the same element reference at two
+          positions in the tree mounts it as two independent component instances, each firing its own
+          GET /api/obligations/upcoming?itemId=... (the operator's live-measured duplicate call). The
+          meta rail's own copy (always visible, every tab, not just Summary) is the ONE caller now;
+          removed here rather than removed there because the meta rail is the persistent placement and
+          this tab-scoped copy was the redundant one. See load-detail.ts's own header for why obligations
+          were moved client-side in the first place — that reasoning is unaffected by this fix. */}
 
       {/* What changed / Disputed — unchanged from the brief-grade body; harmless, honest omission when
           empty (a freshly minted record item typically has neither yet). */}

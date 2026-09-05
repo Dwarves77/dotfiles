@@ -37,6 +37,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { getPublicSurfaceSlugs } from "@/lib/data";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
@@ -95,8 +96,18 @@ interface ItemScoped {
 // full slug enumeration) is the correct return value here: an unbounded, continuously-growing corpus,
 // with `dynamicParams` at its default `true` so every slug is rendered on first request and served
 // from the Full Route Cache thereafter.
+//
+// PERF-13 (2026-09-04, ADR-027 §1): SUPERSEDES the decision above (kept verbatim, not deleted, per
+// CLAUDE.md rule 14) — see regulations/[slug]/page.tsx's own generateStaticParams comment for the
+// full measurement this correction is based on. This surface's own corpus is 25 verified,
+// non-archived items (Supabase MCP, `get_operations_items_public()` row count, 2026-09-04) — small,
+// not "unbounded" — enumerated at build time via `getPublicSurfaceSlugs("operations")`
+// (src/lib/data.ts, the SAME function every `[slug]` route now calls). `dynamicParams` stays `true`
+// for an item minted after the last build; the deploy-time warm step
+// (docs/runbooks/warm-static-detail-routes.md) closes that gap before a real viewer's first click.
 export async function generateStaticParams() {
-  return [];
+  const slugs = await getPublicSurfaceSlugs("operations");
+  return slugs.map((slug) => ({ slug }));
 }
 
 export default async function OperationsDetailPage({

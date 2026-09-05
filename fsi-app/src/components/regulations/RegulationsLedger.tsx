@@ -66,7 +66,7 @@ import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
 import { useListOrder } from "@/lib/hooks/useListOrder";
 import { applyMove, compareRanks } from "@/lib/list-order";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
-import { bandEmptyStateText } from "@/components/regulations/band-empty-state";
+import { bandEmptyState } from "@/components/regulations/band-empty-state";
 import {
   MODES,
   TOPICS,
@@ -390,19 +390,14 @@ export function RegulationsLedger({
     isFetchNextPageError,
   } = useLedgerInfiniteQuery("regulations", initialPage);
 
-  // Maps to bandEmptyStateText's existing three-state contract (its own header, FIRSTPAGE lane):
-  // "loading" while there is still more corpus this ledger could show for a >0-total band, "done"
-  // once the cursor stream is exhausted (hasNextPage === false) with no fetch in flight, "error"
-  // when the LAST fetchNextPage attempt itself failed (isFetchNextPageError — distinct from
-  // queryStatus, which only ever reflects the INITIAL page and stays "success" once initialData has
-  // seeded it, however many later page fetches fail). The ledger keeps every row already loaded
-  // either way — an error never clears `data.pages` (useLedgerInfiniteQuery's own contract).
-  const restStatus: "loading" | "done" | "error" =
-    queryStatus === "error" || isFetchNextPageError
-      ? "error"
-      : hasNextPage || isFetchingNextPage || queryStatus === "pending"
-      ? "loading"
-      : "done";
+  // PERF-13 (2026-09-04, docs/audits/perf-clickthrough-2026-09-04.md §(g)): the ledger-wide
+  // `restStatus` this used to compute (a single "loading"/"done"/"error" value fed identically to
+  // every band) is GONE — see band-empty-state.ts's own header for why: it could not tell "a fetch
+  // is happening right now" from "the cursor stream merely isn't exhausted yet", which is what let
+  // the Awareness band claim "Loading 169 regulations…" indefinitely with no request ever in flight
+  // for it. Each band now calls `bandEmptyState` directly with the raw flags (below, at the band
+  // render site) instead of through this pre-collapsed value.
+  const initialLoadPending = queryStatus === "pending";
 
   // ── Hydrate the shared resource store (applies workspace overrides) ──
   useEffect(() => {
@@ -1268,18 +1263,95 @@ export function RegulationsLedger({
               </div>
 
               {rows.length === 0 ? (
-                <p
-                  style={{
-                    fontSize: 12.5,
-                    color: "var(--color-text-muted)",
-                    padding: "14px 18px",
-                    margin: 0,
-                  }}
-                >
-                  {/* See bandEmptyStateText's own header comment (FIRSTPAGE lane, perf-load-times
-                      audit §14) for the defect this replaces and why. */}
-                  {bandEmptyStateText({ total, restStatus, anyFilterActive })}
-                </p>
+                // See band-empty-state.ts's own header comment (FIRSTPAGE lane, refined PERF-13,
+                // perf-waterfall audit §(g)) for the two generations of defect this replaces and why.
+                // "ready" is the state that used to render as an indefinite, nothing-in-flight
+                // "Loading N…" lie — it now shows the band's true count plus a real control
+                // (`fetchNextPage`, the SAME handler the footer's own "Load more" button already
+                // calls: one cursor, one fetch path, no new request mechanism) instead of a passive
+                // claim with nothing behind it.
+                (() => {
+                  const state = bandEmptyState({
+                    total,
+                    isFetchingNextPage,
+                    hasNextPage,
+                    isFetchNextPageError,
+                    initialLoadPending,
+                    anyFilterActive,
+                  });
+                  return (
+                    <div style={{ padding: "14px 18px", display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+                      <p
+                        role={state.kind === "loading" ? "status" : undefined}
+                        style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0 }}
+                      >
+                        {state.text}
+                      </p>
+                      {state.kind === "ready" && (
+                        <button
+                          type="button"
+                          onClick={() => fetchNextPage()}
+                          style={{
+                            fontFamily: "inherit",
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            border: "1px solid var(--color-border-medium)",
+                            background: "var(--color-bg-surface)",
+                            color: "var(--color-primary)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Load more ({state.total} in this band)
+                        </button>
+                      )}
+                      {state.kind === "error" && !isFetchNextPageError && (
+                        // The stream reports exhausted (hasNextPage===false) yet this band's
+                        // authoritative total was never met — not a live in-flight failure
+                        // (isFetchNextPageError is false), so there is nothing for the shared
+                        // fetchNextPage retry to do; a page refresh re-runs the SSR count + cursor
+                        // from scratch, the only real remediation for a stream/count disagreement.
+                        <button
+                          type="button"
+                          onClick={() => window.location.reload()}
+                          style={{
+                            fontFamily: "inherit",
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            border: "1px solid var(--color-border-medium)",
+                            background: "var(--color-bg-surface)",
+                            color: "var(--color-primary)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Refresh
+                        </button>
+                      )}
+                      {state.kind === "error" && isFetchNextPageError && (
+                        <button
+                          type="button"
+                          onClick={() => fetchNextPage()}
+                          style={{
+                            fontFamily: "inherit",
+                            fontSize: 11.5,
+                            fontWeight: 800,
+                            padding: "5px 12px",
+                            borderRadius: 6,
+                            border: "1px solid var(--color-border-medium)",
+                            background: "var(--color-bg-surface)",
+                            color: "var(--color-primary)",
+                            cursor: "pointer",
+                          }}
+                        >
+                          Try again
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()
               ) : (
                 customMode ? (
                   // One DndContext per band: bands are independent drag
@@ -1576,11 +1648,31 @@ function RegRow({
       // item-scoped bundle a prefetch would trigger is ONE cached unstable_cache entry per item, shared
       // across every viewer and every concurrent prefetch of the same row — a burst of visible rows no
       // longer means a burst of fresh Supabase reads, it means one cache population plus N cache hits.
-      // Left at the framework default (prop omitted, not `prefetch={true}`): for a fully-dynamic route
-      // this only prefetches the static shell + loading.tsx boundary on viewport entry, not the dynamic
-      // RSC payload — cheap, and it's what actually makes the click feel instant (the loading.tsx
-      // skeleton is already resident by the time the click lands; the real data fetch still runs per
-      // click, but now hits the item-scoped cache instead of re-running the full fan-out).
+      //
+      // PERF-13 (2026-09-04, item 1 + item 2, docs/audits/perf-clickthrough-2026-09-04.md §(d)):
+      // CORRECTS the paragraph above, kept as history rather than deleted (rule 14) — it assumed
+      // "for a fully-dynamic route this only prefetches the static shell + loading.tsx boundary, not
+      // the dynamic RSC payload." That was true when this route built `ƒ` (Dynamic). It no longer
+      // builds that way: `generateStaticParams` (this file's `[slug]/page.tsx` sibling) now
+      // enumerates every verified slug, so for any already-built item this `<Link>` targets a STATIC
+      // route — and left at the framework default (prop omitted, not an explicit override), Next's
+      // own documented behavior for a static destination is to prefetch the FULL route (data +
+      // rendered payload), not merely the loading skeleton (nextjs.org/docs/app/api-reference/
+      // components/link#prefetch: "if `true` -> prefetched; `null`/omitted (default) -> full
+      // prefetching for statically generated pages, loading.js boundary only for dynamic ones").
+      // Both prefetch depths were always cheap for the reason above (cache-shared item bundles), and
+      // the default now upgrades automatically as each item's page moves from "not yet built" to
+      // "resident in the Full Route Cache" — no prop change needed here to benefit from item 1.
+      //
+      // The coordinator's own live measurement (finding (d): only 6/12 visible rows carried an
+      // `_rsc` prefetch entry) was taken against the PRE-item-1 build (every route still `ƒ`,
+      // shell-only prefetch depth) — this lane could not re-measure it live (no reachable Supabase
+      // from this sandbox's build process to stand up a `next start` server with real listing rows;
+      // see this lane's own REPORT). [HYPOTHESIS, pending the coordinator's live re-measurement
+      // after landing]: once every existing item is statically built (item 1), most visible rows
+      // should show a full-payload `_rsc` prefetch on viewport entry by Next's own default, with the
+      // residual (items minted after the last deploy, briefly on-demand) closed by the warm step —
+      // see docs/runbooks/warm-static-detail-routes.md.
       className="cl-reg-row cl-row-grid"
       data-guard-container="regulation-row"
       style={{

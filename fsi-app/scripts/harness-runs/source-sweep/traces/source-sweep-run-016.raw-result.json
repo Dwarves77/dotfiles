@@ -1,0 +1,3448 @@
+{
+  "sources": [
+    {
+      "sourceId": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+      "sourceName": "Council of the District of Columbia – D.C. Law Library",
+      "sourceUrl": "https://code.dccouncil.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://code.dccouncil.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://code.dccouncil.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://code.dccouncil.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://code.dccouncil.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://code.dccouncil.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://code.dccouncil.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://code.dccouncil.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:03:54.374Z",
+        "feed_last_probed_at": "2026-09-05T00:03:54.374Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "1d166acf-5328-4965-8c37-5be7d2b57456",
+      "sourceName": "Ohio Laws – Ohio Administrative Code & Ohio Revised Code (LSC)",
+      "sourceUrl": "https://codes.ohio.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://codes.ohio.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://codes.ohio.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://codes.ohio.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://codes.ohio.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://codes.ohio.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://codes.ohio.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://codes.ohio.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:05.320Z",
+        "feed_last_probed_at": "2026-09-05T00:04:05.320Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+      "sourceName": "Colorado Department of Transportation – GHG Transportation Planning Program",
+      "sourceUrl": "https://codot.gov/programs/environmental/greenhousegas",
+      "kind": "feed",
+      "feedUrl": "https://codot.gov/programs/environmental/greenhousegas/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 55901,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://codot.gov/programs/environmental/greenhousegas/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://codot.gov/programs/environmental/greenhousegas/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://codot.gov/programs/environmental/greenhousegas/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://codot.gov/programs/environmental/greenhousegas/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:10.538Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:04:10.538Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "40766f22-7780-41d6-bdf2-b4534a103b5e",
+      "sourceName": "India Ministry of Commerce and Industry",
+      "sourceUrl": "https://commerce.gov.in",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://commerce.gov.in",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://commerce.gov.in/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://commerce.gov.in/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://commerce.gov.in/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://commerce.gov.in/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://commerce.gov.in/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://commerce.gov.in/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://commerce.gov.in/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:22.971Z",
+        "feed_last_probed_at": "2026-09-05T00:04:22.971Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a5a3569d-02a8-4d83-ba9d-21e3cad15070",
+      "sourceName": "Washington State Department of Commerce – Energy Office",
+      "sourceUrl": "https://commerce.wa.gov/growing-the-economy/energy",
+      "kind": "feed",
+      "feedUrl": "https://www.commerce.wa.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 107098,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.commerce.wa.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.commerce.wa.gov/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:26.155Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:04:26.155Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9046973b-95ef-47cc-aa65-95cea516936b",
+      "sourceName": "European Commission",
+      "sourceUrl": "https://commission.europa.eu/topics/climate-action/delivering-european-green-deal/fit-55-delivering-proposals_en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://commission.europa.eu/topics/climate-action/delivering-european-green-deal/fit-55-delivering-proposals_en",
+      "sitemapsFetched": [
+        {
+          "url": "https://commission.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 16685,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 16684,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:41.462Z",
+        "feed_last_probed_at": "2026-09-05T00:04:41.462Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://commission.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f4e5735f-46e4-4b32-aaa1-e02611ff632d",
+      "sourceName": "European Commission Proposal COM(2025) 80 final (Omnibus I simplification package)",
+      "sourceUrl": "https://commission.europa.eu/document/download/0affa9a8-2ac5-46a9-98f8-19205bf61eb5_en?filename=COM_2025_80_EN.pdf",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://commission.europa.eu/document/download/0affa9a8-2ac5-46a9-98f8-19205bf61eb5_en?filename=COM_2025_80_EN.pdf",
+      "sitemapsFetched": [
+        {
+          "url": "https://commission.europa.eu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 16685,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 16685,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:04:56.235Z",
+        "feed_last_probed_at": "2026-09-05T00:04:56.235Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://commission.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "6b2408e6-489a-4df5-8e22-f72b3523c0c6",
+      "sourceName": "UK Parliament Committees / Written Evidence 38693",
+      "sourceUrl": "https://committees.parliament.uk/writtenevidence/38693/html/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://committees.parliament.uk/writtenevidence/38693/html/",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://committees.parliament.uk/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://committees.parliament.uk/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://committees.parliament.uk/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://committees.parliament.uk/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://committees.parliament.uk/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://committees.parliament.uk/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:05:12.636Z",
+        "feed_last_probed_at": "2026-09-05T00:05:12.636Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "31e595ec-13cc-446b-aa18-48192cb3860f",
+      "sourceName": "Compliance & Risks — EU F-Gas Regulation (EU) 2024/573",
+      "sourceUrl": "https://www.complianceandrisks.com/blog/regulation-eu-2024-573-european-commission-adopts-new-f-gas-regulation/",
+      "kind": "feed",
+      "feedUrl": "https://www.adherent.com/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 220404,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.adherent.com/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.adherent.com/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:05:16.448Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:05:16.448Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "594c9aec-707f-43a5-9538-7f00d2b79437",
+      "sourceName": "Cortes Generales – Congreso de los Diputados",
+      "sourceUrl": "https://congreso.es/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://congreso.es/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://congreso.es/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://congreso.es/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://congreso.es/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:05:26.882Z",
+        "feed_last_probed_at": "2026-09-05T00:05:26.882Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "fbbacc94-d511-4f3e-8738-64f861ed2851",
+      "sourceName": "Council of the European Union",
+      "sourceUrl": "https://consilium.europa.eu/en/policies/fit-for-55",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://consilium.europa.eu/en/policies/fit-for-55",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://consilium.europa.eu/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://consilium.europa.eu/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://consilium.europa.eu/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://consilium.europa.eu/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://consilium.europa.eu/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://consilium.europa.eu/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:05:50.060Z",
+        "feed_last_probed_at": "2026-09-05T00:05:50.060Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "13c60800-4c13-493c-b6c6-378a23204b19",
+      "sourceName": "Convey Tech — UK/Ireland LCV 2026 Regulations",
+      "sourceUrl": "https://www.convey-tech.com/lcv2026regulations/",
+      "kind": "feed",
+      "feedUrl": "https://www.convey-tech.com/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 162794,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.convey-tech.com/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.convey-tech.com/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:05:59.733Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:05:59.733Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "ee77b56f-092c-419d-a5ab-9ec6e750bd07",
+      "sourceName": "MAGPIE Project Fact Sheet – EU CORDIS",
+      "sourceUrl": "https://cordis.europa.eu/project/id/101036594",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://cordis.europa.eu/project/id/101036594",
+      "sitemapsFetched": [
+        {
+          "url": "https://cordis.europa.eu/sitemapindex.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 60,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cordis.europa.eu/project_sitemap_en_1.xml",
+          "kind": "urlset",
+          "urlCount": 40000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cordis.europa.eu/project_sitemap_en_2.xml",
+          "kind": "urlset",
+          "urlCount": 40000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://cordis.europa.eu/project_sitemap_en_3.xml",
+          "kind": "urlset",
+          "urlCount": 40000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 57,
+      "entriesCapped": true,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 119999,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:06:18.212Z",
+        "feed_last_probed_at": "2026-09-05T00:06:18.212Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://cordis.europa.eu/sitemapindex.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "327c59bb-e243-494f-a962-b9ee1147d760",
+      "sourceName": "CorePower Energy — Maersk Nuclear Box-Ship Study",
+      "sourceUrl": "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.corepower.energy/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 77,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 77,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:06:32.813Z",
+        "feed_last_probed_at": "2026-09-05T00:06:32.813Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.corepower.energy/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+      "sourceName": "New York City Council",
+      "sourceUrl": "https://council.nyc.gov/",
+      "kind": "feed",
+      "feedUrl": "https://council.nyc.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 153196,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://council.nyc.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://council.nyc.gov/feed/",
+        "entries": 8,
+        "upserted": 8,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:06:36.019Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:06:36.019Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a6fde226-f3b2-4b54-9574-aaa2716a61ec",
+      "sourceName": "California Public Utilities Commission (CPUC)",
+      "sourceUrl": "https://cpuc.ca.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://cpuc.ca.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://cpuc.ca.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://cpuc.ca.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cpuc.ca.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cpuc.ca.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cpuc.ca.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://cpuc.ca.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://cpuc.ca.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:06:53.539Z",
+        "feed_last_probed_at": "2026-09-05T00:06:53.539Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+      "sourceName": "Cranfield University – School of Management",
+      "sourceUrl": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.cranfield.ac.uk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 6465,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 6417,
+      "urlCount": 47,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 47,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 47,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:12.445Z",
+        "feed_last_probed_at": "2026-09-05T00:07:12.445Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.cranfield.ac.uk/sitemap.xml",
+        "sitemap_url_count": 47
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "071dff9e-4841-4955-8c04-9012c7836a49",
+      "sourceName": "Centre for Sustainable Road Freight",
+      "sourceUrl": "https://csrf.ac.uk/",
+      "kind": "feed",
+      "feedUrl": "https://www.csrf.ac.uk/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 94282,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.csrf.ac.uk/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.csrf.ac.uk/feed/",
+        "entries": 89,
+        "upserted": 89,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:21.039Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:07:21.039Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88",
+      "sourceName": "Centre for Sustainable Road Freight",
+      "sourceUrl": "https://csrf.ac.uk/about",
+      "kind": "feed",
+      "feedUrl": "https://www.csrf.ac.uk/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 89300,
+        "contentType": "",
+        "alternateLinksFound": 3,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.csrf.ac.uk/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.csrf.ac.uk/feed/",
+        "entries": 89,
+        "upserted": 89,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:27.556Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:07:27.556Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9bc659b3-d6f1-4b5f-bf00-f9e2f9cc0efe",
+      "sourceName": "source",
+      "sourceUrl": "https://www.cssf.lu/en/omnibus-package/",
+      "kind": "feed",
+      "feedUrl": "https://www.cssf.lu/en/omnibus-package/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 65546,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.cssf.lu/en/omnibus-package/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.cssf.lu/en/omnibus-package/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:30.653Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:07:30.653Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "da604866-450e-47c0-9d2b-04d606bc6267",
+      "sourceName": "MIT Center for Transportation and Logistics",
+      "sourceUrl": "https://ctl.mit.edu/",
+      "kind": "feed",
+      "feedUrl": "https://ctl.mit.edu/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 94076,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://ctl.mit.edu/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://ctl.mit.edu/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://ctl.mit.edu/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://ctl.mit.edu/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:35.433Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:07:35.433Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7fe10b21-c6f7-433e-b2d8-cbd9eac4d8db",
+      "sourceName": "European Commission DG TAXUD — Customs & Tax EU Learning Portal",
+      "sourceUrl": "https://customs-taxation.learning.europa.eu",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://customs-taxation.learning.europa.eu",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://customs-taxation.learning.europa.eu/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://customs-taxation.learning.europa.eu/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://customs-taxation.learning.europa.eu/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:07:46.393Z",
+        "feed_last_probed_at": "2026-09-05T00:07:46.393Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+      "sourceName": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+      "sourceUrl": "https://www.customs.go.jp/english/index.htm",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.customs.go.jp/english/index.htm",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.customs.go.jp/sitemap_00.xml",
+          "kind": "urlset",
+          "urlCount": 4999,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4905,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:08:01.848Z",
+        "feed_last_probed_at": "2026-09-05T00:08:01.848Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.customs.go.jp/sitemap_00.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "73bca1ab-d94a-4cb6-b462-651afeeb4772",
+      "sourceName": "Commercial Vehicle Safety Alliance (CVSA)",
+      "sourceUrl": "https://cvsa.org",
+      "kind": "feed",
+      "feedUrl": "https://cvsa.org/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 185670,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://cvsa.org/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://cvsa.org/feed/",
+        "entries": 2,
+        "upserted": 2,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:08:04.682Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:08:04.682Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "667da510-14ea-4732-aee7-d0042f419641",
+      "sourceName": "CV Workshop — Irish LCV Rule Changes (1 July 2026)",
+      "sourceUrl": "https://www.cvworkshop.ie/2026/05/new-rules-will-apply-to-lcvs-from-1-july-2026/",
+      "kind": "feed",
+      "feedUrl": "https://www.cvworkshop.ie/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 58604,
+        "contentType": "",
+        "alternateLinksFound": 3,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.cvworkshop.ie/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.cvworkshop.ie/feed/",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:08:08.184Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:08:08.184Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "988a09a1-c359-42ed-a4f5-b34dbab90414",
+      "sourceName": "Cyprus Shipping News – New IMO CII Guidelines Require SEEMP Part III Revision",
+      "sourceUrl": "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/",
+      "kind": "feed",
+      "feedUrl": "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": null,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "terminated",
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:08:15.981Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:08:15.981Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "0b594fec-503d-4f89-82f3-958062ff6eea",
+      "sourceName": "Northern Ireland Environment Agency / DAERA (Department of Agriculture, Environment and Rural Affairs)",
+      "sourceUrl": "https://daera-ni.gov.uk/topics/environment",
+      "kind": "feed",
+      "feedUrl": "https://daera-ni.gov.uk/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 404,
+        "bytes": 0,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": "HTTP 404 for https://daera-ni.gov.uk/topics/environment",
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/topics/environment/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://daera-ni.gov.uk/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://daera-ni.gov.uk/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:08:27.105Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:08:27.105Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+      "sourceName": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+      "sourceUrl": "https://danr.sd.gov/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://danr.sd.gov/",
+      "sitemapsFetched": [
+        {
+          "url": "https://danr.sd.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 500,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 500,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 500,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:09:00.753Z",
+        "feed_last_probed_at": "2026-09-05T00:09:00.753Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://danr.sd.gov/sitemap.xml",
+        "sitemap_url_count": 500
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "c0321fce-cbe5-42ae-b7bf-16787f65bfd7",
+      "sourceName": "NOAA Damage Assessment, Remediation and Restoration Program",
+      "sourceUrl": "https://darrp.noaa.gov",
+      "kind": "feed",
+      "feedUrl": "https://darrp.noaa.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 38815,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://darrp.noaa.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://darrp.noaa.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://darrp.noaa.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://darrp.noaa.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:09:07.354Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:09:07.354Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "926f8ab6-e6a6-4179-a6a0-402bb0558653",
+      "sourceName": "EU Official Journal — Regulation (EU) 2019/424 (ELI)",
+      "sourceUrl": "http://data.europa.eu/eli/reg/2019/424/oj",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "http://data.europa.eu/eli/reg/2019/424/oj",
+      "sitemapsFetched": [
+        {
+          "url": "https://data.europa.eu/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 345,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/en/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 2,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/dashboard/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 39,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/dashboard/en/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 39,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_1.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_2.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_3.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_4.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_5.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_6.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_7.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_8.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_9.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_10.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_11.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_12.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_13.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_14.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_15.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_16.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_17.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_18.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_19.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://data.europa.eu/data/sitemap_datasets_20.xml",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 4,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 327,
+      "entriesCapped": true,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 100039,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:09:48.332Z",
+        "feed_last_probed_at": "2026-09-05T00:09:48.332Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://data.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "1b9c9d45-61e2-47bf-b799-ed506760c61b",
+      "sourceName": "Los Angeles Dept. of Building and Safety / Green Building & Sustainability",
+      "sourceUrl": "https://dbs.lacity.gov/services/green-building-sustainability",
+      "kind": "feed",
+      "feedUrl": "https://dbs.lacity.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 77409,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dbs.lacity.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:09:59.394Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:09:59.394Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "48cc84e3-d78e-4fec-8923-5cdc4ecb652d",
+      "sourceName": "Los Angeles Department of Building and Safety (LADBS)",
+      "sourceUrl": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe",
+      "kind": "feed",
+      "feedUrl": "https://dbs.lacity.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 66469,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dbs.lacity.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:10:10.176Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:10:10.176Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "6fad3393-3a75-434d-b354-a09659fe091b",
+      "sourceName": "Los Angeles Department of Building and Safety (LADBS)",
+      "sourceUrl": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf",
+      "kind": "feed",
+      "feedUrl": "https://dbs.lacity.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 230052,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dbs.lacity.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:10:21.152Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:10:21.152Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9c909419-f36e-4a20-ae3a-28fc52c0a094",
+      "sourceName": "LA Dept. of Building and Safety - EBEWE/ARCx FAQ (PDF)",
+      "sourceUrl": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf",
+      "kind": "feed",
+      "feedUrl": "https://dbs.lacity.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 617218,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dbs.lacity.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:10:32.360Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:10:32.360Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9f6fd0e5-7a4e-4df5-a361-e916d78ce402",
+      "sourceName": "LA Dept of Building and Safety / Code Enforcement - Local Enforcement Agency",
+      "sourceUrl": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency",
+      "kind": "feed",
+      "feedUrl": "https://dbs.lacity.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 72498,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dbs.lacity.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dbs.lacity.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:10:43.237Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:10:43.237Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+      "sourceName": "Department of Climate Change, Energy, the Environment and Water (DCCEEW)",
+      "sourceUrl": "https://dcceew.gov.au/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dcceew.gov.au/",
+      "sitemapsFetched": [
+        {
+          "url": "https://dcceew.gov.au/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 36,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 36,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 36,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 36,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:10:55.229Z",
+        "feed_last_probed_at": "2026-09-05T00:10:55.229Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://dcceew.gov.au/sitemap.xml",
+        "sitemap_url_count": 36
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+      "sourceName": "DC Municipal Regulations & DC Register (dcregs.dc.gov)",
+      "sourceUrl": "https://dcregs.dc.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dcregs.dc.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dcregs.dc.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dcregs.dc.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dcregs.dc.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dcregs.dc.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dcregs.dc.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dcregs.dc.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:05.651Z",
+        "feed_last_probed_at": "2026-09-05T00:11:05.651Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+      "sourceName": "Alaska Department of Environmental Conservation (DEC)",
+      "sourceUrl": "https://dec.alaska.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dec.alaska.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 403 for https://dec.alaska.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dec.alaska.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://dec.alaska.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dec.alaska.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dec.alaska.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dec.alaska.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dec.alaska.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:16.369Z",
+        "feed_last_probed_at": "2026-09-05T00:11:16.369Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2b768d0d-8820-43df-9510-dcaa11761f87",
+      "sourceName": "NYS Department of Environmental Conservation — Official Portal",
+      "sourceUrl": "https://www.dec.ny.gov/",
+      "kind": "feed",
+      "feedUrl": "https://www.dec.ny.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 101415,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "\n\n<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\" prefix=\"og: https://ogp.me/ns#\" class=\"no-js\">\n  <head>\n    <meta charset=\"utf-8\" />\n<noscript><style>form.antibot > * { display: none !important; } form.an"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.dec.ny.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dec.ny.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dec.ny.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.dec.ny.gov/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:21.560Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:11:21.560Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+      "sourceName": "New York State Department of Environmental Conservation (NYSDEC)",
+      "sourceUrl": "https://dec.ny.gov/regulatory",
+      "kind": "feed",
+      "feedUrl": "https://dec.ny.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 83713,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "\n\n<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\" prefix=\"og: https://ogp.me/ns#\" class=\"no-js\">\n  <head>\n    <meta charset=\"utf-8\" />\n<noscript><style>form.antibot > * { display: none !important; } form.an"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dec.ny.gov/regulatory/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/regulatory/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/regulatory/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/regulatory/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/regulatory/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/regulatory/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.ny.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dec.ny.gov/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:32.395Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:11:32.395Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "44e3ea14-8246-43b0-a01c-28fd3ccdcb8e",
+      "sourceName": "Vermont Department of Environmental Conservation (VT DEC)",
+      "sourceUrl": "https://dec.vermont.gov/",
+      "kind": "feed",
+      "feedUrl": "https://dec.vermont.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 81072,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\" prefix=\"content: http://purl.org/rss/1.0/modules/content/  dc: http://purl.org/dc/terms/  foaf: http://xmlns.com/foaf/0.1/  og: http://ogp.me/ns#  rdfs: http:"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dec.vermont.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.vermont.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dec.vermont.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dec.vermont.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:38.243Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:11:38.243Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "310cc094-34d2-45c1-bae3-ab9a12caef02",
+      "sourceName": "UNIDO — Industrial Decarbonization",
+      "sourceUrl": "https://decarbonization.unido.org",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://decarbonization.unido.org",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://decarbonization.unido.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://decarbonization.unido.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://decarbonization.unido.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:11:48.445Z",
+        "feed_last_probed_at": "2026-09-05T00:11:48.445Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "6bb0e123-2b42-4437-a7db-cafd9dbab7fb",
+      "sourceName": "decarbonization.unido.org / generate pool source",
+      "sourceUrl": "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/",
+      "error": "bot_wall detected: homepage returned HTTP 403 and all fallback candidates answered 401/403/429",
+      "sitemapsFetched": [
+        {
+          "url": "https://decarbonization.unido.org/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://decarbonization.unido.org/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://decarbonization.unido.org/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://decarbonization.unido.org/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:12:05.422Z",
+        "feed_last_probed_at": "2026-09-05T00:12:05.422Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9af7f2c3-1538-44d9-bf74-988868410c6a",
+      "sourceName": "Nebraska Department of Environment and Energy (NDEE)",
+      "sourceUrl": "https://dee.ne.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dee.ne.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dee.ne.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://dee.ne.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://dee.ne.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:12:16.376Z",
+        "feed_last_probed_at": "2026-09-05T00:12:16.376Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "a64502dd-18c8-428f-a878-9542d5f6cd8e",
+      "sourceName": "Australian Department of Defence",
+      "sourceUrl": "https://www.defence.gov.au/",
+      "kind": "feed",
+      "feedUrl": "https://www.defence.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 40862,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.defence.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.defence.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.defence.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.defence.gov.au/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:12:21.619Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:12:21.619Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "97a22037-d8b8-4686-9217-6ac3c0a4b303",
+      "sourceName": "source",
+      "sourceUrl": "https://www.dehst.de/EN/Topics/EU-ETS-1/Maritime-Transport/EU-ETS-1-Maritime-Transport/eu-ets-1-maritime-transport_node.html",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.dehst.de/EN/Topics/EU-ETS-1/Maritime-Transport/EU-ETS-1-Maritime-Transport/eu-ets-1-maritime-transport_node.html",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dehst.de/Sitemap_Index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dehst.de/Sitemap_Aktuelles.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch timed out after 20000ms for https://www.dehst.de/Sitemap_Aktuelles.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:13:01.978Z",
+        "feed_last_probed_at": "2026-09-05T00:13:01.978Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dehst.de/Sitemap_Index.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b7351058-65a7-4291-b62d-6f6a7d5b7f03",
+      "sourceName": "DEHSt (German Emissions Trading Authority) — EU ETS 2 Reporting Phase 2024–2026",
+      "sourceUrl": "https://www.dehst.de/en/topics/nehs/eu-ets-2/reporting-phase-2024-2026/eu-ets2_node.html",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.dehst.de/en/topics/nehs/eu-ets-2/reporting-phase-2024-2026/eu-ets2_node.html",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dehst.de/Sitemap_Index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dehst.de/Sitemap_Aktuelles.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch timed out after 20000ms for https://www.dehst.de/Sitemap_Aktuelles.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:13:37.443Z",
+        "feed_last_probed_at": "2026-09-05T00:13:37.443Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dehst.de/Sitemap_Index.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "87b241da-8864-4273-8cb9-f935e7c3614f",
+      "sourceName": "Rhode Island DEM – Office of Air Resources (Mobile Sources & Climate)",
+      "sourceUrl": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change",
+      "kind": "feed",
+      "feedUrl": "https://dem.ri.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 355258,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dem.ri.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dem.ri.gov/rss.xml",
+        "entries": 2,
+        "upserted": 2,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:13:50.787Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:13:50.787Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "ac866c6b-7aad-4354-9f1e-ba5355ecc7fe",
+      "sourceName": "West Virginia Department of Environmental Protection – Division of Air Quality (WVDEP DAQ)",
+      "sourceUrl": "https://dep.wv.gov/daq/pages/default.aspx",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dep.wv.gov/daq/pages/default.aspx",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dep.wv.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dep.wv.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dep.wv.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dep.wv.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dep.wv.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dep.wv.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dep.wv.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:14:08.598Z",
+        "feed_last_probed_at": "2026-09-05T00:14:08.598Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    }
+  ],
+  "allHosts": {
+    "targets": [
+      {
+        "id": "29cb2f4c-c599-4183-b3e5-f8c51384e731",
+        "url": "https://code.dccouncil.gov/",
+        "name": "Council of the District of Columbia – D.C. Law Library",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1d166acf-5328-4965-8c37-5be7d2b57456",
+        "url": "https://codes.ohio.gov/",
+        "name": "Ohio Laws – Ohio Administrative Code & Ohio Revised Code (LSC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "be45c914-8ca6-4fe7-bd08-2b121fe4006d",
+        "url": "https://codot.gov/programs/environmental/greenhousegas",
+        "name": "Colorado Department of Transportation – GHG Transportation Planning Program",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.codot.gov/RSS",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "40766f22-7780-41d6-bdf2-b4534a103b5e",
+        "url": "https://commerce.gov.in",
+        "name": "India Ministry of Commerce and Industry",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a5a3569d-02a8-4d83-ba9d-21e3cad15070",
+        "url": "https://commerce.wa.gov/growing-the-economy/energy",
+        "name": "Washington State Department of Commerce – Energy Office",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.commerce.wa.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9046973b-95ef-47cc-aa65-95cea516936b",
+        "url": "https://commission.europa.eu/topics/climate-action/delivering-european-green-deal/fit-55-delivering-proposals_en",
+        "name": "European Commission",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f4e5735f-46e4-4b32-aaa1-e02611ff632d",
+        "url": "https://commission.europa.eu/document/download/0affa9a8-2ac5-46a9-98f8-19205bf61eb5_en?filename=COM_2025_80_EN.pdf",
+        "name": "European Commission Proposal COM(2025) 80 final (Omnibus I simplification package)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "6b2408e6-489a-4df5-8e22-f72b3523c0c6",
+        "url": "https://committees.parliament.uk/writtenevidence/38693/html/",
+        "name": "UK Parliament Committees / Written Evidence 38693",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "31e595ec-13cc-446b-aa18-48192cb3860f",
+        "url": "https://www.complianceandrisks.com/blog/regulation-eu-2024-573-european-commission-adopts-new-f-gas-regulation/",
+        "name": "Compliance & Risks — EU F-Gas Regulation (EU) 2024/573",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "594c9aec-707f-43a5-9538-7f00d2b79437",
+        "url": "https://congreso.es/",
+        "name": "Cortes Generales – Congreso de los Diputados",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fbbacc94-d511-4f3e-8738-64f861ed2851",
+        "url": "https://consilium.europa.eu/en/policies/fit-for-55",
+        "name": "Council of the European Union",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.consilium.europa.eu/en/press/press-releases/?language=en&Format=rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "13c60800-4c13-493c-b6c6-378a23204b19",
+        "url": "https://www.convey-tech.com/lcv2026regulations/",
+        "name": "Convey Tech — UK/Ireland LCV 2026 Regulations",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "ee77b56f-092c-419d-a5ab-9ec6e750bd07",
+        "url": "https://cordis.europa.eu/project/id/101036594",
+        "name": "MAGPIE Project Fact Sheet – EU CORDIS",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "327c59bb-e243-494f-a962-b9ee1147d760",
+        "url": "https://www.corepower.energy/news/maersk-joins-nuclear-box-ship-study",
+        "name": "CorePower Energy — Maersk Nuclear Box-Ship Study",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1c31ece5-3a0d-4b21-bfdf-86eaa9647687",
+        "url": "https://council.nyc.gov/",
+        "name": "New York City Council",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://council.nyc.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a6fde226-f3b2-4b54-9574-aaa2716a61ec",
+        "url": "https://cpuc.ca.gov/",
+        "name": "California Public Utilities Commission (CPUC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4e29f93f-f3ff-42e5-b26e-a17a7a623d96",
+        "url": "https://www.cranfield.ac.uk/som/research-centres/centre-for-logistics-procurement-and-supply-chain-management",
+        "name": "Cranfield University – School of Management",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "071dff9e-4841-4955-8c04-9012c7836a49",
+        "url": "https://csrf.ac.uk/",
+        "name": "Centre for Sustainable Road Freight",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b8ff2ebb-ab9a-456c-b3c9-8f869fb64f88",
+        "url": "https://csrf.ac.uk/about",
+        "name": "Centre for Sustainable Road Freight",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.csrf.ac.uk/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9bc659b3-d6f1-4b5f-bf00-f9e2f9cc0efe",
+        "url": "https://www.cssf.lu/en/omnibus-package/",
+        "name": "source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "da604866-450e-47c0-9d2b-04d606bc6267",
+        "url": "https://ctl.mit.edu/",
+        "name": "MIT Center for Transportation and Logistics",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ctl.mit.edu/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7fe10b21-c6f7-433e-b2d8-cbd9eac4d8db",
+        "url": "https://customs-taxation.learning.europa.eu",
+        "name": "European Commission DG TAXUD — Customs & Tax EU Learning Portal",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "03022261-7bb9-428f-9a5a-44e507e7c9eb",
+        "url": "https://www.customs.go.jp/english/index.htm",
+        "name": "Japan Customs (Ministry of Finance – Customs and Tariff Bureau)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.customs.go.jp/news.rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "73bca1ab-d94a-4cb6-b462-651afeeb4772",
+        "url": "https://cvsa.org",
+        "name": "Commercial Vehicle Safety Alliance (CVSA)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "667da510-14ea-4732-aee7-d0042f419641",
+        "url": "https://www.cvworkshop.ie/2026/05/new-rules-will-apply-to-lcvs-from-1-july-2026/",
+        "name": "CV Workshop — Irish LCV Rule Changes (1 July 2026)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "988a09a1-c359-42ed-a4f5-b34dbab90414",
+        "url": "https://cyprusshippingnews.com/2025/07/23/new-imo-cii-guidelines-require-seemp-part-iii-revision/",
+        "name": "Cyprus Shipping News – New IMO CII Guidelines Require SEEMP Part III Revision",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0b594fec-503d-4f89-82f3-958062ff6eea",
+        "url": "https://daera-ni.gov.uk/topics/environment",
+        "name": "Northern Ireland Environment Agency / DAERA (Department of Agriculture, Environment and Rural Affairs)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.daera-ni.gov.uk/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a15d423a-00b9-4e0f-b2d7-00c4a95c98d1",
+        "url": "https://danr.sd.gov/",
+        "name": "South Dakota Department of Agriculture and Natural Resources (DANR)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c0321fce-cbe5-42ae-b7bf-16787f65bfd7",
+        "url": "https://darrp.noaa.gov",
+        "name": "NOAA Damage Assessment, Remediation and Restoration Program",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "926f8ab6-e6a6-4179-a6a0-402bb0558653",
+        "url": "http://data.europa.eu/eli/reg/2019/424/oj",
+        "name": "EU Official Journal — Regulation (EU) 2019/424 (ELI)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "1b9c9d45-61e2-47bf-b799-ed506760c61b",
+        "url": "https://dbs.lacity.gov/services/green-building-sustainability",
+        "name": "Los Angeles Dept. of Building and Safety / Green Building & Sustainability",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "48cc84e3-d78e-4fec-8923-5cdc4ecb652d",
+        "url": "https://dbs.lacity.gov/services/green-building-sustainability/ebewe",
+        "name": "Los Angeles Department of Building and Safety (LADBS)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dbs.lacity.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "6fad3393-3a75-434d-b354-a09659fe091b",
+        "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-ordinances.pdf",
+        "name": "Los Angeles Department of Building and Safety (LADBS)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dbs.lacity.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9c909419-f36e-4a20-ae3a-28fc52c0a094",
+        "url": "https://dbs.lacity.gov/sites/default/files/efs/forms/pc17/ebewe-arcx-faqs-final.pdf",
+        "name": "LA Dept. of Building and Safety - EBEWE/ARCx FAQ (PDF)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9f6fd0e5-7a4e-4df5-a361-e916d78ce402",
+        "url": "https://dbs.lacity.gov/services/code-enforcement-complaints-and-compliance/local-enforcement-agency",
+        "name": "LA Dept of Building and Safety / Code Enforcement - Local Enforcement Agency",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d31e908f-873e-4f9b-a97a-e8cb6a4a123c",
+        "url": "https://dcceew.gov.au/",
+        "name": "Department of Climate Change, Energy, the Environment and Water (DCCEEW)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "16c23231-33d2-4b7b-b021-c0d0ca201a52",
+        "url": "https://dcregs.dc.gov/",
+        "name": "DC Municipal Regulations & DC Register (dcregs.dc.gov)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e13722ed-be7f-4e56-a264-ec08a747f4cb",
+        "url": "https://dec.alaska.gov/",
+        "name": "Alaska Department of Environmental Conservation (DEC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2b768d0d-8820-43df-9510-dcaa11761f87",
+        "url": "https://www.dec.ny.gov/",
+        "name": "NYS Department of Environmental Conservation — Official Portal",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "8ea87818-aec3-4402-8df1-3a67f9903e69",
+        "url": "https://dec.ny.gov/regulatory",
+        "name": "New York State Department of Environmental Conservation (NYSDEC)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dec.ny.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "44e3ea14-8246-43b0-a01c-28fd3ccdcb8e",
+        "url": "https://dec.vermont.gov/",
+        "name": "Vermont Department of Environmental Conservation (VT DEC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "310cc094-34d2-45c1-bae3-ab9a12caef02",
+        "url": "https://decarbonization.unido.org",
+        "name": "UNIDO — Industrial Decarbonization",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "6bb0e123-2b42-4437-a7db-cafd9dbab7fb",
+        "url": "https://decarbonization.unido.org/news/first-movers-coalition-industrial-deep-decarbonization-initiative-net-zero-government-initiative-joint-call-to-action/",
+        "name": "decarbonization.unido.org / generate pool source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9af7f2c3-1538-44d9-bf74-988868410c6a",
+        "url": "https://dee.ne.gov/",
+        "name": "Nebraska Department of Environment and Energy (NDEE)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "a64502dd-18c8-428f-a878-9542d5f6cd8e",
+        "url": "https://www.defence.gov.au/",
+        "name": "Australian Department of Defence",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "97a22037-d8b8-4686-9217-6ac3c0a4b303",
+        "url": "https://www.dehst.de/EN/Topics/EU-ETS-1/Maritime-Transport/EU-ETS-1-Maritime-Transport/eu-ets-1-maritime-transport_node.html",
+        "name": "source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b7351058-65a7-4291-b62d-6f6a7d5b7f03",
+        "url": "https://www.dehst.de/en/topics/nehs/eu-ets-2/reporting-phase-2024-2026/eu-ets2_node.html",
+        "name": "DEHSt (German Emissions Trading Authority) — EU ETS 2 Reporting Phase 2024–2026",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "87b241da-8864-4273-8cb9-f935e7c3614f",
+        "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/climate-change",
+        "name": "Rhode Island DEM – Office of Air Resources (Mobile Sources & Climate)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dem.ri.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "ac866c6b-7aad-4354-9f1e-ba5355ecc7fe",
+        "url": "https://dep.wv.gov/daq/pages/default.aspx",
+        "name": "West Virginia Department of Environmental Protection – Division of Air Quality (WVDEP DAQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      }
+    ],
+    "hostsSelected": [
+      "code.dccouncil.gov",
+      "codes.ohio.gov",
+      "codot.gov",
+      "commerce.gov.in",
+      "commerce.wa.gov",
+      "commission.europa.eu",
+      "committees.parliament.uk",
+      "complianceandrisks.com",
+      "congreso.es",
+      "consilium.europa.eu",
+      "convey-tech.com",
+      "cordis.europa.eu",
+      "corepower.energy",
+      "council.nyc.gov",
+      "cpuc.ca.gov",
+      "cranfield.ac.uk",
+      "csrf.ac.uk",
+      "cssf.lu",
+      "ctl.mit.edu",
+      "customs-taxation.learning.europa.eu",
+      "customs.go.jp",
+      "cvsa.org",
+      "cvworkshop.ie",
+      "cyprusshippingnews.com",
+      "daera-ni.gov.uk",
+      "danr.sd.gov",
+      "darrp.noaa.gov",
+      "data.europa.eu",
+      "dbs.lacity.gov",
+      "dcceew.gov.au",
+      "dcregs.dc.gov",
+      "dec.alaska.gov",
+      "dec.ny.gov",
+      "dec.vermont.gov",
+      "decarbonization.unido.org",
+      "dee.ne.gov",
+      "defence.gov.au",
+      "dehst.de",
+      "dem.ri.gov",
+      "dep.wv.gov"
+    ],
+    "hostsTotalActive": 646,
+    "hostsNeverWalkedBefore": 523,
+    "hostsRemainingUnwalkedAfter": 483
+  },
+  "budget": {
+    "budgetSeconds": 1500,
+    "elapsedSeconds": 606.72,
+    "exhausted": false,
+    "sourcesWalked": 49,
+    "sourcesNotReached": {
+      "count": 0,
+      "ids": []
+    }
+  }
+}

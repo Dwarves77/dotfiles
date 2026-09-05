@@ -463,8 +463,8 @@ export const NEVER_RUN_ALLOWLIST = {
     expiryTrain: 46,
   },
   'maintenance:spec09-reroute': {
-    disposition: 'Plan W5.1 / audit Gap #5: blocked on a second entities kind=\'corridor\' row (only one exists); the step reports the gap rather than writing until the corridor spine grows. Closed under W5.1 or when W4.2\'s corridor seeding produces a second corridor.',
-    expiryTrain: 43,
+    disposition: 'Plan W5.1 / audit Gap #5: blocked on a second entities kind=\'corridor\' row (only one exists); the step reports the gap rather than writing until the corridor spine grows. Closed under W5.1 or when W4.2\'s corridor seeding produces a second corridor. RE-GRANTED train 45 (expiry → 46): missed in train 43\'s re-grant; trains 38–45 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52–56); T46 validation fails this entry if the corridor spine still has one row and the step has still never run.',
+    expiryTrain: 46,
   },
   'workflow:inspect-oil-bulletin.yml': {
     disposition: 'A1-runtimes.md §1 [HYPOTHESIS]: a one-off scouting tool, superseded once fetch-oil-bulletin.mjs shipped inside producers.yml (2026-08-30); last dispatch pre-dates the audit window by one day. Coordinator either retires the workflow (it has no further loop-stage role) or records a fresh dispatch. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',

@@ -38,6 +38,7 @@ import {
   type ResearchSourceCoverageCell,
   type ResourcePage,
 } from "@/lib/supabase-server";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import {
   fetchObligationRegisterPage,
   fetchForwardEventCount,
@@ -118,6 +119,31 @@ export const APP_DATA_TAG = "app-data";
  * addition for the wiring and this lane's REPORT for the single completion point identified.
  */
 export const PUBLIC_ITEMS_TAG = "public-items";
+
+/**
+ * PERF-13 (2026-09-04, ADR-027 §1, operator: "with tag revalidation on mint, a long revalidate
+ * (hours) plus stale-while-revalidate is the standard"). Every `unstable_cache` entry tagged
+ * `PUBLIC_ITEMS_TAG` below used to carry `revalidate: 60` — a 1-minute time-based window copied
+ * from `APP_DATA_TAG`'s per-org caches (which need a short window because THEY have no on-write
+ * invalidation of their own for every mutation shape; see `cachedResourcesOnly`'s own header). The
+ * public-items caches are different: `scripts/mint/apply-mint-batch.mjs` already calls
+ * `revalidateTag(PUBLIC_ITEMS_TAG)` at the single mint-apply completion point (confirmed this lane,
+ * grepped `PUBLIC_ITEMS_TAG` across `scripts/`), so freshness on a real content change is already
+ * event-driven, not time-driven — a 60s window bought nothing but 1,440 extra regenerations/day per
+ * cache entry against a corpus that, in build mode (CLAUDE.md rule 16, `scrape_cadence` held at
+ * "off"), changes only on an explicit mint/maintenance dispatch, never continuously.
+ *
+ * `revalidate` on `unstable_cache` is Next's stale-while-revalidate window, not a hard TTL: per
+ * nextjs.org/docs/app/api-reference/functions/unstable_cache ("revalidate... the cache should
+ * persist for 5 seconds" is the shown example; the mechanism it documents matches `fetch`'s own
+ * cache option, nextjs.org/docs/app/api-reference/functions/fetch#optionsnextrevalidate — a request
+ * arriving after the window serves the STALE cached value immediately while a fresh value is
+ * generated in the background for the NEXT request, never blocking the current one on a cold
+ * regeneration). This value is therefore a safety net against a missed/failed `revalidateTag` call,
+ * not the primary freshness mechanism — set to hours, matching the operator's own framing, rather
+ * than minutes.
+ */
+const PUBLIC_ITEMS_REVALIDATE_SECONDS = 6 * 60 * 60; // 6 hours
 
 /**
  * Cached inner getAppData. The cookies-read happens OUTSIDE this
@@ -368,13 +394,13 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
 const cachedPublicResourcesOnly = unstable_cache(
   (page?: ResourcePage) => fetchPublicResourcesOnly(page),
   ["public-resources-only-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 const cachedPublicListingsOnly = unstable_cache(
   (page?: ResourcePage) => fetchPublicListingsOnly(page),
   ["public-listings-only-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 export async function getPublicResourcesOnly(page?: ResourcePage): Promise<{
@@ -430,6 +456,52 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
       _error: SEED_FALLBACK_ERROR,
       _fallbackTrigger: "exception",
     };
+  }
+}
+
+/**
+ * PERF-13 (2026-09-04, ADR-027 §1 / operator: "every click should show items on a page instantly
+ * ... find out how others do it and do the same"): every verified, non-archived slug for one of
+ * the four `[slug]` detail surfaces, for that surface's `generateStaticParams` — build-time slug
+ * enumeration only, never called from a request path.
+ *
+ * ONE function reused by all four `generateStaticParams` exports, sourced through the SAME public
+ * data path each surface's own index page already reads (getPublicListingsOnly/
+ * getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems, all above) — no
+ * second query, no hand-rolled duplicate of the domain-routing rule (src/lib/domains.ts). A limit
+ * high enough to be effectively unbounded for the live corpus (1,312 regulations + 55 market + 25
+ * operations + 39 research = 1,431 verified non-archived items, measured via Supabase MCP
+ * `get_workspace_intelligence_slim_public()`/`get_market_intel_items_public()`/etc., 2026-09-04) —
+ * NOT the deleted `LIST_REMAINDER_LIMIT` anti-pattern (list-pagination.ts's own header): that
+ * constant gated a PER-REQUEST response payload; this one gates a single build-time query that
+ * runs once per `next build`, never shipped to a browser.
+ */
+const BUILD_TIME_SLUG_ENUM_LIMIT = 20000;
+
+export async function getPublicSurfaceSlugs(
+  surface: "regulations" | "market" | "operations" | "research"
+): Promise<string[]> {
+  switch (surface) {
+    case "regulations": {
+      const { resources } = await getPublicListingsOnly({
+        limit: BUILD_TIME_SLUG_ENUM_LIMIT,
+        offset: 0,
+        domain: REGULATIONS_DOMAIN,
+      });
+      return resources.map((r) => r.id).filter(Boolean);
+    }
+    case "market": {
+      const { resources } = await getPublicMarketIntelItems();
+      return resources.map((r) => r.id).filter(Boolean);
+    }
+    case "operations": {
+      const { resources } = await getPublicOperationsItems();
+      return resources.map((r) => r.id).filter(Boolean);
+    }
+    case "research": {
+      const { resources } = await getPublicResearchItems();
+      return resources.map((r) => r.id).filter(Boolean);
+    }
   }
 }
 
@@ -821,7 +893,7 @@ export async function getSurfaceCounts(surface: string): Promise<WorkspaceAggreg
 const cachedPublicSurfaceCounts = unstable_cache(
   async (surface: string): Promise<WorkspaceAggregates | null> => fetchPublicSurfaceCounts(surface),
   ["public-surface-counts-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 export async function getPublicSurfaceCounts(surface: string): Promise<WorkspaceAggregates> {
@@ -913,7 +985,7 @@ export async function getResearchPipeline(): Promise<ResearchPipelineResult> {
 const cachedPublicResearchPipeline = unstable_cache(
   async (): Promise<ResearchPipelineResult> => fetchPublicResearchPipelineRows(RESEARCH_PAGE_CAP),
   ["public-research-pipeline-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 export async function getPublicResearchPipeline(): Promise<ResearchPipelineResult> {
@@ -1164,19 +1236,19 @@ export async function getTechnologyItems(): Promise<CategoryRoutedResult> {
 const cachedPublicMarketIntel = unstable_cache(
   fetchPublicMarketIntelItems,
   ["public-market-intel-items-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 const cachedPublicResearch = unstable_cache(
   fetchPublicResearchItems,
   ["public-research-items-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 const cachedPublicOperations = unstable_cache(
   fetchPublicOperationsItems,
   ["public-operations-items-perf10"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 export async function getPublicMarketIntelItems(): Promise<CategoryRoutedResult> {
@@ -1464,7 +1536,7 @@ const cachedPublicObligationRegisterFirstPage = unstable_cache(
     };
   },
   ["public-obligation-register-first-page-reconcile"],
-  { revalidate: 60, tags: [PUBLIC_ITEMS_TAG] }
+  { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 export async function getPublicObligationRegisterFirstPage(): Promise<PublicObligationRegisterFirstPage> {

@@ -970,6 +970,35 @@ describe('sameObligationContent (pure helper)', () => {
   test('too short a shared prefix is never treated as a match (avoids false positives on a coincidental shared opening phrase)', () => {
     assert.equal(sameObligationContent('By 1 January 2030, X shall do A.', 'By 1 January 2030, Y shall do B.'), false);
   });
+
+  // SHORT-TEXT EXACT-DUPLICATE FIX (lane FE-DEDUP, 2026-09-04) — see this file's own header note above.
+  // The 40-char floor above exists to stop a coincidental SHORT SHARED PREFIX between two DIFFERENT
+  // sentences from being mistaken for a duplicate; it must never also block an EXACT full-string match,
+  // which carries no such coincidence risk at any length.
+  test('the coordinator\'s own live pair — item 02470d94, events a4ad1ce7 (section) / ca126684 (claim), ' +
+    'obligation_text "…entered into force on 14 April 1967…" both sides, 37 chars — compares equal ' +
+    '[CONFIRMED, live SQL, project kwrsbpiseruzbfwjpvsp, 2026-09-04]', () => {
+    const claimText = '…entered into force on 14 April 1967…';
+    const sectionText = '…entered into force on 14 April 1967…';
+    assert.equal(claimText.length, 37, 'sanity: this pair sits under DEDUPE_MIN_COMPARE_LEN (40), the exact case this fix closes');
+    assert.equal(sameObligationContent(claimText, sectionText), true);
+  });
+
+  test('a synthetic exact match under the 40-char floor compares equal (pre-fix this returned false and left the twin live)', () => {
+    const a = 'It shall apply from 2 December 2030.'; // 37 chars, live corpus text (item cd1083c9)
+    const b = 'It shall apply from 2 December 2030.';
+    assert.equal(a.length < 40, true);
+    assert.equal(sameObligationContent(a, b), true);
+  });
+
+  test('an EXACT match at any length still short-circuits even when it would also pass the length-gated fuzzy check (no regression to the long-text path)', () => {
+    const a = 'By 29 November 2026, the Commission shall adopt implementing acts specifying the format';
+    assert.equal(sameObligationContent(a, a), true);
+  });
+
+  test('two DIFFERENT short texts under the floor still do not match (the floor still guards the fuzzy/prefix path — this fix only adds an EXACT-match short-circuit, it does not remove the floor)', () => {
+    assert.equal(sameObligationContent('It shall apply from 2 December 2030.', 'It shall apply from 3 December 2030.'), false);
+  });
 });
 
 describe('dedupeEvents (pure helper)', () => {

@@ -228,6 +228,12 @@ function obligationRow(i, { long = false } = {}) {
     date_precision: 'day',
     event_kind: 'compliance_deadline',
     status: 'active',
+    // REG-GRAIN (2026-09-05): the obligation's own text, read-time-trimmed to 160 chars upstream —
+    // the 'long' fixture state exercises the wrap-not-overflow contract at the (already-bounded)
+    // trim ceiling, not an unbounded string, matching what a real row can ever carry.
+    obligation_text: long
+      ? `${LONG(20, 'long-obligation-text-word')}`.slice(0, 160)
+      : 'File the quarterly emissions disclosure with the competent authority.',
     item: {
       id: `item-${i}`,
       title: long ? `${LONG(9)} #${i}` : `CBAM quarterly filing #${i}`,

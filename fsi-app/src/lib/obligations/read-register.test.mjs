@@ -10,7 +10,9 @@ import {
   fetchObligationRegisterPage,
   fetchRegisterFacetOptions,
   fetchForwardEventCount,
+  trimObligationText,
   UNCLASSIFIED,
+  OBLIGATION_TEXT_TRIM_LENGTH,
 } from "./read-register.mjs";
 
 test("buildRegisterQuerySpec defaults: no filters, dueWindow=all, limit=200", () => {
@@ -68,6 +70,41 @@ test("matchesDueWindow: numeric windows are inclusive of the boundary day", () =
   assert.equal(matchesDueWindow("2026-10-02", "30", "2026-09-02"), true); // exactly 30 days out
   assert.equal(matchesDueWindow("2026-10-03", "30", "2026-09-02"), false); // 31 days out
   assert.equal(matchesDueWindow("2026-09-01", "30", "2026-09-02"), false); // in the past, not in the forward window
+});
+
+// ── REG-GRAIN (2026-09-05): trimObligationText — the register row now carries its own obligation text ──
+
+test("trimObligationText: passes a short string through unchanged", () => {
+  assert.equal(trimObligationText("File the quarterly emissions disclosure."), "File the quarterly emissions disclosure.");
+});
+
+test("trimObligationText: trims leading/trailing whitespace", () => {
+  assert.equal(trimObligationText("  padded text  "), "padded text");
+});
+
+test("trimObligationText: a string over the limit is cut with an ellipsis, never silently over-length", () => {
+  const long = "x".repeat(OBLIGATION_TEXT_TRIM_LENGTH + 40);
+  const out = trimObligationText(long);
+  assert.equal(out.length, OBLIGATION_TEXT_TRIM_LENGTH + 1); // +1 for the ellipsis character
+  assert.ok(out.endsWith("…"));
+  assert.equal(out.slice(0, -1), "x".repeat(OBLIGATION_TEXT_TRIM_LENGTH));
+});
+
+test("trimObligationText: a string exactly at the limit is never truncated (boundary, not off-by-one)", () => {
+  const exact = "x".repeat(OBLIGATION_TEXT_TRIM_LENGTH);
+  assert.equal(trimObligationText(exact), exact);
+});
+
+test("trimObligationText: null/undefined/non-string degrades to null, never throws", () => {
+  assert.equal(trimObligationText(null), null);
+  assert.equal(trimObligationText(undefined), null);
+  assert.equal(trimObligationText(42), null);
+  assert.equal(trimObligationText(""), null);
+  assert.equal(trimObligationText("   "), null);
+});
+
+test("trimObligationText: a custom max overrides the default", () => {
+  assert.equal(trimObligationText("abcdefgh", 4), "abcd…");
 });
 
 const ITEM_A = { id: "item-a", title: "CountEmissions EU", legacy_id: "reg1", jurisdiction_iso: ["EU"] };
@@ -191,8 +228,8 @@ function fakeSupabase({ obligationsRows, itemsRows }) {
 test("fetchObligationRegister: end-to-end against a fake client, soonest-first", async () => {
   const supabase = fakeSupabase({
     obligationsRows: [
-      { id: "o1", intelligence_item_id: "item-b", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: ["EU"], modes: ["ocean"], status: "active" },
-      { id: "o2", intelligence_item_id: "item-a", forward_event_id: "e2", due_date: "2026-03-01", date_precision: "day", event_kind: "entry_into_force", binding_position: "direct_duty", jurisdiction: ["EU"], modes: [], status: "active" },
+      { id: "o1", intelligence_item_id: "item-b", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: ["EU"], modes: ["ocean"], status: "active", item_forward_events: { obligation_text: "Report annual FuelEU compliance balance to the verifier." } },
+      { id: "o2", intelligence_item_id: "item-a", forward_event_id: "e2", due_date: "2026-03-01", date_precision: "day", event_kind: "entry_into_force", binding_position: "direct_duty", jurisdiction: ["EU"], modes: [], status: "active", item_forward_events: { obligation_text: "This Regulation shall apply from 2 June 2026." } },
     ],
     itemsRows: [ITEM_A, ITEM_B],
   });
@@ -200,7 +237,35 @@ test("fetchObligationRegister: end-to-end against a fake client, soonest-first",
   assert.equal(out.length, 2);
   assert.equal(out[0].id, "o2");
   assert.equal(out[0].item.title, "CountEmissions EU");
+  assert.equal(out[0].obligation_text, "This Regulation shall apply from 2 June 2026.");
+  assert.equal(out[0].item_forward_events, undefined); // flattened, never leaked to the caller
   assert.equal(out[1].id, "o1");
+  assert.equal(out[1].obligation_text, "Report annual FuelEU compliance balance to the verifier.");
+});
+
+test("fetchObligationRegister: a row whose obligation text is missing degrades to null, never throws", async () => {
+  const supabase = fakeSupabase({
+    obligationsRows: [
+      { id: "o1", intelligence_item_id: "item-a", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: [], modes: [], status: "active", item_forward_events: null },
+    ],
+    itemsRows: [ITEM_A],
+  });
+  const out = await fetchObligationRegister(supabase, {});
+  assert.equal(out.length, 1);
+  assert.equal(out[0].obligation_text, null);
+});
+
+test("fetchObligationRegister: obligation text over the read-time cap is trimmed with an ellipsis", async () => {
+  const long = "x".repeat(OBLIGATION_TEXT_TRIM_LENGTH + 25);
+  const supabase = fakeSupabase({
+    obligationsRows: [
+      { id: "o1", intelligence_item_id: "item-a", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: [], modes: [], status: "active", item_forward_events: { obligation_text: long } },
+    ],
+    itemsRows: [ITEM_A],
+  });
+  const out = await fetchObligationRegister(supabase, {});
+  assert.equal(out[0].obligation_text.length, OBLIGATION_TEXT_TRIM_LENGTH + 1);
+  assert.ok(out[0].obligation_text.endsWith("…"));
 });
 
 test("fetchObligationRegister: an error or empty read returns [] rather than throwing", async () => {
@@ -286,8 +351,8 @@ test("filterJoinedRows and filterJoinedRowsPage agree on the same first page (of
 test("fetchObligationRegisterPage: end-to-end against a fake client, returns { rows, total }", async () => {
   const supabase = fakeSupabase({
     obligationsRows: [
-      { id: "o1", intelligence_item_id: "item-b", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: ["EU"], modes: ["ocean"], status: "active" },
-      { id: "o2", intelligence_item_id: "item-a", forward_event_id: "e2", due_date: "2026-03-01", date_precision: "day", event_kind: "entry_into_force", binding_position: "direct_duty", jurisdiction: ["EU"], modes: [], status: "active" },
+      { id: "o1", intelligence_item_id: "item-b", forward_event_id: "e1", due_date: "2026-06-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: null, jurisdiction: ["EU"], modes: ["ocean"], status: "active", item_forward_events: { obligation_text: "Report annual FuelEU compliance balance to the verifier." } },
+      { id: "o2", intelligence_item_id: "item-a", forward_event_id: "e2", due_date: "2026-03-01", date_precision: "day", event_kind: "entry_into_force", binding_position: "direct_duty", jurisdiction: ["EU"], modes: [], status: "active", item_forward_events: { obligation_text: "This Regulation shall apply from 2 June 2026." } },
     ],
     itemsRows: [ITEM_A, ITEM_B],
   });
@@ -295,6 +360,8 @@ test("fetchObligationRegisterPage: end-to-end against a fake client, returns { r
   assert.equal(page.total, 2);
   assert.equal(page.rows.length, 2);
   assert.equal(page.rows[0].id, "o2"); // soonest first
+  assert.equal(page.rows[0].obligation_text, "This Regulation shall apply from 2 June 2026.");
+  assert.equal(page.rows[0].item_forward_events, undefined); // flattened, never leaked
 });
 
 test("fetchObligationRegisterPage: the DB fetch cap is a fixed constant, not tied to the requested page size — a small page still sees the whole (capped) corpus for filter/window correctness", async () => {
