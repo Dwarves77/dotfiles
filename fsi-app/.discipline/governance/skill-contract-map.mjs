@@ -114,6 +114,10 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // run-change-detection.mjs's backlog overflow count, all one root cause. No citingFiles change, same
 // posture as the category 36/37 re-pins above (the files below cite the skill as a whole, not this
 // section specifically).
+// 2026-09-05 (Lane MIG311-FIX): both remediation-discipline and caros-ledge-platform-intent re-pinned —
+// added fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs to citingFiles. New file, same
+// governing-skill headers as its sibling adversarial/RLS proofs (prov-guard-adversarial-audit.mjs cites
+// remediation-discipline; rls-credential-parity.mjs cites both) — no contentHash change to either skill.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -138,6 +142,7 @@ export const PINNED_MANIFEST = {
       'fsi-app/scripts/verify/rls-credential-parity.mjs',
       'fsi-app/scripts/verify/schema-drift-audit.mjs',
       'fsi-app/scripts/verify/source-link-audit.mjs',
+      'fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs',
       'fsi-app/scripts/verify/staged-transit-audit.mjs',
       'fsi-app/scripts/verify/stale-verified-audit.mjs',
       'fsi-app/scripts/verify/substrate-agreement-audit.mjs',
@@ -208,6 +213,7 @@ export const PINNED_MANIFEST = {
     citingFiles: [
       'fsi-app/scripts/verify/rls-credential-parity.mjs',
       'fsi-app/scripts/verify/routing.mjs',
+      'fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs',
       'fsi-app/scripts/verify/surface-visibility-audit.mjs',
     ],
   },
