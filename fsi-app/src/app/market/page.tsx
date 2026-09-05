@@ -78,6 +78,7 @@ import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingOblig
 // [Market Intel component] with an immediate cash payback"), then OEM roadmap, then rerouting.
 // IndexationPanel (§1.3, lane SPEC09-B, 2026-09-05) is the reader this table lacked at wave 3 — mechanics/
 // arithmetic only (see that component's own header for why it never renders a computed "current" figure).
+import { NoticesRail } from "@/components/figures/NoticesRail";
 import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
 import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
 import { ReroutingPanel } from "@/components/market/ReroutingPanel";
@@ -207,6 +208,14 @@ export default async function Market() {
           Dated, forward-looking obligations across your workspace&apos;s tracked jurisdictions — the same
           feed Regulations mounts, not yet filtered to market-relevant modes specifically.
         </p>
+      </div>
+      {/* Recalculation notices (docs/specs/08-flywheel-design.md §2.2 Part 3 / §4 Layer 4; complete-system
+          build plan W4.3, lane NOTICES 2026-09-05): org-watchlist-scoped, fed by GET /api/notices via
+          NoticesRail (src/components/figures/NoticesRail.tsx) — the same rail Operations' calculator
+          mounts. Renders the honest "no recalculations" empty state today (derived_values carries 0
+          superseded pairs live, per lane NOTICES's own report) rather than nothing at all. */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>
+        <NoticesRail />
       </div>
       <UpcomingObligationsStrip variant="list" />
       {/* Spec 09 §1.2/§1.1/§1.7 (lane SPEC-09, wave 3, 2026-09-03): surcharge audit first per spec §4's

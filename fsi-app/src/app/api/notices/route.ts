@@ -10,6 +10,12 @@ import type { NoticesClient } from "@/lib/propagation/methods/superseded-notices
 // route.ts may export only route handlers/config (F34's named residual — `next
 // build --webpack` rejects any other export field). See logic.ts's header.
 import { resolveSinceParam, attachEntityLabels } from "./logic";
+// resolveWatchedEntityIds fixes the id-space defect this route shipped with (2026-09-02 -> 2026-09-05):
+// org_watchlist.item_id is an intelligence_items/sources/market_series primary key, never an
+// entities.entity_id — see that module's own header for the full account (confirmed against the live
+// schema this lane).
+import { resolveWatchedEntityIds } from "./resolve-watched-entities";
+import type { EntityResolveClient } from "./resolve-watched-entities";
 
 // GET /api/notices — org-scoped RecalculationNotice feed (docs/specs/08-flywheel-design.md §2.2 Part 3 /
 // §4 Layer 4). "Superseded derived_values (both versions) for entities on org's org_watchlist since
@@ -32,6 +38,12 @@ import { resolveSinceParam, attachEntityLabels } from "./logic";
 // schema-level grant) — resolving a label is a second, ordinary `.from("entities")` read, outside the
 // derived_values gate entirely, so it stays in this route rather than needing its own propagation-tree
 // detour.
+//
+// WATCHED ITEM -> ENTITY ID resolution (added 2026-09-05, lane NOTICES). org_watchlist.item_id is an
+// intelligence_items/sources/market_series primary key, never an entities.entity_id — passing it straight
+// into fetchSupersededNotices (which filters derived_values.entity_id) could never match a real row. See
+// resolve-watched-entities.ts's header for the full account and the two FK paths (instrument_entity_id,
+// entity_refs, organisation_entity_id) this resolution actually uses.
 
 async function handleGET(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -50,11 +62,17 @@ async function handleGET(request: NextRequest) {
     return NextResponse.json({ notices: [], since: sinceIso }, { headers: rateLimitHeaders(auth.userId) });
   }
 
-  const { data: watched, error: watchErr } = await supabase.from("org_watchlist").select("item_id").eq("org_id", orgId);
+  const { data: watched, error: watchErr } = await supabase
+    .from("org_watchlist")
+    .select("item_type,item_id")
+    .eq("org_id", orgId);
   if (watchErr) {
     return NextResponse.json({ error: watchErr.message }, { status: 500 });
   }
-  const entityIds = [...new Set((watched ?? []).map((r: { item_id: string }) => r.item_id))];
+  const entityIds = await resolveWatchedEntityIds(
+    supabase as unknown as EntityResolveClient,
+    (watched ?? []) as Array<{ item_type: string; item_id: string }>
+  );
 
   // Cast: real supabase-js's PostgREST builder DOES carry .in()/.gte()/thenable after .select() — the
   // mismatch tsc reports is only that its pre-.select() QueryBuilder type is wider (has other methods too)

@@ -1,6 +1,12 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { aggregateBenchmarkResponses, scopeBenchmarksForReader, isOpenForResponses } from "./benchmark.mjs";
+import {
+  aggregateBenchmarkResponses,
+  scopeBenchmarksForReader,
+  isOpenForResponses,
+  distinctOrganisationKeys,
+  applyPublishAggregateGate,
+} from "./benchmark.mjs";
 
 const NOW = new Date("2026-09-03T00:00:00Z");
 
@@ -102,4 +108,52 @@ test("isOpenForResponses: true inside the window, false before/after", () => {
 
 test("isOpenForResponses: unparseable dates never open", () => {
   assert.equal(isOpenForResponses({ opensAt: "x", closesAt: "y" }, NOW), false);
+});
+
+// ── distinctOrganisationKeys (lane NOTICES, publish_aggregate() wiring, 2026-09-05) ────────────────
+test("distinctOrganisationKeys: one key per distinct organisation, deduped the same way as aggregateBenchmarkResponses", () => {
+  const responses = [
+    { organisationKey: "a", valueNumeric: 1, submittedAt: "2026-04-01" },
+    { organisationKey: "a", valueNumeric: 5, submittedAt: "2026-04-10" }, // same org, repeat — one key, not two
+    { organisationKey: "b", valueNumeric: 4, submittedAt: "2026-04-01" },
+  ];
+  assert.deepEqual(distinctOrganisationKeys(responses).sort(), ["a", "b"]);
+});
+
+test("distinctOrganisationKeys: empty pool -> empty cohort (the route's own zero-response skip)", () => {
+  assert.deepEqual(distinctOrganisationKeys([]), []);
+});
+
+test("distinctOrganisationKeys: a response with no organisationKey is dropped, same as the aggregator", () => {
+  const responses = [
+    { organisationKey: "a", valueNumeric: 1, submittedAt: "2026-04-01" },
+    { organisationKey: null, valueNumeric: 2, submittedAt: "2026-04-01" },
+  ];
+  assert.deepEqual(distinctOrganisationKeys(responses), ["a"]);
+});
+
+// ── applyPublishAggregateGate (lane NOTICES, publish_aggregate() wiring, 2026-09-05) ────────────────
+const PUBLISHABLE = { publishable: true, value: 42, reason: null, distinctOrganisations: 6, minContributors: 5, responseCount: 6 };
+const UNPUBLISHABLE = { ...PUBLISHABLE, publishable: false, value: null, reason: "not yet publishable: k-anonymity (3/5 organisations)" };
+
+test("applyPublishAggregateGate: a DB refusal overrides an otherwise-publishable JS aggregate", () => {
+  const out = applyPublishAggregateGate(PUBLISHABLE, { refused: true, reason: "frozen: identical cohort granted at request ..." });
+  assert.equal(out.publishable, false);
+  assert.equal(out.value, null);
+  assert.equal(out.reason, "frozen: identical cohort granted at request ...");
+});
+
+test("applyPublishAggregateGate: no gate result (RPC error / zero-response skip) passes the JS aggregate through unchanged", () => {
+  assert.deepEqual(applyPublishAggregateGate(PUBLISHABLE, null), PUBLISHABLE);
+  assert.deepEqual(applyPublishAggregateGate(PUBLISHABLE, undefined), PUBLISHABLE);
+});
+
+test("applyPublishAggregateGate: a gate result that did not refuse passes the JS aggregate through unchanged", () => {
+  assert.deepEqual(applyPublishAggregateGate(PUBLISHABLE, { refused: false, reason: null }), PUBLISHABLE);
+});
+
+test("applyPublishAggregateGate: an already-unpublishable JS aggregate stays unpublishable, and keeps its OWN reason when the gate gives none", () => {
+  const out = applyPublishAggregateGate(UNPUBLISHABLE, { refused: true, reason: null });
+  assert.equal(out.publishable, false);
+  assert.equal(out.reason, UNPUBLISHABLE.reason);
 });

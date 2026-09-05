@@ -9,30 +9,37 @@
 // same file, line ~79). Neither file changes for this WO — this module produces rows in EXACTLY that
 // shape so a refresh is a plain guarded upsert into the existing table, no reader-side change at all.
 //
-// THE MAPPING IS DELIBERATELY UNRATIFIED TODAY. published_price_statistics is PER-ITEM (Appendix A,
-// master execution plan v2: "4 rows … item_id→intelligence_items … Display-shaped, per-item; not a time
-// series"); its 4 live rows attach to "Crude Oil & Jet Fuel Price Intelligence" and "LNG & Natural Gas
-// Price Intelligence" (US/SG/JP/NL benchmarks — confirmed live 2026-08-30). market_series' one built
-// producer (EU Weekly Oil Bulletin) publishes EU refined-PRODUCT prices — a different instrument family,
-// a different geography, and no existing intelligence_items row represents "EU Weekly Oil Bulletin" as a
-// market signal. Inventing an item_id here would misattribute a benchmark to an item that is not about
-// it, exactly the class of error CLAUDE.md rule "do not guess or assume" exists to prevent.
+// THE MAPPING WAS DELIBERATELY UNRATIFIED WHEN THIS MODULE WAS BUILT, AND IS NOW RATIFIED (CORRECTED
+// 2026-09-05, lane NOTICES/W5.2 — see series-item-map.mjs's own header for the full correction; this
+// paragraph is kept, corrected in place per CLAUDE.md rule 14, rather than deleted, since the REASON the
+// mapping needed a ruling at all is still true and still worth a future reader's attention).
+// published_price_statistics is PER-ITEM (Appendix A, master execution plan v2: "4 rows …
+// item_id→intelligence_items … Display-shaped, per-item; not a time series"); its 4 pre-existing live
+// rows attach to "Crude Oil & Jet Fuel Price Intelligence" and "LNG & Natural Gas Price Intelligence"
+// (US/SG/JP/NL benchmarks — confirmed live 2026-08-30). market_series' one built producer (EU Weekly Oil
+// Bulletin) publishes EU refined-PRODUCT prices — a different instrument family, a different geography,
+// and at the time this module was built no existing intelligence_items row represented "EU Weekly Oil
+// Bulletin" as a market signal. Inventing an item_id here would have misattributed a benchmark to an
+// item that is not about it, exactly the class of error CLAUDE.md rule "do not guess or assume" exists
+// to prevent — so this module shipped with SERIES_ITEM_MAP entries carrying `item_id: null,
+// status: "pending_R-D"` rather than a guess, pending operator ruling R-D.
 //
-// LANE PROD-FIX (2026-09-02) BUILT THE MECHANISM, NOT THE RULING (R-D: "attach the six oil-bulletin
-// series to published_price_statistics via new record items"). SERIES_ITEM_MAP moved from an inline
-// `Object.freeze({})` to a committed data file, series-item-map.mjs, one entry per series the EU Weekly
-// Oil Bulletin parser emits (src/lib/market/parsers/eu-weekly-oil-bulletin.mjs PRODUCTS), each carrying
-// `item_id: null, status: "pending_R-D"` — UNRATIFIED, not empty. deriveDisplayRows() below treats a
-// null item_id exactly as it previously treated a key ABSENT from the map: skipped, never a fabricated
-// attachment. An operator ratifies one entry by editing series-item-map.mjs alone (set item_id to the
-// real intelligence_items uuid once mint-run applies the record, status to "ratified") — no code change
-// needed, the same posture WO-19's origin_class backfill mapping used (an operator-reviewed decision, not
-// a guess baked into code). With every entry still pending, this module — and the CLI script that calls
-// it (scripts/producers/market/refresh-published-price-statistics.mjs) — still correctly produces ZERO
-// display rows: a safe, honest default, never a fabricated attachment. See series-item-map.mjs's own
-// header for the ratification mechanics and unmappedSeriesKeys() below for how a series with NO entry at
-// all (never even proposed) is told apart from one that is proposed but not yet ratified — both are
-// reported by name in the CLI script's summary, never silently skipped, per the same rule.
+// LANE PROD-FIX (2026-09-02) BUILT THE MECHANISM; RULING R-D RATIFIED THE ATTACHMENT (session log
+// Addendum 85 postscript 47: "attach the six oil-bulletin series to published_price_statistics via new
+// record items"). SERIES_ITEM_MAP moved from an inline `Object.freeze({})` to a committed data file,
+// series-item-map.mjs, one entry per series the EU Weekly Oil Bulletin parser emits (src/lib/market/
+// parsers/eu-weekly-oil-bulletin.mjs PRODUCTS) — all six now carry a real intelligence_items uuid and
+// `status: "ratified"`. deriveDisplayRows() below still treats a null item_id exactly as it treats a key
+// ABSENT from the map — skipped, never a fabricated attachment — which matters again the moment a future
+// series is added here ahead of its own ratification, the same posture WO-19's origin_class backfill
+// mapping used (an operator-reviewed decision, not a guess baked into code). With all six entries now
+// ratified, this module — and the CLI script that calls it
+// (scripts/producers/market/refresh-published-price-statistics.mjs) — is ready to produce six display
+// rows on its NEXT RUN; landing this code change alone does not write them (see this lane's REPORT for
+// the exact producer dispatch that does). See series-item-map.mjs's own header for the ratification
+// mechanics and unmappedSeriesKeys() below for how a series with NO entry at all (never even proposed)
+// is told apart from one that is proposed but not yet ratified — both are reported by name in the CLI
+// script's summary, never silently skipped, per the same rule.
 //
 // PLAIN ESM. `today` (for next_release_at) is injected, never read from the clock directly, same
 // discipline envelope.mjs's own header states ("time is injected, never read"). The one I/O this module

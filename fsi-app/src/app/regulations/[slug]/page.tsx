@@ -98,6 +98,7 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
+import { NoticesRail } from "@/components/figures/NoticesRail";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -305,6 +306,11 @@ export default async function RegulationDetailPage({
           matching the component's pre-existing detail-variant contract. */}
       <ObligationRegister variant="detail" itemId={r.id} />
       <PeersDiscussingStrip entityId={peersEntityId} />
+      {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
+          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>
+        <NoticesRail />
+      </div>
     </>
   );
 }

@@ -51,6 +51,7 @@ import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
 import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
+import { NoticesRail } from "@/components/figures/NoticesRail";
 import { formatLocaleDate } from "@/lib/format";
 
 const UUID_RE =
@@ -352,6 +353,11 @@ export default async function ResearchFindingDetailPage({
         themeBrief={themeBrief}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
+      {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
+          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>
+        <NoticesRail />
+      </div>
     </>
   );
 }
