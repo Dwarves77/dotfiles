@@ -144,5 +144,15 @@ standing instruction that a session may not change a binding rule unilaterally):
 
 ## Dispatch log
 
-(none yet — first real dispatch is the coordinator's, against the next train this lane's PR lands into.
-Append each dispatch here: date, train branch, branches folded/conflicted, briefs written, prune result.)
+**2026-09-05, `train/wave48-2026-09-05`, lane ASSEMBLE-48 (this dispatch).** First real dispatch. Run
+against a train branch already carrying four merged W7.1 lanes (docsfold, w71a, w71c, w71d; w71f14 held
+out, see the train's own PROGRAM-BOARD row and session-log Addendum 86 postscript 2). `--fold --propose
+--ledger`: 9 branches newly folded (`ledger-consume/33902755838`, `33908401816`, `33929076810`,
+`33930614070`, `33932311380`, `33935341443`, `33938246257`, `33989428884`; `propagation/33989162904`),
+17 already folded, 0 conflicts. Proposer briefs written for `ledger-consume` and `propagation` (both
+families' `LAST-PROPOSER-PASS.md` lagged); done directly by the coordinator rather than dispatched to a
+Haiku lane, since both passes turned up findings worth acting on the same session (ledger-consume: the
+stationary-loop defect repeated twice more before LEDGER-CHAIN-2's fix landed; propagation: a live
+CAP-1000 defect in `drain.ts`'s `queue_depth_before`, fixed in the same commit). 6 dispatch-ledger rows
+derived, then edited/replaced per the coordinator's own confirmed facts (see dispatch-ledger.jsonl and
+the session-log addendum). Not run: `--prune` (this train has not landed on `origin/master` yet).
