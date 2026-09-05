@@ -1,0 +1,6 @@
+corridor_id,carrier_id,invoice_line,billed_eur,statutory_eur,statutory_basis,statutory_derivation
+cl:corridor:0000000000000101,cl:organisation:0000000000000103,FuelEU compliance surcharge Q3 2026,1250.00,980.50,FuelEU Maritime Regulation (EU) 2023/1805 Art. 20(3),statutory_formula
+cl:corridor:0000000000000101,cl:organisation:0000000000000104,EU ETS maritime surcharge Q3 2026,640.00,640.00,EU ETS Directive 2003/87/EC Annex I,statutory_formula
+cl:corridor:0000000000000102,cl:organisation:0000000000000103,FuelEU compliance surcharge Q3 2026,-15.00,300.00,FuelEU Maritime Regulation (EU) 2023/1805 Art. 20(3),statutory_formula
+cl:corridor:0000000000000102,,EU ETS maritime surcharge Q3 2026,500.00,450.00,EU ETS Directive 2003/87/EC Annex I,statutory_formula
+cl:corridor:0000000000000102,cl:organisation:0000000000000104,FuelEU compliance surcharge Q3 2026,700.00,650.00,FuelEU Maritime Regulation (EU) 2023/1805 Art. 20(3),invented_basis

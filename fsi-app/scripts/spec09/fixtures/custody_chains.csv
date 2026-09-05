@@ -1,0 +1,6 @@
+credit_type,scheme,certificate_ref,double_count_check,retired_at,retirement_registry,claimant_id
+saf_bnc,ISCC PLUS,CERT-SAF-0041,single_claim_confirmed,2026-02-01,ISCC PLUS Registry,cl:organisation:0000000000000103
+green_methanol,RSB,CERT-METH-0012,unverified,,,cl:organisation:0000000000000104
+ets_allowance,SFC,CERT-ETS-0007,conflict_detected,2026-01-15,,
+biodiesel_bnc,ISCC PLUS,CERT-BIO-0033,unknown_status,,,cl:organisation:0000000000000103
+saf_bnc,ISCC PLUS,CERT-SAF-0042,single_claim_confirmed,,SFC Registry,cl:organisation:0000000000000104

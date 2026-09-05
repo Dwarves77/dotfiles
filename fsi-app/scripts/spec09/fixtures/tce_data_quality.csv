@@ -1,0 +1,6 @@
+tce_id,reliability,completeness,temporal_correlation,geographical_correlation,technological_correlation,primary_data_share,primary_evidence
+shipment-4471-leg-1,1,2,1,1,2,0.92,carrier telemetry (AIS + fuel flow meter)
+shipment-4471-leg-2,2,2,2,3,2,0.55,fuel receipt (bunker delivery note)
+shipment-4471-leg-3,0,2,1,1,2,0.40,estimated from schedule
+shipment-4471-leg-4,2,2,1,1,2,1.4,verified MRV
+shipment-4471-leg-5,,2,1,1,2,0.6,missing reliability score

@@ -1,16 +1,66 @@
 # Spec 09 producers — $0 sourcing status per table
 
-Lane SPEC-09, wave 3, 2026-09-03. Every producer in this directory is dry-by-default, takes `--apply`
-(alias `--mode apply`), and never calls an LLM or a paid service ($0 rule, COMMON lane contract). This
-file names, per table, either the $0 public source a producer fetches or the honest reason none exists —
-per the lane brief's own instruction: "where no free source exists the table ships empty with the gap
-named."
+Lane SPEC-09, wave 3, 2026-09-03. Updated by Lane SPEC09-B, 2026-09-05 (plan §W5.1 — the CSV upload
+flow). Every producer in this directory is dry-by-default, takes `--apply` (alias `--mode apply`), and
+never calls an LLM or a paid service ($0 rule, COMMON lane contract). This file names, per table, either
+the $0 public source a producer fetches or the honest reason none exists.
 
-Nine of the ten spec-09 tables ship 0 rows from this lane. That is not an oversight: every one of them is
-either (a) fed by data a CUSTOMER supplies (an uploaded invoice, a signed contract, a shipment's own
-telemetry) that this product has no upload flow for yet, or (b) fed by a bulk-download dataset that either
-does not exist at $0/public terms, or exists but this session could not confirm well enough to trust
-(rule 2: never fabricate — an unconfirmed dataset is treated as absent, not guessed at).
+## Six tables: no bulk $0 source exists BY DESIGN — now wired to a customer CSV upload, not left empty
+
+Lane SPEC09-B's own finding, unchanged from wave 3: `surcharge_audits`, `tce_data_quality`,
+`auxiliary_energy_profiles`, `eudr_plot_claims`, `custody_chains`, and `indexation_clauses` are all
+GENUINELY customer-supplied data — a carrier invoice, a shipment's own telemetry, a customer's own
+equipment, a consignment filing, a certificate, a signed contract's terms. There is no bulk public dataset
+for any of these, by the nature of the data, not a sourcing failure (rule 2: never fabricate — an
+unconfirmed dataset is treated as absent, not guessed at). What WAS missing at wave 3 was not a data
+source — it was an upload flow for the customer to hand the product their own data. That gap is now
+closed:
+
+- **`src/lib/spec09/csv-upload-contract.mjs`** — the one shared column contract (parseCsvUpload,
+  entityRefValuesForTable, validateEntityRefs) for all six tables, imported unchanged by both callers
+  below.
+- **`POST /api/workspace/spec09-upload`** (`src/app/api/workspace/spec09-upload/route.ts` +
+  sibling `logic.ts`) — the authenticated, org-scoped HTTP path: `{ table, csv }` in the body, org id
+  ALWAYS resolved server-side from the caller's own membership, never trusted from the request. Wired into
+  Settings → Data (`SettingsPage.tsx`'s `Spec09CsvUpload` component) as the customer-facing upload surface.
+- **`scripts/spec09/*-producer.mjs`** — the SAME parsers, callable as a coordinator-dispatched CLI
+  (`--mode apply --csv <path> --org-id <uuid>`) for a reviewed batch file, e.g. a bulk backfill from a
+  customer's existing spreadsheet.
+
+Each producer below is now this parser/router, not a permanent no-op — see each file's own header. A
+fixture CSV per table (`scripts/spec09/fixtures/*.csv`, 2-4 accept + 2-3 reject rows each) proves both the
+accept and reject paths; `scripts/spec09/run-fixture-import.mjs` runs all six through the identical
+parse→stamp→insert→read-back pipeline with a deps-injected fake insert (no live DB credentials in this
+lane's worktree) and writes a JSON artifact to `scripts/_snapshots/spec09-csv-upload/` (gitignored).
+
+| Table | Producer | Reader | Org-scoped (migration 311) |
+|---|---|---|---|
+| `surcharge_audits` | `surcharge-audit-producer.mjs` | `SurchargeAuditPanel` (Market) | yes |
+| `tce_data_quality` | `dqi-producer.mjs` | `DqiPanel` (Operations) | yes |
+| `auxiliary_energy_profiles` | `auxiliary-energy-producer.mjs` | `AuxiliaryEnergyPanel` (Operations) | yes |
+| `eudr_plot_claims` | `eudr-custody-producer.mjs` | `EudrCustodyPanel` (Regulations) | yes |
+| `custody_chains` | `eudr-custody-producer.mjs` (same file) | `EudrCustodyPanel` (Regulations) | yes |
+| `indexation_clauses` | `indexation-producer.mjs` | `IndexationPanel` (Market) — **new this lane**, the reader this table lacked at wave 3 | yes |
+
+Live row count for all six as of this lane's own read-only verification (2026-09-05): **0**. The upload
+flow exists; no customer has used it yet. `docs/inventories/shared-dataset-ownership.md`'s "Non-registry
+tables named for completeness" section carries the full two-writer detail for all six.
+
+## `carrier_compliance_pools` — DROPPED this lane (migration 311), not given a reader
+
+Spec 09 names Market as the only surface that could ever read this table, but migration 296's own header
+already stated its one customer-reachable column (`surcharge_audits.pool_adjusted_eur`) is deliberately
+never populated — `src/lib/spec09/surcharge-audit.mjs`'s `poolAdjustedGuard()` refuses to surface it (spec
+09 §5 open decision 1's conservative default, left unmade). This lane's brief required either building the
+reader or dropping the table with 0 rows confirmed; 0 rows were confirmed live (read-only SELECT,
+2026-09-05, and re-checked by migration 311's own precondition), and a reader for a value the calculator
+layer refuses to surface would only relocate the unmade operator decision into a new, useless UI element
+rather than resolve it. Dropped along with `surcharge_audits.pool_id` and `.pool_adjusted_eur`
+(`variance_eur` — the ALWAYS-renderable billed-vs-statutory sentence — is untouched). THETIS-MRV (EMSA)
+remains the $0 public source that WOULD have fed this table, named here only so a future operator decision
+to reverse this drop knows where the data lives.
+
+## Remaining wave-3 gaps, unchanged by this lane (outside SPEC09-B's write set — see its own W5.1 sub-thread)
 
 | Table | Producer | $0 source | Status |
 |---|---|---|---|
@@ -25,5 +75,6 @@ does not exist at $0/public terms, or exists but this session could not confirm 
 | `eudr_plot_claims` | `eudr-custody-producer.mjs` | none (by design) | GAP: EUDR due-diligence statements are filed per-consignment through the EU's own TRACES system, not bulk-downloadable. Ships 0 rows. |
 | `custody_chains` | `eudr-custody-producer.mjs` (same file) | ISCC/RSB/SFC public certificate lookups exist, no bulk API confirmed | GAP: certificate registries have public single-lookup web portals, not a bulk/API feed this session could confirm at $0. Ships 0 rows. |
 
-**Sequenced per spec §4**: `surcharge-audit-producer.mjs` was written first, matching the calculator and
-component build order.
+**Sequenced per spec §4**: `surcharge-audit-producer.mjs` was written first at wave 3, matching the
+calculator and component build order; this lane's CSV-upload refactor preserved that file as the first of
+the six rewritten producers for the same reason.
