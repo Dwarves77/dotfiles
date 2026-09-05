@@ -256,6 +256,33 @@ test('findDispatchRoots: a *-golden.mjs / *.golden.mjs file under scripts/verify
   assert.equal(roots.has('fsi-app/scripts/verify/plain.mjs'), false);
 });
 
+test('findDispatchRoots: a tracked hook source (fsi-app/.discipline/hooks/*) that execs a .mjs file is a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/hooks/pre-commit':
+      '#!/bin/sh\nexec node "$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs" --mode=pre-commit\n',
+    'fsi-app/.discipline/hooks/pre-push':
+      '#!/bin/sh\nnode fsi-app/.discipline/governance/check-pretooluse-wired.mjs\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/governance/worktree-isolation-hook.mjs'));
+  assert.ok(roots.has('fsi-app/.discipline/governance/check-pretooluse-wired.mjs'));
+});
+
+test('findDispatchRoots: a hook printing a suggestion in an echo string is NOT a dispatch root (advisory text, not an invocation)', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/hooks/pre-push':
+      '#!/bin/sh\necho "run: node fsi-app/.discipline/governance/wire-pretooluse-settings.mjs --apply"\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  // Source 6 is line-scoped and skips `echo` lines precisely so a hook's advisory error text (telling the
+  // operator to run a script by hand) is never mistaken for the hook actually running it.
+  assert.equal(roots.has('fsi-app/.discipline/governance/wire-pretooluse-settings.mjs'), false);
+});
+
 test('latestTrainWave: parses the highest waveNN from `git log --oneline <ref>`', () => {
   const fakeExec = () => 'abcdef1 train/wave36 2026 09 04 (#583)\nfedcba2 train/wave35 2026 09 04 (#582)\n';
   assert.equal(latestTrainWave('/repo', fakeExec), 36);

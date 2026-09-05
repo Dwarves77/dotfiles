@@ -150,6 +150,41 @@ export function findDispatchRoots(
     if (/(?:\.golden|-golden)\.mjs$/.test(f)) roots.add(f);
   }
 
+  // Source 6 (lane W7.1-CLOSE, 2026-09-05): the tracked hook SOURCES install-hooks.mjs copies
+  // byte-for-byte into .git/hooks/ — fsi-app/.discipline/hooks/{pre-commit,pre-push,post-checkout,
+  // commit-msg}. install-hooks.mjs itself is an operator-run installer with no static importer of these
+  // files (it copies them as opaque text via readFileSync/writeFileSync, never an import specifier), so
+  // the import graph cannot see this dispatch shape at all. [CONFIRMED] this lane: reading every hook
+  // source found post-checkout and pre-commit both run
+  // `exec node "$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"`, and pre-push's
+  // step 3c runs `node fsi-app/.discipline/governance/check-pretooluse-wired.mjs` — real, live
+  // invocations once the hooks are installed, not merely advisory text (contrast: pre-push's step-3c
+  // FAILURE message only *prints* a suggestion to run wire-pretooluse-settings.mjs in an echo string —
+  // that is not an invocation and does NOT make wire-pretooluse-settings.mjs a dispatch root; nor does
+  // check-pretooluse-wired.mjs's own doc-comment mention of pretooluse-skill-gate.mjs, which is read only
+  // via ~/.claude/settings.json, outside this repo, never a tracked path). Matches the same MJS_PATH_RE
+  // already used for Source 1, scoped to the four tracked hook files.
+  const HOOK_SOURCE_FILES = ['pre-commit', 'pre-push', 'post-checkout', 'commit-msg'];
+  for (const name of HOOK_SOURCE_FILES) {
+    const rel = `fsi-app/.discipline/hooks/${name}`;
+    let text;
+    try { text = readFileFn(rel); } catch { continue; }
+    if (!text) continue;
+    // Comment/echo-line-filtered, not whole-text like Source 1: a shell hook can `echo` advice naming a
+    // script it does NOT run (pre-push's step-3c failure message tells the operator to run
+    // wire-pretooluse-settings.mjs by hand — that is text, not an invocation), and treating an echoed
+    // suggestion as a dispatch root would wrongly mark an unreached script reachable. Whole-text (not
+    // per-line) matching is still needed on what remains: the real invocations here are a two-line
+    // indirection (`RUNNER="$REPO_ROOT/.../x.mjs"` on one line, `exec node "$RUNNER"` on the next), so
+    // requiring `node` on the SAME line as the path would miss the genuine case while only echo lines
+    // needed excluding.
+    const invocationText = text
+      .split('\n')
+      .filter((line) => { const t = line.trim(); return t && !t.startsWith('#') && !t.startsWith('echo'); })
+      .join('\n');
+    for (const m of invocationText.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+  }
+
   return roots;
 }
 
@@ -567,18 +602,22 @@ export const LEGACY_ALLOWLIST = [
       o('.discipline/dispatch/start.mjs',
         'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/governance/check-pretooluse-wired.mjs',
-        'runs in pre-push on the operator\'s machine (its own header: "settings.json is outside the repo, so this check runs in pre-push where that file exists") — genuinely cannot be a workflow/package.json dispatch root by design.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; same out-of-repo-boundary class as install-hooks.mjs.'),
+      // '.discipline/governance/check-pretooluse-wired.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
+      // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 (hook scripts install-hooks.mjs
+      // writes) — fsi-app/.discipline/hooks/pre-push's step 3c genuinely runs this file, a real dispatch
+      // root the graph-only scan could never see (the hook copies it as text, not an import). See Source 6's
+      // header comment for the [CONFIRMED] evidence.
       o('.discipline/governance/pretooluse-skill-gate.mjs',
         'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; out-of-repo-boundary class.'),
       o('.discipline/governance/wire-pretooluse-settings.mjs',
         'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/governance/worktree-isolation-hook.mjs',
-        'invoked by the installed post-checkout/pre-commit git hook scripts (git hooks run in the invoking process, not CI) — out-of-repo-boundary class by design (RD-19).', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // '.discipline/governance/worktree-isolation-hook.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
+      // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 — fsi-app/.discipline/hooks/
+      // post-checkout and pre-commit both genuinely `exec node .../worktree-isolation-hook.mjs`, a real
+      // dispatch root the graph-only scan could never see (the hooks copy it as text via install-hooks.mjs,
+      // never an import specifier). See Source 6's header comment for the [CONFIRMED] evidence.
       o('scripts/_dataops/interlock.mjs',
         'the RE-RUN INTERLOCK guard for already-executed Sprint-4 data-op scripts (docs/runbooks/sprint4-dataops-ledger.md) — imported BY those one-shot scripts, not the other way around; those scripts already ran once against the single shared prod/dev Supabase project and are not meant to run again.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; Sprint-4 one-shot family.'),
