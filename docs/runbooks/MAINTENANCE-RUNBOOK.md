@@ -1783,8 +1783,11 @@ sourced and dated) is built — neither of which this producer alone decides (pe
 `counts.to_insert` and `gap`. Confirm against `SELECT count(*) FROM entities WHERE kind='corridor'` and
 `SELECT count(*) FROM reroute_events`.
 
-**Lane SPEC09-A extension, 2026-09-05 — `--rows-file` path (unblocked by lane CORRIDORS-STATUTORY's
-corridor seed, which brought the live corridor-entity count to >=2)**: with `arg` set to a rows-file JSON
+**Lane SPEC09-A extension, 2026-09-05 — `--rows-file` path (this mechanism is what lane CORRIDORS-STATUTORY's
+corridor seed unblocks — it, not this producer, mints the second `entities.kind='corridor'` row; **live SQL,
+2026-09-05: corridor entity count is still 1** — the seed had not landed at time of this dispatch, so
+`--rows-file` correctly refuses today and will start placing rows the moment a second corridor exists)**:
+with `arg` set to a rows-file JSON
 path (`scripts/maintenance/lib/cli.mjs`'s `runCli` passes `arg` straight through as `--arg`), the
 producer instead loads that file via `scripts/spec09/lib/rows-file.mjs`, and for each row: validates
 `baseline_corridor_name` / `reroute_corridor_name` / `cause` / `fuel_burn_multiplier` (> 0) /
