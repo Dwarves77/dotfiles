@@ -10527,3 +10527,82 @@ corrected finding my own dump got wrong (`lane/reggrain-2026-09-05` is not lande
 what I wrote). The single next step for whoever picks this up: land train 47 through the
 browser transport, apply migrations 308-311, then dispatch lane W7.1-CLOSE to close the
 F25/F38 ratchet for real — no further re-grants.
+
+## Addendum 86, postscript 1: recovery, REBASE-47, PR #594, two migration fixes, four applies, six audits, W7.1-CLOSE running (2026-09-05, coordinator)
+
+Addendum 86 above ends this session's own coordinator narrative on the branches pushed by the
+operator at 18:31 UTC and the single next step ("land train 47... apply migrations
+308-311... dispatch lane W7.1-CLOSE"). This postscript, written by lane DOCS-FOLD after
+folding the resulting work, covers what happened after that handoff was written.
+
+**Recovery and REBASE-47.** The operator pushed the stranded lane branches at 18:31 UTC.
+Lane REBASE-47 merged `origin/master` (train 46, `012b10a2`) into
+`train/wave47-2026-09-05`, resolving 8 conflicts and dropping the `supabase-service-config.mjs`
+duplicate in favor of master's `supabase-env.ts` (the fix Addendum 85 postscript 58's own
+"Second correction" had landed on master separately), merge commit `1e6d9e8b`, the exact tree
+all six audit lanes below were dispatched against.
+
+**PR #594.** Train 47 landed as PR #594 = master `c3003233` on 2026-09-05 19:55 UTC. See
+`docs/ops/handoff-2026-09-05.md` §6's "Landing state" note for the full record, including the
+correction to that document's own §1/§6 (train 47's tip was `b42d18f7`, one commit past the
+`0fc9e5c5` those sections originally named, the no-node_modules test fix).
+
+**Two migration defects, two fixes.** Migration 310 (item_grade into the 11 listing RPCs) hit
+`ERROR 42P13: cannot change return type of existing function` on its plain `CREATE OR REPLACE`
+shape; lane MIG310-FIX rewrote it on the migration-272 pattern (`DROP FUNCTION` before
+`CREATE OR REPLACE`, explicit re-`GRANT`). Migration 311's in-transaction adversarial
+cross-org RLS proof violated the `profiles` and `entities` foreign keys (a migration-minted
+`org_memberships` row has no matching `profiles` row; the FK failure would roll back the whole
+migration, DDL included); lane MIG311-FIX moved the proof out of the migration into a
+standalone, continuously re-run live script,
+`fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs`, registered in
+`run-data-audit-lane.mjs`'s `AUDITS`.
+
+**Four applies.** Migrations 308, 309, 310, and 311 were applied live on 2026-09-05 at
+19:29:58, 19:30:19, 19:47:46, and 19:58:09 UTC (`schema_migrations` versions
+`20260905192958`, `20260905193019`, `20260905194746`, `20260905195809`), the last two using the
+MIG310-FIX and MIG311-FIX rewrites. `docs/inventories/migrations.md`'s four rows now read
+APPLIED LIVE with these timestamps, keeping each row's shape description.
+
+**Six audit lanes.** AUDIT-W1-W2, AUDIT-W3-W4, AUDIT-W5-W6-W7, and AUDIT-LOOP (Sonnet) plus
+AUDIT-SKILLS-RULES and AUDIT-TOOLS (Haiku) each re-verified the 2026-09-04 build plan against
+tree `1e6d9e8b`, read-only, trusting no prior agent's completion claims. Their headline
+`[CONFIRMED]` findings, deduplicated, are in
+`docs/audits/plan-completion-audit-2026-09-05/README.md`'s "Findings the next trains act on"
+list, cited here, not restated: ledger-consume's apply half has never fired with a real
+verdict (57,469 candidates, 3 promoted, ever); `attach-found-sources.mjs`/`tier-opinions.mjs`
+are built and wired but never dispatched in apply mode; `apply-mint-batch.mjs` self-admits
+skipping rule-17 flywheel participation on the highest-volume mint path (hundreds of items
+minted with neither connection discovery nor forward-event extraction); `population-turn.yml`
+and `corpus-turn.yml` trigger no downstream; DAG authorship reaches only 2 of 9 producer
+families (zero edges from `market_series`, the highest-volume table); `statutory_computations`/
+`estimated_values` remain at 0 rows months past the plan's own claimed landing trains; two
+live community-promotion mechanisms coexist with only one wired; and the closure gate itself is
+green today but seven STALE-NEXT entries are one train-landing away from flipping red on a
+strict `currentTrain > expiryTrain` comparison. Two shallow findings from the Haiku lanes
+("three maintenance steps name non-existent files"; "two live crons") were investigated and
+found false, both corrected in place with `[REFUTED]` notes in
+`tools-inventory-unused-duplicates.md`, per rule 14's corollary.
+
+**Closure-gate red state, and W7.1-CLOSE running.** Master's closure gate is currently red:
+NEVER-RUN 10, STALE-NEXT 7. Lane W7.1-CLOSE is running against exactly this state now (v2,
+re-briefed on master `c3003233` after train 47 landed), dispositioning every F25/F38/F14
+allowlist entry that carries an expiry (all re-granted to wave52 by ASSEMBLE-47, a disclosed
+non-fix per Addendum 85 postscript 58), closing the closure-gate STALE-NEXT rows, and retiring
+`inspect-oil-bulletin.yml`, with zero further re-grants permitted. This lane (DOCS-FOLD) did
+not touch code, `.discipline/`, or the board's W7.1/STALE-NEXT rows; that is W7.1-CLOSE's
+write set, running concurrently.
+
+**Transport note.** `file_upload` accepts only paths under `/mnt/user-data/uploads/`; the
+working path this session for getting a container-built bundle in front of it was: container
+bundle → `device_commit_files` into the connected dotfiles folder's `fsi-app/scripts/tmp/` →
+`device_stage_files` back into the session → `file_upload`. Recorded in
+`docs/ops/handoff-2026-09-05.md` §4 (the train-assembly runbook's own "Dispatch" section names
+the browser-transport flow at a step-name level but carries no dedicated transport section for
+this intermediate hop).
+
+**Next.** The coordinator's maintenance dispatches (the ledger-consume apply with the
+committed verdict batches; `attach-found-sources`/`tier-opinions` apply dispatches; the
+spec09-CSV producer dispatches now that migration 311 is live); the NEVER-RUN follow-on once
+W7.1-CLOSE reports; train 48 assembly once W7.1-CLOSE lands and the closure gate is genuinely
+clean, not merely not-yet-expired.
