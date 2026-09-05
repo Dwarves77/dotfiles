@@ -22,14 +22,19 @@ and — because the trace alone could not settle what this pass found — the qu
    003/004's `trigger_context: null` hand dispatches) — the propagation-drain -> producers chain
    named in this train's own dispatch-ledger row 3 is now proven live, not just wired.
 
-2. **`invalidated: 0, recomputed: 0` this run, correctly.** [CONFIRMED] The producers run that
-   triggered this drain (`refresh-published-price-statistics`, 4 -> 10 rows) touches
-   `published_price_statistics`, a table with no registered derivation-DAG edge pointing FROM it
-   yet (migration 285's edge set, unchanged by this producers run) — so zero downstream
-   `derived_values` rows had anything to invalidate. `events_drained: 500` still marks all 500
-   considered outbox rows as drained (the drain's own job, independent of whether anything was
-   invalidated); this is the expected shape for a drain triggered by a producer whose own table
-   is not yet a derivation-DAG source, not a defect.
+2. **`invalidated: 0, recomputed: 0` this run, correctly — not a defect, but a DAG-AUTHOR finding.**
+   [CONFIRMED] The producers run that triggered this drain (`refresh-published-price-statistics`,
+   4 -> 10 rows) touches `published_price_statistics`. Per today's audit of migration 285's
+   `derivation_edges` table, the DAG currently covers only two source tables: `emission_factors`
+   and `regional_data_facts`. `published_price_statistics` is NOT yet in the DAG. Therefore zero
+   downstream `derived_values` rows had anything to invalidate. `events_drained: 500` still marks
+   all 500 considered outbox rows as drained (the drain's own job, independent of whether anything
+   was invalidated); this is the expected, correct shape for a drain triggered by a producer whose
+   table is not yet registered as a derivation source. **The 0 recomputed result on 500 drained
+   events means every event touched an unregistered table — a measurement, not a defect, and an
+   explicit finding for the DAG-AUTHOR workstream to close by extending coverage to additional
+   source tables.** Propose next drain to measure DAG coverage growth and register additional
+   derivation edges.
 
 3. **A real defect found reading `queue_depth_before` across all three of runs 003/004/005, not
    present in the run-004 pass below.** [CONFIRMED, this pass, by reading `drain.ts` itself after
@@ -66,6 +71,21 @@ default `batch: 500` and the 1000-row PostgREST cap this fake does not even simu
 **Family gates status:** green — `node --test fsi-app/src/lib/propagation/drain.test.mjs` (11/11
 pass), `npx tsc --noEmit` clean over the widened `DrainQueryBuilder` type, fitness runner and
 closure gate unaffected (no allowlist entry touches this module).
+
+**Proposals for next cycle:**
+1. **Continue next drain dispatch.** Run-005 drained 500 from a queue of 1000 (now 500+ pending
+   after run-005's own draining, plus new events from the producers). Next manual or chained
+   propagation-drain dispatch (when producers change or scheduled) will drain the next batch and
+   produce `propagation-run-006.json` with an accurate `queue_depth_before` measurement.
+2. **Measure DAG coverage.** As the propagation family continues draining (every producers run
+   now triggers a chain), track the count of source tables registered in migration 285's
+   `derivation_edges` DAG against the total count of tables touched by producers. This measurement
+   belongs in a DAG-AUTHOR proposer pass (not this family's scope) but is made concrete and
+   measurable by run-005's finding: `published_price_statistics` (and likely others) are producers
+   targets without derivation edges. A secondary metric: per drain run, `sum(recomputed) /
+   sum(events_drained)` measures the "DAG activation rate" — how many events actually triggered
+   propagation. Once coverage grows beyond the current two tables, this rate should move away from
+   zero.
 
 **Basis:** the three artifacts' identical `queue_depth_before: 1000` reading, cross-checked against
 the run-004 pass's own live-SQL reconciliation (2,272 pending after run-004, all three runs holding
