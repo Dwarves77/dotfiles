@@ -351,6 +351,15 @@ test("selectCensusRows with limit null returns every eligible row", () => {
   assert.equal(selectCensusRows(rows, { limit: 10 }).length, 10);
 });
 
+test("selectCensusRows: excludes is_archived rows (migration 308, W2.2 / R-A) — a row census-off-vertical.mjs archived never re-enters the export pool", () => {
+  const rows = [
+    { id: "a1", dryrun_disposition: "would_mint", source_id: "s", document_url: "u1", instrument_identifier: "3", is_archived: true },
+    { id: "a2", dryrun_disposition: "would_mint", source_id: "s", document_url: "u2", instrument_identifier: "3", is_archived: false },
+    { id: "a3", dryrun_disposition: "would_mint", source_id: "s", document_url: "u3", instrument_identifier: "3" }, // no is_archived field at all (pre-308 fixture shape) — must still pass
+  ];
+  assert.deepEqual(selectCensusRows(rows, {}).map((r) => r.id), ["a2", "a3"]);
+});
+
 test("partitionExcludeHeld: default excludes rows whose document_url already has an intelligence_items row carrying the SAME instrument_identifier (a true duplicate)", () => {
   // r2's own instrument_identifier is "32023L0002" (see ROWS above) -- the holder matches it exactly.
   const held = buildHeldUrlIndex([{ id: "holder-b", source_url: "https://eur-lex.europa.eu/b", instrument_identifier: "32023L0002" }]);
@@ -1267,15 +1276,15 @@ test("fetchRowsIn chunks the key list and concatenates results", async () => {
   assert.deepEqual(urls.sort(), ["a", "b"]);
 });
 
-test("the census read's match is applied to the query builder as a function", async () => {
+test("the census read's match is applied to the query builder as a function, and excludes is_archived rows (migration 308, W2.2 / R-A)", async () => {
   const src = readFileSync(new URL("./export-census-rows.mjs", import.meta.url), "utf8");
-  const m = /match:\s*(\(q\)\s*=>\s*q\.eq\("dryrun_disposition",\s*"would_mint"\))/.exec(src);
-  assert.ok(m, "match function not found");
+  const m = /match:\s*(\(q\)\s*=>\s*q\.eq\("dryrun_disposition",\s*"would_mint"\)\.eq\("is_archived",\s*false\))/.exec(src);
+  assert.ok(m, "match function not found (expected the would_mint + is_archived=false chain)");
   const fn = new Function(`return (${m[1]});`)();
   const calls = [];
   const q = { eq: (c, v) => { calls.push([c, v]); return q; } };
   assert.equal(fn(q), q);
-  assert.deepEqual(calls, [["dryrun_disposition", "would_mint"]]);
+  assert.deepEqual(calls, [["dryrun_disposition", "would_mint"], ["is_archived", false]]);
 });
 
 // ── workflow: rows_file is a first-class runtime input (the browser-capture escape hatch, §1a) ─────────

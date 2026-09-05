@@ -166,6 +166,21 @@ unmapped, per the plan's own flagged row awaiting a separate ruling). `mode=appl
 **Artifact / read back**: `summary.json`'s `read_back.by_origin_class` — confirm against
 `SELECT origin_class, count(*) FROM intelligence_items GROUP BY origin_class`.
 
+**Re-measured live (lane RULINGS-EXEC, read-only SQL, project kwrsbpiseruzbfwjpvsp, 2026-09-05)**: the
+audit's own §2 flagged this step's outcome as unverified this window. `intelligence_items.origin_class`
+distribution today: `official` 1384, NULL **1222**, `community-corroborated` 80, `verified` 54, `partner`
+15, `community` 11 (2766 total). The R-E mapping DID apply at some point (the audit is correct that the
+runbook narrative implies it): population growth since the last apply (the corpus grew past 1,410 items
+after that pass) produced the ~1,000 new NULL rows on file today, not a failed apply — every one of the
+new rows minted since is a fresh candidate this step has never seen. Confirmed by driving the ACTUAL
+`main()` above (unmodified) with a live snapshot of every NULL-`origin_class` row + its source's tier
+instead of a fixture: `null_candidates` 1222, `no_source_id_stays_null` 12, `no_rule_stays_null` 31,
+`would_classify` 1179 (`official` 1173, `community-corroborated` 6). R-E's mapping is already accepted
+(no new ruling needed) — this is a straight re-dispatch. Coordinator dispatch to close this backlog:
+`maintenance`, `mode=dry, step=origin-class-backfill` (confirm the 1179/43 split against live before
+applying), then `mode=apply, step=origin-class-backfill, arg=R-E-accepted` — expected read-back
+`origin_class_not_null_total` ≈ 2723 (1384 + 1179 + 80 + 54 + 15 + 11), NULL remainder ≈ 43.
+
 ---
 
 ## 4a. `source-type-backfill`
@@ -240,18 +255,33 @@ ones through the guarded path and reads back every `kind='corridor'` entity id.
 **Ruling**: R-A (finish-plan-2026-09-02 §1, **open**) — archive (reversible) or park.
 
 **Dispatch**:
-- `mode=dry` — reads every `dryrun_disposition='would_mint'` row, partitions by the shared screen, and
-  counts `on_vertical` / `off_vertical` / `ambiguous`.
+- `mode=dry` — reads every `dryrun_disposition='would_mint', is_archived=false` row, partitions by the
+  shared screen, and counts `on_vertical` / `off_vertical` / `ambiguous`, plus a titled sample of up to 20
+  rows per off_vertical/ambiguous class (`summary.sample_off_vertical` / `summary.sample_ambiguous`) — the
+  list the coordinator puts in front of the operator for R-A's ruling.
 - `mode=apply, arg=park` — no-op. The export gate (`export-census-rows.mjs`'s own `partitionByScreen`)
   already withholds these rows from minting; "park" is the status quo.
-- `mode=apply, arg=archive` — **NOT RUNNABLE today.** `census_worklist` (migration 221) has no
-  `is_archived` / `archive_reason` columns — only `flagged_reason`/`flagged_at` (a narrower
-  "malformed/incomplete" vocabulary) and the `enumeration_status` ladder. `archivePatch("census_worklist",
-  ...)` has nothing to set on this table. This step stays dry-only for `archive` until either a
-  migration adds archive columns, or R-A is decided as `park` (no schema change needed).
+- `mode=apply, arg=archive` — **RUNNABLE as of migration 308** (lane RULINGS-EXEC, 2026-09-05):
+  `census_worklist` now carries `is_archived`/`archive_reason` (intelligence_items' own pair, verbatim).
+  Archives every `off_vertical` row via `guardedUpdateByIds` + `db.mjs`'s table-generic
+  `archivePatch("census_worklist", "off_vertical")` — the same helper `screen-reconcile-records.mjs`
+  already uses for R-B's live-record side. Idempotent (`applyMatch` re-checks
+  `dryrun_disposition='would_mint' AND is_archived=false` per chunk). Every live reader of the would_mint
+  pool (`export-census-rows.mjs`'s live read and its `selectCensusRows` pure filter) excludes
+  `is_archived=true` rows in the same commit, so an archived row can never re-enter export.
 
-**Artifact / read back**: `summary.json` counts. No write happens under either apply arg today, so
-nothing to read back yet.
+**Re-measured live (lane RULINGS-EXEC, read-only SQL snapshot, project kwrsbpiseruzbfwjpvsp, 2026-09-05,
+fed through the ACTUAL `main()` above unmodified, not a re-derivation)**: `would_mint_total` 3461,
+`on_vertical` 1550, **`off_vertical` 1655**, `ambiguous` 256 — the 1,655 matches the plan's own figure
+exactly. R-A remains an open ruling (archive vs. park); this session did not decide it, only made the
+archive path real and produced the lists the ruling needs. Coordinator dispatch once R-A is ruled
+"archive": `maintenance`, `mode=dry, step=census-off-vertical` (re-confirm the split immediately before
+applying — the would_mint pool moves between dispatches), then `mode=apply, step=census-off-vertical,
+arg=archive` — expected `read_back.archived` = the dry run's `off_vertical` count at apply time.
+
+**Artifact / read back**: `summary.json`'s `counts` (dry) or `read_back.{would_archive,archived}` (apply,
+`arg=archive`) — confirm against
+`SELECT count(*) FROM census_worklist WHERE is_archived AND archive_reason = 'off_vertical'`.
 
 ---
 
