@@ -48,7 +48,11 @@ import assert from "node:assert/strict";
 import { parseEuWeeklyOilBulletinCsv } from "../lib/market/parsers/eu-weekly-oil-bulletin.mjs";
 import { planMarketSeriesUpsert } from "../lib/market/write-market-series.mjs";
 import { producerFor } from "../lib/market/series-registry.mjs";
-import { DERIVATION_VALUES, ORIGIN_CLASS_VALUES } from "../lib/contracts/provenance-envelope.mjs";
+// Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
+// deleted — zero production importers, only test-only re-exports of these two — per its own header's
+// "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
+import { ORIGIN_CLASSES as ORIGIN_CLASS_VALUES } from "../lib/contracts/vocabularies.mjs";
+import { DERIVATIONS as DERIVATION_VALUES } from "../lib/contracts/envelope.mjs";
 
 // Mirrors migration 268's market_series_series_key_format_check — same regex
 // market-eu-oil-bulletin-parser.test.mjs pins on the parser alone; pinned again here because this proof

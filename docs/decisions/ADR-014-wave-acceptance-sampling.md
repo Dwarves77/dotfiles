@@ -13,9 +13,25 @@ related: ground-truth-verification-2026-07-15 (audits/), ADR-002 (tier model), A
 ## Status note
 **ACCEPTED — ratified by operator 2026-07-15 (audit-ruled remediation session, Task 8).** Parameters
 locked: **N = 10%, floor 3 items/wave** (`WAVE_ACCEPTANCE_N = 10`). The mechanical half of the lane is
-wired and proven; the live L2/L3 half is spend-gated and deferred until the coverage-floor spend fires.
+wired (per the CORRECTION below); the live L2/L3 half is spend-gated and deferred until the coverage-floor
+spend fires.
 
-**Wiring state (honest split, ratified):**
+**CORRECTION (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md §W7).** The
+"Wiring state" paragraph below (as ratified 2026-07-15) is **[REFUTED]** on two of its three claims,
+[CONFIRMED] by direct read against this tree: no `wave-acceptance-audit.golden.mjs` exists anywhere in the
+repo, and no invariant named `QA-1` exists in `.discipline/governance/invariants.mjs` or anywhere else — the
+ADR's own "wave cannot record `closed`" mechanism was never built, because **this system has no
+"wave-close" event at all** (trains land continuously; grep for `wave-close`/`waveClose`/`wave_close` across
+`fsi-app/` finds nothing). `scripts/verify/wave-acceptance-audit.mjs` itself was genuine and correct
+(report-only, read-only) but sat with zero callers from authoring (2026-07-15) until this correction.
+**Resolution, since the assumed wave-boundary hook does not exist and this lane has no authority to invent
+one**: wired into `scripts/verify/run-data-audit-lane.mjs`'s nightly `AUDITS` table as a SOFT
+(informational, non-blocking) audit, using "since the last 24h" as the practical analogue of "the wave that
+just landed." It self-skips (exit 2) without `SUPABASE_URL`/`SUPABASE_SERVICE_ROLE_KEY`, same convention as
+every other audit in that lane.
+
+**Wiring state (as originally ratified 2026-07-15 — retained for history; see CORRECTION above for what is
+actually true today):**
 - WIRED now (mechanical, $0): the pre-scan reporter (`scripts/verify/wave-acceptance-audit.mjs`) is a
   ratified tool; a golden (`wave-acceptance-audit.golden.mjs`) locks its risk-weighted sample computation
   + provenance/dedup pre-scan; invariant **QA-1** (invariant registry) asserts a wave cannot record

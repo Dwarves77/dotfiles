@@ -10,7 +10,9 @@
 // into the "AVAILABLE OPERATIONS DATA" text block appended to route.ts's `dynamicTail`.
 //
 // GROUNDING DISCIPLINE THIS MODULE ENFORCES (platform standing doctrine — grounded, provenanced
-// answers only; see src/lib/contracts/provenance-envelope.mjs and
+// answers only; see src/lib/contracts/vocabularies.mjs + envelope.mjs (origin_class/derivation's real
+// homes; src/lib/contracts/provenance-envelope.mjs, the DDL-rendering module built on them, was deleted
+// 2026-09-05, lane W71-A, for having zero production importers) and
 // src/lib/regional/regional-facts-envelope.mjs for the envelope this mirrors):
 //   - Every fact line carries a source, or is EXPLICITLY marked "no canonical source on record" — the
 //     exact phrase route.ts's own itemsContext already uses for a sourceless intelligence_item, so the

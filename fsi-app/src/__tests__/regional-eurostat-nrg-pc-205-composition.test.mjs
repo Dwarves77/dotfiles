@@ -43,7 +43,11 @@ import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { parseNrgPc205 } from "../lib/regional/eurostat-nrg-pc-205-parser.mjs";
 import { toCandidateRows, latestPerNaturalKey } from "../../scripts/producers/regional/run-envelope-producer.mjs";
-import { DERIVATION_VALUES, ORIGIN_CLASS_VALUES } from "../lib/contracts/provenance-envelope.mjs";
+// Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
+// deleted — zero production importers, only test-only re-exports of these two — per its own header's
+// "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
+import { ORIGIN_CLASSES as ORIGIN_CLASS_VALUES } from "../lib/contracts/vocabularies.mjs";
+import { DERIVATIONS as DERIVATION_VALUES } from "../lib/contracts/envelope.mjs";
 
 // Live regional_data_facts_dimension_check (supabase/migrations/106_regions_and_facts.sql) — same
 // constant, same reasoning, as regional-bls-oews-composition.test.mjs's own copy: no shared vocabulary

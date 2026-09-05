@@ -2478,13 +2478,24 @@ spreadsheet, rather than the interactive `POST /api/workspace/spec09-upload` pat
 **Ruling**: none — the org id is always the dispatcher-supplied `--org-id`, never inferred; a customer
 CSV never carries `org_id` itself (rule: org scope is server/coordinator-asserted, never client-supplied).
 
-**Dispatch**: `arg` IS REQUIRED in both modes — `<csv-path>,<org-id>` (csv-path a repo-relative path to a
-reviewed customer CSV checked into the repo; org-id the receiving org's uuid). `mode=dry` parses and
-reports accept/reject counts, writing nothing. `mode=apply` calls `guardedInsertMany("surcharge_audits",
+**Dispatch**: `arg` IS REQUIRED for a real customer CSV — `<csv-path>,<org-id>` (csv-path a repo-relative
+path to a reviewed customer CSV checked into the repo; org-id the receiving org's uuid). `mode=dry` parses
+and reports accept/reject counts, writing nothing. `mode=apply` calls `guardedInsertMany("surcharge_audits",
 ...)` for every accepted row.
 
+**No-arg dry-all fixture proof** (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md
+§W7): when `mode=dry, step=all` (or this step alone) runs with NO `arg`, this step runs
+`node scripts/spec09/run-fixture-import.mjs` instead of skipping — the deps-injected, DB-less proof that
+all six CSV-upload tables' parse→org-stamp→insert→read-back pipeline works end to end against the checked-in
+fixture CSVs (`scripts/spec09/fixtures/*.csv`), with no live Supabase credentials required. This is what
+makes `run-fixture-import.mjs` a real dispatch root rather than a script only its own test imports. The
+other three spec09-*-csv steps (§30-32) just skip with a note pointing back here on a no-arg run, so the
+fixture proof runs once per dispatch, not four times.
+
 **Artifact / read back**: this step's own console output (`summary.json`'s shape — see the producer's own
-`main()`). Confirm against `SELECT count(*) FROM surcharge_audits`.
+`main()`), or (no-arg dry-all runs) the fixture-proof JSON written to
+`$OUT_ROOT/spec09-csv-upload/fixture-import-<timestamp>.json`. Confirm a real apply against
+`SELECT count(*) FROM surcharge_audits`.
 
 ---
 

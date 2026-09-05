@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "analyze": "ANALYZE=true next build",
     "perf:bundles": "node scripts/measure-bundles.mjs",
-    "assemble-train": "node scripts/lib/assemble-train.mjs"
+    "assemble-train": "node scripts/lib/assemble-train.mjs",
+    "verify:audit-findings": "node scripts/verify/audit-finding-status.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

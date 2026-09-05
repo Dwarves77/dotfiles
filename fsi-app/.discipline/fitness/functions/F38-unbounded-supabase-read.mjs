@@ -51,20 +51,14 @@ const DB_MAX_ROWS = 1000;
 // passes it, the entry REDS — "bounded by design" is a live judgment call re-confirmed on a cadence, not a
 // permanent exemption wearing a temporary label (same posture F25 W7.1 established for module-liveness
 // allowlist entries).
-export const ALLOWLIST = [
-  {
-    file: 'fsi-app/scripts/verify/mint-gate-calibration.mjs',
-    limit: '8000',
-    reason:
-      'manual offline CLI mint-gate calibration tool, run by a human, never CI-dispatched; N_ITEMS ' +
-      '(default 40, --items=N) bounds the REAL sample size, .limit(8000) is a generous ceiling on a ' +
-      '--representative recent-window read, not a full-table listing a customer surface depends on. ' +
-      'Re-confirmed by ASSEMBLE-47 (2026-09-05, wave46->wave47 ratchet — same pre-existing-on-' +
-      'origin/master event as F25-module-liveness.mjs\'s bulk note): situation unchanged, same file this ' +
-      'lane\'s own F25 entry already covers; re-granted rather than silently dropped.',
-    expiry: 52,
-  },
-];
+// 'fsi-app/scripts/verify/mint-gate-calibration.mjs' entry REMOVED (lane W71-A, 2026-09-05,
+// docs/plans/complete-system-build-plan-2026-09-04.md §W7): the script had zero live callers (an
+// operator CLI whose one historical use — the REPRESENTATIVE calibration that justified flipping the
+// four mint-time gates live, per remediation-discipline SKILL.md RD-41 — already ran and is a matter of
+// record; nothing in .github/workflows, package.json, or run-data-audit-lane.mjs's AUDITS table invokes
+// it). Deleted with its F25-module-liveness.mjs allowlist entry rather than paged through
+// fetchAllRows/exactCount, since there is no live caller left to page.
+export const ALLOWLIST = [];
 
 function allowlistEntry(file, limitExpr) {
   return ALLOWLIST.find((e) => e.file === file && e.limit === limitExpr);

@@ -158,3 +158,11 @@ node --test \
   fsi-app/scripts/spec09/lib/*.test.mjs \
   fsi-app/src/lib/community/*.test.mjs \
   fsi-app/scripts/community/*.test.mjs
+
+# Standing rule 14 (docs/CLAUDE.md): every finding in docs/audits/ carries an explicit verification-status
+# token. Report-only here (the script's own designed default — a historical backlog of unlabeled findings
+# predates the rule and relabeling it is a distinct workstream, not a "small follow-up" to this wiring
+# lane's own diff) so this stays a visible signal rather than blocking every push on old debt; pass
+# --strict once the backlog is labeled, per the script's own header. Never previously run by anything —
+# lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md §W7.
+node fsi-app/scripts/verify/audit-finding-status.mjs || true

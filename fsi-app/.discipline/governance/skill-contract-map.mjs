@@ -131,7 +131,6 @@ export const PINNED_MANIFEST = {
       'fsi-app/scripts/verify/column-existence-parity.mjs',
       'fsi-app/scripts/verify/deferral-hygiene-audit.mjs',
       'fsi-app/scripts/verify/flag-age-audit.mjs',
-      'fsi-app/scripts/verify/mint-gate-calibration.mjs',
       'fsi-app/scripts/verify/no-generic-source-audit.mjs',
       'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
       'fsi-app/scripts/verify/orphan-source-audit.mjs',
@@ -192,7 +191,6 @@ export const PINNED_MANIFEST = {
     citingFiles: [
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',
-      'fsi-app/scripts/verify/mint-gate-calibration.mjs',
       'fsi-app/scripts/verify/one-tier-per-host-audit.mjs',
       'fsi-app/scripts/verify/orphan-source-audit.mjs',
       'fsi-app/scripts/verify/remediate-orphan-sources.mjs',
