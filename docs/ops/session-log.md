@@ -10667,3 +10667,128 @@ touched by this lane (neither duplicate pair carried one).
 **PROGRAM-BOARD W7.1 row**: set to IN PROGRESS, naming all four lanes and the two conditions that close
 it — 0 entries with an expiry anywhere in F25/F38/F14/closure-gate, and NEVER-RUN at 0 once the
 coordinator's dispatch-ledger rows land for the 9 remaining `maintenance:*` steps.
+
+## Addendum 86, postscript 2: train 48, W7.1-CLOSE actually closed, CAP-1000 defect #6, held for the entity_scope ruling (2026-09-05, coordinator, lane ASSEMBLE-48)
+
+I assembled train 48 on `train/wave48-2026-09-05`, cut from `origin/master` at `c3003233` (train 47). This
+postscript is the record for that train: the four W7.1 lanes' dispositions, the eight files W71-C left
+open with the rulings they cite, today's seven dispatches (eight ledger rows, one dispatch chains
+automatically into a second), migration 312 held, master's gate state after this train, and what is left
+for the operator.
+
+**Merge order and the three W7.1 lanes' dispositions.** I merged, in order: docsfold (handoff document,
+audits, briefs, migrations 308-311 flipped to APPLIED LIVE), w71a (`e5315894`), w71c (`889804d8`), w71d
+(`5ec4d3a0`). I did NOT merge w71f14 (`89ea4e29`, "drop entity_scope, no reader ever specified") because
+spec 08 §1.2 names `entity_scope` as a designed table (making any entity addressable from any surface) and
+it now carries 8 live rows written by `write-entity-scope.mjs`; dropping it via migration 312 on a
+disagreement between "no reader yet" and "designed table, not yet consumed" is an operator call, not mine
+to make by merging one lane's branch over another's disagreement.
+
+- **W71-A** (`e5315894`, disposition table in the commit body): deleted 6 class-A OUT-OF-REPO-BOUNDARY
+  F25 entries (findDispatchRoots gained Source 7, parsing OUT-OF-REPO-BOUNDARY.md's tables, and Source 8,
+  mechanizing the `resolve(HERE, ...)` + `spawnSync`/`execFileSync` subprocess-dispatch shape); wired
+  `run-fixture-import.mjs`, `audit-finding-status.mjs`, and `wave-acceptance-audit.mjs`; deleted
+  `mint-gate-calibration.mjs` and `provenance-envelope.mjs` (zero live callers, confirmed by direct read);
+  corrected ADR-014's assumed "wave-close" mechanism to REFUTED (it does not exist in this repo).
+- **W71-C** (`889804d8`, disposition table in the commit body): of the 20 named class-C scripts, 10
+  DELETED (discharged one-shots: `_dataops/interlock.mjs`, `_diag/_pdf-probe.mjs`,
+  `_wave-alpha/backfill-canonical-keys.mjs`, `audit-optionc-reachability.mjs`,
+  `canonical-pipeline-proof.mjs`, `connections/backfill-edges.mjs`, `gen/migration-258.mjs`,
+  `recovery-measure.mjs`, `seed-community-regional-rooms.mjs`, `source-state-min-wage.mjs`), 1
+  RECLASSIFIED (`_ruling/null-tier-host-ruling.mjs`, a permanent data fixture a live conformance test
+  depends on, not a discharged one-shot), 1 WIRED not deleted (`sprint4-114-spancheck-test.mjs`, rewritten
+  as `src/lib/agent/span-check.npmtest.mjs`, a real regression proof only defective in its filename), and
+  8 LEFT UNRESOLVED, reported not silently discharged (listed below). Fixed a side effect in the same
+  lane: deleting `migration-258.mjs` orphaned `src/lib/contracts/corridor-id.mjs`, given a non-expiring
+  PROVEN_BUT_UNWIRED entry rather than left as a fresh violation.
+- **W71-D** (`5ec4d3a0`, disposition table in the commit body): rewrote all 7 stale
+  `docs/PROGRAM-BOARD.md` NEXT rows (6 to CLOSED/SUPERSEDED citing the train/Addendum that finished the
+  work named, 1 to DEFERRED, genuinely blocked on rule 16's build-mode-end call) and deleted the matching
+  7 `STALE_NEXT_ALLOWLIST` entries; confirmed `workflow:inspect-oil-bulletin.yml`'s disposition
+  [HYPOTHESIS] as true and deleted the workflow and its allowlist entry; investigated two suspected
+  duplicate-module pairs and REFUTED both (`reopen-validation-holds.mjs`'s maintenance wrapper genuinely
+  delegates to the mint file's own `main()`; `backfill-lineage-edges.mjs` and
+  `backfill-derivation-edges.mjs` write different tables via different mechanisms).
+
+**The eight files W71-C left open, each with the ruling it cites, none deleted and none re-granted a
+later expiry:**
+
+1. `scripts/apply-4c-plan.mjs` and 2. `scripts/run-4c-relabel.mjs`, the 4c content-relabel pair, cite
+   the operator's own 2026-07-04 ruling and `docs/ops/session-log.md`'s current prose that the 4c relabel
+   "remains frozen, on purpose."
+3. `scripts/funded-pass.mjs` and 4. `scripts/regen-quarantined.mjs` cite
+   `docs/audits/dormant-systems-audit-2026-07-18.md`'s ruling, "Manual, unscheduled by design, keep-and-
+   integrate."
+5. `scripts/holdings-audit.mjs` cites `docs/inventories/shared-dataset-ownership.md` line 619's own
+   TO-VERIFY flag (no completed-evidence found for its 2026-07-14 dispatch), unresolved for lack of DB
+   access in any worktree so far.
+6. `scripts/remediation/acquire-primaries-batch.mjs` cites
+   `docs/audits/ingest-behavioral-read-2026-07-18.md`, verified live as the sole writer of `raw_fetches`
+   on the operator-fired acquire path.
+7. `scripts/remediation/refetch-capped-worklist.mjs` cites `docs/decisions/ADR-016-storage-side-uncap.md`,
+   which documents this script as a not-yet-executed Implementation step, blocked on an open GUARD-1
+   ruling.
+8. `scripts/source-role-cleanup.mjs` cites `docs/ops/session-log.md`'s own current count, 874
+   registry-wide NULL-role rows still outstanding, naming this script as the durable path to repair them.
+
+**Today's seven dispatches, eight dispatch-ledger rows (`docs/ops/dispatch-ledger.jsonl` lines 51-58;
+producers run 33989121767 chains automatically via `workflow_run` into propagation-drain run
+33989162904, one dispatch producing two rows).** Line 51: maintenance:all, dry, run 33989002396
+(Maintenance #49, every step dry in one dispatch). Line 52: producers:refresh-published-price-statistics,
+apply, run 33989121767. Line 53: propagation-drain:drain, apply, run 33989162904 (the chained run,
+folded this train as propagation-run-005). Line 54: ledger-consume:consume, plan, run 33989428884
+(Ledger consume #14, folded this train as ledger-consume-run-007, proving W1.4's chaining fix). Line 55:
+maintenance:tier-opinions, apply, run 33990256285 (Maintenance #50, 371 `source_tier_opinions` rows
+written, live count confirmed). Line 56: maintenance:seed-corridors, apply, run 33990485649 (Maintenance
+#51, corridors 1 to 4, `entity_scope` 8 rows written). Line 57: maintenance:reopen-validation-holds, dry,
+run 33990670610 (Maintenance #52, 1 held row matched, apply not yet dispatched). Line 58:
+maintenance:spec09-reroute, dry, run 33990746578 (Maintenance #53, corridor spine now cleared to 4, the
+gap the NEVER-RUN entry named).
+
+**Migration 312 held.** Lane W71-F14 wrote migration 312 to drop `entity_scope` on the finding that no
+reader was ever specified for it. I did not fold that lane. `entity_scope` now has 8 live rows from
+today's seed-corridors apply (line 56 above) and spec 08 §1.2 names it as a designed table, not an
+oversight, so the WRITER-READER allowlist entry for it stays in `closure-gate.mjs` (expiry wave52,
+DISPOSITION PENDING) rather than being silently resolved either way. The operator needs to rule: wire the
+first reader, or accept dropping 8 live rows via migration 312.
+
+**Master's gate state after this train**, `node fsi-app/.discipline/governance/closure-gate.mjs --report`:
+
+```
+current train: 47
+1. NEVER-RUN     : PASS
+2. STALE-NEXT    : PASS
+3. WRITER-READER : PASS  (summary: {"tables":34,"rpcs":32,"writeOrphans":1,"allowlisted":0,"gating":1,"readOrphans":0})
+4. LANE-CONTRACT : PASS
+=== closure gate PASS ===
+```
+
+`WRITER-READER`'s one allowlisted entry is `entity_scope`, held for the ruling above; every other check
+is clean with zero allowlist entries, not merely not-yet-expired. `current train` reads 47 because this
+report ran before train 48 itself lands as a `train/wave48` commit on `origin/master`; the same gate
+re-run after landing reads `current train: 48` and stays PASS (the check is monotonic in what it already
+found clean).
+
+**A defect found and fixed reading this train's own harness history, not part of any of the four W7.1
+lanes' briefs.** Doing the ledger-consume and propagation proposer passes myself (their briefs are still
+under `docs/dispatches/` for the record; the next Haiku lanes need not repeat this work) turned up a
+sixth CAP-1000 instance: `runPropagationDrain`'s `queue_depth_before` read a bare unranged
+`.select().length`, silently capped at 1000 by PostgREST, flat across propagation-run-003/004/005 while
+the live outbox held 2,272 to 2,778 pending. Fixed via `paginate.mjs`'s `exactCount()`, with a regression
+test seeding 1,200 undrained events past both the batch size and the cap. `defects_found` on every
+propagation artifact reads empty; this was found by reading the traces against each other, not by any
+tool naming it, which is exactly what a proposer pass is for.
+
+**UX compliance.** One `.tsx` changed through the merged lanes:
+`src/components/sources/IntersectionDetectionView.tsx`, folded from w71c, a text-only copy edit (the
+empty-state message now points at `discover-for-items.mjs` instead of the deleted
+`connections/backfill-edges.mjs`). No layout, interaction, or visual change: same component tree, same
+button, same styles. Rendering guard re-run clean (11 fixtures, 345 checks, 9 UX smoke specs including
+this surface, 0 failures).
+
+**Next: the operator rulings outstanding.** (1) `entity_scope`/migration 312, above, is the one item this
+train could not close on its own authority. (2) The `workflow_run`-chained ledger-consume dispatch's own
+`after`-cursor threading is flagged, not verified, in this train's ledger-consume proposer pass; the next
+chained run's own artifact is the evidence that settles it. (3) `docs/dispatches/proposer-brief-ledger-
+consume-train-wave48-2026-09-05.md` and the propagation sibling stay on disk for the record even though I
+completed both passes directly this train; nothing further is owed against them.
