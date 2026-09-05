@@ -31,22 +31,22 @@ one-off probe and by `run-ledger-consume.test.mjs`'s own standing jiti-load test
 network, no DB) and gets back `{discovered: 0, fetched: 0, classified: 0, outcomes: []}`. That proves the
 runtime WIRING; it is not a run over real ledger rows, so it is not `ledger-consume-run-001`.
 
-**harness_version at write time:** `sha256:5fd3da9d3bd44758` (see Re-pin note 8 below; `sha256:3650d9f46a0c23e2`, `sha256:2f3138ea51a193ac` and `sha256:80d15aac9240060d` are superseded)
+**harness_version at write time:** `sha256:4ec177b09e05e669` (see Re-pin note 9 below; `sha256:5fd3da9d3bd44758`, `sha256:3650d9f46a0c23e2`, `sha256:2f3138ea51a193ac` and `sha256:80d15aac9240060d` are superseded)
 
-**The planned run that supersedes this marker:** the first `ledger-consume-run-001.json` produced by
-`node scripts/turns/run-ledger-consume.mjs` (dispatched via `.github/workflows/ledger-consume.yml`, which
-carries `NEXT_PUBLIC_SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` — real GitHub-Actions network/DB
-access this environment lacks; `ANTHROPIC_API_KEY` is NO LONGER required for this dispatch — see Re-pin
-note 5). The named first dispatch is **`mode: plan`, `verdicts_file: <the first
-scripts/turns/ledger-verdicts/ledger-verdicts-NNN.json batch>`, `limit: 50`** (or a smaller/larger
-`limit`) — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section for the exact dispatch
-and what it proves. `LEDGER_CONSUME_APPLY_ENABLED` is now `true` (operator ruling 2026-09-04, Re-pin note
-5) — a `mode: apply` dispatch WILL write when it has a verdicts file; the first proving dispatch is
-deliberately `plan` so a human reads the plan before any apply. Per F28's reverse-audit (an artifact
-matching this marker's recorded hash means "the planned run happened — delete the marker"), this file is
-deleted the moment that first artifact lands and its `harness_version` matches the value above (or updated
-to a new hash, per rule (c), if the driver or either governing library module changes again before that
-first run lands).
+**The planned run that supersedes this marker (see Re-pin note 9 for the current, exact form):** the first
+`ledger-consume-run-NNN.json` produced by `node scripts/turns/run-ledger-consume.mjs` (dispatched via
+`.github/workflows/ledger-consume.yml`, which carries `NEXT_PUBLIC_SUPABASE_URL` and
+`SUPABASE_SERVICE_ROLE_KEY` — real GitHub-Actions network/DB access this environment lacks;
+`ANTHROPIC_API_KEY` is NO LONGER required for this dispatch — see Re-pin note 5). As of Re-pin note 9 the
+named first dispatch is **`mode: plan`, `verdicts_file: ` (blank — auto-discovers every committed batch),
+`limit: 400`** — see `docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section for the exact
+dispatch and what it proves. `LEDGER_CONSUME_APPLY_ENABLED` is now `true` (operator ruling 2026-09-04,
+Re-pin note 5) — a `mode: apply` dispatch WILL write when it has a usable verdict; the first proving
+dispatch is deliberately `plan` so a human reads the plan before any apply. Per F28's reverse-audit (an
+artifact matching this marker's recorded hash means "the planned run happened — delete the marker"), this
+file is deleted the moment that first artifact lands and its `harness_version` matches the value above (or
+updated to a new hash, per rule (c), if the driver or either governing library module changes again before
+that first run lands).
 
 **The registration gap this marker previously flagged is CLOSED, from BOTH directions.** Lane SPEND
 registered `ANTHROPIC_API_KEY` in `WORKFLOW_SECRETS`
@@ -234,3 +234,80 @@ section, "Access-wall detection + API/rendering transports", for the full accoun
 `scripts/turns/ledger-verdicts/README.md` for what this means for a session-Haiku classification lane
 consuming a `--with-text` export (never spend a verdict on a `fetch_error:"access_wall:*"` row). The
 planned first run is otherwise unchanged from Re-pin note 7.
+
+**Re-pin note 9 (lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 "event chaining, the ledger link" —
+`LAST-PROPOSER-PASS.md`'s CONFIRMED defect: the `workflow_run`-triggered dispatch always ran `mode=plan,
+limit 50, after=null`, so runs 001 and 002 fetched the identical 50 rows twice and classified neither):**
+`sha256:5fd3da9d3bd44758` → `sha256:4ec177b09e05e669`.
+
+**What changed.** Both of this family's driver-side governing files moved bytes in this diff (the third,
+`src/lib/llm/first-fetch-classify.ts`, is UNCHANGED):
+
+(1) `scripts/turns/run-ledger-consume.mjs` — three fixes, matching this build item's three requirements.
+**Auto-discovery of every committed verdict batch:** `discoverVerdictsFiles`/`isVerdictsBatchFilename`/
+`sortVerdictsBatchFilenames` (new, pure) list every `scripts/turns/ledger-verdicts/ledger-verdicts-NNN.json`
+under that directory, ascending by batch number; when `--verdicts` is omitted, `main()` now loads and
+merges ALL of them (`allCurrentEntries`, later batch wins a duplicate URL — `indexVerdictsByUrl`'s existing
+rule, now applied across files) instead of the workflow picking one "newest" file — the exact defect
+`LAST-PROPOSER-PASS.md` named (runs 001/002 saw a `verdicts_file` the workflow resolved to the newest batch,
+but a candidate whose verdict lived in an OLDER batch could never match). **The pre-fetch gate:**
+`buildClassifyGate` (new, pure) is the ONE lookup — a verdict hit needs no fetch at all
+(`{willClassify:true, needsFetch:false}`, since a verdict classifies from the verdict object alone), a miss
+with `--allow-api` needs one (`needsFetch:true`), a miss with neither is skipped before anything else
+(`{willClassify:false}`) — read by `consumePortalCandidates` (below) BEFORE its own fetch step, and by
+`buildVerdictClassify` (refactored to call it internally) at classify time, so the two decisions can never
+disagree; `shapeConsumeResult` gained a second `without_verdict_skipped` counting path (from `outcomes`,
+not just `telemetryByUrl`) because a gate-skipped row now leaves no telemetry entry at all. **Export cursor
+persistence:** `resolveExportAfter`/`findLatestExportArtifact`/`buildExportRunArtifact` (new, pure/injectable)
+give an `--export-candidates` dispatch its OWN `config.action:"export"` harness-run artifact recording
+`metrics.next_cursor`, so the NEXT export dispatch with no explicit `--after` auto-resumes past it instead of
+re-exporting the same window (the same defect, closed by the same mechanism, on the export side) — an
+explicit `--after` still always wins. New metrics fields: `matched` (alias of `with_verdict`, build brief's
+own vocabulary) and `verdict_batches_read`.
+
+(2) `src/lib/intake/portal-harvest.ts` — `ConsumeOpts` gained the optional `classifyGate` field
+`consumePortalCandidates`'s "1 — FETCH" step now calls BEFORE fetching: `willClassify:false` skips the row
+entirely (recorded `skipped-no-verdict`, `fetched:0`, never reaching `fetchDoc` or `classify`);
+`needsFetch:false` skips ONLY the fetch, still runs classify; omitted (no `classifyGate` at all) preserves
+the exact pre-existing unconditional fetch-then-classify behavior for any other caller.
+
+`.github/workflows/ledger-consume.yml` (not a governing file, does not move this hash) restructured so a
+`workflow_run` (Source-sweep completion) firing now runs BOTH halves of the family in one job — consume
+(forced `mode=plan`, blank `verdicts_file`, `limit=2000`, cheap because this path never fetches) THEN
+export (`--with-text`, blank `export_after`, auto-resuming) — where a `workflow_dispatch` still runs
+exactly one, per its `export_candidates` input, unchanged. The two artifact-commit steps were unified into
+one (a second `git checkout -b` on the identical branch name would have collided when both halves run in
+the same job) and the sibling-hydration guard now runs unconditionally (both halves self-emit an artifact
+via `claimRunId`, needing the same run_id collision guard).
+
+**Tests.** `run-ledger-consume.test.mjs` gained coverage for `buildClassifyGate` (all three branches, verdict
+wins over `--allow-api`), `isVerdictsBatchFilename`/`sortVerdictsBatchFilenames`/`discoverVerdictsFiles`
+(pure + injected `readdirSyncImpl`, missing-dir → `[]`), `resolveExportAfter` (explicit wins; auto-resolves
+only from a `config.action==="export"` artifact; null on nothing/exhausted), `findLatestExportArtifact`
+(injected `readRunHistoryImpl`), `buildExportRunArtifact` (F28 shape, live `validateRunArtifact` import),
+`shapeConsumeResult`'s new `matched`/`verdict_batches_read` fields and the fixed `without_verdict_skipped`
+(no double-count when both paths would tag the same URL), and — build item 5's named test — "two consecutive
+chained `--export-candidates` runs cover DISJOINT windows", a real `claimRunId`/`writeRunArtifact` round
+trip proving run 2's effective `--after` equals run 1's own `next_cursor` and the two exported id sets never
+overlap. `src/lib/intake/portal-harvest.npmtest.mjs` gained the other half of build item 5 — "a verdict
+lookup precedes any fetch" — asserting the injected `fetchDoc` is called for NEITHER a gate-skipped row NOR
+a verdict-matched row (only for the `needsFetch:true` case), and that omitting `classifyGate` entirely
+reproduces the old unconditional-fetch behavior byte-for-byte.
+
+**The planned first run moves WITH this note.** The coordinator's own live read (Supabase MCP,
+`portal_link_candidates`, 2026-09-05) confirms all 386 URLs across `ledger-verdicts-001.json` (30) and
+`ledger-verdicts-002.json` (356, zero overlap) are still `status='candidate'`, and that all 386 fall within
+the FIRST 400 rows in ascending `(first_seen_at, id)` order — row 400 of that order is candidate
+`68b9b28a-6cba-4e18-abe7-2dc92c9b7557` (`first_seen_at: 2026-07-19T21:01:06.240630+00:00`; exactly 400 rows
+`<=` it, 57,069 rows `>` it, 57,469 total `status='candidate'` rows at that read). **The first hand dispatch
+proving this component is `ledger-consume.yml` `workflow_dispatch` with `mode=plan`, `verdicts_file=`
+(blank — auto-discovers both committed batches), `limit=400`** (NOT the workflow's own default of 50 —
+`limit` must be raised by hand for this one dispatch to reach all 386 rows; a `workflow_run` firing already
+carries the raised `RESOLVE_CONSUME_LIMIT=2000` default and needs no override). Expected:
+`ledger-consume-run-003.json` with `metrics.matched: 386`, `metrics.fetched: 0` for those 386 (the pre-fetch
+gate), `metrics.verdict_batches_read: 2`. The follow-up export dispatch — `export_candidates=true`,
+`export_limit=400`, `export_after={"firstSeenAt":"2026-07-19T21:01:06.240630+00:00","id":"68b9b28a-6cba-4e18-abe7-2dc92c9b7557"}`
+— exports the NEXT 400 (rows 401-800), past every already-verdicted candidate, and records its own
+`next_cursor` for the export after that to auto-resume from with no `export_after` at all. See
+`docs/runbooks/CORPUS-TURN-RUNBOOK.md`'s "Ledger consume" section, "Event chaining" and "First dispatch",
+for the full account.

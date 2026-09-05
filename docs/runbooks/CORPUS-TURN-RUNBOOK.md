@@ -416,7 +416,13 @@ called Haiku (`firstFetchClassify`, ~$0.001/candidate) for every candidate whose
   verdicts/README.md` + `schema.json` for the file contract, and how a session lane produces one for
   $0 via its own model access rather than the metered API). A candidate whose URL matches an entry in
   the file is classified from that verdict — the classify call is bypassed entirely, `$0`,
-  `classify_source: "session-verdict"` in this run's own artifact.
+  `classify_source: "session-verdict"` in this run's own artifact. **Omitted (Lane LEDGER-CHAIN-2,
+  2026-09-05): auto-discovers and reads EVERY committed `scripts/turns/ledger-verdicts/ledger-verdicts-
+  NNN.json` batch, not only one** (`discoverVerdictsFiles`, ascending by batch number, a later batch's
+  duplicate URL winning) — a URL's verdict is matched against the UNION of every committed batch, and this
+  lookup happens BEFORE any fetch (`ConsumeOpts.classifyGate`): a match never fetches the page at all
+  (needed only to build the seed, which the verdict object already carries in full); a miss is `skipped-
+  no-verdict` with `fetched: 0` too, unless `--allow-api` was also given.
 - A candidate **without** a matching verdict is **SKIPPED** — left `status='candidate'`, untouched, for
   a later batch — and is **NEVER sent to the API**, unless the driver was run with the explicit,
   CLI-only `--allow-api` flag (default `false`). `ledger-consume.yml` does **not** expose `--allow-api`
@@ -525,8 +531,11 @@ what a mechanical text check catches for free.
 
 ### Modes, and the apply flip
 
-`plan` classifies (from a verdict, or skips) every fetched candidate and writes NOTHING to
-`portal_link_candidates` or the intake pipeline. `apply` pushes the would-mint set through the full
+`plan` classifies (from a verdict, or skips) every candidate in its window and writes NOTHING to
+`portal_link_candidates` or the intake pipeline — as of Lane LEDGER-CHAIN-2 (2026-09-05) a verdict match
+never fetches the page at all (the pre-fetch gate, "Event chaining" above), so "fetched" here means only
+the `--allow-api` miss case, which this workflow never triggers. `apply` pushes the would-mint set through
+the full
 stage -> mint -> ground -> validate cycle and stamps the ledger disposition — gated by
 `LEDGER_CONSUME_APPLY_ENABLED` in `run-ledger-consume.mjs`, **`true` as of 2026-09-04** (Lane
 LEDGER-ZERO, operator ruling above, `docs/decisions/ADR-023-producer-execution-model.md`'s reviewed-
@@ -554,12 +563,43 @@ silently absorbed.
 
 `ledger-consume.yml` carries a `workflow_run: workflows: ["Source sweep"]` trigger (rule 16 governs
 `schedule:`/cron, not event chaining — this is not a schedule). When `source-sweep.yml` completes
-successfully, `ledger-consume.yml` fires automatically in `mode: plan`, resolving the newest committed
-`scripts/turns/ledger-verdicts/ledger-verdicts-*.json` batch if one exists (lexicographic sort on the
-zero-padded `NNN` suffix), or running with no verdicts file at all if none does (every candidate skipped,
-$0 — an honest "nothing classified yet" plan run, still worth having on record). This still requires a
-human (or a follow-up dispatch) to act on the plan's output — plan never writes — and, per the DECISION
-above, can never itself become an apply.
+successfully, `ledger-consume.yml` fires automatically and, unlike a `workflow_dispatch` — which always
+runs exactly one of consume XOR export, per its `export_candidates` input — **this trigger runs BOTH
+halves of the family in the same job, sequentially** (Lane LEDGER-CHAIN-2, 2026-09-05, closing the
+CONFIRMED defect below):
+
+1. **Consume, forced `mode: plan`**, with `verdicts_file` left blank and `limit: 2000` (the workflow's
+   `RESOLVE_CONSUME_LIMIT`). A blank `verdicts_file` no longer means "run with none" — `run-ledger-
+   consume.mjs` now auto-discovers and reads EVERY committed `ledger-verdicts-*.json` batch itself
+   (`discoverVerdictsFiles`, ascending by batch number, later batch wins a duplicate URL), not only
+   whichever one the workflow used to resolve as "newest". Its own pre-fetch gate
+   (`ConsumeOpts.classifyGate`, `buildClassifyGate`) looks up a candidate's verdict by URL BEFORE any
+   fetch: a match classifies for $0 with `fetched: 0` (a verdict is built from the verdict object alone,
+   never the page); a miss is recorded `skipped-no-verdict` with `fetched: 0` too (`--allow-api` is never
+   set by this workflow, so nothing is ever actually fetched on this path) — which is exactly why
+   `limit: 2000` is safe and cheap here where the pre-fix default of 50 existed only to bound a fetch that
+   no longer happens.
+2. **Export, `--export-candidates --with-text`**, with `export_after` left blank so `run-ledger-
+   consume.mjs`'s own `resolveExportAfter` auto-resumes past the PREVIOUS export dispatch's own recorded
+   `next_cursor` — read back from that family's newest `config.action: "export"` harness-run artifact
+   (`findLatestExportArtifact`) — instead of re-exporting the identical window every time.
+
+**THE DEFECT THIS CLOSES [CONFIRMED, `scripts/harness-runs/ledger-consume/LAST-PROPOSER-PASS.md`]:**
+before this fix, the `workflow_run` trigger always resolved `mode=plan, limit 50, after=null` with no
+memory of any prior firing — `ledger-consume-run-001` and `-002` fetched the IDENTICAL first 50 candidates
+twice, byte-for-byte, and classified neither (both events predate the session-verdict batches). Two fixes
+close it, both load-bearing here: auto-discovery means a chained run finds a verdict wherever it landed,
+not only in whichever batch the workflow happened to pick; and export-cursor persistence
+(`buildExportRunArtifact`, `resolveExportAfter`) means the export half of each chained firing advances the
+SAME way the consume-side fix advances — past what the previous firing already covered, never restarting.
+An explicit `export_after` on a `workflow_dispatch` still always wins over auto-resolution (build item 2:
+"hand dispatch keeps every input") — auto-resolution only fills in when a dispatch gives none, which a
+`workflow_run` firing never does.
+
+Both halves still only WRITE their own family's harness-run artifact (and, for export, the fetched-text
+candidates file) — `plan` never writes to `portal_link_candidates` or the intake pipeline, so this event
+chain still requires a human (or a follow-up `workflow_dispatch`) to act on what it classified, and, per
+the DECISION above, can never itself become an apply.
 
 ### Telemetry — closed at the source, not by this driver
 
@@ -578,30 +618,35 @@ each outcome's classification came from and what, if anything, it cost.
 ### What lands where
 
 `scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` — the family's own self-emitted
-artifact, every consume dispatch (plan or apply; NOT `--export-candidates`, which is read-only and writes
-no artifact). `scripts/harness-runs/ledger-consume/traces/ledger-consume-run-NNN.result.json` — the run's
-FULL raw `ConsumeResult`, one level below the family directory so F28's family-level `*.json` glob never
-mistakes it for an artifact. The workflow commits only `scripts/harness-runs/ledger-consume/**`, via a
+artifact, EVERY dispatch of this family now writes one, `config.action` distinguishing which kind:
+`"consume"` (plan or apply) or `"export"` (Lane LEDGER-CHAIN-2, 2026-09-05 — an export dispatch used to be
+read-only in the strongest sense, no artifact at all; it now self-emits one too, `metrics.next_cursor`
+recorded so the next export dispatch can auto-resume — see "Event chaining" above). Both share the SAME
+`ledger-consume-run-NNN` numbering sequence (one `claimRunId` counter, one directory) — an export dispatch
+and a consume dispatch landing between two trains never collide on a run number.
+`scripts/harness-runs/ledger-consume/traces/ledger-consume-run-NNN.result.json` — a consume run's FULL raw
+`ConsumeResult` (export writes no separate trace file; its own artifact IS the full record — no classify,
+no DB write to trace), one level below the family directory so F28's family-level `*.json` glob never
+mistakes it for an artifact. The workflow commits `scripts/harness-runs/ledger-consume/**` — covering
+whichever kind(s) this run produced, in ONE commit even when a `workflow_run` firing produces both — via a
 fresh `ledger-consume/<run-id>` branch and PR (`deliver-artifact-branch.sh`, same fallback-to-tracking-
 issue behavior documented above for `corpus-turn`/`source-sweep`), and uploads its own
 `scripts/_snapshots/**` workflow artifact the same way.
 
 **`export_candidates: true` dispatches land on the SAME `ledger-consume/<run-id>` branch pattern, via the
-SAME `deliver-artifact-branch.sh` mechanism** (Lane LEDGER-EXPORT, 2026-09-04) — the ONLY thing that
-differs is what the branch carries: `scripts/_snapshots/ledger-candidates/candidates-<run-id>.json` (the
-`--with-text` export payload), force-added despite `scripts/_snapshots/` being gitignored (`.gitignore`
-line 64 — the same reasoning `ledger-verdicts/README.md` gives for why `--verdicts` files live at a
-committed path instead: a path under `scripts/_snapshots/` never reaches `origin` unless force-added, and
-the coordinator fetches this branch from `origin`), never a `scripts/harness-runs/ledger-consume/**`
-artifact (an export dispatch classifies nothing, mints nothing, and self-emits no harness-run artifact —
-see this section's opening paragraph). This IS the intended re-use: the coordinator fetches
-`ledger-consume/<run-id>` exactly the way it already fetches every other `ledger-consume` artifact branch,
-never a second delivery mechanism for this family. Also uploaded as a `ledger-consume-snapshots-<run-id>`
-workflow artifact, same as any other run (the `scripts/_snapshots/**` glob already covers it).
-`population-turn.yml`'s own `workflow_run` chain off this workflow already treats a `ledger-consume/<run-
-id>` branch carrying no `scripts/harness-runs/ledger-consume/**` file as a graceful no-op ("carries no
-ledger-consume harness-run artifact this checkout doesn't already have") — an export dispatch needed no
-change there.
+SAME `deliver-artifact-branch.sh` mechanism** (Lane LEDGER-EXPORT, 2026-09-04) — what differs from a plain
+consume dispatch is that the branch ALSO carries
+`scripts/_snapshots/ledger-candidates/candidates-<run-id>.json` (the `--with-text` export payload),
+force-added despite `scripts/_snapshots/` being gitignored (`.gitignore` line 64 — the same reasoning
+`ledger-verdicts/README.md` gives for why `--verdicts` files live at a committed path instead: a path
+under `scripts/_snapshots/` never reaches `origin` unless force-added, and the coordinator fetches this
+branch from `origin`). This IS the intended re-use: the coordinator fetches `ledger-consume/<run-id>`
+exactly the way it already fetches every other `ledger-consume` artifact branch, never a second delivery
+mechanism for this family. Also uploaded as a `ledger-consume-snapshots-<run-id>` workflow artifact, same
+as any other run (the `scripts/_snapshots/**` glob already covers it). `population-turn.yml`'s own
+`workflow_run` chain off this workflow only fires apply-side automation for an upstream `mode=apply` run
+with `metrics.promoted > 0` — an export artifact's `config.action: "export"` never matches that shape, so
+it needed no change there.
 
 ### Secrets
 
@@ -615,42 +660,62 @@ reports every workflow secret reference registered either way.
 
 ### First dispatch (proves this component per the build plan's §0)
 
-**The export step now comes first, and it is dispatched, not run by hand** (Lane LEDGER-EXPORT,
-2026-09-04 — this session environment has no network egress to fetch ~1,837 candidate URLs; the Actions
-runner does). The exact first dispatch, via `ledger-consume.yml`'s `workflow_dispatch`:
+**Two committed verdict batches already exist** (`scripts/turns/ledger-verdicts/ledger-verdicts-001.json`,
+30 entries, and `-002.json`, 356 entries — zero URL overlap, 386 total) — produced by the coordinator's own
+Haiku lanes from earlier `--with-text` exports, per the mechanism the previous revision of this section
+documented. The coordinator's own live read (Supabase MCP, `portal_link_candidates`, 2026-09-05) confirms
+all 386 of those URLs are still `status='candidate'`, and — because `first_seen_at, id` ascending is the
+order both the consume path and the export path walk — that all 386 fall within the FIRST 400 rows of that
+order: row 400 is candidate `68b9b28a-6cba-4e18-abe7-2dc92c9b7557`
+(`first_seen_at: 2026-07-19T21:01:06.240630+00:00`; exactly 400 rows `<=` it, 57,069 `>` it, 57,469 total
+`status='candidate'` rows at that read). §0's proving dispatch is therefore the FIRST consume dispatch this
+family has ever actually needed to run against real verdicts, in two steps:
+
+**Step 1 — the hand consume dispatch**, via `ledger-consume.yml`'s `workflow_dispatch`:
 
 ```
-export_candidates=true  export_limit=400  export_after=''
+mode=plan  verdicts_file=''  limit=400  source_id=''
+```
+— equivalently, `node scripts/turns/run-ledger-consume.mjs --mode plan --limit 400`. `verdicts_file` is
+left BLANK (not pointed at either file by name) so the driver's auto-discovery
+(`discoverVerdictsFiles`) reads BOTH committed batches, ascending — proving build item 1's "ANY committed
+batch, not only the newest". **`limit` MUST be raised to 400 for this one dispatch** — the workflow's own
+`workflow_dispatch` default is still 50 (unchanged, since an operator dispatch is a deliberate, bounded
+action); a `workflow_run` firing already carries the raised `RESOLVE_CONSUME_LIMIT=2000` default and needs
+no override, but this proving dispatch is by hand and must say `limit=400` explicitly to reach every
+verdict-covered row. Expected result, landing as `ledger-consume-run-003.json` (runs 001/002 are the
+pre-fix byte-identical pair `LAST-PROPOSER-PASS.md` diagnosed): `metrics.matched: 386`, `metrics.fetched:
+0` for all 386 (the pre-fetch gate — a verdict never needs the page), `metrics.verdict_batches_read: 2`,
+`metrics.skipped` accounting for the remaining rows in the window that carry no verdict.
+
+**Step 2 — the follow-up export dispatch**, advancing PAST the window Step 1 just covered:
+
+```
+export_candidates=true  export_limit=400  export_after={"firstSeenAt":"2026-07-19T21:01:06.240630+00:00","id":"68b9b28a-6cba-4e18-abe7-2dc92c9b7557"}
 ```
 — equivalently, `node scripts/turns/run-ledger-consume.mjs --export-candidates
-scripts/_snapshots/ledger-candidates/candidates-<run_id>.json --with-text --limit 400`. This fetches (via
-the SAME `buildFetchDoc` a consume pass uses) and lists the FIRST 400 candidates, oldest-first
-(`first_seen_at, id` order — the same order the consume path itself walks), and lands on
-`ledger-consume/<run_id>` (see "What lands where" above). Its own payload's `next_cursor` — a
-`{"firstSeenAt":"...","id":"..."}` object — feeds the SECOND dispatch's `export_after` input, and so on:
-```
-export_candidates=true  export_limit=400  export_after=<next_cursor from the previous batch's payload>
-```
-repeated until a batch's `next_cursor` is `null` (~5 dispatches to cover ~1,837 candidates at 400/batch —
-the last batch shorter). Each batch is then classified by a session-Haiku lane directly from its carried
-`text` field — no browser fetch, no WebFetch rate limit, per the `--with-text` account above — into a
-`--verdicts` file matching `fsi-app/scripts/turns/ledger-verdicts/schema.json`; producing those verdict
-batches is NOT part of this runbook update or Lane LEDGER-EXPORT's write set (the coordinator's Haiku
-lanes' job, per the build plan's own §W1.1) — this entry documents the mechanism and the exact first
-dispatch, both for the export and for the consume pass it feeds:
+scripts/_snapshots/ledger-candidates/candidates-<run_id>.json --with-text --limit 400 --after
+'{"firstSeenAt":"2026-07-19T21:01:06.240630+00:00","id":"68b9b28a-6cba-4e18-abe7-2dc92c9b7557"}'`. This
+fetches (via the SAME `buildFetchDoc` a consume pass uses) and lists candidates 401-800, oldest-first, and
+lands on `ledger-consume/<run_id>` (see "What lands where" above) — and, as of Lane LEDGER-CHAIN-2
+(2026-09-05), ALSO self-emits its own `config.action: "export"` harness-run artifact recording
+`metrics.next_cursor`. **Every dispatch AFTER this one leaves `export_after` blank** — `resolveExportAfter`
+auto-resumes past whatever this dispatch's own artifact recorded, so consecutive exports advance on their
+own (`findLatestExportArtifact`) instead of requiring the operator to copy a `next_cursor` value forward by
+hand each time; pass `export_after` explicitly only to override that. Each resulting `candidates-
+<run_id>.json` is then classified by a session-Haiku lane directly from its carried `text` field — no
+browser fetch, no WebFetch rate limit, per the `--with-text` account above — into the NEXT
+`ledger-verdicts-NNN.json` batch; producing that batch is NOT part of this lane's write set (the
+coordinator's Haiku lanes' job, per the build plan's own §W1.1).
 
-```
-node scripts/turns/run-ledger-consume.mjs --mode plan \
-  --verdicts scripts/turns/ledger-verdicts/ledger-verdicts-001.json --limit 50
-```
-— or, via `ledger-consume.yml`: `mode=plan`,
-`verdicts_file=scripts/turns/ledger-verdicts/ledger-verdicts-001.json`, `limit=50`. Success for the export
-side is: the `ledger-consume/<run_id>` branch (or its tracking-issue fallback) carries
-`scripts/_snapshots/ledger-candidates/candidates-<run_id>.json` with `count > 0`, `with_text: true`, and
-`fetch_ok_count` accounting for most of `count` (a nonzero `fetch_failed_count` is expected — dead links,
-timeouts — not a failure of the dispatch itself). Success for the consume side, once a verdicts batch
-exists, is unchanged: `ledger-consume-run-001.json` lands with `metrics.with_verdict > 0`,
-`metrics.promoted > 0` (once an `apply` dispatch follows a reviewed plan), and `metrics.est_usd === 0`.
+Success for Step 1 is: `ledger-consume-run-003.json` (or whichever run-id `claimRunId` assigns) with
+`metrics.matched: 386`, `metrics.fetched: 0`, `metrics.verdict_batches_read: 2`, `metrics.promoted > 0`
+once a follow-up `apply` dispatch runs against the same (or a wider) window. Success for Step 2 is: the
+`ledger-consume/<run_id>` branch carries `scripts/_snapshots/ledger-candidates/candidates-<run_id>.json`
+with `count > 0`, `with_text: true`, `fetch_ok_count` accounting for most of `count`, AND a
+`scripts/harness-runs/ledger-consume/ledger-consume-run-NNN.json` with `config.action: "export"` and a
+`metrics.next_cursor` the NEXT export (no `export_after` given) resumes from — the concrete, checkable
+proof that two consecutive chained exports cover disjoint windows, not the same one twice.
 
 ## Change detection
 
