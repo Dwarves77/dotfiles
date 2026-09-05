@@ -5855,6 +5855,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/verify/audit-finding-status.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/verify/cc-executor-submit.golden.mjs",
       "kinds": [
         "PROOF"
@@ -5997,6 +6006,15 @@
       "skills": [
         "source-credibility-model"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -9120,16 +9138,15 @@
         "WRITES"
       ],
       "skills": [
-        "sprint-followups-discipline",
-        "remediation-discipline"
+        "sprint-followups-discipline"
       ],
       "proofWired": null,
       "status": "COVERED"
     }
   ],
   "summary": {
-    "governed_files": 837,
-    "covered": 804,
+    "governed_files": 839,
+    "covered": 806,
     "exempt": 33,
     "gaps": 0,
     "orphaned_proofs": 0,
