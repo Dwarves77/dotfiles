@@ -83,6 +83,7 @@
 import { formatDate } from "@/lib/format";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
+import { getPublicSurfaceSlugs } from "@/lib/data";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import {
@@ -101,32 +102,47 @@ import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up): STALE COMMENT REMOVED HERE. It used to
-// read "previous `export const revalidate = 60` was a no-op ... ISR refactor tracked in
-// docs/PERF-WAVE-2.md" — that doc (now docs/archive/PERF-WAVE-2.md, dated 2026-05-05) predates this
-// route ever having its cookie reads removed and never actually proposed generateStaticParams; the
-// pointer was stale, not a real deferral.
+// PERF-13 (2026-09-04, ADR-027 §1, docs/audits/perf-clickthrough-2026-09-04.md §(b)/(c) + this
+// lane's own live measurement): SUPERSEDES the PERF-10 "`[]`, not a full enumeration" decision recorded above (kept
+// verbatim, not deleted, as the record of the prior lane's reasoning — see CLAUDE.md rule 14 on
+// correcting findings in place). The prior lane never measured the actual cost of enumerating the
+// corpus; the operator's own live Chrome measurement (coordinator, 2026-09-04 23:10-23:20 UTC) did:
+// a never-rendered slug (the `[]` design's steady state for most of the corpus, since real traffic
+// only ever warms the items someone happens to click) costs 760-950ms with NOTHING on screen for
+// ~900ms of it (a MutationObserver on document.body saw zero mutations until the whole detail
+// arrived), because Next's on-demand static generation for a `dynamicParams: true` fallback does
+// not stream through the segment's own `loading.tsx` the way a genuinely Dynamic route does — see
+// this file's `loading.tsx` sibling for the citation. That is the literal opposite of "every click
+// should show items on a page instantly."
 //
-// THE ACTUAL REMAINING ROOT CAUSE, found by running `next build --webpack` after removing every
-// Dynamic API call from this page's render tree (see the PERF-10 block above): a page with a dynamic
-// segment (`[slug]`) and NO `generateStaticParams` export is unconditionally server-rendered on every
-// request under classical (non-PPR) Next.js rendering — this is independent of whether the render
-// itself calls a Dynamic API. Confirmed [CONFIRMED, this lane]: even after removing all three cookie
-// reads, this route still built `ƒ` until `generateStaticParams` below was added.
+// This lane measured the corpus instead of assuming it (CLAUDE.md rule 4): 1,312 verified,
+// non-archived regulations (Supabase MCP, `get_workspace_intelligence_listings_public(p_domain=>1)`
+// row count, 2026-09-04) — small enough that baking every slug into the build is the standard fix,
+// not the anti-pattern the PERF-10 comment above worried about. `getPublicSurfaceSlugs("regulations")`
+// (src/lib/data.ts, ONE function reused by all four `[slug]` routes — see its own header) reads
+// through the exact same public RPC path this page's own index (`/regulations`) already uses, so
+// there is no second query shape to maintain. `dynamicParams` stays at its Next.js default (`true`):
+// an item minted AFTER the last build still renders on first request and is then served from the
+// Full Route Cache — this enumeration does not remove that fallback, it only shrinks the population
+// that ever needs it down to "items minted since the last deploy," which the deploy-time warm step
+// (docs/runbooks/warm-static-detail-routes.md) closes by requesting every slug once, post-merge, so
+// even that population is warmed before a real viewer's first click. Revalidation is unchanged: the
+// SAME `PUBLIC_ITEMS_TAG`/`revalidateTag` completion point as the four index pages (ADR-026
+// Follow-up) plus `loadDetail`'s own `DETAIL_CACHE_REVALIDATE_SECONDS` window as the time-based
+// safety net.
 //
-// `generateStaticParams` returning `[]` is the correct fix here, not a full slug enumeration: the
-// corpus is unbounded and growing (minted continuously by the population pipeline), so baking every
-// known slug into the build would make build time and output size scale with corpus size for no
-// benefit. With `dynamicParams` at its default (`true`) and an empty static param list, Next.js
-// renders each requested slug ON FIRST REQUEST and then serves it from the Full Route Cache exactly
-// like a slim static page — this is what "every click should show items on a page instantly" (the
-// operator's law) actually requires for the FIRST viewer of an item; every subsequent click for any
-// item, by anyone, is already-cached. Revalidation is via the SAME PUBLIC_ITEMS_TAG/revalidateTag
-// completion point as the four index pages (see ADR-026 Follow-up) plus loadDetail's own
-// DETAIL_CACHE_REVALIDATE_SECONDS window as the time-based safety net — no new invalidation path
-// needed.
+// Doc citation: nextjs.org/docs/app/api-reference/functions/generate-static-params
+// ("dynamicParams... pages that are not generated at build time will be rendered on-demand and
+// added to the cache"); the streaming/loading.tsx interaction for that on-demand path (NOT
+// streamed through the route's own Suspense boundary the way a `ƒ` route is — this is Next's
+// documented on-demand-ISR-equivalent behavior, not a bug in this app) is what makes closing the
+// "not yet generated" population, rather than special-casing the loading state, the standard fix
+// here — see nextjs.org/docs/app/building-your-application/rendering/server-components
+// (static rendering with `generateStaticParams` producing HTML/RSC payload at build time, cached
+// and reused, vs. dynamic rendering generated per-request).
 export async function generateStaticParams() {
-  return [];
+  const slugs = await getPublicSurfaceSlugs("regulations");
+  return slugs.map((slug) => ({ slug }));
 }
 
 interface ItemScoped {

@@ -45,7 +45,7 @@ import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { fetchClaimTierMap } from "@/lib/detail/load-detail-core";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
-import { getPublicMarketIntelItems } from "@/lib/data";
+import { getPublicMarketIntelItems, getPublicSurfaceSlugs } from "@/lib/data";
 import {
   buildResourceLookup,
   resolveItemUuid,
@@ -85,8 +85,20 @@ interface ItemScoped {
 // full slug enumeration) is the correct return value here: an unbounded, continuously-growing corpus,
 // with `dynamicParams` at its default `true` so every slug is rendered on first request and served
 // from the Full Route Cache thereafter.
+//
+// PERF-13 (2026-09-04, ADR-027 §1): SUPERSEDES the decision above (kept verbatim, not deleted, per
+// CLAUDE.md rule 14 — correcting findings in place, not erasing the prior lane's reasoning) — see
+// regulations/[slug]/page.tsx's own generateStaticParams comment for the full measurement (live
+// Chrome, corpus size, doc citations) this correction is based on. This surface's own corpus is 55
+// verified, non-archived items (Supabase MCP, `get_market_intel_items_public()` row count,
+// 2026-09-04) — small, not "unbounded" — enumerated at build time via
+// `getPublicSurfaceSlugs("market")` (src/lib/data.ts, the SAME function every `[slug]` route now
+// calls, reading through this surface's own existing `getPublicMarketIntelItems()` path — no new
+// query). `dynamicParams` stays `true` for an item minted after the last build; the deploy-time warm
+// step (docs/runbooks/warm-static-detail-routes.md) closes that gap before a real viewer's first click.
 export async function generateStaticParams() {
-  return [];
+  const slugs = await getPublicSurfaceSlugs("market");
+  return slugs.map((slug) => ({ slug }));
 }
 
 export default async function MarketSignalDetailPage({

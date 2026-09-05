@@ -40,13 +40,23 @@ import type {
 } from "@/types/resource";
 import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 
-/** Time backstop on the item-scoped cache entry — matches the 300s window
- *  already used by fetchIntelligenceItem / fetchIntelligenceItemSections
- *  (supabase-server.ts) so all three caches for one item drift stale
- *  together, not on three different clocks. Re-exported by load-detail.ts,
- *  which is where it's actually consumed (unstable_cache's `revalidate`
- *  option) — defined here so both files read the same constant. */
-export const DETAIL_CACHE_REVALIDATE_SECONDS = 300;
+/** Time backstop on the item-scoped cache entry (unstable_cache's `revalidate` — a
+ *  stale-while-revalidate window, not a hard TTL: nextjs.org/docs/app/api-reference/functions/
+ *  unstable_cache; a request past the window gets the STALE value immediately while Next
+ *  regenerates in the background for the next one).
+ *
+ *  PERF-13 (2026-09-04, ADR-027 §1, operator: "with tag revalidation on mint, a long revalidate
+ *  (hours) plus stale-while-revalidate is the standard"): raised from 300s. This cache entry is
+ *  tagged `itemTag(id)` + `surfaceDetailTag(surface)` (load-detail.ts, below) and
+ *  `scripts/mint/apply-mint-batch.mjs` already calls `revalidateTag(surfaceDetailTag(...))` for
+ *  all four surfaces at the single mint-apply completion point (confirmed this lane) — so a real
+ *  content change is already event-driven, not time-driven, and this window only needs to be a
+ *  safety net wide enough to be cheap, not tight enough to matter. Kept separate from
+ *  `PUBLIC_ITEMS_REVALIDATE_SECONDS` (data.ts, 6h) rather than importing it: this constant lives in
+ *  a file that deliberately carries zero `next/*` value-imports (see this file's own header) and a
+ *  detail page's own content is read far more selectively than a listing page's, so a slightly
+ *  shorter backstop (1h) costs nothing and leaves headroom if the two are ever tuned independently. */
+export const DETAIL_CACHE_REVALIDATE_SECONDS = 60 * 60; // 1 hour
 
 /** The shape fetchIntelligenceItem already returns (supabase-server.ts).
  *  Restated structurally here (not imported as a value) so this file has no
