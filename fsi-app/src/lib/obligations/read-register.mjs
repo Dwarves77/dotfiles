@@ -24,6 +24,27 @@
 // PLAIN ESM, NO `@/` ALIAS — same portability constraint read-upcoming.mjs states for itself: importable
 // by a plain `node --test` proof with zero tsconfig/Next resolution, and by the regulations list and
 // detail pages (React server components).
+//
+// REG-GRAIN (2026-09-05) — THE ROW NOW CARRIES ITS OWN OBLIGATION TEXT, NOT JUST ITS COORDINATES.
+// [CONFIRMED, lane FE-DEDUP's report + the coordinator's live screenshot of /regulations at 1ae31181]
+// Before this lane, a register row selected id/intelligence_item_id/forward_event_id/jurisdiction/
+// modes/binding_position/due_date/date_precision/event_kind/status — the event's own COORDINATES — and
+// never the obligation's own text (item_forward_events.obligation_text). Two genuinely distinct
+// obligations sharing (item, kind, date) — Euro 7's phase-out schedule, several events on one date;
+// NZIA's four distinct 2030-01-01 targets — rendered as identical rows: a reader could tell something
+// was due, never what. Measured this lane (Supabase MCP, 2026-09-05): of 1,141 live obligations, 927
+// survive FE-DEDUP's exact-text-twin removal (migration 307's own dedupe key), and 583 of those 927
+// (63%) still share (intelligence_item_id, event_kind, due_date) with a sibling whose obligation_text
+// genuinely differs — the defect this lane fixes, not a hypothetical. The fix: `fetchObligationRegister`
+// and `fetchObligationRegisterPage` both embed `item_forward_events(obligation_text)` on the SAME
+// `forward_event_id` FK the row already carries (one query, no added round trip — PostgREST resolves an
+// embed inside the same request) and `flattenObligationText` trims it (OBLIGATION_TEXT_TRIM_LENGTH,
+// 160 chars, ellipsis) onto `row.obligation_text` before the row ever reaches selectRegisterRows /
+// filterJoinedRows(Page). `source_span` (the verbatim date-phrase substring) is deliberately NOT
+// selected here: spec-01 §3.2's `verbatim_text` field is the clause-around-the-date obligation_text
+// already carries, and adding a second text column with no distinct customer-facing job would be bytes
+// spent on the same defensibility story obligation_text already tells — see this lane's REPORT for the
+// measured bytes-per-page delta this addition costs, fed into perf-budget.mjs honestly.
 
 // not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (buildRegisterQuerySpec below),
 // per the wiring audit's Appendix B (dead exports, 2026-09-04) — UNCLASSIFIED and DUE_WINDOWS below
@@ -40,6 +61,43 @@ export const UNCLASSIFIED = "unclassified";
 export const DUE_WINDOWS = Object.freeze(["overdue", "30", "90", "365", "undated", "all"]);
 
 const GENERIC_JURISDICTIONS = new Set(["global", "worldwide", "all"]);
+
+// REG-GRAIN (2026-09-05): bound length for `obligation_text` at the READ, not the write. The source
+// column (item_forward_events.obligation_text, migration 274) is untrimmed by design — "the
+// clause/sentence around the date... giving a reader the obligation in context" — and the live corpus
+// carries values up to 222 chars (measured, Supabase MCP, 2026-09-05, first-page-by-due-date sample).
+// One constant, applied identically to every caller (fetchObligationRegister and
+// fetchObligationRegisterPage both call trimObligationText below) so the register's per-row payload
+// never balloons regardless of how long a future extraction run's obligation_text gets — see this
+// lane's REPORT for the measured before/after bytes-per-page delta feeding perf-budget.mjs.
+export const OBLIGATION_TEXT_TRIM_LENGTH = 160;
+
+/**
+ * Pure: bound `text` to `max` characters, ellipsis-terminated when truncated. Never throws on a
+ * non-string/null/undefined input — degrades to `null` (same "render what's known, never break the
+ * page" posture every other read here takes), since a register row missing its obligation text is a
+ * real, renderable state (falls back to the event-kind label alone), not an error.
+ */
+export function trimObligationText(text, max = OBLIGATION_TEXT_TRIM_LENGTH) {
+  if (typeof text !== "string") return null;
+  const trimmed = text.trim();
+  if (trimmed.length === 0) return null;
+  if (trimmed.length <= max) return trimmed;
+  return `${trimmed.slice(0, max).trimEnd()}…`;
+}
+
+/**
+ * Pure: flatten the PostgREST-embedded `item_forward_events` object (one FK hop,
+ * `obligations.forward_event_id -> item_forward_events.id`, migration 290) onto the row itself as a
+ * trimmed `obligation_text` string, and drop the nested object — every caller of this module reads
+ * `row.obligation_text` directly, never `row.item_forward_events`, so there is exactly one shape for
+ * a joined row regardless of which function produced it.
+ */
+function flattenObligationText(row) {
+  const nested = row.item_forward_events;
+  const { item_forward_events: _drop, ...rest } = row;
+  return { ...rest, obligation_text: trimObligationText(nested?.obligation_text) };
+}
 
 /**
  * Pure: normalize a caller-supplied filter set into the exact shape the query needs. Never throws on a
@@ -183,7 +241,13 @@ export async function fetchObligationRegister(supabase, opts = {}) {
 
   let q = supabase
     .from("obligations")
-    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status")
+    // REG-GRAIN (2026-09-05): the SAME query, one added embed — `item_forward_events(obligation_text)`
+    // follows the existing forward_event_id FK (no extra round trip; PostgREST resolves an embed inside
+    // one request) so a register row carries its own obligation's text, not just its item/kind/date.
+    // See this module's header ("the register renders one row per obligations row... a genuinely
+    // distinct obligation sharing the same date/kind/item is otherwise indistinguishable from its
+    // neighbour") and flattenObligationText below for the shape this produces.
+    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)")
     .eq("status", "active");
   q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId) : q;
   // Overfetch before the app-side filter/window pass, same reasoning read-upcoming.mjs states for its
@@ -191,8 +255,9 @@ export async function fetchObligationRegister(supabase, opts = {}) {
   // this query, so a tight `.limit(spec.limit)` here could starve the post-filter result short.
   q = q.limit(spec.itemId ? Math.max(spec.limit, 100) : spec.limit * 5 || 1000);
 
-  const { data: rows, error } = await q;
-  if (error || !rows || rows.length === 0) return [];
+  const { data: rawRows, error } = await q;
+  if (error || !rawRows || rawRows.length === 0) return [];
+  const rows = rawRows.map(flattenObligationText);
 
   const itemIds = [...new Set(rows.map((r) => r.intelligence_item_id))];
   const itemsById = new Map();
@@ -228,7 +293,9 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
 
   let q = supabase
     .from("obligations")
-    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status")
+    // REG-GRAIN (2026-09-05): same added embed as fetchObligationRegister above — one query shape for
+    // both the first-page and the paged/filtered path, per this module's header.
+    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)")
     .eq("status", "active");
   q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId) : q;
   // OVERFETCH_CAP: fixed, NOT `spec.limit * <factor>` — the jurisdiction/mode/due-window filters apply
@@ -243,8 +310,9 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
   const OVERFETCH_CAP = 2000;
   q = q.limit(spec.itemId ? Math.max(spec.limit, 100) : OVERFETCH_CAP);
 
-  const { data: rows, error } = await q;
-  if (error || !rows || rows.length === 0) return { rows: [], total: 0 };
+  const { data: rawRows, error } = await q;
+  if (error || !rawRows || rawRows.length === 0) return { rows: [], total: 0 };
+  const rows = rawRows.map(flattenObligationText);
 
   const itemIds = [...new Set(rows.map((r) => r.intelligence_item_id))];
   const itemsById = new Map();

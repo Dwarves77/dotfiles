@@ -133,6 +133,41 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
         "remainder of the corpus (the old LIST_REMAINDER_LIMIT=5000-row one-shot fetch this lane " +
         "deleted — see list-pagination.ts's own header).",
     },
+    // REG-GRAIN (2026-09-05): docs/specs/01-regulations.md's own defect — the obligation register
+    // rendered one row per (item, event_kind, due_date) with no obligation text at all, so genuinely
+    // distinct obligations sharing those three fields (Euro 7's phase-out schedule, NZIA's several
+    // 2030-01-01 targets) were indistinguishable. Measured (Supabase MCP, 2026-09-05): of 1,141 live
+    // `obligations` rows, 927 survive FE-DEDUP's exact-text-twin removal, and 583 of those 927 (63%)
+    // still share (item, kind, due_date) with a sibling whose text differs. The fix
+    // (read-register.mjs) embeds item_forward_events.obligation_text via the existing forward_event_id
+    // FK — one query, no added round trip — and trims it to OBLIGATION_TEXT_TRIM_LENGTH (160 chars).
+    obligationRegisterBytesPerPage: {
+      // ratchet: the WORST-CASE per-page byte cost this trim can ever produce (every one of
+      // LIST_FIRST_PAGE_SIZE=60 rows carrying an obligation_text at the full 160-char trim ceiling) —
+      // stated as the ceiling itself, not today's average, since a future extraction run can only
+      // ever raise average text length up to that ceiling, never past it (the trim is unconditional).
+      ratchet: 42_673,
+      // target: today's MEASURED average-case cost (60 rows at the live corpus's actual average
+      // obligation_text length, 74.8 chars) — the ratchet only reaches its worst case if every row's
+      // source text happens to be long; the common case is already close to this number.
+      target: 37_573,
+      measuredAt: "2026-09-05",
+      evidence:
+        "[CONFIRMED, by measurement — Buffer.byteLength of JSON.stringify against fixture rows built " +
+        "in the exact ObligationRow shape (60 rows, LIST_FIRST_PAGE_SIZE), text lengths driven by a " +
+        "real Supabase MCP query against the live corpus (project kwrsbpiseruzbfwjpvsp): the 60 " +
+        "soonest-due obligations' item_forward_events.obligation_text averages 74.8 chars (max 222, " +
+        "well over the 160-char trim ceiling this lane adds)] before this lane's field addition, the " +
+        "same 60-row page (no obligation_text) serialized to 31,813 bytes; adding obligation_text at " +
+        "the live average (no row needed the 160-char cap) raised it to 37,573 bytes (+5,760 total, " +
+        "+96 bytes/row average); every row forced to the full 160-char trim ceiling (the worst case " +
+        "the read-time trim permits) raises it to 42,673 bytes (+10,860 total, +181 bytes/row worst " +
+        "case). This is a NEW metric (the register's own per-page payload had no prior budget entry — " +
+        "documentBytes above tracks the WHOLE /regulations SSR document, of which this endpoint's " +
+        "first-page response is one contributor); this lane's sandbox has no route to carosledge.com " +
+        "to fold this delta into a fresh live documentBytes capture, so documentBytes' own ratchet is " +
+        "left untouched here rather than guessed at — see this lane's REPORT.",
+    },
   },
   "regulations-detail": {
     // PERF-13 (2026-09-04, item 6): click-to-content is the metric the operator's own bar ("every

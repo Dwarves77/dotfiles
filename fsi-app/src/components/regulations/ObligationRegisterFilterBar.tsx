@@ -85,6 +85,13 @@ export interface ObligationRow {
   date_precision: "day" | "month" | "year" | null;
   event_kind: string;
   status: string;
+  /** REG-GRAIN (2026-09-05): the obligation's own text (item_forward_events.obligation_text via
+   *  read-register.mjs's forward_event_id embed), bounded to OBLIGATION_TEXT_TRIM_LENGTH (160 chars,
+   *  ellipsis) at the read. Null when the source event carries none — the row falls back to the
+   *  event-kind label alone, same "render what's known" posture as every other nullable field here.
+   *  This, not the item title, is what distinguishes two obligations sharing one item/kind/date (Euro
+   *  7's phase-out schedule, NZIA's several 2030-01-01 targets) — see this file's own Row component. */
+  obligation_text: string | null;
   item: ObligationItem;
 }
 
@@ -379,6 +386,16 @@ function Row({ row }: { row: ObligationRow }) {
         <Link href={href} style={{ display: "inline-flex", alignItems: "center", minHeight: 24, color: "var(--accent, #E8610A)", fontWeight: 700, textDecoration: "none" }}>
           {row.item.title}
         </Link>
+        {/* REG-GRAIN (2026-09-05): the obligation's OWN text, not the instrument's — this is what
+            distinguishes two genuinely distinct obligations that share one item/kind/date (Euro 7's
+            phase-out schedule, NZIA's several 2030-01-01 targets). Wraps normally (no ellipsis, no
+            nowrap) same as every other row title per this file's own UX-smoke posture; the read-time
+            trim (read-register.mjs, 160 chars) already bounds its length. Renders only when present —
+            an event whose obligation_text degraded to null falls back to the event-kind column alone
+            rather than an empty line. */}
+        {row.obligation_text && (
+          <div style={obligationTextStyle}>{row.obligation_text}</div>
+        )}
       </td>
       <td data-label="Binding" style={tdStyle}>
         {bp ? (
@@ -457,6 +474,11 @@ const filterRowStyle: React.CSSProperties = { display: "flex", gap: 14, flexWrap
 const emptyTextStyle: React.CSSProperties = { fontSize: 12.5, color: "var(--color-text-muted, #7A6E6C)", margin: 0 };
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", minWidth: 720 };
 const tdStyle: React.CSSProperties = { fontSize: 12.5, padding: "9px 12px", color: "var(--color-text-primary, #1A1A1A)", verticalAlign: "top" };
+// REG-GRAIN (2026-09-05): the obligation's own text, beneath the instrument title — deliberately
+// smaller/muted than the title (the title is the primary link/identity, the text is supporting detail
+// that makes the row distinguishable from a same-date/same-kind sibling), wraps normally so a long
+// (pre-trim) clause never overflows the row.
+const obligationTextStyle: React.CSSProperties = { display: "block", marginTop: 3, fontSize: 11.5, fontWeight: 400, color: "var(--color-text-muted, #7A6E6C)", lineHeight: 1.4, overflowWrap: "anywhere" };
 // Law-2 floor: 44px tap target (a text button, no icon-only affordance to shrink below it).
 const loadMoreButtonStyle: React.CSSProperties = {
   marginTop: 12,
