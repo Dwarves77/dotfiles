@@ -35,12 +35,20 @@
 // that shares the SAME upstream vocabulary is the shape that scales to a third table without a NOT NULL
 // flag threading through every caller.
 //
-// GENERATED THE 258 WAY: scripts/gen/migration-267-origin-class-and-envelope.mjs imports this module and
-// splices its render*() output into supabase/migrations/267_origin_class_and_envelope.sql between
-// >>> GENERATED <<< markers, exactly as scripts/gen/migration-258.mjs does for factor-tier.mjs. The CHECK
-// literals in that migration are never hand-typed; src/__tests__/contracts-provenance-envelope.test.mjs
-// regenerates them at test time and byte-compares against both migration files (258 for the shared
-// origin_class/derivation vocabularies, 267 for the tables this module targets).
+// GENERATED THE 258 WAY (historical): scripts/gen/migration-267-origin-class-and-envelope.mjs imported
+// this module and spliced its render*() output into supabase/migrations/267_origin_class_and_envelope.sql
+// between >>> GENERATED <<< markers, exactly as scripts/gen/migration-258.mjs does for factor-tier.mjs.
+// The CHECK literals in that migration were never hand-typed; a byte-compare anti-drift test
+// (src/__tests__/contracts-provenance-envelope.test.mjs) pinned them against the live generator. Lane
+// W71-WIRE (2026-09-05, plan §W7.1): migration 267 is applied and live — the generator and its anti-drift
+// test were DELETED (re-running a one-shot generator against an already-applied migration is a no-op/
+// destructive, not a wiring gap; the same applies to 268/271's own generators, which shared this module).
+// Before deleting, this lane re-ran each generator's renderMigration() against a scratch copy and
+// byte-compared the output to the live migration SQL on disk — all three (267/268/271) matched exactly,
+// so the deletion drops no undetected drift; see docs/inventories/migrations.md rows 267/268/271 and this
+// lane's report for the verification. The migration SQL files themselves are untouched and remain the
+// durable record; this module (the shared renderer) stays live for any future table that needs the same
+// envelope shape.
 //
 // PLAIN ESM, ZERO DEPENDENCIES — same constraint as vocabularies.mjs, envelope.mjs and factor-tier.mjs.
 // Imported by `node --test` with no tsc and no bundler.

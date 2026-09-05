@@ -43,6 +43,7 @@ import { TierOpinionDisagreementsView } from "@/components/admin/TierOpinionDisa
 import { ResearchPipelineQueueView } from "@/components/admin/ResearchPipelineQueueView";
 import { CommunityPickupsQueueView } from "@/components/admin/CommunityPickupsQueueView";
 import { ErrorGroupsView, type ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
+import { AssumptionRegisterPanel, type AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
 import { PendingJurisdictionReviewView } from "@/components/admin/PendingJurisdictionReviewView";
 import { AdminIssuesRail, type IssueNavTarget } from "@/components/admin/redesign/AdminIssuesRail";
 import { WorkspacesUsageRow } from "@/components/admin/redesign/WorkspacesUsageRow";
@@ -63,6 +64,7 @@ interface AdminDashboardProps {
   initialMtdRuns?: number;
   initialErrorGroups?: ErrorGroupRow[];
   initialMtdErrors?: number;
+  initialAssumptionRegister?: AssumptionRegisterRow[];
 }
 
 // ─── Section model (mock §6.8 sectionDefs) ──────────────────────────────────
@@ -123,8 +125,8 @@ const SECTIONS: SectionDef[] = [
   },
   {
     name: "Runtime",
-    sub: "First-party error tracking (server + client) and platform observability.",
-    tabs: ["Errors"],
+    sub: "First-party error tracking (server + client), the modelling-constant assumption register, and platform observability.",
+    tabs: ["Errors", "Assumptions"],
   },
 ];
 
@@ -139,6 +141,7 @@ export function AdminDashboard({
   initialMtdRuns = 0,
   initialMtdErrors = 0,
   initialErrorGroups = [],
+  initialAssumptionRegister = [],
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
@@ -628,8 +631,11 @@ export function AdminDashboard({
     // Community pickups
     if (sec === "Community pickups") return <CommunityPickupsQueueView />;
 
-    // Runtime (R0.2 first-party error tracking)
-    if (sec === "Runtime") return <ErrorGroupsView groups={initialErrorGroups} />;
+    // Runtime (R0.2 first-party error tracking; WO-20 assumption register, spec §4's reader)
+    if (sec === "Runtime") {
+      if (tab === "Assumptions") return <AssumptionRegisterPanel rows={initialAssumptionRegister} />;
+      return <ErrorGroupsView groups={initialErrorGroups} />;
+    }
 
     return null;
   }
