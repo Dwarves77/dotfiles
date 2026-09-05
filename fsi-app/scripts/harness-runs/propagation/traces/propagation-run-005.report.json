@@ -1,0 +1,12 @@
+{
+  "mode": "apply",
+  "queueDepthBefore": 1000,
+  "eventsConsidered": 500,
+  "eventsDrained": 500,
+  "invalidated": 0,
+  "recomputed": 0,
+  "skippedUnknownMethod": 0,
+  "skippedMethodRefused": 0,
+  "superseded": [],
+  "errors": []
+}
