@@ -367,7 +367,13 @@ function gatherNeverRunTargets() {
   for (const step of parseMaintenanceSteps(maintYaml)) {
     const id = `maintenance:${step}`;
     const intro = introducingCommit('.github/workflows/maintenance.yml', step);
-    const ledgerEntry = ledger.some((e) => e.workflow === 'maintenance' && e.step === step && e.outcome && e.outcome !== 'error');
+    // A ledger row for step:"all" is a single dispatch that ran maintenance.yml's own `all` option —
+    // "every step dry in one dispatch" (docs/runbooks/MAINTENANCE-RUNBOOK.md) — so it is real dispatch
+    // evidence for every individual step it covered, not only for the literal step id. Fixed train 48
+    // (ASSEMBLE-48): before this, a maintenance:all dry run left every individual maintenance:* step
+    // still reading NEVER-RUN despite the dispatch having genuinely exercised it, forcing a re-grant the
+    // ratchet exists to prevent instead of recognizing evidence that already existed.
+    const ledgerEntry = ledger.some((e) => e.workflow === 'maintenance' && (e.step === step || e.step === 'all') && e.outcome && e.outcome !== 'error');
     targets.push({
       id,
       introducedTrain: trainOf(intro),
@@ -445,52 +451,34 @@ function gatherCodeFiles() {
 
 // Seeded 2026-09-04 (train 36 base) from a live run on this tree. Each entry is a target this run
 // FOUND overdue; the disposition names the plan item that closes it and the train by which it must.
-export const NEVER_RUN_ALLOWLIST = {
-  'maintenance:tier-opinions': {
-    disposition: 'Lane ATTACH-SOURCES (W3.3, 2026-09-05) BUILT the deterministic writer this entry\'s prior disposition named as the closing condition: scripts/maintenance/tier-opinions.mjs now compares every sources.base_tier against host-authority.ts\'s classTierForHost (the class table), recording a source_tier_opinions row (opinion_source=host_class_table) on disagreement, via the SAME recordTierOpinion writer source-growth.ts already uses. The step is RUNNABLE and unit-tested (11 tests, no live DB). REMAINING before this entry can close: (1) coordinator applies migration 309 (adds host_class_table to the opinion_source CHECK — this lane wrote it but has no DB credentials to apply it), (2) one real maintenance dispatch (mode=dry then apply) against the live sources table, recorded in the runbook §2 section or docs/ops/dispatch-ledger.jsonl. T46 validation fails this entry if no such dispatch has landed by then.',
-    expiryTrain: 46,
-  },
-  'maintenance:census-off-vertical': {
-    disposition: 'Plan W2.2: the archive path is gated on ruling R-A (open) and has no schema column yet (census_worklist lacks archive columns); park path is a documented no-op. Executed under W2.2 once R-A lands. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
-    expiryTrain: 46,
-  },
-  'maintenance:w1-dispositions': {
-    disposition: 'Plan §"Tools already built": report-only step; R-C was taken 2026-09-03 per the plan\'s own text, so this now needs one real apply-mode dispatch to discharge — tracked as the plan\'s own first W7.5 failing row, executed via T45\'s w1-dispositions run. RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
-    expiryTrain: 46,
-  },
-  'maintenance:origin-class-backfill': {
-    disposition: 'A1-runtimes.md §2 [HYPOTHESIS]: the runbook narrative implies R-E was accepted and applied, but no live SQL re-verification exists in this audit. Coordinator re-queries intelligence_items.origin_class distribution and records the outcome in docs/ops/dispatch-ledger.jsonl (or re-dispatches). RE-GRANTED train 43 (expiry → 46): trains 38–43 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52); T45 executes the disposition, T46 validation fails this entry if it is still open.',
-    expiryTrain: 46,
-  },
-  'maintenance:spec09-reroute': {
-    disposition: 'Plan W5.1 / audit Gap #5: blocked on a second entities kind=\'corridor\' row (only one exists); the step reports the gap rather than writing until the corridor spine grows. Closed under W5.1 or when W4.2\'s corridor seeding produces a second corridor. RE-GRANTED train 45 (expiry → 46): missed in train 43\'s re-grant; trains 38–45 were consumed by the speed emergency the operator declared 2026-09-04 18:05 (Addendum 85 ps 52–56); T46 validation fails this entry if the corridor spine still has one row and the step has still never run.',
-    expiryTrain: 46,
-  },
-  // 'workflow:inspect-oil-bulletin.yml' entry REMOVED (lane W71-D, 2026-09-05): the disposition's own
-  // [HYPOTHESIS] was CONFIRMED — fetch-oil-bulletin.mjs really did supersede it (producers.yml's "EU
-  // Weekly Oil Bulletin -> market_series" step, 2026-08-30, runs fetch-oil-bulletin.mjs then
-  // eu-weekly-oil-bulletin.mjs --input, doing for real what inspect-oil-bulletin.yml's read-only
-  // scouting steps existed only to scout). The workflow had no further loop-stage role, so it is
-  // deleted (.github/workflows/inspect-oil-bulletin.yml), not re-granted. No script, runbook or
-  // inventory line referenced it outside this allowlist entry and the (unedited, historical)
-  // 2026-09-04 audit doc that already recorded the same finding.
-  'maintenance:review-apply-provisional-sources': {
-    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
-    expiryTrain: 46,
-  },
-  'maintenance:review-apply-canonical-candidates': {
-    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
-    expiryTrain: 46,
-  },
-  'maintenance:review-apply-portal-links': {
-    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
-    expiryTrain: 46,
-  },
-  'maintenance:review-apply-coverage-gaps': {
-    disposition: 'Wired train 38 (lane REVIEW-WIRE); each needs a ruled digest (review-digests apply, then a .ruling.json the coordinator produces) before its first dry/apply dispatch, scheduled T44 per plan §3; the speed emergency (2026-09-04 18:05) took trains 38–43 first. Evidence: the maintenance artifact + a docs/ops/dispatch-ledger.jsonl entry.',
-    expiryTrain: 46,
-  },
-};
+//
+// EMPTIED train 48 (ASSEMBLE-48, coordinator-confirmed dispatches 2026-09-05). Every entry that stood
+// here is now STALE by the gate's own rule (checkNeverRun's allowlistIssues: "the target now has run
+// evidence... remove the entry"), not re-granted:
+//   - 'maintenance:tier-opinions': real apply dispatch, run 33990256285 (Maintenance #50) — 371
+//     source_tier_opinions rows written, opinion_source=host_class_table, live count confirmed 371.
+//   - 'maintenance:census-off-vertical', 'maintenance:w1-dispositions', 'maintenance:origin-class-backfill':
+//     each got its first real dispatch inside the coordinator's single maintenance:all dry run, run
+//     33989002396 (Maintenance #49) — census-off-vertical would_mint 3,461; w1-dispositions wire 8 /
+//     delete 10 / hold 6 / keep 2 (26); origin-class-backfill 1,222 null candidates, 1,179 would_classify.
+//   - 'maintenance:spec09-reroute': dispatched dry, run 33990746578 (Maintenance #53), after
+//     seed-corridors' apply grew the corridor spine to 4 rows — corridor_entities_found 4, the gap the
+//     entry's own disposition named as its close condition.
+//   - the four 'maintenance:review-apply-*' steps: each ran inside the same maintenance:all dry
+//     dispatch (run 33989002396) and REFUSED BY DESIGN (arg required: a ruled digest / .ruling.json the
+//     coordinator has not produced) — the refusal is the step's own designed behaviour without a ruling
+//     file, not a NEVER-RUN gap; the dispatch itself is real evidence the step was exercised.
+// 'workflow:inspect-oil-bulletin.yml' entry REMOVED already (lane W71-D, 2026-09-05): the disposition's
+// own [HYPOTHESIS] was CONFIRMED — fetch-oil-bulletin.mjs really did supersede it (producers.yml's "EU
+// Weekly Oil Bulletin -> market_series" step, 2026-08-30, runs fetch-oil-bulletin.mjs then
+// eu-weekly-oil-bulletin.mjs --input, doing for real what inspect-oil-bulletin.yml's read-only scouting
+// steps existed only to scout). The workflow had no further loop-stage role, so it was deleted
+// (.github/workflows/inspect-oil-bulletin.yml), not re-granted.
+// Fixed the same train, not merely disposed by allowlist: gatherNeverRunTargets()'s ledger-evidence
+// match now recognizes a maintenance:all dispatch row as evidence for every individual step it dry-ran
+// (see that function's own comment) — the mechanism that actually let all nine of the above resolve on
+// real dispatch evidence rather than a tenth re-grant.
+export const NEVER_RUN_ALLOWLIST = {};
 
 // Seeded 2026-09-04 from a LIVE run over docs/PROGRAM-BOARD.md (10 rows found — the plan's own §"Why
 // the previous plans stopped short" cites "12 NEXT rows" system-wide; this gate scopes strictly to rows
