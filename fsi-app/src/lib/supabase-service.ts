@@ -5,6 +5,8 @@
 // defect). Every service-role client construction routes through here; F19 forbids the `SERVICE_ROLE || ANON`
 // downgrade anywhere in src.
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { isServiceSupabaseConfigured } from "./supabase-env";
+export { isServiceSupabaseConfigured };
 
 // MEMOIZED (diagnosis 2026-07-13): the client is stateless (persistSession:false, service-role) so it is safe
 // to reuse across requests. The detail-route prefetch fan-out built a fresh client per render (per round-trip
@@ -19,9 +21,12 @@ let cached: SupabaseClient | null = null;
 // src/lib/data.ts's fetchAllPublicListingSlugs for the caller this was extracted for (build-proof CI
 // runs `next build` with real node_modules but no Supabase credentials at all; generateStaticParams
 // must detect that BEFORE attempting a service-role read, not after one throws mid-page-collection).
-export function isServiceSupabaseConfigured(): boolean {
-  return !!process.env.SUPABASE_SERVICE_ROLE_KEY;
-}
+//
+// CAP-1000-FIX-2 (2026-09-05): the predicate itself now LIVES in ./supabase-env (a pure module with
+// no @supabase/supabase-js import) and is only re-exported here, so a caller that must stay free of
+// this file's own `@supabase/supabase-js` import (the discipline no-npm-ci test suite) can depend on
+// the predicate directly without pulling this module — and therefore that package — in transitively.
+// See supabase-env.ts's own header for the full story; this file never re-implements the check.
 
 export function getServiceSupabase() {
   if (cached) return cached;

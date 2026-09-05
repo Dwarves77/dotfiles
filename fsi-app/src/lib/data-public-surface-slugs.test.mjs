@@ -24,14 +24,16 @@
 //     `.limit()` call; the other three surfaces are UNCHANGED here because they inherit correctness from
 //     `supabase-server.ts`'s own `runCategoryRpc`/`runCategoryRpcPublic` fix (proved separately in
 //     `supabase-server-category-rpc-paging.test.mjs`).
-//  3. CAP-1000-FIX (build-proof CI regression, 2026-09-05): with NO Supabase service-role credentials
-//     configured at all (build-proof CI's own env, per .github/workflows/build-proof.yml — real
+//  3. CAP-1000-FIX / CAP-1000-FIX-2 (build-proof + discipline-suite regressions, 2026-09-05): with NO
+//     Supabase service-role credentials configured at all (build-proof CI's own env, per
+//     .github/workflows/build-proof.yml — real
 //     node_modules, real bundler, deliberately no SUPABASE_SERVICE_ROLE_KEY), `fetchAllPublicListingSlugs`
 //     must never attempt the paginated read in the first place — the read is guaranteed to throw via
 //     `getServiceSupabase()`'s own fail-closed check, and CAP-1000's `fetchAllRows` fail-closed contract
 //     would then propagate that throw straight out of `generateStaticParams`, aborting `next build`. It
 //     must instead check the SAME predicate `getServiceSupabase()` checks (`isServiceSupabaseConfigured()`,
-//     imported from supabase-service.ts via supabase-server.ts's re-export — never a second, bespoke
+//     a pure, dependency-free predicate living in supabase-env.ts and re-exported by supabase-service.ts
+//     so getServiceSupabase() checks the identical function — never a second, bespoke
 //     `!!process.env.SUPABASE_SERVICE_ROLE_KEY`), log one line naming the reason, and return `[]` so the
 //     four `[slug]` routes fall back to `dynamicParams` instead of failing the build. This is source-text
 //     proof for the same next/cache reason as part 2 above; part 1's mechanism tests already prove
@@ -43,7 +45,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 import { fetchAllRows } from "./db/paginate.mjs";
-import { isServiceSupabaseConfigured } from "./supabase-service.ts";
+import { isServiceSupabaseConfigured } from "./supabase-env.ts";
 
 const SRC = dirname(fileURLToPath(import.meta.url));
 const CODE = readFileSync(join(SRC, "data.ts"), "utf8");
@@ -246,17 +248,21 @@ test("fetchAllPublicListingSlugs keeps a cap (a genuine safety assertion, not a 
 // ── 3. WIRING: the CAP-1000-FIX credential gate itself — checked FIRST, before fetchAllRows is ever
 // called, using the imported predicate rather than a re-implemented env check ──────────────────────────
 
-test("data.ts imports isServiceSupabaseConfigured from @/lib/supabase-server — the SAME predicate getServiceSupabase() checks, not a re-implemented env parse", () => {
+test("data.ts imports isServiceSupabaseConfigured from the pure @/lib/supabase-env module — the SAME predicate getServiceSupabase() checks, not a re-implemented env parse", () => {
   assert.match(
     CODE,
-    /isServiceSupabaseConfigured,/,
-    "isServiceSupabaseConfigured must be imported (from the @/lib/supabase-server import block)"
+    /import\s*\{\s*isServiceSupabaseConfigured\s*\}\s*from\s*"@\/lib\/supabase-env";/,
+    "isServiceSupabaseConfigured must be imported from @/lib/supabase-env — a dependency-free module " +
+      "(no @supabase/supabase-js, no next/cache), never from @/lib/supabase-server or " +
+      "@/lib/supabase-service (both of which import @supabase/supabase-js at module scope and would " +
+      "break this test file's own ERR_MODULE_NOT_FOUND-free import chain in the no-npm-ci discipline suite)"
   );
   assert.doesNotMatch(
     CODE,
     /process\.env\.SUPABASE_SERVICE_ROLE_KEY/,
     "data.ts must never read SUPABASE_SERVICE_ROLE_KEY directly — that parsing belongs solely to " +
-      "supabase-service.ts's isServiceSupabaseConfigured/getServiceSupabase, imported here, not duplicated"
+      "supabase-env.ts's isServiceSupabaseConfigured (imported here) / supabase-service.ts's " +
+      "getServiceSupabase (which re-exports the same predicate), never duplicated"
   );
 });
 

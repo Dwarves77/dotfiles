@@ -30,7 +30,6 @@ import {
   fetchResearchSourceCoverage,
   getServiceSupabase,
   isSupabaseConfigured,
-  isServiceSupabaseConfigured,
   SEED_FALLBACK_ERROR,
   type ScopeFilter,
   type CategoryRoutedResult,
@@ -41,6 +40,13 @@ import {
 } from "@/lib/supabase-server";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
+// CAP-1000-FIX-2 (2026-09-05): imported from the pure supabase-env module directly, not via
+// supabase-server (which imports @supabase/supabase-js + next/cache at module scope). This file is
+// never itself in the no-npm-ci discipline glob, but the predicate check below is duplicated
+// verbatim as source-text WIRING proof in data-public-surface-slugs.test.mjs, which IS in that glob
+// and therefore imports isServiceSupabaseConfigured from this same pure module — see that test's own
+// header for why.
+import { isServiceSupabaseConfigured } from "@/lib/supabase-env";
 import {
   fetchObligationRegisterPage,
   fetchForwardEventCount,
@@ -519,11 +525,20 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
  * the reason, and the route falls back to `dynamicParams` (default `true` — see this file's own
  * `getPublicSurfaceSlugs` doc block above and each `[slug]/page.tsx`'s own comment), the exact
  * degrade path CAP-1000's fail-closed rule intentionally does NOT touch. Detected via
- * `isServiceSupabaseConfigured()` (supabase-service.ts) — the SAME predicate `getServiceSupabase()`
- * itself checks before throwing — imported rather than re-implemented, so this can never drift from
- * what "configured" actually means; this is not a catch-all try/catch around the enumeration (that
- * would also swallow a genuine mid-walk page failure with real credentials, exactly what CAP-1000
- * exists to prevent).
+ * `isServiceSupabaseConfigured()` (imported from the pure `@/lib/supabase-env` module, also
+ * re-exported by `supabase-service.ts` so `getServiceSupabase()` itself checks the SAME predicate
+ * before throwing) rather than re-implemented, so this can never drift from what "configured"
+ * actually means; this is not a catch-all try/catch around the enumeration (that would also swallow
+ * a genuine mid-walk page failure with real credentials, exactly what CAP-1000 exists to prevent).
+ *
+ * CAP-1000-FIX-2 (2026-09-05, PR #593 discipline-suite failure): this predicate used to be imported
+ * from `@/lib/supabase-server`, whose own top-level `@supabase/supabase-js` + `next/cache` imports
+ * are fine for THIS file (never run by the no-npm-ci discipline suite) but broke
+ * `data-public-surface-slugs.test.mjs`, which imported the same predicate straight from
+ * `supabase-service.ts` for its own executable gate tests — `run-test-suite.sh` runs `node --test`
+ * with no `npm ci`, so resolving `@supabase/supabase-js` there threw ERR_MODULE_NOT_FOUND before a
+ * single assertion ran. Moving the predicate to `@/lib/supabase-env` (no npm-package import at all)
+ * fixes the test without changing this call site's behavior.
  */
 async function fetchAllPublicListingSlugs(): Promise<string[]> {
   if (!isServiceSupabaseConfigured()) {
