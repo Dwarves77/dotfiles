@@ -437,14 +437,23 @@ population:
 - (blank) or `quarantined-live` — every live (`is_archived=false`), `quarantined` item (the default).
 - `archived-unreasoned` — archived items with `archive_reason IS NULL` (the same ruling, archive side).
 - `ids:<uuid,uuid,...>` — exactly these items, any current status.
-- `slots-backfill` — every verified, live `market_signal`/`initiative`/`research_finding` item ACTUALLY
-  missing a slot the kit's `item-type-required-slots.json` now requires (narrowed live, not just by
-  item_type — an item already carrying the new slot's FACT-or-GAP claim is skipped). **Sequencing note**:
-  migration 299 (the matching LIVE `item_type_required_slots` rows for `corridor_identity` /
-  `evidence_agreement_signal` / `source_authority_signal`) is written but **not applied** — the kit
-  (`item-type-required-slots.json`) is deliberately stricter than the live table until this selection has
-  run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE the migration
-  lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+- `slots-backfill` — every verified, **live** (`is_archived=false`) `market_signal`/`initiative`/
+  `research_finding` item ACTUALLY missing a slot the kit's `item-type-required-slots.json` now requires
+  (narrowed live, not just by item_type — an item already carrying the new slot's FACT-or-GAP claim is
+  skipped). **Sequencing note**: migration 299 (the matching LIVE `item_type_required_slots` rows for
+  `corridor_identity` / `evidence_agreement_signal` / `source_authority_signal`) is written but **not
+  applied** — the kit (`item-type-required-slots.json`) is deliberately stricter than the live table until
+  this selection has run once (see that migration's own header). Dispatch `slots-backfill --apply` BEFORE
+  the migration lands, so criterion 5 never actually sees a gap on a live read once the migration applies.
+  **Does not reach an archived item** — see `kit-backfill` below, and its own subsection at the end of this
+  section, for why that matters for migration 299 specifically.
+- `kit-backfill` (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4) — the generalized superset of `slots-backfill`:
+  every verified item of **every** item_type `item-type-required-slots.json` has an entry for (not only the
+  three above), **archived items included**, missing >=1 required slot. Same underlying resolver
+  (`resolveKitBackfillCandidates` in `scripts/mint/heal-provenance.mjs`; `slots-backfill` is now a thin call
+  into it with its original three-type/live-only defaults, byte-identical behavior, unchanged). See this
+  section's own "`kit-backfill` and migration 299" subsection below for the live counts and the exact
+  migration-299 dispatch sequence this selection completes.
 
 **Dispatch**: `mode=dry` reads every selected item's REAL current captures/claims/sections live and plans
 all five steps (which claims would ground, which slots would fill FACT vs GAP, what Gate A would say, what
@@ -915,6 +924,98 @@ token this run, dry or apply). New wrapper dep: `updateItemBrief(itemId, full_br
    lane's own tests assert directly (`healOneItem`'s default-apply-mode test: `applied: false`, zero
    `updateItemBrief` calls, `item.full_brief` unchanged).
 
+**`kit-backfill` and migration 299** (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4). `scripts/mint/
+migration-299-precheck.mjs` is the executable form of migration 299's own header self-check: it exits 1
+(refuses) while `N > 0`, printing the per-`(item_type, slot_key)` breakdown and the exact failing item ids.
+Run it (no `--arg`) BEFORE `apply_migration` for 299; run it again with `--post` AFTER, to read back that
+no live item is now `quarantined` for one of the three new slots.
+
+**[CONFIRMED, live SQL, 2026-09-05] N = 149**, not 87 — a reconciliation this lane had to do itself. Two
+measurements of "verified items missing the new required-slot coverage" disagreed (149 vs 87) until the
+`is_archived` split was run:
+
+| item_type | live (`is_archived=false`) | archived (`is_archived=true`, all `archive_reason` NOT NULL) | total |
+|---|---|---|---|
+| initiative | 20 | 50 | 70 |
+| market_signal | 36 | 10 | 46 |
+| research_finding | 31 | 2 | 33 |
+| **total** | **87** | **62** | **149** |
+
+**Why the archived 62 count too** [CONFIRMED, read `115_set_provenance_status_trigger.sql` in full]: the
+`set_provenance_status` trigger fires `AFTER INSERT OR UPDATE` on `intelligence_items` /
+`intelligence_item_sections` / `section_claim_provenance` with **no `is_archived` exclusion** — an archived
+row is not inert to criterion 5, only rows nothing ever writes to again are. Migration 299's own header SQL
+(reproduced above this section) never filters `is_archived` either — its `N` was always meant to be 149, and
+this lane's dispatch naming "the 149 pre-kit items" is exact, not approximate. `migration-299-precheck.mjs`
+therefore does **not** filter `is_archived` (a change from this lane's own first draft, which wrongly did
+and read 87 — corrected before landing). `slots-backfill` (unchanged, `is_archived=false` only) can close
+the 87; only `kit-backfill` (`includeArchived: true`) reaches the other 62.
+
+**Capture availability for the 149** [CONFIRMED, live SQL, 2026-09-05]: 148 of 149 have a usable
+(`>200 char`) capture and would receive a real FACT-or-GAP slot claim on the first `kit-backfill` apply run,
+closing the guard for that item outright (criterion 5 accepts GAP; the extractor always emits one or the
+other, never skips). The one exception — `cdd54edb-042c-4508-98f5-bd77058c34d1` (`research_finding`,
+"Special Report No 1/93 on the financing of transport infrastructure...") — has **zero** `agent_run_searches`
+rows at all, so `kit-backfill` reports it `held_no_capture` and cannot close its guard row by re-extraction.
+It is already `is_archived=true` with `archive_reason='out_of_scope_wo26'` (a prior, deliberate, reasoned
+archival) — `heal-provenance.mjs`'s own `archived-unreasoned` selection only ever re-touches an archive with
+`archive_reason IS NULL`, so as long as it stays archived-and-reasoned, no known automated path re-touches
+it and migration 299's guard counting it is conservative, not a live risk. **Disposition: no action** — do
+not un-archive it to "fix" the guard; the guard's own conservatism is intentional (see the header note on
+`migration-299-precheck.mjs`'s CLI query for why the archived/reasoned distinction was deliberately NOT used
+to narrow the guard itself).
+
+**Coordinator dispatch — three runs, in order** (closes migration 299's guard to N=0, then applies it):
+1. `provenance-heal`, `mode: dry`, `arg: "kit-backfill"` — review the plan over the full 149 (plus whatever
+   of the 575/6 population below also qualifies); confirm 148 `would_write` and exactly 1
+   `held_no_capture` (the item above).
+2. `provenance-heal`, `mode: apply`, `arg: "kit-backfill"` — writes the 148 slot claims (FACT or honest
+   GAP). Idempotent: a second apply run finds nothing left to backfill (missingRequiredSlots returns `[]`
+   for every item this pass already covered).
+3. `node scripts/mint/migration-299-precheck.mjs` — expect `{"mode":"pre","ok":true,"n":1,...}` (the one
+   `held_no_capture` item still counts against N structurally, but see the disposition above for why this
+   is expected and acceptable) — **coordinator decision needed**: either accept `apply_migration` for 299
+   with this one known, reasoned, archived exception (migration 299 itself never claims N must reach
+   literal zero, only that the coordinator has "re-minted those N items" — 148 of 149 — before applying),
+   or run `provenance-heal --arg "ids:cdd54edb-042c-4508-98f5-bd77058c34d1"` first to attempt a fresh capture
+   (STEP 1/CAPTURE) before falling back to accepting the exception. Then `apply_migration` for 299, then
+   `node scripts/mint/migration-299-precheck.mjs --post` to read back zero new quarantines.
+
+**The 6 zero-FACT / 575 one-or-two-FACT population (W2.4)** [CONFIRMED, live SQL, 2026-09-05] — the OTHER
+half of this lane's dispatch, outside migration 299's own scope (these items already clear criterion 5;
+this is about kit currency, older `RECORD_FACTS_VERSION` mints missing later additive slots):
+- **6 zero-FACT, live, `item_grade='record'`**: 5 are `market_signal` items with `instrument_identifier`
+  `eu-oil-bulletin:*` (the ratified oil-bulletin series, `src/lib/market/series-item-map.mjs`) — their
+  substance lives in `market_series`, not FACT claims; zero FACT is correct by design, not a defect. The
+  6th, `7e554d10-…` (`framework`, item_grade **`brief`** not `record`), already carries all 4 required
+  `framework` slots as honest GAP claims (a genuinely content-thin EU Decision: no obligations, no
+  deadline, no penalty, no scope stated) — already fully compliant with criterion 5; `kit-backfill`'s own
+  `missingRequiredSlots` check finds nothing to add for it. **Disposition for all 6: no action needed** —
+  neither "re-mint" nor "archive record_hollow" applies; both dispositions this lane's dispatch offered
+  were written before this reconciliation.
+- **575 one-or-two-FACT, live, `item_grade='record'`**: `kit-backfill` (default `--arg`, or scoped via
+  `ids:`) is the general mechanism — it re-runs the SAME per-slot extractors (`record-facts.mjs` /
+  `record-facts-research.mjs`, via `buildSlotClaim`, imported unmodified) against each item's existing best
+  capture and adds any still-missing required-slot claim (FACT or honest GAP), the same "claims added, item
+  untouched" shape as `slots-backfill`/`rederive-record-provenance.mjs`. Not separately re-measured item-
+  by-item in this pass beyond the 149 above — dispatch `provenance-heal --arg kit-backfill --mode dry` for
+  the current worklist and counts before an apply run.
+
+**[FLAG, out of this lane's write set, decision-ready] `record-hollow-sweep.mjs`'s own selection has no
+series exemption** [CONFIRMED, live SQL, 2026-09-05]: its `readTargetCandidates` filters only
+`is_archived=false, provenance_status='verified', item_grade='record'` — no `item_type` exclusion — and
+`isTitleOnlyFacts` is vacuously `true` for zero FACT claims. All 5 oil-bulletin `market_signal` items above
+ARE `item_grade='record'` and currently have 0 FACT claims, so they **would be selected and archived as
+`record_hollow`** by any future `record-hollow-sweep --apply` run as written today — wrongly, since their
+substance is legitimately in `market_series`. This lane's own authoring-time measurement (this section,
+above) predates these items reaching this state (its own "by item_type" breakdown has no `market_signal`
+row at all), so this is a newly-live exposure, not a previously-known-and-accepted one. **Recommended fix**
+(not made here — `record-hollow-sweep.mjs` is not in this lane's write set and another lane may be
+mid-work on it): exclude `market_signal` items whose `instrument_identifier` matches a
+`SERIES_ITEM_MAP_RAW` entry from `planSelection`'s target set, or exclude `item_type='market_signal'`
+entirely if no `market_signal` item is ever meant to be `record_hollow`-eligible. **Do not dispatch
+`record-hollow-sweep --apply` until this is resolved or explicitly accepted.**
+
 ---
 
 ## 8a. `institution-canonicalize`
@@ -1063,6 +1164,17 @@ claim at all. They render on every customer surface with an empty Summary. By `i
 `legislation.gov.uk` 149, `federalregister.gov` 21, `climate.ec.europa.eu` 1, `sdir.no` 1. Exact selection
 SQL: the step's own `SELECTION_SQL` export (identical to what `planSelection` computes from two `readAll`
 reads — no live SQL round trip at apply time).
+
+**[FLAG, 2026-09-05, lane KIT-BACKFILL] This selection has no series exemption, and the live population has
+since grown a false-positive case**: as of 2026-09-05, 5 `market_signal` items (the ratified oil-bulletin
+series, `instrument_identifier` `eu-oil-bulletin:*`) are ALSO `item_grade='record'`, verified, live, and
+carry 0 FACT claims — `planSelection`'s `isTitleOnlyFacts` is vacuously `true` for an empty FACT array, so
+these WOULD be selected and archived as `record_hollow` by the next `--apply` run, wrongly: their substance
+is legitimately in `market_series`, not FACT claims. Not present in the `market_signal`-absent breakdown
+above (minted/finalized after this section's 2026-09-04 measurement). See §8's "`kit-backfill` and
+migration 299" subsection for the full finding and recommended fix (a series/`market_signal` exemption in
+`planSelection`, not made here — out of this lane's write set). **Do not dispatch `--apply` until this is
+resolved or explicitly accepted.**
 
 **Which flag hides an item from every customer surface** [CONFIRMED, read this session — not
 `hidden_reason`, not `pipeline_stage`]: `is_archived` (+ `archive_reason`), the SAME gate

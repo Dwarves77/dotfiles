@@ -48,8 +48,17 @@
 //   "ids:<uuid,uuid,...>"         — exactly these items, regardless of current status.
 //   "slots-backfill"              — every verified, live market_signal/initiative/research_finding item
 //     missing a slot item-type-required-slots.json now requires (migration 299's still-unapplied "149";
-//     see docs/runbooks/MAINTENANCE-RUNBOOK.md for the sequencing this satisfies).
-// Any of the four forms above may carry the suffix "+strip-unprovable" (e.g.
+//     see docs/runbooks/MAINTENANCE-RUNBOOK.md for the sequencing this satisfies). Does NOT reach an
+//     archived-but-verified item — see "kit-backfill" below for the form that does.
+//   "kit-backfill" (2026-09-05, lane KIT-BACKFILL, W2.3/W2.4)
+//                                  — every verified item of EVERY item_type item-type-required-slots.json
+//     has an entry for (not only the three above), archived included, missing >=1 required slot. This is
+//     the strict superset that actually closes migration-299-precheck.mjs's guard to N=0 (it reaches the
+//     62-of-149 items "slots-backfill" cannot, being archived) and covers the wider one-or-two-FACT
+//     population outside the three criterion-5-only types. See docs/runbooks/MAINTENANCE-RUNBOOK.md §8's
+//     "kit-backfill" subsection for the live dry-run counts and the exact dispatch sequence with migration
+//     299.
+// Any of the five forms above may carry the suffix "+strip-unprovable" (e.g.
 // "quarantined-live+strip-unprovable", "ids:<uuid,...>+strip-unprovable") — an explicit, opt-in token
 // (lane HEAL-10, 2026-09-04) that, in apply mode ONLY, additionally lets STEP BRIEF-HONEST write a
 // full_brief with an exhausted-unprovable token's own sentence/clause removed, and lets STEP D append a
@@ -135,8 +144,16 @@ if (IS_MAIN) {
         readArchivedUnreasoned: () => readAll("intelligence_items", ITEM_COLUMNS, {
           match: (q) => q.eq("is_archived", true).is("archive_reason", null),
         }),
-        readCandidateTypeItems: (itemTypes) => readAll("intelligence_items", ITEM_COLUMNS, {
-          match: (q) => q.eq("is_archived", false).eq("provenance_status", "verified").in("item_type", itemTypes),
+        // `includeArchived` (2026-09-05, lane KIT-BACKFILL): kit-backfill's own selection passes `true` so
+        // an archived-but-verified item (still reachable by set_provenance_status on its next touch — see
+        // migration-299-precheck.mjs's header) is not silently excluded from what closes its guard; every
+        // OTHER caller (slots-backfill) omits the option, defaulting to the original is_archived=false-only
+        // behavior unchanged.
+        readCandidateTypeItems: (itemTypes, { includeArchived = false } = {}) => readAll("intelligence_items", ITEM_COLUMNS, {
+          match: (q) => {
+            const base = q.eq("provenance_status", "verified").in("item_type", itemTypes);
+            return includeArchived ? base : base.eq("is_archived", false);
+          },
         }),
         readByIds: (ids) => readAll("intelligence_items", ITEM_COLUMNS, { match: (q) => q.in("id", ids) }),
 

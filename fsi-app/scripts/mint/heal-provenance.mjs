@@ -2988,6 +2988,16 @@ export function parseSelection(arg) {
   if (!raw || raw === "quarantined-live") return { ok: true, mode: "quarantined-live", ids: null, stripUnprovable };
   if (raw === "archived-unreasoned") return { ok: true, mode: "archived-unreasoned", ids: null, stripUnprovable };
   if (raw === "slots-backfill") return { ok: true, mode: "slots-backfill", ids: null, stripUnprovable };
+  // kit-backfill (Lane KIT-BACKFILL, 2026-09-05, W2.3/W2.4): the SAME slot-missing narrowing
+  // slots-backfill already does, generalized two ways — (1) every item_type item-type-required-slots.json
+  // has an entry for (not only market_signal/initiative/research_finding), so the 575 one-or-two-FACT
+  // regulation-family/initiative items outside those three types are reachable too; (2) archived items are
+  // included (see resolveKitBackfillCandidates's own header and migration-299-precheck.mjs's header for why
+  // an archived-but-verified item is not inert to criterion 5) — this is what actually closes migration
+  // 299's guard to N=0 for the 62 of the 149 that are archived, which slots-backfill's own narrower,
+  // non-archived-only candidate set cannot reach. slots-backfill's existing selection/behavior/tests are
+  // UNCHANGED — see resolveKitBackfillCandidates below.
+  if (raw === "kit-backfill") return { ok: true, mode: "kit-backfill", ids: null, stripUnprovable };
   if (raw.startsWith("ids:")) {
     const ids = raw.slice(4).split(",").map((s) => s.trim()).filter(Boolean);
     if (!ids.length) return { ok: false, error: '--arg "ids:<uuid,uuid,...>" requires at least one id.' };
@@ -2997,23 +3007,50 @@ export function parseSelection(arg) {
     ok: false,
     error:
       `unrecognized --arg ${JSON.stringify(String(arg ?? "").trim())} (expected blank/"quarantined-live", ` +
-      `"archived-unreasoned", "ids:<uuid,uuid,...>", or "slots-backfill", each optionally suffixed ` +
-      `"${STRIP_UNPROVABLE_SUFFIX}").`,
+      `"archived-unreasoned", "ids:<uuid,uuid,...>", "slots-backfill", or "kit-backfill", each optionally ` +
+      `suffixed "${STRIP_UNPROVABLE_SUFFIX}").`,
   };
 }
 
-/** The slots-backfill candidate set: every item deps.readCandidateTypeItems returns (market_signal /
- *  initiative / research_finding, verified, live) that is ACTUALLY missing >=1 kit-required slot right
- *  now — narrowed here (not left to the caller) so a dispatch of this selection never runs the pipeline
- *  over an item that has nothing to backfill. */
-export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
-  const items = await deps.readCandidateTypeItems(["market_signal", "initiative", "research_finding"]);
+/** Every real (non-meta, i.e. not "_comment"/"_grade_note"/"_intake_note"-prefixed) item_type key in a
+ *  requiredSlotsMap shaped like item-type-required-slots.json. Pure. */
+export function requiredSlotItemTypes(requiredSlotsMap) {
+  return Object.keys(requiredSlotsMap ?? {}).filter((k) => !k.startsWith("_"));
+}
+
+/** THE generalized slot-missing candidate resolver both slots-backfill and kit-backfill narrow through —
+ *  every item `deps.readCandidateTypeItems(itemTypes, { includeArchived })` returns (verified; live unless
+ *  `includeArchived`) that is ACTUALLY missing >=1 kit-required slot right now — narrowed here (not left to
+ *  the caller) so a dispatch of either selection never runs the pipeline over an item that has nothing to
+ *  backfill. `itemTypes` defaults to EVERY item_type item-type-required-slots.json has an entry for (the
+ *  kit-backfill breadth); `includeArchived` defaults to false (the slots-backfill posture — an archived
+ *  item is not "live" for that mode's own narrower intent). Grade-agnostic by design: the per-slot
+ *  extractors this file's SLOTS step calls (buildSlotClaim) work off captured text alone, the same for a
+ *  `record`- or `brief`-grade item (grep-verified 2026-09-05: no item_grade branch anywhere in that
+ *  function or its callees) — matching precedent (`readCandidateTypeItems` itself has never filtered
+ *  `item_grade`). */
+export async function resolveKitBackfillCandidates(deps, requiredSlotsMap, opts = {}) {
+  const itemTypes = opts.itemTypes ?? requiredSlotItemTypes(requiredSlotsMap);
+  const includeArchived = opts.includeArchived ?? false;
+  const items = await deps.readCandidateTypeItems(itemTypes, { includeArchived });
   const kept = [];
   for (const item of items) {
     const claims = await deps.readClaims(item.id);
     if (missingRequiredSlots(item.item_type, claims, requiredSlotsMap).length) kept.push(item);
   }
   return kept;
+}
+
+/** The slots-backfill candidate set: UNCHANGED (2026-09-03, lane HEAL-6) — every item
+ *  deps.readCandidateTypeItems returns (market_signal / initiative / research_finding, verified, live)
+ *  that is ACTUALLY missing >=1 kit-required slot right now. Now a thin call into the generalized
+ *  resolveKitBackfillCandidates above (2026-09-05, lane KIT-BACKFILL) — same three item_types, same
+ *  `includeArchived: false` default this mode always had — so this mode's own selection, behavior, and
+ *  every existing test of it are byte-for-byte unchanged. */
+export async function resolveSlotsBackfillCandidates(deps, requiredSlotsMap) {
+  return resolveKitBackfillCandidates(deps, requiredSlotsMap, {
+    itemTypes: ["market_signal", "initiative", "research_finding"],
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
@@ -4101,7 +4138,10 @@ export function computeItemTimeBudgetSeconds(runTimeBudgetSeconds) {
  *   run's checkpoint/artifact directory (cli.mjs's own `--out`, threaded through unmodified); a summary.json
  *   is written there atomically after EVERY item, not only at the end (HEAL-BUDGET).
  * @param {object} deps — see healOneItem's own header, plus selection resolvers:
- *   readQuarantinedLive(), readArchivedUnreasoned(), readCandidateTypeItems(itemTypes), readByIds(ids),
+ *   readQuarantinedLive(), readArchivedUnreasoned(),
+ *   readCandidateTypeItems(itemTypes, { includeArchived }={}) (the `includeArchived` opt added 2026-09-05,
+ *   lane KIT-BACKFILL — see resolveKitBackfillCandidates's own header; every existing caller passes just
+ *   `itemTypes`, which a deps implementation must still treat as `includeArchived: false`), readByIds(ids),
  *   readAllSources() -> the `sources` registry (read ONCE per run, same precedent as db.mjs's own
  *   registerSource dedup read — small table, not the agent_run_searches full-scan the brief forbids;
  *   optional, defaults to `[]` so a direct healOneItem caller need not supply it),
@@ -4153,6 +4193,11 @@ export async function main({ mode = "dry", arg = "", out = null } = {}, deps) {
   if (selection.mode === "quarantined-live") items = await deps.readQuarantinedLive();
   else if (selection.mode === "archived-unreasoned") items = await deps.readArchivedUnreasoned();
   else if (selection.mode === "slots-backfill") items = await resolveSlotsBackfillCandidates(deps, requiredSlotsMap);
+  // kit-backfill (2026-09-05, lane KIT-BACKFILL): every item_type, archived included — see
+  // resolveKitBackfillCandidates's own header for why both broadenings are needed to actually close
+  // migration 299's guard (migration-299-precheck.mjs) to N=0 and cover the wider one-or-two-FACT
+  // population outside the three criterion-5-only types.
+  else if (selection.mode === "kit-backfill") items = await resolveKitBackfillCandidates(deps, requiredSlotsMap, { includeArchived: true });
   else items = await deps.readByIds(selection.ids);
 
   // Run-level CAPTURE-CITED dedup cache (HEAL-BUDGET) — ONE per run, shared across every item below.
