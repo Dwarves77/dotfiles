@@ -1,0 +1,14 @@
+{
+  "step": "review-digests",
+  "mode": "apply",
+  "counts": {
+    "upstream": "scripts/review/build-review-digests.mjs",
+    "out_dir": "/home/runner/work/_temp/maintenance-33940609195/review-digests",
+    "script_present": true,
+    "upstream_exit_code": 0
+  },
+  "applied": 1,
+  "read_back": {},
+  "exitCode": 0,
+  "note": "Ran scripts/review/build-review-digests.mjs --out /home/runner/work/_temp/maintenance-33940609195/review-digests. read_back is empty by design — this step changes no live table."
+}

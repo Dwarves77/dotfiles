@@ -1,0 +1,1120 @@
+{
+  "queue": "coverage-gaps",
+  "generated_at": "2026-09-05T03:00:22.030Z",
+  "groups": [
+    {
+      "key": "MISSING::eu::multi",
+      "count": 17,
+      "row_ids": [
+        "091d761d-0b40-43f7-ba74-54861e6a1404",
+        "4119a840-2e03-4291-a784-99852376792b",
+        "41301bf0-2619-4b1d-ad1a-013350b88254",
+        "4ee59c30-e28d-4984-980c-afdc6572aec9",
+        "5499c618-2f12-47a6-bc5f-2d539af5b6c2",
+        "5aad6e1b-ec56-4fed-91e4-473fc91ae34a",
+        "693f7d21-1a0f-4e59-afb4-b66f0f55dbf9",
+        "89261667-8381-4849-9fa5-f1f56f570c95",
+        "8d498294-9d83-4f82-b493-23074b101f3e",
+        "9b1533fd-b8d1-4170-b6de-98ad3426cd4e",
+        "aca1824c-d5bd-4cd8-854b-92f67f343c18",
+        "ca4868f9-8de4-4e50-a6f0-27283332a2f7",
+        "d4bb801c-d35a-4b0e-bfc7-2781ce437ece",
+        "d4bc24f3-f2bc-4824-a6ed-1592a37ae42f",
+        "e1b44c68-0892-474c-940e-5f9a28159cc1",
+        "e68f531d-1ebb-4eea-bb4b-2bc217db683a",
+        "ece6788a-e2b9-496c-97fd-86a33e2980c1"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "HIGH",
+          "LOW"
+        ]
+      },
+      "examples": [
+        {
+          "id": "091d761d-0b40-43f7-ba74-54861e6a1404",
+          "title": "Sweden EPR packaging producer-responsibility reporting to Naturvardsverket (Swedish EPA), regulation 2022:1274",
+          "url": "https://www.naturvardsverket.se/en/guidance/extended-producer-responsibility-epr/producer-responsibility-for-packaging/",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "4119a840-2e03-4291-a784-99852376792b",
+          "title": "Austria ARA (Altstoff Recycling Austria) dominant packaging-compliance system, no de minimis threshold",
+          "url": "https://www.ara.at/en",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "41301bf0-2619-4b1d-ad1a-013350b88254",
+          "title": "Netherlands Verpact (formerly Afvalfonds Verpakkingen) national packaging EPR register, reporting to RVO",
+          "url": "https://business.gov.nl/regulations/packaging/",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::global::multi",
+      "count": 7,
+      "row_ids": [
+        "3c03210e-af9f-4a28-b6f2-a9d6724b545a",
+        "46f37767-d4ae-4146-b366-32f15b630a9d",
+        "66b7af91-1542-40ba-ba0f-050754e31008",
+        "802d0a34-e694-485f-b297-b1585320371c",
+        "bb5a9287-3fa8-4fea-a0f6-14f084edf7ac",
+        "c21a4adf-b7fb-4568-beda-3212d0c50812",
+        "f0aefed0-76eb-4add-8d24-7b5a34b13deb"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "LOW",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "3c03210e-af9f-4a28-b6f2-a9d6724b545a",
+          "title": "EPD International EPD Library (Environmental Product Declarations, ISO 14025/14040/14044-based, construction and packaging-relevant product categories)",
+          "url": "https://www.environdec.com/library",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "46f37767-d4ae-4146-b366-32f15b630a9d",
+          "title": "IEA Hydrogen Tracker and Hydrogen Production and Infrastructure Projects Database",
+          "url": "https://www.iea.org/data-and-statistics/data-tools/hydrogen-tracker",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "66b7af91-1542-40ba-ba0f-050754e31008",
+          "title": "ICE (Intercontinental Exchange) EU carbon allowance futures and options (EUA, EUA 2)",
+          "url": "https://ir.theice.com/press/news-details/2025/ICE-Launches-EU-Carbon-Allowance-2-Futures/default.aspx",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::latam::multi",
+      "count": 6,
+      "row_ids": [
+        "10f104e1-d036-4839-9e1a-abc82a27393c",
+        "2f293355-7010-444b-9fee-038cd1b35431",
+        "6a4c2216-3323-4f8d-b61d-00e0ea47a51e",
+        "7e16bbf1-5ea6-4b92-b6f8-5b91c2c0f751",
+        "a2ff4803-e753-41ba-8977-908cd9086b2e",
+        "d8ee991c-2e18-4e6c-985a-4711c07d30a7"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "10f104e1-d036-4839-9e1a-abc82a27393c",
+          "title": "Mexico CRE/CFE industrial electricity tariffs (Gran Demanda / Media Tension)",
+          "url": "https://app.cfe.mx/Aplicaciones/CCFE/Tarifas/TarifasCREIndustria/Tarifas/GranDemandaMTH.aspx",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "2f293355-7010-444b-9fee-038cd1b35431",
+          "title": "Brazil ANEEL open-data tariff datasets (Tarifa de Energia / TUSD, distributor-level)",
+          "url": "https://dadosabertos.aneel.gov.br/dataset/tarifas-distribuidoras-energia-eletrica",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "6a4c2216-3323-4f8d-b61d-00e0ea47a51e",
+          "title": "Mexico INEGI Encuesta Anual de Transportes (EAT) / ENOE, transport-postal-storage",
+          "url": "https://www.inegi.org.mx/programas/eat/2018/",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::asia::ocean",
+      "count": 5,
+      "row_ids": [
+        "1f212bb0-d575-42ac-be2e-bc17ae3b43fb",
+        "51f68351-2a7e-4a64-b01b-c59143a4a5b5",
+        "92c23b20-beeb-4838-af4a-177d99002926",
+        "9f4200c2-dcbc-4358-b7e5-4a08c4f66e5d",
+        "d76611bd-0cb6-4bdd-bd5c-420e1c22cc36"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "1f212bb0-d575-42ac-be2e-bc17ae3b43fb",
+          "title": "Singapore EMA regulated electricity tariff + Uniform Singapore Energy Price (USEP)",
+          "url": "https://www.ema.gov.sg/resources/statistics/average-monthly-uniform-singapore-energy-price",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "51f68351-2a7e-4a64-b01b-c59143a4a5b5",
+          "title": "South Korea KECO Resource Circulation Compliance System (EPR reporting and verification, Ministry of Environment)",
+          "url": "https://www.keco.or.kr/en/lay1/S295T386C400/contents.do",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "92c23b20-beeb-4838-af4a-177d99002926",
+          "title": "Japan JCPRA (Japan Containers and Packaging Recycling Association) compliance reporting system, Container and Packaging Recycling Act",
+          "url": "https://www.jcpra.or.jp/",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::global::air",
+      "count": 5,
+      "row_ids": [
+        "68327ce1-6dfa-484e-94f2-461a012f31ab",
+        "9b20d59f-be40-418d-a454-87d31407a7f1",
+        "b119af3c-1644-4426-84c3-6551a2fb9fd5",
+        "bbdb2899-a92c-4a16-9488-8bff9716d648",
+        "c9d3ed82-3db0-4ba8-bb8d-a0898c0e82b8"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH",
+          "CRITICAL"
+        ]
+      },
+      "examples": [
+        {
+          "id": "68327ce1-6dfa-484e-94f2-461a012f31ab",
+          "title": "ICAO CAEP (Committee on Aviation Environmental Protection) meeting agendas and reports",
+          "url": "https://www.icao.int/CAEP",
+          "priority": "HIGH"
+        },
+        {
+          "id": "9b20d59f-be40-418d-a454-87d31407a7f1",
+          "title": "IATA SAF Accounting Policy Paper (chain-of-custody-based book-and-claim accounting, \"Policy 1\")",
+          "url": "https://www.iata.org/contentassets/d13875e9ed784f75bac90f000760e998/saf-accounting-policy-paper_20230905_final.pdf",
+          "priority": "HIGH"
+        },
+        {
+          "id": "b119af3c-1644-4426-84c3-6551a2fb9fd5",
+          "title": "ICAO CORSIA (Carbon Offsetting and Reduction Scheme for International Aviation)",
+          "url": "https://www.icao.int/environmental-protection/CORSIA/Pages/default.aspx",
+          "priority": "CRITICAL"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::global::ocean",
+      "count": 4,
+      "row_ids": [
+        "3f710745-c9a7-47f0-bd35-8dceb4a7c33f",
+        "519233d6-4a30-421d-a1de-489c08253a90",
+        "5a83f239-8a04-4224-8ff1-497c899ccb0f",
+        "c47945b9-69b9-4131-93cd-ae41c12c5110"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "3f710745-c9a7-47f0-bd35-8dceb4a7c33f",
+          "title": "UNCTADstat container port throughput database (annual, TEU, global port-level and aggregate)",
+          "url": "https://unctadstat.unctad.org/datacentre/dataviewer/US.ContPortThroughput",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "519233d6-4a30-421d-a1de-489c08253a90",
+          "title": "Ship & Bunker world bunker prices (free daily port-level VLSFO/HSFO/MGO pricing, historical charts)",
+          "url": "https://shipandbunker.com/prices",
+          "priority": "HIGH"
+        },
+        {
+          "id": "5a83f239-8a04-4224-8ff1-497c899ccb0f",
+          "title": "Freightos Baltic Index (FBX) — container freight rate index, 12 major global trade routes plus composite",
+          "url": "https://www.freightos.com/freight-index/",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::uk::multi",
+      "count": 4,
+      "row_ids": [
+        "b04bd137-3159-447f-b4ce-17b81a9684a0",
+        "b42637b6-042f-4042-839e-5c213d8e1b3d",
+        "d725cf9d-cd53-463e-a8d1-d60b32c55792",
+        "edac41bd-492c-482a-86da-1c923bf2b2bc"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "b04bd137-3159-447f-b4ce-17b81a9684a0",
+          "title": "BAFTA Albert certification and carbon calculator (UK screen-industry sustainability standard, film/TV production)",
+          "url": "https://baftaalbert.org/",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "b42637b6-042f-4042-839e-5c213d8e1b3d",
+          "title": "UK DESNZ Quarterly Energy Prices (non-domestic/industrial electricity, by consumption band)",
+          "url": "https://www.gov.uk/government/collections/quarterly-energy-prices",
+          "priority": "HIGH"
+        },
+        {
+          "id": "d725cf9d-cd53-463e-a8d1-d60b32c55792",
+          "title": "UK Extended Producer Responsibility for packaging: public registers (producers, compliance schemes, reprocessors/exporters)",
+          "url": "https://www.gov.uk/guidance/find-large-producers-on-the-report-packaging-data-service",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::eu::road",
+      "count": 3,
+      "row_ids": [
+        "76ff383d-3491-429d-82d4-1fe84be13013",
+        "7eb8ba92-138e-462f-a505-8454fd52f784",
+        "d3555d09-89f0-4256-8e23-83274b082aac"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "76ff383d-3491-429d-82d4-1fe84be13013",
+          "title": "Eurostat labour cost index (NACE H, transportation and storage)",
+          "url": "https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/lc_lci_lev",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "7eb8ba92-138e-462f-a505-8454fd52f784",
+          "title": "EU End-of-Life Vehicles Regulation (ELV, circularity for automotive; provisional agreement Dec 2025)",
+          "url": "https://environment.ec.europa.eu/topics/waste-and-recycling/end-life-vehicles_en",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "d3555d09-89f0-4256-8e23-83274b082aac",
+          "title": "Poland BDO (Baza Danych o Produktach i Opakowaniach oraz o Gospodarce Odpadami) national products/packaging/waste database",
+          "url": "https://bdo.mos.gov.pl/",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::meaf::air",
+      "count": 3,
+      "row_ids": [
+        "170f9fa1-34a5-4789-a1b9-22b4a0acd80a",
+        "6862718f-9bed-4e5d-adb5-8f73627e27ef",
+        "9419ad4f-09fa-4e1d-b993-b1409d8eeef9"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "170f9fa1-34a5-4789-a1b9-22b4a0acd80a",
+          "title": "Switzerland revised CO2 Act (SR 641.71) + CO2 Ordinance, in force 1 Jan 2025",
+          "url": "https://www.fedlex.admin.ch/eli/cc/2022/824/en",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "6862718f-9bed-4e5d-adb5-8f73627e27ef",
+          "title": "Switzerland ElCom electricity price and tariff data (LINDAS linked-data service)",
+          "url": "https://energy.ld.admin.ch/elcom/electricityprice-swiss",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "9419ad4f-09fa-4e1d-b993-b1409d8eeef9",
+          "title": "Switzerland BFS/OFS Swiss Earnings Structure Survey (ESS)",
+          "url": "https://www.bfs.admin.ch/bfs/en/home/statistics/work-income/wages-income-employment-labour-costs/earnings-structure.html",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::meaf::road",
+      "count": 3,
+      "row_ids": [
+        "11b2fb08-cbfe-403f-94d2-d5e8cdfb58a3",
+        "1e5b6af8-05f8-4627-acbc-98402a839678",
+        "5673d0cd-8687-4383-90cb-5363449a80df"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "11b2fb08-cbfe-403f-94d2-d5e8cdfb58a3",
+          "title": "South Africa NERSA-approved Eskom electricity tariffs (industrial/large-power-user)",
+          "url": "https://www.nersa.org.za/",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "1e5b6af8-05f8-4627-acbc-98402a839678",
+          "title": "South Africa Carbon Tax Act 15 of 2019 (Phase 2 from 2026) + Climate Change Act 22 of 2024",
+          "url": "https://www.sars.gov.za/customs-and-excise/excise/environmental-levy-products/carbon-tax/",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "5673d0cd-8687-4383-90cb-5363449a80df",
+          "title": "South Africa Stats SA Quarterly Employment Statistics (QES), transport sector",
+          "url": "https://www.statssa.gov.za/?p=18527",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::asia::air",
+      "count": 2,
+      "row_ids": [
+        "3a851b22-3aa7-45c6-aaec-8b7fbebded76",
+        "7de346f9-7bfd-48c6-897e-3fceba9de8d3"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "3a851b22-3aa7-45c6-aaec-8b7fbebded76",
+          "title": "Japan METI/MLIT 10% SAF-by-2030 mandate (Basic Policy for Promoting Decarbonization in Aviation + Act on the Sophistication of Energy Supply Structures)",
+          "url": "https://www.meti.go.jp/english/statistics/",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "7de346f9-7bfd-48c6-897e-3fceba9de8d3",
+          "title": "CAAS Singapore Sustainable Air Hub Blueprint (mandatory SAF uplift target + levy, Changi/Seletar airports, from 2026)",
+          "url": "https://www.caas.gov.sg/sustainability/sustainable-air-hub-blueprint/",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::asia::multi",
+      "count": 2,
+      "row_ids": [
+        "47ba3a40-4bcd-4148-b5c5-757e237ee722",
+        "5dfd09af-1b05-452d-85e0-8f70e1f8d761"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "47ba3a40-4bcd-4148-b5c5-757e237ee722",
+          "title": "Japan MHLW Basic Survey on Wage Structure (via e-Stat), transportation and warehousing",
+          "url": "https://www.e-stat.go.jp/en/statistics/00450091",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "5dfd09af-1b05-452d-85e0-8f70e1f8d761",
+          "title": "Japan METI/ANRE General Energy Statistics (industrial electricity pricing)",
+          "url": "https://www.meti.go.jp/english/statistics/",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::latam::road",
+      "count": 2,
+      "row_ids": [
+        "3522c663-8ff9-4efe-81d8-16543ab22d73",
+        "5abf36dc-6c49-467d-a290-46f758c8b244"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "3522c663-8ff9-4efe-81d8-16543ab22d73",
+          "title": "Mexico Emissions Trading System (Sistema de Comercio de Emisiones, SEMARNAT)",
+          "url": "https://www.gob.mx/semarnat",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "5abf36dc-6c49-467d-a290-46f758c8b244",
+          "title": "Argentina Ley de Presupuestos Minimos de Adaptacion y Mitigacion al Cambio Climatico Global (Law 27.520 of 2019) + National Sustainable Transport Plan (2023)",
+          "url": "https://www.argentina.gob.ar/ambiente/cambio-climatico/ley-27520",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::meaf::multi",
+      "count": 2,
+      "row_ids": [
+        "9644056c-72cf-4216-ad1c-96197047008a",
+        "9a5ce369-17a8-476c-969e-40a518a52f4d"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "9644056c-72cf-4216-ad1c-96197047008a",
+          "title": "UAE FCSA UAE.Stat labour force and wage statistics",
+          "url": "https://uaestat.fcsc.gov.ae/en",
+          "priority": "MODERATE"
+        },
+        {
+          "id": "9a5ce369-17a8-476c-969e-40a518a52f4d",
+          "title": "UAE FCSA electricity tariff by entity, slab consumption and sector (federal statistical dataset)",
+          "url": "https://uaestat.fcsc.gov.ae/vis?lc=en&fs%5B0%5D=FCSC+-+Statistical+Hierarchy%2C0%7CElectricity&df%5Bid%5D=DF_ELECTR_TCO&df%5Bag%5D=FCSA",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-ca::road",
+      "count": 2,
+      "row_ids": [
+        "22d20fc6-a60f-49ee-a300-c124dd9f12f2",
+        "bf0b9b9f-00a2-4eab-82ab-f400941f496e"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "22d20fc6-a60f-49ee-a300-c124dd9f12f2",
+          "title": "California CARB Advanced Clean Trucks / Advanced Clean Fleets repeal rulemaking (carried forward from Bank 4/rank 50 per operator ruling)",
+          "url": "https://ww2.arb.ca.gov/rulemaking-activity",
+          "priority": "HIGH"
+        },
+        {
+          "id": "bf0b9b9f-00a2-4eab-82ab-f400941f496e",
+          "title": "California CARB Rulemaking Activity tracker (Advanced Clean Trucks / Advanced Clean Fleets rulemaking dockets, origin jurisdiction for all Section 177 ACT-adopter states)",
+          "url": "https://ww2.arb.ca.gov/rulemaking-activity",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us::ocean",
+      "count": 2,
+      "row_ids": [
+        "19b8752f-1c7e-460e-b3f7-9c2d14a4f331",
+        "5052ff43-c449-4e68-95c2-76d91e339bcb"
+      ],
+      "recommended_decision": "uncertain",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "LOW",
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "19b8752f-1c7e-460e-b3f7-9c2d14a4f331",
+          "title": "PNNL Port Electrification Handbook (US maritime port shore-power and electrification reference)",
+          "url": "https://www.pnnl.gov/projects/port-electrification-handbook",
+          "priority": "LOW"
+        },
+        {
+          "id": "5052ff43-c449-4e68-95c2-76d91e339bcb",
+          "title": "FMC (Federal Maritime Commission) tariff and surcharge monitoring (carrier-filed Green Surcharge / EU ETS-FuelEU cost-pass-through legitimacy)",
+          "url": "https://www.fmc.gov/articles/fmc-monitoring-and-review-of-surcharges-and-fees/",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us::road",
+      "count": 2,
+      "row_ids": [
+        "030867b2-4d44-4385-baf1-79b6237b85ef",
+        "b4e9ed77-3bec-4a59-b56b-bc4f4ef42c1d"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "030867b2-4d44-4385-baf1-79b6237b85ef",
+          "title": "BLS labor cost data (warehousing and transportation wage series)",
+          "url": "https://api.bls.gov/publicAPI/v2/timeseries/data/",
+          "priority": "HIGH"
+        },
+        {
+          "id": "b4e9ed77-3bec-4a59-b56b-bc4f4ef42c1d",
+          "title": "California Low Carbon Fuel Standard (LCFS)",
+          "url": "https://ww2.arb.ca.gov/our-work/programs/low-carbon-fuel-standard/about",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "AMBIGUOUS_ARCHIVED::global::ocean",
+      "count": 1,
+      "row_ids": [
+        "cfc7b12d-7493-426a-9587-c76bf2653b5d"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "AMBIGUOUS_ARCHIVED",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "cfc7b12d-7493-426a-9587-c76bf2653b5d",
+          "title": "IMO EEXI + CII (Energy Efficiency Existing Ship Index / Carbon Intensity Indicator), MEPC.328(76), MARPOL Annex VI Ch.4",
+          "url": "https://www.imo.org/en/mediacentre/hottopics/pages/eexi-cii-faq.aspx",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "HAVE_QUARANTINED::asia::road",
+      "count": 1,
+      "row_ids": [
+        "8fa58026-5836-4731-9340-9b4e385d358e"
+      ],
+      "recommended_decision": "declined",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "HAVE_QUARANTINED",
+        "priorities": [
+          "LOW"
+        ]
+      },
+      "examples": [
+        {
+          "id": "8fa58026-5836-4731-9340-9b4e385d358e",
+          "title": "China national ETS extension to transport / heavy industry (MEE work plan, Mar 2025)",
+          "url": "https://www.mee.gov.cn/",
+          "priority": "LOW"
+        }
+      ]
+    },
+    {
+      "key": "HAVE_QUARANTINED::global::ocean",
+      "count": 1,
+      "row_ids": [
+        "387c449f-a379-44d5-a945-fbd20705d9b4"
+      ],
+      "recommended_decision": "declined",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "HAVE_QUARANTINED",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "387c449f-a379-44d5-a945-fbd20705d9b4",
+          "title": "IMO Net-Zero Framework / Green Fuel Intensity (GFI) standard + GHG pricing (MEPC 83, Apr 2025; adopted Oct 2025)",
+          "url": "https://www.imo.org/en/mediacentre/pressbriefings/pages/imo-approves-netzero-regulations.aspx",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::asia::road",
+      "count": 1,
+      "row_ids": [
+        "30187fb4-8a68-482e-bda0-e2b93bbea8a8"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "30187fb4-8a68-482e-bda0-e2b93bbea8a8",
+          "title": "India Carbon Credit Trading Scheme (CCTS 2023) + fuel-efficiency (CAFE) norms",
+          "url": "https://beeindia.gov.in/en/programmes/carbon-market",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::ca-bc::road",
+      "count": 1,
+      "row_ids": [
+        "cceafa6e-a9dd-4d3b-b631-fd52fa4f9556"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "cceafa6e-a9dd-4d3b-b631-fd52fa4f9556",
+          "title": "British Columbia Zero-Emission Vehicles Act (medium- and heavy-duty ZEV mandate, under development)",
+          "url": "https://www2.gov.bc.ca/gov/content/industry/electricity-alternative-energy/transportation-energies/clean-transportation-policies-programs/zero-emission-vehicles-act",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::ca-qc::road",
+      "count": 1,
+      "row_ids": [
+        "7d7891c1-d097-4bc8-b0f3-7abec650d111"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "7d7891c1-d097-4bc8-b0f3-7abec650d111",
+          "title": "Quebec zero-emission vehicles (ZEV) standard, heavy-duty expansion tracker",
+          "url": "https://www.environnement.gouv.qc.ca/changementsclimatiques/vze/index-en.htm",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::de::multi",
+      "count": 1,
+      "row_ids": [
+        "09ef6fd0-05f2-4a95-ab92-18cd22e364fd"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "09ef6fd0-05f2-4a95-ab92-18cd22e364fd",
+          "title": "German Supply Chain Due Diligence Act (LkSG / Lieferkettensorgfaltspflichtengesetz)",
+          "url": "https://www.bafa.de/EN/Supply_Chain_Act/supply_chain_act_node.html",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::global::road",
+      "count": 1,
+      "row_ids": [
+        "0b413507-ca7d-4cd0-aba5-67c79b2944e6"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "0b413507-ca7d-4cd0-aba5-67c79b2944e6",
+          "title": "FIA Environmental Accreditation Programme (motorsport/mobility 3-star sustainability framework, ISO 14001/20121/EMAS-based)",
+          "url": "https://www.fia.com/environmental-accreditation-programme",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::meaf::ocean",
+      "count": 1,
+      "row_ids": [
+        "8e9a623f-ed55-405f-9af5-9a9c084f102a"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "LOW"
+        ]
+      },
+      "examples": [
+        {
+          "id": "8e9a623f-ed55-405f-9af5-9a9c084f102a",
+          "title": "Saudi Arabia National Transport and Logistics Strategy (2021) + Saudi Green Initiative (logistics/ports)",
+          "url": "https://mot.gov.sa/en/ntls",
+          "priority": "LOW"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::uk::road",
+      "count": 1,
+      "row_ids": [
+        "afecf132-6f70-41a9-a590-3d249c09222b"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "afecf132-6f70-41a9-a590-3d249c09222b",
+          "title": "UK ONS labour cost / earnings data (ASHE by SIC, transport and storage)",
+          "url": "https://www.ons.gov.uk/employmentandlabourmarket/peopleinwork/earningsandworkinghours/datasets/regionbyindustry2digitsicashetable5",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-co::road",
+      "count": 1,
+      "row_ids": [
+        "afda0f24-78eb-44e2-a7a3-a10c5401e299"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "afda0f24-78eb-44e2-a7a3-a10c5401e299",
+          "title": "Colorado CDPHE Clean Trucking program and Regulation 20 (5 CCR 1001-24) rulemaking tracker",
+          "url": "https://cdphe.colorado.gov/cleantrucking",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-ma::road",
+      "count": 1,
+      "row_ids": [
+        "f04ee5d7-fa16-48c9-9493-b5c45483b8d8"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "f04ee5d7-fa16-48c9-9493-b5c45483b8d8",
+          "title": "Massachusetts DEP 310 CMR 7.40 (Low Emission Vehicle Program / Advanced Clean Trucks) rulemaking tracker",
+          "url": "https://www.mass.gov/regulations/310-CMR-700-air-pollution-control",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-md::road",
+      "count": 1,
+      "row_ids": [
+        "19651fd9-8a43-442c-9c0b-c4e0a98ae609"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "LOW"
+        ]
+      },
+      "examples": [
+        {
+          "id": "19651fd9-8a43-442c-9c0b-c4e0a98ae609",
+          "title": "Maryland MDE COMAR 26.11.43 (Advanced Clean Trucks Program) rulemaking-documents tracker",
+          "url": "https://mde.maryland.gov/programs/regulations/air/Documents/2023%20ACT%20Fact%20Sheet%2005.24.23%20AQCAC.pdf",
+          "priority": "LOW"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-nj::road",
+      "count": 1,
+      "row_ids": [
+        "bad1d4c1-3ef6-473e-b36f-a37d1fbc6273"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "bad1d4c1-3ef6-473e-b36f-a37d1fbc6273",
+          "title": "New Jersey DEP Advanced Clean Trucks rulemaking and fleet-reporting tracker",
+          "url": "https://dep.nj.gov/stopthesoot/advanced-clean-trucks-rule-fleet-reporting/",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-ny::road",
+      "count": 1,
+      "row_ids": [
+        "6b41276e-a13b-4678-8907-1374aa47cbae"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "6b41276e-a13b-4678-8907-1374aa47cbae",
+          "title": "New York 6 NYCRR Part 218 -- Heavy-Duty Vehicle Emission Standards (Advanced Clean Trucks + Heavy-Duty Omnibus + Phase 2 GHG, CARB-aligned)",
+          "url": "https://dec.ny.gov/regulations/regulatory-agenda",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-or::road",
+      "count": 1,
+      "row_ids": [
+        "4a399701-923e-4aea-a08e-9c132be4124e"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "4a399701-923e-4aea-a08e-9c132be4124e",
+          "title": "Oregon DEQ Clean Truck Rules rulemaking tracker",
+          "url": "https://www.oregon.gov/deq/rulemaking/pages/ctr2025.aspx",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-ri::road",
+      "count": 1,
+      "row_ids": [
+        "0c49c686-0c8c-4800-82b6-8fefed6752ea"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "LOW"
+        ]
+      },
+      "examples": [
+        {
+          "id": "0c49c686-0c8c-4800-82b6-8fefed6752ea",
+          "title": "Rhode Island DEM Advanced Clean Cars II and Advanced Clean Trucks mobile-sources tracker",
+          "url": "https://dem.ri.gov/environmental-protection-bureau/air-resources/mobile-sources/advanced-clean-cars-ii-advanced-clean",
+          "priority": "LOW"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-vt::road",
+      "count": 1,
+      "row_ids": [
+        "b6025ae3-f38e-41f9-94e3-6283a6bc10cf"
+      ],
+      "recommended_decision": "parked",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "MODERATE"
+        ]
+      },
+      "examples": [
+        {
+          "id": "b6025ae3-f38e-41f9-94e3-6283a6bc10cf",
+          "title": "Vermont DEC Advanced Clean Trucks program and enforcement-status page",
+          "url": "https://dec.vermont.gov/air-quality/mobile-sources/zero-emission-vehicles/ACT",
+          "priority": "MODERATE"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us-wa::road",
+      "count": 1,
+      "row_ids": [
+        "ff9ced02-dd6d-4afa-9173-2472c3ebfd56"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "ff9ced02-dd6d-4afa-9173-2472c3ebfd56",
+          "title": "Washington Department of Ecology WAC 173-423 Clean Vehicles Program rulemaking tracker",
+          "url": "https://ecology.wa.gov/regulations-permits/laws-rules-rulemaking/rulemaking/wac-173-423-clean-vehicles-program",
+          "priority": "HIGH"
+        }
+      ]
+    },
+    {
+      "key": "MISSING::us::multi",
+      "count": 1,
+      "row_ids": [
+        "7dbb93f8-0a88-4426-90fb-b2e4e7220dac"
+      ],
+      "recommended_decision": "kept",
+      "decision": null,
+      "rationale": null,
+      "evidence": {
+        "coverage_class": "MISSING",
+        "priorities": [
+          "HIGH"
+        ]
+      },
+      "examples": [
+        {
+          "id": "7dbb93f8-0a88-4426-90fb-b2e4e7220dac",
+          "title": "EIA industrial electricity retail pricing (state-filterable)",
+          "url": "https://api.eia.gov/v2/electricity/retail-sales/data/",
+          "priority": "HIGH"
+        }
+      ]
+    }
+  ]
+}
