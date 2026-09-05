@@ -2193,3 +2193,268 @@ Commercial Vehicle Drive to Zero Zero-Emission Technology Inventory (ZETI),
 `globaldrivetozero.org/tools/zeti-tool/` — plus the host-authority.ts class-table gap named above, which
 blocks this source (and any manufacturer press site) from ever producing a written row until an operator
 ruling adds a class-table entry for it.
+
+---
+
+## 22. `propose-classifications`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed — the
+script had only its own `.test.mjs` as an importer, no workflow reference). Written from
+`scripts/classification/propose-classifications.mjs`'s own header.
+
+**Purpose**: Phase 2/3 of the 5-axis source-classification framework
+(`docs/plans/source-classification-framework-2026-05-10.md`). Computes three finding subtypes —
+`--classify` (Axis 3/4/5 field gaps per source), `--drift` (a source's observed item-category
+distribution deviating from its registered `expected_output`), `--anomalies` (an item classified into a
+category its source's distribution says is improbable) — and writes each as an `integrity_flags` row
+(namespace `AXIS_NAMESPACE`) for operator ratification. No mode flag runs all three (the default).
+
+**What it does NOT do**: never writes `sources` or `intelligence_items` directly — every finding is a
+flag proposal only. Applying a ratified finding is `apply-classifications.mjs`'s job (already wired as
+this runbook's own `apply-classifications` step, §17 above), not this script's.
+
+**Upstream**: `src/lib/classification/classify-source.mjs` (`proposeSourceAxisClassification`),
+`src/lib/classification/routing.mjs` (`detectDrift`/`isAnomalousCategory`), `planReflect` imported
+unmodified from `scripts/connections/propose-tags.mjs` (the shared dedup-before-insert/resolve-if-stale
+plan — never a second implementation).
+
+**Ruling**: none by token — Phase 2/3 findings-visibility is the framework's own design; auto-adoption of
+the RESULTING flags is `apply-classifications.mjs`'s separate, already-ruled-on mechanism (§17).
+
+**Dispatch**: no `arg`. This step calls the script's own CLI directly (`--execute` is that script's own
+apply flag; there is no `cli.mjs` wrapper for a pure propose pass). `mode=dry` computes fresh
+classify/drift/anomaly findings and reports the plan (new/stale/unchanged per subtype), writing nothing.
+`mode=apply` adds `--execute`: writes new `integrity_flags` rows via `guardedInsertMany` and resolves
+stale ones via `guardedUpdate` (rule 015).
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json` — see Dispatch).
+Confirm against `SELECT created_by, status, count(*) FROM integrity_flags WHERE created_by LIKE 'axis:%'
+GROUP BY 1, 2` (the exact `AXIS_NAMESPACE`-prefixed `created_by` values are `flags.mjs`'s
+`SOURCE_CLASSIFICATION_SUBTYPE`/`SOURCE_DRIFT_SUBTYPE`/`ITEM_ANOMALY_SUBTYPE`).
+
+---
+
+## 23. `generate-theme-brief`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed).
+Written from `scripts/connections/generate-theme-brief.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/shared-dataset-ownership.md`**: that document previously listed `theme_briefs` as
+having two writers (this script and `src/lib/research/theme-brief.mjs`) with an open "supersession
+TO-VERIFY" — reading `theme-brief.mjs` end to end (this lane, 2026-09-05) shows it is READ-ONLY (its own
+header: "This module never writes, never clusters, never calls an LLM") and carries zero write calls; the
+document is corrected accordingly. `theme_briefs` (migration 266) had exactly one real writer all along —
+this script — and it was simply never given a dispatch root.
+
+**Purpose**: assembles a theme's brief input bundle (`--theme <id>`: member items, intra-theme edges,
+forward events, `member_hash`) for a human or in-session agent to author brief prose from ($0, no LLM
+call inside this script), then validates and persists an authored payload (`--write <file>`) into
+`theme_briefs` via the guarded path — check-then-branch insert/update (no `guardedUpsert` exists;
+`theme_id` is PRIMARY KEY). Refuses a `--write` whose `member_hash` no longer matches the theme's LIVE
+membership (staleness detected at write time, never silently accepted).
+
+**What it does NOT do**: never calls an LLM, never invents brief prose — the prose is supplied by the
+`--write` payload's author.
+
+**Upstream**: `src/lib/connections/brief-staleness.mjs` (`computeMemberHash` — the ONE hash-recipe home,
+imported here, never re-implemented).
+
+**Ruling**: none by token — U6 (flywheel build plan 2026-08-10) is the standing design; this is its only
+writer.
+
+**Dispatch**: `arg` IS REQUIRED (both modes, `|| true`-equivalent graceful skip on blank) and takes one of
+two forms: `theme:<connection_themes-id>` (assemble + print that theme's bundle — read-only in both
+modes) or `write:<path-to-authored-payload>` (validate against live membership; `mode=apply` adds
+`--execute` to persist via `guardedInsert`/`guardedUpdate`, `mode=dry` only validates + reports).
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT theme_id, title, member_hash, generated_by, generated_at FROM theme_briefs ORDER BY generated_at
+DESC`. **Live evidence already exists**: 9 rows, all `generated_by='session-executor'` (this script's own
+`validateAgainstLiveMembers` value), dated 2026-08-21 — a prior session already ran `--write ...
+--execute` through the guarded path before this dispatch route existed; this step gives that proven write
+path a CI home, it does not newly prove it works.
+
+---
+
+## 24. `ratify-flag-to-census`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1; F25 allowlist entry removed).
+Written from `scripts/connections/ratify-flag-to-census.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/shared-dataset-ownership.md`**: that document previously flagged this script
+"pre-registered (parallel lane) — not yet present" against `census_worklist`/`integrity_flags` with two
+open TO-VERIFYs (which `created_by` namespace it consumes; whether it satisfies `census_worklist`'s
+`(lane, created_by)` identity-preservation rule). Both resolved by reading the script end to end (see the
+doc's corrected entries): it consumes ANY namespace (gated on a `ratify:census` marker an operator adds
+by hand, not a fixed `created_by`), and it does not touch the identity-preservation path at all — a
+ratified flag mints a brand-new `census_worklist` identity (`created_by: "flywheel-ratified:<flagId>"`),
+never claiming to be a continuation of an existing discoverer's row.
+
+**Purpose**: the flywheel-to-harness feed. Given `--flag <id>`, requires the `integrity_flags` row to be
+operator-resolved (`status='resolved'`, `resolved_by` set) with `resolution_note` carrying the
+`ratify:census` marker plus `source_id=<uuid> url=<document-url>` (format in the script's own header),
+and idempotently creates a `census_worklist` row (skip-if-exists on `(source_id, document_url)`) so the
+operator's own mid-investigation document discovery enters the same gap-census pipeline (migration 221)
+real census producers feed.
+
+**What it does NOT do**: it is not an automatic resolver for any specific flag namespace — see
+`docs/inventories/shared-dataset-ownership.md`'s corrected "Open leaks summary" item 1: it does NOT close
+the `intake-seek-study`/`intake-relevance` open leaks, since neither namespace's flags carry a document
+url an operator could cite without doing the marker-authoring work by hand regardless.
+
+**Upstream**: none beyond `scripts/lib/db.mjs`'s `guardedInsert` — the decision logic
+(`parseRatificationNote`/`evaluateRatification`/`buildCensusRow`) is pure, unit-tested without a DB.
+
+**Ruling**: none by token beyond the marker convention itself (an operator-authored `resolution_note`,
+not a ruling requiring a separate citation).
+
+**Dispatch**: `arg` IS REQUIRED (both modes) — the `integrity_flags` id to ratify. `mode=dry` (default
+`--dry`) computes + reports the would-be `census_worklist` row, writing nothing. `mode=apply` adds
+`--execute`, inserting via `guardedInsert` (rule 015).
+
+**Artifact / read back**: this step's own console output. Confirm against `SELECT id, source_id,
+document_url, created_by FROM census_worklist WHERE created_by LIKE 'flywheel-ratified:%'`.
+
+---
+
+## 25. `assumption-register-seed`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1, B1 Gap #4). Written from
+`scripts/gen/assumption-register-seed.mjs`'s own header. **CORRECTS a stale claim in
+`docs/inventories/migrations.md` row 271**: that row previously read "NOT YET APPLIED" — confirmed live
+2026-09-05 via read-only SQL (`list_migrations` shows version `20260830201604` applied; `assumption_
+register` carries 20 live columns, 0 rows) that the coordinator applied it at some point before this
+lane's pass; the row is corrected accordingly.
+
+**Purpose**: seeds the 10 catalogued WO-20 modelling constants
+(`docs/plans/wo20-assumption-register-spec.md` §2) from the committed fixture
+`scripts/gen/fixtures/assumption-register/wo20-catalogued-assumptions-2026-08-30.json` into
+`assumption_register` (migration 271, live) via `guardedInsertMany`. Idempotent on the natural key
+`assumption_key`.
+
+**What it does NOT do**: does not create or alter the table (schema landed with migration 271, separately
+and earlier) and does not read or write anything else.
+
+**Upstream**: `scripts/gen/assumption-register-common.mjs` (`loadFixtureRows`, `seedAssumptions`) — the
+one seeding-mechanics home this script and any future re-seed both share.
+
+**Ruling**: none by token — the 10 constants and their `code_location`/`governing_decision` pointers are
+the catalogued spec content itself (§2), not an operator ruling requiring a separate citation.
+
+**Dispatch**: no `arg`. Raw-CLI invoked (the script's own `--apply` flag, same shape as
+`seed-benchmark-instruments`/`spec09-reroute` above — no `cli.mjs` wrapper). `mode=dry` reports what
+would be inserted (idempotent skip on rows already present); writes nothing. `mode=apply` adds `--apply`.
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT assumption_key, subsystem, label FROM assumption_register ORDER BY assumption_key` (expect 10
+rows after the first successful apply; 0 as of 2026-09-05, unrun).
+
+**Reader**: per `docs/plans/wo20-assumption-register-spec.md` §4, the admin `/admin` page now carries an
+"Assumptions" panel (`fetchAssumptionRegister()` in `src/app/admin/page.tsx` +
+`src/components/admin/AdminDashboard.tsx`) — see this lane's report for the exact files. This is the
+minimum first reader the spec names; the table is no longer write-only.
+
+---
+
+## 26. `backfill-lineage-edges`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1/§W4.1, B1 Ranked Gap #5). Written
+from `scripts/entities/backfill-lineage-edges.mjs`'s own header. **Distinct from
+`backfill-derivation-edges.mjs`** (DAG-AUTHOR lane, wired into `propagation-drain.yml`'s
+`backfill_and_statutory` checkbox): that script writes `derivation_edges`; this one writes
+`item_cross_references` — different tables, different capabilities, both real, both now wired, on their
+own dispatch roots. Do not conflate the two or delete either believing it duplicates the other.
+
+**Purpose**: the $0 whole-corpus backfill feeding the typed-lineage-edge capability (PR #481:
+`classifyRelationship`/`planLinkWrites`, `item_cross_references.relationship` in
+`{implements,amends,depends_on,...}`) that shipped with 0 live typed edges — the only caller of
+`linkItems` is `generate-brief.ts`'s metered `linkStep`, which never ran at whole-corpus scale. Runs
+every non-archived item through the SAME `planLinkWrites` the runtime calls (zero re-implemented typing
+logic — see `src/lib/entities/lineage-backfill.mjs`'s `partitionLineageWrites` for the pure
+insert/upgrade/skip-foreign/unchanged decision), writing via `guardedInsertMany`/`guardedUpdate`/
+`guardedInsert` (rule 015), with a prior-state snapshot (row count + md5) printed before any write.
+
+**What it does NOT do**: never touches a pair already owned by a foreign origin (manual/agent_semantic/
+provenance_discovery) — counted as `skippedForeign`, never clobbered.
+
+**Upstream**: `planLinkWrites` (`src/lib/entities/entity-resolve.mjs`), `partitionLineageWrites`
+(`src/lib/entities/lineage-backfill.mjs`).
+
+**Ruling**: none by token — this is a backfill for an already-shipped, already-ruled-on capability, not a
+new decision.
+
+**Dispatch**: `arg`, if given, is passed as `--limit N` for a bounded pilot run (omit for the full
+corpus). Raw-CLI invoked (`--apply`/default-dry, `--dry` is the DEFAULT here, a deliberately safer default
+than `backfill-edges.mjs`'s write-by-default posture, per the script's own header). `mode=dry` computes
+and reports the full plan (relationship-type counts, insert/upgrade/skip/unchanged tallies) without
+`--apply`, writing nothing. `mode=apply` adds `--apply`.
+
+**Artifact / read back**: this step's own console output (no `cli.mjs`/`summary.json`). Confirm against
+`SELECT relationship, count(*) FROM item_cross_references GROUP BY relationship` (live 2026-09-05: 21,973
+total rows, only 5 non-`'related'` — this backfill has never run to completion; a first `mode=apply` run
+should raise that count substantially) and the run's own printed prior-state snapshot for the reversibility
+record.
+
+---
+
+## 27. `screen-worklist`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1). Written from
+`scripts/mint/screen-worklist.mjs`'s own header. B1 classifies this WIRED already (manual-only,
+artifact-proven — `scripts/harness-runs/screen/screen-run-{001,002,003}.json`), but the mechanical
+graph+workflow check cannot see hand-run evidence; this step gives it a CI dispatch root without changing
+what it does.
+
+**Purpose**: the $0, rule-based relevance re-screen (`screen-rules.mjs`) against a JSON dump of
+`census_worklist` rows. No DB access, no network — reads one input file the coordinator exported,
+classifies every row with `classifyRelevance()`, writes a results JSON + human-readable summary, and (per
+Wave MH-2) its own `scripts/harness-runs/screen/` run artifact as part of the same execution path.
+
+**What it does NOT do**: never talks to Supabase itself (MINT-RUNBOOK.md's $0/no-DB-writes-from-a-mint-
+lane rule) — the coordinator exports the census dump and applies this script's recommended dispositions
+separately.
+
+**Upstream**: `scripts/mint/screen-rules.mjs` (`classifyRelevance`), `scripts/lib/run-artifact.mjs`
+(`writeRunArtifact`).
+
+**Ruling**: none by token — the rule engine's on/off-vertical/ambiguous verdicts are the standing
+mechanism (MINT-RUNBOOK.md), not a per-dispatch ruling.
+
+**Dispatch**: `arg` IS REQUIRED (both modes — there is no DB-side "dry" concept here since the script
+never touches Supabase) and is the repo-relative path to a COORDINATOR-COMMITTED census-worklist dump
+JSON (this step never calls `export-census-rows.mjs` itself). `--out-dir`/`--harness-runs-dir` point
+INSIDE this run's own `$OUT_ROOT` (never the live repo tree), so results/summary/harness-run artifacts
+land ONLY as this run's uploaded GitHub Actions artifact.
+
+**Artifact / read back**: `$OUT_ROOT/screen-worklist/` holds `<basename>.screen-results.json`,
+`<basename>.screen-summary.md`, and `harness-runs/screen-run-NNN.json` — all three uploaded as this run's
+artifact. **The coordinator must download this run's artifact and commit `screen-run-NNN.json` into
+`scripts/harness-runs/screen/` by hand afterward** (mirroring the existing manual-hand-run workflow, now
+CI-dispatched instead of locally shelled) — this step does not commit anything itself.
+
+---
+
+## 28. `verification-audit-report`
+
+**Documentation gap closed, Lane W71-WIRE, 2026-09-05** (plan §W7.1, B1 Ranked Gap #8). Written from
+`scripts/verify/verification-audit-report.mjs`'s own header.
+
+**Purpose**: W2.F provenance + F28 harness-run legibility report — `intelligence_items` provenance matrix
+(grade × status × item_type), `section_claim_provenance` claims citation split by `claim_kind`, sections
+carrying a FACT claim missing `source_span`, and F28's registered harness families' run-history markers
+(same posture as `population-report.mjs`: legibility, not a pass/fail gate — a corpus mid-verification
+legitimately has unverified/pending rows).
+
+**What it does NOT do**: never writes anything; $0, read-only against `intelligence_items` and
+`section_claim_provenance` plus a filesystem read of `scripts/harness-runs/`.
+
+**Upstream**: `scripts/lib/run-artifact.mjs` (`readRunHistory`, `DEFAULT_HARNESS_RUNS_ROOT`),
+`.discipline/fitness/functions/F28-harness-run-integrity.mjs` (`GOVERNING_FILES` — the registered-family
+list, never re-derived by hand here).
+
+**Ruling**: none — a report, not a gate.
+
+**Dispatch**: no `arg`. Not a pass/fail check, so `mode` only changes nothing here — both `dry` and
+`apply` write the same report into this run's artifact.
+
+**Artifact / read back**: `$OUT_ROOT/verification-audit-report/report.md` (+ a `.json` twin at the same
+path) — uploaded as this run's artifact. Confirm the report's own counts against a direct read, e.g.
+`SELECT item_grade, provenance_status, count(*) FROM intelligence_items GROUP BY 1,2 ORDER BY 3 DESC`.

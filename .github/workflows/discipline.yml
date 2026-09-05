@@ -257,6 +257,15 @@ jobs:
         # fsi-app/.discipline/governance/closure-gate.mjs's header.
         run: node fsi-app/.discipline/governance/closure-gate.mjs
 
+      - name: "Skill-contract drift (U8: skill/code citation pin, F25 W7.1)"
+        # Lane W71-WIRE, 2026-09-05 (plan §W7.1): skill-contract-map.mjs (U8, flywheel build plan
+        # 2026-08-10) existed with only its own .discipline/skill-drift-gate.test.mjs as an importer and
+        # no CI reference — a real gate nothing ran. Placed in THIS job, after the closure gate above and
+        # before the orphan-module census, matching that census's own precedent: this `run:` line is also
+        # how F25's findDispatchRoots() sees this file as wired (a workflow bare-path mention), so it does
+        # not itself become an F25 UNWIRED MODULE violation once its W7.1 allowlist entry is removed.
+        run: node fsi-app/.discipline/governance/skill-contract-map.mjs --check
+
       - name: Orphan-module + dead-export census (B1 Appendix A/B method — reports, never fails)
         # W7.3 (docs/plans/complete-system-build-plan-2026-09-04.md; lane F25-WIDE, 2026-09-04). Runs
         # docs/audits/wiring-audit-2026-09-04/B1-modules.md's own two named methods (Appendix A:

@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, or — for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap — a --rows-file path checked into the repo; see the runbook for which steps require one and what value they need).'
         required: false
@@ -463,6 +463,118 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/forward-events-retext"
           node scripts/maintenance/forward-events-retext.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/forward-events-retext"
+
+      - name: propose-classifications
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, F25 allowlist entry now removed): Phase 2/3 of the
+        # 5-axis source-classification framework — proposes Axis 3/4/5 classification-gap/drift/anomaly
+        # findings as integrity_flags rows for operator ratification (never writes sources or
+        # intelligence_items directly — see the script's own header). Sibling of the apply-classifications
+        # step above, which already wraps its own separate builders; this step runs
+        # propose-classifications.mjs's own CLI directly (--execute is that script's own apply flag, not
+        # a --mode wrapper) since no MAINT wrapper exists or is needed for a pure propose pass.
+        if: env.RUN_STEP == 'propose-classifications' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/classification/propose-classifications.mjs --execute; else node scripts/classification/propose-classifications.mjs; fi
+
+      - name: generate-theme-brief
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): theme_briefs' (migration 266) only writer (see the
+        # script's own header — no other writer exists; src/lib/research/theme-brief.mjs is READ-ONLY).
+        # `arg` is REQUIRED in both modes (`|| true`, same posture as reopen-validation-holds) and takes
+        # one of two forms:
+        #   theme:<connection_themes-id>     -- assemble + print that theme's brief input bundle
+        #                                        (read-only in both modes; a human or in-session agent
+        #                                        authors the brief prose from this bundle, per the
+        #                                        script's own $0/no-LLM-inside-this-script posture).
+        #   write:<path-to-authored-payload>  -- validate an authored brief (.json or .md+frontmatter)
+        #                                        against the theme's LIVE membership; apply mode adds
+        #                                        --execute to persist the theme_briefs row via the
+        #                                        guarded path (rule 015), dry mode only validates+reports.
+        if: env.RUN_STEP == 'generate-theme-brief' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "generate-theme-brief: arg is required -- 'theme:<id>' or 'write:<path>'. Skipping (no target named)."
+          elif [ "${RUN_ARG#theme:}" != "$RUN_ARG" ]; then
+            node scripts/connections/generate-theme-brief.mjs --theme "${RUN_ARG#theme:}"
+          elif [ "${RUN_ARG#write:}" != "$RUN_ARG" ]; then
+            if [ "$RUN_MODE" = "apply" ]; then
+              node scripts/connections/generate-theme-brief.mjs --write "${RUN_ARG#write:}" --execute
+            else
+              node scripts/connections/generate-theme-brief.mjs --write "${RUN_ARG#write:}"
+            fi
+          else
+            echo "::error::generate-theme-brief: arg must start with 'theme:' or 'write:' (got '$RUN_ARG')."
+            exit 1
+          fi
+
+      - name: ratify-flag-to-census
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): the flywheel-to-harness feed — promotes an
+        # operator-ratified integrity_flags finding (resolution_note carrying the 'ratify:census' marker
+        # — see the script's own header for the full format) into a census_worklist row. `arg` IS the
+        # integrity_flags id to ratify, required in both modes (`|| true`, same posture as
+        # reopen-validation-holds — there is no meaningful blank-arg run for a single-flag operation).
+        if: env.RUN_STEP == 'ratify-flag-to-census' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "ratify-flag-to-census: arg is required -- the integrity_flags id to ratify. Skipping (no target named)."
+          elif [ "$RUN_MODE" = "apply" ]; then
+            node scripts/connections/ratify-flag-to-census.mjs --flag "$RUN_ARG" --execute
+          else
+            node scripts/connections/ratify-flag-to-census.mjs --flag "$RUN_ARG"
+          fi
+
+      - name: assumption-register-seed
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, B1 Gap #4): seeds the 10 catalogued WO-20 modelling
+        # constants (docs/plans/wo20-assumption-register-spec.md §2) into assumption_register (migration
+        # 271, live). Idempotent on the natural key (assumption_key). Raw-CLI invoked (its own --apply
+        # flag, same shape as seed-benchmark-instruments/spec09-reroute above) — no MAINT wrapper exists
+        # or is needed for a single fixed-fixture seed.
+        if: env.RUN_STEP == 'assumption-register-seed' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/gen/assumption-register-seed.mjs --apply; else node scripts/gen/assumption-register-seed.mjs; fi
+
+      - name: backfill-lineage-edges
+        # Lane W71-WIRE (2026-09-05, plan §W7.1/§W4.1, B1 Ranked Gap #5): the $0 whole-corpus backfill
+        # feeding the typed-lineage-edge capability (PR #481) that shipped with 0 live typed edges — see
+        # the script's own header. Distinct from DAG-AUTHOR's backfill-derivation-edges.mjs (a different
+        # module, a different table — derivation_edges — already wired into propagation-drain.yml's
+        # backfill_and_statutory checkbox); this one writes item_cross_references and had no dispatch
+        # root anywhere until this step. `arg`, if given, is passed as --limit N for a bounded pilot run;
+        # omit it for the full corpus.
+        if: env.RUN_STEP == 'backfill-lineage-edges' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          EXTRA=""
+          if [ -n "$RUN_ARG" ]; then EXTRA="--limit $RUN_ARG"; fi
+          if [ "$RUN_MODE" = "apply" ]; then node scripts/entities/backfill-lineage-edges.mjs --apply $EXTRA; else node scripts/entities/backfill-lineage-edges.mjs $EXTRA; fi
+
+      - name: screen-worklist
+        # Lane W71-WIRE (2026-09-05, plan §W7.1): screen-worklist.mjs is MINT-RUNBOOK.md's documented
+        # pre-population-turn manual procedure, proven run by hand 3 times (scripts/harness-runs/screen/
+        # screen-run-{001,002,003}.json) but never given a dispatch root of its own. No DB access, no
+        # network, $0 — mode is honored for shape only. `arg` IS REQUIRED (both modes) and is the
+        # repo-relative path to a COORDINATOR-COMMITTED census-worklist dump JSON (this step never calls
+        # export-census-rows.mjs itself). Output paths point INSIDE this run's own $OUT_ROOT (never the
+        # live repo tree), so the results/summary/harness-run artifact land ONLY as this run's uploaded
+        # artifact; the coordinator downloads it and commits the harness-run JSON into
+        # scripts/harness-runs/screen/ by hand afterward, same as every prior run.
+        if: env.RUN_STEP == 'screen-worklist' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "screen-worklist: arg is required -- the repo-relative path to a committed census-worklist dump JSON. Skipping (no input named)."
+          else
+            mkdir -p "$OUT_ROOT/screen-worklist"
+            node scripts/mint/screen-worklist.mjs --input "$RUN_ARG" --out-dir "$OUT_ROOT/screen-worklist" --harness-runs-dir "$OUT_ROOT/screen-worklist/harness-runs"
+          fi
+
+      - name: verification-audit-report
+        # Lane W71-WIRE (2026-09-05, plan §W7.1, B1 Ranked Gap #8): W2.F provenance + F28 harness-run
+        # legibility report (intelligence_items provenance matrix, claims citation split, sections
+        # missing source_span, F28 harness-run markers). Read-only, $0 — not a pass/fail gate (same
+        # posture as population-report.mjs), so mode only changes nothing here; both modes just write the
+        # report into this run's artifact.
+        if: env.RUN_STEP == 'verification-audit-report' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/verification-audit-report"
+          node scripts/verify/verification-audit-report.mjs --out "$OUT_ROOT/verification-audit-report/report.md"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).
