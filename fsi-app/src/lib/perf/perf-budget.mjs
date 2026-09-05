@@ -67,7 +67,13 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
         '23:10-23:20 UTC, docs/audits/perf-clickthrough-2026-09-04.md] "/regulations 277 KB ' +
         "decoded\" — this lane's own sandbox has no route to carosledge.com to independently " +
         "re-run the capture (see this lane's REPORT for the exact limitation); relayed as this " +
-        "lane's dispatch and recorded there so this citation points at a real, findable document.",
+        "lane's dispatch and recorded there so this citation points at a real, findable document. " +
+        "NOT YET RE-FOLDED (lane CHIPS, 2026-09-05, W3.4): the SSR first page (LIST_PAGE_SIZE=30 " +
+        "rows, same rows this document embeds) now carries the row-chip credibility fields — see " +
+        "bytesPerScrollPage's own re-measurement below, +2,237 bytes / 30 rows fixture-measured for " +
+        "that identical row set. Same order-of-magnitude delta is expected here; ratchet/target left " +
+        "untouched rather than guessed at, per this file's own obligationRegisterBytesPerPage " +
+        "precedent (no live carosledge.com route from this container to confirm the true number).",
     },
     nextFBytes: {
       ratchet: 401_000,
@@ -117,21 +123,23 @@ export const PERF_BUDGET_REGISTRY = Object.freeze({
     bytesPerScrollPage: {
       ratchet: 20_000,
       target: 20_000,
-      measuredAt: "2026-09-04",
+      measuredAt: "2026-09-05",
       evidence:
         "[CONFIRMED, by measurement — Buffer.byteLength of JSON.stringify against " +
         "toLedgerRowPayload-trimmed representative fixture rows, list-pagination.ts's real exported " +
         "function, not a reimplementation] a LIST_PAGE_SIZE=30-row /api/listings/cursor response " +
-        "(30 resources with realistic title/note/tag lengths, plus nextCursor/hasMore) serializes " +
-        "to 16,289 bytes (543 bytes/row average) — the per-request cost of each `fetchNextPage()` " +
-        "call this lane's IntersectionObserver sentinel triggers. Real production row content " +
-        "(titles/notes vary) was not measured (no live DB access from this container) — this is a " +
-        "fixture-based measurement, honestly labeled, not a live-traffic sample. target === ratchet " +
-        "at a round 20 KB: this metric starts already comfortably under a natural per-request " +
-        "budget; the more consequential ADR-027 win this lane makes is that this number is now PAID " +
-        "PER SCROLL, on demand, rather than once, unconditionally, on mount, for the entire " +
-        "remainder of the corpus (the old LIST_REMAINDER_LIMIT=5000-row one-shot fetch this lane " +
-        "deleted — see list-pagination.ts's own header).",
+        "(30 resources with realistic title/note/tag lengths, plus nextCursor/hasMore) serialized " +
+        "to 16,289 bytes (543 bytes/row average) on 2026-09-04. RE-MEASURED 2026-09-05 (lane CHIPS, " +
+        "W3.4) after adding the row-chip credibility fields (sourceTier, citationCount, biasTags, " +
+        "and the now-live item_grade passthrough) to this same path via enrichCategoryRows: the " +
+        "identical 30-row fixture (now carrying a realistic mix — sourceTier always set, " +
+        "citationCount null on 1 row in 4, biasTags non-empty on 1 row in 6, item_grade='record' on " +
+        "~77% of rows, matching the live corpus's measured ratio) serializes to 19,696 bytes " +
+        "(656 bytes/row average) — a +2,237 byte / +74.6 byte-per-row delta from these four fields, " +
+        "still under the 20 KB ratchet/target (no change to either number needed). Fixture-based, " +
+        "not a live-traffic sample (no live DB access from this container) — the delta's SHAPE is " +
+        "real (these are the exact fields this lane added and the exact function that ships them), " +
+        "the absolute bytes will vary with real title/note/tag length same as the prior figure did.",
     },
     // REG-GRAIN (2026-09-05): docs/specs/01-regulations.md's own defect — the obligation register
     // rendered one row per (item, event_kind, due_date) with no obligation text at all, so genuinely

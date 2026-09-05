@@ -65,7 +65,13 @@ export function CredibilityChipAuthority({
     <span style={{ display: "inline-block" }}>
       <button
         type="button"
-        onClick={() => setOpen((o) => !o)}
+        // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same anchor-safe stopPropagation as
+        // CredibilityChipEvidence.tsx — see that file's comment for the full rationale.
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          setOpen((o) => !o);
+        }}
         aria-expanded={open}
         title={scored ? "Source authority (spec-03 §4 Score 2)" : NOT_SCORED_REASON}
         style={chipButtonStyle(scored)}

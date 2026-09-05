@@ -52,6 +52,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import { AiPromptBar } from "@/components/ui/AiPromptBar";
 import {
   parseRecordSections,
   splitKeyDateFacts,
@@ -965,6 +966,21 @@ export function ResearchFindingDetailSurface({
             )}
           </div>
         )}
+      </div>
+
+      {/* Ask bar — page-scoped (lane CHIPS, 2026-09-05, W3.4). Same AiPromptBar mount RegulationDetail
+          Surface.tsx and MarketSignalDetailSurface.tsx already carry, extended to Research so the
+          rule is on the two remaining detail surfaces (Research + Operations, see
+          OperationsDetailSurface.tsx) as well as the two it already had. */}
+      <div style={{ marginBottom: 18 }}>
+        <AiPromptBar
+          placeholder={`Ask anything about ${r.title} — e.g. what does this finding change?`}
+          chips={[
+            "What does this change for me?",
+            "How confident is this finding?",
+            "Who else is studying this?",
+          ]}
+        />
       </div>
 
       {/* Stat strip — Published + (optional) Citations */}

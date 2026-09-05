@@ -1570,7 +1570,7 @@ async function enrichCategoryRows(
   serviceClient: ReturnType<typeof getServiceSupabase>,
   resources: Resource[],
   rpcLabel: string,
-  opts: { enrichCitations?: boolean } = {}
+  opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
 ): Promise<void> {
   // P1-2 (DEEP-AUDIT S2): enrich the provenance chip (source name + tier). The
   // category RPCs return source_id but not the publisher name/tier, so the tier
@@ -1641,6 +1641,41 @@ async function enrichCategoryRows(
       }
     }
   }
+
+  // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): per-source bias tags from source_bias_tags
+  // (migration 092) — the same query fetchResearchPipelineRows already runs for Research, generalized
+  // here so Regulations/Market/Operations rows can carry the identical CredibilityChipEvidence data
+  // contract (biasTags) instead of a second copy of this lookup living per-surface. One query for the
+  // page's distinct source_ids, grouped client-side. Empty array (not undefined) when a source has no
+  // tags, matching ResearchPipelineRow's own contract and CredibilityChipEvidence's "not_assessed"
+  // render for an empty list. Failure is non-fatal: rows render with biasTags=[] and the chip
+  // degrades to its "not scored" state, same posture as the citation-stats block above.
+  if (opts.enrichBiasTags && chipSourceIds.length > 0) {
+    const { data: biasRows, error: biasErr } = await serviceClient
+      .from("source_bias_tags")
+      .select("source_id, dimension, tag, confidence")
+      .in("source_id", chipSourceIds);
+    if (biasErr) {
+      console.error(`[category-routing] source_bias_tags enrichment for ${rpcLabel} error:`, describeSupabaseError(biasErr));
+    } else if (Array.isArray(biasRows)) {
+      const biasBySourceId = new Map<string, NonNullable<Resource["biasTags"]>>();
+      for (const b of biasRows as any[]) {
+        if (!b || typeof b.source_id !== "string") continue;
+        const dim = b.dimension as "funding" | "methodology" | "stakeholder";
+        if (dim !== "funding" && dim !== "methodology" && dim !== "stakeholder") continue;
+        const existing = biasBySourceId.get(b.source_id) ?? [];
+        existing.push({
+          dimension: dim,
+          tag: String(b.tag),
+          confidence: typeof b.confidence === "number" ? b.confidence : null,
+        });
+        biasBySourceId.set(b.source_id, existing);
+      }
+      for (const r of resources) {
+        r.biasTags = r.sourceId ? biasBySourceId.get(r.sourceId) ?? [] : [];
+      }
+    }
+  }
 }
 
 // CAP-1000 (2026-09-05, "two defects one cause" audit). Both runCategoryRpc and runCategoryRpcPublic
@@ -1678,7 +1713,7 @@ async function runCategoryRpc(
     | "get_research_items"
     | "get_operations_items"
     | "get_technology_items",
-  opts: { enrichCitations?: boolean } = {}
+  opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
 ): Promise<CategoryRoutedResult> {
   if (!isSupabaseConfigured() || !orgId) {
     return { resources: [], total: 0 };
@@ -1709,7 +1744,7 @@ async function runCategoryRpc(
 // and that it takes no org-derived argument at all.
 async function runCategoryRpcPublic(
   rpcName: "get_market_intel_items_public" | "get_operations_items_public" | "get_research_items_public",
-  opts: { enrichCitations?: boolean } = {}
+  opts: { enrichCitations?: boolean; enrichBiasTags?: boolean } = {}
 ): Promise<CategoryRoutedResult> {
   if (!isSupabaseConfigured()) {
     return { resources: [], total: 0 };
@@ -1730,10 +1765,14 @@ async function runCategoryRpcPublic(
 }
 
 // /market fetcher. RPC filters on sources.category = 'market_news'.
+// Row-chip rule (lane CHIPS, 2026-09-05, W3.4): enrichCitations + enrichBiasTags added so
+// MarketIntelLedger's rows carry the same CredibilityChipEvidence/Authority data contract
+// Operations already had (fetchOperationsItems below) — one rule, four surfaces, not a
+// per-surface subset of the fields it needs.
 export async function fetchMarketIntelItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_market_intel_items");
+  return runCategoryRpc(orgId, "get_market_intel_items", { enrichCitations: true, enrichBiasTags: true });
 }
 
 // /research fetcher. RPC filters on sources.category = 'research' OR the
@@ -1750,10 +1789,13 @@ export async function fetchResearchItems(
 // Q9 Operations signal set (tier + jurisdiction + applicability, with
 // citation count + recency as secondary signals per source-credibility-model
 // SKILL Section 8) renders on cards.
+// Row-chip rule (lane CHIPS, 2026-09-05, W3.4): enrichBiasTags added alongside the existing
+// enrichCitations so OperationsLedger's rows carry the full CredibilityChipEvidence/Authority
+// data contract (sourceTier + citationCount + biasTags), matching Market/Regulations/Research.
 export async function fetchOperationsItems(
   orgId: string | null
 ): Promise<CategoryRoutedResult> {
-  return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true });
+  return runCategoryRpc(orgId, "get_operations_items", { enrichCitations: true, enrichBiasTags: true });
 }
 
 // /technology fetcher. RPC filters on item_type IN ('technology',
@@ -1769,8 +1811,12 @@ export async function fetchTechnologyItems(
 // parameter, no per-org override merge — the caller (src/lib/data.ts) wraps these in unstable_cache
 // with no orgId in the cache key and merges the per-org override layer client-side, same split as
 // fetchPublicResourcesOnly/fetchPublicListingsOnly.
+// Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same enrichCitations/enrichBiasTags opts as the
+// org-scoped fetchMarketIntelItems/fetchOperationsItems above — the public and org-scoped paths
+// for a given surface must carry the identical Resource field set, or an anonymous viewer and a
+// logged-in one would see a different chip.
 export async function fetchPublicMarketIntelItems(): Promise<CategoryRoutedResult> {
-  return runCategoryRpcPublic("get_market_intel_items_public");
+  return runCategoryRpcPublic("get_market_intel_items_public", { enrichCitations: true, enrichBiasTags: true });
 }
 
 export async function fetchPublicResearchItems(): Promise<CategoryRoutedResult> {
@@ -1778,7 +1824,7 @@ export async function fetchPublicResearchItems(): Promise<CategoryRoutedResult> 
 }
 
 export async function fetchPublicOperationsItems(): Promise<CategoryRoutedResult> {
-  return runCategoryRpcPublic("get_operations_items_public", { enrichCitations: true });
+  return runCategoryRpcPublic("get_operations_items_public", { enrichCitations: true, enrichBiasTags: true });
 }
 
 // ── Per-source citation stats (Build 7, Q9 chip mounts) ───────
@@ -2600,7 +2646,17 @@ export async function fetchListingsOnly(
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
 
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): RegulationsLedger's row is the one ledger with
+    // NO credibility enrichment at all today — the listings/slim RPC family (mapWorkspaceItemRows)
+    // never called enrichCategoryRows the way the category-routed fetchers above do. Reused, not
+    // duplicated: same function, same opts shape as fetchMarketIntelItems/fetchOperationsItems. Only
+    // this "listings" fetcher gets it (not fetchListingsMapData's /map consumer, which renders pins
+    // and never a row chip) — fields are added only where the surface's row payload lacks them.
     const overrides = mapOverrideRows(overridesRaw, uuidToUiId);
+    await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], "get_workspace_intelligence_listings", {
+      enrichCitations: true,
+      enrichBiasTags: true,
+    });
 
     return { resources: active, archived, overrides };
   } catch (e) {
@@ -2631,6 +2687,13 @@ export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<{
     if (!active.length) {
       return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "rpc_error" };
     }
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): same enrichment as the org-scoped
+    // fetchListingsOnly above, so an anonymous /regulations render carries the identical
+    // CredibilityChipEvidence/Authority fields as a logged-in one.
+    await enrichCategoryRows(getServiceSupabase(), [...active, ...archived], "get_workspace_intelligence_listings_public", {
+      enrichCitations: true,
+      enrichBiasTags: true,
+    });
     return { resources: active, archived };
   } catch (e) {
     console.error("fetchPublicListingsOnly failed, using empty + error sentinel:", e);

@@ -165,6 +165,17 @@ function reg(i, { long = false } = {}) {
     jurisdiction: 'EU',
     jurisdictionIso: ['EU'],
     sourceTier: 3,
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): these three fields are what
+    // RegulationsLedger's new CredibilityChipEvidence/Authority mounts and RecordGradeBadge
+    // actually render from — without them here the smoke spec would still pass (both chips
+    // fail open to their "Not scored"/no-flags states) but would never exercise the
+    // populated-data path migration 308 + enrichCategoryRows(enrichBiasTags) turn on live.
+    // Ratios chosen to match this lane's own live-count measurement (see perf-budget.mjs
+    // bytesPerScrollPage evidence): most rows record-grade with a citation count, one in
+    // three flagged for bias.
+    citationCount: i % 4 === 0 ? null : 2,
+    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
+    itemGrade: i % 5 === 4 ? undefined : 'record',
     reasoning: '',
     tags: [],
     // A non-empty future timeline entry so `nextMilestone` resolves to a real date: an empty

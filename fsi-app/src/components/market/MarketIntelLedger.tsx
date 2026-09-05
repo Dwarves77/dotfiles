@@ -40,6 +40,8 @@ import { useMemo, useRef, useState, type CSSProperties } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
+import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 
 interface MarketIntelLedgerProps {
   initialResources: Resource[];
@@ -1024,6 +1026,15 @@ function SignalRow({ e, open, onToggle }: { e: Enriched; open: boolean; onToggle
             </button>
           </div>
         </div>
+      </div>
+
+      {/* Row-chip rule (lane CHIPS, 2026-09-05, W3.4): the same CredibilityChipEvidence/Authority
+          pair ResearchLedger's FindingRow mounts (one component, one data contract). SignalRow's
+          `.cl-row` above is a plain <div> (no anchor), so no stopPropagation hazard here — see
+          RegulationsLedger.tsx/OperationsItemsView.tsx for why those two DO need it. */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", padding: "0 18px 12px" }}>
+        <CredibilityChipEvidence biasTags={item.biasTags ?? []} />
+        <CredibilityChipAuthority sourceTier={item.sourceTier} citationCount={item.citationCount} />
       </div>
 
       {open && (

@@ -65,6 +65,13 @@ function signal(i, { long = false } = {}) {
     severity: i % 5 === 0 ? 'action_required' : i % 5 === 1 ? 'cost_alert' : i % 5 === 2 ? 'window_closing' : i % 5 === 3 ? 'competitive_edge' : 'monitoring',
     signalBand: i % 3 === 0 ? 'price' : i % 3 === 1 ? 'corporate' : 'corridor',
     jurisdictionIso: ['EU'],
+    // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): MarketIntelLedger's SignalRow now mounts the
+    // shared CredibilityChipEvidence/Authority pair (fetchMarketIntelItems/fetchPublicMarketIntelItems
+    // gained enrichCategoryRows(enrichBiasTags) this lane) — these three fields exercise the
+    // populated-data path exactly as for the other three surfaces' fixtures.
+    sourceTier: 3,
+    citationCount: i % 4 === 0 ? null : 2,
+    biasTags: i % 3 === 0 ? [{ dimension: 'funding', tag: 'industry_funded', confidence: 0.7 }] : [],
     // Always a real priceStat (never null) here: MarketIntelLedger's own honest-state design
     // (file header, ~L31) renders an em-dash "—" for `priceStat: null` — legitimate, pre-existing,
     // out of this lane's scope — which the rendering guard's placeholder-literal scan (a strictly

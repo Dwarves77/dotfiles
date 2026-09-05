@@ -78,6 +78,8 @@ import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { DismissedStash } from "./DismissedStash";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
 import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 // PERF-12 (2026-09-04, ADR-027 §2): LIST_FIRST_PAGE_SIZE / the old fetch-the-rest mechanism
@@ -1753,6 +1755,19 @@ function RegRow({
           onArchive={onArchive}
         />
       </span>
+      {/* Row-chip rule (lane CHIPS, 2026-09-05, W3.4): the same CredibilityChipEvidence/Authority
+          pair ResearchLedger already mounts (one component, one data contract — biasTags/sourceTier/
+          citationCount), extended to Regulations. `gridColumn: "1 / -1"` puts this on its own
+          implicit grid row spanning all 3 of RegRow's columns (96px/1fr/auto) rather than fighting
+          for space in the single-line meta column above — react-virtual measures each row's real
+          rendered height (VirtualizedRowList.tsx's own `measureElement`), so this row growing past
+          the ~44px estimate used for scroll-page sizing degrades gracefully (still windowed
+          correctly), not silently. Both chips stopPropagation/preventDefault internally (see their
+          own files) so toggling them inside this row's <Link> never triggers navigation. */}
+      <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", paddingTop: 6 }}>
+        <CredibilityChipEvidence biasTags={r.biasTags ?? []} />
+        <CredibilityChipAuthority sourceTier={r.sourceTier} citationCount={r.citationCount} />
+      </div>
     </Link>
   );
 }
