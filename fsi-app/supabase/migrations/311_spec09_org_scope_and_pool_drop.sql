@@ -151,12 +151,7 @@ DO $$
 DECLARE
   n_rows int;
   has_col boolean;
-  org_a uuid;
-  org_b uuid;
-  user_a uuid := gen_random_uuid();
-  user_b uuid := gen_random_uuid();
-  audit_a uuid;
-  visible_count int;
+  n_policies int;
 BEGIN
   -- carrier_compliance_pools is gone.
   IF to_regclass('public.carrier_compliance_pools') IS NOT NULL THEN
@@ -175,47 +170,29 @@ BEGIN
                           'eudr_plot_claims','custody_chains','indexation_clauses');
   IF n_rows <> 6 THEN RAISE EXCEPTION 'ABORT: expected 6 tables with NOT NULL org_id, found %', n_rows; END IF;
 
-  -- ── Adversarial RLS proof: a second org cannot read the first org's row (rule 15: attack, don't assert) ──
-  INSERT INTO public.organizations (name, slug) VALUES ('spec09b-selftest-org-a', 'spec09b-selftest-org-a-' || gen_random_uuid()) RETURNING id INTO org_a;
-  INSERT INTO public.organizations (name, slug) VALUES ('spec09b-selftest-org-b', 'spec09b-selftest-org-b-' || gen_random_uuid()) RETURNING id INTO org_b;
-  INSERT INTO public.org_memberships (org_id, user_id, role) VALUES (org_a, user_a, 'member');
-  INSERT INTO public.org_memberships (org_id, user_id, role) VALUES (org_b, user_b, 'member');
+  -- The six org-scoped read policies exist, by name (structural presence only).
+  SELECT count(*) INTO n_policies FROM pg_policies
+    WHERE schemaname = 'public'
+      AND policyname IN (
+        'surcharge_audits_org_read', 'tce_data_quality_org_read', 'auxiliary_energy_profiles_org_read',
+        'eudr_plot_claims_org_read', 'custody_chains_org_read', 'indexation_clauses_org_read'
+      );
+  IF n_policies <> 6 THEN RAISE EXCEPTION 'ABORT: expected 6 org-scoped read policies, found %', n_policies; END IF;
 
-  INSERT INTO public.surcharge_audits
-    (corridor_id, carrier_id, invoice_line, billed_eur, statutory_eur, statutory_basis, org_id)
-  VALUES
-    ('cl:corridor:0000000000000311', 'cl:organisation:0000000000000311', 'selftest line', 100, 80, 'selftest basis', org_a)
-  RETURNING audit_id INTO audit_a;
-  -- The FK columns above (corridor_id/carrier_id) reference entities(entity_id), which the live spine may
-  -- not have rows for under these exact ids — but surcharge_audits does not FK-constrain corridor_id/
-  -- carrier_id to entities at the DB level in a way that blocks this (migration 296: FK REFERENCES
-  -- entities(entity_id) IS enforced). If this insert fails on that FK in a real apply, the coordinator must
-  -- substitute a live corridor/carrier entity_id pair — noted in this lane's report.
-
-  -- As org_a's own member: sees the row.
-  SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', user_a::text)::text, true);
-  SELECT count(*) INTO visible_count FROM public.surcharge_audits WHERE audit_id = audit_a;
-  RESET ROLE;
-  IF visible_count <> 1 THEN
-    RAISE EXCEPTION 'ABORT: org_a''s own member could not see org_a''s row (expected 1, got %) — RLS policy is too strict', visible_count;
-  END IF;
-
-  -- As org_b's member: must NOT see org_a's row. This is the binding proof.
-  SET LOCAL ROLE authenticated;
-  PERFORM set_config('request.jwt.claims', json_build_object('sub', user_b::text)::text, true);
-  SELECT count(*) INTO visible_count FROM public.surcharge_audits WHERE audit_id = audit_a;
-  RESET ROLE;
-  IF visible_count <> 0 THEN
-    RAISE EXCEPTION 'ABORT: org_b could read org_a''s surcharge_audits row (got % rows) — cross-org RLS leak', visible_count;
-  END IF;
-
-  -- Clean up (schema-migration posture: 0 rows at rest, matching 296/297/298).
-  DELETE FROM public.surcharge_audits WHERE audit_id = audit_a;
-  DELETE FROM public.org_memberships WHERE org_id IN (org_a, org_b);
-  DELETE FROM public.organizations WHERE id IN (org_a, org_b);
-
-  SELECT count(*) INTO n_rows FROM public.surcharge_audits; IF n_rows <> 0 THEN RAISE EXCEPTION 'ABORT: surcharge_audits not empty after cleanup'; END IF;
-
-  RAISE NOTICE 'migration 311 OK: carrier_compliance_pools dropped, 6 tables org-scoped, adversarial cross-org RLS proof passed (org_b denied org_a''s row), 0 rows at rest';
+  -- ── Adversarial cross-org RLS proof — MOVED OUT of this migration (lane MIG311-FIX, 2026-09-05; rule
+  -- 15 still applies, it just cannot be satisfied from inside a forward-only migration transaction here).
+  -- The version of this block that shipped with SPEC09-B inserted a throwaway org_memberships row with
+  -- user_id := gen_random_uuid() and a surcharge_audits row with placeholder corridor_id/carrier_id
+  -- values. Both violate live FKs added AFTER this migration was authored: org_memberships_user_id_fkey
+  -- -> profiles(id) (migration 075) has no matching profiles row for a migration-minted uuid — a profiles
+  -- row is created only by the signup/onboarding path writing auth.users, and migrations never write the
+  -- auth schema — and surcharge_audits.corridor_id/.carrier_id -> entities(entity_id) (migration 296) is
+  -- not guaranteed to accept a placeholder id. Either FK failing rolled back this ENTIRE migration,
+  -- including the DDL above, which is correct and needed on its own and does not depend on the proof.
+  -- The SAME assertion (org A's member sees org A's row; org B's member sees none, via SET LOCAL ROLE
+  -- authenticated + set_config('request.jwt.claims', ...) exactly as attempted here) now runs against
+  -- LIVE organizations/org_memberships/entities, inside a transaction it always rolls back, as
+  -- fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs — registered in run-data-audit-lane.mjs's
+  -- AUDITS and re-attacked on every data-audit-lane run, not just once at apply time.
+  RAISE NOTICE 'migration 311 OK: carrier_compliance_pools dropped, 6 tables org-scoped, 6 read policies present by name, 0 rows at rest. Adversarial cross-org RLS proof runs separately and continuously: fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs (lane MIG311-FIX).';
 END $$;
