@@ -16,7 +16,7 @@
 //
 // This unit is deliberately framework-light (only RetryableError from "workflow")
 // so the timeout -> RetryableError behavior is unit-testable with NO dev server
-// (see scripts/sprint4-114-spancheck-test.mjs).
+// (see ./span-check.npmtest.mjs).
 import { RetryableError } from "workflow";
 
 export interface SpanCheckResult {

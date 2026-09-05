@@ -43,7 +43,6 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/agent/canonical-pipeline.ts",
       "src/workflows/generate-brief.ts",
       "scripts/lib/db.mjs",
-      "scripts/_wave-alpha/backfill-canonical-keys.mjs",
       "scripts/_reground/free-pass-run.mjs",
       "scripts/_reground/id-stamp.mjs",
       "scripts/_reground/tombstone-delete.mjs",
@@ -70,7 +69,6 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/entities/link-items.ts",
       "src/lib/agent/canonical-pipeline.ts",
       "src/lib/connections/write-edges.mjs",
-      "scripts/connections/backfill-edges.mjs",
       "scripts/entities/backfill-lineage-edges.mjs",
       "scripts/connections/discover-for-items.mjs"
     ],
@@ -262,9 +260,10 @@ shared across all origins; a writer must never clobber another origin's row). Do
 | `entity_extraction` | `src/lib/entities/link-items.ts` (entity linker) | header: "writes ONLY item_cross_references + integrity_flags"; line 55 `.upsert(...)` |
 | `agent_semantic` | `src/lib/agent/canonical-pipeline.ts` | line 921, `.upsert(edges, ...)` with `origin: "agent_semantic"` (line 920) |
 | `provenance_discovery` | `src/lib/connections/write-edges.mjs` (`writeDiscoveredEdges` — the **single write home** for this origin, by its own header) | lines 46-69 |
-| `provenance_discovery` (caller) | `scripts/connections/backfill-edges.mjs` — cold-start/repair orchestrator, delegates the actual write to `write-edges.mjs` | header comment: "the delegated writer touches ONLY item_cross_references" |
 | `provenance_discovery` (caller) | `src/lib/intake/mint-item.ts` — U4 incremental discovery at mint time, reuses `discover.mjs` + `write-edges.mjs`, bounded to 12 edges/mint | lines 267-282 |
-| — | `scripts/connections/discover-for-items.mjs` | **Pre-registered (parallel lane)** — not yet present |
+| `provenance_discovery` (caller) | `scripts/connections/discover-for-items.mjs` — the live, CI-dispatched (corpus-turn.yml) mint-time discovery runtime for items that bypassed the mint hook, delegates the write to `write-edges.mjs` | landed since this doc's 2026-09-01 baseline (was "pre-registered" above); confirmed live 2026-09-05 |
+
+**CORRECTION (lane W71-C, 2026-09-05):** `scripts/connections/backfill-edges.mjs` (the cold-start/repair orchestrator formerly listed above) was DELETED — F25 module-liveness flagged it unwired (zero non-test importers, no CI/npm dispatch) and its ongoing role is now performed by `discover-for-items.mjs` above, which is live and CI-dispatched; its own one-time cold-start pass already ran (migration 252's "Consumed by" note; docs/ops/session-log.md's Pillar A2 dry-pass evidence). The record of what ran lives in git history.
 
 Replace policy: **origin-owned upsert**, never a delete; `write-edges.mjs` reads existing rows once per
 call and skips any pair owned by a foreign origin (lines 60-66) — this is the mechanism that makes
@@ -604,7 +603,10 @@ asked for:
 
 | Script | KEEP reason (from `scripts/_archive/README.md` / task-1 evidence gate) | Table(s) written |
 |---|---|---|
-| `scripts/_wave-alpha/backfill-canonical-keys.mjs` | Pinned in `.discipline/governance/skill-contract-map.mjs` `PINNED_MANIFEST` (exact-path citing file for `remediation-discipline` + `environmental-policy-and-innovation`); moving it reds `skill-drift-gate.test.mjs`. | `intelligence_items` (`guardedUpdate`, confirmed by the writer-registry scanner — corrected from an earlier manual-read miss) |
+<!-- `scripts/_wave-alpha/backfill-canonical-keys.mjs` row REMOVED (lane W71-C, 2026-09-05): the script was
+     DELETED — migration 200's canonical_instrument_key backfill applied live 2026-07-11 (RD-5, 20/21 rows
+     set). Removed from skill-contract-map.mjs's PINNED_MANIFEST citingFiles in the same commit, so the
+     "moving it reds skill-drift-gate.test.mjs" pin this row cited no longer applies. Record in git history. -->
 | `scripts/_reground/executor-ground.mjs` | "The ONE authorized new mint-path" — cited by `.discipline/governance/doctrine-register.mjs`, `invariants.mjs`, and `scripts/verify/cc-executor-submit.golden.mjs`; drives writes through `canonical-pipeline.ts`, not directly. | none directly (delegates to the live pipeline) |
 | `scripts/_reground/free-pass-run.mjs` | Part of the still-cited `_reground` operational toolkit; referenced by live `scripts/remediation/acquire-primaries-batch.mjs`. | `intelligence_items`, `section_claim_provenance` |
 | `scripts/_reground/id-stamp.mjs` | Same toolkit; active session-log workflow entries reference it directly by name. | `intelligence_items` |

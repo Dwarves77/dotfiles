@@ -1892,6 +1892,17 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/agent/span-check.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/agent/theme-vocab.test.mjs",
       "kinds": [
         "PROOF"
@@ -9117,8 +9128,8 @@
     }
   ],
   "summary": {
-    "governed_files": 836,
-    "covered": 803,
+    "governed_files": 837,
+    "covered": 804,
     "exempt": 33,
     "gaps": 0,
     "orphaned_proofs": 0,

@@ -85,7 +85,9 @@ ruling forbids, and (2) it was structurally incapable of being a shared room eve
 `community_topics` (migration 031) is per-user/private by RLS (`owner_user_id = auth.uid()` on every
 policy), so the seeder's own single-owner write would have been invisible to every user but the resolved
 owner. The 7 REGIONAL rooms (`community_groups`, seeded 2026-07-07 by a different script,
-`scripts/seed-community-regional-rooms.mjs`, pre-dating this audit window) are unaffected and match the
+`scripts/seed-community-regional-rooms.mjs` — DELETED lane W71-C, 2026-09-05, F25 module-liveness: the
+seeding already ran, the rows exist, and the script had zero non-test importers and no dispatch; the
+record of the run lives in git history, pre-dating this audit window) are unaffected and match the
 ruling's own "regions exist" half — nothing about that seeding is retired here.
 
 **If a future session is tempted to re-add a topic-taxonomy seeder**: read

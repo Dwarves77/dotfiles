@@ -10,11 +10,11 @@ import { dirname, resolve } from "node:path";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (rel) => readFileSync(resolve(HERE, rel), "utf8");
 
-test("F13: source-state-min-wage registerSource is EXECUTE-gated (dry-run no longer writes a source)", () => {
-  const src = read("../../../scripts/source-state-min-wage.mjs");
-  assert.ok(!/const ncsl = await registerSource/.test(src), "the unconditional top-level registerSource call must be gone");
-  assert.ok(/if \(EXECUTE\)/.test(src) && /ncsl = await registerSource/.test(src), "registerSource must run only inside the EXECUTE guard");
-});
+// F13's own test REMOVED (lane W71-C, 2026-09-05): scripts/source-state-min-wage.mjs (the one-time
+// state_cost_facts population program, operator ruling 2026-07-07) was deleted — state_cost_facts is
+// live with 13/13 rows (docs/inventories/migrations.md #152; population report), the program it ran
+// discharged. The F13 guard it proved (registerSource EXECUTE-gated) is retired with the module; the
+// record of what ran lives in git history (F25-module-liveness.mjs's LEGACY_ALLOWLIST, this commit).
 
 test("F19: decide route fails the response on a candidate-approved update failure (no silent warn-then-success)", () => {
   const src = read("../../app/api/admin/canonical-sources/decide/route.ts");

@@ -552,8 +552,12 @@ Deviations are proposals for operator review, not decisions. Binding schema spec
 
 ### D11-1 · Rooms render honest-empty until the 7-room seed runs
 - **What:** The "room" is realized as one canonical public `community_groups` row per region
-  (7 rows), seeded by `scripts/seed-community-regional-rooms.mjs` (committed, NOT executed). Until
-  the main session runs it, the rooms grid renders the honest-pending frame (`NotSeededState`).
+  (7 rows), seeded by `scripts/seed-community-regional-rooms.mjs`. **STALE (corrected lane W71-C,
+  2026-09-05): the seed DID run, 2026-07-07** (docs/runbooks/MAINTENANCE-RUNBOOK.md,
+  docs/audits/wiring-audit-2026-09-04/A2-surfaces.md, docs/ops/full-system-audit-2026-07-11/DB-4-register.md
+  all independently confirm the 7 rows exist live) — this section predates that run. The script itself
+  is since deleted (F25 module-liveness: zero non-test importers, no dispatch, the seeding already
+  applied); `src/lib/community/rooms.ts`'s `CANONICAL_ROOM_SLUGS` is the durable record of its slugs.
 - **Why:** No mig-007 forum table and no parallel rooms schema (mapping §1/§4). The seed is a data
   change (writes-script track), separate from this code PR.
 
