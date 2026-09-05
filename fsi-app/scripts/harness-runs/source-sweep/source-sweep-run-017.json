@@ -1,0 +1,702 @@
+{
+  "harness_family": "source-sweep",
+  "harness_version": "sha256:447d5399c5f2946e",
+  "run_id": "source-sweep-run-017",
+  "started_at": "2026-09-05T00:47:42.561Z",
+  "finished_at": "2026-09-05T01:09:57.397Z",
+  "config": {
+    "walker": "sitemap",
+    "mode": "apply",
+    "from": null,
+    "to": null,
+    "feed_url": null,
+    "series": "L",
+    "types": [
+      "RULE"
+    ],
+    "term": null,
+    "max_pages": 5,
+    "per_page": 100,
+    "source_id": null,
+    "portal_url": null,
+    "cli_source_id": null,
+    "host": null,
+    "all_hosts": true,
+    "max_hosts": 40,
+    "time_budget_seconds": 1500,
+    "check_coverage": false,
+    "limit": 5000,
+    "max_sitemap_fetches": 50,
+    "max_sitemap_entries": 100000
+  },
+  "inputs_ref": [
+    "https://deq.idaho.gov/",
+    "https://deq.louisiana.gov/",
+    "https://deq.mt.gov/",
+    "https://deq.nc.gov/about/divisions/air-quality",
+    "https://deq.nd.gov/",
+    "https://deq.ok.gov/",
+    "https://deq.utah.gov/division-air-quality",
+    "https://deq.wyoming.gov/aqd",
+    "https://des.nh.gov/",
+    "https://des.sc.gov/programs/bureau-air-quality",
+    "https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+    "https://dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+    "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025",
+    "http://diariooficial.gob.mx/normasoficiales/9561/semarnat/semarnat.html",
+    "https://diariooficial.gob.mx/",
+    "https://dnr.mo.gov/about-us/division-environmental-quality",
+    "https://dnr.wisconsin.gov/topic/AirQuality",
+    "https://dnrec.delaware.gov/",
+    "https://dnv.com/maritime",
+    "https://dnv.com/maritime/insights",
+    "https://www.doa.nc.gov/about/sustainability/zero-emission-vehicles",
+    "https://doa.nc.gov",
+    "https://doee.dc.gov/",
+    "https://dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+    "https://dot.alaska.gov/mscve",
+    "https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning",
+    "https://dot.ga.gov/GDOT/pages/freight.aspx",
+    "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+    "https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy",
+    "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan",
+    "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305",
+    "https://dpiit.gov.in/logistics-division",
+    "https://dps.ny.gov/",
+    "https://dpworld.com/en/sustainability",
+    "https://dpworld.com/en/sustainability/reporting",
+    "https://drawdown.org/explorer",
+    "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+    "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector",
+    "https://driveelectric.gov/industry",
+    "https://driveelectric.gov/files/zef-corridor-strategy.pdf",
+    "https://drna.pr.gov/",
+    "https://www.dromon.com/2025/07/30/imo-cii-guidelines-seemp-part-iii-revision/",
+    "https://earthjustice.org/experts/hana-vizcarra/a-legal-analysis-of-the-trump-epas-plan-to-revoke-the-endangerment-finding",
+    "https://www.easa.europa.eu/en/newsroom-and-events/press-releases/easa-publishes-report-sustainable-aviation-fuel-scale-progress",
+    "https://easa.europa.eu/en/domains/environment/refueleu-aviation-digital-reporting-tool",
+    "https://eba.europa.eu/",
+    "https://ec.europa.eu/growth/corporate-sustainability-due-diligence",
+    "https://ec.europa.eu/commission/presscorner/home/en"
+  ],
+  "per_item": [
+    {
+      "id": "36978885-cb83-4af3-816d-4d3536a5cce8",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 50 entries, 50 upserted",
+      "evidence_refs": [
+        "https://www.deq.idaho.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1493 url(s) scoped, 1493 new (1493 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.deq.louisiana.gov/sitemap_index.xml",
+        "https://www.deq.louisiana.gov/sitemap_microsites.xml",
+        "https://www.deq.louisiana.gov/sitemap_pages.xml",
+        "https://www.deq.louisiana.gov/sitemap_news.xml",
+        "https://www.deq.louisiana.gov/sitemap_directory.xml",
+        "https://www.deq.louisiana.gov/sitemap_calendar.xml",
+        "https://www.deq.louisiana.gov/sitemap_faqs.xml",
+        "https://www.deq.louisiana.gov/sitemap_resources.xml",
+        "https://www.deq.louisiana.gov/sitemap_misc.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 444 url(s) scoped, 444 new (444 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://deq.mt.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 378 url(s) scoped, 378 new (378 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.deq.nc.gov/sitemap.xml",
+        "https://www.deq.nc.gov/sitemap.xml?page=1",
+        "https://www.deq.nc.gov/sitemap.xml?page=2"
+      ],
+      "error": null
+    },
+    {
+      "id": "5012a359-bb4b-44f7-b28a-e9b976383051",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://deq.nd.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "c81301f7-b043-474c-8eac-d02ff3b90542",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://deq.ok.gov/"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://deq.utah.gov/sitemap.xml",
+        "https://deq.utah.gov/post-sitemap.xml",
+        "https://deq.utah.gov/page-sitemap.xml",
+        "https://deq.utah.gov/category-sitemap.xml",
+        "https://deq.utah.gov/post_tag-sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "91845d5f-3057-4f6d-8eb3-590d936a2767",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 0 entries, 0 upserted",
+      "evidence_refs": [
+        "http://deq.wyoming.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "dbb217d8-19c2-4f86-b481-eb076026f898",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://des.nh.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "9918bb9f-453b-4b99-9480-9994e480dc7a",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted",
+      "evidence_refs": [
+        "https://des.sc.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "7572537b-d94b-40d5-bb43-466e3e6346be",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dewa.gov.ae/en/consumer/solar-community/shams-dubai"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "571ef12d-f7c7-43da-80ea-1b4b91e7c754",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.dfat.gov.au/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "373ef175-c50d-4e11-8029-7bd680ca4632",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "http://diariooficial.gob.mx/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "fda505aa-74af-4c88-8aea-14f6e34d3931",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://diariooficial.gob.mx/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "7da47f8c-e7ce-4b6c-8ec5-1c20b3b8366c",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted",
+      "evidence_refs": [
+        "https://dnr.mo.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4d37573e-14b1-4531-9629-92605571e404",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 34 url(s) scoped, 34 new (34 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://dnr.wisconsin.gov/sitemap.xml",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=1",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=2",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=3",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=4",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=5",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=6",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=7",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=8",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=9",
+        "https://dnr.wisconsin.gov/sitemap.xml?page=10"
+      ],
+      "error": null
+    },
+    {
+      "id": "be1164eb-5467-4da4-a5d2-17432f88e9cb",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 595 entries, 595 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dnrec.delaware.gov/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "0c7cae99-6b0c-4a74-84ec-3611bcb8c491",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 557 url(s) scoped, 557 new (557 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.dnv.com/en/sitemap.xml",
+        "https://www.dnv.com.au/au/sitemap.xml",
+        "https://www.dnv.com.mx/mx/sitemap.xml",
+        "https://www.dnv.ae/ae/sitemap.xml",
+        "https://www.dnv.nl/nl/sitemap.xml",
+        "https://www.dnv.pl/pl/sitemap.xml",
+        "https://www.dnv.sg/sg/sitemap.xml",
+        "https://www.dnv.sk/sk/sitemap.xml",
+        "https://www.dnv.es/es/sitemap.xml",
+        "https://www.dnv.co.uk/uk/sitemap.xml",
+        "https://www.dnv.us/us/sitemap.xml",
+        "https://www.dnv.fi/fi/sitemap.xml",
+        "https://www.dnv.fr/fr/sitemap.xml",
+        "https://www.dnv.de/de/sitemap.xml",
+        "https://www.dnv.in/in/sitemap.xml",
+        "https://www.dnv.it/it/sitemap.xml",
+        "https://www.dnv.jp/jp/sitemap.xml",
+        "https://www.dnv.co.kr/kr/sitemap.xml",
+        "https://www.dnv.my/my/sitemap.xml",
+        "https://www.dnv.com.br/br/sitemap.xml",
+        "… +14 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "bf630add-6c5a-4c0b-9984-2f66fc8efc6b",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 130 url(s) scoped, 130 new (130 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.dnv.com/en/sitemap.xml",
+        "https://www.dnv.com.au/au/sitemap.xml",
+        "https://www.dnv.com.mx/mx/sitemap.xml",
+        "https://www.dnv.ae/ae/sitemap.xml",
+        "https://www.dnv.nl/nl/sitemap.xml",
+        "https://www.dnv.pl/pl/sitemap.xml",
+        "https://www.dnv.sg/sg/sitemap.xml",
+        "https://www.dnv.sk/sk/sitemap.xml",
+        "https://www.dnv.es/es/sitemap.xml",
+        "https://www.dnv.co.uk/uk/sitemap.xml",
+        "https://www.dnv.us/us/sitemap.xml",
+        "https://www.dnv.fi/fi/sitemap.xml",
+        "https://www.dnv.fr/fr/sitemap.xml",
+        "https://www.dnv.de/de/sitemap.xml",
+        "https://www.dnv.in/in/sitemap.xml",
+        "https://www.dnv.it/it/sitemap.xml",
+        "https://www.dnv.jp/jp/sitemap.xml",
+        "https://www.dnv.co.kr/kr/sitemap.xml",
+        "https://www.dnv.my/my/sitemap.xml",
+        "https://www.dnv.com.br/br/sitemap.xml",
+        "… +14 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "0195f047-507e-443b-af5a-665eeea159ad",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.doa.nc.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "ea859d1a-dbb1-4e31-8aa6-19325d620489",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 3272 url(s) scoped, 3272 new (3272 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.doa.nc.gov/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 20 entries, 20 upserted",
+      "evidence_refs": [
+        "https://doee.dc.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "cd0ab56f-371e-4ae8-a8ea-27e27f007d4f",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://dof.gob.mx/sitemap.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "f26a771c-88b0-41c4-ad64-8b94969810e7",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dot.alaska.gov/mscve"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "5ed8596c-67f6-4f97-960f-2a1ebf4404df",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dot.ca.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "140f7bcc-aac3-4a3c-ba73-411ceaeb6abc",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dot.ga.gov/GDOT/pages/freight.aspx"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dot.ny.gov/divisions/operating/osss/truck/regulations"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "e664fff0-778f-47da-85f8-5010d28524e6",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dot.sd.gov/robots.txt) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "b476ff63-cae4-43bd-b39c-9b5e45a14677",
+      "outcome": "bot_wall",
+      "verdict": "bot_wall: homepage and all sitemap candidates returned 401/403/429 — access blocked",
+      "evidence_refs": [
+        "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan"
+      ],
+      "error": "bot_wall detected: https://dotd.la.gov/sitemap.xml returned a 200 OK soft_404 shell in place of a sitemap"
+    },
+    {
+      "id": "22a25117-4b98-4ef7-9399-3e0002c52bfd",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.downtoearth.org.in/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "735cb9df-fe9f-414c-96e1-2f7e7d172c98",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://dpiit.gov.in/logistics-division"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "b243e435-a4d0-411f-9000-2070c7872e2b",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 0 entries, 0 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://dps.ny.gov/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "9de14df4-98a8-4c16-ace4-652178024f6b",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 18 url(s) scoped, 18 new (18 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.dpworld.com/sitemap.xml",
+        "https://www.dpworld.com/sitemap-0.xml",
+        "https://www.dpworld.com/sitemap-1.xml",
+        "https://www.dpworld.com/sitemap-2.xml",
+        "https://www.dpworld.com/sitemap-3.xml",
+        "https://www.dpworld.com/sitemap-4.xml",
+        "https://www.dpworld.com/sitemap-5.xml",
+        "https://www.dpworld.com/sitemap-6.xml",
+        "https://www.dpworld.com/sitemap-7.xml",
+        "https://www.dpworld.com/sitemap-8.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "b13504d2-68e3-44dd-9ce0-2ba1e3519860",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.dpworld.com/sitemap.xml",
+        "https://www.dpworld.com/sitemap-0.xml",
+        "https://www.dpworld.com/sitemap-1.xml",
+        "https://www.dpworld.com/sitemap-2.xml",
+        "https://www.dpworld.com/sitemap-3.xml",
+        "https://www.dpworld.com/sitemap-4.xml",
+        "https://www.dpworld.com/sitemap-5.xml",
+        "https://www.dpworld.com/sitemap-6.xml",
+        "https://www.dpworld.com/sitemap-7.xml",
+        "https://www.dpworld.com/sitemap-8.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted",
+      "evidence_refs": [
+        "https://drawdown.org/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "892decc7-f5a3-49bd-80aa-347fba628d09",
+      "outcome": "walked",
+      "verdict": "sitemap (robots): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.drewry.co.uk/SiteMap_Drewry_index.xml",
+        "https://www.drewry.co.uk/SiteMap_Drewry_Media1_v2.xml",
+        "https://www.drewry.co.uk/SiteMap_Drewry_Articles1_v2.xml",
+        "https://www.drewry.co.uk/SiteMap_Drewry_Channels1_v2.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "2c5a86b7-2905-483e-9f1c-f51a14e27c06",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 15 entries, 15 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.drishtiias.com/rss"
+      ],
+      "error": null
+    },
+    {
+      "id": "312350c1-56e0-443f-84e6-0f892b48cfef",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://driveelectric.gov/industry"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "dd7b482b-bae8-4620-a6ac-6fa9846b1eb5",
+      "outcome": "error",
+      "verdict": null,
+      "evidence_refs": [
+        "https://driveelectric.gov/files/zef-corridor-strategy.pdf"
+      ],
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap"
+    },
+    {
+      "id": "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 12 entries, 12 upserted",
+      "evidence_refs": [
+        "https://www.drna.pr.gov/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "9bf0b282-e359-4b91-8a0b-830146895edb",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 12 entries, 12 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://www.dromon.com/feed/"
+      ],
+      "error": null
+    },
+    {
+      "id": "39921224-22e5-4505-9c52-b8d3d91fb227",
+      "outcome": "walked",
+      "verdict": "feed found (link-alternate): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://earthjustice.org/feed"
+      ],
+      "error": null
+    },
+    {
+      "id": "34ea5144-b2f6-4344-a5e0-8ea1396704a7",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://www.easa.europa.eu/sitemap.xml",
+        "https://www.easa.europa.eu/sitemap.xml?page=1",
+        "https://www.easa.europa.eu/sitemap.xml?page=2",
+        "https://www.easa.europa.eu/sitemap.xml?page=3",
+        "https://www.easa.europa.eu/sitemap.xml?page=4",
+        "https://www.easa.europa.eu/sitemap.xml?page=5",
+        "https://www.easa.europa.eu/sitemap.xml?page=6",
+        "https://www.easa.europa.eu/sitemap.xml?page=7",
+        "https://www.easa.europa.eu/sitemap.xml?page=8",
+        "https://www.easa.europa.eu/sitemap.xml?page=9",
+        "https://www.easa.europa.eu/sitemap.xml?page=10",
+        "https://www.easa.europa.eu/sitemap.xml?page=11"
+      ],
+      "error": null
+    },
+    {
+      "id": "cda55872-b68c-4903-b4bd-9883acc41817",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 1 url(s) scoped, 1 new (1 upserted), 0 changed, 0 removed",
+      "evidence_refs": [
+        "https://easa.europa.eu/sitemap.xml",
+        "https://www.easa.europa.eu/sitemap.xml?page=1",
+        "https://www.easa.europa.eu/sitemap.xml?page=2",
+        "https://www.easa.europa.eu/sitemap.xml?page=3",
+        "https://www.easa.europa.eu/sitemap.xml?page=4",
+        "https://www.easa.europa.eu/sitemap.xml?page=5",
+        "https://www.easa.europa.eu/sitemap.xml?page=6",
+        "https://www.easa.europa.eu/sitemap.xml?page=7",
+        "https://www.easa.europa.eu/sitemap.xml?page=8",
+        "https://www.easa.europa.eu/sitemap.xml?page=9",
+        "https://www.easa.europa.eu/sitemap.xml?page=10",
+        "https://www.easa.europa.eu/sitemap.xml?page=11"
+      ],
+      "error": null
+    },
+    {
+      "id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+      "outcome": "walked",
+      "verdict": "feed found (candidate-path): 10 entries, 10 upserted; rss_feed_url recorded on the source row",
+      "evidence_refs": [
+        "https://eba.europa.eu/rss.xml"
+      ],
+      "error": null
+    },
+    {
+      "id": "4ba3fb8d-e31b-4ada-a6d9-0338fb312630",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://ec.europa.eu/sitemap.xml",
+        "https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+        "https://ec.europa.eu/eurostat/sitemap.xml",
+        "https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+        "https://ec.europa.eu/trade/sitemap.xml",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617911&layoutUuid=c2bf9e54-29a3-6dfb-f861-0d35a132b711&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617118&layoutUuid=a3d5bd35-2f1f-5d76-dde2-317938cd3f4a&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616647&layoutUuid=56e130d5-2aba-73b4-5b07-09eb8e56e76d&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11615605&layoutUuid=36780ee1-f74f-6be4-b67a-bd9e862fabc4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616769&layoutUuid=a7620fad-5bb7-9ed6-2c18-254c08fde0c3&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619628&layoutUuid=c9e89cf6-cf58-d0a4-d585-bc6752cc5c7c&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618563&layoutUuid=aba71a39-9793-55bf-c9b2-35623cb15df4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618565&layoutUuid=26ad1f65-1709-7888-1070-1129976cf590&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616665&layoutUuid=80df2846-1c0f-bb38-58ac-afe5a1cb22e4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616667&layoutUuid=6f63720a-5714-6eda-b43d-fbe6f19fbbc9&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616669&layoutUuid=dcaca2de-fc89-faf3-ca0d-5584c6ca64b1&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616659&layoutUuid=94ba2bf6-1254-0f64-6520-30bcc16d4d40&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616655&layoutUuid=578f1d7a-e114-a1c0-b8a4-afb8666eda9d&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616846&layoutUuid=2e6929c7-fc3a-c5cb-e56f-aab4d16e7d9b&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618797&layoutUuid=2ff6b7b4-8455-af0d-4b62-e7a0599a01a3&groupId=10186&privateLayout=false",
+        "… +30 more"
+      ],
+      "error": null
+    },
+    {
+      "id": "d8d21ad5-47b3-4839-b9ea-9afa392c4f20",
+      "outcome": "walked",
+      "verdict": "sitemap (fallback): 0 url(s) scoped, 0 new (0 upserted), 0 changed, 0 removed; PARTIAL COVERAGE (removed-count suppressed); baseline deferred to a future complete walk",
+      "evidence_refs": [
+        "https://ec.europa.eu/sitemap.xml",
+        "https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+        "https://ec.europa.eu/eurostat/sitemap.xml",
+        "https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+        "https://ec.europa.eu/trade/sitemap.xml",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617911&layoutUuid=c2bf9e54-29a3-6dfb-f861-0d35a132b711&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617118&layoutUuid=a3d5bd35-2f1f-5d76-dde2-317938cd3f4a&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616647&layoutUuid=56e130d5-2aba-73b4-5b07-09eb8e56e76d&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11615605&layoutUuid=36780ee1-f74f-6be4-b67a-bd9e862fabc4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616769&layoutUuid=a7620fad-5bb7-9ed6-2c18-254c08fde0c3&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619628&layoutUuid=c9e89cf6-cf58-d0a4-d585-bc6752cc5c7c&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618563&layoutUuid=aba71a39-9793-55bf-c9b2-35623cb15df4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618565&layoutUuid=26ad1f65-1709-7888-1070-1129976cf590&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616665&layoutUuid=80df2846-1c0f-bb38-58ac-afe5a1cb22e4&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616667&layoutUuid=6f63720a-5714-6eda-b43d-fbe6f19fbbc9&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616669&layoutUuid=dcaca2de-fc89-faf3-ca0d-5584c6ca64b1&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616659&layoutUuid=94ba2bf6-1254-0f64-6520-30bcc16d4d40&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616655&layoutUuid=578f1d7a-e114-a1c0-b8a4-afb8666eda9d&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616846&layoutUuid=2e6929c7-fc3a-c5cb-e56f-aab4d16e7d9b&groupId=10186&privateLayout=false",
+        "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618797&layoutUuid=2ff6b7b4-8455-af0d-4b62-e7a0599a01a3&groupId=10186&privateLayout=false",
+        "… +30 more"
+      ],
+      "error": null
+    }
+  ],
+  "metrics": {
+    "mode": "apply",
+    "sources_targeted": 48,
+    "feed_found": 16,
+    "sitemap_only": 32,
+    "bot_wall_sources": 1,
+    "errors": 12,
+    "urls_scoped_total": 6332,
+    "new_total": 7096,
+    "changed_total": 0,
+    "removed_total": 0,
+    "partial_coverage_sources": 2,
+    "baseline_deferred_sources": 2,
+    "rss_feed_url_written": 9,
+    "change_signals_recorded": 0,
+    "hosts_walked": 40,
+    "hosts_skipped_bot_wall": 1,
+    "feeds_discovered": 16,
+    "new_locs": 7096,
+    "lastmod_changes": 0,
+    "hosts_remaining_unwalked": 443,
+    "hosts_selected": 40,
+    "upserted": 7096,
+    "failed": 0,
+    "no_targets_reason": null,
+    "budget_seconds": 1500,
+    "elapsed_seconds": 1264.763,
+    "sources_walked": 48,
+    "sources_not_reached": {
+      "count": 0,
+      "ids": []
+    },
+    "budget_exhausted": false
+  },
+  "defects_found": [],
+  "full_trace_refs": [
+    "/home/runner/work/dotfiles/dotfiles/fsi-app/scripts/harness-runs/source-sweep/traces/source-sweep-run-017.raw-result.json"
+  ],
+  "proposer_notes": "Auto-emitted by run-source-sweep.mjs, the source-sweep family's canonical entry point (RT lane, 2026-09-01) — the runtime scripts/connections/*.mjs and scripts/mint|forward-events/run-*.mjs already had for their own families, extended to the register-walk.mjs/feed-walk.mjs enumeration modules."
+}
