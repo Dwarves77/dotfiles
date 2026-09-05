@@ -2458,3 +2458,58 @@ list, never re-derived by hand here).
 **Artifact / read back**: `$OUT_ROOT/verification-audit-report/report.md` (+ a `.json` twin at the same
 path) — uploaded as this run's artifact. Confirm the report's own counts against a direct read, e.g.
 `SELECT item_grade, provenance_status, count(*) FROM intelligence_items GROUP BY 1,2 ORDER BY 3 DESC`.
+
+---
+
+## 29. `spec09-surcharge-audit-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1, coordinator follow-up named by lane
+SPEC09-B's own F25-module-liveness.mjs allowlist entry). Written from
+`scripts/spec09/surcharge-audit-producer.mjs`'s own header, same pattern as §22-25's
+`generate-theme-brief`/`ratify-flag-to-census` wiring.
+
+**Purpose**: dispatches the CLI half of the `surcharge_audits` customer-CSV upload flow
+(`scripts/spec09/SOURCES.md`) for a reviewed batch file — e.g. a bulk backfill from a customer's own
+spreadsheet, rather than the interactive `POST /api/workspace/spec09-upload` path.
+
+**Upstream**: `src/lib/spec09/csv-upload-contract.mjs` (`parseCsvUpload`), `scripts/spec09/lib/cli-csv-args.mjs`
+(`readCliCsvArgs` — the one shared `--csv`/`--org-id` argv reader every spec09 CSV producer uses).
+
+**Ruling**: none — the org id is always the dispatcher-supplied `--org-id`, never inferred; a customer
+CSV never carries `org_id` itself (rule: org scope is server/coordinator-asserted, never client-supplied).
+
+**Dispatch**: `arg` IS REQUIRED in both modes — `<csv-path>,<org-id>` (csv-path a repo-relative path to a
+reviewed customer CSV checked into the repo; org-id the receiving org's uuid). `mode=dry` parses and
+reports accept/reject counts, writing nothing. `mode=apply` calls `guardedInsertMany("surcharge_audits",
+...)` for every accepted row.
+
+**Artifact / read back**: this step's own console output (`summary.json`'s shape — see the producer's own
+`main()`). Confirm against `SELECT count(*) FROM surcharge_audits`.
+
+---
+
+## 30. `spec09-dqi-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/dqi-producer.mjs` / `tce_data_quality`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
+Confirm against `SELECT count(*) FROM tce_data_quality`.
+
+---
+
+## 31. `spec09-auxiliary-energy-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/auxiliary-energy-producer.mjs` / `auxiliary_energy_profiles`. `arg` IS REQUIRED —
+`<csv-path>,<org-id>`. Confirm against `SELECT count(*) FROM auxiliary_energy_profiles`.
+
+---
+
+## 32. `spec09-indexation-csv`
+
+**New this runbook, lane ASSEMBLE-47, 2026-09-05** (plan §W5.1). Same shape as §29 above, targeting
+`scripts/spec09/indexation-producer.mjs` / `indexation_clauses`. `arg` IS REQUIRED — `<csv-path>,<org-id>`.
+Confirm against `SELECT count(*) FROM indexation_clauses`. Note: `surcharge_audits`, `tce_data_quality`,
+`auxiliary_energy_profiles`, `eudr_plot_claims`/`custody_chains` (the latter two share
+`scripts/spec09/eudr-custody-producer.mjs`, still without a maintenance.yml step) round out the six
+customer-CSV tables `scripts/spec09/SOURCES.md` names; the EUDR/custody pair is left for a future lane
+since it takes a second `--custody-csv` flag `readCliCsvArgs` already supports but no step here uses yet.

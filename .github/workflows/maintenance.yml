@@ -35,9 +35,9 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv]
       arg:
-        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, or — for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap — a --rows-file path checked into the repo; see the runbook for which steps require one and what value they need).'
+        description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
         default: ''
         type: string
@@ -575,6 +575,76 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/verification-audit-report"
           node scripts/verify/verification-audit-report.mjs --out "$OUT_ROOT/verification-audit-report/report.md"
+
+      # ── The four spec09 customer-CSV producers (lane SPEC09-B, 2026-09-05, plan §W5.1): each was
+      # rewired from a permanent no-op into the CLI half of the customer CSV upload flow
+      # (src/lib/spec09/csv-upload-contract.mjs, scripts/spec09/SOURCES.md) but shipped with no
+      # maintenance.yml step — the lane's own F25 allowlist entries named this "coordinator follow-up,
+      # same class as reopen-validation-holds.mjs's wrapper pattern". Wired here by the ASSEMBLE-47
+      # coordinator lane (2026-09-05), matching that exact pattern: `arg` IS REQUIRED in both modes
+      # (there is no meaningful blank-arg run — the six tables are genuinely customer-supplied data, so a
+      # dry run with no CSV has nothing to validate) and takes `<csv-path>,<org-id>` — csv-path a
+      # repo-relative path to a reviewed customer CSV, org-id the receiving org's uuid. See
+      # docs/runbooks/MAINTENANCE-RUNBOOK.md §29-32.
+      - name: spec09-surcharge-audit-csv
+        if: env.RUN_STEP == 'spec09-surcharge-audit-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-surcharge-audit-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-surcharge-audit-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/surcharge-audit-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-dqi-csv
+        if: env.RUN_STEP == 'spec09-dqi-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-dqi-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-dqi-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/dqi-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-auxiliary-energy-csv
+        if: env.RUN_STEP == 'spec09-auxiliary-energy-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-auxiliary-energy-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-auxiliary-energy-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/auxiliary-energy-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
+
+      - name: spec09-indexation-csv
+        if: env.RUN_STEP == 'spec09-indexation-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          if [ -z "$RUN_ARG" ]; then
+            echo "spec09-indexation-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+          else
+            CSV_PATH="${RUN_ARG%%,*}"
+            ORG_ID="${RUN_ARG#*,}"
+            if [ "$ORG_ID" = "$RUN_ARG" ]; then
+              echo "::error::spec09-indexation-csv: arg must be '<csv-path>,<org-id>' (got '$RUN_ARG')."
+              exit 1
+            fi
+            node scripts/spec09/indexation-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
+          fi
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

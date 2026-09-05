@@ -10349,3 +10349,126 @@ matching row, not the first 2,000 of an unordered scan. Path: unchanged. One pri
 unchanged; no control added or moved. Feedback state: unchanged; the loading and empty states are the
 ones PERF-11/REG-GRAIN already carry. Fitts's-law surface: unchanged. The directory change is a
 data-fetching fix with no markup change. Rendering guard green.
+
+### Addendum 85, postscript 58 — train 47: eleven lanes folded, four migrations renumbered on collision (2026-09-05)
+
+Lane ASSEMBLE-47, worktree `train47`, folded eleven lane branches onto train 46 (`84745fa3` + CAP-1000,
+PR #593) in the order the coordinator fixed, one `git cherry-pick -x` per commit:
+
+- **assembly** `8305e7ff` — W1.6, scripts the train-assembly automation (`assemble-train.mjs`) this
+  lane's own manual fold stood in for this session (no push/network to origin in this sandbox).
+- **kitbackfill** `eedd87b7` — W2.3/2.4, executable migration-299 guard + kit-backfill selection.
+- **rulingsexec** `48c82d0f` — W2.2, census-off-vertical archive path (ruling R-A); owns the canonical
+  migration 308.
+- **attachsrc** `221b6958` — W3.1/3.3, attach-found-sources step + tier-opinions writer.
+- **corridors** `812e7043` — W4.2, corridor seeding (4 WCI lanes), statutory rows-file fixture,
+  `entity_scope` writer.
+- **chips** `3636eb2e` — W3.4, row-chip rule on all four surfaces + RecordGradeBadge/AiPromptBar wiring.
+- **spec09a** `d33d77bb` + `a3d6199c` — W5.1, rows-file producers for `reroute_events`/
+  `grid_connection_queues`/`oem_tech_roadmaps`, corridor-count claim correction.
+- **spec09b** `b4998428` — W5.1, customer-CSV upload flow for the six genuinely customer-supplied
+  spec09 tables (rewires four permanent no-ops into a real parser); owns migration 311.
+- **w71wire** `e0fc5c18` — W7.1, wires-or-deletes every module on the F25 W7.1 allowlist block (14
+  entries resolved: 7 wired into discipline.yml/maintenance.yml/producers.yml, 3 migration generators +
+  held-classes.mjs deleted once byte-compared against their live-applied SQL); owns migration 309 by
+  way of attachsrc's collision (see below — w71wire itself carries no migration).
+- **notices** `281bb568` — W4.3, `/api/notices` entity-id fix (`resolve-watched-entities.ts`), mounts
+  `RecalculationNotice` via a shared `NoticesRail` on Market + all four detail surfaces, wires
+  `publish_aggregate()` into the community benchmark gate.
+- **ledgerchain2** `489fdbea` — W1.4, `run-ledger-consume.mjs` chaining defect (verdict-batch
+  auto-discovery, pre-fetch classify gate, export-cursor persistence) — clean cherry-pick, no conflicts.
+
+**Migration renumber** [CONFIRMED, `grep -rn "308_"` across the tree finds only the census file]: four
+lanes independently authored their own migration 308 in disjoint worktrees off the same train-43 base —
+the same collision class as the earlier PERF-10/11/12 305/306/307 renumber. Applied in this fixed order:
+**308** = rulingsexec's `census_worklist_archive_columns` (canonical, unrenamed); **309** = attachsrc's
+`source_tier_opinions_host_class_table` (renamed from 308); **310** = chips's
+`listing_rpcs_item_grade` (renamed from 308); **311** = spec09b's `spec09_org_scope_and_pool_drop`
+(renamed from 308, drops `carrier_compliance_pools` + two `surcharge_audits` columns). Every
+self-reference updated: each migration file's own header/RAISE NOTICE/placeholder UUIDs,
+`migrations.md`'s four rows, `shared-dataset-ownership.md`'s two rows, `closure-gate.mjs`'s
+NEVER_RUN_ALLOWLIST text, three `.test.mjs`/`.mjs` inline comments, `MAINTENANCE-RUNBOOK.md`'s two
+lines, `SOURCES.md`'s three lines, and six spec09 panel/route file header comments. **All four are
+WRITTEN, NOT APPLIED** — the migrations.md rows say so explicitly, none claims a live-apply timestamp.
+Next: coordinator applies 308→309→310→311 in that order via Supabase MCP (DDL before code, two-track
+policy, CLAUDE.md rule 3), then updates each row's status to APPLIED LIVE with the real timestamp.
+
+**Conflicts** (12 files, resolved by keeping every lane's real intent, never dropping one to fold the
+other): `docs/inventories/migrations.md` (kept HEAD's pre-existing rows verbatim each time — including
+one stale "NOT APPLIED" a branch's row would have overwritten a "APPLIED LIVE" HEAD already carried
+correctly — and appended each renumbered row); `.github/workflows/maintenance.yml` (union of every
+lane's `step` enum options + step bodies, four times); `docs/runbooks/MAINTENANCE-RUNBOOK.md` (kept
+spec09a's fuller §19 extension + its own §20/21, renumbered w71wire's 7 new sections 20→22-28 rather
+than dropping either lane's sections); `fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`
+(three separate conflicts across three lanes — trusted the MORE CURRENT state each time: spec09b's
+stale view of grid-queue/oem-roadmap-producer.mjs, authored before spec09a's fold, was superseded by
+spec09a's real wiring, not silently re-added; w71wire's 14 now-resolved entries removed, its
+provenance-envelope.mjs entry kept); `fsi-app/scripts/maintenance/provenance-heal.mjs` (attachsrc's
+`buildHealDeps()` refactor auto-merged alongside HEAD's still-conflicting inline `buildDeps` that
+carried kitbackfill's `includeArchived` improvement — ported that improvement into the surviving
+exported function, deleted the duplicate ~150-line inline block, one function, one home);
+`fsi-app/src/app/market/page.tsx` (spec09b's + notices' header comments, kept spec09b's more current
+4-panel description, added notices' `NoticesRail` import); `fsi-app/.discipline/governance/
+coverage-report.json` (regenerated via its own generator, `node .discipline/governance/
+coverage-scan.mjs` — 836 governed files, 803 covered, 33 exempt, 0 gaps — never hand-merged).
+
+**Cross-lane registrations** the folded lanes' own reports asked the coordinator to do: (1)
+`notices-rail-smoke.mjs` registered in `ux-smoke-specs.mjs`, its temporary F25 allowlist entry deleted,
+`RecalculationNotice.tsx` added to F35's `ROW_COMPONENTS`; `run-rendering-guard.mjs` green (9 UX smoke
+specs, 345 fixture checks, 162 UX checks). (2) `docs/INDEX.md` gained the `TRAIN-ASSEMBLY-RUNBOOK` line
+in the runbooks section. (3) F28 ran clean as part of the full fitness sweep — no stale
+PENDING-RUN/LAST-PROPOSER-PASS marker found; nothing to stop on.
+
+**Fixed in-lane, not deferred** (rule 13 — a flag is a commitment): (a) the four spec09-B CSV producers
+(`surcharge-audit`/`dqi`/`auxiliary-energy`/`indexation`) each got a `maintenance.yml` step
+(`spec09-*-csv`, `arg`="<csv-path>,<org-id>") — the exact "coordinator follow-up" their own F25 entries
+named; runbook §29-32 written; the corresponding four F25 entries removed. (b) F14
+(`producer-consumer-orphan.mjs`) caught a real write-orphan lane CORRIDORS-STATUTORY introduced:
+`entity_scope` (migration 282, "the join table that makes any entity addressable from any surface") has
+exactly one writer (`write-entity-scope.mjs`, wired into the live `seed-corridors` step) and zero
+readers anywhere in the tree. Building the first reader is a feature-shaped decision (a UI surface or
+query, not a small follow-up to the writer) outside this lane's write set — allowlisted honestly as
+DISPOSITION PENDING with a named candidate reader, matching the existing `bulk_imports`/
+`disposition_ledger` precedent (grandfathered, not ratified), not silently wired shut with a fake
+reader.
+
+**A named, undischarged backlog, disclosed rather than absorbed**: running the fitness runner after the
+fold surfaced 52 violations, all `ALLOWLIST ENTRY EXPIRED` on entries carrying `expiry: 46` — F25's own
+ratchet (`latestTrainWave`) reds an entry once the LATEST LANDED train's git log names its expiry wave,
+and origin/master's log named "wave46" for the first time only once PR #593 (train 46) itself merged —
+so all ~49 files [CONFIRMED: byte-identical entries already present on origin/master before this
+train's first cherry-pick] flipped EXPIRED the instant this train's base landed, independent of
+anything any of the eleven folded lanes touched. Of those, 6 were genuinely this train's own scope
+(the four spec09 producers wired above; `provenance-envelope.mjs` re-confirmed WO-17 has not started,
+re-granted to wave50; `run-fixture-import.mjs` re-confirmed as a deliberate local-only proof aid,
+re-granted to wave50). The remaining ~43 (`.discipline/install-hooks.mjs`, the out-of-repo-boundary
+hook family, the `_reground`/`_dataops`/`_wave-alpha`/`_ruling` one-shot toolkits, a dozen dated
+`scripts/verify/*.mjs` audits, `scripts/gen/migration-258.mjs`, etc.) predate every lane in this train
+and require reading and dispositioning scripts this coordinator lane was never asked to read — a
+distinct workstream, not a follow-up to any of the eleven folds. Re-granted to wave52 (a ~5-train
+buffer, not indefinite) with a named, ONE shared disclosure comment in F25 (and the matching F38 entry
+for `mint-gate-calibration.mjs`) rather than silently re-stamped: **a dedicated lane must read each of
+these ~49 files and wire, delete, or formally reclassify it before wave52.**
+
+Gates: fitness runner 32 functions / 0 violations (after the F14 fix and the ratchet resolution above);
+`node --test` over `.discipline/governance/*.test.mjs .discipline/fitness/*.test.mjs
+.discipline/*.test.mjs`; closure-gate 4/4; `run-test-suite.sh` clean with the `node_modules` symlink
+both present and (CI-matching) removed and restored; `override-check.mjs --range=origin/master..HEAD`
+C3 clean (C4 worktree-inventory rows are local noise, per lane-common-contract); every touched workflow
+YAML `yaml.safe_load`-clean; `tsc --noEmit` clean; `next build --webpack` clean with no Supabase env (4
+`[slug]` route families present, exit 0).
+
+UX compliance (the folded lanes touched `.tsx` across Market/Operations/Regulations, plus this lane's
+own F35 registration). Primary goal per surface: notices — a viewer sees a recalculation notice for a
+watched item wherever they'd expect one (Market index + all four detail surfaces), not only on
+Operations' calculator; spec09 — IndexationPanel gives `indexation_clauses` its first reader; admin —
+AssumptionRegisterPanel gives `assumption_register` its first reader. Path: unchanged on every surface
+(no new route). One primary action: unchanged; NoticesRail and the new panels are read-only additions
+beside existing content, not a new control competing for the primary action. Feedback state: each new
+panel follows its surface's existing loading/empty convention (spec09 panels already carry the
+zero-rows-is-honest state from wave 3; AssumptionRegisterPanel matches AdminDashboard's existing
+section shape). Fitts's-law surface (Law 2, 44/24px floor): `notices-rail-smoke.mjs` — proven and now
+CI-registered — found and fixed two real violations upstream (the entity-label link sat below the
+target floor; an unbroken long entity name overflowed the row) before this lane folded it; nothing new
+introduced by the fold or the registration itself. Rendering guard green (9 UX smoke specs including
+`notices-rail`, 0 failures).

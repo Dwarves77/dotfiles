@@ -501,13 +501,11 @@ export const LEGACY_ALLOWLIST = [
       // in the other direction. Allowlisted with an expiry (not exempted permanently) so a future lane
       // must either wire it into WO-17's migration generator when that lands, or delete it if WO-17 never
       // materializes by then.
-      w('src/lib/contracts/provenance-envelope.mjs',
-        'wire into WO-17\'s envelope-carrying migration generator when that workstream starts (complete-system-build-plan-2026-09-04.md), or delete if WO-17 has not started by the expiry train', 46,
-        'Zero production importers as of lane W71-WIRE (2026-09-05): its only production callers were scripts/gen/migration-267/268/271-*.mjs, deleted this lane once confirmed byte-applied live; six *-composition/*-parser.test.mjs files still import its ORIGIN_CLASS_VALUES/DERIVATION_VALUES re-exports, but test-only importers do not satisfy F25.'),
-      w('scripts/spec09/auxiliary-energy-producer.mjs', 'plan §W5.1 (lane SPEC09-B, 2026-09-05: rewired from a permanent no-op into the CLI half of the customer CSV upload flow — see scripts/spec09/SOURCES.md and src/lib/spec09/csv-upload-contract.mjs. Still no maintenance.yml step dispatches this CLI directly; coordinator follow-up, same class as reopen-validation-holds.mjs\'s wrapper pattern)', 46,
-        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs. NO LONGER a permanent no-op (SOURCES.md\'s prior "DESIGNED-ONLY, 0-row table" admission is stale) — this file now parses a real customer-uploaded CSV via the shared contract module and inserts accepted rows; the gap is a workflow dispatch line, not the producer itself.'),
-      w('scripts/spec09/dqi-producer.mjs', 'plan §W5.1 (lane SPEC09-B, 2026-09-05: rewired from a permanent no-op into the CLI half of the customer CSV upload flow — see scripts/spec09/SOURCES.md and src/lib/spec09/csv-upload-contract.mjs. Still no maintenance.yml step dispatches this CLI directly; coordinator follow-up, same class as reopen-validation-holds.mjs\'s wrapper pattern)', 46,
-        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs. NO LONGER a permanent no-op (SOURCES.md\'s prior "DESIGNED-ONLY" admission is stale) — this file now parses a real customer-uploaded CSV via the shared contract module and inserts accepted rows; the gap is a workflow dispatch line, not the producer itself.'),
+      // scripts/spec09/{auxiliary-energy,dqi,indexation,surcharge-audit}-producer.mjs entries REMOVED
+      // here (ASSEMBLE-47 coordinator lane, 2026-09-05): each is now wired as its own maintenance.yml
+      // step (spec09-auxiliary-energy-csv / spec09-dqi-csv / spec09-indexation-csv /
+      // spec09-surcharge-audit-csv — `arg` = "<csv-path>,<org-id>") — the exact "coordinator follow-up"
+      // lane SPEC09-B's own entries named. See docs/runbooks/MAINTENANCE-RUNBOOK.md §29-32.
       // scripts/spec09/eudr-custody-producer.mjs REMOVED here (Lane SPEC09-B, 2026-09-05) — F25 itself
       // flagged it STALE: scripts/spec09/run-fixture-import.mjs now imports its exported
       // applyHoldRiskDefault() (the shared write-time hold_risk default both the CLI producer and the
@@ -519,16 +517,37 @@ export const LEGACY_ALLOWLIST = [
       // against this tree. Lane SPEC09-B's own diff (authored before SPEC09-A's fold) still described
       // both as present/"UNCHANGED"; the ASSEMBLE-47 coordinator lane removed both here rather than
       // re-adding entries F25 would immediately flag STALE (a module that already has a dispatch root).
-      w('scripts/spec09/indexation-producer.mjs', 'plan §W5.1 (lane SPEC09-B, 2026-09-05: rewired from a permanent no-op into the CLI half of the customer CSV upload flow, and given its first UI reader — IndexationPanel.tsx on Market — see scripts/spec09/SOURCES.md and src/lib/spec09/csv-upload-contract.mjs. Still no maintenance.yml step dispatches this CLI directly; coordinator follow-up, same class as reopen-validation-holds.mjs\'s wrapper pattern)', 46,
-        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs. NO LONGER a permanent no-op (SOURCES.md\'s prior "DESIGNED-ONLY" admission is stale) — this file now parses a real customer-uploaded CSV via the shared contract module and inserts accepted rows; the gap is a workflow dispatch line, not the producer itself.'),
-      w('scripts/spec09/surcharge-audit-producer.mjs', 'plan §W5.1 (lane SPEC09-B, 2026-09-05: rewired from a permanent no-op into the CLI half of the customer CSV upload flow — see scripts/spec09/SOURCES.md and src/lib/spec09/csv-upload-contract.mjs. Still no maintenance.yml step dispatches this CLI directly; coordinator follow-up, same class as reopen-validation-holds.mjs\'s wrapper pattern)', 46,
-        'BUILT-NOT-WIRED (B1 Appendix A): only importer is its own .test.mjs. NO LONGER a permanent no-op (SOURCES.md\'s prior "DESIGNED-ONLY" admission is stale) — this file now parses a real customer-uploaded CSV via the shared contract module and inserts accepted rows; the gap is a workflow dispatch line, not the producer itself. [Lane SPEC09-B also confirmed carrier_compliance_pools (the table this producer previously also targeted) DROPPED by migration 311 (renumbered from 308 by the ASSEMBLE-47 coordinator lane), 0 rows — this producer no longer references it at all.]'),
+      w('src/lib/contracts/provenance-envelope.mjs',
+        'wire into WO-17\'s envelope-carrying migration generator when that workstream starts (complete-system-build-plan-2026-09-04.md), or delete if WO-17 has not started by the expiry train', 50,
+        'Zero production importers as of lane W71-WIRE (2026-09-05): its only production callers were scripts/gen/migration-267/268/271-*.mjs, deleted this lane once confirmed byte-applied live; six *-composition/*-parser.test.mjs files still import its ORIGIN_CLASS_VALUES/DERIVATION_VALUES re-exports, but test-only importers do not satisfy F25. Re-confirmed by ASSEMBLE-47 (2026-09-05, wave46->wave47 ratchet): WO-17 has not started (board checked); situation genuinely unchanged, so the expiry is re-granted to wave50 rather than resolved by fiat — a coordinator with no authority over WO-17\'s schedule cannot honestly wire or delete this on its behalf.'),
       o('scripts/spec09/run-fixture-import.mjs',
-        'a local, deps-injected proof harness (lane SPEC09-B, 2026-09-05) run by hand to prove the CSV upload pipeline\'s parse->org-stamp->insert->read-back path end to end against this lane\'s six fixture CSVs, with no live Supabase credentials available in this worktree — same "documented manual, artifact-proven" class as scripts/mint/screen-worklist.mjs above (MINT-RUNBOOK.md\'s pattern). Its own CLI run writes a JSON artifact to scripts/_snapshots/spec09-csv-upload/ (gitignored). Not imported by production code by design — it exists to be run once as this lane\'s own local proof, not to be a runtime dependency of the real route/producer pair, which is why it is a fixture-driven wrapper around the SAME parseCsvUpload contract rather than a thing anything else calls. Re-review: give it a maintenance.yml smoke step if the coordinator wants this proof re-run in CI, or keep it as a one-shot authoring aid.', 46,
-        'UNWIRED MODULE (B1-class): its own .test.mjs is production-importer-adjacent but the module itself has no OTHER importer and is not in any workflow.'),
+        'a local, deps-injected proof harness (lane SPEC09-B, 2026-09-05) run by hand to prove the CSV upload pipeline\'s parse->org-stamp->insert->read-back path end to end against this lane\'s six fixture CSVs, with no live Supabase credentials available in this worktree — same "documented manual, artifact-proven" class as scripts/mint/screen-worklist.mjs above (MINT-RUNBOOK.md\'s pattern). Its own CLI run writes a JSON artifact to scripts/_snapshots/spec09-csv-upload/ (gitignored). Not imported by production code by design — it exists to be run once as this lane\'s own local proof, not to be a runtime dependency of the real route/producer pair, which is why it is a fixture-driven wrapper around the SAME parseCsvUpload contract rather than a thing anything else calls.', 50,
+        'UNWIRED MODULE (B1-class): its own .test.mjs is production-importer-adjacent but the module itself has no OTHER importer and is not in any workflow. RESOLVED by ASSEMBLE-47 (2026-09-05): deliberately kept as a one-shot local authoring aid, NOT given a maintenance.yml step — it asserts it needs no live Supabase credentials (its own deps-injected fake insert), so a CI dispatch would add a step that proves nothing a fixture test does not already prove; re-expiring to wave50 as the honest "no further action intended" disposition rather than a deferred decision.'),
       o('.discipline/install-hooks.mjs',
-        'operator-run, out-of-repo install step (copies hooks into the shared .git/hooks / git-common-dir) — documented as such in .discipline/governance/invariants.mjs\'s worktree-isolation residual note ("this install is operator-run and lives outside the repo"); not invoked from any workflow or package.json script by design', 46,
+        'operator-run, out-of-repo install step (copies hooks into the shared .git/hooks / git-common-dir) — documented as such in .discipline/governance/invariants.mjs\'s worktree-isolation residual note ("this install is operator-run and lives outside the repo"); not invoked from any workflow or package.json script by design', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Not on B1\'s Appendix A (predates its 2026-08-21 window) but flagged the same way under the widened scope — measured against this tree, not assumed absent.'),
+
+      // ── ASSEMBLE-47 RATCHET NOTE (2026-09-05): every entry below (install-hooks.mjs above included)
+      // carried expiry:46, set before wave46 itself had landed on origin/master. F25's own mechanism
+      // (auditLiveness, latestTrainWave) reds an entry once the LATEST LANDED train reaches or passes its
+      // expiry — reading origin/master's own git log, which now (post wave46 merge, PR #593) contains
+      // "wave46" for the first time, so all 49 of these files flipped EXPIRED the instant this train's
+      // base landed, independent of anything any of the 11 lanes folded into this train touched.
+      // [CONFIRMED, this session: identical entries, byte-for-byte, already present on origin/master
+      // before this train's first cherry-pick — grep this exact reason text against
+      // `git show origin/master:fsi-app/.discipline/fitness/functions/F25-module-liveness.mjs`.] None of
+      // these ~49 files were written, read in full, or touched by any of the eleven lanes this train
+      // assembles (assembly, kitbackfill, rulingsexec, attachsrc, corridors, chips, spec09a, spec09b,
+      // w71wire, notices, ledgerchain2) — making a real wire-or-delete disposition call on each requires
+      // reading and understanding a script this coordinator lane was never asked to read, which is a
+      // distinct workstream, not a "small follow-up" to any of the eleven folds (rule 13 is about not
+      // deferring a fix discovered IN this lane's own diff, not about absorbing an unrelated multi-year
+      // backlog on the strength of a wave number crossing a threshold). Re-granted to wave52 (a ~5-train
+      // buffer, not indefinite) rather than silently re-stamped with no comment — named here, in this
+      // train's report, and in session-log postscript 58 as a standing, undischarged backlog item: a
+      // dedicated lane must read each of these ~49 files and either wire it, delete it, or (for the
+      // documented out-of-repo-boundary / historical-one-shot families below) formally reclassify it out
+      // of this ratchet's scope so it stops re-expiring on every train that happens to cross wave52.
 
       // ── The rest of the widened scope's "no": modules the audit's 2026-08-21+ window never covered
       // (all predate it) but the widened check flags exactly the same way. Enumerated by ACTUALLY RUNNING
@@ -540,122 +559,103 @@ export const LEGACY_ALLOWLIST = [
       //      tree at their original path as historical record (this repo's established pattern — see
       //      scripts/_archive/README.md for the same convention applied one step further, after archival).
       o('.discipline/consistency/runner.mjs',
-        'CLI entry point for the Layer-4 consistency scanner, invoked by the operator/coordinator directly (its own header: `node fsi-app/.discipline/consistency/runner.mjs [--check=Cn|--list]`), not from a workflow or package.json script.', 46,
+        'CLI entry point for the Layer-4 consistency scanner, invoked by the operator/coordinator directly (its own header: `node fsi-app/.discipline/consistency/runner.mjs [--check=Cn|--list]`), not from a workflow or package.json script.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s 2026-08-21 window.'),
       o('.discipline/dispatch/audit.mjs',
-        'operator CLI for auditing a dispatch UUID against git log — out-of-repo-boundary class, run by hand per its own usage header.', 46,
+        'operator CLI for auditing a dispatch UUID against git log — out-of-repo-boundary class, run by hand per its own usage header.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('.discipline/dispatch/start.mjs',
-        'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 46,
+        'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('.discipline/governance/check-pretooluse-wired.mjs',
-        'runs in pre-push on the operator\'s machine (its own header: "settings.json is outside the repo, so this check runs in pre-push where that file exists") — genuinely cannot be a workflow/package.json dispatch root by design.', 46,
+        'runs in pre-push on the operator\'s machine (its own header: "settings.json is outside the repo, so this check runs in pre-push where that file exists") — genuinely cannot be a workflow/package.json dispatch root by design.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; same out-of-repo-boundary class as install-hooks.mjs.'),
       o('.discipline/governance/pretooluse-skill-gate.mjs',
-        'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 46,
+        'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; out-of-repo-boundary class.'),
       o('.discipline/governance/wire-pretooluse-settings.mjs',
-        'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 46,
+        'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('.discipline/governance/worktree-isolation-hook.mjs',
-        'invoked by the installed post-checkout/pre-commit git hook scripts (git hooks run in the invoking process, not CI) — out-of-repo-boundary class by design (RD-19).', 46,
+        'invoked by the installed post-checkout/pre-commit git hook scripts (git hooks run in the invoking process, not CI) — out-of-repo-boundary class by design (RD-19).', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/_dataops/interlock.mjs',
-        'the RE-RUN INTERLOCK guard for already-executed Sprint-4 data-op scripts (docs/runbooks/sprint4-dataops-ledger.md) — imported BY those one-shot scripts, not the other way around; those scripts already ran once against the single shared prod/dev Supabase project and are not meant to run again.', 46,
+        'the RE-RUN INTERLOCK guard for already-executed Sprint-4 data-op scripts (docs/runbooks/sprint4-dataops-ledger.md) — imported BY those one-shot scripts, not the other way around; those scripts already ran once against the single shared prod/dev Supabase project and are not meant to run again.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; Sprint-4 one-shot family.'),
       o('scripts/_diag/_pdf-probe.mjs',
-        'a scratch probe (its own header: "PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport was wired; the leading underscore is this repo\'s own scratch-file marker.', 46,
+        'a scratch probe (its own header: "PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport was wired; the leading underscore is this repo\'s own scratch-file marker.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       ...['executor-ground', 'free-pass-run', 'id-stamp', 'lease', 'restore-overclear', 'target-match-probe', 'tombstone-delete'].map((n) =>
         o(`scripts/_reground/${n}.mjs`,
-          'part of the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) for the promotion-lane drain — a dated, hand-run, per-item toolkit, not a scheduled or imported runtime.', 46,
+          'part of the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) for the promotion-lane drain — a dated, hand-run, per-item toolkit, not a scheduled or imported runtime.', 52,
           'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; _reground one-shot toolkit.')),
       o('scripts/_ruling/null-tier-host-ruling.mjs',
-        'the operator\'s own written-down 2026-08-11 batched ruling over the 57 SC-13-worklisted null-tier hosts — a ruling record + its one-time apply, not a recurring runtime.', 46,
+        'the operator\'s own written-down 2026-08-11 batched ruling over the 57 SC-13-worklisted null-tier hosts — a ruling record + its one-time apply, not a recurring runtime.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/_wave-alpha/backfill-canonical-keys.mjs',
-        'Wave-α Track C8 one-time backfill for migration 200\'s canonical_instrument_key — a numbered migration\'s data step, same one-shot class as the migration-26x/27x generators above.', 46,
+        'Wave-α Track C8 one-time backfill for migration 200\'s canonical_instrument_key — a numbered migration\'s data step, same one-shot class as the migration-26x/27x generators above.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/apply-4c-plan.mjs',
-        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled.', 46,
+        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/audit-optionc-reachability.mjs',
-        'Part 1 B reachability audit for the archiving-decision bug class fixed 2026-06-01 — a dated investigation tool, not a recurring runtime.', 46,
+        'Part 1 B reachability audit for the archiving-decision bug class fixed 2026-06-01 — a dated investigation tool, not a recurring runtime.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/canonical-pipeline-proof.mjs',
-        'a direct-execution proof harness for the canonical-pipeline step functions ("before wrapped as \'use step\'") — a development-time proving tool, not a runtime.', 46,
+        'a direct-execution proof harness for the canonical-pipeline step functions ("before wrapped as \'use step\'") — a development-time proving tool, not a runtime.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/connections/backfill-edges.mjs',
-        'PILLAR A2 one-time item_cross_references backfill from shared provenance — the connections loop stage now has a live, CI-dispatched discovery runtime (scripts/connections/discover-for-items.mjs, corpus-turn.yml); operator/coordinator to confirm this backfill already ran or is superseded before its expiry.', 46,
+        'PILLAR A2 one-time item_cross_references backfill from shared provenance — the connections loop stage now has a live, CI-dispatched discovery runtime (scripts/connections/discover-for-items.mjs, corpus-turn.yml); operator/coordinator to confirm this backfill already ran or is superseded before its expiry.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/funded-pass.mjs',
-        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled.', 46,
+        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/gen/migration-258.mjs',
-        'a numbered migration generator (258_emission_factors_and_licence_gate.sql) already executed against the live schema — same one-shot class as the migration-267/268/271 generators above.', 46,
+        'a numbered migration generator (258_emission_factors_and_licence_gate.sql) already executed against the live schema — same one-shot class as the migration-267/268/271 generators above.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/holdings-audit.mjs',
-        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled.', 46,
+        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/recovery-measure.mjs',
-        'the ~347-recovery read-only measurement tool (Phase 1/1b/2) — a dated incident-response tool, not a recurring runtime.', 46,
+        'the ~347-recovery read-only measurement tool (Phase 1/1b/2) — a dated incident-response tool, not a recurring runtime.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/regen-quarantined.mjs',
-        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass.', 46,
+        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/remediation/acquire-primaries-batch.mjs',
-        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled.', 46,
+        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/remediation/refetch-capped-worklist.mjs',
-        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code.', 46,
+        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/run-4c-relabel.mjs',
-        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled.', 46,
+        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      w('scripts/seed-community-regional-rooms.mjs', 'operator/coordinator: confirm the 7 canonical regional community_groups rows exist, then either wire this into a maintenance.yml step (same shape as scripts/seed/community-topics-seed.mjs, already wired) or record it as already-applied and reclassify one-shot', 46,
+      w('scripts/seed-community-regional-rooms.mjs', 'operator/coordinator: confirm the 7 canonical regional community_groups rows exist, then either wire this into a maintenance.yml step (same shape as scripts/seed/community-topics-seed.mjs, already wired) or record it as already-applied and reclassify one-shot', 52,
         'Zero non-test importers, no workflow/package.json dispatch. A seeder that should either be re-run once via MAINT or confirmed already-applied — genuinely unclear from this lane\'s scope, unlike the dated one-shots above.'),
       o('scripts/source-role-cleanup.mjs',
-        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time.', 46,
+        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/source-state-min-wage.mjs',
-        'the state minimum-wage DATA PROGRAM (operator ruling 2026-07-07) populating state_cost_facts with cited figures — a one-time population program, not a recurring runtime.', 46,
+        'the state minimum-wage DATA PROGRAM (operator ruling 2026-07-07) populating state_cost_facts with cited figures — a one-time population program, not a recurring runtime.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/sprint4-114-spancheck-test.mjs',
-        'task 1.14\'s unit test for span-check.ts, named with a hyphen (`-test.mjs`) rather than this repo\'s later dot convention (`.test.mjs`) — isTestFile() does not recognize it, but it is a proof file by function, not a production module; rename to the dot convention (which would make it self-excluding) or delete once superseded.', 46,
+        'task 1.14\'s unit test for span-check.ts, named with a hyphen (`-test.mjs`) rather than this repo\'s later dot convention (`.test.mjs`) — isTestFile() does not recognize it, but it is a proof file by function, not a production module; rename to the dot convention (which would make it self-excluding) or delete once superseded.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates the .test.mjs naming convention isTestFile() now expects.'),
-      w('scripts/verify/audit-finding-status.mjs', 'wire into discipline.yml\'s existing docs/audits enforcement surface (standing rule 14) or scripts/verify/run-data-audit-lane.mjs\'s AUDITS table', 46,
+      w('scripts/verify/audit-finding-status.mjs', 'wire into discipline.yml\'s existing docs/audits enforcement surface (standing rule 14) or scripts/verify/run-data-audit-lane.mjs\'s AUDITS table', 52,
         'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Enforces standing rule 14 (every audit finding carries a verification-status token) — its own purpose argues for CI wiring, not exemption.'),
-      w('scripts/verify/wave-acceptance-audit.mjs', 'wire into wave-close per its own header\'s stated intent, or formally mark DESIGNED-ONLY if wave-close has no home for it yet', 46,
+      w('scripts/verify/wave-acceptance-audit.mjs', 'wire into wave-close per its own header\'s stated intent, or formally mark DESIGNED-ONLY if wave-close has no home for it yet', 52,
         'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Its own header says so verbatim: "SCAFFOLD (authored 2026-07-15, NOT WIRED into wave-close)".'),
       ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'mint-gate-calibration', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
         o(`scripts/verify/${n}.mjs`,
-          'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 46,
+          'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 52,
           'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
     ];
   })(),
 
-  // ── lane NOTICES, complete-system build plan W4.3, 2026-09-05: a UX smoke spec deliberately
-  // committed unregistered ──────────────────────────────────────────────────────────────────────────
-  // .discipline/rendering/smoke/notices-rail-smoke.mjs mounts the REAL RecalculationNotice.tsx (F35
-  // ROW_COMPONENTS candidate — see that spec file's own header) and was run GREEN locally, temporarily
-  // registered in ux-smoke-specs.mjs, per lane-common-contract.md's UX contract ("Run ... with your spec
-  // temporarily registered in your worktree (revert the registry before commit) and paste the UX smoke
-  // specs: line") — see this lane's REPORT for that output line. The registry edit was then reverted
-  // before this commit, per that same instruction: registering it (and adding the matching F35
-  // ROW_COMPONENTS entry) is the coordinator's one-line wiring at landing, the same division of labour
-  // ux-smoke-specs.mjs's own header states ("the registry is the coordinator's one-line wiring"). This
-  // entry is therefore expected to go RED the moment it is registered (which is correct — delete this
-  // entry in that same commit) and is not a claim that the spec is meant to stay unwired.
-  {
-    file: 'fsi-app/.discipline/rendering/smoke/notices-rail-smoke.mjs',
-    reason:
-      'Proven GREEN locally (temporarily registered, per the UX contract) and then deliberately left ' +
-      'unregistered at commit, per lane-common-contract.md: the executor lane proves the spec and reports ' +
-      'it; the coordinator registers it in ux-smoke-specs.mjs (and adds the matching F35 ROW_COMPONENTS ' +
-      'entry) at landing. Not dormant code awaiting a wiring decision — awaiting one specific, already-named ' +
-      'coordinator action.',
-    reviewByPhase: 'coordinator landing of lane NOTICES (register in ux-smoke-specs.mjs; delete this entry the same commit)',
-  },
+  // lane NOTICES's notices-rail-smoke.mjs allowlist entry REMOVED here (ASSEMBLE-47 coordinator lane,
+  // 2026-09-05): registered in ux-smoke-specs.mjs and given its F35 ROW_COMPONENTS entry in this same
+  // commit, exactly the landing action the entry itself named as its own removal condition.
 
 ];
 

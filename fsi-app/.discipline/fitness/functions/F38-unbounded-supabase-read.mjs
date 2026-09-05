@@ -58,8 +58,11 @@ export const ALLOWLIST = [
     reason:
       'manual offline CLI mint-gate calibration tool, run by a human, never CI-dispatched; N_ITEMS ' +
       '(default 40, --items=N) bounds the REAL sample size, .limit(8000) is a generous ceiling on a ' +
-      '--representative recent-window read, not a full-table listing a customer surface depends on.',
-    expiry: 46,
+      '--representative recent-window read, not a full-table listing a customer surface depends on. ' +
+      'Re-confirmed by ASSEMBLE-47 (2026-09-05, wave46->wave47 ratchet — same pre-existing-on-' +
+      'origin/master event as F25-module-liveness.mjs\'s bulk note): situation unchanged, same file this ' +
+      'lane\'s own F25 entry already covers; re-granted rather than silently dropped.',
+    expiry: 52,
   },
 ];
 
