@@ -356,3 +356,66 @@ test("selectCandidateLedgerPage: a ledger read error is thrown, never swallowed 
   };
   await assert.rejects(() => selectCandidateLedgerPage(erroringClient, { limit: 10 }), /connection reset/);
 });
+
+// ── opts.classifyGate — THE PRE-FETCH GATE (Lane LEDGER-CHAIN-2, 2026-09-05, build plan W1.4 item 5:
+// "a verdict lookup precedes any fetch"). Proves fetchDoc is called ONLY for a row the gate says needs it,
+// classify runs for every row the gate allows (verdict-matched OR api-fetched), and a gated-out row is
+// recorded as skipped-no-verdict with fetched:0 — never touched by fetchDoc at all. ─────────────────────
+
+const ROW_A = { ...LEDGER_ROW, id: "plc-a", url: "https://x/has-verdict" };
+const ROW_B = { ...LEDGER_ROW, id: "plc-b", url: "https://x/no-verdict" };
+const ROW_C = { ...LEDGER_ROW, id: "plc-c", url: "https://x/allow-api" };
+
+test("classifyGate: a verdict-matched row skips the fetch entirely (needsFetch:false) but still classifies", async () => {
+  const sb = fakeClient({ ledgerRows: [ROW_A] });
+  const fetchCalls = [];
+  const fetchDoc = async (url) => { fetchCalls.push(url); return okFetch(); };
+  const classifyGate = (url) => (url === ROW_A.url ? { willClassify: true, needsFetch: false } : { willClassify: false });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc, classify: classifyAs(CLS_DOC), classifyGate, anthropicKey: "test",
+  });
+  assert.deepEqual(fetchCalls, [], "a verdict-matched row must NEVER be fetched — the verdict is built from the verdict object alone");
+  assert.equal(r.fetched, 0);
+  assert.equal(r.outcomes[0].disposition, "would_mint", "classify still ran and produced a real disposition");
+});
+
+test("classifyGate: a row with NO classification source at all is skipped before any fetch — fetched:0, disposition skipped, reason names skipped-no-verdict", async () => {
+  const sb = fakeClient({ ledgerRows: [ROW_B] });
+  const fetchCalls = [];
+  const fetchDoc = async (url) => { fetchCalls.push(url); return okFetch(); };
+  let classifyCalls = 0;
+  const classify = async (...args) => { classifyCalls++; return classifyAs(CLS_DOC)(...args); };
+  const classifyGate = () => ({ willClassify: false, needsFetch: false, reason: "no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API" });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc, classify, classifyGate, anthropicKey: "test",
+  });
+  assert.deepEqual(fetchCalls, [], "the verdict lookup precedes any fetch — a gated-out row is never fetched");
+  assert.equal(classifyCalls, 0, "classify must not be reached either");
+  assert.equal(r.fetched, 0);
+  assert.equal(r.outcomes[0].disposition, "skipped");
+  assert.match(r.outcomes[0].reason, /skipped-no-verdict:/);
+});
+
+test("classifyGate: needsFetch:true (the --allow-api miss case) DOES fetch, same as no gate at all", async () => {
+  const sb = fakeClient({ ledgerRows: [ROW_C] });
+  const fetchCalls = [];
+  const fetchDoc = async (url) => { fetchCalls.push(url); return okFetch(); };
+  const classifyGate = () => ({ willClassify: true, needsFetch: true });
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc, classify: classifyAs(CLS_DOC), classifyGate, anthropicKey: "test",
+  });
+  assert.deepEqual(fetchCalls, [ROW_C.url]);
+  assert.equal(r.fetched, 1);
+  assert.equal(r.outcomes[0].disposition, "would_mint");
+});
+
+test("no classifyGate given at all (omitted) → behavior unchanged from before this lane: every row is fetched then classified", async () => {
+  const sb = fakeClient({ ledgerRows: [ROW_A] });
+  const fetchCalls = [];
+  const fetchDoc = async (url) => { fetchCalls.push(url); return okFetch(); };
+  const r = await consumePortalCandidates(sb, {
+    mode: "plan", limit: 10, fetchDoc, classify: classifyAs(CLS_DOC), anthropicKey: "test",
+  });
+  assert.deepEqual(fetchCalls, [ROW_A.url], "no classifyGate -> the old unconditional fetch-then-classify path runs");
+  assert.equal(r.fetched, 1);
+});

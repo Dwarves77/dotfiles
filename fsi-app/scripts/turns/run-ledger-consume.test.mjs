@@ -46,9 +46,16 @@ import {
   indexVerdictsByUrl,
   verdictEntryToClassifyOutput,
   buildVerdictClassify,
+  buildClassifyGate,
+  isVerdictsBatchFilename,
+  sortVerdictsBatchFilenames,
+  discoverVerdictsFiles,
   buildCandidateExportPayload,
   runExportCandidates,
   shapeCandidateTextFields,
+  resolveExportAfter,
+  findLatestExportArtifact,
+  buildExportRunArtifact,
 } from "./run-ledger-consume.mjs";
 
 const PV = "sha256:aaaaaaaaaaaaaaaa"; // a well-formed stand-in prompt_version for fixtures below
@@ -881,6 +888,74 @@ test("buildVerdictClassify + collectClassifyTelemetry compose into ONE telemetry
   assert.equal(telemetry.get("https://x/api").costUsd, 0.002);
 });
 
+// ── buildClassifyGate — THE PRE-FETCH GATE (build plan W1.4 item 5: "a verdict lookup precedes any
+// fetch") — the SAME decision buildVerdictClassify makes at classify time, read again by
+// consumePortalCandidates BEFORE its own fetch step. ─────────────────────────────────────────────────────
+
+test("buildClassifyGate: a URL WITH a verdict -> willClassify true, needsFetch FALSE (no page text needed at all)", () => {
+  const verdictsByUrl = indexVerdictsByUrl([verdictEntry({ url: "https://x/hit" })]);
+  const gate = buildClassifyGate({ verdictsByUrl, allowApi: false });
+  const decision = gate("https://x/hit");
+  assert.equal(decision.willClassify, true);
+  assert.equal(decision.needsFetch, false, "a verdict is built from the verdict object alone — never fetched");
+  assert.equal(decision.source, "session-verdict");
+  assert.equal(decision.verdict.candidate_id, "plc-1");
+});
+
+test("buildClassifyGate: a URL WITHOUT a verdict, allowApi=false (the default) -> willClassify false, needsFetch false, named reason", () => {
+  const gate = buildClassifyGate({ verdictsByUrl: new Map(), allowApi: false });
+  const decision = gate("https://x/miss");
+  assert.equal(decision.willClassify, false);
+  assert.equal(decision.needsFetch, false, "nothing to fetch for — this row is never touched at all");
+  assert.equal(decision.source, "skipped-no-verdict");
+  assert.match(decision.reason, /no session verdict for this URL/);
+});
+
+test("buildClassifyGate: a URL WITHOUT a verdict, allowApi=true -> willClassify true, needsFetch TRUE (the only case a fetch is needed)", () => {
+  const gate = buildClassifyGate({ verdictsByUrl: new Map(), allowApi: true });
+  const decision = gate("https://x/allow-api");
+  assert.equal(decision.willClassify, true);
+  assert.equal(decision.needsFetch, true);
+  assert.equal(decision.source, "api");
+});
+
+test("buildClassifyGate: a verdict hit wins even when allowApi=true — needsFetch stays false", () => {
+  const verdictsByUrl = indexVerdictsByUrl([verdictEntry({ url: "https://x/both" })]);
+  const gate = buildClassifyGate({ verdictsByUrl, allowApi: true });
+  const decision = gate("https://x/both");
+  assert.equal(decision.source, "session-verdict");
+  assert.equal(decision.needsFetch, false);
+});
+
+// ── verdict-batch discovery — every committed ledger-verdicts-NNN.json batch, not only the newest ──────
+
+test("isVerdictsBatchFilename: matches ledger-verdicts-NNN.json only, not README.md/schema.json/other files", () => {
+  assert.equal(isVerdictsBatchFilename("ledger-verdicts-001.json"), true);
+  assert.equal(isVerdictsBatchFilename("ledger-verdicts-002.json"), true);
+  assert.equal(isVerdictsBatchFilename("README.md"), false);
+  assert.equal(isVerdictsBatchFilename("schema.json"), false);
+  assert.equal(isVerdictsBatchFilename("ledger-verdicts-abc.json"), false);
+});
+
+test("sortVerdictsBatchFilenames: ascending by numeric suffix, not lexicographic (010 after 002, not before)", () => {
+  const sorted = sortVerdictsBatchFilenames(["ledger-verdicts-010.json", "ledger-verdicts-002.json", "ledger-verdicts-001.json"]);
+  assert.deepEqual(sorted, ["ledger-verdicts-001.json", "ledger-verdicts-002.json", "ledger-verdicts-010.json"]);
+});
+
+test("discoverVerdictsFiles: lists every batch file ascending, as absolute paths, via an injected readdirSyncImpl", () => {
+  const files = discoverVerdictsFiles("/fake/dir", {
+    readdirSyncImpl: () => ["README.md", "ledger-verdicts-002.json", "schema.json", "ledger-verdicts-001.json"],
+  });
+  assert.deepEqual(files, [resolve("/fake/dir/ledger-verdicts-001.json"), resolve("/fake/dir/ledger-verdicts-002.json")]);
+});
+
+test("discoverVerdictsFiles: a missing directory yields [] (no batches yet), never a throw", () => {
+  const files = discoverVerdictsFiles("/does/not/exist", {
+    readdirSyncImpl: () => { throw new Error("ENOENT"); },
+  });
+  assert.deepEqual(files, []);
+});
+
 // ── shapeConsumeResult — new metrics/per_item fields the session-verdict flip adds ──────────────────────
 
 test("shapeConsumeResult: classify_source/confidence/mismatch surface per_item, with_verdict/without_verdict_skipped/uncertain/est_usd surface in metrics", () => {
@@ -930,6 +1005,44 @@ test("shapeConsumeResult: a candidate_id mismatch between the verdict entry and 
   assert.equal(perItem[0].verdict_candidate_id_mismatch, true);
 });
 
+test("shapeConsumeResult: metrics.matched is with_verdict under build plan W1.4's own vocabulary; metrics.verdict_batches_read carries opts.verdictBatchesRead", () => {
+  const result = {
+    mode: "plan", discovered: 1, fetched: 0, classified: 1,
+    outcomes: [{ ledgerId: "row-1", url: "https://x/1", disposition: "would_mint", reason: "dry: minted" }],
+  };
+  const telemetry = new Map([
+    ["https://x/1", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: true, error: null, source: "session-verdict", verdictCandidateId: "row-1", confidence: 0.9 }],
+  ]);
+  const { metrics } = shapeConsumeResult(result, telemetry, { verdictBatchesRead: 2 });
+  assert.equal(metrics.matched, 1);
+  assert.equal(metrics.matched, metrics.with_verdict, "matched is an alias of with_verdict, not a second count");
+  assert.equal(metrics.verdict_batches_read, 2);
+});
+
+test("shapeConsumeResult: without_verdict_skipped counts a classifyGate-skipped row even with NO telemetry entry (the undercount bug this lane fixed)", () => {
+  // This is the production shape: consumePortalCandidates's classifyGate skips the row BEFORE classify()
+  // is ever called, so telemetry (only written from inside classify()) has NOTHING for this URL — the
+  // ONLY signal is the outcome's own "skipped-no-verdict:" reason text.
+  const result = {
+    mode: "plan", discovered: 1, fetched: 0, classified: 0,
+    outcomes: [{ ledgerId: "row-1", url: "https://x/gated", disposition: "skipped", reason: "skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API" }],
+  };
+  const { metrics } = shapeConsumeResult(result, new Map());
+  assert.equal(metrics.without_verdict_skipped, 1, "counted from outcomes, not just telemetry");
+});
+
+test("shapeConsumeResult: without_verdict_skipped does not double-count a URL that has BOTH a telemetry entry AND a matching outcome reason", () => {
+  const result = {
+    mode: "plan", discovered: 1, fetched: 0, classified: 0,
+    outcomes: [{ ledgerId: "row-1", url: "https://x/both-paths", disposition: "skipped", reason: "classify failed: skipped-no-verdict: no session verdict for this URL (--verdicts) and --allow-api not set (defaults false) — never sent to the API" }],
+  };
+  const telemetry = new Map([
+    ["https://x/both-paths", { sourceId: "s1", costUsd: 0, renderMs: 0, inputTokens: 0, outputTokens: 0, ok: false, error: "skipped-no-verdict: ...", source: "skipped-no-verdict" }],
+  ]);
+  const { metrics } = shapeConsumeResult(result, telemetry);
+  assert.equal(metrics.without_verdict_skipped, 1, "one row, one count — telemetry path wins, outcomes path excludes URLs already in telemetry");
+});
+
 // ── --export-candidates — buildCandidateExportPayload / runExportCandidates ─────────────────────────────
 
 test("buildCandidateExportPayload: shapes candidate rows, names why fetched text is absent, carries prompt_version", () => {
@@ -976,6 +1089,159 @@ test("runExportCandidates: writes the shaped payload to outPath via the injected
     const written = JSON.parse(readFileSync(outPath, "utf8"));
     assert.equal(written.count, 1);
     assert.equal(written.candidates[0].candidate_id, "plc-1");
+  } finally {
+    rmSync(tmpDir, { recursive: true, force: true });
+  }
+});
+
+// ── export cursor persistence — resolveExportAfter / findLatestExportArtifact / buildExportRunArtifact
+// (build plan W1.4 item 1: "the export lands as today"; item 5: "two consecutive chained runs cover
+// disjoint windows"). ───────────────────────────────────────────────────────────────────────────────────
+
+test("resolveExportAfter: an explicit --after ALWAYS wins, even when a prior export artifact exists (build item 2: hand dispatch keeps every input)", () => {
+  const after = resolveExportAfter({
+    explicitAfter: { firstSeenAt: "2026-09-01T00:00:00Z", id: "explicit-id" },
+    latestExportArtifact: { config: { action: "export" }, metrics: { next_cursor: { firstSeenAt: "2026-08-01T00:00:00Z", id: "old-id" } } },
+  });
+  assert.deepEqual(after, { firstSeenAt: "2026-09-01T00:00:00Z", id: "explicit-id" });
+});
+
+test("resolveExportAfter: no explicit --after -> auto-resumes from the prior export artifact's own next_cursor", () => {
+  const after = resolveExportAfter({
+    explicitAfter: null,
+    latestExportArtifact: { config: { action: "export" }, metrics: { next_cursor: { firstSeenAt: "2026-08-01T00:00:00Z", id: "prior-id" } } },
+  });
+  assert.deepEqual(after, { firstSeenAt: "2026-08-01T00:00:00Z", id: "prior-id" });
+});
+
+test("resolveExportAfter: a config.action='consume' artifact is IGNORED — the consume cursor is a different keyset walk, never conflated with the export cursor", () => {
+  const after = resolveExportAfter({
+    explicitAfter: null,
+    latestExportArtifact: { config: { action: "consume" }, metrics: { next_cursor: { firstSeenAt: "2026-08-01T00:00:00Z", id: "consume-id" } } },
+  });
+  assert.equal(after, null);
+});
+
+test("resolveExportAfter: no explicit --after and no prior export artifact -> null (start from the beginning, the honest default)", () => {
+  assert.equal(resolveExportAfter({ explicitAfter: null, latestExportArtifact: null }), null);
+});
+
+test("resolveExportAfter: a prior export whose own window was exhausted (next_cursor: null) resolves to null, not undefined", () => {
+  const after = resolveExportAfter({ explicitAfter: null, latestExportArtifact: { config: { action: "export" }, metrics: { next_cursor: null } } });
+  assert.equal(after, null);
+});
+
+test("findLatestExportArtifact: returns the LAST config.action==='export' run from readRunHistory's ascending order, ignoring consume runs", () => {
+  const artifact = findLatestExportArtifact("/fake/dir", {
+    readRunHistoryImpl: () => ({
+      runs: [
+        { run_id: "ledger-consume-run-001", config: { action: "export" }, metrics: { next_cursor: { firstSeenAt: "a", id: "1" } } },
+        { run_id: "ledger-consume-run-002", config: { action: "consume" }, metrics: { next_cursor: { firstSeenAt: "b", id: "2" } } },
+        { run_id: "ledger-consume-run-003", config: { action: "export" }, metrics: { next_cursor: { firstSeenAt: "c", id: "3" } } },
+      ],
+    }),
+  });
+  assert.equal(artifact.run_id, "ledger-consume-run-003");
+});
+
+test("findLatestExportArtifact: no export runs at all -> null", () => {
+  const artifact = findLatestExportArtifact("/fake/dir", {
+    readRunHistoryImpl: () => ({ runs: [{ run_id: "ledger-consume-run-001", config: { action: "consume" }, metrics: {} }] }),
+  });
+  assert.equal(artifact, null);
+});
+
+test("buildExportRunArtifact: shape validates against F28 (via a live import), config.action='export' distinguishes it from a consume artifact", async () => {
+  const { validateRunArtifact } = await import("../lib/run-artifact.mjs");
+  const payload = {
+    count: 1, with_text: true, fetch_ok_count: 1, fetch_failed_count: 0,
+    next_cursor: { firstSeenAt: "2026-09-01T00:00:00Z", id: "x" },
+    candidates: [{ candidate_id: "plc-1", url: "https://x/a", source_id: "s1", fetch_ok: true, fetch_error: null }],
+  };
+  const artifact = buildExportRunArtifact({
+    runId: "ledger-consume-run-010",
+    harnessVersion: "sha256:0000000000000000",
+    startedAt: "2026-09-05T00:00:00Z",
+    finishedAt: "2026-09-05T00:00:05Z",
+    config: { action: "export", limit: 400, after: null, after_source: "start", with_text: true },
+    inputsRef: ["portal_link_candidates: status=candidate limit=400 order=asc(first_seen_at,id) after=start"],
+    payload,
+    outPath: "scripts/harness-runs/ledger-consume/candidates-x.json",
+  });
+  const errors = validateRunArtifact(artifact);
+  assert.deepEqual(errors, []);
+  assert.equal(artifact.config.action, "export");
+  assert.equal(artifact.metrics.next_cursor.id, "x");
+  assert.equal(artifact.per_item[0].outcome, "fetch_ok");
+});
+
+// THE BUILD-BRIEF ITEM 5 TEST: "A unit test proves two consecutive chained runs cover disjoint windows."
+// Emulates keyset pagination across TWO --export-candidates dispatches: the first has no prior artifact
+// (starts from the beginning), the second reads the first's own next_cursor back via resolveExportAfter +
+// findLatestExportArtifact — never restarting from the same window, the exact defect
+// ledger-consume-run-001/002 recorded on the consume side.
+test("two consecutive chained --export-candidates runs cover DISJOINT windows (build plan W1.4 item 5)", async () => {
+  const tmpDir = mkdtempSync(join(tmpdir(), "ledger-consume-chain-"));
+  try {
+    // A tiny in-memory ledger, ascending (first_seen_at, id) — the same order selectCandidateLedgerPage
+    // (portal-harvest.ts) queries in. selectPage below emulates its own after-cursor keyset filtering.
+    const LEDGER = [
+      { id: "id-1", url: "https://x/1", source_id: "s", first_seen_at: "2026-07-19T00:00:00Z", sources: null },
+      { id: "id-2", url: "https://x/2", source_id: "s", first_seen_at: "2026-07-19T00:00:01Z", sources: null },
+      { id: "id-3", url: "https://x/3", source_id: "s", first_seen_at: "2026-07-19T00:00:02Z", sources: null },
+      { id: "id-4", url: "https://x/4", source_id: "s", first_seen_at: "2026-07-19T00:00:03Z", sources: null },
+    ];
+    const selectPage = async ({ limit, after }) => {
+      const startIdx = after ? LEDGER.findIndex((r) => r.id === after.id) + 1 : 0;
+      return LEDGER.slice(startIdx, startIdx + limit);
+    };
+
+    // ── run 1: no prior artifact anywhere -> effectiveAfter is null, starts from the beginning ──────────
+    const run1Dir = tmpDir; // same dir as run 2 — the real coordinator's harness-runs dir persists across dispatches
+    const latest1 = findLatestExportArtifact(run1Dir); // real readRunHistory against an empty/nonexistent dir
+    const effectiveAfter1 = resolveExportAfter({ explicitAfter: null, latestExportArtifact: latest1 });
+    assert.equal(effectiveAfter1, null, "no prior export artifact -> starts from the beginning");
+    const out1 = join(tmpDir, "candidates-1.json");
+    const { payload: payload1 } = await runExportCandidates({
+      selectPage, limit: 2, after: effectiveAfter1, outPath: out1, now: () => "2026-09-05T00:00:00Z",
+    });
+    assert.deepEqual(payload1.candidates.map((c) => c.candidate_id), ["id-1", "id-2"]);
+    assert.deepEqual(payload1.next_cursor, { firstSeenAt: "2026-07-19T00:00:01Z", id: "id-2" });
+
+    // Persist run 1's OWN artifact — the mechanism this lane adds so run 2 can find it.
+    const { claimRunId, writeRunArtifact } = await import("../lib/run-artifact.mjs");
+    const runId1 = claimRunId(run1Dir, "ledger-consume");
+    writeRunArtifact(
+      run1Dir,
+      buildExportRunArtifact({
+        runId: runId1,
+        harnessVersion: "sha256:0000000000000000",
+        startedAt: "2026-09-05T00:00:00Z",
+        finishedAt: "2026-09-05T00:00:01Z",
+        config: { action: "export", limit: 2, after: effectiveAfter1, after_source: "start" },
+        inputsRef: ["run 1"],
+        payload: payload1,
+        outPath: out1,
+      })
+    );
+
+    // ── run 2: reads run 1's artifact back, resumes past its next_cursor ─────────────────────────────────
+    const latest2 = findLatestExportArtifact(run1Dir);
+    assert.equal(latest2.run_id, runId1);
+    const effectiveAfter2 = resolveExportAfter({ explicitAfter: null, latestExportArtifact: latest2 });
+    assert.deepEqual(effectiveAfter2, { firstSeenAt: "2026-07-19T00:00:01Z", id: "id-2" }, "auto-resumed from run 1's own next_cursor");
+    const out2 = join(tmpDir, "candidates-2.json");
+    const { payload: payload2 } = await runExportCandidates({
+      selectPage, limit: 2, after: effectiveAfter2, outPath: out2, now: () => "2026-09-05T00:01:00Z",
+    });
+    assert.deepEqual(payload2.candidates.map((c) => c.candidate_id), ["id-3", "id-4"]);
+
+    // THE ASSERTION: the two windows are disjoint — no id appears in both.
+    const ids1 = new Set(payload1.candidates.map((c) => c.candidate_id));
+    const ids2 = new Set(payload2.candidates.map((c) => c.candidate_id));
+    const overlap = [...ids1].filter((id) => ids2.has(id));
+    assert.deepEqual(overlap, [], "run 2 must never re-fetch a row run 1 already exported");
+    assert.notEqual(effectiveAfter1?.id, effectiveAfter2?.id, "the two runs' effective cursors differ — they did not restart from the same window");
   } finally {
     rmSync(tmpDir, { recursive: true, force: true });
   }

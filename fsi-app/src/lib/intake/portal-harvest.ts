@@ -176,6 +176,27 @@ export interface ConsumeOpts {
   classify?: ClassifyFn;
   anthropicKey: string;
   now?: () => string;
+  /** OPTIONAL PRE-FETCH GATE (W1.4 event chaining fix, 2026-09-05 — see
+   *  scripts/harness-runs/ledger-consume/LAST-PROPOSER-PASS.md's finding 2: "the fetch is spent before
+   *  the skip decision"). When supplied, consulted for each candidate's URL BEFORE step "1 — FETCH"
+   *  below runs at all:
+   *    - `willClassify: false` — this run has NO classification source for the URL (no session verdict,
+   *      `--allow-api` off): disposed `skipped` WITHOUT ever calling `fetchDoc`. Fetching a page this run
+   *      cannot classify burns the one fetch this family owns for zero information — the exact defect
+   *      that made ledger-consume-run-001/002 fetch the same 50 rows twice and classify neither.
+   *    - `willClassify: true, needsFetch: false` — a session verdict already covers this URL: the fetch
+   *      is skipped too (a verdict is built from the verdict object alone —
+   *      `verdictEntryToClassifyOutput` never reads fetched text), and `classify` below still runs (on
+   *      empty `text`, which the verdict path ignores) so the verdict is actually applied.
+   *    - `willClassify: true, needsFetch: true` — no verdict, but `--allow-api` is set: the ordinary
+   *      fetch-then-classify path runs unchanged (a real API call genuinely needs the fetched text).
+   *  `run-ledger-consume.mjs`'s `buildClassifyGate` is the ONE decision this reads — the SAME decision
+   *  `buildVerdictClassify`'s own bypass/skip logic makes at the classify step — so the fetch gate and
+   *  the classify gate can never disagree about which candidates have a classification source. Optional
+   *  and backward compatible: a caller that omits it (there is none in this repo today, but the type
+   *  stays permissive for a future direct caller) fetches every candidate unconditionally, unchanged
+   *  from before this fix. */
+  classifyGate?: (url: string) => { willClassify: boolean; needsFetch?: boolean; reason?: string };
 }
 
 /** Build the intake candidate (staged proposed_changes) from a classified ledger row. PURE — the one
@@ -297,32 +318,60 @@ export async function consumePortalCandidates(sb: SupabaseClient, opts: ConsumeO
   const mintable: Array<{ row: LedgerCandidate; seed: IntakeCandidate; surfaceTags: string[] }> = [];
 
   for (const row of candidates) {
+    // 0 — VERDICT GATE (optional, pre-fetch — see ConsumeOpts.classifyGate's own doc above). Checked
+    //     BEFORE the fetch: a candidate this run has NO classification source for (no session verdict,
+    //     --allow-api off) is skipped for $0, no network call spent proving what the gate already knows
+    //     for free. A candidate WITH a verdict also skips the fetch (`needsFetch: false`) — a verdict
+    //     never reads fetched text (verdictEntryToClassifyOutput builds its output from the verdict
+    //     object alone), so fetching a page only to hand its text to a classify call that ignores it is
+    //     the same wasted-fetch defect this gate exists to close, just for the matched case instead of
+    //     the unmatched one. `skipFetch` carries that decision into step 1 below; `text`/`wall` stay at
+    //     their empty defaults when the fetch is skipped, and step 2's classify call runs on that empty
+    //     text — harmless for a verdict hit (ignored) and unreachable for anything else (a gate that sets
+    //     `needsFetch: false` without a verdict would only be `willClassify: false`, already handled above).
+    let skipFetch = false;
+    if (opts.classifyGate) {
+      const gate = opts.classifyGate(row.url);
+      if (!gate.willClassify) {
+        outcomes.push({
+          ledgerId: row.id,
+          url: row.url,
+          disposition: "skipped",
+          reason: `skipped-no-verdict: ${gate.reason ?? "no classification source for this URL"}`,
+        });
+        continue;
+      }
+      skipFetch = gate.needsFetch === false;
+    }
     // 1 — FETCH (injected; inconclusive on failure — the fetchOk discipline: an unreadable fetch is
-    //     NOT a reject, the row stays 'candidate' for a later retry).
+    //     NOT a reject, the row stays 'candidate' for a later retry). Skipped entirely when the gate
+    //     above already knows this row's classification will come from a verdict, not from fetched text.
     let text = "";
     let wall: { kind: string; evidence?: string } | null | undefined;
-    try {
-      const r = await fetchDoc(row.url);
-      text = r?.text ?? "";
-      wall = r?.wall;
-    } catch (e) {
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `fetch failed: ${e instanceof Error ? e.message : String(e)}` });
-      continue;
+    if (!skipFetch) {
+      try {
+        const r = await fetchDoc(row.url);
+        text = r?.text ?? "";
+        wall = r?.wall;
+      } catch (e) {
+        outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `fetch failed: ${e instanceof Error ? e.message : String(e)}` });
+        continue;
+      }
+      // A detected access wall (bot-CAPTCHA / interface shell — access-wall.mjs) is checked BEFORE the
+      // 200-char floor: some shells (e.g. the ~1400ch EUR-Lex chrome) clear 200ch on raw length alone, so
+      // the floor check would otherwise misclassify a wall as usable text and send it to classify — wasting
+      // a classify call the way the 230 federalregister.gov "Request Access" rows did in export #5. Either
+      // way the row stays 'candidate' (inconclusive, never a reject) for retry once the wall clears.
+      if (wall) {
+        outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `access_wall:${wall.kind}` });
+        continue;
+      }
+      if (text.trim().length < 200) {
+        outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `fetch inconclusive: ${text.trim().length}ch (<200ch floor)` });
+        continue;
+      }
+      fetched++;
     }
-    // A detected access wall (bot-CAPTCHA / interface shell — access-wall.mjs) is checked BEFORE the
-    // 200-char floor: some shells (e.g. the ~1400ch EUR-Lex chrome) clear 200ch on raw length alone, so
-    // the floor check would otherwise misclassify a wall as usable text and send it to classify — wasting
-    // a classify call the way the 230 federalregister.gov "Request Access" rows did in export #5. Either
-    // way the row stays 'candidate' (inconclusive, never a reject) for retry once the wall clears.
-    if (wall) {
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `access_wall:${wall.kind}` });
-      continue;
-    }
-    if (text.trim().length < 200) {
-      outcomes.push({ ledgerId: row.id, url: row.url, disposition: "skipped", reason: `fetch inconclusive: ${text.trim().length}ch (<200ch floor)` });
-      continue;
-    }
-    fetched++;
 
     // 2 — CLASSIFY through the LIVE content gate (error-body pre-gate + entity verdict inside).
     const res = await classify(
