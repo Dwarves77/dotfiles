@@ -5,6 +5,8 @@ import { entityId, corridorSeed } from "../../src/lib/entities/entity-id.mjs";
 import {
   CITE,
   ADR_EXAMPLE_CORRIDORS,
+  NAMED_CORRIDOR_SEEDS,
+  FALLBACK_CORRIDOR_SEEDS,
   parseCorridorConvention,
   deriveCorridorCandidatesFromMarketSeries,
   deriveCorridorCandidatesFromRegionalFacts,
@@ -82,14 +84,21 @@ test("deriveCorridorCandidatesFromItemJurisdictions: ALWAYS [], never pairs a mu
 
 // ── resolveCorridorCandidates: the fallback ─────────────────────────────────────────────────────────
 
-test("resolveCorridorCandidates: falls back to ADR_EXAMPLE_CORRIDORS when nothing live names a corridor pair (today's true state)", () => {
+test("resolveCorridorCandidates: falls back to the ADR example PLUS the named WCI corridors when nothing live names a corridor pair (today's true state)", () => {
   const r = resolveCorridorCandidates({
     marketSeries: [{ series_key: "eu-oil-bulletin:automotive-diesel" }, { series_key: "ecb-fx:eur-usd" }],
     regionalFacts: [{ fact_label: "Median hourly wage" }],
     items: [{ id: "i1", jurisdiction_iso: ["CN", "US"] }],
   });
   assert.equal(r.usingFallback, true);
-  assert.deepEqual(r.candidates.map((c) => [c.origin, c.dest, c.mode]), [["CNSHA", "NLRTM", "ocean"]]);
+  assert.deepEqual(r.candidates.map((c) => [c.origin, c.dest, c.mode]), [
+    ["CNSHA", "NLRTM", "ocean"],
+    ["CNSHA", "ITGOA", "ocean"],
+    ["CNSHA", "USNYC", "ocean"],
+    ["CNSHA", "USLAX", "ocean"],
+  ]);
+  assert.equal(r.candidates.length, FALLBACK_CORRIDOR_SEEDS.length);
+  assert.ok(r.candidates.every((c) => typeof c.sourceUrl === "string" && c.sourceUrl.length > 0), "every fallback candidate cites a source (rule 18)");
   assert.deepEqual(r.checked, { marketSeries: 2, regionalFacts: 1, items: 1 });
 });
 
@@ -136,6 +145,23 @@ test("ADR_EXAMPLE_CORRIDORS: exactly the ADR-024 §4 / migration 258 worked exam
   assert.doesNotThrow(() => entityId("corridor", corridorSeed(c)));
 });
 
+test("NAMED_CORRIDOR_SEEDS: three real, cited WCI lanes beyond the worked example, each well-formed and sourced", () => {
+  assert.equal(NAMED_CORRIDOR_SEEDS.length, 3);
+  for (const c of NAMED_CORRIDOR_SEEDS) {
+    assert.equal(c.origin, "CNSHA");
+    assert.equal(c.mode, "ocean");
+    assert.ok(typeof c.sourceUrl === "string" && c.sourceUrl.startsWith("https://"), `sourceUrl missing/malformed for ${c.dest}`);
+    assert.doesNotThrow(() => entityId("corridor", corridorSeed(c)));
+  }
+  assert.deepEqual(NAMED_CORRIDOR_SEEDS.map((c) => c.dest), ["ITGOA", "USNYC", "USLAX"]);
+});
+
+test("FALLBACK_CORRIDOR_SEEDS: the ADR example plus every named corridor, no duplicates", () => {
+  assert.equal(FALLBACK_CORRIDOR_SEEDS.length, ADR_EXAMPLE_CORRIDORS.length + NAMED_CORRIDOR_SEEDS.length);
+  const keys = FALLBACK_CORRIDOR_SEEDS.map((c) => `${c.origin}-${c.dest}:${c.mode}`);
+  assert.equal(new Set(keys).size, keys.length);
+});
+
 // ── main(): deps-injected orchestration ─────────────────────────────────────────────────────────────
 
 function deps(calls, { marketSeries = [], regionalFacts = [], items = [], existingCorridors = [] } = {}) {
@@ -155,39 +181,40 @@ function deps(calls, { marketSeries = [], regionalFacts = [], items = [], existi
   };
 }
 
-test("main dry-run: no live corridor data -> falls back to the ADR example, plans one entity, writes nothing", async () => {
+test("main dry-run: no live corridor data -> falls back to the ADR example + named WCI corridors, plans every entity, writes nothing", async () => {
   const calls = [];
   const r = await main({ apply: false }, deps(calls));
   assert.equal(r.mode, "dry-run");
   assert.equal(r.usingFallback, true);
-  assert.equal(r.candidateCount, 1);
-  assert.equal(r.created, 1);
+  assert.equal(r.candidateCount, FALLBACK_CORRIDOR_SEEDS.length);
+  assert.equal(r.created, FALLBACK_CORRIDOR_SEEDS.length);
   assert.equal(r.skipped, 0);
   assert.ok(!calls.some((c) => c[0] === "guardedInsertMany"));
 });
 
-test("main apply: writes the planned entity through guardedInsertMany with the CITE, reads entities filtered to kind=corridor", async () => {
+test("main apply: writes every planned entity through guardedInsertMany with the CITE, reads entities filtered to kind=corridor", async () => {
   const calls = [];
   const r = await main({ apply: true }, deps(calls));
-  assert.equal(r.created, 1);
+  assert.equal(r.created, FALLBACK_CORRIDOR_SEEDS.length);
   const w = calls.find((c) => c[0] === "guardedInsertMany");
   assert.equal(w[1], "entities");
-  assert.equal(w[2].length, 1);
-  assert.equal(w[2][0].kind, "corridor");
+  assert.equal(w[2].length, FALLBACK_CORRIDOR_SEEDS.length);
+  assert.ok(w[2].every((e) => e.kind === "corridor"));
   assert.equal(w[3].cite, CITE);
 
   const entitiesRead = calls.find((c) => c[0] === "readAll" && c[1] === "entities");
   assert.ok(entitiesRead);
 });
 
-test("main: an already-seeded corridor is idempotent — second apply creates nothing", async () => {
+test("main: an already-seeded corridor is idempotent — second apply creates only what is still missing", async () => {
   const expectedSeed = corridorSeed(ADR_EXAMPLE_CORRIDORS[0]);
   const expectedId = entityId("corridor", expectedSeed);
   const calls = [];
   const r = await main({ apply: true }, deps(calls, { existingCorridors: [{ entity_id: expectedId }] }));
-  assert.equal(r.created, 0);
+  assert.equal(r.created, NAMED_CORRIDOR_SEEDS.length);
   assert.equal(r.existing, 1);
-  assert.ok(!calls.some((c) => c[0] === "guardedInsertMany"));
+  const w = calls.find((c) => c[0] === "guardedInsertMany");
+  assert.equal(w[2].length, NAMED_CORRIDOR_SEEDS.length);
 });
 
 test("main: live-derived candidates (e.g. a future corridor-namespaced market_series row) take priority over the fallback", async () => {
