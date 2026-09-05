@@ -92,6 +92,12 @@ const AUDITS = [
   ["source-vs-item", "scripts/verify/source-vs-item.mjs", true],
   ["staged-transit", "scripts/verify/staged-transit-audit.mjs", true],
   ["skill-conformance", "scripts/audit-skill-conformance.mjs", false],
+  // ADR-014 wave-acceptance sampling, wired here 2026-09-05 (lane W71-A) resolving the ADR's own
+  // "not wired" status note — SOFT (informational): the escalation threshold it computes (§4, >10%
+  // accuracy-defect) requires the LIVE L2/L3 Chrome pass this mechanical pre-scan cannot perform, so a
+  // red here is a signal for operator review, never a build-blocking verdict on its own. Self-skips
+  // (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as every other audit above.
+  ["wave-acceptance", "scripts/verify/wave-acceptance-audit.mjs", false],
 ];
 
 const results = [];

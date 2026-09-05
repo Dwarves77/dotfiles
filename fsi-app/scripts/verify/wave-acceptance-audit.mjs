@@ -1,16 +1,26 @@
 #!/usr/bin/env node
-// wave-acceptance-audit.mjs — SCAFFOLD (authored 2026-07-15, NOT WIRED into wave-close).
-// Registers the standing ground-truth QA lane from ADR-014 (wave-acceptance sampling).
-// READ-ONLY. Computes the risk-weighted acceptance sample for a wave + the mechanical pre-scan
-// (provenance structure), then emits a manifest for the LIVE three-layer pass (L1/L2/L3), which
-// requires a Chrome live-read of each cited primary and cannot be fully scripted.
+// wave-acceptance-audit.mjs — the standing ground-truth QA pre-scan from ADR-014 (wave-acceptance
+// sampling). READ-ONLY. Computes the risk-weighted acceptance sample for a frame of items + the
+// mechanical pre-scan (provenance structure), then emits a manifest for the LIVE three-layer pass
+// (L1/L2/L3), which requires a Chrome live-read of each cited primary and cannot be fully scripted.
 //
-// Status: proposed. Ratification (ADR-014) sets WAVE_ACCEPTANCE_N and wires the accuracy-rate
-// escalation gate into wave-close. Until then this is an on-demand read-only reporter.
+// WIRING (lane W71-A, 2026-09-05, per docs/plans/complete-system-build-plan-2026-09-04.md §W7 —
+// resolving ADR-014's own "not wired" status note). ADR-014's design assumed a discrete "wave-close"
+// event this system never built (trains land continuously; there is no wave-boundary hook to gate).
+// [CONFIRMED] this lane: grep for `wave-close`/`waveClose`/`wave_close` across fsi-app/ finds nothing;
+// ADR-014's claim that invariant QA-1 already gates a wave's `closed` status is likewise
+// [REFUTED] — no such invariant exists anywhere in .discipline/governance/invariants.mjs. Rather than
+// leave the tool permanently unwired waiting on a mechanism that does not exist, it is wired into
+// scripts/verify/run-data-audit-lane.mjs's nightly AUDITS table as a SOFT (informational, non-blocking)
+// audit, using "since the last 24h" as the practical proxy for "the wave that just landed" — the
+// closest honest analogue this system's actual train cadence offers to ADR-014's wave boundary.
 //
 // Usage:
 //   node scripts/verify/wave-acceptance-audit.mjs --since "2026-07-13T00:00:00Z"
 //   node scripts/verify/wave-acceptance-audit.mjs --ids id1,id2,...
+//   node scripts/verify/wave-acceptance-audit.mjs                 # defaults --since to 24h ago (lane use)
+// Exit 2 (self-skip, the run-data-audit-lane.mjs convention) when SUPABASE_URL/SERVICE_ROLE_KEY are
+// absent — never a false FAIL in a no-creds job.
 // Env: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (read-only use here).
 
 import { createClient } from '@supabase/supabase-js';
@@ -54,12 +64,16 @@ async function main() {
     .eq('is_archived', false).order('id').range(f, t);
   let items;
   if (ids) items = await fetchAllRows((f, t) => baseItems(f, t).in('id', ids.split(',')));
-  else if (since) {
-    const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', since).order('id').range(f, t));
+  else {
+    // No frame given (the lane's own invocation shape): default to the last 24h, the practical
+    // "wave that just landed" proxy named in the header — never a silent no-op self-skip when creds
+    // ARE present, since the whole point of nightly wiring is to actually sample something.
+    const effectiveSince = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+    const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', effectiveSince).order('id').range(f, t));
     const waveIds = [...new Set(runs.map((r) => r.intelligence_item_id).filter(Boolean))];
     items = await fetchAllRows((f, t) => baseItems(f, t).in('id', waveIds));
-  } else { console.error('Provide --ids or --since'); process.exit(2); }
-  if (!items.length) { console.log('No items in wave frame.'); return; }
+  }
+  if (!items.length) { console.log('No items in wave frame (0 agent_runs in the window) — nothing to sample.'); return; }
 
   // 2) Per-item claim + provenance pre-scan.
   const scored = [];

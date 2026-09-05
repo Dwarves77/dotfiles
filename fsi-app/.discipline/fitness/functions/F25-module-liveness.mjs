@@ -185,7 +185,66 @@ export function findDispatchRoots(
     for (const m of invocationText.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
   }
 
+  // Source 7 (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md §W7 /
+  // docs/audits/wiring-audit-2026-09-04/B1-modules.md): OUT-OF-REPO-BOUNDARY.md is itself the in-repo
+  // registry of tools invoked from OUTSIDE any workflow, package.json script, or import graph — a git
+  // hook's shared settings.json, or a human at a terminal. Its two markdown tables (the boundary-
+  // dependency table and the "Operator-CLI register" beneath it) name every such tool in backticked
+  // `governance/*.mjs` / `dispatch/*.mjs` / `install-hooks.mjs` paths; the registry row IS the
+  // reachability evidence, the same "a documented indirection is itself dispatch-root evidence" shape
+  // Source 4 and Source 6 already use for run-data-audit-lane.mjs's AUDITS table and the tracked hook
+  // sources, respectively. parseBoundaryRegistryPaths() is factored out (not inlined) so
+  // F25-module-liveness.test.mjs can assert every parsed path resolves against the REAL file, which is
+  // what keeps this registry from rotting silently the way a plain doc reference could.
+  try {
+    const text = readFileFn('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md');
+    for (const p of parseBoundaryRegistryPaths(text)) roots.add(p);
+  } catch { /* registry absent is its own violation surface, not this resolver's job to hide */ }
+
+  // Source 8 (lane W71-A, 2026-09-05): subprocess-spawn dispatch. A script already known to be a
+  // dispatch root (via any source above) that computes a SIBLING script's path with this repo's own
+  // `resolve(HERE, 'x.mjs')` convention (HERE = `dirname(fileURLToPath(import.meta.url))`) and passes it
+  // to `spawnSync`/`execFileSync` makes that target reachable too — a real `node <path>` child-process
+  // invocation neither the static import graph (it is not an import specifier) nor Source 1 (the
+  // TARGET's own path is never a string literal in any workflow file; only the SPAWNING script's path
+  // is) can see. Concrete instance this closes: `.discipline/consistency/override-check.mjs` (a Source-1
+  // dispatch root via `.github/workflows/discipline.yml`'s "Consistency backstop" job and
+  // `.discipline/hooks/pre-push`) spawns `.discipline/consistency/runner.mjs` this exact way — a plainly
+  // wired module by subprocess dispatch, not a registry/operator-CLI exemption (see
+  // OUT-OF-REPO-BOUNDARY.md's own note on this). Fixed-point over the growing root set: a spawn chain
+  // more than one hop deep would otherwise need its own hand-added source.
+  const RESOLVE_HERE_RE = /resolve\(\s*HERE\s*,\s*['"`]([\w.-]+\.mjs)['"`]\s*\)/g;
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const spawnRoot of Array.from(roots)) {
+      let text;
+      try { text = readFileFn(spawnRoot); } catch { continue; }
+      if (!/spawnSync|execFileSync/.test(text)) continue;
+      const dir = posix.dirname(spawnRoot);
+      for (const m of text.matchAll(RESOLVE_HERE_RE)) {
+        const target = posix.join(dir, m[1]);
+        if (!roots.has(target)) { roots.add(target); grew = true; }
+      }
+    }
+  }
+
   return roots;
+}
+
+// Every backticked path under governance/, dispatch/, or consistency/, or the bare `install-hooks.mjs`
+// literal, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's markdown tables — factored out of
+// findDispatchRoots's Source 7 so its own unit test can assert every parsed path resolves against the
+// real tree (a row naming a deleted or renamed file would otherwise rot silently).
+export function parseBoundaryRegistryPaths(text) {
+  // Opening backtick required (a real inline-code span, not prose), but NOT a closing one immediately
+  // after `.mjs` — the boundary-dependency table's own applier cell is `` `governance/
+  // wire-pretooluse-settings.mjs --apply` `` (a CLI invocation with flags inside the same code span), so
+  // anchoring to the closing backtick would miss it.
+  const RE = /`((?:governance|dispatch|consistency)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
+  const found = new Set();
+  for (const m of text.matchAll(RE)) found.add(`fsi-app/.discipline/${m[1]}`);
+  return [...found];
 }
 
 // Latest landed train/wave number, read from `git log --oneline origin/master` (the expiry oracle named
@@ -552,15 +611,36 @@ export const LEGACY_ALLOWLIST = [
       // against this tree. Lane SPEC09-B's own diff (authored before SPEC09-A's fold) still described
       // both as present/"UNCHANGED"; the ASSEMBLE-47 coordinator lane removed both here rather than
       // re-adding entries F25 would immediately flag STALE (a module that already has a dispatch root).
-      w('src/lib/contracts/provenance-envelope.mjs',
-        'wire into WO-17\'s envelope-carrying migration generator when that workstream starts (complete-system-build-plan-2026-09-04.md), or delete if WO-17 has not started by the expiry train', 50,
-        'Zero production importers as of lane W71-WIRE (2026-09-05): its only production callers were scripts/gen/migration-267/268/271-*.mjs, deleted this lane once confirmed byte-applied live; six *-composition/*-parser.test.mjs files still import its ORIGIN_CLASS_VALUES/DERIVATION_VALUES re-exports, but test-only importers do not satisfy F25. Re-confirmed by ASSEMBLE-47 (2026-09-05, wave46->wave47 ratchet): WO-17 has not started (board checked); situation genuinely unchanged, so the expiry is re-granted to wave50 rather than resolved by fiat — a coordinator with no authority over WO-17\'s schedule cannot honestly wire or delete this on its behalf.'),
-      o('scripts/spec09/run-fixture-import.mjs',
-        'a local, deps-injected proof harness (lane SPEC09-B, 2026-09-05) run by hand to prove the CSV upload pipeline\'s parse->org-stamp->insert->read-back path end to end against this lane\'s six fixture CSVs, with no live Supabase credentials available in this worktree — same "documented manual, artifact-proven" class as scripts/mint/screen-worklist.mjs above (MINT-RUNBOOK.md\'s pattern). Its own CLI run writes a JSON artifact to scripts/_snapshots/spec09-csv-upload/ (gitignored). Not imported by production code by design — it exists to be run once as this lane\'s own local proof, not to be a runtime dependency of the real route/producer pair, which is why it is a fixture-driven wrapper around the SAME parseCsvUpload contract rather than a thing anything else calls.', 50,
-        'UNWIRED MODULE (B1-class): its own .test.mjs is production-importer-adjacent but the module itself has no OTHER importer and is not in any workflow. RESOLVED by ASSEMBLE-47 (2026-09-05): deliberately kept as a one-shot local authoring aid, NOT given a maintenance.yml step — it asserts it needs no live Supabase credentials (its own deps-injected fake insert), so a CI dispatch would add a step that proves nothing a fixture test does not already prove; re-expiring to wave50 as the honest "no further action intended" disposition rather than a deferred decision.'),
-      o('.discipline/install-hooks.mjs',
-        'operator-run, out-of-repo install step (copies hooks into the shared .git/hooks / git-common-dir) — documented as such in .discipline/governance/invariants.mjs\'s worktree-isolation residual note ("this install is operator-run and lives outside the repo"); not invoked from any workflow or package.json script by design', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Not on B1\'s Appendix A (predates its 2026-08-21 window) but flagged the same way under the widened scope — measured against this tree, not assumed absent.'),
+      // 'src/lib/contracts/provenance-envelope.mjs' entry REMOVED (lane W71-A, 2026-09-05,
+      // docs/plans/complete-system-build-plan-2026-09-04.md §W7): the module itself was DELETED, not
+      // wired. grep across src/+scripts/ for a duplicate "provenance envelope" DDL-rendering module found
+      // none — nothing reimplements this shape elsewhere — but confirmed zero PRODUCTION consumers
+      // either: every production file that mentions "provenance-envelope.mjs" does so only in a doc
+      // comment (operations-ask-context.mjs, supabase-server.ts, regional-facts-envelope.mjs,
+      // region-grid.mjs, refresh-published-price-statistics.mjs, eu-weekly-oil-bulletin.mjs,
+      // assumption-register-common.mjs — none `import` from it), and every real production caller of
+      // ORIGIN_CLASS/DERIVATION imports them directly from their real homes (vocabularies.mjs,
+      // envelope.mjs) rather than through this module's re-export, exactly as the module's own header
+      // says those homes are. Its only remaining importers were the six *-composition/*-parser.test.mjs
+      // files (test-only, never satisfied F25) — repointed to import ORIGIN_CLASSES/DERIVATIONS directly
+      // from vocabularies.mjs/envelope.mjs in the same commit, so nothing breaks. WO-17 (the named future
+      // consumer this entry was waiting on) has still not started; rather than re-grant a fourth expiry
+      // (41->43->46->47->52) on a module with genuinely zero live callers, WO-17 gets a plain
+      // renderEnvelopeDDL-shaped generator when it actually starts — reusing the general APPROACH this
+      // module proved (factor-tier.mjs's own pattern, generalised) costs nothing extra at that point,
+      // and it is not "duplicated logic" to reintroduce a helper for a workstream that doesn't exist yet.
+      // 'scripts/spec09/run-fixture-import.mjs' entry REMOVED (lane W71-A, 2026-09-05,
+      // docs/plans/complete-system-build-plan-2026-09-04.md §W7): now reachable by construction — it is
+      // the honest dry-run substitute for the no-arg branch of maintenance.yml's spec09-surcharge-audit-csv
+      // step (the four spec09-*-csv steps previously just echoed "arg is required... skipping" on a
+      // dry-all run, leaving the whole six-table CSV-upload pipeline permanently unproven in CI). Its own
+      // path is now a literal Source-1 dispatch-root match in that workflow file.
+      // '.discipline/install-hooks.mjs' entry REMOVED (lane W71-A, 2026-09-05, docs/plans/
+      // complete-system-build-plan-2026-09-04.md §W7): now reachable by construction —
+      // OUT-OF-REPO-BOUNDARY.md's new "Operator-CLI register" table names it (usage line, invoker: the
+      // operator on a fresh checkout or hook-source change, per .discipline/INSTALL.md), and
+      // findDispatchRoots' new Source 7 parses that table into a dispatch root. Same treatment as the
+      // settings.json boundary-dependency table's existing row.
 
       // ── ASSEMBLE-47 RATCHET NOTE (2026-09-05): every entry below (install-hooks.mjs above included)
       // carried expiry:46, set before wave46 itself had landed on origin/master. F25's own mechanism
@@ -593,26 +673,29 @@ export const LEGACY_ALLOWLIST = [
       //  (b) dated, operator-authorized ONE-SHOT programs already run against production, left in the
       //      tree at their original path as historical record (this repo's established pattern — see
       //      scripts/_archive/README.md for the same convention applied one step further, after archival).
-      o('.discipline/consistency/runner.mjs',
-        'CLI entry point for the Layer-4 consistency scanner, invoked by the operator/coordinator directly (its own header: `node fsi-app/.discipline/consistency/runner.mjs [--check=Cn|--list]`), not from a workflow or package.json script.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s 2026-08-21 window.'),
-      o('.discipline/dispatch/audit.mjs',
-        'operator CLI for auditing a dispatch UUID against git log — out-of-repo-boundary class, run by hand per its own usage header.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/dispatch/start.mjs',
-        'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // '.discipline/consistency/runner.mjs' entry REMOVED (lane W71-A, 2026-09-05): F25 itself flags it
+      // STALE now — findDispatchRoots' new Source 8 mechanizes the subprocess-spawn shape
+      // consistency/override-check.mjs already used to run it (`const RUNNER = resolve(HERE,
+      // 'runner.mjs'); spawnSync(process.execPath, [RUNNER], ...)`), and override-check.mjs is itself a
+      // Source-1 dispatch root ('.github/workflows/discipline.yml`'s "Consistency backstop" job,
+      // `.discipline/hooks/pre-push`). Plainly wired by subprocess dispatch, not an operator-CLI
+      // exemption — see OUT-OF-REPO-BOUNDARY.md's own note under the new Operator-CLI register.
+      // '.discipline/dispatch/audit.mjs' and '.discipline/dispatch/start.mjs' entries REMOVED (lane
+      // W71-A, 2026-09-05): now reachable by construction — OUT-OF-REPO-BOUNDARY.md's new
+      // "Operator-CLI register" table names both (usage line + invoker: the operator, per
+      // .discipline/dispatch/README.md's own lifecycle section) and findDispatchRoots' new Source 7
+      // parses that table into a dispatch root, same treatment as install-hooks.mjs above.
       // '.discipline/governance/check-pretooluse-wired.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
       // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 (hook scripts install-hooks.mjs
       // writes) — fsi-app/.discipline/hooks/pre-push's step 3c genuinely runs this file, a real dispatch
       // root the graph-only scan could never see (the hook copies it as text, not an import). See Source 6's
       // header comment for the [CONFIRMED] evidence.
-      o('.discipline/governance/pretooluse-skill-gate.mjs',
-        'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; out-of-repo-boundary class.'),
-      o('.discipline/governance/wire-pretooluse-settings.mjs',
-        'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // '.discipline/governance/pretooluse-skill-gate.mjs' and
+      // '.discipline/governance/wire-pretooluse-settings.mjs' entries REMOVED (lane W71-A, 2026-09-05):
+      // both were ALREADY named as backticked `governance/*.mjs` paths in OUT-OF-REPO-BOUNDARY.md's
+      // pre-existing boundary-dependency table (source-of-truth and applier columns respectively) —
+      // findDispatchRoots' new Source 7 parses that same table, so both are now reachable by
+      // construction without any change to the registry itself.
       // '.discipline/governance/worktree-isolation-hook.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
       // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 — fsi-app/.discipline/hooks/
       // post-checkout and pre-commit both genuinely `exec node .../worktree-isolation-hook.mjs`, a real
@@ -681,11 +764,18 @@ export const LEGACY_ALLOWLIST = [
       o('scripts/sprint4-114-spancheck-test.mjs',
         'task 1.14\'s unit test for span-check.ts, named with a hyphen (`-test.mjs`) rather than this repo\'s later dot convention (`.test.mjs`) — isTestFile() does not recognize it, but it is a proof file by function, not a production module; rename to the dot convention (which would make it self-excluding) or delete once superseded.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates the .test.mjs naming convention isTestFile() now expects.'),
-      w('scripts/verify/audit-finding-status.mjs', 'wire into discipline.yml\'s existing docs/audits enforcement surface (standing rule 14) or scripts/verify/run-data-audit-lane.mjs\'s AUDITS table', 52,
-        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Enforces standing rule 14 (every audit finding carries a verification-status token) — its own purpose argues for CI wiring, not exemption.'),
-      w('scripts/verify/wave-acceptance-audit.mjs', 'wire into wave-close per its own header\'s stated intent, or formally mark DESIGNED-ONLY if wave-close has no home for it yet', 52,
-        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Its own header says so verbatim: "SCAFFOLD (authored 2026-07-15, NOT WIRED into wave-close)".'),
-      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'mint-gate-calibration', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
+      // 'scripts/verify/audit-finding-status.mjs' entry REMOVED (lane W71-A, 2026-09-05): now reachable
+      // by construction — a real "verify:audit-findings" package.json script (Source 2) and a real
+      // report-only invocation from run-test-suite.sh, both wired this lane. The recursion bug that left
+      // 27 of 101 docs/audits/ files unscanned was fixed in the same diff (rule 13).
+      // 'scripts/verify/wave-acceptance-audit.mjs' entry REMOVED (lane W71-A, 2026-09-05): ADR-014's
+      // "wave-close" mechanism was [REFUTED] this lane — it does not exist anywhere in the repo (trains
+      // land continuously; no wave-boundary hook to gate). Wired instead into
+      // run-data-audit-lane.mjs's AUDITS table as a SOFT nightly audit (Source 4), using "since 24h ago"
+      // as the honest practical proxy for a wave boundary; self-skips (exit 2) without creds.
+      // 'mint-gate-calibration' entry REMOVED (lane W71-A, 2026-09-05): the script itself was deleted
+      // (no live caller — see F38-unbounded-supabase-read.mjs's own removed-entry note for the evidence).
+      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
         o(`scripts/verify/${n}.mjs`,
           'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 52,
           'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
