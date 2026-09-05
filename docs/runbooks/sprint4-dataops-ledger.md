@@ -4,12 +4,19 @@
 mixed together: **code** (apply-on-merge, normal PR+CI) and **already-executed data operations**
 (durable corpus mutations that ran once against the **shared** Supabase project — dev and prod are
 the same database). A re-run of any script below **double-applies against production**. This ledger
-is the audit record; the `scripts/_dataops/interlock.mjs` guard is its enforcement arm — every script
-listed here imports it and refuses to run unless `CONFIRM_RERUN=<name>` is set.
+is the audit record; the `scripts/_dataops/interlock.mjs` guard was its enforcement arm — every script
+listed here imported it and refused to run unless `CONFIRM_RERUN=<name>` was set.
 
 **Gating rule (precondition for integration):** the code half does NOT merge until every data-op
 script here is guarded or quarantined from auto-execution (CI / tests / build). Status: **guarded**
 (interlock applied) as of 2026-06-01.
+
+**CORRECTION (lane W71-C, 2026-09-05):** `scripts/_dataops/interlock.mjs` was DELETED — F25
+module-liveness: every script this ledger names has itself since been archived (`scripts/_archive/**`,
+inert by construction), so the guard had nothing left to guard (its only two remaining importers,
+`scripts/_archive/phase2-{reconcile,build-binding}.mjs`, are archived too). This ledger stays the
+historical audit record of what ran; the guard's job — refusing an accidental re-run — is moot once the
+scripts it protected are gone from the live tree.
 
 ---
 

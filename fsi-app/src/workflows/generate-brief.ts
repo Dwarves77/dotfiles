@@ -456,7 +456,7 @@ export async function eraseStep(
 //   - On retry EXHAUSTION the step throws and the run ends FAILED — the claim is NOT
 //     returned as validated (fail SAFE).
 // The timeout/network -> RetryableError throw is unit-verified
-// (scripts/sprint4-114-spancheck-test.mjs); the retry loop + exponential backoff +
+// (src/lib/agent/span-check.npmtest.mjs); the retry loop + exponential backoff +
 // fail-safe-on-exhaustion are runtime-verified via the worker probe (2026-05-30).
 export async function spanCheckClaim(url: string): Promise<SpanCheckResult> {
   "use step";

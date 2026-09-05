@@ -3,9 +3,9 @@ id: ADR-019
 title: Inverse-frequency scenario weighting for shared operational_scenario_tags
 status: accepted
 date: 2026-08-21
-scope: fsi-app connection graph — discover.mjs scenario-tag contribution scoring, scripts/connections/backfill-edges.mjs, src/lib/intake/mint-item.ts (F25 module-liveness), provenance_discovery edges, theme clustering
+scope: fsi-app connection graph — discover.mjs scenario-tag contribution scoring, scripts/connections/discover-for-items.mjs, src/lib/intake/mint-item.ts (F25 module-liveness), provenance_discovery edges, theme clustering
 supersedes: none
-related: discover.mjs (computeTagFrequencies, new pure exported function), scripts/connections/backfill-edges.mjs (production caller), src/lib/intake/mint-item.ts (production caller, mint-time discovery)
+related: discover.mjs (computeTagFrequencies, new pure exported function), scripts/connections/discover-for-items.mjs (production caller), src/lib/intake/mint-item.ts (production caller, mint-time discovery)
 ---
 
 # ADR-019 — Inverse-frequency scenario weighting (operator-ruled in session)
@@ -49,9 +49,15 @@ every idf factor defaults to `1.0`, reproducing byte-identical pre-ADR-019 score
 just argued.
 
 All other weights, the 0.3 base threshold, and the 12-edge-per-item limit are unchanged. The scoring
-change is wired into both production callers: `scripts/connections/backfill-edges.mjs` and
+change is wired into both production callers: `scripts/connections/discover-for-items.mjs` and
 `src/lib/intake/mint-item.ts` (satisfying F25 module-liveness — the function has real callers, not just
 authored code).
+
+**CORRECTION (lane W71-C, 2026-09-05):** `scripts/connections/backfill-edges.mjs` — the original caller
+named above at ADR acceptance time — was DELETED (F25 module-liveness: unwired, superseded by
+`discover-for-items.mjs`, the live CI-dispatched connection-discovery runtime that reuses the identical
+`computeTagFrequencies`/`freqMap` scoring path). The decision and its formula are unaffected; only the
+caller's identity changed.
 
 ## Formula correction (recorded honestly)
 

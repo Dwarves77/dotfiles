@@ -114,13 +114,18 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // run-change-detection.mjs's backlog overflow count, all one root cause. No citingFiles change, same
 // posture as the category 36/37 re-pins above (the files below cite the skill as a whole, not this
 // section specifically).
+// 2026-09-05 (Lane W71-C, F25 dated-one-shots closure): 'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs'
+// REMOVED from both remediation-discipline's and environmental-policy-and-innovation's citingFiles — the file
+// itself was deleted this lane (migration 200's RD-5 backfill applied live 2026-07-11, 20/21 rows set; the
+// record of the run lives in git history, docs/inventories/migrations.md #200). No contentHash change (the
+// skill text itself did not move); removing a deleted file's citation is the drift this gate exists to catch,
+// not a re-pin.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
     contentHash: '3799fc8ebfad134db3e7898146b0621d2b3035c0d2c45c2325dc3f799baf2452',
     citingFiles: [
-      'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
       'fsi-app/scripts/verify/claims-tier-audit.mjs',
@@ -154,7 +159,6 @@ export const PINNED_MANIFEST = {
     // changelog entry and invariants.mjs's EP-13-skill-prompt-parity for the full account.
     contentHash: '2e86aed5da3ede2635df429a68f7f425f8a0b867ccc350c4b887a8dd6d136b95',
     citingFiles: [
-      'fsi-app/scripts/_wave-alpha/backfill-canonical-keys.mjs',
       'fsi-app/scripts/audit-skill-conformance.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
       'fsi-app/scripts/verify/format-structure.mjs',

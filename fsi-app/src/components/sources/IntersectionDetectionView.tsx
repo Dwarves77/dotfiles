@@ -125,9 +125,9 @@ export function IntersectionDetectionView() {
           No connection pairs at min score {minScore}
         </h3>
         <p className="mt-1 text-xs max-w-sm" style={{ color: "var(--color-text-secondary)" }}>
-          Pairs come from the persisted connection graph. Populate or refresh it with
-          scripts/connections/backfill-edges.mjs, or lower the minimum-score threshold to see weaker
-          connections.
+          Pairs come from the persisted connection graph, populated by the ongoing corpus-turn
+          discovery pass (scripts/connections/discover-for-items.mjs). Lower the minimum-score
+          threshold to see weaker connections.
         </p>
         <button
           onClick={() => setMinScore(0.3)}
