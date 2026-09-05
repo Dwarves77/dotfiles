@@ -10458,6 +10458,23 @@ C3 clean (C4 worktree-inventory rows are local noise, per lane-common-contract);
 YAML `yaml.safe_load`-clean; `tsc --noEmit` clean; `next build --webpack` clean with no Supabase env (4
 `[slug]` route families present, exit 0).
 
+**Correction to the paragraph above, same train, same session** [CONFIRMED]: "closure-gate 4/4" was
+written into this postscript and into the PROGRAM-BOARD row for this train BEFORE `node --test` and
+`node .discipline/governance/closure-gate.mjs` were actually run against the tree that commit (the one
+carrying this postscript) produced — the claim was accurate for the fitness runner and the other named
+gates, which had been run, but not yet for closure-gate. Running it caught a real, separate gap the F14
+fix above did not close: closure-gate.mjs's WRITER-READER check does not share `producer-consumer-
+orphan.mjs`'s `TERMINAL_SINK_ALLOWLIST` — it maintains its own `WRITER_READER_ALLOWLIST` (module-scoped,
+tables from migrations >= 266 only), and `entity_scope` was not yet in it, so `node --test` failed 2 of
+190 (`closure-gate.test.mjs`'s live WRITER-READER and combined-gate assertions). Fixed in a follow-up
+commit on this same branch, before landing: added the matching `entity_scope` entry to
+`WRITER_READER_ALLOWLIST` (disposition mirroring the F14 entry, `expiryTrain: 52`), re-ran `node --test`
+(190/190 pass) and `closure-gate.mjs` directly (current train 45, all 4 checks PASS, writer-reader
+summary `{tables:34, rpcs:29, writeOrphans:1, gating:1}` with the one gating orphan now allowlisted).
+By the time this train lands, "closure-gate 4/4" is true of the delivered tree — it was not true of the
+tree at the moment it was first written, and this note exists so that gap is on the record rather than
+quietly absorbed.
+
 UX compliance (the folded lanes touched `.tsx` across Market/Operations/Regulations, plus this lane's
 own F35 registration). Primary goal per surface: notices — a viewer sees a recalculation notice for a
 watched item wherever they'd expect one (Market index + all four detail surfaces), not only on
