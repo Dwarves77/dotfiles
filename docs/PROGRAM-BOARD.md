@@ -14,6 +14,12 @@ open, closed, or deferred.
 chat, not from memory. Anything that exists only in chat is flagged **chat-only** below — that is itself a
 finding. Master tip at reconstruction: `e3b3a74`.
 
+> **Resume from:** [docs/ops/handoff-2026-09-05.md](./ops/handoff-2026-09-05.md) — the
+> 2026-09-05 coordinator-session handoff (master `012b10a2`/train46, train47 folded but not
+> landed, migrations 308-311 written not applied, the next session's ordered worklist). This
+> board's own entries below have not been kept current since roughly 2026-09-02; read the
+> handoff document first, this board second.
+
 **Standing constraints (2026-07-13):** `$0` default — the answer to "should I spend" is **no**;
 `GROUNDING_ACQUIRE_ENABLED` **OFF**; `MONTHLY_TOTAL_DISPLAY_USD` (spend-client.ts; informational display only, never a limit — the actual per-call cap is `SPEND_CEILING_USD`, generation-config.ts, default $85) **$130, code-only, frozen** (operator ruling
 2026-07-13, flag-system item 0 — raised from $75; the raise removes a stale-ceiling false-red, it does **not**

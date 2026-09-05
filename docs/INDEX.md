@@ -92,6 +92,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [C8-moderation-spec](./plans/C8-moderation-spec.md) — C8 — Community moderation workflow
 - [C9-realtime-spec](./plans/C9-realtime-spec.md) — C9 — Community Realtime Infrastructure
 - [ratifications/2026-09/README](./ratifications/2026-09/README.md) — Ratification digests for the four review queues (927 provisional sources, 331 canonical candidates, 1,457 portal links, 91 gap dispositions): what a digest is, how to rule in the JSON, which apply script consumes it
+- [ratifications/2026-09/proposed/README](./ratifications/2026-09/proposed/README.md) — The four review-queue `.ruling.json` files with Haiku-drafted `proposed_decision`s (decision still `null`, not yet ruled by the operator) + RULINGS-1/2 summaries with `⚠️ DISAGREE` markers; how a ruled file gets applied
 - [wave2-lanes-2026-09-02](./plans/wave2-lanes-2026-09-02.md) — Wave 2 lane contract: nine lanes (OBLIG, CORR, DASH, RSRCH, AXIS, HELD, INTAKE, DESNZ, BUILDGATE) with pairwise-disjoint write sets, the coordinator-only file list, and the build-before-populate ruling
 - [finish-plan-2026-09-02](./plans/finish-plan-2026-09-02.md) — Finish plan: the site and the data to done; open rulings R-A…R-H, Sonnet lanes in three waves with disjoint write sets, the coordinator dispatch sequence
 - [SOURCE-TYPE-TAXONOMY-PROPOSAL](./plans/SOURCE-TYPE-TAXONOMY-PROPOSAL.md) — `source_type` Taxonomy Column — Design Proposal
@@ -216,6 +217,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## ops
 
+- [handoff-2026-09-05](./ops/handoff-2026-09-05.md) — Coordinator-session handoff: the build/loop/DoD explained, roles + lane lifecycle + browser transport step by step, master/train47 repo state incl. migrations 308-311 written-not-applied, the next session's 8-item ordered worklist, errors→rules, corrections to the coordinator's raw state dump, open operator questions
 - [session-log](./ops/session-log.md) — Dated session-close log (accomplished / decisions / blockers / next steps)
 - [wo5-orphan-disposition-2026-08-20](./ops/wo5-orphan-disposition-2026-08-20.md) — WO-5 measured orphan-field inventory + disposition options; ⛔ operator-gated, 4 rulings requested
 - [wo6-tag-gap-diagnosis-2026-08-20](./ops/wo6-tag-gap-diagnosis-2026-08-20.md) — WO-6 root cause ($0): August bulk import bypassed both tag producers; WO-7 tags-only pass priced (Haiku $2–3 / Sonnet $5–7), ⛔ price ruling owed
@@ -273,6 +275,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 ## dispatches
 
 - [lane-common-contract](./dispatches/lane-common-contract.md) — BINDING for every executor lane (2026-09-03): where you work, read-before-write, write sets, gates, commit and report format, the UX contract (data-guard-title + UX smoke spec + UX compliance section)
+- [lane-briefs/2026-09-05/README](./dispatches/lane-briefs/2026-09-05/README.md) — Index + format spec (export meta, phase(), agent(prompt,{label,phase,model}), max 2 concurrent agents, worktree-per-lane, gates, REPORT contract) for the 92 Workflow-tool lane-brief files this build day dispatched
 - [free-chrome-acquisition-brief-2026-07-16](./dispatches/free-chrome-acquisition-brief-2026-07-16.md) — brief for a Chrome/browser-access agent: free primary-source acquisition + $0 re-attribution over the held-item drain. Scripts run from `fsi-app/` and load `.env.local`; writes hit PRODUCTION Supabase (dev/prod shared) — use the guarded path. Contains no credential values, only env-var names
 
 ## sprint-1
