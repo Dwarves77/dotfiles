@@ -10302,3 +10302,50 @@ Fitts's-law surface: every new button matches the footer button's padding (44 px
 moved or shrank. Proximity and Prägnanz: the obligation text sits directly under its own title as one
 muted line; nothing else added. Verified by the rendering guard's UX smoke (154 checks, 375×812 and
 1280×800), not asserted.
+
+### Addendum 85, postscript 57 — train 46a: the thousand-row cap, and the flush after every apply (2026-09-05)
+
+Train 45 landed as #592 (`84745fa3`). Maintenance #47 ran the FE-DEDUP cleanup on it (item_forward_events
+1,152 → 821, obligations 1,149 → 818, zero duplicate groups under the text-identity key) and I applied
+migration 307 right after; its pre-check passed on the first attempt. Then I measured the deploy, and
+first corrected my own method: the Chrome tab I measure in is a background tab, and a background tab
+throttles timers to one tick a second and never fires IntersectionObserver, so two of yesterday's
+findings ("the sentinel never fires", the ~900 ms click timings) were partly artifacts of the
+instrument. The sentinel fires the instant the tab is visible (one page, 16.6 KB). The RSC fetch
+durations from the Resource Timing API were real and stand.
+
+What the measurement showed, independent of tab visibility: detail pages come back `x-vercel-cache:
+PRERENDER` at 276–341 ms on first hit and ~150 ms after, but only up to cursor index 999; index 1,000
+onward is MISS at 580–710 ms. Cause: Supabase PostgREST enforces `db-max-rows = 1000` per request and
+a supabase-js query without `.range()` paging returns at most 1,000 rows no matter what `.limit(N)`
+asks, silently. `getPublicSurfaceSlugs` asked for 20,000 and got 1,000; the register over-fetched
+2,000 and filtered in JS, and its masthead said "60 of 1000" for a table of 1,141. CAP-1000 found five
+sites of the class (the two above, the community directory's `.limit(5000)`, change-detection's backlog
+count read off a capped array, and two hand-rolled range loops that were copies of each other),
+routed them through one `fetchAllRows`/`exactCount` helper (`src/lib/db/paginate.mjs`, imported by
+src and scripts alike), pushed the register's jurisdiction/mode/binding/due-window filters into the
+query builder with an exact count on the same filtered query, and added F38 (`unbounded-supabase-read`,
+32 functions now) so a new `.limit(>1000)` fails CI unless allowlisted with an expiry. All 1,431 slugs
+enumerate (proven with a fake client that returns exactly 1,000 rows a page).
+
+The third finding: at 01:35 the static /regulations page still showed the pre-cleanup register,
+because only `apply-mint-batch.mjs` ever called `revalidateTags`; a maintenance apply that deleted 331
+obligations flushed nothing, and the page's window is six hours. Every apply-mode job in
+maintenance.yml, producers.yml, corpus-turn.yml, propagation-drain.yml and population-turn.yml now
+ends with a flush step over the existing `scripts/lib/revalidate.mjs` (app-data, public-items and
+the detail tags); source-sweep and ledger-consume write nothing a public cache reads and are
+unchanged. ADR-026 carries the amendment: revalidation is a property of every apply, not of mint.
+
+Sweeps #20 and #21 (40 hosts each, 21 and 24 minutes, 7,096 and 6,544 candidates) both finished inside
+the budget; the proposer passes over runs 016–018 measured 15, 32 and 36 s/host on their slices and
+conclude the per-host cost is a property of the host slice, so max_hosts stays 40 with the budget as
+the stop. 403 hosts remain (about ten dispatches). #22 is running.
+
+Gates: fitness 32/0, governance 190/0, closure 4/4, tsc clean, full suite (below), build clean.
+
+UX compliance (CAP-1000: the obligations register on /regulations; the community directory's
+member aggregate). Primary goal: the register's "N of M" is the true M and its filters return every
+matching row, not the first 2,000 of an unordered scan. Path: unchanged. One primary action:
+unchanged; no control added or moved. Feedback state: unchanged; the loading and empty states are the
+ones PERF-11/REG-GRAIN already carry. Fitts's-law surface: unchanged. The directory change is a
+data-fetching fix with no markup change. Rendering guard green.
