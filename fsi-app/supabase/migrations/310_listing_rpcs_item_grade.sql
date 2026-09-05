@@ -37,6 +37,12 @@
 -- APPLY ORDER: standalone; does not depend on 305/306/307. Apply whenever the two-track policy's
 -- window allows — the coordinator applies via Supabase MCP, then runs the post-check block below.
 --
+-- APPLIED LIVE 2026-09-05 19:47:46 UTC by the coordinator via Supabase MCP (post-check passed,
+-- schema_migrations 20260905194746), using the MIG310-FIX rewrite below (DROP FUNCTION before
+-- CREATE OR REPLACE, explicit re-GRANT) after the file's original CREATE-OR-REPLACE-only shape hit
+-- ERROR 42P13 live. Originally: written, not applied by this lane — Supabase MCP was read-only for
+-- the lane.
+--
 -- Reversible: DROP FUNCTION each of the 11 (their post-fix, item_grade-carrying signatures) then
 -- re-run each function's PRE-migration body (captured verbatim in the pre-check comment block
 -- immediately below, and in migrations 077/117/269/272/303/305/306 for the functions that originated
