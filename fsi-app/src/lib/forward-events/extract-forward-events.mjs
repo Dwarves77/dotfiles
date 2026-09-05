@@ -412,9 +412,56 @@
 //   matched date substring is unchanged by this fix, still checked against the ORIGINAL unmodified source
 //   text.
 //
+// SHORT-TEXT EXACT-DUPLICATE FIX (lane FE-DEDUP, 2026-09-04):
+//   THE DEFECT [CONFIRMED by the coordinator, Supabase MCP 2026-09-04 23:22 UTC]: public.obligations had
+//   1,149 rows but only 562 distinct (intelligence_item_id, event_kind, due_date) — 359 duplicate groups.
+//   Root cause, measured directly against the live corpus (1,152 item_forward_events rows, 292 items,
+//   fetched read-only this lane): running THIS module's own unmodified `dedupeEvents`/
+//   `sameObligationContent` over every item's full existing row set (the identical semantic dedupe every
+//   writer already runs at extraction time) dropped only 206 of the 1,152 rows — 70 groups of rows sharing
+//   (item, event_date, event_kind) and a BYTE-IDENTICAL `obligation_text` still survived, e.g. item
+//   `cd1083c9-…`'s two 2030-12-02 entry_into_force claims both reading exactly "It shall apply from 2
+//   December 2030." (36 chars) and item `85234032-…`'s three 2018-11-18 compliance_deadline rows all
+//   reading exactly "…no later than 18th November 2018…" (34 chars). Every one of the 70 surviving groups'
+//   member texts measured under 40 characters — `DEDUPE_MIN_COMPARE_LEN` (below), the floor
+//   `sameObligationContent` requires before treating a shared LEADING PREFIX as evidence of the same
+//   sentence (the floor exists so a coincidental short shared opening phrase between two genuinely
+//   DIFFERENT sentences is never mistaken for a duplicate — migration 275's own header names the risk this
+//   guards against). That floor was applied unconditionally, including to an EXACT full-string match: two
+//   comparison-normalized strings that are byte-identical carry no such coincidence risk regardless of
+//   length — a 36-character sentence quoted twice is the same sentence twice, not a coincidence. The float
+//   guard was gating a case it was never written to gate.
+//   THE FIX, in `sameObligationContent` below: an exact-equality check runs FIRST, before the length floor
+//   — `a === b` (both already comparison-normalized) short-circuits to `true` at any length; the
+//   length-gated fuzzy prefix/substring match is now reached only when the two texts are NOT already
+//   identical. This is strictly ADDITIVE to what the function already caught (every pre-fix `true` stays
+//   `true`); it only turns some pre-fix `false` results — exact matches under 40 chars — into `true`.
+//   Re-measured with the fix applied, over the SAME live snapshot: 296 of 1,152 rows drop (was 206), 856
+//   remain, and ZERO (item, event_date, event_kind, md5(obligation_text)) groups keep more than one row —
+//   the exact invariant migration 307's new unique index requires. `obligations` (1 row per surviving
+//   forward event, per migration 290) therefore goes 1,149 → 853 once the corresponding forward events are
+//   removed (all 296 dropped ids carry a live `obligations` row, confirmed by direct query) — NOT the
+//   naive 562 floor a bare (item, event_kind, due_date) group-count would suggest: that floor would ALSO
+//   collapse items whose schedule genuinely carries several DISTINCT obligations sharing one date and kind
+//   (Euro 7's 40-event phase-out schedule, NZIA's four distinct section-sourced 2030-01-01 "other" targets
+//   — this file's own "WITHIN-EXTRACTION DEDUPE" header note above), which migration 274's header
+//   explicitly rules IS NOT a duplicate. `sameObligationContent`'s own semantic match — now correct at any
+//   length — is the one dedupe point every extraction path (mint-item.ts, apply-staged-update.ts,
+//   apply-extraction-output.mjs, forward-events-retext.mjs) already goes through; this fix closes it at
+//   the source rather than adding a second, narrower "exact text only" comparison elsewhere. The
+//   coordinator's own cited live pair — item `02470d94-…`, events `a4ad1ce7-…` (section) / `ca126684-…`
+//   (claim), both `obligation_text` "…entered into force on 14 April 1967…" — is ITSELF one of the 70
+//   short-text groups this fix closes: 37 characters, under the 40-char floor, so pre-fix it was NOT
+//   caught by the ordinary prefix match either (the two texts here are already byte-identical; the floor
+//   itself was the only thing standing in the way). Fixtures for this exact live pair, plus a synthetic
+//   sub-40-char pair, live in this file's own test suite. The one-time cleanup of the 296 already-persisted
+//   rows this fix now identifies runs through
+//   `scripts/maintenance/forward-events-retext.mjs` (lane FE-DEDUP, same date, see that file's own header);
+//   migration 307 adds the DB-level guard that makes the twin impossible for any FUTURE write.
+//
 // EXTRACTOR_VERSION bump this whenever a rule changes semantics (not for
 // comment-only edits), so downstream consumers can tell events apart.
-export const EXTRACTOR_VERSION = 'fe1-2026-09-04.5';
+export const EXTRACTOR_VERSION = 'fe1-2026-09-04.6';
 
 // ---------------------------------------------------------------------------
 // Date grammar
@@ -1554,6 +1601,11 @@ export function sameObligationContent(aText, bText) {
   const a = compareNormalize(aText);
   const b = compareNormalize(bText);
   if (!a || !b) return false;
+  // Exact match, any length -- see this file's "SHORT-TEXT EXACT-DUPLICATE FIX" header note. The length
+  // floor below exists to stop a coincidental SHORT SHARED PREFIX between two different sentences from
+  // being mistaken for a duplicate; a full-string exact match carries no such coincidence risk, at any
+  // length, so it short-circuits before that floor is ever applied.
+  if (a === b) return true;
   const shorter = a.length <= b.length ? a : b;
   const longer = a.length <= b.length ? b : a;
   if (shorter.length < DEDUPE_MIN_COMPARE_LEN) return false;

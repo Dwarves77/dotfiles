@@ -11,17 +11,25 @@
 // source_section_id, source_span, confidence, extractor_version }` (see that runner's own header/
 // `runExtraction` doc comment).
 //
-// IDEMPOTENCY RESPECTS MIGRATION 275's DEDUPE KEY, NOT MIGRATION 274's ORIGINAL ONE. 274 shipped
-// `UNIQUE (intelligence_item_id, event_date, event_kind, source_span)`; 275 REPLACED it (see that
+// IDEMPOTENCY RESPECTS MIGRATION 307's DEDUPE KEY (lane FE-DEDUP, 2026-09-04), NOT AN EARLIER ONE. 274
+// shipped `UNIQUE (intelligence_item_id, event_date, event_kind, source_span)`; 275 replaced it (see that
 // migration's own header — the first full-corpus run showed the 274 key silently collapsing 54% of
-// distinct events sharing a bare-year span) with an expression-index key:
-//   (intelligence_item_id, event_date, event_kind, md5(obligation_text), coalesce(source_claim_id, source_section_id))
-// `db.mjs`'s `guardedInsertMany` is a BARE INSERT (no ON CONFLICT) — a naive re-run would throw a unique-
-// violation against that live index rather than skip cleanly. This script makes a re-run idempotent the
-// same way `db.mjs`'s own `registerSource` does for the `sources` table: read the existing keys for the
-// items in this batch FIRST, compute the same 275 key client-side (Node's `crypto` `md5` hex digest is
-// byte-identical to Postgres's `md5()` text function for the same input string), and insert only the
-// rows that are genuinely new.
+// distinct events sharing a bare-year span) with
+//   (intelligence_item_id, event_date, event_kind, md5(obligation_text), coalesce(source_claim_id, source_section_id));
+// 307 replaced 275's key in turn — the source-object term let a claim-backed row and a section-backed row
+// with byte-identical obligation_text coexist as an undetected duplicate (359 live groups, measured; see
+// 307's own header) — with the narrower
+//   (intelligence_item_id, event_kind, event_date, md5(obligation_text))
+// THIS FILE'S `dedupeKey` MUST MIRROR WHICHEVER KEY IS LIVE: it existed to keep this script's own
+// pre-insert idempotency check in step with the DB's actual unique index, not to independently invent a
+// notion of "same event" — a divergence here does not fail silently, it fails LOUD, as a real unique-
+// violation from `guardedInsertMany`'s bare INSERT the next time a stale, wider key wrongly calls a true
+// content-duplicate "new". `db.mjs`'s `guardedInsertMany` is a BARE INSERT (no ON CONFLICT) — a naive
+// re-run would throw a unique-violation against the live index rather than skip cleanly. This script makes
+// a re-run idempotent the same way `db.mjs`'s own `registerSource` does for the `sources` table: read the
+// existing keys for the items in this batch FIRST, compute the same key client-side (Node's `crypto` `md5`
+// hex digest is byte-identical to Postgres's `md5()` text function for the same input string), and insert
+// only the rows that are genuinely new.
 //
 // Usage:
 //   node scripts/turns/apply-extraction-output.mjs --events path/to/x.events.json [--execute]
@@ -76,15 +84,14 @@ export function md5Hex(text) {
   return createHash("md5").update(String(text ?? ""), "utf8").digest("hex");
 }
 
-/** Migration 275's dedupe key for one event row, as a single string. PURE.
- *  @param {{intelligence_item_id:string, event_date:string, event_kind:string, obligation_text:string,
- *            source_claim_id?:string|null, source_section_id?:string|null}} row */
+/** Migration 307's dedupe key for one event row, as a single string (lane FE-DEDUP, 2026-09-04 — see this
+ *  file's own header for why this dropped the source-object term migration 275's key carried). PURE.
+ *  @param {{intelligence_item_id:string, event_date:string, event_kind:string, obligation_text:string}} row */
 // The separator is written as the escape `"\u0000"`, never as a raw NUL byte in the source text: a raw
 // byte makes grep/diff treat this file as binary (it did — "binary file matches", 2026-09-01) and
 // invites an editor to strip it silently, which would change every key. Same runtime value.
 export function dedupeKey(row) {
-  const sourceObjectId = row.source_claim_id ?? row.source_section_id ?? null;
-  return [row.intelligence_item_id, row.event_date, row.event_kind, md5Hex(row.obligation_text), sourceObjectId].join("\u0000");
+  return [row.intelligence_item_id, row.event_date, row.event_kind, md5Hex(row.obligation_text)].join("\u0000");
 }
 
 /**
@@ -183,7 +190,9 @@ async function main() {
     if (!idChunk.length) continue;
     const page = await readAll(
       "item_forward_events",
-      "intelligence_item_id, event_date, event_kind, obligation_text, source_claim_id, source_section_id",
+      // source_claim_id/source_section_id dropped from this select (lane FE-DEDUP, 2026-09-04): dedupeKey
+      // no longer reads them -- migration 307 dropped the source-object term from the live key.
+      "intelligence_item_id, event_date, event_kind, obligation_text",
       { match: (q) => q.in("intelligence_item_id", idChunk) }
     );
     existing.push(...page);
@@ -209,7 +218,7 @@ async function main() {
 
   const CITE = {
     skill: "corpus-turn-runbook",
-    reason: "corpus-turn apply-extraction-output: load run-extraction.mjs's emitted events into item_forward_events through the guarded path, respecting migration 275's dedupe key.",
+    reason: "corpus-turn apply-extraction-output: load run-extraction.mjs's emitted events into item_forward_events through the guarded path, respecting migration 307's dedupe key.",
   };
   const res = await guardedInsertMany("item_forward_events", fresh, { cite: CITE, select: "id" });
   console.log(`WROTE: ${res.inserted} new item_forward_events row(s). Snapshot: ${res.snapshot}`);

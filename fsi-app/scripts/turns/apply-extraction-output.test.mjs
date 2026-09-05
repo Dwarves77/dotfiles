@@ -1,6 +1,8 @@
-// apply-extraction-output.test.mjs — proves arg parsing, migration-275 dedupe-key computation
-// (client-side md5 matching Postgres's md5(text)), per-row validation, and the new-vs-already-live
-// partition, all without a DB. Importing this module never invokes main() (IS_MAIN guard).
+// apply-extraction-output.test.mjs — proves arg parsing, migration-307 dedupe-key computation
+// (client-side md5 matching Postgres's md5(text); lane FE-DEDUP, 2026-09-04, dropped the source-object
+// term migration 275's key carried — see apply-extraction-output.mjs's own header), per-row validation,
+// and the new-vs-already-live partition, all without a DB. Importing this module never invokes main()
+// (IS_MAIN guard).
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
@@ -53,24 +55,29 @@ test("md5Hex matches the known md5 of a fixed string (sanity against Postgres's 
   assert.equal(md5Hex("hello"), createHash("md5").update("hello", "utf8").digest("hex"));
 });
 
-test("dedupeKey: prefers source_claim_id over source_section_id when both somehow present", () => {
-  const row = {
-    intelligence_item_id: "item-1", event_date: "2030-01-01", event_kind: "compliance_deadline",
-    obligation_text: "shall comply", source_claim_id: "claim-1", source_section_id: "section-1",
+test("dedupeKey: ignores source_claim_id/source_section_id entirely -- migration 307 dropped the source-object term (lane FE-DEDUP, 2026-09-04), so a claim-backed row and a section-backed row with the SAME text now produce the SAME key (the exact live twin shape this closes: 359 duplicate groups, coordinator-cited example item 02470d94, events a4ad1ce7/ca126684, both 'entered into force on 14 April 1967')", () => {
+  const claimRow = {
+    intelligence_item_id: "item-1", event_date: "1967-04-14", event_kind: "entry_into_force",
+    obligation_text: "entered into force on 14 April 1967", source_claim_id: "claim-1", source_section_id: null,
   };
-  assert.ok(dedupeKey(row).includes("claim-1"));
-  assert.ok(!dedupeKey(row).includes("section-1"));
+  const sectionRow = {
+    intelligence_item_id: "item-1", event_date: "1967-04-14", event_kind: "entry_into_force",
+    obligation_text: "entered into force on 14 April 1967", source_claim_id: null, source_section_id: "section-1",
+  };
+  assert.equal(dedupeKey(claimRow), dedupeKey(sectionRow));
+  assert.ok(!dedupeKey(claimRow).includes("claim-1"));
+  assert.ok(!dedupeKey(sectionRow).includes("section-1"));
 });
 
 test("dedupeKey: two rows with the same bare-year span but different obligation_text produce DIFFERENT keys (the migration 275 fix this key exists to preserve)", () => {
-  const base = { intelligence_item_id: "item-1", event_date: "2030-01-01", event_kind: "compliance_deadline", source_claim_id: "claim-1" };
+  const base = { intelligence_item_id: "item-1", event_date: "2030-01-01", event_kind: "compliance_deadline" };
   const a = dedupeKey({ ...base, obligation_text: "scope ... by 2030, all sectors covered" });
   const b = dedupeKey({ ...base, obligation_text: "By 2030 | Commission target to include all EU ETS sectors" });
   assert.notEqual(a, b);
 });
 
 test("dedupeKey: identical inputs produce identical keys (idempotent re-run)", () => {
-  const row = { intelligence_item_id: "i", event_date: "2030-01-01", event_kind: "other", obligation_text: "same text", source_section_id: "sec-1" };
+  const row = { intelligence_item_id: "i", event_date: "2030-01-01", event_kind: "other", obligation_text: "same text" };
   assert.equal(dedupeKey(row), dedupeKey({ ...row }));
 });
 

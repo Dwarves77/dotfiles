@@ -61,6 +61,16 @@
 //       been removed (by this run's own collision delete, or by a prior half-applied run) or already
 //       carries its planned text — both count as `no_op`, never a failure.
 //
+//       UPDATED (lane FE-DEDUP, 2026-09-04): migration 307 (this same lane) replaces
+//       `uq_item_forward_events_dedupe` (migration 275) with `uq_item_forward_events_text_identity` —
+//       `(intelligence_item_id, event_kind, event_date, md5(obligation_text))`, DROPPING the
+//       `coalesce(source_claim_id, source_section_id)` term (see that migration's own header for why: it
+//       was the exact loophole letting a claim-backed and a section-backed row with byte-identical text
+//       coexist undetected — finding (2)'s own new auto-delete closes the pre-existing-duplicate half of
+//       that gap; this finding's own `postRewriteKey` below closes the RETEXT-TIME half, so a future
+//       retext run cannot itself create a new instance of the same shape by converging two DIFFERENT
+//       source objects' text). `postRewriteKey`/`planCollisions` below compute the NEW (narrower) key.
+//
 // WHY OBLIGATION_TEXT ALONE, NEVER THE OBLIGATIONS REGISTER (migration 290, `scripts/obligations/
 // derive-obligations.mjs`) [CONFIRMED, read `supabase/migrations/290_obligations.sql` in full]: the
 // `obligations` table has NO `obligation_text` column and NO `source_span` column — its 14 columns are
@@ -92,6 +102,45 @@
 // $0, deterministic, no LLM: `extractForwardEvents` is pure (see that module's own header); this step adds
 // only reads (`readAll`) and, in apply mode, guarded per-row UPDATEs/DELETEs — no LLM call anywhere in the
 // path.
+//
+// DUPLICATE_GROUPS NOW AUTO-DELETES (lane FE-DEDUP, 2026-09-04). THE DEFECT [CONFIRMED by the coordinator,
+// Supabase MCP 2026-09-04 23:22 UTC]: `public.obligations` had 1,149 rows but only 562 distinct
+// (intelligence_item_id, event_kind, due_date) — 359 duplicate item_forward_events groups, each a
+// claim-backed row and a section-backed row from the SAME extraction run, same obligation_text, that
+// SHOULD have been collapsed to one row by this module's own imported `extractForwardEvents`/
+// `dedupeEvents`/`sameObligationContent` but were not. Root cause [CONFIRMED, read
+// `src/lib/forward-events/extract-forward-events.mjs` in full]: `sameObligationContent`'s
+// `DEDUPE_MIN_COMPARE_LEN` (40-char) floor was applied even to an EXACT full-string match, so two
+// byte-identical `obligation_text` values under 40 characters (e.g. the coordinator's own cited pair, item
+// `02470d94-…`, events `a4ad1ce7-…`/`ca126684-…`, both "…entered into force on 14 April 1967…", 37 chars)
+// were never recognized as the same event. Fixed in that module this same lane (EXTRACTOR_VERSION bumped
+// to 'fe1-2026-09-04.6' — see that file's own "SHORT-TEXT EXACT-DUPLICATE FIX" header for the full defect,
+// measurement, and fix; unit tests there use this exact live pair as a fixture).
+//
+// The fix is forward-looking only, same as every prior lane's fix to this same extractor (see this file's
+// own opening header) — it does not rewrite what is already stored. THIS finding — duplicateGroups, which
+// this step already computes on every run by re-running the fixed extractor over each item's current
+// claims/sections — was previously REPORT ONLY (this file's own prior note, preserved in this lane's diff
+// history, read "duplicate_groups is a REPORT ONLY -- item_forward_events has no is_archived/superseded
+// column... a deletion, if wanted, is an operator decision the coordinator puts forward separately"). That
+// operator decision is exactly what THIS lane's dispatch is: "for each twin group, delete the
+// section-backed event ... through the existing guarded writer". So duplicateGroups now applies its own
+// deletion, mirroring the collisions finding's existing auto-apply shape exactly (chunked guardedDelete,
+// snapshotted, reversible via --arg restore:<id,...>, applied before any rewrite in the same run) —
+// `would_drop_id` (already the section-backed loser per `dedupeEvents`'s claim-preferred rule; see that
+// function's own doc) is deleted, `would_keep_id` (the claim-backed survivor) is left untouched.
+// `item_forward_events` is DERIVED (regenerable from claims/sections by the extractor, never a primary
+// record — same rationale the collisions finding's own note states), so this is not a new writer: it is
+// the SAME `deleteForwardEvents` guarded-delete path this step already uses for collisions, cited
+// separately (`DUPLICATE_CITE` below) so the audit trail names the actual reason. `obligations.
+// forward_event_id` carries `ON DELETE CASCADE` (migration 290, read in full) — deleting the duplicate
+// forward-event row automatically removes its `obligations` row too; no second writer, no re-derivation
+// call needed here.
+//
+// ORDERING WITH COLLISIONS: a row this run deletes as a duplicate-group loser is excluded from collision
+// planning up front (once it's gone it cannot converge with anything), and duplicate deletes are applied
+// BEFORE collision deletes, which are applied BEFORE any retext rewrite — same "delete first, from the
+// safest/most-independent finding down, then write" ordering the collisions finding already established.
 import { resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { readdirSync, readFileSync } from "node:fs";
@@ -127,12 +176,27 @@ export const DELETE_CITE = Object.freeze({
   skill: "remediation-discipline",
   reason:
     "MAINT forward-events-retext dispatch (Lane FWD-TEXT, 2026-09-04), collision resolution (lane " +
-    "RETEXT-COLLIDE): deletes an item_forward_events row that the live uq_item_forward_events_dedupe " +
-    "index (migration 275) would reject once obligation_text is corrected -- two existing rows sharing " +
-    "(intelligence_item_id, event_date, event_kind, coalesce(source_claim_id, source_section_id)) converge " +
-    "to the identical post-rewrite text. The row is DERIVED (regenerable from claims/sections by the " +
+    "RETEXT-COLLIDE): deletes an item_forward_events row that the live unique index on " +
+    "(intelligence_item_id, event_kind, event_date, md5(obligation_text)) -- uq_item_forward_events_dedupe " +
+    "pre migration 307, uq_item_forward_events_text_identity from migration 307 (lane FE-DEDUP, " +
+    "2026-09-04) onward -- would reject once obligation_text is corrected: two existing rows converge to " +
+    "the identical post-rewrite text. The row is DERIVED (regenerable from claims/sections by the " +
     "extractor, never a primary record), and the delete is snapshotted (db.mjs guardedDelete captures the " +
     "full prior row before removing it), so it is reversible via --arg restore:<id,...> (this same script).",
+});
+
+export const DUPLICATE_CITE = Object.freeze({
+  skill: "remediation-discipline",
+  reason:
+    "MAINT forward-events-retext dispatch (Lane FE-DEDUP, 2026-09-04): deletes the section-backed loser of " +
+    "a claim/section duplicate pair that the fixed, unmodified extractForwardEvents's own within-extraction " +
+    "dedupe (dedupeEvents/sameObligationContent, EXTRACTOR_VERSION fe1-2026-09-04.6) now correctly collapses " +
+    "to one event -- this step's own duplicate_groups finding, previously report-only (see extract-forward-" +
+    "events.mjs's own 'SHORT-TEXT EXACT-DUPLICATE FIX' header for the defect this closes). The row is " +
+    "DERIVED (regenerable from claims/sections by the extractor, never a primary record), and the delete is " +
+    "snapshotted (db.mjs guardedDelete captures the full prior row before removing it), so it is reversible " +
+    "via --arg restore:<id,...> (this same script). obligations.forward_event_id has ON DELETE CASCADE " +
+    "(migration 290), so the corresponding obligations row is removed automatically -- no second writer.",
 });
 
 export const RESTORE_ARG_PREFIX = "restore:";
@@ -179,20 +243,24 @@ export function forwardEventIdentityKey(row) {
 // ── pure: collision resolution (lane RETEXT-COLLIDE, 2026-09-04) ──────────────────────────────────────
 
 /** md5 of the UTF-8 bytes of `text`, lowercase hex — exactly what Postgres' `md5(text)` computes, so a
- *  key built with this function matches the live `uq_item_forward_events_dedupe` expression index
- *  (migration 275) byte-for-byte. Pure, deterministic, no LLM. */
+ *  key built with this function matches the live expression index (uq_item_forward_events_dedupe pre
+ *  migration 307; uq_item_forward_events_text_identity from migration 307 onward -- lane FE-DEDUP,
+ *  2026-09-04) byte-for-byte. Pure, deterministic, no LLM. */
 export function pgMd5(text) {
   return createHash("md5").update(String(text ?? ""), "utf8").digest("hex");
 }
 
 /** The row's key AFTER whatever rewrite this run plans (or, for a row with no planned rewrite, its
- *  CURRENT key) — the exact shape of the live `uq_item_forward_events_dedupe` unique index: `(item, date,
- *  kind, md5(obligation_text), coalesce(source_claim_id, source_section_id))`. `row.after_text` is the
- *  caller's job to set (the fresh `after` for a retext target, the current `obligation_text` for every
- *  other row) — this function only builds the key, it never decides what the text should be. Pure. */
+ *  CURRENT key) — the shape of the live unique index: `(intelligence_item_id, event_kind, event_date,
+ *  md5(obligation_text))`, matching migration 307's `uq_item_forward_events_text_identity` (lane FE-DEDUP,
+ *  2026-09-04 -- superseding migration 275's `uq_item_forward_events_dedupe`, which additionally
+ *  discriminated on `coalesce(source_claim_id, source_section_id)`; see that migration's own header for
+ *  why the term was dropped: it was the exact loophole letting a claim-backed and a section-backed row
+ *  with byte-identical text coexist undetected). `row.after_text` is the caller's job to set (the fresh
+ *  `after` for a retext target, the current `obligation_text` for every other row) — this function only
+ *  builds the key, it never decides what the text should be. Pure. */
 export function postRewriteKey(row) {
-  const sourceObjectId = row.source_claim_id ?? row.source_section_id ?? "(none)";
-  return `${row.intelligence_item_id}|${row.event_date}|${row.event_kind}|${pgMd5(row.after_text)}|${sourceObjectId}`;
+  return `${row.intelligence_item_id}|${row.event_kind}|${row.event_date}|${pgMd5(row.after_text)}`;
 }
 
 /** Deterministic survivor choice within one collision group: a row already carrying its own after-text
@@ -213,9 +281,10 @@ export function compareForSurvivor(a, b) {
 /**
  * Groups EVERY row passed in (not only retext targets) by its post-rewrite key and, for every group of
  * more than one row, deterministically picks one survivor and marks the rest `collide_delete` — the set
- * the live `uq_item_forward_events_dedupe` index would otherwise reject once the rewrite in this same run
- * lands. Pure — takes rows already annotated with `after_text` (see `postRewriteKey`'s own doc) and
- * `created_at`; does no I/O and makes no DB call.
+ * the live unique index (see `postRewriteKey`'s own doc for its exact shape, and the migration history
+ * behind it) would otherwise reject once the rewrite in this same run lands. Pure — takes rows already
+ * annotated with `after_text` (see `postRewriteKey`'s own doc) and `created_at`; does no I/O and makes no
+ * DB call.
  * @param {Array<{id:string, intelligence_item_id:string, event_date:string, event_kind:string,
  *   obligation_text:string, after_text:string, source_claim_id:?string, source_section_id:?string,
  *   created_at?:string}>} rows
@@ -490,16 +559,25 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     for (const c of t.after_defect_classes) byAfterDefectClass[c] = (byAfterDefectClass[c] ?? 0) + 1;
   }
 
+  // Duplicate-group deletes (lane FE-DEDUP, 2026-09-04 -- see this file's own header): the section-backed
+  // loser of every duplicate pair this run's fixed extractor now correctly identifies. Deduplicated via
+  // Set (two groups could in principle name the same would_drop_id; each id is deleted at most once).
+  const duplicateDeleteIds = new Set(allDuplicateGroups.map((g) => g.would_drop_id));
+
   // Collision plan: EVERY row's post-rewrite key, target or not -- a target's after_text is the fresh
   // extracted text this run WOULD write; every other row's after_text is simply its current obligation_text
   // (this run leaves it alone unless collision resolution below deletes it). See planCollisions' own doc.
+  // Rows this run is ALSO deleting as a duplicate-group loser are excluded up front -- once gone, a row
+  // cannot converge with anything.
   const afterTextById = new Map(allRetextTargets.map((t) => [t.id, t.after]));
-  const collisionRows = allRows.map((row) => ({
-    ...row,
-    after_text: afterTextById.has(row.id) ? afterTextById.get(row.id) : row.obligation_text,
-  }));
+  const collisionRows = allRows
+    .filter((row) => !duplicateDeleteIds.has(row.id))
+    .map((row) => ({
+      ...row,
+      after_text: afterTextById.has(row.id) ? afterTextById.get(row.id) : row.obligation_text,
+    }));
   const collisionPlan = planCollisions(collisionRows);
-  const deletedIdSet = new Set(collisionPlan.deletions.map((d) => d.id));
+  const deletedIdSet = new Set([...duplicateDeleteIds, ...collisionPlan.deletions.map((d) => d.id)]);
 
   summary.counts = {
     items_scanned: itemIds.length,
@@ -510,6 +588,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     // a healthy run; any other key here means the fix still leaves a defect class live and needs a look.
     by_after_defect_class: byAfterDefectClass,
     duplicate_group_total: allDuplicateGroups.length,
+    duplicate_delete_total: duplicateDeleteIds.size,
     collision_group_total: collisionPlan.groups.length,
     collision_delete_total: collisionPlan.deletions.length,
   };
@@ -520,27 +599,43 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     survivors: collisionPlan.survivorIds,
     deletions: collisionPlan.deletions,
     note:
-      "Rows here are the ones the live uq_item_forward_events_dedupe index (migration 275) would reject " +
-      "once their post-rewrite text is honest -- computed over EVERY row of the table (not only retext " +
-      "targets), grouped by (intelligence_item_id, event_date, event_kind, md5(after_text), " +
-      "coalesce(source_claim_id, source_section_id)). One survivor per group is kept (a row already " +
-      "carrying its own after-text is preferred; otherwise earliest created_at, then lowest id); the rest " +
-      "are deleted in apply mode via db.mjs guardedDelete BEFORE any rewrite runs, chunked, cited, and " +
-      "snapshotted -- item_forward_events is derived/regenerable, not a primary record. Restore: " +
-      "--arg restore:<id,...> (this same script) reinserts a deleted row verbatim, same id, from its own " +
-      "guardedDelete snapshot.",
+      "Rows here are the ones the live unique index on (intelligence_item_id, event_kind, event_date, " +
+      "md5(obligation_text)) -- uq_item_forward_events_text_identity from migration 307 (lane FE-DEDUP, " +
+      "2026-09-04) onward, uq_item_forward_events_dedupe (migration 275, additionally keyed on " +
+      "coalesce(source_claim_id, source_section_id)) before it -- would reject once their post-rewrite " +
+      "text is honest, computed over EVERY row of the table minus this run's own duplicate-group deletes " +
+      "(not only retext targets). One survivor per group is kept (a row already carrying its own " +
+      "after-text is preferred; otherwise earliest created_at, then lowest id); the rest are deleted in " +
+      "apply mode via db.mjs guardedDelete BEFORE any rewrite runs, chunked, cited, and snapshotted -- " +
+      "item_forward_events is derived/regenerable, not a primary record. Restore: --arg restore:<id,...> " +
+      "(this same script) reinserts a deleted row verbatim, same id, from its own guardedDelete snapshot.",
   };
   summary.note =
-    "duplicate_groups is a REPORT ONLY -- item_forward_events has no is_archived/superseded column, so " +
-    "this step never deletes a row for THAT finding; a deletion, if wanted, is an operator decision the " +
-    "coordinator puts forward separately, citing would_drop_id/would_keep_id from this run's own summary. " +
-    "collisions IS applied automatically (see summary.collisions.note) -- that deletion is not a policy " +
-    "choice, it is the live unique index's own requirement once the text is corrected.";
+    "duplicate_groups IS applied automatically (lane FE-DEDUP, 2026-09-04 -- see this file's own header) " +
+    "-- each group's would_drop_id (the section-backed loser) is deleted via db.mjs guardedDelete " +
+    "(DUPLICATE_CITE), same mechanism and same reversibility as collisions below; " +
+    "obligations.forward_event_id's ON DELETE CASCADE (migration 290) removes the corresponding " +
+    "obligations row automatically, no second writer. collisions IS applied automatically (see " +
+    "summary.collisions.note) -- that deletion is not a policy choice, it is the live unique index's own " +
+    "requirement once the text is corrected.";
 
   if (!apply) return summary;
 
+  if (duplicateDeleteIds.size) {
+    const ids = [...duplicateDeleteIds];
+    const deleted = await applyGuardedDeletes(ids, deps.deleteDuplicateForwardEvents);
+    summary.duplicate_deletes = deleted;
+    const stillPresent = await deps.readRowsByIds(ids);
+    summary.duplicate_deletes.read_back = {
+      requested: ids.length,
+      deleted_total: ids.length - stillPresent.length,
+      still_present_ids: stillPresent.map((r) => r.id),
+    };
+    if (stillPresent.length) summary.exitCode = 1;
+  }
+
   if (collisionPlan.deletions.length) {
-    const deleted = await applyCollisionDeletes(collisionPlan.deletions.map((d) => d.id), deps);
+    const deleted = await applyGuardedDeletes(collisionPlan.deletions.map((d) => d.id), deps.deleteForwardEvents);
     summary.collisions.deleted = deleted;
     const stillPresent = await deps.readRowsByIds(collisionPlan.deletions.map((d) => d.id));
     summary.collisions.read_back = {
@@ -551,8 +646,9 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     if (stillPresent.length) summary.exitCode = 1;
   }
 
-  // Every collide_delete'd row is dropped from the rewrite pass -- it no longer exists, and its collision
-  // partner (the survivor) either already carries the same after-text or is itself still a normal target.
+  // Every duplicate-delete'd or collide_delete'd row is dropped from the rewrite pass -- it no longer
+  // exists, and (for a collision loser) its partner (the survivor) either already carries the same
+  // after-text or is itself still a normal target.
   const targetsToApply = allRetextTargets.filter((t) => !deletedIdSet.has(t.id));
 
   if (!targetsToApply.length) {
@@ -607,13 +703,16 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 
 const DELETE_CHUNK = 200;
 
-/** Chunked collision-delete apply: guardedDelete per chunk (never one giant IN(...) list), aggregating
- *  counts + per-chunk snapshot paths. */
-async function applyCollisionDeletes(ids, deps) {
+/** Chunked guarded-delete apply (lane FE-DEDUP, 2026-09-04 -- generalized from the collision-only
+ *  `applyCollisionDeletes`, same shape, now reused for duplicate-group deletes too): calls `deleteFn` per
+ *  chunk (never one giant IN(...) list), aggregating counts + per-chunk snapshot paths. `deleteFn` is
+ *  whichever guarded-delete dep already carries the right cite for this finding (`deps.deleteForwardEvents`
+ *  for collisions, `deps.deleteDuplicateForwardEvents` for duplicate groups). */
+async function applyGuardedDeletes(ids, deleteFn) {
   const out = { deleted: 0, snapshots: [], rows: [] };
   for (let i = 0; i < ids.length; i += DELETE_CHUNK) {
     const slice = ids.slice(i, i + DELETE_CHUNK);
-    const r = await deps.deleteForwardEvents(slice);
+    const r = await deleteFn(slice);
     out.deleted += r.deleted ?? 0;
     if (r.snapshot) out.snapshots.push(r.snapshot);
     out.rows.push(...(r.rows ?? []));
@@ -639,7 +738,11 @@ async function runRestore({ apply, arg }, deps, summary) {
   }
 
   const entries = await deps.readSnapshotEntries();
-  const citeMarker = "MAINT forward-events-retext dispatch (Lane FWD-TEXT";
+  // Widened (lane FE-DEDUP, 2026-09-04) from the original "...(Lane FWD-TEXT" literal to just this script's
+  // own dispatch prefix, so a restore also finds a DUPLICATE_CITE snapshot (lane FE-DEDUP's own cite) --
+  // CITE/DELETE_CITE/DUPLICATE_CITE all start with this exact string; the check is a strict widening, every
+  // reason that matched before still matches.
+  const citeMarker = "MAINT forward-events-retext dispatch";
   const idSet = new Set(ids);
   const latest = new Map();
   for (const e of entries ?? []) {
@@ -776,6 +879,9 @@ if (IS_MAIN) {
             select: "id, obligation_text",
           }),
         deleteForwardEvents: (ids) => guardedDelete("item_forward_events", ids, { cite: DELETE_CITE }),
+        // lane FE-DEDUP, 2026-09-04: duplicate-group deletes go through the SAME guardedDelete path as
+        // collisions, cited separately (DUPLICATE_CITE) so the audit trail names the actual reason.
+        deleteDuplicateForwardEvents: (ids) => guardedDelete("item_forward_events", ids, { cite: DUPLICATE_CITE }),
         readRowsByIds: (ids) => readChunked("item_forward_events", "id, obligation_text", "id", ids),
         readSnapshotEntries: async () => readSnapshotEntriesFromDisk(),
         restoreOne: (id, text) =>

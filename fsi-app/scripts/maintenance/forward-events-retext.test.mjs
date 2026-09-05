@@ -180,19 +180,19 @@ test("pgMd5: matches Postgres' md5(text) -- UTF-8 bytes, lowercase hex", () => {
   assert.equal(pgMd5("café"), "07117fe4a1ebd544965dc19573183da2");
 });
 
-test("postRewriteKey: mirrors uq_item_forward_events_dedupe's own column order and coalesce", () => {
+test("postRewriteKey: mirrors uq_item_forward_events_text_identity's own column order (migration 307, lane FE-DEDUP, 2026-09-04) -- source object is NOT part of the key, so a claim-sourced and a section-sourced row with the same after_text collide", () => {
   const claimSourced = postRewriteKey({
     intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
     after_text: "text A", source_claim_id: "claim-1", source_section_id: null,
   });
-  assert.equal(claimSourced, `item-1|2026-11-29|phase_step|${pgMd5("text A")}|claim-1`);
+  assert.equal(claimSourced, `item-1|phase_step|2026-11-29|${pgMd5("text A")}`);
   const sectionSourced = postRewriteKey({
     intelligence_item_id: "item-1", event_date: "2026-11-29", event_kind: "phase_step",
     after_text: "text A", source_claim_id: null, source_section_id: "section-1",
   });
-  assert.equal(sectionSourced, `item-1|2026-11-29|phase_step|${pgMd5("text A")}|section-1`);
-  // Different after_text -> different key even with everything else identical (the whole point: two rows
-  // sharing a source object only collide once their TEXT also converges).
+  // Migration 307 dropped the source-object discriminator -- same key regardless of which source backs it.
+  assert.equal(claimSourced, sectionSourced);
+  // Different after_text -> different key even with everything else identical.
   assert.notEqual(
     postRewriteKey({ intelligence_item_id: "i", event_date: "d", event_kind: "k", after_text: "x", source_claim_id: "c" }),
     postRewriteKey({ intelligence_item_id: "i", event_date: "d", event_kind: "k", after_text: "y", source_claim_id: "c" }),
@@ -307,6 +307,7 @@ function fakeDeps({ itemsById = {} } = {}) {
   }
   const updates = [];
   const deletes = [];
+  const duplicateDeletes = [];
   const inserts = [];
   const poolReadCalls = []; // lane FE-SLOT-2b, 2026-09-04: which item ids readPoolForItem was actually
   // invoked for -- so a test can assert it was SKIPPED for an item with no context-needing claim.
@@ -347,6 +348,21 @@ function fakeDeps({ itemsById = {} } = {}) {
       deletes.push(...ids);
       return { deleted: removed.length, snapshot: "fake-snapshot_item_forward_events.jsonl", rows: removed.map((r) => ({ id: r.id })) };
     },
+    // lane FE-DEDUP, 2026-09-04: duplicate-group deletes go through a SEPARATE dep (own cite,
+    // DUPLICATE_CITE) but the SAME fake table -- recorded into its own duplicateDeletes array so a test can
+    // tell which delete path fired without inspecting cites.
+    duplicateDeletes,
+    deleteDuplicateForwardEvents: async (ids) => {
+      const removed = [];
+      for (const id of ids) {
+        if (table.has(id)) {
+          removed.push(table.get(id));
+          table.delete(id);
+        }
+      }
+      duplicateDeletes.push(...ids);
+      return { deleted: removed.length, snapshot: "fake-snapshot_item_forward_events.jsonl", rows: removed.map((r) => ({ id: r.id })) };
+    },
     readRowsByIds: async (ids) => ids.filter((id) => table.has(id)).map((id) => ({ id, obligation_text: table.get(id).obligation_text })),
     readSnapshotEntries: async () => [],
     restoreOne: async () => ({ updated: 1 }),
@@ -383,7 +399,7 @@ test("main dry: reports counts, retext_targets, duplicate_groups; writes nothing
   assert.equal(s.counts.retext_target_total, 1);
   assert.ok(s.counts.by_defect_class.url_tail >= 1);
   assert.equal(deps.updates.length, 0, "dry mode never writes");
-  assert.match(s.note, /never deletes a row/);
+  assert.match(s.note, /duplicate_groups IS applied automatically/);
 });
 
 test("main apply: rewrites obligation_text through the guarded path, records restore_sql, reads back", async () => {
@@ -535,6 +551,103 @@ test("main apply: HALF-APPLIED table -- one collision side already carries the t
   assert.equal(deps.updates.length, 0, "row-early needed no rewrite; row-late was deleted, never rewritten");
   assert.equal(deps.table.size, 1);
   assert.ok(deps.table.has("row-early"));
+});
+
+// ── main() duplicate-group auto-delete (lane FE-DEDUP, 2026-09-04) ─────────────────────────────────────
+// THE DEFECT this closes [CONFIRMED by the coordinator, Supabase MCP 2026-09-04 23:22 UTC]: 359
+// item_forward_events duplicate groups (a claim-backed row and a section-backed row from the same
+// extraction run, identical obligation_text) survived because sameObligationContent's 40-char floor was
+// applied even to an exact match -- fixed this lane in extract-forward-events.mjs (EXTRACTOR_VERSION
+// fe1-2026-09-04.6). planItemRetext's own duplicateGroups finding (tested above, unchanged) already
+// surfaces every such pair via the fixed extractor's own dedupeEvents; this section tests that main() now
+// APPLIES that finding's deletion (would_drop_id, the section-backed loser) rather than only reporting it.
+
+function duplicateGroupItemFixture() {
+  return {
+    "item-1": {
+      existingRows: [
+        {
+          id: "claim-row", event_date: "2026-11-29", event_kind: "phase_step",
+          obligation_text: EURO7_PHASE_CLAIM_SPAN,
+          source_kind: "claim", source_claim_id: "claim-1", source_section_id: null,
+          created_at: "2026-09-04T13:09:42.772303Z",
+        },
+        {
+          id: "section-row", event_date: "2026-11-29", event_kind: "phase_step",
+          obligation_text: EURO7_PHASE_CLAIM_SPAN, // byte-identical to claim-row -- the exact live twin shape
+          source_kind: "section", source_claim_id: null, source_section_id: "section-1",
+          created_at: "2026-09-04T13:09:42.772303Z",
+        },
+      ],
+      claimRows: [{ id: "claim-1", claim_kind: "FACT", claim_text: EURO7_PHASE_CLAIM_SPAN, source_span: EURO7_PHASE_CLAIM_SPAN }],
+      sectionRows: [{ id: "section-1", section_key: "2", content_md: EURO7_PHASE_SECTION_MD }],
+    },
+  };
+}
+
+test("main dry: duplicate group -- claim-backed and section-backed twins are reported, nothing deleted yet", async () => {
+  const deps = fakeDeps({ itemsById: duplicateGroupItemFixture() });
+  const s = await main({ mode: "dry" }, deps);
+  assert.equal(s.counts.duplicate_group_total, 1);
+  assert.equal(s.counts.duplicate_delete_total, 1);
+  assert.equal(s.duplicate_groups[0].would_drop_id, "section-row");
+  assert.equal(s.duplicate_groups[0].would_keep_id, "claim-row");
+  assert.equal(deps.deletes.length, 0, "dry mode deletes nothing");
+  assert.equal(deps.duplicateDeletes.length, 0, "dry mode deletes nothing");
+});
+
+test("main apply: duplicate group deletes the section-backed loser via the SEPARATE duplicate-delete path (own cite), keeps the claim-backed survivor untouched", async () => {
+  const deps = fakeDeps({ itemsById: duplicateGroupItemFixture() });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.exitCode, 0);
+
+  // Deleted through deleteDuplicateForwardEvents (own array), NOT deleteForwardEvents (collisions' path).
+  assert.deepEqual(deps.duplicateDeletes, ["section-row"]);
+  assert.deepEqual(deps.deletes, [], "collision delete path was never invoked for a duplicate-group loser");
+  assert.equal(deps.table.has("section-row"), false);
+  assert.equal(deps.table.has("claim-row"), true, "the claim-backed survivor is untouched");
+
+  assert.equal(s.duplicate_deletes.deleted, 1);
+  assert.equal(s.duplicate_deletes.read_back.deleted_total, 1);
+  assert.deepEqual(s.duplicate_deletes.read_back.still_present_ids, []);
+
+  // No rewrite was attempted for the deleted row -- filtered out of targetsToApply before the rewrite loop.
+  assert.ok(!deps.updates.some((u) => u.id === "section-row"));
+  assert.equal(s.counts.collision_group_total, 0, "the deleted row is excluded from collision planning entirely");
+});
+
+test("main apply: a duplicate-group loser is excluded from collision planning (never double-counted as both a duplicate delete and a collision delete)", async () => {
+  // Same fixture, but the claim-row's OWN text is also stale (garbled), so it is independently a retext
+  // target too -- proves the duplicate delete and the (still-independent) retext of the survivor coexist
+  // cleanly in one apply pass, and the duplicate loser never shows up in collisions.groups.
+  const fixture = duplicateGroupItemFixture();
+  const s = await main({ mode: "apply" }, {
+    ...fakeDeps({ itemsById: fixture }),
+  });
+  assert.equal(s.collisions.groups.length, 0);
+  assert.equal(s.collisions.deletions.length, 0);
+});
+
+test("main restore: apply reinserts a duplicate-group-deleted row VERBATIM (same id) from its own DUPLICATE_CITE snapshot", async () => {
+  const fullRow = {
+    id: "section-row", intelligence_item_id: "item-1", event_date: "2026-11-29", date_precision: "day",
+    event_kind: "phase_step", obligation_text: EURO7_PHASE_CLAIM_SPAN,
+    source_kind: "section", source_claim_id: null, source_section_id: "section-1",
+    source_span: "It shall apply from 29 November 2026", confidence: "medium",
+    extractor_version: "fe1-2026-09-04.6", created_at: "2026-09-04T13:09:42.772303Z",
+  };
+  const deps = fakeDeps({ itemsById: {} });
+  deps.readSnapshotEntries = async () => [
+    {
+      table: "item_forward_events",
+      prior: fullRow,
+      _cite: { reason: "MAINT forward-events-retext dispatch (Lane FE-DEDUP, 2026-09-04): deletes the section-backed loser..." },
+    },
+  ];
+  const s = await main({ mode: "apply", arg: "restore:section-row" }, deps);
+  assert.equal(s.exitCode, 0);
+  assert.deepEqual(deps.inserts[0], fullRow, "reinserted verbatim, same id, every column");
+  assert.deepEqual(s.read_back.restored_ids, ["section-row"]);
 });
 
 test("main restore: apply reinserts a collide_delete'd row VERBATIM (same id) from guardedDelete's full-row snapshot", async () => {

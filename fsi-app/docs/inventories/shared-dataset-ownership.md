@@ -323,9 +323,18 @@ raises. Documented and implemented in `src/lib/intake/census-writer.mjs:98-165`.
 
 ### `item_forward_events`
 
-Migration 274/275. Dedupe key (as fixed by 275, after 274's first key silently dropped 54% of the first
-real run — see migration 275's header): `(intelligence_item_id, event_date, event_kind,
-md5(obligation_text), coalesce(source_claim_id, source_section_id))`.
+Migration 274/275/307. Live dedupe key as of migration 307 (lane FE-DEDUP, 2026-09-04):
+`(intelligence_item_id, event_kind, event_date, md5(obligation_text))` — `uq_item_forward_events_text_identity`.
+History: 274's first key (`source_span`) silently dropped 54% of the first real run (see 275's own header);
+275 fixed that with `(intelligence_item_id, event_date, event_kind, md5(obligation_text),
+coalesce(source_claim_id, source_section_id))`; 307 then DROPPED the `coalesce(source_claim_id,
+source_section_id)` term — that term was the exact loophole letting a claim-backed row and a section-backed
+row with byte-identical `obligation_text` coexist as an undetected duplicate (359 live groups, measured;
+`public.obligations` 1,149 rows for only 562 distinct `(intelligence_item_id, event_kind, due_date)` —
+see migration 307's own header and `extract-forward-events.mjs`'s "SHORT-TEXT EXACT-DUPLICATE FIX" header
+for the upstream extractor bug that produced them). 307 MUST be applied only after the one-time cleanup
+(`scripts/maintenance/forward-events-retext.mjs --apply`, item 4 below) removes the live duplicate rows —
+its own pre-check DO block aborts if any remain.
 
 **Writers (resolved at merge, 2026-09-01; `apply-staged-update.ts` added 2026-09-01, lane FIX).** The
 extractor (`src/lib/forward-events/extract-forward-events.mjs`, moved from `scripts/forward-events/` for
@@ -338,47 +347,60 @@ neither hand-copies the read. Three write paths exist:
    `flywheel-defect:` integrity flags per rule 16(d).
 2. `src/lib/intake/apply-staged-update.ts` (`update_item`, SUBSTANTIVE updates only) — re-extracts on every
    substantive `update_item` (contract rule 16, "on every mint or substantive update"); unlike mint-item.ts
-   the target item may already carry rows, so this path writes idempotently against the 275 dedupe key at
-   the application layer (PostgREST's upsert `onConflict` cannot target the 275 index, which is
-   expression-based) rather than a plain insert, and never deletes — an existing row whose supporting
-   claim/section is gone is flagged `flywheel-defect:stale-events` instead.
-3. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows and always
-   records a harness run artifact; the coordinator applies the rows via the guarded path against the
-   275 dedupe key. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the runner
-   supersedes that name and PROTOCOL.md's reference is historical.
-4. `scripts/maintenance/forward-events-retext.mjs` (added lane FWD-TEXT, 2026-09-04; DELETE path added
-   lane RETEXT-COLLIDE, 2026-09-04) — an UPDATE path plus one narrow, guarded DELETE path, never an
-   insert. It re-runs the (unmodified-identity, text-fixed) extractor against each item's live
-   claims/sections, and for any EXISTING row whose `id` still matches a fresh event under the (source
+   the target item may already carry rows, so this path writes idempotently against the live dedupe key
+   (307's `uq_item_forward_events_text_identity`, superseding 275's `uq_item_forward_events_dedupe`) at
+   the application layer (PostgREST's upsert `onConflict` cannot target an expression-based index) rather
+   than a plain insert, and never deletes — an existing row whose supporting claim/section is gone is
+   flagged `flywheel-defect:stale-events` instead.
+3. Batch/backfill runs: `scripts/forward-events/run-extraction.mjs` emits apply-ready rows;
+   `scripts/turns/apply-extraction-output.mjs` is the actual guarded writer (`guardedInsertMany`), computing
+   the same live dedupe key client-side (`dedupeKey`, updated lane FE-DEDUP 2026-09-04 to mirror migration
+   307's narrower key — see that file's own header) to stay idempotent against a re-run; a harness run
+   artifact is always recorded. `load-forward-events.mjs` (named in PROTOCOL.md) was never created; the
+   runner+apply-extraction-output pair supersedes that name and PROTOCOL.md's reference is historical.
+4. `scripts/maintenance/forward-events-retext.mjs` (added lane FWD-TEXT, 2026-09-04; DELETE paths added
+   lane RETEXT-COLLIDE and lane FE-DEDUP, both 2026-09-04) — an UPDATE path plus two narrow, guarded DELETE
+   paths, never an insert. It re-runs the (unmodified-identity, text-fixed) extractor against each item's
+   live claims/sections, and for any EXISTING row whose `id` still matches a fresh event under the (source
    object, event_date, event_kind) identity but whose `obligation_text` has changed, rewrites
    `obligation_text` in place through the guarded `db.mjs` path (cite + snapshot + read-back), with a
    per-row `restore_sql` for reversal. It never touches `event_date`, `event_kind`, or the source ids on a
-   row it keeps, so a rewrite alone cannot violate the 275 dedupe key or create a new row under it. It
-   also reports (never deletes) duplicate groups the extractor's own within-run content-dedupe would now
-   collapse — `item_forward_events` has no `is_archived`/`superseded` column, so THAT deletion decision is
-   left to the coordinator/operator, cited by `would_drop_id`/`would_keep_id` from the run's own summary.
-   SEPARATELY (Maintenance #35, run 33864089323, APPLY died on `duplicate key value violates unique
-   constraint uq_item_forward_events_dedupe`): two EXISTING rows can already share `(intelligence_item_id,
-   event_date, event_kind, coalesce(source_claim_id, source_section_id))` pre-fix (legitimately, since
-   their `obligation_text` differs) and converge to the IDENTICAL text once both are honestly retexted —
-   the live `uq_item_forward_events_dedupe` index (migration 275) would then reject the second write. For
-   every row of the table this step computes that post-rewrite key exactly as Postgres would
-   (`md5(after_text)` via `node:crypto`, not the extractor); a group of more than one row under that key
+   row it keeps, so a rewrite alone cannot violate the live dedupe key or create a new row under it.
+   DUPLICATE-GROUP DELETE (lane FE-DEDUP, 2026-09-04, superseding the prior report-only behavior): this
+   step's own re-run of the extractor's within-run content-dedupe (`dedupeEvents`, now correctly catching
+   an exact match under `DEDUPE_MIN_COMPARE_LEN` — see `extract-forward-events.mjs`'s "SHORT-TEXT
+   EXACT-DUPLICATE FIX" header) surfaces every existing claim/section pair sharing byte-identical
+   `obligation_text`; the section-backed loser (`would_drop_id`) is now DELETED automatically — chunked,
+   cited (`DUPLICATE_CITE`), snapshotted, reversible via `--arg restore:<id,...>` — same mechanism as the
+   collision delete below, `item_forward_events` being derived/regenerable, never a primary record.
+   `obligations.forward_event_id` (migration 290) carries `ON DELETE CASCADE`, so the corresponding
+   `obligations` row is removed automatically; no second writer. COLLISION DELETE (lane RETEXT-COLLIDE,
+   unchanged in mechanism, key updated lane FE-DEDUP): SEPARATELY (Maintenance #35, run 33864089323, APPLY
+   died on `duplicate key value violates unique constraint uq_item_forward_events_dedupe`), two EXISTING
+   rows can converge to the IDENTICAL text once both are honestly retexted, which the live unique index
+   would then reject. For every row of the table (minus this run's own duplicate-group deletes) this step
+   computes that post-rewrite key exactly as Postgres would (`md5(after_text)` via `node:crypto`, the live
+   `(intelligence_item_id, event_kind, event_date, md5(obligation_text))` shape as of migration 307 — no
+   longer discriminated by source object, per this same lane); a group of more than one row under that key
    keeps one deterministic survivor and `guardedDelete`s the rest — chunked, cited (`DELETE_CITE`),
-   snapshotted (the row is derived/regenerable from claims/sections, never a primary record) — before any
-   rewrite runs in the same apply pass, so no rewrite can recreate the very key its own delete just
-   cleared. `--arg restore:<id,...>` reinserts a collide-deleted row verbatim (same id) from
-   `guardedDelete`'s own full-row snapshot. See `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12.
+   snapshotted — before any rewrite runs in the same apply pass, so no rewrite can recreate the very key its
+   own delete just cleared. `--arg restore:<id,...>` reinserts either kind of deleted row verbatim (same id)
+   from `guardedDelete`'s own full-row snapshot. See `docs/runbooks/MAINTENANCE-RUNBOOK.md` §12.
 The recorded 901-event first run (`forward-events-run-001.json`) predates the runner and was applied by
 the coordinator directly; all future loads go through path 1, 2, 3, or the retext maintenance step (4).
 
 | Writer | Evidence |
 |---|---|
 | `scripts/forward-events/run-extraction.mjs` | **Pre-registered (parallel lane, per task brief)** |
+| `scripts/turns/apply-extraction-output.mjs` | corpus-turn family; `guardedInsertMany("item_forward_events", ...)`, dedupeKey mirrors the live migration key |
 | `scripts/forward-events/load-forward-events.mjs` | **Pre-registered** — the name `scripts/harness-runs/forward-events/PROTOCOL.md` actually specifies for "the coordinator-run loader" |
 
 Replace policy: append/upsert on the dedupe key above; migration 275's own header states the design intent
-explicitly — never silently drop a genuinely-distinct obligation by collapsing on too coarse a key.
+explicitly — never silently drop a genuinely-distinct obligation by collapsing on too coarse a key. Migration
+307 (lane FE-DEDUP, 2026-09-04) narrows the key further, but the same design intent holds: two rows with
+DIFFERENT `obligation_text` sharing item/date/kind still coexist freely (Euro 7's phase-out schedule,
+NZIA's several 2030-01-01 targets); only a byte-identical-text duplicate is now made impossible to insert,
+regardless of which of the two source tables backs it.
 
 ### `theme_briefs`
 
