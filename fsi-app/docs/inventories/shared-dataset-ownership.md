@@ -779,6 +779,35 @@ item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
   056) is a SEPARATE, pre-existing column this same driver also writes (unchanged by this lane) — not one
   of the five new ones, named here only to avoid the reader assuming otherwise.
 
+- **`surcharge_audits`, `tce_data_quality`, `auxiliary_energy_profiles`, `eudr_plot_claims`,
+  `custody_chains`, `indexation_clauses`** (migrations 296-298, spec 09's Market/Operations/Regulations
+  panels) — added by Lane SPEC09-B, 2026-09-05. Same not-shared-8 basis as every other entry in this
+  section (`.discipline/shared-writer-registry.test.mjs`'s own header scope statement) — these are
+  customer-uploaded operational tables, not harness/flywheel corpus tables, so they are not added to the
+  enforced JSON allowlist. Each of the six now has exactly TWO writers, sharing ONE parsing/validation body
+  so neither can drift from the other's row-acceptance rules:
+  - `fsi-app/src/lib/spec09/csv-upload-contract.mjs` — the shared column contract (`TABLE_CONTRACTS`,
+    `parseCsvUpload`) both writers below import; it is not itself a writer, it is the one body the "no
+    duplicate logic" rule requires.
+  - `fsi-app/scripts/spec09/{surcharge-audit,dqi,auxiliary-energy,eudr-custody,indexation}-producer.mjs` —
+    the CLI/coordinator-dispatch path (`--mode apply --csv <path> --org-id <uuid>`), writing via
+    `guardedInsertMany` (cite `SPEC09_CSV_UPLOAD`), for a coordinator or admin importing a reviewed batch
+    file directly.
+  - `fsi-app/src/app/api/workspace/spec09-upload/route.ts` (logic in the sibling `logic.ts` per F34) — the
+    authenticated, org-scoped HTTP path a signed-in user's browser session drives from the Operations
+    settings/workspace surface, org id always server-resolved (`resolveOrgMembershipFromUserId`), never
+    trusted from the request body.
+  Partitioned by `org_id` (added to all six tables by this lane's migration — see
+  `docs/inventories/migrations.md` for the number once assigned/landed); RLS restricts `SELECT` to members
+  of the row's own org (`user_belongs_to_org(org_id)`), replacing the six tables' original
+  `USING (true)` policies. Replace policy: append-only INSERT only — a CSV upload adds new audit/claim/
+  profile rows, it never updates or deletes an existing one; a corrected re-upload lands as new rows, the
+  same "history accumulates" shape `intelligence_changes` and `derived_values` already use elsewhere in
+  this document. `carrier_compliance_pools` (migration 296) is DROPPED by this lane's migration (0 rows
+  confirmed live, read-only SELECT, 2026-09-05) rather than given a reader spec 09 never named a consumer
+  for — see this lane's own report for the full reasoning; it is removed from this document's scope along
+  with the table itself, not carried forward as a phantom entry.
+
 Named here for completeness, not because the registry requires it — mirroring the disposition already
 established at line 180 for the migration-282/283 entity tables.
 

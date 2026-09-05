@@ -13,22 +13,27 @@
  * gCO2e conversion is not attempted — the view states plainly that the kWh figure is the load, not its
  * footprint, rather than silently treating an unconverted kWh number as a carbon figure.
  *
+ * ORG SCOPE (migration 308, lane SPEC09-B, 2026-09-05): see SurchargeAuditPanel.tsx's header — the same
+ * reasoning and the same resolveOrgIdFromCookies() resolver apply here.
+ *
  * VIEW/FETCH SPLIT: this file is data-only. The render code lives in the separate file
  * `AuxiliaryEnergyPanelView.tsx` — see market/SurchargeAuditPanelView.tsx's header for why.
  */
 
 import { isSupabaseConfigured, getServiceSupabase } from "@/lib/supabase-server";
+import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { AuxiliaryEnergyPanelView, type AuxiliaryEnergyRow } from "./AuxiliaryEnergyPanelView";
 
 const ROW_LIMIT = 25;
 
-async function fetchRows(): Promise<AuxiliaryEnergyRow[]> {
-  if (!isSupabaseConfigured()) return [];
+async function fetchRows(orgId: string | null): Promise<AuxiliaryEnergyRow[]> {
+  if (!isSupabaseConfigured() || !orgId) return [];
   try {
     const supabase = getServiceSupabase();
     const { data, error } = await supabase
       .from("auxiliary_energy_profiles")
       .select("profile_id, load_type, kw_draw, duty_cycle, hours_typical, setpoint_c, setpoint_rh_pct, grid_intensity_source")
+      .eq("org_id", orgId)
       .order("created_at", { ascending: false })
       .limit(ROW_LIMIT);
     if (error) {
@@ -43,6 +48,7 @@ async function fetchRows(): Promise<AuxiliaryEnergyRow[]> {
 }
 
 export async function AuxiliaryEnergyPanel() {
-  const rows = await fetchRows();
+  const orgId = await resolveOrgIdFromCookies();
+  const rows = await fetchRows(orgId);
   return <AuxiliaryEnergyPanelView rows={rows} />;
 }

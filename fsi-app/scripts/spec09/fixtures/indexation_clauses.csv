@@ -1,0 +1,6 @@
+contract_ref,corridor_id,index_id,base_value,base_date,passthrough_pct,cap_pct,floor_pct,review_cadence,rounding_rule
+CONTRACT-2026-A,cl:corridor:0000000000000101,cl:instrument:eua-front-dec,80,2026-01-01,70,20,-10,quarterly,round to nearest cent
+CONTRACT-2026-B,,cl:instrument:uka,55,2026-02-01,60,15,-15,semiannual,round to nearest cent
+CONTRACT-2026-C,cl:corridor:0000000000000102,cl:instrument:ttf,30,2026-01-15,80,10,-20,monthly,round to nearest cent
+CONTRACT-2026-D,cl:corridor:0000000000000101,cl:instrument:eua-front-dec,80,2026-03-01,70,-10,20,quarterly,round to nearest cent
+CONTRACT-2026-E,cl:corridor:0000000000000101,,80,2026-01-01,70,20,-10,quarterly,round to nearest cent
