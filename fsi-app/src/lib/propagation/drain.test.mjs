@@ -26,6 +26,7 @@ function fakeClient({ tables = {}, rpcHandlers = {} } = {}) {
     let updateValues = null;
     let orderBy = null;
     let limitN = null;
+    let countExactHead = false;
 
     function applyFilters() {
       let rows = state[table] || [];
@@ -47,11 +48,15 @@ function fakeClient({ tables = {}, rpcHandlers = {} } = {}) {
       if (updateValues) {
         for (const row of rows) Object.assign(row, updateValues);
       }
+      // `select(cols, {count:'exact', head:true})` (paginate.mjs's exactCount contract): the fake reports
+      // the TRUE filtered count (no 1000-row PostgREST cap to simulate at this scale) and no row payload,
+      // matching supabase-js's own head:true shape.
+      if (countExactHead) return { data: null, error: null, count: rows.length };
       return { data: rows, error: null };
     }
 
     const b = {
-      select() { return b; },
+      select(_cols, opts) { if (opts && opts.count === "exact" && opts.head) countExactHead = true; return b; },
       update(values) { updateValues = values; return b; },
       is(col, val) { filters.push((row) => row[col] === val); return b; },
       eq(col, val) { filters.push((row) => row[col] === val); return b; },
@@ -111,6 +116,27 @@ test("runPropagationDrain: an empty queue returns a zeroed result and issues no 
   assert.equal(result.queueDepthBefore, 0);
   assert.equal(result.eventsConsidered, 0);
   assert.equal(sb.rpcCalls.length, 0);
+});
+
+test("runPropagationDrain: queue_depth_before is an exact COUNT, not the .length of a possibly-capped row page (CAP-1000)", async () => {
+  // Regression for the defect this proposer pass found reading propagation-run-003/004/005's own
+  // artifacts: a bare `.select("event_id").is(...)` with no `.limit()`/`.range()` reported
+  // `queue_depth_before: 1000` on every one of those three runs because PostgREST silently caps a
+  // range-less response at 1000 rows — the live table genuinely held 2,272-2,778 pending events at the
+  // time. 1,200 undrained rows here (well past both the default `batch: 500` and the 1000-row PostgREST
+  // cap this fake does not even simulate) proves `queueDepthBefore` now comes from `exactCount()`
+  // (paginate.mjs), an independent COUNT(*), not from any fetched array's `.length`.
+  const events = Array.from({ length: 1200 }, (_, i) => ({
+    event_id: i + 1,
+    table_name: "emission_factors",
+    row_pk: `ef-${i}`,
+    occurred_at: `2026-09-01T00:00:${String(i % 60).padStart(2, "0")}Z`,
+    drained_at: null,
+  }));
+  const sb = fakeClient({ tables: { propagation_events: events } });
+  const result = await runPropagationDrain(sb, { caller: "test", mode: "dry", batch: 500 });
+  assert.equal(result.queueDepthBefore, 1200);
+  assert.equal(result.eventsConsidered, 500); // batch still caps how many this CALL considers
 });
 
 test("runPropagationDrain dry mode: counts via invalidate_dependents(p_apply=false), writes NOTHING", async () => {

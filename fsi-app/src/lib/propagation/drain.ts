@@ -34,6 +34,7 @@ import { registerDerivedValue } from "./register-derivation.ts";
 import { getMethod } from "./methods/index.ts";
 import type { InputRef } from "./types.ts";
 import type { ResolvedMethodInput } from "./methods/index.ts";
+import { exactCount } from "../db/paginate.mjs";
 
 /** The narrow Supabase client surface this module needs — a `.from(table)` PostgREST-style query builder
  *  plus `.rpc(...)`. Kept minimal (not the full supabase-js `SupabaseClient` type) so a hand-rolled test
@@ -43,7 +44,7 @@ export interface DrainClient {
   from(table: string): DrainQueryBuilder;
 }
 export interface DrainQueryBuilder {
-  select(cols: string): DrainQueryBuilder;
+  select(cols: string, opts?: { count?: "exact"; head?: boolean }): DrainQueryBuilder;
   update(values: Record<string, unknown>): DrainQueryBuilder;
   is(col: string, value: null): DrainQueryBuilder;
   eq(col: string, value: unknown): DrainQueryBuilder;
@@ -52,8 +53,10 @@ export interface DrainQueryBuilder {
   limit(n: number): DrainQueryBuilder;
   maybeSingle(): Promise<{ data: unknown; error: { message: string } | null }>;
   // A builder is itself awaitable (PostgREST's thenable pattern) for a plain select/update with no
-  // terminal row-shape call — `await sb.from(t).select(c)...` resolves to {data, error}.
-  then<T>(onfulfilled: (value: { data: unknown; error: { message: string } | null }) => T): Promise<T>;
+  // terminal row-shape call — `await sb.from(t).select(c)...` resolves to {data, error}. `count` is
+  // present when `select(cols, {count:'exact', head:true})` was used (paginate.mjs's exactCount) —
+  // undefined for every other call, same shape supabase-js itself returns.
+  then<T>(onfulfilled: (value: { data: unknown; error: { message: string } | null; count?: number | null }) => T): Promise<T>;
 }
 
 /** The `(table, row_pk)` -> primary-key COLUMN NAME map — the same closed set migration 284's outbox
@@ -149,14 +152,25 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
   const apply = mode === "apply";
   const batch = opts.batch ?? DEFAULT_BATCH;
 
-  const { data: depthRows, error: depthErr } = await sb
-    .from("propagation_events")
-    .select("event_id")
-    .is("drained_at", null);
-  if (depthErr) {
-    throw new Error(`runPropagationDrain: reading queue depth failed: ${depthErr.message}`);
-  }
-  const queueDepthBefore = Array.isArray(depthRows) ? depthRows.length : 0;
+  // CAP-1000 fix (train 48, ASSEMBLE-48 proposer pass over propagation-run-003/004/005): this used to be
+  // `.select("event_id").is("drained_at", null)` with no `.limit()`/`.range()` and report `depthRows.length`
+  // — PostgREST silently caps a range-less response at 1000 rows (paginate.mjs's own header), so
+  // `queue_depth_before` read a flat 1000 on every run once the true pending count passed that ceiling
+  // (runs 003/004/005 all show `queue_depth_before: 1000` while the live table genuinely held 2,272-2,778
+  // pending events between them — the exact "count fed by a truncated array's .length" defect class
+  // CAP-1000 named for PERF-13/obligations/run-change-detection, found here by a proposer pass reading
+  // this family's full trace history, not by F38 (whose own header states it does not mechanically detect
+  // a bare unranged .select() with no .limit() at all). Fixed the same way those three were: an exact
+  // COUNT(*) via paginate.mjs's exactCount(), independent of any row page.
+  const queueDepthBefore = await exactCount(
+    (async () => {
+      const { error, count } = await sb
+        .from("propagation_events")
+        .select("event_id", { count: "exact", head: true })
+        .is("drained_at", null);
+      return { count: count ?? null, error };
+    })(),
+  );
 
   const { data: events, error: eventsErr } = await sb
     .from("propagation_events")
