@@ -10289,3 +10289,16 @@ re-granted to 46; the source-sweep marker was discharged by run-015.
 Next, in order: land, dispatch the forward-events retext apply (the cleanup), apply 307, re-measure
 click-to-content and the register; sweep #20 at 30 hosts; ledger-consume plan with verdicts 001+002;
 then T46.
+
+UX compliance (PERF-13: /regulations ledger bands and the four detail routes; REG-GRAIN: the
+obligations register on /regulations and the detail meta-rail). Primary goal: a band tells the truth
+about what it holds, and a register row says what is due, not only that something is. Path: unchanged;
+no new step. One primary action: the band's "Load more (N in this band)" and "Try again"/"Refresh"
+reuse the footer button's handler and treatment (one action, two entry points); the register row's one
+control is still the instrument title link, the obligation text under it is passive content. Feedback
+state: "Loading" appears only while `isFetchingNextPage`; an exhausted stream with a count mismatch
+shows "Refresh", never a dead end; a null obligation text renders no line, never an empty placeholder.
+Fitts's-law surface: every new button matches the footer button's padding (44 px floor); no target
+moved or shrank. Proximity and Prägnanz: the obligation text sits directly under its own title as one
+muted line; nothing else added. Verified by the rendering guard's UX smoke (154 checks, 375×812 and
+1280×800), not asserted.
