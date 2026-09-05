@@ -37,9 +37,21 @@
 -- APPLY ORDER: standalone; does not depend on 305/306/307. Apply whenever the two-track policy's
 -- window allows — the coordinator applies via Supabase MCP, then runs the post-check block below.
 --
--- Reversible: re-run each function's PRE-migration body (captured verbatim in the pre-check comment
--- block immediately below each `CREATE OR REPLACE`) via `CREATE OR REPLACE FUNCTION ...` — every
--- function is a pure read with no dependents beyond its own callers (grep-verified, this lane).
+-- APPLIED LIVE 2026-09-05 19:47:46 UTC by the coordinator via Supabase MCP (post-check passed,
+-- schema_migrations 20260905194746), using the MIG310-FIX rewrite below (DROP FUNCTION before
+-- CREATE OR REPLACE, explicit re-GRANT) after the file's original CREATE-OR-REPLACE-only shape hit
+-- ERROR 42P13 live. Originally: written, not applied by this lane — Supabase MCP was read-only for
+-- the lane.
+--
+-- Reversible: DROP FUNCTION each of the 11 (their post-fix, item_grade-carrying signatures) then
+-- re-run each function's PRE-migration body (captured verbatim in the pre-check comment block
+-- immediately below, and in migrations 077/117/269/272/303/305/306 for the functions that originated
+-- there) via `CREATE OR REPLACE FUNCTION ...`, then re-GRANT EXECUTE to anon/authenticated/
+-- service_role on each restored signature — a plain `CREATE OR REPLACE FUNCTION` back to the shorter
+-- RETURNS TABLE hits the same 42P13 this migration's own header documents, so the rollback needs its
+-- own DROP first, exactly as the forward migration does. Every function is a pure read with no
+-- dependents beyond its own callers (grep-verified, this lane, and again by the coordinator before
+-- the DROP/CREATE rewrite — see below).
 --
 -- PRE-CHECK (md5 of the live function bodies this migration replaces, Supabase MCP execute_sql,
 -- read-only, 2026-09-05 — run this again immediately before applying; if any md5 differs, STOP and
@@ -66,6 +78,60 @@
 --   -- get_workspace_intelligence_listings_public     d37a9bb04b368ec235009a9ef23a7624
 --   -- get_workspace_intelligence_slim                3ca10db08f84c019c9fa0e16bfe3b49b
 --   -- get_workspace_intelligence_slim_public         001533ca27dcecbdf2b83cef58b51633
+
+--
+-- ── WHY THIS FILE DROPS BEFORE IT CREATES (found by the coordinator, live, 2026-09-05 20:20 UTC) ────
+-- The version above (this file, pre-fix) used CREATE OR REPLACE FUNCTION alone, the way migration
+-- 269 did. Postgres REFUSED it, reproduced in a BEGIN/ROLLBACK against the live project, nothing
+-- applied:
+--     ERROR 42P13: cannot change return type of existing function
+--     DETAIL: Row type defined by OUT parameters is different.
+--     HINT: Use DROP FUNCTION get_workspace_intelligence_slim_public() first.
+-- CREATE OR REPLACE can change a function's BODY but never its RETURNS TABLE shape, and every one of
+-- the 11 functions below gains a trailing column. 269 got away with CREATE OR REPLACE because it
+-- changed only a WHERE predicate, not the returned row shape — same reasoning migration 272 already
+-- documents in full for this exact error against a different eight functions (`git show
+-- origin/master:fsi-app/supabase/migrations/272_customer_rpcs_project_jurisdiction_iso.sql`); this
+-- migration hits the identical class of error for the identical reason and takes 272's fix.
+--
+-- SAFETY OF THE DROP. Postgres DDL is transactional: every DROP and every CREATE below commit
+-- together (or none do), so no concurrent session ever observes a missing function. There is no
+-- deploy window to schedule. Dependency check (this lane, `git grep` across every migration file for
+-- each of the 11 identities): no view, no other SQL/plpgsql function, and no trigger references any
+-- of these 11 by name anywhere in the tree outside their own prior CREATE OR REPLACE bodies — the one
+-- object that reads a similarly-named base, `active_intelligence_items` (migration 116), is a VIEW
+-- defined directly over `public.intelligence_items` and does not call any of these 11 functions, so it
+-- is not a dependent. plpgsql function bodies are never dependency-tracked by Postgres either way (a
+-- DROP of a function referenced only from inside another function's body succeeds silently), so this
+-- check is for human readability, not because Postgres would otherwise refuse the DROP.
+--
+-- DROP ORDER. Listed dependents-of-`_workspace_active_items` first (the four RPCs that source it:
+-- listings, listings_public, operations, research) purely for readability — Postgres does not require
+-- this, since a plpgsql body's reference to another function is resolved at CALL time, not at DROP
+-- time, so `_workspace_active_items` can be (and is) dropped and recreated in this same transaction
+-- while its callers are momentarily absent with no error.
+--
+-- GRANTS ARE NOT PRESERVED BY DROP, so they are restored explicitly at the foot of this file. The
+-- live ACL (read live, this lane) is identical on all 11:
+--     {=X/postgres,postgres=X/postgres,anon=X/postgres,authenticated=X/postgres,service_role=X/postgres}
+-- `=X/postgres` is the PUBLIC grant CREATE FUNCTION re-creates by default; CREATE FUNCTION does NOT
+-- default-grant the three named roles, so each is re-granted explicitly below or every customer read
+-- 403s the moment this transaction commits.
+-- ────────────────────────────────────────────────────────────────────────────────────────────────────
+
+BEGIN;
+
+DROP FUNCTION IF EXISTS public.get_workspace_intelligence_listings(uuid, integer);
+DROP FUNCTION IF EXISTS public.get_workspace_intelligence_listings_public(integer, text, date, uuid);
+DROP FUNCTION IF EXISTS public.get_operations_items(uuid);
+DROP FUNCTION IF EXISTS public.get_research_items(uuid);
+DROP FUNCTION IF EXISTS public._workspace_active_items(uuid);
+DROP FUNCTION IF EXISTS public.get_workspace_intelligence_slim(uuid);
+DROP FUNCTION IF EXISTS public.get_workspace_intelligence_slim_public();
+DROP FUNCTION IF EXISTS public.get_market_intel_items(uuid);
+DROP FUNCTION IF EXISTS public.get_market_intel_items_public();
+DROP FUNCTION IF EXISTS public.get_operations_items_public();
+DROP FUNCTION IF EXISTS public.get_research_items_public();
 
 -- 1. _workspace_active_items(p_org_id) — shared org-scoped base for get_workspace_intelligence_
 --    listings / get_operations_items / get_research_items. Adds ii.item_grade as a trailing column
@@ -450,8 +516,23 @@ BEGIN
 END;
 $function$;
 
--- Grants unchanged (all 11 already carry the same anon/authenticated/service_role EXECUTE grants
--- CREATE OR REPLACE preserves grants on an existing function; nothing to re-grant).
+-- Grants are NOT preserved by DROP FUNCTION — CREATE FUNCTION grants only PUBLIC (`=X/postgres`) by
+-- default, so the three named roles the live ACL carried (anon, authenticated, service_role) are
+-- re-granted explicitly here on all 11. (This replaces this file's earlier text, written before the
+-- coordinator's live apply attempt proved CREATE OR REPLACE alone fails with 42P13 on these 11: the
+-- earlier text said "CREATE OR REPLACE preserves grants... nothing to re-grant," which was true only
+-- for the plain CREATE OR REPLACE this file no longer uses.)
+GRANT EXECUTE ON FUNCTION public._workspace_active_items(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_slim(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_slim_public() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_listings(uuid, integer) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_workspace_intelligence_listings_public(integer, text, date, uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_market_intel_items(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_market_intel_items_public() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_operations_items(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_operations_items_public() TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_research_items(uuid) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.get_research_items_public() TO anon, authenticated, service_role;
 
 -- ── Post-check (idempotent — safe to re-run; matches migration 306's own shape) ─────────────────────
 DO $$
@@ -507,3 +588,5 @@ BEGIN
     RAISE EXCEPTION 'ABORT: slim_public (%) and listings_public (%) row counts disagree after adding item_grade — same base predicate, must match', n_total, n_record;
   END IF;
 END $$;
+
+COMMIT;
