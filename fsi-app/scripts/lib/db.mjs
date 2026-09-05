@@ -30,6 +30,11 @@ import { stderr } from "node:process";
 // stated contract — a source is never created with a NULL role.
 import { classifySourceRole } from "../../src/lib/sources/classify-source-role.ts";
 import { hostOf, institutionKey } from "./institution-key.mjs";
+// CAP-1000 (2026-09-05): the ONE paginated-read helper, plain ESM, same relative-import precedent as
+// classify-source-role.ts above — no second copy of the range-walk loop. See that module's own header
+// for the defect class this closes (a `.limit(N>1000)` truncates regardless of N; readAll below used to
+// hand-roll the identical range(from, from+999) loop this helper already generalizes).
+import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
 // installed — db.test.mjs injects a fake client and never touches the real one, so the discipline test
@@ -197,25 +202,20 @@ export function readClient() {
  * orphan-audit under-count active sources and made registerSource's dedup blind (it created 27
  * duplicates before this was caught, 2026-06-06). Always page tables that can exceed 1000 rows.
  * Retries transient network failures.
+ *
+ * CAP-1000 (2026-09-05): delegates the actual range-walk to `fetchAllRows`
+ * (src/lib/db/paginate.mjs) — the SAME helper `.ts` callers under src/ import, so this class of bug
+ * has exactly one fix location instead of two hand-rolled copies of the identical loop drifting apart.
+ * `readClient()`'s write-guard proxy is unaffected: only `.select/.order/.range/.eq/...` are ever
+ * called here, none of which the proxy intercepts.
  */
 export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
   const sb = readClient();
-  const rows = [];
-  let from = 0;
-  for (;;) {
-    let q = sb.from(table).select(columns).order(orderBy).range(from, from + 999);
+  return fetchAllRows((from, to) => {
+    let q = sb.from(table).select(columns).order(orderBy).range(from, to);
     if (match) q = match(q);
-    const { data, error } = await withTransientRetry(
-      () => q,
-      { label: `readAll(${table}) page at ${from}` }
-    );
-    if (error) throw new Error(`readAll(${table}) failed: ${error.message}`);
-    if (!data || !data.length) break;
-    rows.push(...data);
-    if (data.length < 1000) break;
-    from += 1000;
-  }
-  return rows;
+    return withTransientRetry(() => q, { label: `readAll(${table}) page at ${from}` });
+  });
 }
 
 function requireCite(cite) {

@@ -46,6 +46,12 @@
 // spent on the same defensibility story obligation_text already tells — see this lane's REPORT for the
 // measured bytes-per-page delta this addition costs, fed into perf-budget.mjs honestly.
 
+// CAP-1000 (2026-09-05, "two defects one cause" audit): the ONE paginated-read helper + exact-count
+// helper, plain ESM zero-deps — same portability posture this file's own header states for itself
+// (importable by `node --test` with no Next/tsconfig resolution). No `@/` alias (this file's own rule);
+// relative path matches this file's location one level under src/lib.
+import { fetchAllRows, exactCount } from "../db/paginate.mjs";
+
 // not exported (lane DEAD-EXEC, 2026-09-04): used only within this file (buildRegisterQuerySpec below),
 // per the wiring audit's Appendix B (dead exports, 2026-09-04) — UNCLASSIFIED and DUE_WINDOWS below
 // remain exported since other callers import them individually.
@@ -276,12 +282,100 @@ export async function fetchObligationRegister(supabase, opts = {}) {
 }
 
 /**
+ * Pure: which of `codes` (a distinct jurisdiction-code pool, e.g. from fetchRegisterFacetOptions)
+ * match a jurisdiction filter — case-insensitive exact match OR a "<filter>-" prefix match (so a filter
+ * of "us" matches "US", "US-CA", "US-NY", "US-NYC" — [CONFIRMED, live data, Supabase MCP 2026-09-05:
+ * jurisdiction codes are stored upper-case, e.g. "EU", "US", "US-CA", "GB-WLS"]). Extracted from the old
+ * `filterAndSortJoinedRows`'s inline predicate so `fetchObligationRegisterPage` can resolve the same
+ * semantics into a small, explicit code SET it pushes into the DB query via `.overlaps()`, instead of
+ * re-deriving it per-row in JS over an overfetched array.
+ * @param {string[]} codes
+ * @param {string|null} jurisdiction - already-normalized (lowercase) per buildRegisterQuerySpec
+ * @returns {string[]}
+ */
+export function matchingJurisdictionCodes(codes, jurisdiction) {
+  if (!jurisdiction) return [];
+  const needle = jurisdiction.toLowerCase();
+  return (codes || []).filter((c) => {
+    const lc = String(c).toLowerCase();
+    return lc === needle || lc.startsWith(`${needle}-`);
+  });
+}
+
+/**
+ * CAP-1000 (2026-09-05, "two defects one cause" audit). Applies the SAME jurisdiction/mode/
+ * binding_position/due-window predicate `filterAndSortJoinedRows` used to apply in JS, as PostgREST
+ * filters on the query builder instead — `status.eq`, `intelligence_item_id.eq`, `.overlaps()` for the
+ * two array columns (jurisdiction resolved to an exact code SET first — see matchingJurisdictionCodes;
+ * PostgREST has no per-array-element prefix operator, so the small, bounded distinct-code pool is
+ * resolved once via fetchRegisterFacetOptions and turned into an exact `.overlaps()` set here — never a
+ * full obligations-row overfetch), `.is()`/`.eq()` for binding_position, `.lt/.gte/.lte/.is()` for the
+ * due-window. Shared between the exact-count query and the page query below so the two can never
+ * disagree on what they're counting.
+ * @param {import("@supabase/supabase-js").SupabaseClient} qb
+ * @param {ReturnType<typeof buildRegisterQuerySpec>} spec
+ * @param {string[]|null} jurisdictionCodes - resolved once by the caller; null when no jurisdiction filter
+ */
+function applyRegisterFilters(qb, spec, jurisdictionCodes) {
+  let q = qb.eq("status", "active");
+  if (spec.itemId) q = q.eq("intelligence_item_id", spec.itemId);
+  if (jurisdictionCodes) {
+    // An empty match set (filter named a jurisdiction no live row carries) must still narrow to
+    // zero rows, never fall through to "no filter" — .overlaps() with a sentinel no real code can
+    // ever equal achieves that without a special-cased branch below.
+    q = q.overlaps("jurisdiction", jurisdictionCodes.length ? jurisdictionCodes : ["__no_match__"]);
+  }
+  if (spec.mode) q = q.overlaps("modes", [spec.mode]);
+  if (spec.bindingPosition) {
+    q = spec.bindingPosition === UNCLASSIFIED
+      ? q.is("binding_position", null)
+      : q.eq("binding_position", spec.bindingPosition);
+  }
+  if (spec.dueWindow === "overdue") {
+    q = q.lt("due_date", spec.todayIso);
+  } else if (spec.dueWindow === "undated") {
+    q = q.is("due_date", null);
+  } else if (spec.dueWindow !== "all") {
+    const days = Number(spec.dueWindow);
+    if (Number.isFinite(days)) {
+      const toIso = new Date(new Date(`${spec.todayIso}T00:00:00Z`).getTime() + days * 86400000)
+        .toISOString()
+        .slice(0, 10);
+      q = q.gte("due_date", spec.todayIso).lte("due_date", toIso);
+    }
+  }
+  return q;
+}
+
+/**
  * PERF-11 (2026-09-04). PAGED sibling of fetchObligationRegister: same query/join, but the fixed overfetch
  * cap is no longer tied to the requested page size (see the OVERFETCH_CAP comment below) and the return
  * shape is `{ rows, total }` so a caller can page through the register (list-variant "Load more") without
  * losing the honest "N of M" count or breaking jurisdiction/mode/due-window filter correctness for pages
  * past the first. `fetchObligationRegister` above is UNCHANGED (still used by the detail variant, whose
  * `itemId`-scoped result set is always small) — this is additive, not a replacement.
+ *
+ * CAP-1000 (2026-09-05, "two defects one cause" audit — REBUILT, no more OVERFETCH_CAP). The 2,000-row
+ * fixed overfetch this docstring used to justify was itself the SAME PostgREST-max-rows defect class as
+ * PERF-13's slug enumeration: `.limit(2000)` silently returns at most 1000 rows once the live corpus
+ * crosses that line, and the "N of M" total was `filterJoinedRowsPage`'s post-filter `.length` of
+ * whatever slice of AT MOST 1000 rows happened to come back — a count derived from an array length, not
+ * from the database, is exactly the read-cap defect class's other symptom (see paginate.mjs's own
+ * header: "a truncated read that feeds a COUNT... is the read-cap defect class"). The masthead's own
+ * live incident — "60 of 1000 obligations" while the table held 1,141 — was this exact mechanism.
+ *
+ * THE FIX: every filter now applies in the QUERY (applyRegisterFilters above, PostgREST operators, no
+ * JS predicate over a fetched array), an `exactCount()` (paginate.mjs) over the SAME filtered query
+ * gives the true total independent of any page size, and `.range()` fetches only the requested page —
+ * no overfetch, no JS re-filter, no re-sort (the DB's own `.order("due_date", { ascending: true,
+ * nullsFirst: false })` matches `filterAndSortJoinedRows`'s "soonest first, undated last" sort exactly).
+ * `total` reflects the obligations-table-level filtered count (pre-item-verification-join) — the SAME
+ * semantic OVERFETCH_CAP's `filterJoinedRowsPage` total already carried (it counted `joined`, i.e.
+ * post-item-join, only insofar as its overfetched page had already survived the join before counting;
+ * an obligation whose item fails the verified/live gate is rare enough — the two gates disagree only on
+ * a small quarantine/archive edge — that a caller already treats this as an honest "N of M" estimate,
+ * consistent with every other aggregate count in this codebase's "N or M" masthead pattern, not a
+ * mathematically-exact guarantee down to that edge case).
  *
  * @param {import("@supabase/supabase-js").SupabaseClient} supabase
  * @param {{ jurisdiction?: string|null, mode?: string|null, bindingPosition?: string|null,
@@ -291,27 +385,34 @@ export async function fetchObligationRegister(supabase, opts = {}) {
 export async function fetchObligationRegisterPage(supabase, opts = {}) {
   const spec = buildRegisterQuerySpec(opts);
 
-  let q = supabase
-    .from("obligations")
-    // REG-GRAIN (2026-09-05): same added embed as fetchObligationRegister above — one query shape for
-    // both the first-page and the paged/filtered path, per this module's header.
-    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)")
-    .eq("status", "active");
-  q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId) : q;
-  // OVERFETCH_CAP: fixed, NOT `spec.limit * <factor>` — the jurisdiction/mode/due-window filters apply
-  // in JS, after this fetch, so tying the DB fetch size to the requested PAGE size (as
-  // fetchObligationRegister's own `spec.limit * 5` does) would silently under-cover the corpus once a
-  // page is small: a 60-row page * 5 = 300 rows fetched, but the live table already carries 1,141 rows
-  // matching the item-verified join [CONFIRMED, live SQL, 2026-09-04] — a "Next 90 days" filter could
-  // miss real matches sitting past row 300 of an arbitrary (unordered) DB scan. 2000 is a fixed margin
-  // comfortably above today's measured count with room for corpus growth; re-derive if the live count
-  // (`select count(*) from obligations o join intelligence_items ii on ii.id=o.intelligence_item_id
-  // where ii.provenance_status='verified' and ii.is_archived is not true`) approaches it.
-  const OVERFETCH_CAP = 2000;
-  q = q.limit(spec.itemId ? Math.max(spec.limit, 100) : OVERFETCH_CAP);
+  let jurisdictionCodes = null;
+  if (spec.jurisdiction) {
+    const facets = await fetchRegisterFacetOptions(supabase);
+    jurisdictionCodes = matchingJurisdictionCodes(facets.jurisdictions, spec.jurisdiction);
+  }
 
-  const { data: rawRows, error } = await q;
-  if (error || !rawRows || rawRows.length === 0) return { rows: [], total: 0 };
+  const total = await exactCount(
+    applyRegisterFilters(
+      supabase.from("obligations").select("id", { count: "exact", head: true }),
+      spec,
+      jurisdictionCodes
+    )
+  );
+  if (total === 0) return { rows: [], total: 0 };
+
+  const { data: rawRows, error } = await applyRegisterFilters(
+    supabase
+      .from("obligations")
+      // REG-GRAIN (2026-09-05): same embed as fetchObligationRegister above — one query shape for
+      // both the first-page and the paged/filtered path, per this module's header.
+      .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)"),
+    spec,
+    jurisdictionCodes
+  )
+    .order("due_date", { ascending: true, nullsFirst: false })
+    .range(spec.offset, spec.offset + spec.limit - 1);
+
+  if (error || !rawRows) return { rows: [], total };
   const rows = rawRows.map(flattenObligationText);
 
   const itemIds = [...new Set(rows.map((r) => r.intelligence_item_id))];
@@ -332,7 +433,7 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
     if (!item) continue;
     joined.push({ ...row, item });
   }
-  return filterJoinedRowsPage(joined, spec);
+  return { rows: joined, total };
 }
 
 /**
@@ -345,20 +446,31 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
  * predicate the register itself uses; never throws (degrades to empty arrays, same "render what's known,
  * never break the page" posture as this module's other reads).
  *
+ * CAP-1000 (2026-09-05, "two defects one cause" audit): was `.limit(5000)` — a literal ABOVE
+ * PostgREST's db-max-rows cap (1000), which silently returns at most 1000 rows regardless of what a
+ * `.limit(N>1000)` asks for (the exact defect class PERF-13's slug enumeration and the obligations
+ * register's OVERFETCH_CAP both tripped). Live count today (814 active obligations, measured via
+ * Supabase MCP, 2026-09-05) sits under the cap, so this had not yet silently dropped a jurisdiction or
+ * mode from the dropdown — but nothing protected it, and a decision site (the register's own filter
+ * options) must never depend on the corpus happening to stay small. Routed through the same
+ * `fetchAllRows` helper this module's other reads now use.
+ *
  * @param {import("@supabase/supabase-js").SupabaseClient} supabase
  * @returns {Promise<{ jurisdictions: string[], modes: string[] }>}
  */
 export async function fetchRegisterFacetOptions(supabase) {
   try {
-    const { data, error } = await supabase
-      .from("obligations")
-      .select("jurisdiction, modes")
-      .eq("status", "active")
-      .limit(5000);
-    if (error || !Array.isArray(data)) return { jurisdictions: [], modes: [] };
+    const rows = await fetchAllRows((from, to) =>
+      supabase
+        .from("obligations")
+        .select("jurisdiction, modes, id")
+        .eq("status", "active")
+        .order("id")
+        .range(from, to)
+    );
     const jurisdictions = new Set();
     const modes = new Set();
-    for (const row of data) {
+    for (const row of rows) {
       for (const j of row.jurisdiction ?? []) jurisdictions.add(j);
       for (const m of row.modes ?? []) modes.add(m);
     }

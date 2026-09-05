@@ -121,6 +121,9 @@ node --test \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/lib/list-pagination.test.mjs \
   fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \
+  fsi-app/src/lib/supabase-server-category-rpc-paging.test.mjs \
+  fsi-app/src/lib/data-public-surface-slugs.test.mjs \
+  fsi-app/src/lib/db/*.test.mjs \
   fsi-app/src/lib/perf/*.test.mjs \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \

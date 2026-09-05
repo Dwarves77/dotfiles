@@ -19,10 +19,26 @@ hand-maintained copy). The FILE LIST this family's `harness_version` hashes is b
 own three governing files — changed BYTES (the import line and the declaration), which is what moved
 the hash. Neither `reconcile.ts` nor `run-intake-cycle.ts` changed.
 
-**harness_version at write time:** `sha256:af1881244df2726a`
+Hash at that write: `sha256:af1881244df2726a` — SUPERSEDED, see the CAP-1000 re-pin below (F28's
+`parsePendingRunHash` reads the FIRST `harness_version at write time:` line in this file, so only ONE
+such line may appear at a time; this paragraph deliberately does not repeat that exact phrase).
 
-**The planned run that supersedes this marker:** the next `change-detection` dispatch (this environment
-has no live DB/network access to run it for real, same limitation this family's own header already
-states) — its `change-detection-run-006.json` will record `harness_version: sha256:af1881244df2726a`,
-discharging this marker per F28's reverse-audit (or the marker is re-pinned to a new hash, per rule (c),
-if a governing file changes again before that run lands).
+**RE-PINNED (Lane CAP-1000, 2026-09-05, "two defects one cause" audit):** exactly the "if a governing
+file changes again before that run lands" case above fired again. `run-change-detection.mjs`'s
+`readPendingDrainRows` used to derive its "how many rows beyond `--drain-limit` are pending" overflow
+count from `.limit(Math.max(limit, 1000) + 1)`'s ARRAY LENGTH — PostgREST's `db-max-rows` setting caps
+that response at 1000 rows regardless of the `+1`, so once the true `staged_updates` backlog exceeded
+1000 the "+1 over the cap" trick silently stopped working and `overflow` read as a false 0 no matter how
+deep the real backlog ran (the same defect class this lane's audit found and fixed at PERF-13's slug
+enumeration and the obligations register's `OVERFETCH_CAP`). Fixed to use `exactCount()`
+(`src/lib/db/paginate.mjs`, a DB-computed `{ count: 'exact', head: true }`) for the true total plus a
+separate, honestly-bounded `.limit(limit)` sample read — `overflow = total - rows.length` is now exact at
+any backlog depth. This changed `run-change-detection.mjs`'s bytes again (one of this family's three
+governing files, unchanged file LIST), moving the hash a second time.
+
+**harness_version at write time:** `sha256:b155a4626335408f`
+
+**The planned run that supersedes THIS marker:** the same next live `change-detection` dispatch as above
+(still no live DB/network access from this lane) — its `change-detection-run-006.json` will record
+`harness_version: sha256:b155a4626335408f`, discharging this marker per F28's reverse-audit (or the
+marker is re-pinned again, per rule (c), if a governing file changes once more before that run lands).

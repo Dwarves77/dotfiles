@@ -142,6 +142,11 @@ jobs:
     env:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # Cache flush after a real apply (CAP-1000, 2026-09-05): scripts/lib/revalidate.mjs POSTs the
+      # ledger/detail cache tags to /api/revalidate. Same secret pair maintenance.yml/change-detection.yml
+      # already use; absent, the helper skips and the 60s/300s cache backstops bound staleness.
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
     steps:
       - uses: actions/checkout@v4
 
@@ -324,6 +329,18 @@ jobs:
           args=(--mode "$RUN_MODE" --batch "$RUN_BATCH")
           if [ -n "$RUN_TRIGGER_CONTEXT" ]; then args+=(--trigger-context "$RUN_TRIGGER_CONTEXT"); fi
           node scripts/turns/run-propagation-drain.mjs "${args[@]}"
+
+      # CACHE FLUSH AFTER EVERY APPLY (CAP-1000, 2026-09-05, "two defects one cause" audit). backfill-
+      # entities.mjs/run-propagation-drain.mjs write entities/derived_values in apply mode — rows the
+      # Operations/Market surfaces' derived panels read. Flushes unconditionally on any real (non-skipped)
+      # apply (revalidateTag is idempotent/cheap). Reuses the SAME CLI apply-mint-batch.mjs's own
+      # in-process call already exercises (scripts/lib/revalidate.mjs's `main()`, tested in
+      # revalidate.test.mjs) — no second copy of the POST-to-/api/revalidate logic. `|| true`: best-effort,
+      # same "no APP_URL: say so, never fail the job" contract revalidate.mjs's own revalidateTags()
+      # already implements.
+      - name: Flush public/detail caches after a real apply (every apply, not mint alone)
+        if: ${{ always() && env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' }}
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
 
       # Commit the family's own harness-run artifact (scripts/harness-runs/propagation/**) so the run this
       # dispatch produced survives past the Actions log — same posture source-sweep.yml applies to its own

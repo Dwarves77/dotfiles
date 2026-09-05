@@ -39,6 +39,7 @@ import {
   type ResourcePage,
 } from "@/lib/supabase-server";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { fetchAllRows } from "@/lib/db/paginate.mjs";
 import {
   fetchObligationRegisterPage,
   fetchForwardEventCount,
@@ -468,27 +469,55 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
  * ONE function reused by all four `generateStaticParams` exports, sourced through the SAME public
  * data path each surface's own index page already reads (getPublicListingsOnly/
  * getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems, all above) — no
- * second query, no hand-rolled duplicate of the domain-routing rule (src/lib/domains.ts). A limit
- * high enough to be effectively unbounded for the live corpus (1,312 regulations + 55 market + 25
- * operations + 39 research = 1,431 verified non-archived items, measured via Supabase MCP
- * `get_workspace_intelligence_slim_public()`/`get_market_intel_items_public()`/etc., 2026-09-04) —
- * NOT the deleted `LIST_REMAINDER_LIMIT` anti-pattern (list-pagination.ts's own header): that
- * constant gated a PER-REQUEST response payload; this one gates a single build-time query that
- * runs once per `next build`, never shipped to a browser.
+ * second query, no hand-rolled duplicate of the domain-routing rule (src/lib/domains.ts).
+ *
+ * CAP-1000 (2026-09-05, "two defects one cause" audit — [CONFIRMED] the ROOT CAUSE of PERF-13's own
+ * live symptom: measured on carosledge.com, slug index 900 in the cursor order was a PRERENDER hit
+ * (293 ms) and indices 1000/1050/1200/1311 were all MISS, rendered on demand — exactly the first 1,000
+ * were prerendered). `getPublicListingsOnly({ limit: BUILD_TIME_SLUG_ENUM_LIMIT, offset: 0, ... })`
+ * used to ask for one giant page in a SINGLE `.range(0, limit-1)` call — PostgREST's db-max-rows
+ * setting caps that response at 1000 rows regardless of how wide the requested range is (the exact bug
+ * class `scripts/lib/db.mjs`'s `readAll` already names and pages around for scripts). The regulations
+ * surface's live count is 1,316 (measured, Supabase MCP `surface_of()` group-by, 2026-09-05) — over the
+ * cap — so 316 slugs were silently never enumerated and their FIRST visitor always paid the on-demand
+ * render this lane's own live measurement caught.
+ *
+ * THE FIX: walk pages of `getPublicListingsOnly` via the shared `fetchAllRows` helper (the SAME
+ * mechanism db.mjs's `readAll` and supabase-server.ts's category-RPC fetchers now use — one paging
+ * mechanism, not a fourth hand-rolled copy) — `get_workspace_intelligence_listings_public` (migration
+ * 306) ends its own `RETURN QUERY ... ORDER BY` at `ii.id ASC` [CONFIRMED, live `pg_get_functiondef`],
+ * a genuine total order, so offset-`.range()` paging across multiple calls is lossless. `cap: 20000`
+ * keeps the "effectively unbounded but not silently runaway" ceiling the deleted constant's own header
+ * described — now a genuine safety assertion (fetchAllRows throws past it) rather than a per-request
+ * limit that PostgREST silently overrode anyway.
+ *
+ * market/operations/research need NO change here: their category-routed fetchers
+ * (getPublicMarketIntelItems/getPublicOperationsItems/getPublicResearchItems) now page internally too
+ * (supabase-server.ts's `runCategoryRpcPublic` fix, same audit) — this function's existing one-call-each
+ * shape already returns their complete corpus as a result of that shared fix, not a second one here.
  */
-const BUILD_TIME_SLUG_ENUM_LIMIT = 20000;
+async function fetchAllPublicListingSlugs(): Promise<string[]> {
+  const rows = await fetchAllRows<{ id: string }>(
+    async (from, to) => {
+      const { resources, _error } = await getPublicListingsOnly({
+        limit: to - from + 1,
+        offset: from,
+        domain: REGULATIONS_DOMAIN,
+      });
+      if (_error) return { data: null, error: { message: _error } };
+      return { data: resources.map((r) => ({ id: r.id })), error: null };
+    },
+    { pageSize: 1000, cap: 20000 }
+  );
+  return rows.map((r) => r.id).filter(Boolean);
+}
 
 export async function getPublicSurfaceSlugs(
   surface: "regulations" | "market" | "operations" | "research"
 ): Promise<string[]> {
   switch (surface) {
     case "regulations": {
-      const { resources } = await getPublicListingsOnly({
-        limit: BUILD_TIME_SLUG_ENUM_LIMIT,
-        offset: 0,
-        domain: REGULATIONS_DOMAIN,
-      });
-      return resources.map((r) => r.id).filter(Boolean);
+      return fetchAllPublicListingSlugs();
     }
     case "market": {
       const { resources } = await getPublicMarketIntelItems();

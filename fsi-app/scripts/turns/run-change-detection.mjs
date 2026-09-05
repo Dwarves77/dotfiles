@@ -63,6 +63,7 @@ import { writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
+import { exactCount } from "../../src/lib/db/paginate.mjs";
 // change-sweep.mjs's own whole transitive import graph is relative .mjs + node: builtins only (traced:
 // verify-item.mjs -> acquire-lock.mjs; snapshot-store.mjs -> node:crypto/zlib/util; amendment-diff.mjs ->
 // holdings-audit.mjs -> ../agent/source-blocks.mjs, a leaf) — safe to import statically here so this
@@ -139,11 +140,6 @@ export function evaluateScrapeGate(state, now, windowOpen) {
 export function routeExitedAtGate(body) {
   return typeof body?.message === "string" && /worker exiting/i.test(body.message);
 }
-// Bound on the informational "how many rows are pending right now" reads this script does ahead of the
-// real (bounded) reconcile/drain calls — generous enough to see the true backlog depth without an
-// unbounded scan; NOT the batch/drain limit itself (those stay --reconcile-batch / --drain-limit).
-const PENDING_READ_CAP = 1000;
-
 function usage() {
   return (
     "Usage: node scripts/turns/run-change-detection.mjs --mode <dry|apply>\n" +
@@ -625,20 +621,36 @@ async function countPendingQueueRows(sb) {
 /** Rows drainChangeSweepUpdates' own claim query would read RIGHT NOW (read-only, mirrors that
  *  function's own SELECT), capped at `limit` for the reported "would drain" set plus an honest overflow
  *  count when more are pending than `limit` covers (the same bounded/reported posture the real drain
- *  applies via `notDrained`). */
+ *  applies via `notDrained`).
+ *
+ *  FIXED (CAP-1000, 2026-09-05, "two defects one cause" audit): this used to read
+ *  `.limit(Math.max(limit, 1000) + 1)` and derive `overflow` from that ARRAY's length — PostgREST's
+ *  db-max-rows caps any single response at 1000 rows regardless of what `.limit()` asks for, so once the
+ *  true backlog exceeded 1000 the "+1 over the cap" trick silently stopped working and overflow read as
+ *  a false 0 no matter how deep the real backlog ran. Now the true total comes from `exactCount()`
+ *  (paginate.mjs, `{ count: 'exact', head: true }` — a DB-computed count, not an array length) and the
+ *  sample page is a separate, honestly-bounded `.limit(limit)` read; `overflow = total - rows.length` is
+ *  then exact at any backlog depth. */
 async function readPendingDrainRows(sb, limit) {
-  const { data, error } = await sb
-    .from("staged_updates")
-    .select("id, item_id, source_id, created_at")
-    .eq("update_type", "update_item")
-    .eq("status", "pending")
-    .like("reason", `${CHANGE_SWEEP_STAGED_MARKER}%`)
+  const pendingFilters = (q) =>
+    q.eq("update_type", "update_item").eq("status", "pending").like("reason", `${CHANGE_SWEEP_STAGED_MARKER}%`);
+
+  let total;
+  try {
+    total = await exactCount(pendingFilters(sb.from("staged_updates").select("id", { count: "exact", head: true })));
+  } catch {
+    return { rows: [], overflow: 0 };
+  }
+
+  const { data, error } = await pendingFilters(
+    sb.from("staged_updates").select("id, item_id, source_id, created_at")
+  )
     .order("created_at", { ascending: true })
-    .limit(Math.max(limit, PENDING_READ_CAP) + 1);
+    .limit(limit);
   if (error) return { rows: [], overflow: 0 };
-  const all = data ?? [];
-  const rows = all.slice(0, limit);
-  const overflow = all.length > limit ? all.length - limit : 0;
+
+  const rows = data ?? [];
+  const overflow = Math.max(0, total - rows.length);
   return { rows, overflow };
 }
 

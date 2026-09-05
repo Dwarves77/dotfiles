@@ -158,6 +158,16 @@ import { fitnessFunction as F36 } from './functions/F36-date-format-timezone-pin
 // numbers docs/audits/perf-waterfall-2026-09-04.md measured. Same registry-of-classified-constants
 // shape F17 (size-cap-doctrine) already established.
 import { fitnessFunction as F37 } from './functions/F37-perf-budget.mjs';
+// Unbounded Supabase read (2026-09-05, Lane CAP-1000, "two defects one cause" audit): PostgREST's
+// db-max-rows caps ANY response at 1000 rows regardless of what `.limit(N)` asks for — PERF-13's
+// getPublicSurfaceSlugs (.limit(20000), only the first 1,000 of 1,312+ regulations ever prerendered) and
+// the obligations register's fetchObligationRegisterPage (OVERFETCH_CAP=2000, masthead read "60 of 1000"
+// against a live 1,141-row table) are the two live instances that named this defect class; this lane also
+// fixed two more of the same shape (supabase-server.ts's runCategoryRpc/runCategoryRpcPublic, and
+// run-change-detection.mjs's readPendingDrainRows overflow count). F38 is the mechanical backstop: a new
+// `.limit(<literal or same-file constant> > 1000)` site must be registered (bounded-by-design, with an
+// expiry train/wave) or routed through fetchAllRows/exactCount (src/lib/db/paginate.mjs) instead.
+import { fitnessFunction as F38 } from './functions/F38-unbounded-supabase-read.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -191,6 +201,7 @@ export const fitnessFunctions = [
   F35,
   F36,
   F37,
+  F38,
 ];
 
 export function getFunctionById(id) {
