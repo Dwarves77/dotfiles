@@ -110,14 +110,25 @@ export function GradeModifierLedger({ modifiers }: { modifiers: GradeModifier[] 
 // ── Shared chip chrome ──
 
 // Law-2 floor (docs/design/ux-laws.md #2): 9.5px text at 2px vertical padding rendered at ~14px
-// tall — below the "24px + 8px clearance" alternative to the 44px target size, even though the
-// row that hosts these two chips (FindingRow, `gap: 8`) already supplies the 8px clearance.
-// `minHeight: 24` + `inline-flex`/`alignItems: center` closes the gap without changing the type
-// scale, colour, or the chip's visual chrome (same font-size, padding, border, radius).
+// tall — below the 44px target size, and also below the "24px + 8px clearance from every other
+// target" alternative. `minHeight: 24` was this component's original attempt at that alternative
+// (relying on the hosting row's own `gap: 8` for clearance), which is what it still is on
+// ResearchLedger's FindingRow and MarketIntelLedger's SignalRow (plain, non-anchor row containers).
+//
+// ROW-CHIP RULE FIX (lane CHIPS, 2026-09-05, W3.4): the rendering guard's own `detectSmallTargets`
+// treats every `a[href]` as a target too (ux-assert.mjs TARGET_SELECTOR) — so once this chip mounted
+// inside RegulationsLedger's RegRow and OperationsItemsView's OperationsItemCard (each a WHOLE
+// card wrapped in one `<Link>`, the same anchor-nesting shape PriorityDropdown.tsx's own 44×44
+// trigger already lives inside), the enclosing anchor's bounding box always fully CONTAINS the chip
+// button, so `boxGap` between them is always 0 — the "24 + 8px clearance" alternative can never be
+// satisfied for any sub-44px control nested inside an anchor, by construction. `minHeight: 24` ->
+// `44` meets the PRIMARY floor directly instead (same fix PriorityDropdown's own trigger already
+// uses), which is unconditionally sufficient regardless of what a control is nested inside — one
+// rule, not a different chip size on anchor-wrapped surfaces vs the other two.
 export const chipButtonStyle = (scored: boolean): React.CSSProperties => ({
   display: "inline-flex",
   alignItems: "center",
-  minHeight: 24,
+  minHeight: 44,
   fontFamily: "inherit",
   cursor: "pointer",
   fontSize: 9.5,
@@ -129,7 +140,16 @@ export const chipButtonStyle = (scored: boolean): React.CSSProperties => ({
   border: `1px solid ${scored ? "var(--color-primary)" : "var(--color-border-medium)"}`,
   background: scored ? "var(--color-bg-ai-strip)" : "transparent",
   color: scored ? "var(--color-primary)" : "var(--color-text-muted)",
-  whiteSpace: "nowrap",
+  // whiteSpace normal (not nowrap): at a 375px viewport, RegulationsLedger's/OperationsItemsView's
+  // available row width is narrower than this button's natural nowrap width ("Evidence ×
+  // agreement: Not scored" etc.), which measured as a real 3-7px horizontal overflow on those two
+  // surfaces (this lane's own rendering-guard run, 2026-09-05) — ResearchLedger/MarketIntelLedger
+  // never hit it only because their rows happen to have more available width, not because nowrap is
+  // actually safe here. Letting the label wrap removes the fixed-width assumption everywhere, the
+  // same one-rule reasoning as the minHeight fix above; maxWidth 100% keeps it from ever exceeding
+  // its flex container regardless of content length.
+  whiteSpace: "normal",
+  maxWidth: "100%",
 });
 
 export const chipPanelStyle: React.CSSProperties = {

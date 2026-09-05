@@ -44,6 +44,8 @@ import { TIER_LABELS } from "@/lib/tier-labels";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import { AiPromptBar } from "@/components/ui/AiPromptBar";
 
 // ── Related item shape ──────────────────────────────────────────────────────
 
@@ -770,6 +772,14 @@ export function OperationsDetailSurface({
           }}
         >
           <SeverityPill severity={severity} />
+          {/* Row-chip rule (lane CHIPS, 2026-09-05, W3.4): Operations had no RecordGradeBadge mount
+              anywhere (ledger row or detail) before this lane — see this same badge on
+              RegulationDetailSurface.tsx / MarketSignalDetailSurface.tsx / ResearchFindingDetail
+              Surface.tsx's identical pill strip position. This detail page reads `r` via select("*")
+              (fetchIntelligenceItemUncached), so item_grade is already live here today, unlike the
+              ledger row (see OperationsItemsView.tsx's own comment on why its badge needs migration
+              308 to light up). */}
+          <RecordGradeBadge itemGrade={r.itemGrade} />
           {jurisdiction && <RegionPill jurisdiction={jurisdiction} />}
           {r.type && (
             <span
@@ -878,6 +888,21 @@ export function OperationsDetailSurface({
             {typeof tier === "number" && <SourceTierBadge tier={tier} />}
           </div>
         )}
+      </div>
+
+      {/* Ask bar — page-scoped (lane CHIPS, 2026-09-05, W3.4). Same AiPromptBar mount
+          RegulationDetailSurface.tsx / MarketSignalDetailSurface.tsx already carry, extended to
+          Operations (Research's own detail surface gets it too — see
+          ResearchFindingDetailSurface.tsx) so all four surfaces' detail pages carry it. */}
+      <div style={{ marginBottom: 18 }}>
+        <AiPromptBar
+          placeholder={`Ask anything about ${r.title} — e.g. what does this mean for my operations?`}
+          chips={[
+            "What does this mean for my routes?",
+            "What's the compliance deadline?",
+            "How does this affect my costs?",
+          ]}
+        />
       </div>
 
       {/* Stat strip */}

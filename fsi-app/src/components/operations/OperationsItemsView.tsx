@@ -26,6 +26,9 @@
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
 import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
+import { RecordGradeBadge } from "@/components/shell/RecordGradeBadge";
+import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
+import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
 
@@ -145,6 +148,14 @@ function OperationsItemCard({ item }: { item: Resource }) {
             }}
           >
             <SeverityPill severity={severity} />
+            {/* Row-chip rule (lane CHIPS, 2026-09-05, W3.4): Operations was the one surface with no
+                RecordGradeBadge mount anywhere (ledger row or detail) — added here in the head strip
+                next to severity, matching where RegulationsLedger's own row places it (inline with
+                its other status chips). Renders nothing when itemGrade isn't "record" (fail-open,
+                same as every other RecordGradeBadge call site) — 0 of the live Operations corpus
+                carries item_grade='record' today (measured 2026-09-05), so this proves out on the
+                UX smoke fixture (which sets itemGrade) ahead of the population catching up. */}
+            <RecordGradeBadge itemGrade={item.itemGrade} />
             {jurisdiction && (
               <span style={{ color: "var(--color-text-muted)", fontWeight: 600 }}>
                 {jurisdiction}
@@ -250,6 +261,16 @@ function OperationsItemCard({ item }: { item: Resource }) {
               </p>
             </div>
           )}
+        </div>
+
+        {/* Row-chip rule (lane CHIPS, 2026-09-05, W3.4): the same CredibilityChipEvidence/Authority
+            pair every other surface's row now mounts. `gridColumn: "1 / -1"` spans this article's
+            own 1fr/220px grid (same idiom as RegulationsLedger's RegRow). Both chips
+            stopPropagation/preventDefault internally so toggling them inside this whole-card <Link>
+            never triggers navigation — see CredibilityChipEvidence.tsx's own comment. */}
+        <div style={{ gridColumn: "1 / -1", display: "flex", gap: 8, flexWrap: "wrap", marginTop: 4 }}>
+          <CredibilityChipEvidence biasTags={item.biasTags ?? []} />
+          <CredibilityChipAuthority sourceTier={item.sourceTier} citationCount={item.citationCount} />
         </div>
       </article>
     </Link>

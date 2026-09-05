@@ -326,6 +326,27 @@ const OPERATIONS_STATES = [
     },
     expectTitles: 6, // one data-guard-title per OperationsSectionCard heading
   },
+  // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): baseResource() defaults itemGrade to null, so the
+  // 'six-sections' state above never exercises RecordGradeBadge — Operations has no dedicated
+  // record-facts summary render (unlike Regulations/Research/Market, see this file's own header),
+  // so this state reuses the normal six sections and only flips itemGrade, proving the badge itself
+  // renders in the pill strip (and the Ask bar mounts) at both viewports without a layout regression.
+  {
+    label: 'record-grade-badge',
+    props: {
+      resource: baseResource({ id: 'ops-rec-1', itemGrade: 'record' }),
+      related: [],
+      relatedReason: 'none',
+      sections: operationsSections(),
+      matrixEligibility: EMPTY_MATRIX_ELIGIBILITY,
+      sourceFetchStatus: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+    },
+    expectTitles: 6,
+  },
 ];
 
 // ── Research ────────────────────────────────────────────────────────────────────────────────────
