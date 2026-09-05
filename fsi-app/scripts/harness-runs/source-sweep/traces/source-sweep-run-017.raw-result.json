@@ -1,0 +1,4939 @@
+{
+  "sources": [
+    {
+      "sourceId": "36978885-cb83-4af3-816d-4d3536a5cce8",
+      "sourceName": "Idaho Department of Environmental Quality (DEQ)",
+      "sourceUrl": "https://deq.idaho.gov/",
+      "kind": "feed",
+      "feedUrl": "https://www.deq.idaho.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 263296,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.deq.idaho.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.deq.idaho.gov/feed/",
+        "entries": 50,
+        "upserted": 50,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:47:50.863Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:47:50.863Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+      "sourceName": "Louisiana Department of Environmental Quality (LDEQ)",
+      "sourceUrl": "https://deq.louisiana.gov/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://deq.louisiana.gov/",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 8,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_microsites.xml",
+          "kind": "urlset",
+          "urlCount": 36,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_pages.xml",
+          "kind": "urlset",
+          "urlCount": 322,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_news.xml",
+          "kind": "urlset",
+          "urlCount": 1022,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_directory.xml",
+          "kind": "urlset",
+          "urlCount": 14,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_calendar.xml",
+          "kind": "urlset",
+          "urlCount": 16,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_faqs.xml",
+          "kind": "urlset",
+          "urlCount": 38,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_resources.xml",
+          "kind": "urlset",
+          "urlCount": 72,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.louisiana.gov/sitemap_misc.xml",
+          "kind": "urlset",
+          "urlCount": 2,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 1493,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1493,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1493,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:49:22.466Z",
+        "feed_last_probed_at": "2026-09-05T00:49:22.466Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.deq.louisiana.gov/sitemap_index.xml",
+        "sitemap_url_count": 1493
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+      "sourceName": "Montana Department of Environmental Quality (DEQ)",
+      "sourceUrl": "https://deq.mt.gov/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://deq.mt.gov/",
+      "sitemapsFetched": [
+        {
+          "url": "https://deq.mt.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 444,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 444,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 444,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 444,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:49:58.525Z",
+        "feed_last_probed_at": "2026-09-05T00:49:58.525Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://deq.mt.gov/sitemap.xml",
+        "sitemap_url_count": 444
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+      "sourceName": "North Carolina Department of Environmental Quality (NC DEQ) – Division of Air Quality",
+      "sourceUrl": "https://deq.nc.gov/about/divisions/air-quality",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://deq.nc.gov/about/divisions/air-quality",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.deq.nc.gov/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 2,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.nc.gov/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 5000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.deq.nc.gov/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2198,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 6820,
+      "urlCount": 378,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 378,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 378,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:50:35.247Z",
+        "feed_last_probed_at": "2026-09-05T00:50:35.247Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.deq.nc.gov/sitemap.xml",
+        "sitemap_url_count": 378
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "5012a359-bb4b-44f7-b28a-e9b976383051",
+      "sourceName": "North Dakota Department of Environmental Quality (NDDEQ)",
+      "sourceUrl": "https://deq.nd.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://deq.nd.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://deq.nd.gov/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.nd.gov/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.nd.gov/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:50:45.572Z",
+        "feed_last_probed_at": "2026-09-05T00:50:45.572Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "c81301f7-b043-474c-8eac-d02ff3b90542",
+      "sourceName": "Oklahoma Department of Environmental Quality (ODEQ)",
+      "sourceUrl": "https://deq.ok.gov/",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://deq.ok.gov/",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetch failed) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://deq.ok.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://deq.ok.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        },
+        {
+          "url": "https://deq.ok.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "fetch failed",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:50:56.364Z",
+        "feed_last_probed_at": "2026-09-05T00:50:56.364Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+      "sourceName": "Utah Division of Air Quality (UDAQ) – Utah Department of Environmental Quality",
+      "sourceUrl": "https://deq.utah.gov/division-air-quality",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://deq.utah.gov/division-air-quality",
+      "sitemapsFetched": [
+        {
+          "url": "https://deq.utah.gov/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 4,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.utah.gov/post-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 980,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.utah.gov/page-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 6,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.utah.gov/category-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 42,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://deq.utah.gov/post_tag-sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 1028,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:51:17.189Z",
+        "feed_last_probed_at": "2026-09-05T00:51:17.189Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://deq.utah.gov/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "91845d5f-3057-4f6d-8eb3-590d936a2767",
+      "sourceName": "Wyoming Department of Environmental Quality (DEQ) – Air Quality Division",
+      "sourceUrl": "https://deq.wyoming.gov/aqd",
+      "kind": "feed",
+      "feedUrl": "http://deq.wyoming.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 344349,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "http://deq.wyoming.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "http://deq.wyoming.gov/feed/",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:51:20.109Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:51:20.109Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "dbb217d8-19c2-4f86-b481-eb076026f898",
+      "sourceName": "New Hampshire Department of Environmental Services (NHDES)",
+      "sourceUrl": "https://des.nh.gov/",
+      "kind": "feed",
+      "feedUrl": "https://des.nh.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 457884,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://des.nh.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.nh.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.nh.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://des.nh.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:51:26.376Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:51:26.376Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9918bb9f-453b-4b99-9480-9994e480dc7a",
+      "sourceName": "South Carolina Department of Environmental Services (SCDES) – Bureau of Air Quality",
+      "sourceUrl": "https://des.sc.gov/programs/bureau-air-quality",
+      "kind": "feed",
+      "feedUrl": "https://des.sc.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 416904,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/programs/bureau-air-quality/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://des.sc.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://des.sc.gov/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:51:37.326Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:51:37.326Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+      "sourceName": "Dubai Electricity & Water Authority (DEWA)",
+      "sourceUrl": "https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dewa.gov.ae/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dewa.gov.ae/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dewa.gov.ae/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:51:57.682Z",
+        "feed_last_probed_at": "2026-09-05T00:51:57.682Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7572537b-d94b-40d5-bb43-466e3e6346be",
+      "sourceName": "Dubai Electricity & Water Authority (DEWA)",
+      "sourceUrl": "https://dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dewa.gov.ae/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dewa.gov.ae/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dewa.gov.ae/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:52:16.390Z",
+        "feed_last_probed_at": "2026-09-05T00:52:16.390Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "571ef12d-f7c7-43da-80ea-1b4b91e7c754",
+      "sourceName": "dfat.gov.au / generate pool source",
+      "sourceUrl": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025",
+      "kind": "feed",
+      "feedUrl": "https://www.dfat.gov.au/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 80624,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.dfat.gov.au/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.dfat.gov.au/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:52:27.992Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:52:27.992Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "373ef175-c50d-4e11-8029-7bd680ca4632",
+      "sourceName": "DOF Mexico / SEMARNAT NOM 9561 (Diario Oficial de la Federacion)",
+      "sourceUrl": "http://diariooficial.gob.mx/normasoficiales/9561/semarnat/semarnat.html",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "http://diariooficial.gob.mx/normasoficiales/9561/semarnat/semarnat.html",
+      "sitemapsFetched": [
+        {
+          "url": "http://diariooficial.gob.mx/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:52:43.893Z",
+        "feed_last_probed_at": "2026-09-05T00:52:43.893Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "http://diariooficial.gob.mx/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "fda505aa-74af-4c88-8aea-14f6e34d3931",
+      "sourceName": "diariooficial.gob.mx",
+      "sourceUrl": "https://diariooficial.gob.mx/",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://diariooficial.gob.mx/",
+      "sitemapsFetched": [
+        {
+          "url": "https://diariooficial.gob.mx/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:52:53.493Z",
+        "feed_last_probed_at": "2026-09-05T00:52:53.493Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://diariooficial.gob.mx/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "7da47f8c-e7ce-4b6c-8ec5-1c20b3b8366c",
+      "sourceName": "Missouri Department of Natural Resources – Division of Environmental Quality",
+      "sourceUrl": "https://dnr.mo.gov/about-us/division-environmental-quality",
+      "kind": "feed",
+      "feedUrl": "https://dnr.mo.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 121895,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": {
+          "kind": "js_shell",
+          "evidence": "<!DOCTYPE html>\n<html lang=\"en\" dir=\"ltr\">\n  <head>\n    <meta charset=\"utf-8\" />\n<noscript><style>form.antibot > * { display: none !important; } form.antibot noscript { display: block !important; }</s"
+        }
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/about-us/division-environmental-quality/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dnr.mo.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dnr.mo.gov/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:53:03.734Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:53:03.734Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4d37573e-14b1-4531-9629-92605571e404",
+      "sourceName": "Wisconsin Department of Natural Resources – Air Program",
+      "sourceUrl": "https://dnr.wisconsin.gov/topic/AirQuality",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dnr.wisconsin.gov/topic/AirQuality",
+      "sitemapsFetched": [
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 10,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dnr.wisconsin.gov/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 1499,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 19465,
+      "urlCount": 34,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 34,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 34,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:53:31.356Z",
+        "feed_last_probed_at": "2026-09-05T00:53:31.356Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://dnr.wisconsin.gov/sitemap.xml",
+        "sitemap_url_count": 34
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "be1164eb-5467-4da4-a5d2-17432f88e9cb",
+      "sourceName": "Delaware Department of Natural Resources and Environmental Control (DNREC)",
+      "sourceUrl": "https://dnrec.delaware.gov/",
+      "kind": "feed",
+      "feedUrl": "https://dnrec.delaware.gov/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 60432,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dnrec.delaware.gov/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dnrec.delaware.gov/feed",
+        "entries": 595,
+        "upserted": 595,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:54:04.703Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T00:54:04.703Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "0c7cae99-6b0c-4a74-84ec-3611bcb8c491",
+      "sourceName": "DNV — Energy Transition Outlook (Maritime)",
+      "sourceUrl": "https://dnv.com/maritime",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dnv.com/maritime",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dnv.com/en/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 12281,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.au/au/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 802,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.mx/mx/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 899,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.ae/ae/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 672,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.nl/nl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1415,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.pl/pl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 862,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.sg/sg/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 858,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.sk/sk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 529,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.es/es/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1264,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.co.uk/uk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 863,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.us/us/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1719,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.fi/fi/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 763,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.fr/fr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 750,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.de/de/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1623,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.in/in/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 955,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.it/it/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1853,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.jp/jp/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1352,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.co.kr/kr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1429,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.my/my/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 158,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.br/br/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1585,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cl/cl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1075,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.hr/hr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 461,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.hu/hu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 265,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cz/cz/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 630,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.dk/dk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1150,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://afrique.dnv.fr/cf/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 484,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.be/be/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 793,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://africa.dnv.com/sd/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 570,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.no/no/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 986,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/se/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 616,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cn/cn/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1817,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/ar/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 838,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/tw/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 470,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/ca/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 442,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 34,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 42672,
+      "urlCount": 557,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 557,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 557,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:55:23.581Z",
+        "feed_last_probed_at": "2026-09-05T00:55:23.581Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dnv.com/en/sitemap.xml",
+        "sitemap_url_count": 557
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "bf630add-6c5a-4c0b-9984-2f66fc8efc6b",
+      "sourceName": "DNV Maritime Regulatory Updates",
+      "sourceUrl": "https://dnv.com/maritime/insights",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dnv.com/maritime/insights",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dnv.com/en/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 12281,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.au/au/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 802,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.mx/mx/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 899,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.ae/ae/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 672,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.nl/nl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1415,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.pl/pl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 862,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.sg/sg/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 858,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.sk/sk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 529,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.es/es/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1264,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.co.uk/uk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 863,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.us/us/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1719,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.fi/fi/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 763,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.fr/fr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 750,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.de/de/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1623,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.in/in/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 955,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.it/it/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1853,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.jp/jp/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1352,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.co.kr/kr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1429,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.my/my/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 158,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com.br/br/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1585,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cl/cl/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1075,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.hr/hr/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 461,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.hu/hu/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 265,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cz/cz/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 630,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.dk/dk/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1150,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://afrique.dnv.fr/cf/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 484,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.be/be/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 793,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://africa.dnv.com/sd/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 570,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.no/no/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 986,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/se/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 616,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.cn/cn/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 1817,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/ar/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 838,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/tw/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 470,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dnv.com/ca/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 442,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 34,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 43099,
+      "urlCount": 130,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 130,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 130,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:56:18.776Z",
+        "feed_last_probed_at": "2026-09-05T00:56:18.776Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dnv.com/en/sitemap.xml",
+        "sitemap_url_count": 130
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "0195f047-507e-443b-af5a-665eeea159ad",
+      "sourceName": "NC Department of Administration – Zero-Emission Vehicles Page",
+      "sourceUrl": "https://www.doa.nc.gov/about/sustainability/zero-emission-vehicles",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.doa.nc.gov/about/sustainability/zero-emission-vehicles",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.doa.nc.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3289,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 3271,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T00:56:34.124Z",
+        "feed_last_probed_at": "2026-09-05T00:56:34.124Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.doa.nc.gov/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "ea859d1a-dbb1-4e31-8aa6-19325d620489",
+      "sourceName": "North Carolina Department of Administration",
+      "sourceUrl": "https://doa.nc.gov",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://doa.nc.gov",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.doa.nc.gov/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 3289,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 3272,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 3272,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 3272,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:00:31.796Z",
+        "feed_last_probed_at": "2026-09-05T01:00:31.796Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.doa.nc.gov/sitemap.xml",
+        "sitemap_url_count": 3272
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+      "sourceName": "DC Department of Energy & Environment (DOEE)",
+      "sourceUrl": "https://doee.dc.gov/",
+      "kind": "feed",
+      "feedUrl": "https://doee.dc.gov/rss.xml",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 177628,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://doee.dc.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://doee.dc.gov/rss.xml",
+        "entries": 20,
+        "upserted": 20,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:00:35.172Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:00:35.172Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "cd0ab56f-371e-4ae8-a8ea-27e27f007d4f",
+      "sourceName": "Diario Oficial de la Federación (DOF) — Gobierno de México",
+      "sourceUrl": "https://dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+      "sitemapsFetched": [
+        {
+          "url": "https://dof.gob.mx/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 0,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:00:50.842Z",
+        "feed_last_probed_at": "2026-09-05T01:00:50.842Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://dof.gob.mx/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "f26a771c-88b0-41c4-ad64-8b94969810e7",
+      "sourceName": "Alaska DOT&PF – Measurement Standards & Commercial Vehicle Compliance (MSCVC)",
+      "sourceUrl": "https://dot.alaska.gov/mscve",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dot.alaska.gov/mscve",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dot.alaska.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.alaska.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.alaska.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.alaska.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.alaska.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.alaska.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:01:07.167Z",
+        "feed_last_probed_at": "2026-09-05T01:01:07.167Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "5ed8596c-67f6-4f97-960f-2a1ebf4404df",
+      "sourceName": "California Department of Transportation – Office of Sustainable Freight Planning (Caltrans OSFP)",
+      "sourceUrl": "https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dot.ca.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dot.ca.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ca.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.ca.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ca.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.ca.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ca.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:01:24.096Z",
+        "feed_last_probed_at": "2026-09-05T01:01:24.096Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "140f7bcc-aac3-4a3c-ba73-411ceaeb6abc",
+      "sourceName": "Georgia Department of Transportation (GDOT) – Freight Office",
+      "sourceUrl": "https://dot.ga.gov/GDOT/pages/freight.aspx",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dot.ga.gov/GDOT/pages/freight.aspx",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dot.ga.gov/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dot.ga.gov/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dot.ga.gov/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:01:43.759Z",
+        "feed_last_probed_at": "2026-09-05T01:01:43.759Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+      "sourceName": "New York State Department of Transportation (NYSDOT)",
+      "sourceUrl": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dot.ny.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ny.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.ny.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ny.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.ny.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.ny.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:02:01.619Z",
+        "feed_last_probed_at": "2026-09-05T01:02:01.619Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "e664fff0-778f-47da-85f8-5010d28524e6",
+      "sourceName": "SDDOT – Carbon Reduction Strategy",
+      "sourceUrl": "https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (HTTP 404 for https://dot.sd.gov/robots.txt) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dot.sd.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.sd.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.sd.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.sd.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://dot.sd.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://dot.sd.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:02:18.596Z",
+        "feed_last_probed_at": "2026-09-05T01:02:18.596Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b476ff63-cae4-43bd-b39c-9b5e45a14677",
+      "sourceName": "Louisiana DOTD – State Freight Plan",
+      "sourceUrl": "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan",
+      "error": "bot_wall detected: https://dotd.la.gov/sitemap.xml returned a 200 OK soft_404 shell in place of a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dotd.la.gov/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "soft_404",
+            "evidence": "\r\n\r\n\r\n\r\n\r\n\r\n<!DOCTYPE html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"utf-8\">\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\r\n    <meta http-equiv"
+          }
+        },
+        {
+          "url": "https://dotd.la.gov/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "soft_404",
+            "evidence": "\r\n\r\n\r\n\r\n\r\n\r\n<!DOCTYPE html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"utf-8\">\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\r\n    <meta http-equiv"
+          }
+        },
+        {
+          "url": "https://dotd.la.gov/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": {
+            "kind": "soft_404",
+            "evidence": "\r\n\r\n\r\n\r\n\r\n\r\n<!DOCTYPE html>\r\n<html lang=\"en\">\r\n  <head>\r\n    <meta charset=\"utf-8\">\r\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0, user-scalable=yes\">\r\n    <meta http-equiv"
+          }
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "bot_wall",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:02:35.780Z",
+        "feed_last_probed_at": "2026-09-05T01:02:35.780Z",
+        "sitemap_walk_outcome": "bot_wall"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "22a25117-4b98-4ef7-9399-3e0002c52bfd",
+      "sourceName": "Down To Earth — India Green Credit Programme Notification",
+      "sourceUrl": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305",
+      "kind": "feed",
+      "feedUrl": "https://www.downtoearth.org.in/feed",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 840114,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://www.downtoearth.org.in/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.downtoearth.org.in/feed",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:02:44.747Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:02:44.747Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "735cb9df-fe9f-414c-96e1-2f7e7d172c98",
+      "sourceName": "Ministry of Commerce & Industry, Government of India",
+      "sourceUrl": "https://dpiit.gov.in/logistics-division",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://dpiit.gov.in/logistics-division",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://dpiit.gov.in/sitemap.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dpiit.gov.in/sitemap_index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://dpiit.gov.in/sitemap-index.xml",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:03:10.636Z",
+        "feed_last_probed_at": "2026-09-05T01:03:10.636Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b243e435-a4d0-411f-9000-2070c7872e2b",
+      "sourceName": "New York State Public Service Commission (PSC)",
+      "sourceUrl": "https://dps.ny.gov/",
+      "kind": "feed",
+      "feedUrl": "https://dps.ny.gov/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 73509,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://dps.ny.gov/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dps.ny.gov/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://dps.ny.gov/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://dps.ny.gov/rss.xml",
+        "entries": 0,
+        "upserted": 0,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:03:15.220Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:03:15.220Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9de14df4-98a8-4c16-ace4-652178024f6b",
+      "sourceName": "DP World (dpworld.com)",
+      "sourceUrl": "https://dpworld.com/en/sustainability",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dpworld.com/en/sustainability",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dpworld.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 9,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-0.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-1.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-2.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-3.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-4.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-5.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-6.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-7.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-8.xml",
+          "kind": "urlset",
+          "urlCount": 165,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4147,
+      "urlCount": 18,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 18,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 18,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:04:26.176Z",
+        "feed_last_probed_at": "2026-09-05T01:04:26.176Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dpworld.com/sitemap.xml",
+        "sitemap_url_count": 18
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "b13504d2-68e3-44dd-9ce0-2ba1e3519860",
+      "sourceName": "DP World (dpworld.com)",
+      "sourceUrl": "https://dpworld.com/en/sustainability/reporting",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://dpworld.com/en/sustainability/reporting",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.dpworld.com/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 9,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-0.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-1.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-2.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-3.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-4.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-5.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-6.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-7.xml",
+          "kind": "urlset",
+          "urlCount": 500,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.dpworld.com/sitemap-8.xml",
+          "kind": "urlset",
+          "urlCount": 165,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 4164,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:05:04.501Z",
+        "feed_last_probed_at": "2026-09-05T01:05:04.501Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.dpworld.com/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+      "sourceName": "Project Drawdown (drawdown.org)",
+      "sourceUrl": "https://drawdown.org/explorer",
+      "kind": "feed",
+      "feedUrl": "https://drawdown.org/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 2057734,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://drawdown.org/explorer/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/explorer/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/explorer/rss.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/explorer/atom.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/explorer/feed.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/explorer/index.xml",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://drawdown.org/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://drawdown.org/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:05:15.732Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:05:15.732Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "892decc7-f5a3-49bd-80aa-347fba628d09",
+      "sourceName": "drewry.co.uk / generate pool source",
+      "sourceUrl": "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.drewry.co.uk/SiteMap_Drewry_index.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 3,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.drewry.co.uk/SiteMap_Drewry_Media1_v2.xml",
+          "kind": "urlset",
+          "urlCount": 149,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.drewry.co.uk/SiteMap_Drewry_Articles1_v2.xml",
+          "kind": "urlset",
+          "urlCount": 253,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.drewry.co.uk/SiteMap_Drewry_Channels1_v2.xml",
+          "kind": "urlset",
+          "urlCount": 5,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 1,
+      "discoverySource": "robots",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 406,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:05:33.646Z",
+        "feed_last_probed_at": "2026-09-05T01:05:33.646Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.drewry.co.uk/SiteMap_Drewry_index.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2c5a86b7-2905-483e-9f1c-f51a14e27c06",
+      "sourceName": "Drishti IAS — India Logistics Decarbonisation Daily Analysis",
+      "sourceUrl": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector",
+      "kind": "feed",
+      "feedUrl": "https://www.drishtiias.com/rss",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 266220,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/feed",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/rss",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/rss.xml",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/atom.xml",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/feed.xml",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector/index.xml",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/feed",
+          "status": 200,
+          "isFeedDocument": false,
+          "reason": "not_feed_document"
+        },
+        {
+          "url": "https://www.drishtiias.com/rss",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.drishtiias.com/rss",
+        "entries": 15,
+        "upserted": 15,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:05:43.895Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:05:43.895Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "312350c1-56e0-443f-84e6-0f892b48cfef",
+      "sourceName": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT)",
+      "sourceUrl": "https://driveelectric.gov/industry",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://driveelectric.gov/industry",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://driveelectric.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://driveelectric.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://driveelectric.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:00.076Z",
+        "feed_last_probed_at": "2026-09-05T01:06:00.076Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "dd7b482b-bae8-4620-a6ac-6fa9846b1eb5",
+      "sourceName": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT / EPA)",
+      "sourceUrl": "https://driveelectric.gov/files/zef-corridor-strategy.pdf",
+      "kind": "sitemap",
+      "ok": false,
+      "baseUrl": "https://driveelectric.gov/files/zef-corridor-strategy.pdf",
+      "error": "no sitemap discovered: robots.txt yielded 0 Sitemap: lines (fetched, none declared) and none of the fallback candidates parsed as a sitemap",
+      "sitemapsFetched": [
+        {
+          "url": "https://driveelectric.gov/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://driveelectric.gov/sitemap_index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap_index.xml",
+          "wall": null
+        },
+        {
+          "url": "https://driveelectric.gov/sitemap-index.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://driveelectric.gov/sitemap-index.xml",
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "none",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:17.080Z",
+        "feed_last_probed_at": "2026-09-05T01:06:17.080Z",
+        "sitemap_walk_outcome": "no_sitemap"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+      "sourceName": "Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+      "sourceUrl": "https://drna.pr.gov/",
+      "kind": "feed",
+      "feedUrl": "https://www.drna.pr.gov/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 198452,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.drna.pr.gov/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.drna.pr.gov/feed/",
+        "entries": 12,
+        "upserted": 12,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:23.645Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:06:23.645Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "9bf0b282-e359-4b91-8a0b-830146895edb",
+      "sourceName": "Dromon Bureau of Shipping — IMO CII Guidelines: SEEMP Part III Revision (Circular C25040)",
+      "sourceUrl": "https://www.dromon.com/2025/07/30/imo-cii-guidelines-seemp-part-iii-revision/",
+      "kind": "feed",
+      "feedUrl": "https://www.dromon.com/feed/",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 107500,
+        "contentType": "",
+        "alternateLinksFound": 2,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://www.dromon.com/feed/",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://www.dromon.com/feed/",
+        "entries": 12,
+        "upserted": 12,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:27.008Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:06:27.008Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "39921224-22e5-4505-9c52-b8d3d91fb227",
+      "sourceName": "Earthjustice — Legal Analysis of EPA Endangerment Finding Rescission (Hana Vizcarra)",
+      "sourceUrl": "https://earthjustice.org/experts/hana-vizcarra/a-legal-analysis-of-the-trump-epas-plan-to-revoke-the-endangerment-finding",
+      "kind": "feed",
+      "feedUrl": "https://earthjustice.org/feed",
+      "discoverySource": "link-alternate",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 518895,
+        "contentType": "",
+        "alternateLinksFound": 1,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://earthjustice.org/feed",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://earthjustice.org/feed",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:30.829Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:06:30.829Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "34ea5144-b2f6-4344-a5e0-8ea1396704a7",
+      "sourceName": "EASA First ReFuelEU Aviation Annual Technical Report (Oct 2025)",
+      "sourceUrl": "https://www.easa.europa.eu/en/newsroom-and-events/press-releases/easa-publishes-report-sustainable-aviation-fuel-scale-progress",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://www.easa.europa.eu/en/newsroom-and-events/press-releases/easa-publishes-report-sustainable-aviation-fuel-scale-progress",
+      "sitemapsFetched": [
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 11,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=11",
+          "kind": "urlset",
+          "urlCount": 1683,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 21682,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:06:57.897Z",
+        "feed_last_probed_at": "2026-09-05T01:06:57.897Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://www.easa.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "cda55872-b68c-4903-b4bd-9883acc41817",
+      "sourceName": "European Union Aviation Safety Agency (EASA)",
+      "sourceUrl": "https://easa.europa.eu/en/domains/environment/refueleu-aviation-digital-reporting-tool",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://easa.europa.eu/en/domains/environment/refueleu-aviation-digital-reporting-tool",
+      "sitemapsFetched": [
+        {
+          "url": "https://easa.europa.eu/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 11,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=1",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=2",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=3",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=4",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=5",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=6",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=7",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=8",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=9",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=10",
+          "kind": "urlset",
+          "urlCount": 2000,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://www.easa.europa.eu/sitemap.xml?page=11",
+          "kind": "urlset",
+          "urlCount": 1683,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 0,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 21682,
+      "urlCount": 1,
+      "urlsOverLimit": 0,
+      "coverageComplete": true,
+      "baselineDeferred": false,
+      "diff": {
+        "addedCount": 1,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 1,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:07:32.791Z",
+        "feed_last_probed_at": "2026-09-05T01:07:32.791Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://easa.europa.eu/sitemap.xml",
+        "sitemap_url_count": 1
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+      "sourceName": "European Banking Authority (EBA)",
+      "sourceUrl": "https://eba.europa.eu/",
+      "kind": "feed",
+      "feedUrl": "https://eba.europa.eu/rss.xml",
+      "discoverySource": "candidate-path",
+      "homepageProbe": {
+        "status": 200,
+        "bytes": 83176,
+        "contentType": "",
+        "alternateLinksFound": 0,
+        "error": null,
+        "wall": null
+      },
+      "candidateProbes": [
+        {
+          "url": "https://eba.europa.eu/feed",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://eba.europa.eu/rss",
+          "status": 404,
+          "isFeedDocument": false,
+          "reason": "HTTP 404"
+        },
+        {
+          "url": "https://eba.europa.eu/rss.xml",
+          "status": 200,
+          "isFeedDocument": true,
+          "reason": "is_feed_document"
+        }
+      ],
+      "feedResult": {
+        "ok": true,
+        "feedUrl": "https://eba.europa.eu/rss.xml",
+        "entries": 10,
+        "upserted": 10,
+        "failed": 0
+      },
+      "rssFeedUrlWritten": true,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:07:39.209Z",
+        "sitemap_walk_outcome": "feed_only",
+        "feed_last_probed_at": "2026-09-05T01:07:39.209Z"
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "4ba3fb8d-e31b-4ada-a6d9-0338fb312630",
+      "sourceName": "EU CSDDD — Corporate Sustainability Due Diligence",
+      "sourceUrl": "https://ec.europa.eu/growth/corporate-sustainability-due-diligence",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ec.europa.eu/growth/corporate-sustainability-due-diligence",
+      "sitemapsFetched": [
+        {
+          "url": "https://ec.europa.eu/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 4,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1068,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/trade/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 572,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617911&layoutUuid=c2bf9e54-29a3-6dfb-f861-0d35a132b711&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617118&layoutUuid=a3d5bd35-2f1f-5d76-dde2-317938cd3f4a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616647&layoutUuid=56e130d5-2aba-73b4-5b07-09eb8e56e76d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11615605&layoutUuid=36780ee1-f74f-6be4-b67a-bd9e862fabc4&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616769&layoutUuid=a7620fad-5bb7-9ed6-2c18-254c08fde0c3&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619628&layoutUuid=c9e89cf6-cf58-d0a4-d585-bc6752cc5c7c&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618563&layoutUuid=aba71a39-9793-55bf-c9b2-35623cb15df4&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618565&layoutUuid=26ad1f65-1709-7888-1070-1129976cf590&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616665&layoutUuid=80df2846-1c0f-bb38-58ac-afe5a1cb22e4&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616667&layoutUuid=6f63720a-5714-6eda-b43d-fbe6f19fbbc9&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616669&layoutUuid=dcaca2de-fc89-faf3-ca0d-5584c6ca64b1&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616659&layoutUuid=94ba2bf6-1254-0f64-6520-30bcc16d4d40&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616655&layoutUuid=578f1d7a-e114-a1c0-b8a4-afb8666eda9d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616846&layoutUuid=2e6929c7-fc3a-c5cb-e56f-aab4d16e7d9b&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618797&layoutUuid=2ff6b7b4-8455-af0d-4b62-e7a0599a01a3&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617212&layoutUuid=ee96b571-5a84-5176-0a88-7b5cc67138f5&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617214&layoutUuid=046bb8f0-2870-ba08-f292-1eb996f11c41&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616663&layoutUuid=15851a76-845b-ee10-e9c1-af8442e5cf42&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617218&layoutUuid=8c5ef9d7-7981-1d9d-ff99-7c40d9045595&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617267&layoutUuid=a5932fb2-f1d9-3e1f-cb30-42c0d7b4f9df&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617913&layoutUuid=5e67b684-1944-b7ab-7e76-1657a3f3c772&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617574&layoutUuid=b2f24b26-7dee-5d41-0a7b-9b4dbb1e546a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617576&layoutUuid=ea46f70a-3ce0-3f52-b28c-0d3b54022818&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617689&layoutUuid=30758f95-b499-f4a9-34c6-d14026b27970&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619367&layoutUuid=e51ffbb0-d33b-9168-d84a-aa27d2e5f368&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619147&layoutUuid=da1d07e8-746a-0c8b-e6f6-6ed03ca45b52&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619299&layoutUuid=6e26667a-69ad-5019-91a8-25fc25913d9f&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619398&layoutUuid=93404d1d-bff2-209b-97fa-66d36ff7ed14&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619532&layoutUuid=c329c38a-8a93-96ec-9516-83d5881ff6d9&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619534&layoutUuid=c60463c1-d47d-53c6-5126-a5457f02fd81&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619293&layoutUuid=c9e87073-23e0-a834-aa8c-7a7da8473c71&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619550&layoutUuid=006522d7-ff02-81a2-ab75-2fd4dbc7ca0a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619474&layoutUuid=96f3702b-8286-a220-b06e-feee68fef85d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619359&layoutUuid=97bd9978-4192-e77a-7205-fa0cef0fa810&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619388&layoutUuid=04c9fe16-1748-955c-4333-fce64dc371bd&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619245&layoutUuid=2a24aaf5-8507-15fc-4893-1204f7f5444b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619228&layoutUuid=d9c29116-cd6e-d73f-8633-82d10790b79b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616289&layoutUuid=5f21fc20-6421-6d1d-2c09-bbf2a1082015&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616528&layoutUuid=93d76709-fd5a-0aee-5b7e-7aa865abb42a&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618248&layoutUuid=ef80a63f-2ebf-0f16-690d-9dcc57eee218&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616591&layoutUuid=1fe4dcb7-d1a3-c33c-41c3-ebb9c53d1874&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618640&layoutUuid=f1e62996-bd90-1cc1-24b1-b414c444fa7b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616297&layoutUuid=dd1b5b2b-0e39-f7f4-7c44-83bf0a9f4caa&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618425&layoutUuid=a6c387aa-c8da-3097-7ce9-743b1407be26&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617227&layoutUuid=06e52e03-6c5d-2c01-4bee-83fdf00d2173&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 1023,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 611,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:08:47.912Z",
+        "feed_last_probed_at": "2026-09-05T01:08:47.912Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    },
+    {
+      "sourceId": "d8d21ad5-47b3-4839-b9ea-9afa392c4f20",
+      "sourceName": "European Commission Press Corner",
+      "sourceUrl": "https://ec.europa.eu/commission/presscorner/home/en",
+      "kind": "sitemap",
+      "ok": true,
+      "baseUrl": "https://ec.europa.eu/commission/presscorner/home/en",
+      "sitemapsFetched": [
+        {
+          "url": "https://ec.europa.eu/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 4,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 403 for https://ec.europa.eu/eurostat/web/products-eurostat-news/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml",
+          "kind": "sitemapindex",
+          "urlCount": 0,
+          "childCount": 1068,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+          "kind": "error",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": "HTTP 404 for https://ec.europa.eu/cefdigital/wiki/sitemap.xml",
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/trade/sitemap.xml",
+          "kind": "urlset",
+          "urlCount": 572,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617911&layoutUuid=c2bf9e54-29a3-6dfb-f861-0d35a132b711&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617118&layoutUuid=a3d5bd35-2f1f-5d76-dde2-317938cd3f4a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616647&layoutUuid=56e130d5-2aba-73b4-5b07-09eb8e56e76d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11615605&layoutUuid=36780ee1-f74f-6be4-b67a-bd9e862fabc4&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616769&layoutUuid=a7620fad-5bb7-9ed6-2c18-254c08fde0c3&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619628&layoutUuid=c9e89cf6-cf58-d0a4-d585-bc6752cc5c7c&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618563&layoutUuid=aba71a39-9793-55bf-c9b2-35623cb15df4&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618565&layoutUuid=26ad1f65-1709-7888-1070-1129976cf590&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616665&layoutUuid=80df2846-1c0f-bb38-58ac-afe5a1cb22e4&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616667&layoutUuid=6f63720a-5714-6eda-b43d-fbe6f19fbbc9&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616669&layoutUuid=dcaca2de-fc89-faf3-ca0d-5584c6ca64b1&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616659&layoutUuid=94ba2bf6-1254-0f64-6520-30bcc16d4d40&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616655&layoutUuid=578f1d7a-e114-a1c0-b8a4-afb8666eda9d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616846&layoutUuid=2e6929c7-fc3a-c5cb-e56f-aab4d16e7d9b&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618797&layoutUuid=2ff6b7b4-8455-af0d-4b62-e7a0599a01a3&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617212&layoutUuid=ee96b571-5a84-5176-0a88-7b5cc67138f5&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617214&layoutUuid=046bb8f0-2870-ba08-f292-1eb996f11c41&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616663&layoutUuid=15851a76-845b-ee10-e9c1-af8442e5cf42&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617218&layoutUuid=8c5ef9d7-7981-1d9d-ff99-7c40d9045595&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617267&layoutUuid=a5932fb2-f1d9-3e1f-cb30-42c0d7b4f9df&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617913&layoutUuid=5e67b684-1944-b7ab-7e76-1657a3f3c772&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617574&layoutUuid=b2f24b26-7dee-5d41-0a7b-9b4dbb1e546a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617576&layoutUuid=ea46f70a-3ce0-3f52-b28c-0d3b54022818&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617689&layoutUuid=30758f95-b499-f4a9-34c6-d14026b27970&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619367&layoutUuid=e51ffbb0-d33b-9168-d84a-aa27d2e5f368&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619147&layoutUuid=da1d07e8-746a-0c8b-e6f6-6ed03ca45b52&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619299&layoutUuid=6e26667a-69ad-5019-91a8-25fc25913d9f&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619398&layoutUuid=93404d1d-bff2-209b-97fa-66d36ff7ed14&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619532&layoutUuid=c329c38a-8a93-96ec-9516-83d5881ff6d9&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619534&layoutUuid=c60463c1-d47d-53c6-5126-a5457f02fd81&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619293&layoutUuid=c9e87073-23e0-a834-aa8c-7a7da8473c71&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619550&layoutUuid=006522d7-ff02-81a2-ab75-2fd4dbc7ca0a&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619474&layoutUuid=96f3702b-8286-a220-b06e-feee68fef85d&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619359&layoutUuid=97bd9978-4192-e77a-7205-fa0cef0fa810&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619388&layoutUuid=04c9fe16-1748-955c-4333-fce64dc371bd&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619245&layoutUuid=2a24aaf5-8507-15fc-4893-1204f7f5444b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11619228&layoutUuid=d9c29116-cd6e-d73f-8633-82d10790b79b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616289&layoutUuid=5f21fc20-6421-6d1d-2c09-bbf2a1082015&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616528&layoutUuid=93d76709-fd5a-0aee-5b7e-7aa865abb42a&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618248&layoutUuid=ef80a63f-2ebf-0f16-690d-9dcc57eee218&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616591&layoutUuid=1fe4dcb7-d1a3-c33c-41c3-ebb9c53d1874&groupId=10186&privateLayout=false",
+          "kind": "unknown",
+          "urlCount": 0,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618640&layoutUuid=f1e62996-bd90-1cc1-24b1-b414c444fa7b&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11616297&layoutUuid=dd1b5b2b-0e39-f7f4-7c44-83bf0a9f4caa&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11618425&layoutUuid=a6c387aa-c8da-3097-7ce9-743b1407be26&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 1,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        },
+        {
+          "url": "https://ec.europa.eu/eurostat/sitemap.xml?p_l_id=11617227&layoutUuid=06e52e03-6c5d-2c01-4bee-83fdf00d2173&groupId=10186&privateLayout=false",
+          "kind": "urlset",
+          "urlCount": 3,
+          "childCount": 0,
+          "error": null,
+          "wall": null
+        }
+      ],
+      "robotsSitemapCount": 0,
+      "discoverySource": "fallback",
+      "sitemapsSkippedCap": 1023,
+      "entriesCapped": false,
+      "maxSitemapEntries": 100000,
+      "scopedOutCount": 611,
+      "urlCount": 0,
+      "urlsOverLimit": 0,
+      "coverageComplete": false,
+      "baselineDeferred": true,
+      "diff": {
+        "addedCount": 0,
+        "changedCount": 0,
+        "removedCount": 0
+      },
+      "changedLocs": [],
+      "removedLocs": [],
+      "removedSuppressed": false,
+      "upserted": 0,
+      "failed": 0,
+      "changeRecorded": false,
+      "coveragePatch": {
+        "sitemap_last_walked_at": "2026-09-05T01:09:57.259Z",
+        "feed_last_probed_at": "2026-09-05T01:09:57.259Z",
+        "sitemap_walk_outcome": "walked",
+        "sitemap_url": "https://ec.europa.eu/sitemap.xml",
+        "sitemap_url_count": 0
+      },
+      "coverageWritten": true
+    }
+  ],
+  "allHosts": {
+    "targets": [
+      {
+        "id": "36978885-cb83-4af3-816d-4d3536a5cce8",
+        "url": "https://deq.idaho.gov/",
+        "name": "Idaho Department of Environmental Quality (DEQ)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.deq.idaho.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b5f85b79-82e0-4f2d-9665-51f1d4d146ca",
+        "url": "https://deq.louisiana.gov/",
+        "name": "Louisiana Department of Environmental Quality (LDEQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "5993fd5f-ce69-4d3e-b3c1-737dd8fd5754",
+        "url": "https://deq.mt.gov/",
+        "name": "Montana Department of Environmental Quality (DEQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "86474c7e-a858-4a25-a206-d4aadf17d09f",
+        "url": "https://deq.nc.gov/about/divisions/air-quality",
+        "name": "North Carolina Department of Environmental Quality (NC DEQ) – Division of Air Quality",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "5012a359-bb4b-44f7-b28a-e9b976383051",
+        "url": "https://deq.nd.gov/",
+        "name": "North Dakota Department of Environmental Quality (NDDEQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "c81301f7-b043-474c-8eac-d02ff3b90542",
+        "url": "https://deq.ok.gov/",
+        "name": "Oklahoma Department of Environmental Quality (ODEQ)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "28ecc6b0-436b-4bf4-889f-fb2673497562",
+        "url": "https://deq.utah.gov/division-air-quality",
+        "name": "Utah Division of Air Quality (UDAQ) – Utah Department of Environmental Quality",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "91845d5f-3057-4f6d-8eb3-590d936a2767",
+        "url": "https://deq.wyoming.gov/aqd",
+        "name": "Wyoming Department of Environmental Quality (DEQ) – Air Quality Division",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "http://deq.wyoming.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "dbb217d8-19c2-4f86-b481-eb076026f898",
+        "url": "https://des.nh.gov/",
+        "name": "New Hampshire Department of Environmental Services (NHDES)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9918bb9f-453b-4b99-9480-9994e480dc7a",
+        "url": "https://des.sc.gov/programs/bureau-air-quality",
+        "name": "South Carolina Department of Environmental Services (SCDES) – Bureau of Air Quality",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://des.sc.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "07a7d198-1394-4934-be1e-204fcfdf00cf",
+        "url": "https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+        "name": "Dubai Electricity & Water Authority (DEWA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7572537b-d94b-40d5-bb43-466e3e6346be",
+        "url": "https://dewa.gov.ae/en/consumer/solar-community/shams-dubai",
+        "name": "Dubai Electricity & Water Authority (DEWA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "571ef12d-f7c7-43da-80ea-1b4b91e7c754",
+        "url": "https://www.dfat.gov.au/trade-and-investment/singapore-and-australia-green-and-digital-shipping-corridor-factsheet-2025",
+        "name": "dfat.gov.au / generate pool source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "373ef175-c50d-4e11-8029-7bd680ca4632",
+        "url": "http://diariooficial.gob.mx/normasoficiales/9561/semarnat/semarnat.html",
+        "name": "DOF Mexico / SEMARNAT NOM 9561 (Diario Oficial de la Federacion)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "fda505aa-74af-4c88-8aea-14f6e34d3931",
+        "url": "https://diariooficial.gob.mx/",
+        "name": "diariooficial.gob.mx",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "7da47f8c-e7ce-4b6c-8ec5-1c20b3b8366c",
+        "url": "https://dnr.mo.gov/about-us/division-environmental-quality",
+        "name": "Missouri Department of Natural Resources – Division of Environmental Quality",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dnr.mo.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4d37573e-14b1-4531-9629-92605571e404",
+        "url": "https://dnr.wisconsin.gov/topic/AirQuality",
+        "name": "Wisconsin Department of Natural Resources – Air Program",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "be1164eb-5467-4da4-a5d2-17432f88e9cb",
+        "url": "https://dnrec.delaware.gov/",
+        "name": "Delaware Department of Natural Resources and Environmental Control (DNREC)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://dnrec.delaware.gov/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0c7cae99-6b0c-4a74-84ec-3611bcb8c491",
+        "url": "https://dnv.com/maritime",
+        "name": "DNV — Energy Transition Outlook (Maritime)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "bf630add-6c5a-4c0b-9984-2f66fc8efc6b",
+        "url": "https://dnv.com/maritime/insights",
+        "name": "DNV Maritime Regulatory Updates",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.dnv.com/news/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "0195f047-507e-443b-af5a-665eeea159ad",
+        "url": "https://www.doa.nc.gov/about/sustainability/zero-emission-vehicles",
+        "name": "NC Department of Administration – Zero-Emission Vehicles Page",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "ea859d1a-dbb1-4e31-8aa6-19325d620489",
+        "url": "https://doa.nc.gov",
+        "name": "North Carolina Department of Administration",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "5f12cb79-ec17-4725-8514-aa5bcf938f08",
+        "url": "https://doee.dc.gov/",
+        "name": "DC Department of Energy & Environment (DOEE)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://doee.dc.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "cd0ab56f-371e-4ae8-a8ea-27e27f007d4f",
+        "url": "https://dof.gob.mx/normasOficiales/9549/semarnat/semarnat.html",
+        "name": "Diario Oficial de la Federación (DOF) — Gobierno de México",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "f26a771c-88b0-41c4-ad64-8b94969810e7",
+        "url": "https://dot.alaska.gov/mscve",
+        "name": "Alaska DOT&PF – Measurement Standards & Commercial Vehicle Compliance (MSCVC)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "5ed8596c-67f6-4f97-960f-2a1ebf4404df",
+        "url": "https://dot.ca.gov/programs/transportation-planning/division-of-transportation-planning/sustainable-freight-planning",
+        "name": "California Department of Transportation – Office of Sustainable Freight Planning (Caltrans OSFP)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "140f7bcc-aac3-4a3c-ba73-411ceaeb6abc",
+        "url": "https://dot.ga.gov/GDOT/pages/freight.aspx",
+        "name": "Georgia Department of Transportation (GDOT) – Freight Office",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "610ed5ac-ae3b-4fc6-b82f-df2988bb78e3",
+        "url": "https://dot.ny.gov/divisions/operating/osss/truck/regulations",
+        "name": "New York State Department of Transportation (NYSDOT)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "e664fff0-778f-47da-85f8-5010d28524e6",
+        "url": "https://dot.sd.gov/projects-studies/planning/carbon-reduction-strategy",
+        "name": "SDDOT – Carbon Reduction Strategy",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b476ff63-cae4-43bd-b39c-9b5e45a14677",
+        "url": "https://dotd.la.gov/about/office-of-planning/transportation-planning/freight-plan",
+        "name": "Louisiana DOTD – State Freight Plan",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "22a25117-4b98-4ef7-9399-3e0002c52bfd",
+        "url": "https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305",
+        "name": "Down To Earth — India Green Credit Programme Notification",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "735cb9df-fe9f-414c-96e1-2f7e7d172c98",
+        "url": "https://dpiit.gov.in/logistics-division",
+        "name": "Ministry of Commerce & Industry, Government of India",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b243e435-a4d0-411f-9000-2070c7872e2b",
+        "url": "https://dps.ny.gov/",
+        "name": "New York State Public Service Commission (PSC)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.dps.ny.gov/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9de14df4-98a8-4c16-ace4-652178024f6b",
+        "url": "https://dpworld.com/en/sustainability",
+        "name": "DP World (dpworld.com)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "b13504d2-68e3-44dd-9ce0-2ba1e3519860",
+        "url": "https://dpworld.com/en/sustainability/reporting",
+        "name": "DP World (dpworld.com)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "971e661f-4c7b-4639-98cd-3489e7150d5a",
+        "url": "https://drawdown.org/explorer",
+        "name": "Project Drawdown (drawdown.org)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://drawdown.org/rss.xml",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "892decc7-f5a3-49bd-80aa-347fba628d09",
+        "url": "https://www.drewry.co.uk/supply-chain-advisors/supply-chain-expertise/world-container-index-assessed-by-drewry",
+        "name": "drewry.co.uk / generate pool source",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2c5a86b7-2905-483e-9f1c-f51a14e27c06",
+        "url": "https://www.drishtiias.com/daily-updates/daily-news-analysis/decarbonising-india-s-logistics-sector",
+        "name": "Drishti IAS — India Logistics Decarbonisation Daily Analysis",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "312350c1-56e0-443f-84e6-0f892b48cfef",
+        "url": "https://driveelectric.gov/industry",
+        "name": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "dd7b482b-bae8-4620-a6ac-6fa9846b1eb5",
+        "url": "https://driveelectric.gov/files/zef-corridor-strategy.pdf",
+        "name": "Joint Office of Energy and Transportation (U.S. DOE / U.S. DOT / EPA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "3d828dbb-4eda-44fc-84e4-ed92ae7b4220",
+        "url": "https://drna.pr.gov/",
+        "name": "Puerto Rico Department of Natural and Environmental Resources (DRNA)",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://www.drna.pr.gov/feed/",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "9bf0b282-e359-4b91-8a0b-830146895edb",
+        "url": "https://www.dromon.com/2025/07/30/imo-cii-guidelines-seemp-part-iii-revision/",
+        "name": "Dromon Bureau of Shipping — IMO CII Guidelines: SEEMP Part III Revision (Circular C25040)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "39921224-22e5-4505-9c52-b8d3d91fb227",
+        "url": "https://earthjustice.org/experts/hana-vizcarra/a-legal-analysis-of-the-trump-epas-plan-to-revoke-the-endangerment-finding",
+        "name": "Earthjustice — Legal Analysis of EPA Endangerment Finding Rescission (Hana Vizcarra)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "34ea5144-b2f6-4344-a5e0-8ea1396704a7",
+        "url": "https://www.easa.europa.eu/en/newsroom-and-events/press-releases/easa-publishes-report-sustainable-aviation-fuel-scale-progress",
+        "name": "EASA First ReFuelEU Aviation Annual Technical Report (Oct 2025)",
+        "status": "active",
+        "access_method": "manual",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "cda55872-b68c-4903-b4bd-9883acc41817",
+        "url": "https://easa.europa.eu/en/domains/environment/refueleu-aviation-digital-reporting-tool",
+        "name": "European Union Aviation Safety Agency (EASA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "2d27b8d9-96cb-4843-9df4-5dc31315d514",
+        "url": "https://eba.europa.eu/",
+        "name": "European Banking Authority (EBA)",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "4ba3fb8d-e31b-4ada-a6d9-0338fb312630",
+        "url": "https://ec.europa.eu/growth/corporate-sustainability-due-diligence",
+        "name": "EU CSDDD — Corporate Sustainability Due Diligence",
+        "status": "active",
+        "access_method": "scrape",
+        "rss_feed_url": null,
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      },
+      {
+        "id": "d8d21ad5-47b3-4839-b9ea-9afa392c4f20",
+        "url": "https://ec.europa.eu/commission/presscorner/home/en",
+        "name": "European Commission Press Corner",
+        "status": "active",
+        "access_method": "rss",
+        "rss_feed_url": "https://ec.europa.eu/commission/presscorner/api/notifications/rss",
+        "sitemap_url": null,
+        "sitemap_last_walked_at": null,
+        "sitemap_url_count": null,
+        "sitemap_walk_outcome": null,
+        "feed_last_probed_at": null
+      }
+    ],
+    "hostsSelected": [
+      "deq.idaho.gov",
+      "deq.louisiana.gov",
+      "deq.mt.gov",
+      "deq.nc.gov",
+      "deq.nd.gov",
+      "deq.ok.gov",
+      "deq.utah.gov",
+      "deq.wyoming.gov",
+      "des.nh.gov",
+      "des.sc.gov",
+      "dewa.gov.ae",
+      "dfat.gov.au",
+      "diariooficial.gob.mx",
+      "dnr.mo.gov",
+      "dnr.wisconsin.gov",
+      "dnrec.delaware.gov",
+      "dnv.com",
+      "doa.nc.gov",
+      "doee.dc.gov",
+      "dof.gob.mx",
+      "dot.alaska.gov",
+      "dot.ca.gov",
+      "dot.ga.gov",
+      "dot.ny.gov",
+      "dot.sd.gov",
+      "dotd.la.gov",
+      "downtoearth.org.in",
+      "dpiit.gov.in",
+      "dps.ny.gov",
+      "dpworld.com",
+      "drawdown.org",
+      "drewry.co.uk",
+      "drishtiias.com",
+      "driveelectric.gov",
+      "drna.pr.gov",
+      "dromon.com",
+      "earthjustice.org",
+      "easa.europa.eu",
+      "eba.europa.eu",
+      "ec.europa.eu"
+    ],
+    "hostsTotalActive": 646,
+    "hostsNeverWalkedBefore": 483,
+    "hostsRemainingUnwalkedAfter": 443
+  },
+  "budget": {
+    "budgetSeconds": 1500,
+    "elapsedSeconds": 1264.763,
+    "exhausted": false,
+    "sourcesWalked": 48,
+    "sourcesNotReached": {
+      "count": 0,
+      "ids": []
+    }
+  }
+}
