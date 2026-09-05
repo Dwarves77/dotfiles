@@ -29,9 +29,33 @@
 // hook's result `kind` — never reproduces its own offset math against `document.documentElement`.
 import { useEffect, useState, type RefObject } from "react";
 
+// PERF-13 (2026-09-04, docs/audits/perf-clickthrough-2026-09-04.md §(f), root cause): checking the
+// computed `overflow-y` value ALONE is not sufficient — it is true the moment the CSS class is
+// present, regardless of whether the element is actually height-constrained enough to overflow.
+// [CONFIRMED, this lane, isolated CSS reproduction]: AppShell.tsx's real ancestor chain is
+// `<div className="flex min-h-screen">` (a MINIMUM height, not a fixed `h-screen`) wrapping
+// `<main className="flex-1 overflow-y-auto ...">`. Because no ancestor between `<main>` and the
+// viewport has a BOUNDED height, `<main>` auto-grows to fit all of its content — `overflow-y: auto`
+// is a real computed style on it, but it never actually overflows (`scrollHeight === clientHeight`
+// in the reproduction, both before and after attempting to set `scrollTop` on it directly), so it
+// never becomes a real scrolling box: the browser scrolls `window`/`document.documentElement`
+// instead, and `<main>`'s own `scrollTop` stays pinned at 0 regardless of how far the page is
+// actually scrolled. This hook used to select `<main>` anyway (matching only the CSS property),
+// handing `VirtualizedRowList`'s `useVirtualizer({ getScrollElement: () => main })` a scroll
+// element whose `scrollTop` never changes — the virtualizer can never advance its rendered range
+// past its initial viewport-sized window for any band with more rows than that, no matter how far
+// the real page is scrolled, and any other logic keyed off "did this element scroll" (a
+// programmatic `main.scrollTop = ...`, a scroll-position query) is silently inert. Requiring ACTUAL
+// overflow (`scrollHeight` strictly greater than `clientHeight`, the standard "does this box really
+// scroll" check) in addition to the CSS property correctly falls through to the `WINDOW_RESULT`
+// case below for this exact shape — the case `VirtualizedRowList`'s own header already documents as
+// a legitimate, supported configuration ("a future layout where the page itself scrolls"), which
+// this fix recognizes AppShell's CURRENT layout actually is.
 function isScrollable(el: Element): boolean {
   const style = window.getComputedStyle(el);
-  return style.overflowY === "auto" || style.overflowY === "scroll";
+  const overflowsY = style.overflowY === "auto" || style.overflowY === "scroll";
+  if (!overflowsY) return false;
+  return el.scrollHeight > el.clientHeight + 1; // +1: sub-pixel layout rounding, never a real page's worth
 }
 
 export type ScrollParentResult =

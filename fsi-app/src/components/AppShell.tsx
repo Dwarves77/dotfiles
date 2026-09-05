@@ -71,8 +71,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     return <>{children}</>;
   }
 
+  // PERF-13 (2026-09-04, docs/audits/perf-clickthrough-2026-09-04.md §(f), root cause):
+  // `min-h-screen` (a MINIMUM height) does not bound this container's height — it lets the whole
+  // shell auto-grow to fit `<main>`'s content, so `<main className="flex-1 overflow-y-auto">`
+  // below never actually overflows (`scrollHeight === clientHeight`, confirmed this lane via an
+  // isolated CSS reproduction) and the browser scrolls `window`/`document.documentElement` instead
+  // — while EVERY comment in this codebase that references AppShell's scroll container
+  // (useNearestScrollParent.ts, VirtualizedRowList.tsx, both PERF-12) already assumes `<main>` is
+  // the real, internally-scrolling page-level container (the standard "fixed sidebar + header,
+  // internally-scrolling content" app-shell pattern this component is named for). `h-screen` (a
+  // FIXED 100vh) is the one-word fix that makes that assumption true: it bounds this flex row so
+  // `<main>`'s `flex-1` share of the remaining vertical space is itself bounded, `overflow-y-auto`
+  // then does real work, and `main.scrollTop` correctly tracks the user's actual scroll position —
+  // which is what TanStack Virtual's `useVirtualizer({ getScrollElement: () => main })` needs to
+  // ever render past its initial visible+overscan window, and what makes a scroll gesture actually
+  // move the infinite-scroll sentinel through the viewport instead of leaving it (and `<main>`'s
+  // `scrollTop`) pinned wherever they started.
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: "var(--color-bg-base)" }}>
+    <div className="flex h-screen" style={{ backgroundColor: "var(--color-bg-base)" }}>
       <Sidebar />
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Masthead chrome — 4px orange → blue brand rule on every page
