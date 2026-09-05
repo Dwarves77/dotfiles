@@ -74,6 +74,7 @@ node --test \
   fsi-app/.discipline/fitness/functions/*.test.mjs \
   fsi-app/.discipline/fitness/runner.test.mjs \
   fsi-app/scripts/lib/admin-phrase-scan.selftest.mjs \
+  fsi-app/scripts/lib/assemble-train.test.mjs \
   fsi-app/scripts/lib/canonical-key.selftest.mjs \
   fsi-app/scripts/lib/check-sources-decision.selftest.mjs \
   fsi-app/scripts/lib/db-register-source-role.test.mjs \
