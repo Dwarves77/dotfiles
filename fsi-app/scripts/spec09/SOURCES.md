@@ -78,3 +78,19 @@ to reverse this drop knows where the data lives.
 **Sequenced per spec §4**: `surcharge-audit-producer.mjs` was written first at wave 3, matching the
 calculator and component build order; this lane's CSV-upload refactor preserved that file as the first of
 the six rewritten producers for the same reason.
+
+## `statutory_computations` (FuelEU Annex IV) — not a spec-09 table, cross-linked here for the pattern
+
+Lane FUELEU-ROWS, 2026-09-06 (audit W3-W4 finding 3). `scripts/propagation/write-statutory.mjs`, not a
+spec-09 producer, follows the SAME rows-file-driven pattern this file documents for the six spec-09 tables
+above (no live $0 bulk feed exists for the ship-year figures it needs — see
+`docs/runbooks/FUELEU-STATUTORY-RUNBOOK.md` for the full account). $0 source for the regulation's own
+published period constants (GHG intensity limits, reference value, penalty-formula constants):
+`eur-lex.europa.eu` (CELEX:32023R1805, T1 in `src/lib/sources/host-authority.ts`'s LEGAL_PRIMARY class) —
+transcribed into `scripts/propagation/fixtures/fueleu-annex-i-iv-statutory-constants-2026-09-06.json`.
+GAP, same shape as `carrier_compliance_pools` above: the per-ship-year figures
+(`ghgIntensityActual`/`energyUsedMJ`/`consecutiveDeficitYears`) are published only through EMSA's public
+THETIS-MRV register (`mrv.emsa.europa.eu`, T2, GOV_INTERGOV class) — confirmed this session to be a
+JS single-page app `WebFetch` cannot render (page metadata only, no per-ship search results) — so a
+browser-capable lane is still needed to source the first real row. `statutory_computations` = **0 rows**
+[CONFIRMED, read-only SQL, 2026-09-06], unchanged by this lane.

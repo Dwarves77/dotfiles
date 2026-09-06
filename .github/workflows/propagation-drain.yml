@@ -109,7 +109,7 @@ on:
         default: false
         type: boolean
       backfill_and_statutory:
-        description: 'Lane DAG-AUTHOR (2026-09-04): run scripts/entities/backfill-derivation-edges.mjs (one-time historical DAG-authorship bridge — see that file header for its retirement condition) THEN scripts/propagation/write-statutory.mjs (FuelEU Annex IV statutory_computations writer) before the drain. Honours mode. The statutory writer needs a reviewed --rows-file (no live ship-GHG source exists yet — see that file header); its step is a no-op, not a failure, when scripts/propagation/fixtures/fueleu-annex-iv-rows.json is absent.'
+        description: 'Lane DAG-AUTHOR (2026-09-04): run scripts/entities/backfill-derivation-edges.mjs (one-time historical DAG-authorship bridge — see that file header for its retirement condition) THEN scripts/propagation/write-statutory.mjs (FuelEU Annex IV statutory_computations writer) before the drain. Honours mode. The statutory writer needs a reviewed --rows-file (no live ship-GHG source exists yet — see that file header); its step is a no-op, not a failure, when scripts/propagation/fixtures/fueleu-annex-iv-rows.json is absent, and (lane FUELEU-ROWS, 2026-09-06) is gated through scripts/propagation/validate-statutory-rows-file.mjs when the file IS present, so a placeholder/fixture rows-file fails the step instead of silently applying.'
         required: false
         default: false
         type: boolean
@@ -306,13 +306,22 @@ jobs:
           fi
 
       - name: write-statutory.mjs (opt-in, no-op without a reviewed rows-file)
+        # Lane FUELEU-ROWS, 2026-09-06 (audit W3-W4 finding 3): a rows-file at this exact path is now
+        # gated through validate-statutory-rows-file.mjs BEFORE write-statutory.mjs ever sees it — the
+        # gap this finding named was a rows-file (scripts/_worklists/statutory-fueleu-annex-iv-2026-09-05
+        # .json) self-labeled FIXTURE reaching write-statutory.mjs by a coordinator copying it to this
+        # path without realizing it was never meant to apply; the validator refuses on sight (placeholder
+        # markers, missing per-input `source` blocks, unrated hosts — see that script's own header) so
+        # the SAME mistake cannot happen silently again. A validator failure fails this step for real
+        # (not a soft no-op) — a rows-file present at this path is asserted to be real, reviewed data.
         if: ${{ env.RUN_SKIP != 'true' && env.RUN_BACKFILL_AND_STATUTORY == 'true' }}
         run: |
           ROWS_FILE=scripts/propagation/fixtures/fueleu-annex-iv-rows.json
           if [ ! -f "$ROWS_FILE" ]; then
-            echo "write-statutory: $ROWS_FILE not present — no reviewed ship-year rows to compute from yet (see write-statutory.mjs header). Skipping, not failing."
+            echo "write-statutory: $ROWS_FILE not present — no reviewed ship-year rows to compute from yet (see write-statutory.mjs header and docs/runbooks/FUELEU-STATUTORY-RUNBOOK.md). Skipping, not failing."
             exit 0
           fi
+          node scripts/propagation/validate-statutory-rows-file.mjs "$ROWS_FILE"
           if [ "$RUN_MODE" = "apply" ]; then
             node scripts/propagation/write-statutory.mjs --apply --rows-file "$ROWS_FILE"
           else
