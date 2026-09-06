@@ -10956,3 +10956,89 @@ named, not investigated, this train.
    this train.
 7. The map smoke spec gap UX-FIX's P6 audit names (no deterministic `transport_modes` classifier).
 8. A THETIS-MRV row to source FUELEU's `statutory_computations` writer.
+
+## Addendum 86, postscript 4: train 50, the read-back defect and its fix, the ATTACH consolidation, six dispatches (2026-09-06, coordinator, lane ASSEMBLE-50)
+
+Train 49 landed as PR #596, master tip `b3504d14`. I assembled train 50 (`train/wave50-2026-09-06`, cut
+from `origin/master` `b3504d14`) by merging two lane branches in the order dispatched:
+
+- **READBACK-CHUNK** (1b9b07c7). Maintenance #57 (below) applied cleanly - 349 rows moved
+  provisional to active, provisional 911 to 562, confirmed by SQL - but the step's own post-apply
+  read-back 400'd: a single Supabase `in()` GET carrying 911 ids exceeds whatever URL-length or filter-size
+  limit the API enforces, and the failure was masked by an `|| true` on the step so the apply itself was
+  never at risk, only the read-back's own confirmation. This lane's fix is `readAllByIds()` in
+  `fsi-app/scripts/lib/db.mjs`, a shared helper that chunks any id list into safe-sized batches and unions
+  the results, plus tests. All four `review-apply-*.mjs` wrappers and `export-census-rows.mjs`'s
+  `fetchRowsIn` now delegate to it instead of each carrying its own unchunked `in()` call.
+- **ATTACH-FINAL** (six commits ending 860033af). The seed extractor was reading STEP C's `source[]` key,
+  which is empty by construction on an orphan row; the fix reads `orphans[]`, the field the step actually
+  populates, and reproduces the 441-row worklist maintenance #55 (last postscript) found was not
+  reproducible. Eight Haiku slice lanes then ran against that seed: 176 of 441 orphans sourced with a real
+  url and quote (150 counted this train, 26 already counted in an earlier partial run), 265 left
+  unsourced with an explicit disposition per row (`not_found`, `analytical_inference`, or
+  `item_specific` - never a bare skip). 46 of the 176 sourced rows sit on hosts below the per-type
+  authority floor with no note explaining why; 40 have a quote whose tokens do not match the row's own
+  claim text closely enough to auto-trust. Neither set was dropped - both are flagged in the consolidated
+  file for the `attach-found-sources` apply step to prove (or refuse) against the page it actually
+  fetches, which is the only place a quote's truth is checkable. `consolidate-attach-worklist.mjs` +
+  test merges the eight slice outputs into the two files (`attach-found-sources-2026-09-06.json`,
+  `...-unsourced.json`) and MAINTENANCE-RUNBOOK.md gained §8b describing the shape.
+
+Both lanes' diffs against `origin/master` showed the same 129/125-file deletion set (the retired
+`docs/design/audit-2026-09-06/` capture directory and a `docs/ops/session-log.md` trim) because both were
+cut from an older master tip that still carried those files; neither lane's own commits touch them, so
+both merges auto-resolved to master's current (already-deleted) state with zero conflicts -
+`grep -rn '<<<<<<<'` clean on both. `coverage-scan.mjs` regenerated after the merge (db.mjs, the four
+review-apply wrappers, export-census-rows.mjs, and consolidate-attach-worklist.mjs are all governed
+surface): 848 governed files, 813 COVERED, 35 EXEMPT, 0 GAPS - a 1-file, 14-line delta from train 49's own
+847/812 baseline, committed separately. `assemble-train --fold --propose --ledger` folded 0 new artifact
+branches (26 already folded as of train 49, 0 conflicts), wrote 0 new proposer briefs, derived 0 ledger
+rows - train 49's own fold pass had already covered every stranded branch.
+
+**Dispatch ledger, six new rows this session** (docs/ops/dispatch-ledger.jsonl, #56-#61; #56-#57 landed
+as part of the READBACK-CHUNK merge, #58-#61 appended by me as coordinator-confirmed):
+
+- **#56/#57 - review-apply-provisional-sources**, dry then apply: dry found 6 groups (349 rows would
+  keep across tier-1/2/4); apply moved 349 rows provisional→active, live count 911→562 CONFIRMED by SQL.
+  This is the run whose read-back 400'd, fixed by READBACK-CHUNK above.
+- **#58/#59 - review-apply-canonical-candidates**, dry then apply: 23 groups; 6 accepts auto-resolved
+  (bsr.org, clean-trucking.eu ×2, nrel.gov, gmacenter.org, prnewswire.com) and 5 rejects (docs.nrel.gov,
+  en.npc.gov.cn.cdurl.cn, espo.be, events.reutersevents.com, safa.aero) applied automatically, 11 rows
+  total; the remaining 16 need individual review and are routed there, not silently skipped. Read-back OK
+  (proves READBACK-CHUNK's fix works against a real chunked read).
+- **#60/#61 - review-apply-coverage-gaps**, dry then apply: 37 groups, 91 rows would apply per the
+  ruling (kept/parked/declined); apply landed all 91, read-back `rows_named_in_ruling` 91 =
+  `rows_now_live` 91.
+
+I deliberately did **not** dispatch `review-apply-portal-links` this train - its own worklist carries
+57,469 ids, by far the widest `in()` read this codebase issues, and is exactly the shape that broke
+maintenance #57. It waits until this train's `readAllByIds` fix is actually live on `origin/master`,
+not merely merged onto a branch that has not landed yet.
+
+**Gates**, all run against the assembled train branch: fitness runner 32 functions, 0 violations
+(grep-confirmed all three allowlist objects - `NEVER_RUN_ALLOWLIST`, `STALE_NEXT_ALLOWLIST`,
+`WRITER_READER_ALLOWLIST` in closure-gate.mjs, plus F25/F38's own allowlists - are empty in source, so no
+expiry-carrying entry exists anywhere to state a grace deadline for); governance+fitness+discipline
+`node --test` 190/190; `closure-gate.mjs --report` PASS on NEVER-RUN, STALE-NEXT, WRITER-READER (0 write
+orphans across 34 tables/32 RPCs), and LANE-CONTRACT, with an empty allowlist section (no NEVER-RUN
+entries exist to grant grace against); `run-test-suite.sh` 5768 tests, 5763 pass, 0 fail, 5 skipped, exit
+0 (the audit-finding-status report naming 593 unlabeled finding-shaped lines across 108 pre-existing audit
+files is informational and untouched by this train - none of those files are in this train's write set);
+override-check `--range=origin/master..HEAD` C3 clean, C4 fails only on this container's own stray
+`/root/work/lanes/*` worktrees not registered in `docs/inventories/worktrees.md` (same pre-existing,
+content-unrelated finding train 48 and 49 both recorded); `tsc --noEmit` clean; all 18
+`.github/workflows`/`.github/actions` YAML files parse under Python's `yaml.safe_load`;
+`invariant-coverage.mjs` PASS (118 invariants + 63 doctrines, all wired); `next build --webpack` clean,
+full route manifest emitted.
+
+**UX compliance**: no `.tsx` or `.css` file is in this train's diff (`git diff --stat origin/master..HEAD
+-- '*.tsx' '*.css'` is empty) - both lanes are scripts-and-docs work. No UX compliance block applies.
+
+**Next**, in dispatch order: land train 50 via the browser transport; then `review-apply-portal-links`
+dry then apply (now unblocked by the readAllByIds fix); `census-off-vertical` dry then apply
+`arg=archive`; `origin-class-backfill` dry then apply `arg=R-E-accepted`; `attach-found-sources` dry then
+apply `arg=scripts/_worklists/attach-found-sources-2026-09-06.json`; `source-role-cleanup`;
+`downstream-chain.yml`'s first real run; `backfill-derivation-edges.mjs --apply`; the R-B
+`screen-rules.mjs` rule train 49 named but did not build; the 16 canonical-candidate rows maintenance #59
+routed to individual review, written up as a ruling digest for the operator rather than left as a bare
+count; the map smoke spec gap; a THETIS-MRV row for FUELEU's `statutory_computations` writer.
