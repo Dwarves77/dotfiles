@@ -5002,11 +5002,22 @@
       "status": "COVERED"
     },
     {
-      "path": "fsi-app/scripts/maintenance/lib/extract-worklist-seed.test.mjs",
+      "path": "fsi-app/scripts/maintenance/lib/consolidate-attach-worklist.test.mjs",
       "kinds": [
         "PROOF"
       ],
       "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/scripts/maintenance/lib/extract-worklist-seed.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [
+        "environmental-policy-and-innovation"
+      ],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -9212,8 +9223,8 @@
     }
   ],
   "summary": {
-    "governed_files": 847,
-    "covered": 812,
+    "governed_files": 848,
+    "covered": 813,
     "exempt": 35,
     "gaps": 0,
     "orphaned_proofs": 0,
