@@ -1,9 +1,11 @@
 // @ts-check
-// ANALYSIS-LABEL DRIFT GUARD (Wave-α C2) — the 3-home vocabulary guarantee, url-canon.test.mjs pattern
+// ANALYSIS-LABEL DRIFT GUARD (Wave-α C2) — the 2-home vocabulary guarantee, url-canon.test.mjs pattern
 // (assert the OTHER homes' literal text against the ONE constant module). The homes:
 //   1. the synthesis SYSTEM prompt (system-prompt.ts — the emit contract the agent follows),
-//   2. the grounding LEDGER prompt + the kept-claims filter (canonical-pipeline.ts),
-//   3. the 4c relabel module (relabel-unlabeled.mjs).
+//   2. the grounding LEDGER prompt + the kept-claims filter (canonical-pipeline.ts).
+// (A third home, the 4c relabel module relabel-unlabeled.mjs, existed through 2026-09-05; deleted lane
+// ONESHOTS 2026-09-06, F25 expiry-52 disposition — its own HOME 3 test is removed in the same commit,
+// not left pointing at a module that no longer exists.)
 // THE RULING under test (recorded in analysis-labels.mjs): the 4th label "Per the workspace's
 // reading:" is STOP-EMITTING (live corpus ~clean: 0 claims, 4 briefs) — it must appear in NO
 // emit-side home. The LIVE validator (migration 143 c_label_re) tolerates it for the legacy corpus
@@ -21,7 +23,6 @@ import {
   ANALYSIS_LABELS_BY_KEY,
   LEGACY_ANALYSIS_LABEL,
 } from "./analysis-labels.mjs";
-import { ANALYSIS_LABELS as RELABEL_LABELS } from "./relabel-unlabeled.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const read = (p) => readFileSync(resolve(HERE, p), "utf8");
@@ -81,14 +82,6 @@ test("HOME 2 — canonical-pipeline: kept-filter + ledger prompt import the cons
   assert.ok(
     !codeLines(pipeline).toLowerCase().includes(LEGACY_ANALYSIS_LABEL.toLowerCase()),
     `canonical-pipeline.ts (ledger prompt) must NOT authorize the retired label "${LEGACY_ANALYSIS_LABEL}"`,
-  );
-});
-
-test("HOME 3 — 4c relabel module agrees with the constant module", () => {
-  assert.deepEqual(
-    Object.values(RELABEL_LABELS).sort(),
-    Object.values(ANALYSIS_LABELS_BY_KEY).sort(),
-    "relabel-unlabeled.mjs labels must equal the constant module's bare-label forms",
   );
 });
 

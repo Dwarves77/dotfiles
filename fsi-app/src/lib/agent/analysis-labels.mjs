@@ -1,8 +1,11 @@
 // @ts-check
 // ANALYSIS-LABEL VOCABULARY — THE ONE constant module (Wave-α C2, correction-plan Track C row C2;
 // CODE-1 F-01 criterion-4 half). Every home that EMITS, DETECTS, or FILTERS analysis labels imports
-// from here: the synthesis system prompt (system-prompt.ts), the grounding LEDGER prompt + the
-// kept-claims filter (canonical-pipeline.ts), and the 4c relabel module (relabel-unlabeled.mjs).
+// from here: the synthesis system prompt (system-prompt.ts) and the grounding LEDGER prompt + the
+// kept-claims filter (canonical-pipeline.ts). (The 4c relabel module, relabel-unlabeled.mjs, was a
+// third importer through 2026-09-05; deleted lane ONESHOTS 2026-09-06, F25 expiry-52 disposition —
+// operator ruling supersedes the 2026-07-18 dormant-systems "keep-and-integrate" verdict for the 4c
+// pair, see F25-module-liveness.mjs's own removal note for scripts/apply-4c-plan.mjs.)
 // Pure .mjs so it imports into BOTH the TS pipeline and the node --test drift guard.
 //
 // THE 4TH-LABEL RULING (2026-07-11, decided from live-corpus data — recorded per the C2 dispatch):

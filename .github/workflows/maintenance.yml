@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -654,6 +654,66 @@ jobs:
             fi
             node scripts/spec09/indexation-producer.mjs --mode "$RUN_MODE" --csv "$CSV_PATH" --org-id "$ORG_ID"
           fi
+
+      # ── Lane ONESHOTS (2026-09-06), the four F25 expiry-52 dispositions wired as real dispatch roots.
+      # Each wraps its target script's UNCHANGED logic via scripts/maintenance/<step>.mjs (see each
+      # wrapper's own header for whether it imports the target's exported main() in-process, or wraps it
+      # as a child process when the target does real network I/O even in its own dry path). Appended at
+      # the end of the step list (not interleaved) so a concurrent edit to an earlier step stays line-local.
+
+      - name: regen-quarantined
+        # .discipline/governance/invariants.mjs names scripts/regen-quarantined.mjs the live resolver an
+        # ENFORCED invariant ("Quarantine is an open investigation, never terminal") depends on. Moves $0
+        # in both modes (cheap-verify + a $0 validate_item_provenance RPC under apply; the paid re-ground
+        # of needs-acquire items stays the separately-gated Phase-3 path). `arg`, if given, narrows to a
+        # comma-separated legacy_id/id-prefix scope (--only=); omit for the full eligible set.
+        if: env.RUN_STEP == 'regen-quarantined' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/regen-quarantined"
+          node scripts/maintenance/regen-quarantined.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/regen-quarantined"
+
+      - name: acquire-primaries
+        # scripts/remediation/acquire-primaries-batch.mjs — the sole writer of raw_fetches on the
+        # operator-fired acquire path (docs/inventories/shared-dataset-ownership.md). `arg` names the item
+        # scope to acquire for (--only=<legacy_id,...> — there is no separate worklist FILE; the target
+        # script reads live from intelligence_items, so this arg IS "the worklist" this run drives).
+        # APPLY ONLY — deliberately absent from the 'all' dry fan-out: even the target script's own
+        # dry-run performs real, live network fetches (fetch + PDF extraction + officialness
+        # classification) with no persisted effect, so an 'all' dry sweep must never trigger it silently.
+        # Dispatch it NAMED, with an explicit --arg scope (or blank for the full non-verified set).
+        if: env.RUN_STEP == 'acquire-primaries'
+        run: |
+          mkdir -p "$OUT_ROOT/acquire-primaries"
+          node scripts/maintenance/acquire-primaries.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/acquire-primaries"
+
+      - name: refetch-capped
+        # scripts/remediation/refetch-capped-worklist.mjs — ADR-016 (docs/decisions/ADR-016-storage-side-
+        # uncap.md) storage-side uncap drain. dry (BUILD) is read-only and $0 — safe inside the 'all' dry
+        # fan-out. apply (EXECUTE) re-fetches every legacy-capped row through the live transport ladder and
+        # is GATED: refused unless `arg` is exactly `GUARD-1-accepted` — ADR-016's own explicit operator-
+        # acceptance token for the open GUARD-1 pool-insert-size ruling ("Out of scope: ... running
+        # EXECUTE", the ADR's own words). No other arg value, including a near-miss, unlocks it.
+        if: env.RUN_STEP == 'refetch-capped' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/refetch-capped"
+          node scripts/maintenance/refetch-capped.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/refetch-capped"
+
+      - name: source-role-cleanup
+        # scripts/source-role-cleanup.mjs — the #3 source-classification cleanup (authorized 2026-06-04).
+        # docs/ops/session-log.md is explicit and current: 874 registry-wide NULL-role rows remain and
+        # this script is "the durable path" to fix them; no ruling gate blocks it. Needs a DIRECT Postgres
+        # connection (scripts/lib/pg-conn.mjs's shared resolver — SUPABASE_DB_URL/DATABASE_URL, a local
+        # `supabase link`, or NEXT_PUBLIC_SUPABASE_URL+SUPABASE_DB_PASSWORD), not the REST creds this job's
+        # "Verify required secrets" step checks — SUPABASE_DB_PASSWORD must also be set as a repo secret
+        # for apply to connect in CI (dry self-skips exit 2, same as any other pg-direct tool, if it is
+        # not). `arg=active-only` narrows scope to status='active' sources (the pre-2026-08-11 scope);
+        # omit for the full registry-wide scope the durable-path note above describes.
+        if: env.RUN_STEP == 'source-role-cleanup' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          mkdir -p "$OUT_ROOT/source-role-cleanup"
+          node scripts/maintenance/source-role-cleanup.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/source-role-cleanup" || true
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

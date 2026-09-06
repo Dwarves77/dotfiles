@@ -13,6 +13,13 @@
  *  Default = DRY (compute + print the corrected inventory + truncation-cause + stale count; no write).
  *  --write performs the guardedInsertMany. Refuses to write if holdings_quality already has rows (idempotent).
  *  Usage: node scripts/holdings-audit.mjs [--write]
+ *
+ *  WIRED (lane ONESHOTS, 2026-09-06, F25 expiry-52 disposition) into scripts/verify/run-data-audit-lane.mjs's
+ *  AUDITS table as a SOFT (informational, read-only) audit — same self-skip convention every audit there
+ *  uses: exit 2 (never a crash) when DB creds are absent. The env-load below is now GUARDED (was an
+ *  unguarded process.loadEnvFile that would ENOENT-crash outside a checkout carrying .env.local — the exact
+ *  defect run-data-audit-lane.mjs's own header calls out for its other audits) so a no-creds CI run reads as
+ *  "cannot verify here", never a false FAIL.
  */
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -22,7 +29,11 @@ import { readSnapshotBody } from "../src/lib/sources/snapshot-store.mjs";
 import { classifyCompleteness, classifySufficiency, detectPublisherShape } from "../src/lib/sources/holdings-audit.mjs";
 
 const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..");
-process.loadEnvFile(resolve(ROOT, ".env.local"));
+try { process.loadEnvFile(resolve(ROOT, ".env.local")); } catch { /* CI: env injected */ }
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.error("holdings-audit: no DB creds — cannot verify here (exit 2).");
+  process.exit(2);
+}
 
 const WRITE = process.argv.includes("--write");
 const AUDIT_VERSION = "hq-v1-2026-07-14";
