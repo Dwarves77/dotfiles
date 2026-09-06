@@ -1,77 +1,140 @@
 /* ═══════════════════════════════════════════════════════════
    Caro's Ledge — Theme System
-   Light-first. Apple HIG principles. Semantic tokens only.
+   Light only (dark mode retired by design, 2026-09-06).
 
-   Source of truth for the editorial token set:
-     design_handoff_2026-04/DESIGN_SYSTEM.md
-     design_handoff_2026-04/preview/shell.css
-
-   Editorial tokens (--accent, --bg/--surface/--raised, --text/--text-2,
-   --critical-bg/-bd, etc.) are added ADDITIVELY in this file. The
-   pre-existing orange/blue token set is intentionally retained so
-   components that currently reference --color-primary keep rendering
-   unchanged. PRs 2+ migrate components onto the editorial tokens
-   one screen at a time.
+   SINGLE SOURCE OF TRUTH: docs/design/handoff-2026-09-06/README.md
+   "Design tokens". The canonical tokens below (surfaces, ink, bands,
+   lines, elevation, radius, spacing, type) are the only place a raw
+   hex/shadow/radius value is defined in this file. Every legacy
+   token name that pre-existing components still reference is kept
+   as a `var()` ALIAS of a canonical token, not a second independent
+   value — the audit's "two token sets" problem was two places a
+   color was DEFINED, not two names for it. New/rebuilt components
+   (fsi-app/src/components/ui/*, the frame, the dashboard) reference
+   the canonical names directly; legacy names are migration scaffolding
+   for components later lanes still have to touch and are logged as
+   such rather than silently kept indefinitely — see
+   docs/design/handoff-2026-09-06/DEVIATION-LOG.md.
    ═══════════════════════════════════════════════════════════ */
 
-/* ── LIGHT THEME (default) ── */
 :root {
+  /* ── surfaces ── */
+  --desk:  #E9E6E0;   /* canvas behind the frame */
+  --page:  #FAFAF8;   /* page background, row hover, card foot */
+  --card:  #FFFFFF;
+  --tag:   #F5F2EE;   /* neutral tag / chip background */
+
+  /* ── ink ── */
+  --ink:    #1A1A1A;  /* primary text */
+  --ink-2:  #5A6B67;  /* secondary text */
+  --ink-3:  #7A6E6C;  /* muted labels */
+  --brand:  #5A5552;  /* primary button, brand rule, active chip */
+
+  /* ── bands — the one urgency vocabulary (see src/lib/urgency) ── */
+  --immediate:      #DC2626;
+  --immediate-tint: #FEF2F2;
+  --action:         #F97316;
+  --action-tint:    #FFF7ED;
+  --monitor:        #2563EB;
+  --monitor-tint:   #EFF6FF;
+  --awareness:      #16A34A;
+  --awareness-tint: #F0FDF4;
+
+  /* ── lines ── */
+  --line-1: rgba(0, 0, 0, .12);  /* card border */
+  --line-2: rgba(0, 0, 0, .08);  /* header divider */
+  --line-3: rgba(0, 0, 0, .06);  /* row divider */
+
+  /* ── elevation ── */
+  --shadow-card:  0 1px 2px rgba(26, 26, 26, .04), 0 4px 14px rgba(26, 26, 26, .06);
+  --shadow-frame: 0 1px 3px rgba(0, 0, 0, .06), 0 8px 30px rgba(0, 0, 0, .06);
+
+  /* ── radius ── */
+  --radius-control: 6px;
+  --radius-card:    10px;
+  --radius-pill:    999px;
+
+  /* ── spacing scale ── */
+  --sp-2: 2px;  --sp-4: 4px;   --sp-6: 6px;   --sp-8: 8px;
+  --sp-10: 10px; --sp-12: 12px; --sp-14: 14px; --sp-16: 16px;
+  --sp-18: 18px; --sp-20: 20px; --sp-28: 28px; --sp-40: 40px;
+
+  /* ── type ── */
+  --font-sans: var(--font-jakarta), system-ui, sans-serif;
+  --font-display: var(--font-anton), system-ui, sans-serif;
+  --fs-85: 8.5px;  --fs-95: 9.5px;  --fs-10: 10px;  --fs-105: 10.5px;
+  --fs-11: 11px;   --fs-115: 11.5px; --fs-12: 12px; --fs-125: 12.5px;
+  --fs-13: 13px;   --fs-14: 14px;
+
+  /* ── interaction states ── */
+  --row-hover:       var(--page);
+  --card-hover-line: rgba(0, 0, 0, .3);
+  --link-line:       rgba(0, 0, 0, .3);
+  --selection:       #DCE7FB;
+
+  /* ═══════════════════════════════════════════════════════════
+     LEGACY ALIASES — every name below resolves to a canonical
+     token above. No independent value is defined past this line;
+     this block exists so the ~190 pre-existing call sites across
+     the app keep rendering identically while later lanes migrate
+     each surface onto the canonical names directly (0.3/0.4 work
+     in this lane touches the frame + dashboard + the shared
+     components in src/components/ui/, which reference canonical
+     names only — see that code, not this file, for the current
+     values).
+     ═══════════════════════════════════════════════════════════ */
+
   /* Semantic surface tokens */
-  --color-background: #FAFAF8;
-  --color-surface: #FFFFFF;
-  --color-surface-raised: #F5F2EE;
+  --color-background: var(--page);
+  --color-surface: var(--card);
+  --color-surface-raised: var(--tag);
   --color-surface-raised-hover: #EFEBE5;
   --color-surface-overlay: rgba(0, 0, 0, 0.03);
   --color-surface-input: rgba(0, 0, 0, 0.04);
 
   /* Text */
-  --color-text-primary: #1A1A1A;
-  --color-text-secondary: #5A6B67;
-  --color-text-muted: #7A6E6C;
+  --color-text-primary: var(--ink);
+  --color-text-secondary: var(--ink-2);
+  --color-text-muted: var(--ink-3);
   --color-text-disabled: #9CA3AF;
 
-  /* Primary action — orange athletic */
-  --color-primary: #E8610A;
-  --color-primary-hover: #D4570A;
+  /* Primary action — brand ink (README: "One primary per view, in ink #5A5552") */
+  --color-primary: var(--brand);
+  --color-primary-hover: #4A4644;
 
-  /* Secondary accent — blue */
-  --color-secondary: #2563EB;
+  /* Secondary accent — monitor blue, reused from the band scale */
+  --color-secondary: var(--monitor);
   --color-secondary-hover: #1D4ED8;
 
-  /* Gradient endpoints */
-  --gradient-start: #E8610A;
-  --gradient-end: #2563EB;
+  --gradient-start: var(--brand);
+  --gradient-end: var(--monitor);
 
   /* Borders */
-  --color-border: rgba(0, 0, 0, 0.12);
-  --color-border-subtle: rgba(0, 0, 0, 0.06);
+  --color-border: var(--line-1);
+  --color-border-subtle: var(--line-3);
   --color-border-strong: rgba(0, 0, 0, 0.20);
 
   /* State */
-  --color-error: #DC2626;
-  --color-success: #16A34A;
-  --color-warning: #D97706;
-  --color-focus-ring: #E8610A;
+  --color-error: var(--immediate);
+  --color-success: var(--awareness);
+  --color-warning: var(--action);
+  --color-focus-ring: var(--brand);
 
-  /* Interactive — muted for highlights/chips */
-  --color-active-bg: rgba(232, 97, 10, 0.08);
-  --color-active-border: rgba(232, 97, 10, 0.25);
+  --color-active-bg: rgba(90, 85, 82, 0.08);
+  --color-active-border: rgba(90, 85, 82, 0.25);
+  --color-active-solid: var(--brand);
+  --color-active-solid-hover: #4A4644;
 
-  /* Solid active — for filled pills, primary CTAs */
-  --color-active-solid: #E8610A;
-  --color-active-solid-hover: #D4570A;
-
-  /* Inversion (for buttons) */
-  --color-invert-bg: #1A1A1A;
+  --color-invert-bg: var(--ink);
   --color-invert-text: #FFFFFF;
 
-  /* Priority colors */
-  --critical: #DC2626;
-  --high: #D97706;
-  --moderate: #6B7280;
-  --low: #9CA3AF;
+  /* Priority colors — alias of the one band scale */
+  --critical: var(--immediate);
+  --high: var(--action);
+  --moderate: var(--monitor);
+  --low: var(--awareness);
 
-  /* Topic colors */
+  /* Topic colors (neutral tag system; unchanged by the band scale) */
   --topic-emissions: #5856D6;
   --topic-fuels: #A2845E;
   --topic-transport: #16A34A;
@@ -80,70 +143,60 @@
   --topic-corridors: #2563EB;
   --topic-research: #0891B2;
 
-  /* Impact dimension colors */
+  /* Impact dimension colors (used by legacy impact-meter call sites still
+     migrating onto the value-colored bars in src/components/ui/ImpactMeter) */
   --impact-cost: #CA8A04;
   --impact-compliance: #9333EA;
   --impact-client: #0D9488;
   --impact-operational: #2563EB;
 
-  /* Backgrounds (new unified tokens) */
-  --color-bg-base: #FAFAF8;
-  --color-bg-surface: #FFFFFF;
-  --color-bg-raised: #F5F2EE;
-  --color-bg-sunken: rgba(0,0,0,0.03);
-  --color-bg-ai-strip: #FFF7F0;
+  --color-bg-base: var(--page);
+  --color-bg-surface: var(--card);
+  --color-bg-raised: var(--tag);
+  --color-bg-sunken: rgba(0, 0, 0, 0.03);
+  --color-bg-ai-strip: var(--tag);
 
-  /* Border variants */
   --color-border-medium: rgba(0, 0, 0, 0.16);
-  --color-border-focus: #E8610A;
-  --color-border-ai: #FBD5B5;
+  --color-border-focus: var(--brand);
+  --color-border-ai: var(--line-1);
 
-  /* Priority system (with bg/border variants for badges) */
-  --color-critical: #DC2626;
-  --color-critical-bg: #FEF2F2;
+  --color-critical: var(--immediate);
+  --color-critical-bg: var(--immediate-tint);
   --color-critical-border: #FECACA;
-  --color-high: #D97706;
-  --color-high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
-  --color-high-border: #FED7AA;   /* orange-200 */
-  --color-moderate: #EAB308;
-  --color-moderate-bg: #FEFCE8;
-  --color-moderate-border: #FDE68A;
-  --color-low: #16A34A;
-  --color-low-bg: #F0FDF4;
+  --color-high: var(--action);
+  --color-high-bg: var(--action-tint);
+  --color-high-border: #FED7AA;
+  --color-moderate: var(--monitor);
+  --color-moderate-bg: var(--monitor-tint);
+  --color-moderate-border: #BFDBFE;
+  --color-low: var(--awareness);
+  --color-low-bg: var(--awareness-tint);
   --color-low-border: #BBF7D0;
 
-  /* Text link */
-  --color-text-link: #2563EB;
+  --color-text-link: var(--monitor);
   --color-text-inverse: #FFFFFF;
-  --color-text-accent: #E8610A;
+  --color-text-accent: var(--brand);
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
-  --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.10), 0 2px 6px rgba(0,0,0,0.06);
-  --shadow-stat-hover: 0 6px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-card-hover: 0 4px 16px rgba(0, 0, 0, 0.10), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --shadow-stat-hover: 0 6px 24px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.06);
 
-  /* Radius */
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-sm: var(--radius-control);
+  --radius-md: var(--radius-card);
   --radius-lg: 14px;
-  --radius-pill: 999px;
+  --radius-pill: var(--radius-pill);
 
-  /* Transitions */
   --transition-fast: 0.12s ease;
   --transition-base: 0.18s ease;
 
-  /* Card surface (legacy compat) */
-  --surface-card: #FFFFFF;
+  --surface-card: var(--card);
   --surface-card-hover: #F9F7F4;
 
-  /* Scrollbar */
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
 
-  /* Transitions (legacy) */
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Legacy compat tokens (mapped to new system) */
+  /* Very old legacy compat names (predate the editorial rename) */
   --navy: var(--color-background);
   --sage: var(--color-text-secondary);
   --white: var(--color-text-primary);
@@ -182,357 +235,133 @@
   --foreground: var(--color-text-primary);
   --muted: var(--color-text-secondary);
   --muted-foreground: var(--color-text-muted);
-  --card: var(--color-surface);
   --card-hover: var(--color-surface-raised);
 
-  /* ─────────────────────────────────────────────────────
-     EDITORIAL TOKEN SET (additive — see DESIGN_SYSTEM.md)
-     Mirrors design_handoff_2026-04/preview/shell.css.
-     New components consume these; legacy components keep
-     using the orange/blue tokens above until migrated.
-     ───────────────────────────────────────────────────── */
+  /* Editorial token set (T02+ redesign waves) */
+  --bg: var(--page);
+  --surface: var(--card);
+  --raised: var(--tag);
+  --text: var(--ink);
+  --text-2: var(--ink-2);
+  --border-sub: var(--line-3);
 
-  /* Fonts (raw vars; Tailwind aliases live in globals.css @theme block) */
-  --font-sans: var(--font-jakarta), system-ui, sans-serif;
-  --font-display: var(--font-anton), system-ui, sans-serif;
+  --accent: var(--brand);
+  --accent-hover: #4A4644;
+  --accent-bg: rgba(90, 85, 82, 0.08);
+  --accent-bd: rgba(90, 85, 82, 0.25);
+  --accent-strip: var(--tag);
+  --accent-strip-bd: var(--line-1);
 
-  /* Surface aliases */
-  --bg: #FAFAF8;
-  --surface: #FFFFFF;
-  --raised: #F5F2EE;
-
-  /* Text aliases */
-  --text: #1A1A1A;
-  --text-2: #5A6B67;
-
-  /* Border aliases */
-  --border-sub: rgba(0,0,0,0.06);
-
-  /* Editorial accent — navy (replaces orange in new components) */
-  --accent: #1E3A8A;
-  --accent-hover: #172E6F;
-  --accent-bg: rgba(30,58,138,0.08);
-  --accent-bd: rgba(30,58,138,0.25);
-  --accent-strip: #EEF1F9;
-  --accent-strip-bd: #C4CEE8;
-
-  /* Oxblood — reserved for editorial moments (one per screen) */
   --oxblood: #6E1F1A;
 
-  /* Priority palette — short aliases (values match --color-* above) */
-  --critical-bg: #FEF2F2;
+  --critical-bg: var(--immediate-tint);
   --critical-bd: #FECACA;
-  --high-bg: #FFF7ED;       /* orange-50 — distinct from moderate yellow-50 */
-  --high-bd: #FED7AA;       /* orange-200 */
-  --moderate-bg: #FEFCE8;
-  --moderate-bd: #FEF08A;
-  --low-bg: #F0FDF4;
+  --high-bg: var(--action-tint);
+  --high-bd: #FED7AA;
+  --moderate-bg: var(--monitor-tint);
+  --moderate-bd: #BFDBFE;
+  --low-bg: var(--awareness-tint);
   --low-bd: #BBF7D0;
 
-  /* Shadow / radius aliases */
-  --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
-  --shadow-popover: 0 10px 30px rgba(0,0,0,0.12), 0 2px 6px rgba(0,0,0,0.06);
-  --r-sm: 6px;
-  --r-md: 10px;
+  --shadow: var(--shadow-card);
+  --shadow-popover: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
+  --r-sm: var(--radius-control);
+  --r-md: var(--radius-card);
   --r-lg: 14px;
 
-  /* Masthead chrome — 3px navy → red gradient, fixed shell chrome.
-     Not part of the oxblood urgency budget. */
-  --gradient-masthead: linear-gradient(90deg, var(--accent), var(--critical));
+  /* Masthead / band-gradient chrome — the band-proportion gradient rule
+     (README 0.2) is computed per page from live band counts, not a fixed
+     CSS gradient; this alias is kept only for any legacy call site that
+     still paints a static two-stop rule and is on the migration list. */
+  --gradient-masthead: linear-gradient(90deg, var(--immediate), var(--action), var(--monitor), var(--awareness));
+  --gradient-brand: var(--gradient-masthead);
 
-  /* ─────────────────────────────────────────────────────
-     REDESIGN T02 TOKENS (HANDOFF §2 + Regulations index mock)
-     Added additively per feat/redesign-t02-regulations. Values
-     lifted verbatim from HANDOFF §2 and "Pages - 02 Regulations"
-     inline styles — do NOT substitute Tailwind defaults. Semantic
-     tokens only; the T02 components reference these, never raw hex.
-     ───────────────────────────────────────────────────── */
-
-  /* Brand strip — masthead 4px rule, orange → blue (HANDOFF §2 geometry). */
-  --gradient-brand: linear-gradient(90deg, #E8610A 0%, #2563EB 100%);
-
-  /* Accent blue — eyebrow / VOL line / T-tier badges / VERIFIED (HANDOFF §2). */
-  --accent-blue: #2563EB;
-
-  /* Epistemic — unverified / early-signal ink (always paired with a DASHED border). */
+  --accent-blue: var(--monitor);
   --epistemic-signal: #B45309;
-
-  /* Brass — pending-frame headers, jurisdiction tags, theme eyebrows (HANDOFF §2). */
   --brass: #8A6A2A;
-
-  /* Destructive-quiet — Ban / Delete text actions + REPLACED supersession chips (HANDOFF §2).
-     Text-only destructive register (WORDS, never a filled pill or icon). Distinct from
-     --sev-critical. Single light-theme definition lives below in the T11 additive block
-     (deduped 2026-07-11, Wave-α e10, audit CODE-4b F7). */
-
-  /* Severity spectrum — HANDOFF §2 named values. */
-  --sev-critical: #DC2626;
-  --sev-high: #E8610A;
-  --sev-moderate: #CA8A04;
-  --sev-low: #16A34A;
-
-  /* Banded-ledger per-band hues / tints / 4px gradient strips — lifted
-     verbatim from the "Pages - 02 Regulations" inline styles. The band
-     hues intentionally differ from the §2 severity spectrum above (the
-     mock tunes them per band); the mock is the archetype for this surface. */
-  --reg-band-immediate: #DC2626;
-  --reg-band-immediate-bg: #FEF2F2;
-  --reg-band-immediate-strip: linear-gradient(90deg, #16A34A, #CFA000 33%, #D97706 66%, #DC2626);
-  --reg-band-action: #D97706;
-  --reg-band-action-bg: #FFF7ED;
-  --reg-band-action-strip: linear-gradient(90deg, #16A34A, #CFA000 50%, #D97706);
-  --reg-band-monitor: #A16207;
-  --reg-band-monitor-bg: #FEFCE8;
-  --reg-band-monitor-strip: linear-gradient(90deg, #16A34A, #CFA000);
-  --reg-band-awareness: #16A34A;
-  --reg-band-awareness-bg: #F0FDF4;
-  --reg-band-awareness-strip: #16A34A;
-  /* Low tile eyebrow/numeral render muted-secondary in the mock (only the
-     bottom rule is green) — token keeps that intent explicit. */
-  --reg-tile-low-fig: #5A6B67;
-
-  /* -----------------------------------------------------
-     REDESIGN T03 TOKENS (additive — HANDOFF §2)
-     Detail/reader-page token set. Lifted verbatim from the
-     approved mock inline styles (Pages - 03 Regulation
-     Detail.dc.html). The action color on detail/reader pages
-     is brand orange #E8610A — the legacy editorial --accent
-     (navy) is intentionally NOT changed here so template-02
-     shell and other surfaces render unchanged; the detail
-     surface consumes these detail-scoped tokens instead.
-     See docs/design/redesign/DESIGN-DEVIATIONS.md D1.
-     ───────────────────────────────────────────────────── */
-  --cl-bg-page: #FAFAF8;
-  --cl-bg-card: #FFFFFF;
-  --cl-bg-plate: #F5F2EE;              /* section-header plates, avatar bg */
-  --cl-bg-accent-tint: #FFF7F0;        /* selected/active tint */
-  --cl-ink: #1A1A1A;
-  --cl-ink-secondary: #5A6B67;
-  --cl-ink-muted: #7A6E6C;
-  --cl-accent: #E8610A;                /* THE action color on detail pages */
-  --cl-accent-hover: #D05509;
-  --cl-accent-blue: #2563EB;           /* eyebrow/volume, T-tier badge, VERIFIED */
-  --cl-sev-critical: #DC2626;
-  --cl-sev-high: #E8610A;
-  --cl-sev-moderate: #CA8A04;
-  --cl-sev-low: #16A34A;
-  --cl-epistemic-signal: #B45309;      /* unverified / early signal (dashed) */
-  --cl-destructive-quiet: #9A3412;     /* ban/delete text, counsel labels */
-  --cl-brass: #8A6A2A;                 /* pending-frame headers, theme eyebrows */
-  --cl-hairline: rgba(0,0,0,0.12);     /* card border */
-  --cl-hairline-soft: rgba(0,0,0,0.06);/* row rules */
-  --cl-detail-grad: linear-gradient(90deg, #E8610A 0%, #2563EB 100%);
-
-  /* Research severity chips (TEMPLATE 06). The finding-severity hue reuses
-     the reg-band hues (identical values in the mock); these add the
-     translucent chip-border tints the "Pages - 06 Research" mock uses on
-     the per-finding severity chip. Kept as tokens so the surface never
-     substitutes raw hex. The tile gradients / numerals reuse the
-     --reg-band-*-strip and --reg-band-* hue tokens above. */
-  --res-sev-action: var(--reg-band-immediate);
-  --res-sev-action-bd: #FECACA;
-  --res-sev-cost: var(--reg-band-action);
-  --res-sev-cost-bd: rgba(217, 119, 6, 0.4);
-  --res-sev-monitor: var(--reg-band-monitor);
-  --res-sev-monitor-bd: rgba(161, 98, 7, 0.4);
-  --res-sev-background: var(--reg-band-awareness);
-  --res-sev-background-bd: rgba(22, 163, 74, 0.4);
-
-  /* ─────────────────────────────────────────────────────
-     REDESIGN T07 TOKENS (HANDOFF §6.7 + "Pages - 07 Operations")
-     Added additively per feat/redesign-t07-operations. Values lifted
-     verbatim from the mock inline styles / renderVals sevMeta. The
-     Operations severity spectrum (tiles, region chips, key figures)
-     reuses the --reg-band-* hues + tints above (identical hex in the
-     mock); the tokens below cover the values the reg set did not carry.
-     ───────────────────────────────────────────────────── */
-
-  /* Selected/active tint — dimension chip + spotlighted dimension cell
-     (mock: background '#FFF7F0' with a 2px orange border). */
-  --accent-tint: #FFF7F0;
-
-  /* Region severity-chip borders (mock sevMeta `bd`; translucent, so not
-     carried by the solid --*-bd reg tokens). Critical reuses --critical-bd. */
-  --ops-critical-bd: #FECACA;
-  --ops-high-bd: rgba(217, 119, 6, 0.4);
-  --ops-moderate-bd: rgba(161, 98, 7, 0.4);
-  --ops-low-bd: rgba(22, 163, 74, 0.4);
-
-  /* Honest-state dashed frame (HANDOFF §4: `1px dashed rgba(0,0,0,0.25)`,
-     bg `#FAFAF8`). Pending dimension cells + By-state pending frame. */
-  --honest-dashed: rgba(0, 0, 0, 0.25);
-  /* Market Intel severity — five tiles (eyebrow/numeral + 5px bottom rule)
-     and severity-banded ledger (head hue/tint + card left edge + key figure).
-     Lifted verbatim from the "Pages - 04 Market Intel" inline styles
-     (tileDefs + sevMeta). Note the Competitive-edge split is the mock's own:
-     the TILE renders accent-blue (--mi-edge-tile) while the LEDGER band + key
-     figure render green (--mi-edge) — preserved for fidelity, not normalized.
-     Like the reg-band tokens these are not dark-overridden (light-first). */
-  --mi-action: #DC2626;
-  --mi-action-bg: #FEF2F2;
-  --mi-action-bd: #FECACA;
-  --mi-action-strip: linear-gradient(90deg, #16A34A, #CFA000 33%, #D97706 66%, #DC2626);
-  --mi-cost: #D97706;
-  --mi-cost-bg: #FFF7ED;
-  --mi-cost-bd: rgba(217, 119, 6, 0.4);
-  --mi-cost-strip: linear-gradient(90deg, #16A34A, #CFA000 50%, #D97706);
-  --mi-window: #A16207;
-  --mi-window-bg: #FEFCE8;
-  --mi-window-bd: rgba(161, 98, 7, 0.4);
-  --mi-window-strip: linear-gradient(90deg, #16A34A, #CFA000);
-  --mi-edge: #16A34A;        /* ledger band hue + key figure (sevMeta) */
-  --mi-edge-tile: #2563EB;   /* tile eyebrow/numeral + solid strip (tileDefs) */
-  --mi-edge-bg: #F0FDF4;
-  --mi-edge-bd: rgba(22, 163, 74, 0.4);
-  --mi-monitor: #5A6B67;
-  --mi-monitor-bg: #FFFFFF;
-  --mi-monitor-bd: rgba(0, 0, 0, 0.2);
-  --mi-monitor-strip: #16A34A;
-  /* Key figure ink when a signal carries no sourced price dimension (em-dash). */
-  --mi-fig-empty: #7A6E6C;
-  /* ─────────────────────────────────────────────────────
-     REDESIGN T11 TOKENS (HANDOFF §2/§4 + Community mock)
-     Added additively per feat/redesign-t11-community. Values
-     lifted verbatim from "Pages - 11 Community" inline styles —
-     do NOT substitute Tailwind defaults. The T11 components
-     reference these, never raw hex.
-     ───────────────────────────────────────────────────── */
-
-  /* Quiet destructive — Delete text action (HANDOFF §2 destructive-quiet).
-     Distinct from --oxblood; reserved for Ban/Delete word-actions. */
   --destructive-quiet: #9A3412;
 
-  /* Accent tint (0.09) — "You're here" / "You · Owner" chip fill and the
-     selected-room tint. The general --color-active-bg is 0.08; the mock
-     uses 0.09 on these chips, so the exact value is kept explicit. */
-  --accent-tint-strong: rgba(232, 97, 10, 0.09);
-  /* Accent tint border — chip outlines on the orange identity chips. */
-  --accent-tint-border: rgba(232, 97, 10, 0.4);
-  /* Selected-room tile fill (mock #FFF7F0 — same warm tint as the AI strip). */
-  --room-selected-bg: #FFF7F0;
+  --sev-critical: var(--immediate);
+  --sev-high: var(--action);
+  --sev-moderate: var(--monitor);
+  --sev-low: var(--awareness);
 
-  /* Epistemic dashed border — the dashed outline paired with
-     --epistemic-signal on every "Unverified" peer-signal chip (§3). */
+  --reg-band-immediate: var(--immediate);
+  --reg-band-immediate-bg: var(--immediate-tint);
+  --reg-band-immediate-strip: var(--gradient-masthead);
+  --reg-band-action: var(--action);
+  --reg-band-action-bg: var(--action-tint);
+  --reg-band-action-strip: var(--gradient-masthead);
+  --reg-band-monitor: var(--monitor);
+  --reg-band-monitor-bg: var(--monitor-tint);
+  --reg-band-monitor-strip: var(--gradient-masthead);
+  --reg-band-awareness: var(--awareness);
+  --reg-band-awareness-bg: var(--awareness-tint);
+  --reg-band-awareness-strip: var(--awareness);
+  --reg-tile-low-fig: var(--ink-2);
+
+  --cl-bg-page: var(--page);
+  --cl-bg-card: var(--card);
+  --cl-bg-plate: var(--tag);
+  --cl-bg-accent-tint: var(--tag);
+  --cl-ink: var(--ink);
+  --cl-ink-secondary: var(--ink-2);
+  --cl-ink-muted: var(--ink-3);
+  --cl-accent: var(--brand);
+  --cl-accent-hover: #4A4644;
+  --cl-accent-blue: var(--monitor);
+  --cl-sev-critical: var(--immediate);
+  --cl-sev-high: var(--action);
+  --cl-sev-moderate: var(--monitor);
+  --cl-sev-low: var(--awareness);
+  --cl-epistemic-signal: #B45309;
+  --cl-destructive-quiet: #9A3412;
+  --cl-brass: #8A6A2A;
+  --cl-hairline: var(--line-1);
+  --cl-hairline-soft: var(--line-3);
+  --cl-detail-grad: var(--gradient-masthead);
+
+  --res-sev-action: var(--immediate);
+  --res-sev-action-bd: #FECACA;
+  --res-sev-cost: var(--action);
+  --res-sev-cost-bd: rgba(217, 119, 6, 0.4);
+  --res-sev-monitor: var(--monitor);
+  --res-sev-monitor-bd: rgba(37, 99, 235, 0.4);
+  --res-sev-background: var(--awareness);
+  --res-sev-background-bd: rgba(22, 163, 74, 0.4);
+
+  --accent-tint: var(--tag);
+  --ops-critical-bd: #FECACA;
+  --ops-high-bd: rgba(217, 119, 6, 0.4);
+  --ops-moderate-bd: rgba(37, 99, 235, 0.4);
+  --ops-low-bd: rgba(22, 163, 74, 0.4);
+  --honest-dashed: rgba(0, 0, 0, 0.25);
+
+  --mi-action: var(--immediate);
+  --mi-action-bg: var(--immediate-tint);
+  --mi-action-bd: #FECACA;
+  --mi-action-strip: var(--gradient-masthead);
+  --mi-cost: var(--action);
+  --mi-cost-bg: var(--action-tint);
+  --mi-cost-bd: rgba(217, 119, 6, 0.4);
+  --mi-cost-strip: var(--gradient-masthead);
+  --mi-window: var(--monitor);
+  --mi-window-bg: var(--monitor-tint);
+  --mi-window-bd: rgba(37, 99, 235, 0.4);
+  --mi-window-strip: var(--gradient-masthead);
+  --mi-edge: var(--awareness);
+  --mi-edge-tile: var(--monitor);
+  --mi-edge-bg: var(--awareness-tint);
+  --mi-edge-bd: rgba(22, 163, 74, 0.4);
+  --mi-monitor: var(--ink-2);
+  --mi-monitor-bg: var(--card);
+  --mi-monitor-bd: rgba(0, 0, 0, 0.2);
+  --mi-monitor-strip: var(--awareness);
+  --mi-fig-empty: var(--ink-3);
+
+  --accent-tint-strong: rgba(90, 85, 82, 0.09);
+  --accent-tint-border: rgba(90, 85, 82, 0.4);
+  --room-selected-bg: var(--tag);
   --epistemic-border: rgba(180, 83, 9, 0.45);
-
-  /* Honest-state pending frame border — 1px dashed (HANDOFF §4). */
   --pending-frame-border: rgba(0, 0, 0, 0.25);
-}
-
-/* ── DARK THEME (opt-in) ── */
-[data-theme="dark"] {
-  --color-background: #171e19;
-  --color-surface: #1f2820;
-  --color-surface-raised: #272e28;
-  --color-surface-raised-hover: #303830;
-  --color-surface-overlay: rgba(255, 255, 255, 0.05);
-  --color-surface-input: rgba(255, 255, 255, 0.06);
-
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #b7c6c2;
-  --color-text-muted: #9f8d8b;
-  --color-text-disabled: #6B7280;
-
-  --color-primary: #F97316;
-  --color-primary-hover: #EA580C;
-
-  --color-secondary: #60A5FA;
-  --color-secondary-hover: #3B82F6;
-
-  --gradient-start: #F97316;
-  --gradient-end: #60A5FA;
-
-  --color-border: rgba(255, 255, 255, 0.10);
-  --color-border-subtle: rgba(255, 255, 255, 0.06);
-  --color-border-strong: rgba(255, 255, 255, 0.20);
-
-  --color-error: #EF4444;
-  --color-success: #22C55E;
-  --color-warning: #F59E0B;
-  --color-focus-ring: #F97316;
-
-  --color-active-bg: rgba(249, 115, 22, 0.12);
-  --color-active-border: rgba(249, 115, 22, 0.30);
-
-  --color-active-solid: #F97316;
-  --color-active-solid-hover: #EA580C;
-
-  --color-invert-bg: #FFFFFF;
-  --color-invert-text: #171e19;
-
-  --critical: #EF4444;
-  --high: #F59E0B;
-  --moderate: #9CA3AF;
-  --low: #6B7280;
-
-  --impact-cost: #FACC15;
-  --impact-compliance: #A855F7;
-  --impact-client: #14B8A6;
-  --impact-operational: #3B82F6;
-
-  /* Backgrounds (dark) */
-  --color-bg-base: #111210;
-  --color-bg-surface: #1C1B19;
-  --color-bg-raised: #252422;
-  --color-bg-sunken: rgba(255,255,255,0.04);
-  --color-bg-ai-strip: rgba(232,97,10,0.10);
-
-  /* Border variants (dark) */
-  --color-border-medium: rgba(255, 255, 255, 0.16);
-  --color-border-focus: #F97316;
-  --color-border-ai: rgba(232,97,10,0.35);
-
-  /* Priority (dark mode badge backgrounds) */
-  --color-critical: #DC2626;
-  --color-critical-bg: rgba(220,38,38,0.15);
-  --color-critical-border: rgba(220,38,38,0.30);
-  --color-high: #D97706;
-  --color-high-bg: rgba(217,119,6,0.15);
-  --color-high-border: rgba(217,119,6,0.30);
-  --color-moderate: #EAB308;
-  --color-moderate-bg: rgba(234,179,8,0.15);
-  --color-moderate-border: rgba(234,179,8,0.30);
-  --color-low: #16A34A;
-  --color-low-bg: rgba(22,163,74,0.15);
-  --color-low-border: rgba(22,163,74,0.30);
-
-  --color-text-link: #60A5FA;
-  --color-text-inverse: #111210;
-  --color-text-accent: #F07030;
-
-  /* Destructive-quiet (dark) — lighter tonal variant so the Ban verb keeps
-     AA contrast on the dark surface. */
-  --destructive-quiet: #F0855A;
-
-  /* Shadows (dark) */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.30), 0 2px 8px rgba(0,0,0,0.20);
-  --shadow-card-hover: 0 4px 16px rgba(0,0,0,0.40), 0 2px 6px rgba(0,0,0,0.25);
-  --shadow-stat-hover: 0 6px 24px rgba(0,0,0,0.50), 0 2px 8px rgba(0,0,0,0.30);
-
-  /* Radius (same in dark) */
-  --radius-sm: 6px;
-  --radius-md: 10px;
-  --radius-lg: 14px;
-  --radius-pill: 999px;
-
-  --transition-fast: 0.12s ease;
-  --transition-base: 0.18s ease;
-
-  --surface-card: #1C1B19;
-  --surface-card-hover: #252422;
-
-  /* T02/T10 editorial tokens — dark tonal variants. */
-  --brass: #C2A15A;
-  /* --destructive-quiet removed 2026-07-11 (Wave-α e10, audit CODE-4b F7): this second dark
-     definition (#E0774A) overrode the deliberate AA-contrast value at :510 (#F0855A). Keeping the
-     single AA-contrast definition above so the Ban verb keeps AA contrast on the dark surface. */
-  --accent-blue: #60A5FA;
-  --sev-critical: #EF4444;
-  --sev-high: #F97316;
-  --sev-moderate: #EAB308;
-  --sev-low: #22C55E;
-  --color-bg-ai-strip: rgba(232,97,10,0.12);
-
-  --scrollbar-thumb: rgba(183, 198, 194, 0.2);
-  --scrollbar-thumb-hover: rgba(183, 198, 194, 0.35);
 }

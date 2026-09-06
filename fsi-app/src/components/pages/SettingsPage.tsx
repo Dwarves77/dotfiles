@@ -227,8 +227,6 @@ function LabelRow({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardSettingsCard() {
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const defaultSort = useSettingsStore((s) => s.defaultSort);
   const setDefaultSort = useSettingsStore((s) => s.setDefaultSort);
   const exportFormat = useSettingsStore((s) => s.exportFormat);
@@ -266,9 +264,11 @@ function DashboardSettingsCard() {
         <div>
           <LabelRow>Appearance</LabelRow>
           <div style={{ display: "flex", gap: 6 }}>
-            <Chip label="Light" on={theme === "light"} onClick={() => setTheme("light")} />
-            <Chip label="Dark" on={theme === "dark"} onClick={() => setTheme("dark")} />
+            <Chip label="Light" on onClick={() => {}} />
           </div>
+          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "6px 0 0" }}>
+            Dark mode is retired.
+          </p>
         </div>
         <div>
           <LabelRow>Default sort</LabelRow>

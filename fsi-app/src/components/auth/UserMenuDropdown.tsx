@@ -7,9 +7,12 @@
  * UserMenu lives in the shared layout, so its full body shipped on every
  * route's First Load JS (~2.2 kB shared overhead per the audit). Most
  * users never open the menu on most pages. By extracting the dropdown
- * panel + ThemeToggle into this separate chunk and dynamic-importing it
- * with `ssr: false` from the trigger only when `open === true`, the
- * shared layout no longer pays the dropdown body cost on first paint.
+ * panel into this separate chunk and dynamic-importing it with
+ * `ssr: false` from the trigger only when `open === true`, the shared
+ * layout no longer pays the dropdown body cost on first paint.
+ *
+ * Dark mode toggle removed 2026-09-06 (UI system handoff: dark mode is
+ * retired by design, not deferred — see docs/design/handoff-2026-09-06).
  *
  * Reuse-before-construction: this is a near-direct port of the inline
  * markup that previously lived in UserMenu.tsx — same Zustand stores,
@@ -18,27 +21,7 @@
  */
 
 import type { User } from "@supabase/supabase-js";
-import { LogOut, User as UserIcon, Shield, Settings, Sun, Moon } from "lucide-react";
-import { useSettingsStore } from "@/stores/settingsStore";
-
-function ThemeToggle() {
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
-  const isDark = theme === "dark";
-
-  return (
-    <button
-      onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors cursor-pointer"
-      style={{ color: "var(--color-text-secondary)" }}
-      onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
-      onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-    >
-      {isDark ? <Sun size={14} /> : <Moon size={14} />}
-      {isDark ? "Light mode" : "Dark mode"}
-    </button>
-  );
-}
+import { LogOut, User as UserIcon, Shield, Settings } from "lucide-react";
 
 interface UserMenuDropdownProps {
   user: User;
@@ -155,7 +138,6 @@ export default function UserMenuDropdown({
             <Settings size={14} />
             Settings
           </a>
-          <ThemeToggle />
           <button
             onClick={onSignOut}
             className="w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors cursor-pointer"
