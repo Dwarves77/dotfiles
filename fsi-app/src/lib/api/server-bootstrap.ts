@@ -90,10 +90,27 @@ export async function resolveServerBootstrapFromClient(
   if (error || !data?.claims?.sub) return EMPTY;
   const user: ServerBootstrapUser = { id: data.claims.sub, email: data.claims.email ?? null };
 
+  // Auth-bootstrap fix (2026-09-06, docs/audits/perf-load-times-2026-09-03.md §10: operator-measured
+  // ~1.9s auth/session bootstrap, the primary shell-load bottleneck). ROOT CAUSE [CONFIRMED] by
+  // reading: this used to be THREE round trips to Postgres in strict sequence — getClaims (local JWT
+  // verify, not a network round trip per PERF-7's own note above), then `Promise.all([org_memberships,
+  // profiles])`, then a THIRD, separately-awaited `workspace_settings` query gated on `orgId` from the
+  // second step. That third hop cannot be started until the second resolves, so the client-visible
+  // path was a chain of 2 sequential network round trips after getClaims, each one paying full
+  // request/response latency on top of the browser's own outer fetch to this Route Handler (PERF-10)
+  // — exactly the shape a ~1.9s "auth bootstrap" bottleneck takes.
+  // FIX AT THE CAUSE: `workspace_settings` is pulled into the SAME `org_memberships` query via
+  // PostgREST's nested-embed syntax (workspace_settings.org_id -> organizations.id is a real FK,
+  // migration 006) — one round trip resolves org, role, org name, AND the workspace's sector profile
+  // together, run in parallel with the (unrelated) `profiles` lookup. Down from 3 sequential DB
+  // round trips to 1 parallel batch of 2. `workspace_settings` has no UNIQUE(org_id) constraint, so
+  // PostgREST treats the embed as to-many and returns an array — this org has always resolved at most
+  // one settings row in practice (one row inserted per org, migration 006), so `[0]` is taken exactly
+  // as `.maybeSingle()` did for the old direct query, with no behavior change for a caller.
   const [membershipRes, profileRes] = await Promise.all([
     supabase
       .from("org_memberships")
-      .select("org_id, role, organizations(id, name)")
+      .select("org_id, role, organizations(id, name, workspace_settings(sector_profile))")
       .eq("user_id", user.id)
       .order("created_at", { ascending: true })
       .limit(1)
@@ -106,22 +123,15 @@ export async function resolveServerBootstrapFromClient(
   ]);
 
   const membership = membershipRes.data;
-  const org = (membership?.organizations as { id?: string; name?: string } | null) || null;
+  const org =
+    (membership?.organizations as
+      | { id?: string; name?: string; workspace_settings?: { sector_profile: string[] | null }[] | null }
+      | null) || null;
   const sectors =
     (profileRes.data as { sector_overrides: string[] | null } | null)?.sector_overrides ?? [];
 
-  // Pull workspace-level sectors only if the user has a workspace.
-  let workspaceSectors: string[] = [];
   const orgId = org?.id || membership?.org_id || null;
-  if (orgId) {
-    const { data: ws } = await supabase
-      .from("workspace_settings")
-      .select("sector_profile")
-      .eq("org_id", orgId)
-      .maybeSingle();
-    workspaceSectors =
-      (ws as { sector_profile: string[] | null } | null)?.sector_profile ?? [];
-  }
+  const workspaceSectors = org?.workspace_settings?.[0]?.sector_profile ?? [];
 
   return {
     user,

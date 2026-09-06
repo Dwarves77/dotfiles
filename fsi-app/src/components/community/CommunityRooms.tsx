@@ -35,6 +35,7 @@ import { formatRelativeCompact } from "@/lib/relative-time";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { RoomKey } from "@/lib/community/rooms";
+import { isRoomMember } from "@/lib/community/rooms";
 
 export interface LiveItemVM {
   id: string;
@@ -182,7 +183,9 @@ export function CommunityRooms({
 
   const selected = roomState.find((r) => r.key === selectedKey) ?? roomState[0];
 
-  const yourRoomCount = roomState.filter((r) => r.youHere || r.joined).length;
+  // P1 fix (2026-09-06): count actual membership only — `youHere` is a
+  // jurisdiction hint, not a membership claim. See isRoomMember in rooms.ts.
+  const yourRoomCount = roomState.filter(isRoomMember).length;
   const totalItems = roomState.reduce((s, r) => s + r.itemCount, 0);
 
   function patchRoom(key: RoomKey, patch: Partial<RoomVM>) {
@@ -539,7 +542,11 @@ export function CommunityRooms({
           >
             {roomState.map((r) => {
               const isSel = r.key === selectedKey;
-              const here = r.youHere || r.joined;
+              // P1 fix (2026-09-06): the tile chip must read the SAME source of
+              // truth (actual membership) the room panel's Join/Leave button
+              // reads — see isRoomMember in rooms.ts for why `youHere` alone
+              // cannot stand in for it.
+              const here = isRoomMember(r);
               const t = r.threads.length;
               return (
                 <button

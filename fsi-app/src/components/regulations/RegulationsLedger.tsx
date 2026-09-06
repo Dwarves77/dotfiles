@@ -73,7 +73,7 @@ import {
   PRIORITIES,
   type PriorityKey,
 } from "@/lib/constants";
-import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
+import { parseRegulationsRegionParam } from "@/lib/url-params/regulations-region-link";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { DismissedStash } from "./DismissedStash";
 import { ArchiveDialog } from "@/components/workspace/ArchiveDialog";
@@ -312,11 +312,16 @@ export function RegulationsLedger({
     return PRIORITIES.includes(upper as PriorityKey) ? new Set([upper]) : new Set();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const initialRegionIsoSet = useMemo<Set<string>>(() => {
-    const upper = (initialRegionFilter || "").trim().toUpperCase();
-    return upper && TIER1_PRIORITY_ISOS.has(upper) ? new Set([upper]) : new Set();
+  // P2 fix (2026-09-06): ?region= now carries a comma-separated iso-code LIST (a region's full
+  // crosswalk set, e.g. Operations' "Open EU regulations →" link — see
+  // regulations-region-link.ts), not one single Tier-1-only code. `parseRegulationsRegionParam`
+  // is the SAME parser `handleFilterParams` below uses for the client-resolved value, so the
+  // server-seeded and client-corrected paths can never disagree on what the param means.
+  const initialRegionIsoSet = useMemo<Set<string>>(
+    () => new Set(parseRegulationsRegionParam(initialRegionFilter)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    []
+  );
 
   const [search, setSearch] = useState("");
   // Phase 1 ownership: ?owner= deep link (DashboardByOwner). Cleared via its
@@ -346,9 +351,14 @@ export function RegulationsLedger({
       if (PRIORITIES.includes(upperPriority as PriorityKey)) {
         setActivePriorities(new Set([upperPriority]));
       }
-      const upperRegion = (params.region || "").trim().toUpperCase();
-      if (upperRegion && TIER1_PRIORITY_ISOS.has(upperRegion)) {
-        setActiveRegionIsos(new Set([upperRegion]));
+      // P2 fix (2026-09-06): accept the full iso-code list a region link builder sends (see
+      // regulations-region-link.ts), not one code gated against the unrelated Tier-1-only
+      // roster — that gate is what silently dropped Operations' "Open EU regulations →" filter
+      // (EU's own crosswalk includes the "EU" supranational code itself, which
+      // TIER1_PRIORITY_ISOS — built for state/country coverage-gap tracking — never carries).
+      const regionIsos = parseRegulationsRegionParam(params.region);
+      if (regionIsos.length > 0) {
+        setActiveRegionIsos(new Set(regionIsos));
       }
       const trimmedOwner = (params.owner || "").trim();
       if (trimmedOwner) {
