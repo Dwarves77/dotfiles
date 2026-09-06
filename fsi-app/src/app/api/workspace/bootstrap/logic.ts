@@ -207,6 +207,7 @@ export async function loadOverrides(
     const { data: itemRows, error: itemErr } = await supabase
       .from("intelligence_items")
       .select("id, legacy_id")
+      // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
       .in("id", itemIds);
     if (itemErr) {
       console.warn("[bootstrap/loadOverrides] legacy_id lookup failed (itemId falls back to uuid):", itemErr.message);

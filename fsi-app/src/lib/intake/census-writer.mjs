@@ -33,6 +33,8 @@
 // mutation lease (holder = the lane id), so Session A and Session C cannot write the same source's census
 // rows concurrently. The UNIQUE key is the row-level backstop; the lease is the batch-level guard.
 
+import { fetchAllByIdChunks } from "../db/paginate.mjs";
+
 /** Map a consume outcome's disposition + reason to the census_worklist dryrun_disposition enum (or null
  *  for an inconclusive/skipped row). Congruence-vs-invariant is read from the chokepoint reason text. */
 export function censusDisposition(outcome) {
@@ -131,14 +133,21 @@ export async function writeCensusRows(sb, outcomes, opts) {
   // caller's lane/createdBy trips the trigger the moment a URL already has a row from a different
   // caller (e.g. an earlier smoke test). Look up existing identity for this batch's URLs first, and
   // pass it straight through unchanged so the upsert is a no-op on identity columns for those rows.
+  // `outcomes` is one consume batch's discovered urls — caller-controlled (a sitemap walk can enumerate
+  // up to DEFAULT_MAX_SITEMAP_ENTRIES = 100,000, sitemap-walk.mjs), no cap enforced here. Chunked via
+  // fetchAllByIdChunks (src/lib/db/paginate.mjs), IN-CHUNK class (2026-09-06).
   const urls = writable.map((o) => o.url);
-  const { data: existingRows, error: existingErr } = await sb
-    .from("census_worklist")
-    .select("document_url, lane, created_by")
-    .eq("source_id", sourceId)
-    .in("document_url", urls);
-  if (existingErr) throw new Error(`census_worklist identity lookup failed: ${existingErr.message}`);
-  const existingByUrl = new Map((existingRows ?? []).map((r) => [r.document_url, r]));
+  const existingRows = await fetchAllByIdChunks(urls, async (slice) => {
+    const { data, error } = await sb
+      .from("census_worklist")
+      .select("document_url, lane, created_by")
+      .eq("source_id", sourceId)
+      // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
+      .in("document_url", slice);
+    if (error) throw new Error(`census_worklist identity lookup failed: ${error.message}`);
+    return data ?? [];
+  });
+  const existingByUrl = new Map(existingRows.map((r) => [r.document_url, r]));
 
   const rows = writable.map((o) => {
     const row = buildCensusRow(o, { sourceId, lane, createdBy, capHit, shapeClass, nowIso });

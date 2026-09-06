@@ -168,6 +168,14 @@ import { fitnessFunction as F37 } from './functions/F37-perf-budget.mjs';
 // `.limit(<literal or same-file constant> > 1000)` site must be registered (bounded-by-design, with an
 // expiry train/wave) or routed through fetchAllRows/exactCount (src/lib/db/paginate.mjs) instead.
 import { fitnessFunction as F38 } from './functions/F38-unbounded-supabase-read.mjs';
+// Unbounded .in() id-list filter (IN-CHUNK, 2026-09-06): a PostgREST `.in(col, list)` filter serialises
+// `list` into the request URL — past ~2,000 UUIDs (~80 KB) the gateway 400s, confirmed twice: the four
+// review-apply-*.mjs read-back wrappers (run 34045479342, 911 ids) and census-off-vertical.mjs
+// (Maintenance run 34046850770, 1,655 ids, "<!DOCTYPE html>"), both AFTER their write had already
+// succeeded. F39 is the mechanical backstop: a new `.in(col, <runtime value>)` site must live inside
+// db.mjs's readAllByIds/guardedUpdateByIds/guardedDelete or paginate.mjs's fetchAllRows core, or carry a
+// `// fitness-allow: F39 (reason)` marker proving the list is bounded. No allowlist, no expiry.
+import { fitnessFunction as F39 } from './functions/F39-unbounded-in-filter.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -202,6 +210,7 @@ export const fitnessFunctions = [
   F36,
   F37,
   F38,
+  F39,
 ];
 
 export function getFunctionById(id) {

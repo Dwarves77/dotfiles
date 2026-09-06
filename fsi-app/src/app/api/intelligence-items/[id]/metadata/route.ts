@@ -53,6 +53,7 @@ export async function GET(
       .from("intelligence_items")
       .select("id, title, legacy_id")
       .eq("provenance_status", "verified") // customer read gate — do not resolve quarantined titles
+      // fitness-allow: F39 (relatedIds is one item's own related-items set (a detail-page widget), small by construction)
       .in("id", relatedIds);
     if (relErr) console.warn(`[metadata] related resolve failed: ${relErr.message}`);
     relatedResolved = rels || [];

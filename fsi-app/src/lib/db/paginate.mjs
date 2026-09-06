@@ -69,3 +69,43 @@ export async function exactCount(countQuery) {
   if (typeof count !== "number") throw new Error("exact count failed: no count returned — was the query built with { count: 'exact', head: true }?");
   return count;
 }
+
+/**
+ * IN-CHUNK (2026-09-06): the transport-agnostic core of a chunked id-list read. A PostgREST
+ * `.in(col, list)` filter serialises `list` into the request URL — past roughly 2,000 UUIDs
+ * (~80 KB) or any long-URL list, the gateway answers 400 Bad Request, or an HTML error page. Two
+ * confirmed instances of exactly this: the review-apply-*.mjs read-back wrappers (run 34045479342,
+ * 911 ids) and census-off-vertical.mjs (Maintenance run 34046850770, 1,655 ids), both AFTER their
+ * write had already succeeded. `guardedUpdateByIds` (scripts/lib/db.mjs) already solved this for
+ * WRITES; this is the transport-agnostic read core so scripts/lib/db.mjs's `readAllByIds` (`.mjs`
+ * callers) and any `.ts` caller build on ONE chunking implementation, not two hand-rolled copies
+ * drifting apart the way readAllByIds' own header warns about for the read-cap defect class.
+ *
+ * @template T
+ * @param {Iterable<string>} ids the id list to chunk — deduped, chunked in encounter order.
+ * @param {(slice: string[]) => Promise<T[]>} readChunk given one chunk (<= `chunk` ids), returns that
+ *   chunk's rows however the caller's transport reads a page (a raw Supabase `.in()` call, or a
+ *   further-paginated `fetchAllRows` call when a single chunk could itself exceed 1000 rows).
+ * @param {{ chunk?: number }} [opts] chunk size (default 50 — same default readAllByIds uses).
+ * @returns {Promise<T[]>} every row across every chunk, concatenated. THROWS if more rows come back
+ *   than ids were requested (impossible for a same-column id filter; a match() that widened the
+ *   filter, or duplicate rows, is the likely cause upstream).
+ */
+export async function fetchAllByIdChunks(ids, readChunk, { chunk = 50 } = {}) {
+  const list = [...new Set(ids ?? [])];
+  if (!list.length) return [];
+  const out = [];
+  for (let i = 0; i < list.length; i += chunk) {
+    const slice = list.slice(i, i + chunk);
+    const rows = await readChunk(slice);
+    out.push(...rows);
+  }
+  if (out.length > list.length) {
+    throw new Error(
+      `fetchAllByIdChunks: got ${out.length} rows back for ${list.length} requested ids — more rows ` +
+      `than ids is impossible for a same-column id filter; something is wrong upstream (duplicate rows, ` +
+      `or a per-chunk reader that widened the filter).`
+    );
+  }
+  return out;
+}

@@ -79,6 +79,7 @@ export async function GET(
     const { data: profiles, error: profilesErr } = await service
       .from("community_member_profiles")
       .select("user_id, organisation_key, verified")
+      // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
       .in("user_id", authorIds);
     if (profilesErr) {
       return NextResponse.json({ error: profilesErr.message }, { status: 500 });

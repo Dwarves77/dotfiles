@@ -20,6 +20,11 @@ function deps(overrides = {}) {
       if (overrides.readAllImpl) return overrides.readAllImpl(table, cols, opts);
       return ROWS;
     },
+    readAllByIds: async (table, cols, ids) => {
+      calls.push(["readAllByIds", table, ids]);
+      if (overrides.readAllByIdsImpl) return overrides.readAllByIdsImpl(table, cols, ids);
+      return [];
+    },
     reviewed: {},
     guardedUpdateByIds: async (table, ids, patch, opts) => {
       updateCalls.push({ table, ids, patch, cite: opts.cite, applyMatch: opts.applyMatch });
@@ -81,17 +86,16 @@ test("apply arg=park: no-op, applies nothing, exits 0", async () => {
   assert.equal(d.updateCalls.length, 0);
 });
 
-test("apply arg=archive: RUNNABLE (migration 308) — archives off_vertical rows via guardedUpdateByIds + archivePatch, cited, read back", async () => {
-  let readAllCallCount = 0;
+test("apply arg=archive: RUNNABLE (migration 308) — archives off_vertical rows via guardedUpdateByIds + archivePatch, cited, read back via readAllByIds", async () => {
   const d = deps({
-    readAllImpl: async (table, cols, opts) => {
-      readAllCallCount += 1;
-      if (readAllCallCount === 1) return ROWS; // the dry-count read
+    // readAll: the dry-count read only
+    readAllByIdsImpl: async (table, cols, ids) =>
       // post-apply read-back: whichever rows were archived read back is_archived=true
-      return [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }];
-    },
+      [{ id: "c3", is_archived: true, archive_reason: ARCHIVE_REASON }],
   });
   const r = await main({ mode: "apply", arg: "archive" }, d);
+  const readBack = d.calls.find((c) => c[0] === "readAllByIds" && c[1] === "census_worklist");
+  assert.ok(readBack, "read-back goes through readAllByIds, never readAll's own match-in");
   assert.equal(d.updateCalls.length, 1);
   const call = d.updateCalls[0];
   assert.equal(call.table, "census_worklist");

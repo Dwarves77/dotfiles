@@ -162,6 +162,7 @@ export async function POST(request: NextRequest) {
   const { data: candidates } = await supabase
     .from("canonical_source_candidates")
     .select("id, candidate_url, candidate_title, candidate_publisher, rationale, intelligence_item_id, recommended_classification")
+    // fitness-allow: F39 (body.candidateIds is validated to <= 30 above (explicit length check))
     .in("id", body.candidateIds);
 
   const cands = candidates || [];
@@ -175,6 +176,7 @@ export async function POST(request: NextRequest) {
   const { data: existingSources } = await supabase
     .from("sources")
     .select("url")
+    // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("url", urls);
   const existingUrlSet = new Set((existingSources || []).map((s: any) => canonicalizeUrl(s.url)));
 
@@ -183,6 +185,7 @@ export async function POST(request: NextRequest) {
   const { data: parents } = await supabase
     .from("intelligence_items")
     .select("id, title, item_type, domain, jurisdictions, topic_tags")
+    // fitness-allow: F39 (derives from the same request's candidateIds, already validated <= 30 above)
     .in("id", parentIds);
   const parentById = new Map((parents || []).map((p: any) => [p.id, p]));
 

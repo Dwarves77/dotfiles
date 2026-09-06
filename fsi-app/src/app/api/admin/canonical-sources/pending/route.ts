@@ -56,6 +56,7 @@ export async function GET(request: NextRequest) {
     const { data: itemRows } = await supabase
       .from("intelligence_items")
       .select("id, legacy_id, title, item_type, domain, jurisdictions, topic_tags, source_id, source_url")
+      // fitness-allow: F39 (itemIds/candidateUrls derive from one page of the pending-candidates queue, not the full corpus)
       .in("id", itemIds);
     items = itemRows || [];
   }
@@ -73,6 +74,7 @@ export async function GET(request: NextRequest) {
     const { data: srcRows } = await supabase
       .from("sources")
       .select("id, url")
+      // fitness-allow: F39 (itemIds/candidateUrls derive from one page of the pending-candidates queue, not the full corpus)
       .in("url", candidateUrls);
     existingSources = new Map((srcRows || []).map((s) => [canonicalizeUrl(s.url), s.id]));
   }

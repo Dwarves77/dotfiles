@@ -410,17 +410,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
-
-      const readChunked = async (table, columns, column, values) => {
-        const out = [];
-        for (let i = 0; i < (values?.length ?? 0); i += READ_CHUNK) {
-          const c = values.slice(i, i + READ_CHUNK);
-          const rows = await readAll(table, columns, { match: (q) => q.in(column, c) });
-          out.push(...rows);
-        }
-        return out;
-      };
+      const { readAll, readAllByIds, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
 
       return {
         readTargetCandidates: () =>
@@ -437,7 +427,7 @@ if (IS_MAIN) {
           }),
         updateKeepers: (id, patch) =>
           guardedUpdate("intelligence_items", (q) => q.eq("id", id), patch, { cite: CITE, select: "id" }),
-        readItemsByIds: (ids) => readChunked("intelligence_items", "id, is_archived, archive_reason", "id", ids),
+        readItemsByIds: (ids) => readAllByIds("intelligence_items", "id, is_archived, archive_reason", ids, { chunk: READ_CHUNK }),
         readSnapshotEntries: async () => readSnapshotEntriesFromDisk(),
         restoreOne: (id, patch) => guardedUpdate("intelligence_items", (q) => q.eq("id", id), patch, { cite: RESTORE_CITE, select: "id" }),
       };

@@ -380,15 +380,18 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, readClient, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+      const { readAll, readClient, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
       const sb = readClient();
 
       return {
         readAll,
         readClient: () => sb,
         insertMany: (table, rows, opts) => guardedInsertMany(table, rows, opts),
+        // plan.staleIds is runtime-scaled (every stale integrity_flags row this classification pass
+        // found) with no declared cap — chunked via guardedUpdateByIds, not a single .in(), IN-CHUNK
+        // class (2026-09-06; same shape as analyze-corpus.mjs's 1,317-id resolve).
         updateStale: async (table, ids, patch) =>
-          guardedUpdate(table, (qb) => qb.in("id", ids), patch, { cite: CITE }),
+          guardedUpdateByIds(table, ids, patch, { cite: CITE }),
         listOpenClassifications: async () => {
           const rows = [];
           for (let from = 0; ; from += 1000) {

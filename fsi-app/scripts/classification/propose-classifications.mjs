@@ -251,7 +251,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-const { readAll, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+const { readAll, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
 
 const CITE = {
   skill: "source-classification-framework-2026-05-10",
@@ -271,9 +271,12 @@ async function runSubtype(createdByValue, freshList) {
     console.log(`WROTE: [${createdByValue}] ${ins.inserted} new integrity_flags row(s) (snapshot: ${ins.snapshot}).`);
   }
   if (plan.staleIds.length) {
-    const res = await guardedUpdate(
+    // plan.staleIds is runtime-scaled (every stale integrity_flags row this classification pass
+    // found) with no declared cap — chunked via guardedUpdateByIds, not a single .in(), IN-CHUNK
+    // class (2026-09-06; same shape as analyze-corpus.mjs's 1,317-id resolve).
+    const res = await guardedUpdateByIds(
       "integrity_flags",
-      (qb) => qb.in("id", plan.staleIds),
+      plan.staleIds,
       {
         status: "resolved", resolved_at: new Date().toISOString(), resolved_by: "propose-classifications.mjs",
         resolution_note: `${createdByValue} finding no longer applicable (re-computed this run and not reproduced).`,

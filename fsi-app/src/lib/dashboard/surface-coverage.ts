@@ -33,7 +33,7 @@
 // per-surface tiles add up.
 
 import { unstable_cache } from "next/cache";
-import { fetchAllRows } from "@/lib/db/paginate.mjs";
+import { fetchAllRows, fetchAllByIdChunks } from "@/lib/db/paginate.mjs";
 import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
@@ -193,21 +193,29 @@ async function fetchIntelligenceCounts(orgId: string): Promise<IntelligenceSurfa
       return EMPTY_INTEL;
     }
 
+    // ids is the whole corpus (every verified, non-archived intelligence_items row — fetchAllRows
+    // above already pages PAST 1000), so it is corpus-scaled with no cap. Chunked via
+    // fetchAllByIdChunks (src/lib/db/paginate.mjs), never a single .in(), IN-CHUNK class (2026-09-06).
     const ids = items.map((r) => r.id);
     const overlayArchived = new Set<string>();
     if (ids.length > 0) {
-      const { data: ovRaw, error: ovErr } = await supabase
-        .from("workspace_item_overrides")
-        .select("item_id, is_archived")
-        .eq("org_id", orgId)
-        .in("item_id", ids);
-      if (ovErr) {
-        console.error(
-          "[dashboard/surface-coverage] overlay fetch error:",
-          ovErr.message
-        );
-      }
-      for (const row of (ovRaw ?? []) as Array<{ item_id: string; is_archived: boolean | null }>) {
+      const ovRaw = await fetchAllByIdChunks(ids, async (slice) => {
+        const { data, error } = await supabase
+          .from("workspace_item_overrides")
+          .select("item_id, is_archived")
+          .eq("org_id", orgId)
+          // fitness-allow: F39 (slice is one fetchAllByIdChunks chunk, bounded by its own chunk size)
+          .in("item_id", slice);
+        if (error) {
+          console.error(
+            "[dashboard/surface-coverage] overlay fetch error:",
+            error.message
+          );
+          return [];
+        }
+        return data ?? [];
+      });
+      for (const row of ovRaw as Array<{ item_id: string; is_archived: boolean | null }>) {
         if (row.is_archived) overlayArchived.add(row.item_id);
       }
     }
@@ -266,6 +274,7 @@ async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCoun
     const { data: cgmRowsRaw, error: cgmErr } = await supabase
       .from("community_group_members")
       .select("group_id")
+      // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
       .in("user_id", userIds);
     if (cgmErr) {
       console.error(
@@ -287,6 +296,7 @@ async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCoun
     const { data: notifRowsRaw, error: notifErr } = await supabase
       .from("notifications")
       .select("kind")
+      // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
       .in("user_id", userIds)
       .is("read_at", null);
     if (notifErr) {

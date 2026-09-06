@@ -706,6 +706,7 @@ function candidateReadersFor(sb: SupabaseClient) {
       if (error || !rows?.length) return [];
       const otherIds = [...new Set(rows.map((r) => (r.source_item_id === itemId ? r.target_item_id : r.source_item_id)).filter((id) => id && id !== itemId))];
       if (!otherIds.length) return [];
+      // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
       const { data: liveItems } = await sb.from("intelligence_items").select("id").eq("provenance_status", "verified").eq("is_archived", false).in("id", otherIds);
       const live = new Set((liveItems ?? []).map((x: { id: string }) => x.id));
       return rows.filter((r) => live.has(r.source_item_id === itemId ? r.target_item_id : r.source_item_id));
@@ -901,6 +902,7 @@ Follow your output contract exactly: brief body, then a "## New Sources Identifi
   // resulting intersection_summary, not a mechanical check.
   const relTargets = cleanUuids(md.related_items).filter((t) => t && t !== it.id);
   if (relTargets.length) {
+    // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
     const { data: existing } = await sb.from("intelligence_items").select("id").in("id", relTargets);
     const valid = new Set((existing ?? []).map((x: { id: string }) => x.id));
     const edges = relTargets.filter((t) => valid.has(t)).map((t) => ({ source_item_id: it.id, target_item_id: t, relationship: "related", origin: "agent_semantic" }));
@@ -1753,6 +1755,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
           const { data: bases } = await sb
             .from("section_claim_provenance")
             .select("id, source_span")
+            // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
             .in("id", basisIds)
             .eq("claim_kind", "FACT");
           for (const b of bases ?? []) spanById.set(b.id, b.source_span);
@@ -1826,6 +1829,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   {
     const conflateHeldIds = [...identityCongruenceHolds(gateFacts)].filter((x): x is string => typeof x === "string");
     if (conflateHeldIds.length) {
+      // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
       const { error: hErr } = await sb.from("section_claim_provenance").update({ mint_hold_reason: "S-CONFLATE" }).in("id", conflateHeldIds);
       if (hErr) console.warn(`[mint-gates] S-CONFLATE hold update failed for ${itemId}: ${hErr.message}`);
     }
@@ -1868,6 +1872,7 @@ async function groundBriefImpl(itemId: string, caller: string | null = null, opt
   void currentIds;
   // Still clean up ONLY the fallback searches THIS step created (no stored pool) so the agent_run_searches
   // corpus does not accumulate across failed attempts; the generate-stored pool is left intact for re-ground.
+  // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
   if (ownSearches && searchIds.length) await sb.from("agent_run_searches").delete().in("id", searchIds);
   // Lead with the DISTINCT failure reasons (not the URL/claim payload), so the workflow's reason-aware
   // retry can reliably detect a deterministic content class even after truncation (the earlier 140-char

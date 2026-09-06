@@ -73,6 +73,7 @@ export async function POST(request: NextRequest) {
   const { data: candidates, error: loadErr } = await supabase
     .from("canonical_source_candidates")
     .select("*")
+    // fitness-allow: F39 (body.candidateIds is validated to <= 300 above (explicit length check))
     .in("id", body.candidateIds);
 
   if (loadErr) {
@@ -93,6 +94,7 @@ export async function POST(request: NextRequest) {
   const { data: srcRows, error: srcLookupErr } = await supabase
     .from("sources")
     .select("id, url")
+    // fitness-allow: F39 (urls derives from the same request's candidateIds, already validated <= 300 above)
     .in("url", urls);
   // Wave-α A4 (write-consequence swallow class): if this dedup read errors,
   // an empty map would route EVERY candidate down the new-source INSERT path

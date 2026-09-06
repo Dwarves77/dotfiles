@@ -23,6 +23,7 @@ import {
   isCommunityAuthError,
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
+import { assertBound } from "@/lib/db/paginate.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -127,6 +128,10 @@ export async function GET(request: NextRequest) {
   const postIds = reports
     .filter((r) => r.target_kind === "post")
     .map((r) => r.target_id);
+  // postIds is bounded by reports, which is bounded by the 1-100 `limit` clamp above — asserted, not
+  // assumed, so a future edit to that clamp can never silently widen this into an unbounded .in()
+  // (IN-CHUNK class, 2026-09-06).
+  assertBound(postIds.length, 101, "community moderation reports route: postIds");
 
   // group_id filter applies via posts.group_id — we filter in JS after
   // hydration to keep the RLS logic simple.
@@ -153,6 +158,7 @@ export async function GET(request: NextRequest) {
     const { data: rawPosts, error: pErr } = await auth.supabase
       .from("community_posts")
       .select("id, group_id, author_user_id, title, body, created_at")
+      // fitness-allow: F39 (postIds bounded by assertBound above — the request's 1-100 limit clamp)
       .in("id", postIds);
     if (pErr) {
       return NextResponse.json({ error: pErr.message }, { status: 500 });

@@ -19,6 +19,7 @@ import {
 } from "@/lib/api/community-auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
+import { assertBound } from "@/lib/db/paginate.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -136,6 +137,10 @@ export async function GET(
   const authorIds = Array.from(
     new Set(rows.map((r) => r.author_user_id).filter((id): id is string => !!id))
   );
+  // authorIds is bounded by rows, which is bounded by MAX_LIMIT above — asserted, not assumed, so a
+  // future edit to the rows query can never silently widen this into an unbounded .in() (IN-CHUNK
+  // class, 2026-09-06).
+  assertBound(authorIds.length, MAX_LIMIT + 1, "community replies route: authorIds");
 
   const profilesById = new Map<string, AuthorProfile>();
   if (authorIds.length > 0) {
@@ -143,6 +148,7 @@ export async function GET(
     const { data: profiles } = await auth.supabase
       .from("profiles")
       .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      // fitness-allow: F39 (authorIds bounded by assertBound above — MAX_LIMIT clamp)
       .in("id", authorIds);
     for (const p of (profiles ?? []) as AuthorProfile[]) {
       profilesById.set(p.user_id, p);

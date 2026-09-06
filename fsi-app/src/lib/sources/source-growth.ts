@@ -246,6 +246,7 @@ export async function compoundSourceCredibility(
   const { data: cits, error: citsErr } = await supabase.from("source_citations").select("citing_source_id, context").eq("cited_source_id", citedSourceId);
   if (citsErr) console.warn(`[source-growth] citation-edge read failed for ${citedSourceId}: ${citsErr.message}`);
   const citerIds = Array.from(new Set((cits ?? []).map((r) => r.citing_source_id)));
+  // fitness-allow: F39 (citerIds is one source's own citer list, not corpus-scale)
   const { data: citers, error: citersErr } = await supabase.from("sources").select("id, base_tier, effective_tier").in("id", citerIds.length ? citerIds : ["00000000-0000-0000-0000-000000000000"]);
   if (citersErr) console.warn(`[source-growth] citer-tier read failed for ${citedSourceId}: ${citersErr.message}`);
   const tierById = new Map((citers ?? []).map((s) => [s.id, (s.effective_tier ?? s.base_tier) as number]));

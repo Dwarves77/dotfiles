@@ -827,17 +827,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdate, guardedDelete, guardedInsert } = await import("../lib/db.mjs");
-
-      const readChunked = async (table, columns, column, values) => {
-        const out = [];
-        for (let i = 0; i < (values?.length ?? 0); i += READ_CHUNK) {
-          const c = values.slice(i, i + READ_CHUNK);
-          const rows = await readAll(table, columns, { match: (q) => q.in(column, c) });
-          out.push(...rows);
-        }
-        return out;
-      };
+      const { readAll, readAllByIds, guardedUpdate, guardedDelete, guardedInsert } = await import("../lib/db.mjs");
 
       return {
         readItemIdsWithForwardEvents: async () => {
@@ -882,7 +872,7 @@ if (IS_MAIN) {
         // lane FE-DEDUP, 2026-09-04: duplicate-group deletes go through the SAME guardedDelete path as
         // collisions, cited separately (DUPLICATE_CITE) so the audit trail names the actual reason.
         deleteDuplicateForwardEvents: (ids) => guardedDelete("item_forward_events", ids, { cite: DUPLICATE_CITE }),
-        readRowsByIds: (ids) => readChunked("item_forward_events", "id, obligation_text", "id", ids),
+        readRowsByIds: (ids) => readAllByIds("item_forward_events", "id, obligation_text", ids, { chunk: READ_CHUNK }),
         readSnapshotEntries: async () => readSnapshotEntriesFromDisk(),
         restoreOne: (id, text) =>
           guardedUpdate("item_forward_events", (q) => q.eq("id", id), { obligation_text: text }, {

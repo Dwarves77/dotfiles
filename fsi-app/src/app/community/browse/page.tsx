@@ -182,6 +182,7 @@ export default async function CommunityBrowsePage({
           .from("community_group_members")
           .select("group_id")
           .eq("user_id", user.id)
+          // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
           .in("group_id", groupIds)
       : null;
   const invQ =
@@ -191,6 +192,7 @@ export default async function CommunityBrowsePage({
           .select("group_id")
           .eq("invitee_user_id", user.id)
           .eq("status", "pending")
+          // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
           .in("group_id", groupIds)
       : null;
 

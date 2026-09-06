@@ -266,6 +266,7 @@ async function handlePOST(request: NextRequest) {
         .select(CITATION_SELECT)
         .eq("is_archived", false)
         .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+        // fitness-allow: F39 (hitIds is the retrieval step's own top-K hit set, bounded by the retrieval's own K)
         .in("id", hitIds);
       if (hitErr) console.warn(`[ask] retrieval row fetch failed: ${hitErr.message}`);
       if (hitRows?.length) {

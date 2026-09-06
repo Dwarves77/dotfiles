@@ -51,6 +51,7 @@ import {
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { evaluateAntitrustGuard, SENSITIVE_FIELDS } from "@/lib/community/index.mjs";
 import { entityKindOf } from "@/lib/entities/entity-id.mjs";
+import { assertBound } from "@/lib/db/paginate.mjs";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -171,6 +172,10 @@ export async function GET(request: NextRequest) {
   const authorIds = Array.from(
     new Set(rows.map((r) => r.author_user_id).filter((id): id is string => !!id))
   );
+  // authorIds is bounded by rows, which is bounded by MAX_LIMIT above (rows.length <= MAX_LIMIT, so
+  // distinct authorIds.length <= MAX_LIMIT too) — asserted, not assumed, so a future edit to the rows
+  // query can never silently widen this into an unbounded .in() (IN-CHUNK class, 2026-09-06).
+  assertBound(authorIds.length, MAX_LIMIT + 1, "community posts route: authorIds");
 
   const profilesById = new Map<string, AuthorProfile>();
   if (authorIds.length > 0) {
@@ -180,6 +185,7 @@ export async function GET(request: NextRequest) {
     const { data: profiles } = await auth.supabase
       .from("profiles")
       .select("user_id:id, name:full_name, headshot_url:avatar_url")
+      // fitness-allow: F39 (authorIds bounded by assertBound above — MAX_LIMIT clamp)
       .in("id", authorIds);
     for (const p of (profiles ?? []) as AuthorProfile[]) {
       profilesById.set(p.user_id, p);

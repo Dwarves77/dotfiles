@@ -274,6 +274,7 @@ export async function fetchObligationRegister(supabase, opts = {}) {
       .select("id, title, legacy_id, jurisdiction_iso")
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // customer read gate — see this module's header
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", itemIds.slice(i, i + 200));
     for (const row of itemRows ?? []) itemsById.set(row.id, row);
   }
@@ -423,6 +424,7 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
       .select("id, title, legacy_id, jurisdiction_iso")
       .eq("is_archived", false)
       .eq("provenance_status", "verified")
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", itemIds.slice(i, i + 200));
     for (const row of itemRows ?? []) itemsById.set(row.id, row);
   }

@@ -72,7 +72,9 @@ export async function GET(request: NextRequest) {
     .gte("event_date", from)
     .order("event_date", { ascending: true })
     .limit(limit);
+  // fitness-allow: F39 (a finite vocabulary of event_kind/date_precision values from the query string, not a runtime id list)
   if (kindFilter) q = q.in("event_kind", kindFilter);
+  // fitness-allow: F39 (a finite vocabulary of event_kind/date_precision values from the query string, not a runtime id list)
   if (precisionFilter) q = q.in("date_precision", precisionFilter);
 
   const { data: events, error } = await q;
@@ -94,6 +96,7 @@ export async function GET(request: NextRequest) {
       .from("intelligence_items")
       .select("id, title, legacy_id, jurisdiction_iso")
       .eq("is_archived", false)
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", itemIds.slice(i, i + 200));
     if (itemError) {
       return NextResponse.json(

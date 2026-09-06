@@ -104,7 +104,9 @@ async function handleGET(request: NextRequest) {
       const { data: watchRows } = await supabase
         .from("user_watchlist")
         .select("user_id")
+        // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
         .in("user_id", memberIds)
+        // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
         .in("item_id", watchKeys);
       watcherIds = Array.from(
         new Set((watchRows || []).map((w) => w.user_id as string))
@@ -119,6 +121,7 @@ async function handleGET(request: NextRequest) {
       .from("org_watchlist")
       .select("id")
       .eq("org_id", orgId)
+      // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
       .in("item_id", watchKeys)
       .limit(1);
     onTeamWatchlist = (teamWatchRows || []).length > 0;
@@ -159,6 +162,7 @@ async function handleGET(request: NextRequest) {
     const { data: profiles } = await supabase
       .from("profiles")
       .select("id, full_name, display_name, email")
+      // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
       .in("id", nameTargets);
     for (const p of profiles || []) {
       const row = p as {

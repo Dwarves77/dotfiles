@@ -12,7 +12,7 @@ import { runCli } from "./lib/cli.mjs";
 
 /**
  * @param {{ mode?: "dry"|"apply" }} opts
- * @param {{ readAll: Function, guardedInsertMany: Function }} deps
+ * @param {{ readAll: Function, readAllByIds: Function, guardedInsertMany: Function }} deps
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
@@ -46,8 +46,8 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedInsertMany } = await import("../lib/db.mjs");
-      return { readAll, guardedInsertMany };
+      const { readAll, readAllByIds, guardedInsertMany } = await import("../lib/db.mjs");
+      return { readAll, readAllByIds, guardedInsertMany };
     },
   });
 }
