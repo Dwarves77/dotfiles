@@ -26,7 +26,7 @@ test("resolveRulingPath: an already-absolute arg passes through unchanged", () =
 function unreachableDeps() {
   return {
     applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAll: async () => { throw new Error("readAll must not be called when --arg is blank"); },
+    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
   };
 }
 
@@ -58,7 +58,7 @@ test("dry: resolves the ruling path, calls applyMain with apply:false, plan is p
       calls.push(opts);
       return { queue: "portal-links", mode: "dry-run", results: [{ key: "host::gazette_path", decision: "link", would_apply: 3 }] };
     },
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps);
   assert.equal(calls.length, 1);
@@ -87,7 +87,7 @@ test("apply: sums applied across groups; reads back exactly the ruling's row_ids
     ],
   }));
   try {
-    const calls = { applyMain: [], readAll: [] };
+    const calls = { applyMain: [], readAllByIds: [] };
     const deps = {
       applyMain: async (opts) => {
         calls.applyMain.push(opts);
@@ -100,8 +100,8 @@ test("apply: sums applied across groups; reads back exactly the ruling's row_ids
           ],
         };
       },
-      readAll: async (table, cols, opts) => {
-        calls.readAll.push({ table, cols });
+      readAllByIds: async (table, cols, ids) => {
+        calls.readAllByIds.push({ table, cols, ids });
         return [
           { id: "p-1", status: "candidate", disposition_reason: null },
           { id: "p-2", status: "candidate", disposition_reason: null },
@@ -112,8 +112,8 @@ test("apply: sums applied across groups; reads back exactly the ruling's row_ids
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
     assert.equal(calls.applyMain[0].apply, true);
     assert.equal(calls.applyMain[0].rulingPath, rulingPath);
-    assert.equal(calls.readAll.length, 1);
-    assert.equal(calls.readAll[0].table, "portal_link_candidates");
+    assert.equal(calls.readAllByIds.length, 1);
+    assert.equal(calls.readAllByIds[0].table, "portal_link_candidates");
     assert.equal(r.applied, 1);
     assert.equal(r.read_back.rows_named_in_ruling, 3);
     assert.equal(r.read_back.rows_now_live, 3);
@@ -124,7 +124,7 @@ test("apply: sums applied across groups; reads back exactly the ruling's row_ids
   }
 });
 
-test("apply: an empty ruling.groups[].row_ids across the board -> no readAll call, empty read_back sample", async () => {
+test("apply: an empty ruling.groups[].row_ids across the board -> readAllByIds is called with an empty id list (its own empty-list short circuit applies, no per-wrapper duplicate guard), empty read_back sample", async () => {
   const dir = mkdtempSync(join(tmpdir(), "review-apply-portal-links-"));
   const rulingPath = join(dir, "portal-links.ruling.json");
   writeFileSync(rulingPath, JSON.stringify({ queue: "portal-links", generated_at: "2026-09-04T00:00:00.000Z", groups: [] }));
@@ -132,11 +132,12 @@ test("apply: an empty ruling.groups[].row_ids across the board -> no readAll cal
     const calls = [];
     const deps = {
       applyMain: async () => ({ queue: "portal-links", mode: "apply", results: [] }),
-      readAll: async (...args) => { calls.push(args); return []; },
+      readAllByIds: async (...args) => { calls.push(args); return []; },
     };
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
     assert.equal(r.applied, 0);
-    assert.equal(calls.length, 0);
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0][2], [], "called with the empty id list — the short circuit lives inside readAllByIds itself, not re-duplicated here");
     assert.deepEqual(r.read_back, { rows_named_in_ruling: 0, rows_now_live: 0, sample: [] });
   } finally {
     rmSync(dir, { recursive: true, force: true });
@@ -146,7 +147,7 @@ test("apply: an empty ruling.groups[].row_ids across the board -> no readAll cal
 test("dry/apply propagate a thrown validation error (invalid or stale ruling) unmodified — never swallowed", async () => {
   const deps = {
     applyMain: async () => { throw new Error("ruling is STALE: generated_at ... predates a live queue row"); },
-    readAll: async () => [],
+    readAllByIds: async () => [],
   };
   await assert.rejects(
     () => main({ mode: "dry", arg: "docs/ratifications/2026-09/portal-links.ruling.json" }, deps),

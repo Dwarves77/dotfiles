@@ -17,7 +17,7 @@ test("resolveRulingPath: relative arg resolves against the REPO ROOT", () => {
 function unreachableDeps() {
   return {
     applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAll: async () => { throw new Error("readAll must not be called when --arg is blank"); },
+    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
   };
 }
 
@@ -40,7 +40,7 @@ test("dry: calls applyMain with apply:false, plan passed through unmodified", as
       calls.push(opts);
       return { queue: "provisional-sources", mode: "dry-run", results: [{ key: "tier:1|reach:reachable", decision: "keep", would_apply: 12 }] };
     },
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/provisional-sources.ruling.json" }, deps);
   assert.equal(calls[0].apply, false);
@@ -58,19 +58,19 @@ test("apply: sums applied across groups; reads back the ruling's row_ids against
     groups: [{ key: "tier:1|reach:unreachable", decision: "suspend", row_ids: ["s-1", "s-2"] }],
   }));
   try {
-    const calls = { applyMain: [], readAll: [] };
+    const calls = { applyMain: [], readAllByIds: [] };
     const deps = {
       applyMain: async (opts) => {
         calls.applyMain.push(opts);
         return { queue: "provisional-sources", mode: "apply", results: [{ key: "tier:1|reach:unreachable", decision: "suspend", applied: 2, chunks: 1, halvings: 0 }] };
       },
-      readAll: async (table, cols, opts) => {
-        calls.readAll.push({ table, cols });
+      readAllByIds: async (table, cols, ids) => {
+        calls.readAllByIds.push({ table, cols, ids });
         return [{ id: "s-1", status: "suspended" }, { id: "s-2", status: "suspended" }];
       },
     };
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
-    assert.equal(calls.readAll[0].table, "sources");
+    assert.equal(calls.readAllByIds[0].table, "sources");
     assert.equal(r.applied, 2);
     assert.equal(r.read_back.rows_named_in_ruling, 2);
     assert.equal(r.read_back.rows_now_live, 2);

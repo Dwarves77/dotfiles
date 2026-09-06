@@ -1265,9 +1265,34 @@ test("main() reads intelligence_items.instrument_identifier alongside source_url
   assert.match(src, /partitionExcludeHeld\(\s*preselected,\s*heldUrlIndex,\s*excludeHeld\s*\)/);
 });
 
+// CAP-1000 / run 34045479342 (2026-09-06): fetchRowsIn now delegates to db.mjs's readAllByIds via its
+// `client` option (see fetchRowsIn's own header) — readAllByIds's chunk reads go through readAll, whose
+// chain is `.select(cols).order(orderBy).range(from,to)` THEN the `.in()` filter. This mock must support
+// that full chain (order/range are lazy — no settle until awaited), same shape as db.test.mjs's own
+// `makeClient`, or the delegation itself (not just this test) breaks.
+function makeChainableSb(handler) {
+  function from(table) {
+    const state = { table, ops: [] };
+    const settle = () => Promise.resolve(handler(state));
+    const b = {
+      select(c) { state.ops.push(["select", c]); return b; },
+      order(c) { state.ops.push(["order", c]); return b; },
+      range(a, z) { state.ops.push(["range", a, z]); return b; },
+      in(c, v) { state.ops.push(["in", c, v]); return b; },
+      then(res, rej) { return settle().then(res, rej); },
+    };
+    return b;
+  }
+  return { from };
+}
+
 test("fetchRowsIn chunks the key list and concatenates results", async () => {
   const calls = [];
-  const sb = { from: (table) => ({ select: (cols) => ({ in: async (col, vals) => { calls.push({ table, cols, col, vals }); return { data: vals.map((v) => ({ [col]: v })), error: null }; } }) }) };
+  const sb = makeChainableSb((state) => {
+    const inOp = state.ops.find((o) => o[0] === "in");
+    calls.push({ table: state.table, vals: inOp[2] });
+    return { data: inOp[2].map((v) => ({ [inOp[1]]: v })), error: null };
+  });
   const rows = await fetchRowsIn(sb, "agent_run_searches", "result_url, result_content", "result_url", Array.from({ length: 120 }, (_, i) => `u${i}`), { chunk: 50 });
   assert.equal(calls.length, 3);
   assert.deepEqual(calls.map((c) => c.vals.length), [50, 50, 20]);

@@ -49,9 +49,13 @@ export function resolveRulingPath(arg) {
 
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string }} opts - `arg` is the required ruling-file path.
- * @param {{ applyMain: Function, readAll: Function }} deps - `applyMain` is
- *   scripts/review/apply-canonical-candidates.mjs's own exported `main`; `readAll` is db.mjs's readAll,
- *   used ONLY for the post-apply read-back (this wrapper never selects or writes
+ * @param {{ applyMain: Function, readAll: Function, readAllByIds: Function }} deps - `applyMain` is
+ *   scripts/review/apply-canonical-candidates.mjs's own exported `main` (which uses `readAll` itself,
+ *   internally, for its own filtered live-queue read); `readAllByIds` is db.mjs's readAllByIds
+ *   (chunked id-list read — a single `.in("id", allIds)` GET over this queue's full ruling is the
+ *   same request-line-limit defect Maintenance run 34045479342 confirmed on provisional-sources,
+ *   2026-09-06, and this wrapper has TWO such reads: the candidates and the repointed items). Used
+ *   here ONLY for the post-apply read-back (this wrapper never selects or writes
  *   canonical_source_candidates / intelligence_items itself).
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
@@ -93,15 +97,11 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const READ_BACK_COLUMNS = "id,decision,promoted_to_source_id,intelligence_item_id";
   const ruling = JSON.parse(readFileSync(rulingPath, "utf8"));
   const allIds = [...new Set(ruling.groups.flatMap((g) => g.row_ids ?? []))];
-  const rows = allIds.length
-    ? await deps.readAll(CanonicalCandidates.TABLE, READ_BACK_COLUMNS, { match: (q) => q.in("id", allIds) })
-    : [];
+  const rows = await deps.readAllByIds(CanonicalCandidates.TABLE, READ_BACK_COLUMNS, allIds);
   const repointedItemIds = [...new Set(
     rows.filter((r) => r.decision === "approved" && r.intelligence_item_id).map((r) => r.intelligence_item_id)
   )];
-  const items = repointedItemIds.length
-    ? await deps.readAll("intelligence_items", "id, source_id, source_url", { match: (q) => q.in("id", repointedItemIds) })
-    : [];
+  const items = await deps.readAllByIds("intelligence_items", "id, source_id, source_url", repointedItemIds);
   summary.read_back = {
     candidates_named_in_ruling: allIds.length,
     candidates_now_live: rows.length,
@@ -120,9 +120,9 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
+      const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
       const { main: applyMain } = await import("../review/apply-canonical-candidates.mjs");
-      return { readAll, guardedUpdateByIds, applyMain };
+      return { readAll, readAllByIds, guardedUpdateByIds, applyMain };
     },
   });
 }
