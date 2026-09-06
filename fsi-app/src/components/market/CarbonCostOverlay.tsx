@@ -33,9 +33,24 @@
 import { formatRange } from "@/lib/figures/format-range.mjs";
 
 export interface CarbonCostOverlayEntry {
-  /** Human-readable corridor label, e.g. "Shanghai – Rotterdam, ocean". Built by the caller from the
-   *  same UN/LOCODE pair + mode the result's `corridor` field carries — this component never invents one. */
+  /** Human-readable corridor label, e.g. "Shanghai (CN) → Rotterdam (NL), ocean". Built by the caller
+   *  (src/lib/entities/unlocode-names.mjs's formatCorridorLabel(), or a live entities.display_name) from
+   *  the same UN/LOCODE pair + mode the result's `corridor` field carries — this component never invents
+   *  one. */
   label: string;
+  /** The corridor's spine entity id (`cl:corridor:...`), when the caller sourced this entry from the
+   *  entity spine (lane SCOPE-READER, 2026-09-06) — rendered as this card's DOM `id`
+   *  (`corridor-<entityId>`) so `CorridorsAppliedStripView`'s "Corridors this applies on" links
+   *  (`/market#corridor-<entityId>`) land on the exact card, without adding a `searchParams`-driven
+   *  filter that would force this whole index page dynamic (PERF-10, this file's caller's own header,
+   *  removed `force-dynamic` deliberately). Optional — a caller with no spine id (should not happen once
+   *  this page reads the loader, but kept honest rather than assumed) simply gets no anchor. */
+  entityId?: string;
+  /** Jurisdictions this corridor touches (entity_scope, lane SCOPE-READER 2026-09-06) — e.g.
+   *  [{code:"CN",name:"China"},{code:"NL",name:"Netherlands"}]. Optional and rendered only when
+   *  non-empty (nothing renders empty by design, plan §W5) — a caller with no entity-spine data for this
+   *  corridor simply omits it, never a fabricated chip. */
+  jurisdictions?: ReadonlyArray<{ code: string; name: string | null }>;
   result: CarbonCostResult;
 }
 
@@ -178,14 +193,16 @@ export function CarbonCostOverlay({ overlays }: CarbonCostOverlayProps) {
 }
 
 function CorridorCard({ entry }: { entry: CarbonCostOverlayEntry }) {
-  const { label, result } = entry;
+  const { label, result, jurisdictions = [], entityId } = entry;
   const badge = BADGE[result.ok ? result.classification : "gap"];
 
   return (
     <div
+      id={entityId ? `corridor-${entityId}` : undefined}
       className="cl-card"
       data-figure-kind={result.ok ? result.classification : "gap"}
       style={{
+        scrollMarginTop: 96,
         border: "1px solid var(--color-border)",
         borderRadius: 8,
         background: "var(--color-bg-surface)",
@@ -212,8 +229,18 @@ function CorridorCard({ entry }: { entry: CarbonCostOverlayEntry }) {
         >
           {badge.text}
         </span>
-        <span style={{ fontSize: 13, fontWeight: 700 }}>{label}</span>
+        <span style={{ fontSize: 13, fontWeight: 700, overflowWrap: "anywhere", minWidth: 0 }}>{label}</span>
       </div>
+
+      {/* Jurisdiction chips (entity_scope, lane SCOPE-READER 2026-09-06) — rendered only when the
+          caller supplied a non-empty list; nothing renders empty by design (plan §W5). */}
+      {jurisdictions.length > 0 && (
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 0, marginTop: -2 }}>
+          {jurisdictions.map((j) => (
+            <Chip key={j.code} label={j.name ? `${j.name} (${j.code})` : j.code} title="Jurisdiction this corridor touches" />
+          ))}
+        </div>
+      )}
 
       {result.ok ? (
         <>
