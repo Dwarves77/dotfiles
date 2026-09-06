@@ -268,6 +268,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 
 ## design
 - [UI audit 2026-09-06](design/audit-2026-09-06/README.md) — site-wide UI evidence package: assessment, contact sheet, 110 capture frames. Supersedes `design/redesign/`.
+- [UI system handoff 2026-09-06](design/handoff-2026-09-06/README.md) — Claude Design system sheet + 17 page artboards (system sheet, dashboard, 4 lists, 4 details, map, watchlist, community, admin, account, settings, auth, onboarding) that answers the audit above; single token set, one urgency scale, one nav width, one detail architecture. Operator ruling: build pages as the renderings look. Deviations tracked in `handoff-2026-09-06/DEVIATION-LOG.md`.
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md) — Decision Package — 52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md) — Caro's Ledge Design Principles
