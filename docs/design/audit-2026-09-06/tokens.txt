@@ -1,0 +1,11 @@
+bg #FAFAF8 | surface #FFFFFF | raised #F5F2EE
+text #1A1A1A | text-2 #5A6B67 | muted #7A6E6C
+accent #E8610A hover #D4570A tint #FFF7F0 | link #2563EB
+critical #DC2626 bg #FEF2F2 bd #FECACA
+high #D97706 bg #FFF7ED bd #FED7AA
+moderate #EAB308 bg #FEFCE8 bd #FDE68A
+low #16A34A bg #F0FDF4 bd #BBF7D0
+impact: cost #CA8A04 compliance #9333EA client #0D9488 operational #2563EB
+border .12 | subtle .06 | strong .20
+radius 6/10/14/999 | shadow 0 1px 3px rgba(0,0,0,.06), 0 2px 8px rgba(0,0,0,.04)
+font display Anton (upper, ls .04em, lh 1.08) | body Plus Jakarta Sans
