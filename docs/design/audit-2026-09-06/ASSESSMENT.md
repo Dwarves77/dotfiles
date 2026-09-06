@@ -532,3 +532,98 @@ panels, all account sub-tabs, community room and browse, map view modes.
 Still open, unchanged: **mobile 390px, tablet 1024px, logged-out flow, loading states,
 overlays** (Export brief, Share, the per-row ⋯ dropdown, Ask AI), **data-rich content
 extremes**, and **non-admin roles**.
+
+---
+
+# Part E — Mobile: the capture failed, the source answers instead
+
+## 29. Why there are no mobile screenshots `[MEASURED]`
+
+A second run of five agents was dispatched to capture every surface at 390×844. **It could
+not be done with this tooling.** `mcp__claude-in-chrome__resize_window` reports success and
+does not change the rendered viewport. Three agents established this independently:
+
+- Repeated calls requesting 390×844 left `window.innerWidth` at 2329, then 1568, then 2117.
+- Requests for 800×600, 1024×768 and 1200×800 produced no change either.
+- Calling `window.resizeTo(390,844)` from page JS moved `window.outerWidth`/`outerHeight` to
+  390/844 while `innerWidth`/`innerHeight` stayed at 1568/710. The window frame and the
+  rendering surface are decoupled in this environment.
+- All agent tabs share one Chrome window (`tabGroupId 340537260`), so window size is a
+  shared property that concurrent automation overrides.
+
+**Consequence for the capture set:** 51 files were produced under `-m` names at desktop
+width. They have been renamed to `-d` (**d**esktop, **d**eep scroll). They are genuine and
+useful — they cover several surfaces far deeper than the first run, including 19 frames of
+Operations — but **none of them is a mobile capture and none should be read as one.**
+There are no 390px frames in this package.
+
+Anyone re-attempting mobile capture needs a tool that sets the rendering viewport
+(Playwright's `viewport` option, or CDP `Emulation.setDeviceMetricsOverride`), not a window
+resize.
+
+## 30. What the source says about mobile, which is stronger evidence anyway `[SOURCE]`
+
+`fsi-app/src/components/Sidebar.tsx`:
+
+```
+<aside className="hidden md:flex flex-col shrink-0 h-screen sticky top-0 border-r
+                  overflow-y-auto" style={{ width: 208 }}>          // desktop rail
+<button className="md:hidden fixed top-3 left-3 z-50 p-2 rounded-lg"
+        aria-label="Toggle navigation">                             // hamburger
+<div  className="md:hidden fixed inset-0 z-40"                      // scrim, 30% black
+<aside className="md:hidden fixed top-0 left-0 z-50 flex flex-col h-screen w-[208px]
+                  overflow-y-auto">                                 // drawer
+```
+
+So **mobile navigation is implemented**: below the `md` breakpoint (768px) the 208px rail is
+replaced by a hamburger at top-left, a 30%-black scrim, and a 208px drawer carrying the same
+`navContent`. The capture agents could not see it only because they never got below 768px.
+
+## 31. Responsive coverage is the finding `[MEASURED, source-wide]`
+
+Counted across `fsi-app/src/`:
+
+| | |
+|---|---|
+| `.tsx` files total | **160** |
+| files using any Tailwind breakpoint (`sm:` `md:` `lg:` `xl:`) | **27** |
+| files with no responsive handling at all | **133** |
+
+Every breakpoint utility in the entire source tree:
+
+```
+24  sm:grid-cols-      5  sm:px-        5  sm:col-span-    3  lg:grid-cols-
+ 3  md:hidden          1  md:flex       1  sm:text-        1  sm:inline
+ 1  sm:flex            1  sm:block
+```
+
+Four of those (`3 × md:hidden`, `1 × md:flex`) are the sidebar and hamburger above. The
+remaining ~41 are grid column counts and horizontal padding.
+
+**The shell adapts; the content does not.** Nothing in the product's data presentation — no
+list row, no band tile, no impact meter, no timeline, no region matrix, no detail tab strip,
+no right rail — carries a single responsive rule. The Operations region-by-dimension matrix
+is six columns wide with no `sm:`/`md:` variant. The Regulation detail tab strip has five
+tabs and no wrapping rule. The right rail that is already clipped at 1440px (§11) has no
+breakpoint at which it moves or stacks.
+
+## 32. List pagination `[SOURCE]` `fsi-app/src/lib/list-pagination.ts`
+
+```
+LIST_FIRST_PAGE_SIZE = 60      // server renders 60 rows, ordered by added_date desc
+LIST_REMAINDER_LIMIT = 5000    // client fetches everything past offset 60 after paint
+```
+
+`/regulations` and `/operations` both use it: the server renders 60 rows, then
+`RegulationsLedger.tsx` fetches `/api/listings/rest?surface=regulations&offset=60` once the
+page has painted, and never blanks the list if that fetch fails. So the first paint is 60 of
+1,316 rows and the remaining 1,256 arrive afterwards — relevant both to the §10 waterfall and
+to any design that assumes the full list is present at render.
+
+## 33. Revised coverage statement
+
+The package contains **161 frames, all at desktop width (1440px, and a subset at ~2100–2300px
+where a concurrent agent had widened the shared window).** Mobile at 390px, tablet at 1024px,
+logged-out screens, loading states and overlays remain uncaptured. Mobile behaviour is
+documented from source in §30–31 instead, which for the question "does mobile navigation
+exist and does the content adapt" is better evidence than a screenshot.

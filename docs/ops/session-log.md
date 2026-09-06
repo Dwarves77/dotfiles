@@ -10991,3 +10991,35 @@ Retiring the folder itself is not done here and is the obvious next unit.
 Next step for a cold session: mobile 390px capture is in flight; still uncaptured are
 tablet, logged-out screens, loading states, overlays, data-rich content extremes, and every
 non-admin role.
+
+### Postscript 61 — 2026-09-06 (cloud session): the mobile capture failed, and that is the finding
+
+I dispatched five agents to capture every surface at 390x844. None of them could. The
+browser tool's resize_window reports success and does not change the rendered viewport;
+three agents established it independently, one by showing window.outerWidth move to 390
+while innerWidth stayed at 1568. All agent tabs share one Chrome window, so window size is
+a shared property concurrent automation overrides. They produced 51 files under `-m` names
+that were desktop captures. I renamed every one to `-d` rather than ship mislabeled
+evidence. There are no mobile screenshots in the package and the README and contact sheet
+both say so.
+
+The agents did the right thing: they refused to pass desktop frames off as mobile, and one
+of them went to the DOM instead. That produced better evidence than screenshots would have.
+Mobile navigation IS implemented (Sidebar.tsx: an md:hidden hamburger, a 30% scrim, a 208px
+drawer carrying the same navContent). The problem is elsewhere: across fsi-app/src, 160 .tsx
+files, 27 use any Tailwind breakpoint, 133 use none. The entire responsive vocabulary in the
+tree is 24 sm:grid-cols-, 5 sm:px-, 5 sm:col-span-, 3 lg:grid-cols-, 3 md:hidden, 1 md:flex
+and five singletons. Four of those are the sidebar and hamburger. The shell adapts and the
+content does not: no list row, band tile, impact meter, timeline, region matrix, tab strip
+or right rail carries a responsive rule, including the right rail that already clips at
+1440px and the six-column Operations matrix.
+
+Also found while verifying: /regulations and /operations render 60 rows server-side
+(LIST_FIRST_PAGE_SIZE) and fetch the remaining 1,256 client-side after paint via
+/api/listings/rest?offset=60, never blanking the list on failure. That bears on the 44-fetch
+waterfall in §10 and on any design assuming the full list exists at render.
+
+Assessment is now 629 lines, Part E covers all of the above. Next unit for anyone picking
+this up: mobile still needs capturing with a tool that sets the rendering viewport
+(Playwright's viewport option or CDP Emulation.setDeviceMetricsOverride), and tablet,
+logged-out, loading states and overlays remain uncaptured.
