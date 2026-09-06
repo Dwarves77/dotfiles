@@ -1,0 +1,48 @@
+name: Run a maintenance step
+description: >-
+  Shared invocation for a fsi-app/scripts/maintenance/<step>.mjs step (the `--mode`/[`--arg`]/`--out`
+  CLI shape every step in maintenance.yml's dispatch-one-step job already uses). Lane CHAIN,
+  2026-09-06: factored out of maintenance.yml so its own dispatch-only steps and
+  downstream-chain.yml's automatic post-mint/post-turn hop call the EXACT same command line — no
+  second copy of a step's `run:` block in a second workflow file (CLAUDE.md: no copies of logic).
+  Only the four steps both callers share (tier-opinions, derive-obligations, tag-proposals,
+  apply-classifications) were moved onto this action; every other maintenance.yml step keeps its own
+  inline `run:` block unchanged, since only those four ever run from a second workflow.
+
+inputs:
+  step:
+    description: 'Step name — fsi-app/scripts/maintenance/<step>.mjs must exist.'
+    required: true
+  mode:
+    description: 'dry | apply'
+    required: true
+  arg:
+    description: 'Optional --arg value. Omitted (not even passed) when blank, matching every existing maintenance.yml step''s own "$RUN_ARG" convention — none of the four steps this action currently serves requires one for apply.'
+    required: false
+    default: ''
+  out_root:
+    description: 'This run''s own $OUT_ROOT (absolute path) — the step writes its summary.json under out_root/<step>/.'
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - shell: bash
+      working-directory: fsi-app
+      run: |
+        set -euo pipefail
+        STEP="${{ inputs.step }}"
+        MODE="${{ inputs.mode }}"
+        ARG="${{ inputs.arg }}"
+        OUT_ROOT="${{ inputs.out_root }}"
+        SCRIPT="scripts/maintenance/${STEP}.mjs"
+        if [ ! -f "$SCRIPT" ]; then
+          echo "::error::maintenance-step: $SCRIPT does not exist."
+          exit 1
+        fi
+        mkdir -p "$OUT_ROOT/$STEP"
+        if [ -n "$ARG" ]; then
+          node "$SCRIPT" --mode "$MODE" --arg "$ARG" --out "$OUT_ROOT/$STEP"
+        else
+          node "$SCRIPT" --mode "$MODE" --out "$OUT_ROOT/$STEP"
+        fi

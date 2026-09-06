@@ -1,0 +1,318 @@
+name: Downstream chain
+
+# THE MISSING LAST HOP (lane CHAIN, 2026-09-06, audit loop finding 5 / W3-W4 finding 5 / plan §1 "the
+# loop as one unit" / CLAUDE.md rule 17 "nothing in this build runs alone"). THE GAP [CONFIRMED, reading
+# every .github/workflows/*.yml on: block]: source-sweep -> ledger-consume -> population-turn and
+# producers -> propagation-drain are wired as `workflow_run` hops, but population-turn.yml and
+# corpus-turn.yml both END without triggering anything downstream of themselves — a mint never chains
+# into the deterministic corpus-wide derivations (derive-obligations, tag-proposals, source
+# classifications, tier opinions) or into the propagation drain. This workflow is that missing hop.
+#
+# WHAT population-turn.yml AND corpus-turn.yml ALREADY DO ON THEIR OWN, and this workflow therefore
+# does NOT repeat: population-turn.yml's own run-population-flywheel.mjs (lane MINT-FLYWHEEL, MANDATORY,
+# MINT-RUNBOOK.md §8/§9) already runs discovery + forward-event extraction + recluster +
+# derive-obligations + tag-proposals + tag-ratification (`--arg auto`, ADR-025's own auto-adopt surface)
+# for EXACTLY the items this batch minted, in the SAME job, before population-turn.yml's own job is
+# considered green — see that workflow's "THE FLYWHEEL" step. corpus-turn.yml runs discovery + forward-
+# event extraction + analyze-corpus (recluster/gaps/signals) for its own ticket scope. Neither workflow
+# runs `tier-opinions` (never batch-scoped anywhere; a whole-corpus SC-13 pass) or `apply-classifications`
+# (the source-classification propose->auto-adopt pipeline, ADR-025) at all, and corpus-turn.yml never runs
+# `derive-obligations`/`tag-proposals` either (population-turn's flywheel does, but only for a mint's own
+# ids — corpus-turn's own ticket-driven forward-events need the SAME whole-corpus derive-obligations pass
+# a corpus-turn dispatch never gets). THIS workflow is the shared closer for both: it re-runs
+# `derive-obligations`, `tag-proposals`, and `apply-classifications` (all three genuinely whole-corpus /
+# idempotent — see docs/runbooks/MAINTENANCE-RUNBOOK.md §4b/§6a/§17 for why re-running them after a batch
+# a sibling pass already covered is honest, cheap, $0 re-derivation, never a duplicate write) plus
+# `tier-opinions` (which nothing else in the loop ever ran), then chains into `propagation-drain.yml`.
+#
+# NO NEW COPY OF ANY STEP'S run: LINE (CLAUDE.md: no copies of logic). All four steps below call
+# ./.github/actions/maintenance-step, the SAME composite action maintenance.yml's own dispatch-one-step
+# job now calls for these same four steps — dispatch and chain share one path, by construction.
+#
+# WHY A DEDICATED WORKFLOW, NOT A workflow_run TRIGGER ADDED TO maintenance.yml DIRECTLY: maintenance.yml
+# is a "name exactly one step, apply always refuses `all`" dispatch job (37 steps, several requiring an
+# operator --arg) — bolting an automatic multi-step chained run onto that same job would mean either
+# fighting its own "apply mode requires a single named step" refusal or duplicating its 600+ line step
+# list under a second trigger condition. docs/dispatches (this lane's own brief) names both shapes as
+# acceptable; this repo already has the pattern for "a small, fixed, always-apply chained follow-up lives
+# in its own workflow, reusing the producer family's scripts" (propagation-drain.yml itself, chained off
+# producers.yml). maintenance.yml itself gets NO workflow_run trigger and stays exactly as dispatch-only
+# as every comment on it already says.
+#
+# EVENT-DRIVEN, NEVER A SCHEDULE (rule 16) — `workflow_run` on ["Population turn", "Corpus turn"]
+# completing, mirroring population-turn.yml's own chain off "Ledger consume" and propagation-drain.yml's
+# chain off "Data producers": conclusion must be "success", AND (population-turn.yml lane MINT-FLYWHEEL's
+# own posture: "a green run means minted AND connected", so a green population-turn run whose OWN flywheel
+# step failed never reaches "success" in the first place — this gate only has to read the artifact's own
+# minted/tickets_selected count, never re-derive connectedness) the triggering run's OWN artifact
+# (committed to its `population/<run_id>` or `turn/<run_id>`/pushed branch, same branches those workflows
+# already push) shows real work: `metrics.minted > 0` (population-turn, `config.mode == "execute"`) or
+# `metrics.tickets_selected > 0` (corpus-turn, `config.mode == "apply"`) — same "read the artifact, not
+# just the conclusion" discipline population-turn.yml's own chain off ledger-consume already uses.
+#
+# THIS CHAIN DOES NOT HONOUR POPULATION_PAUSED. That repository variable stops NEW record-grade minting
+# (population-turn.yml) during the T46 validation window; in practice it self-gates here too, because a
+# paused population-turn run mints 0 items and this workflow's own gate below reads metrics.minted<=0 and
+# skips. A corpus-turn dispatch is untouched by the population pause (a different loop, propagation-
+# drain.yml's own header makes the identical argument for its own chain off producers.yml) — this workflow
+# introduces no new pause variable of its own, matching that precedent.
+#
+# THEN THE DRAIN. propagation-drain.yml's own `on.workflow_run.workflows` list now ALSO names
+# "Downstream chain" (alongside its original "Data producers") — see that file's own header for the
+# unchanged gate logic (conclusion == success is sufficient for that family; no per-run promoted-style
+# count needed there, by that file's own long-standing argument). A green run of THIS workflow —
+# including a "no real chain work, skip" no-op green run — therefore always gives propagation_events
+# (queued by B4's own DB trigger on any of this chain's writes) a chance to drain.
+#
+# ARTIFACT (maintenance family's own established posture — GitHub Actions artifact only, no committed
+# harness-run family; see this lane's own REPORT for the full F28 reasoning): tier-opinions.mjs,
+# derive-obligations.mjs, tag-proposals.mjs and apply-classifications.mjs are NONE of them registered
+# harness-run families (confirmed: scripts/harness-runs/ has no directory for any of the four; the same
+# fact run-population-flywheel.mjs's own header states for the identical five scripts it wraps) — F28's
+# harness-run-integrity gate governs `scripts/harness-runs/*/` directories only, so it has no opinion on
+# these four either way. maintenance.yml's own dispatch of these same four steps has never uploaded
+# anything but a GitHub Actions artifact (`maintenance-<step>-<run_id>`, this file's own final step); this
+# workflow keeps that exact posture for the chained dispatch rather than inventing a second delivery
+# mechanism for the same four scripts.
+#
+# SECRETS (repository secrets; never echoed): NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY — the
+# same pair maintenance.yml already injects.
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'dry = read/plan, write nothing (all four steps). apply = write through the guarded path. A hand dispatch always runs all four steps, unconditionally (no gate to read — that only applies to a chained workflow_run dispatch).'
+        required: true
+        default: 'dry'
+        type: choice
+        options: [dry, apply]
+  workflow_run:
+    workflows: ["Population turn", "Corpus turn"]
+    types: [completed]
+
+concurrency:
+  group: downstream-chain
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  chain:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      APP_URL: ${{ secrets.APP_URL }}
+      WORKER_SECRET: ${{ secrets.WORKER_SECRET }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # ── THE ONE PLACE that resolves inputs.* (workflow_dispatch) vs. the chained gate (workflow_run)
+      # into a single RUN_* vocabulary every later step reads — see this file's own header. ALWAYS runs
+      # and ALWAYS logs its decision, matching population-turn.yml's / propagation-drain.yml's own idiom.
+      - name: Resolve run parameters and the chaining gate
+        working-directory: fsi-app
+        run: |
+          set -u
+          EVENT="${{ github.event_name }}"
+          echo "event = $EVENT"
+
+          RUN_SKIP=false
+          RUN_SKIP_REASON=""
+          RUN_TRIGGER_CONTEXT=""
+
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            RUN_MODE="${{ inputs.mode }}"
+
+          elif [ "$EVENT" = "workflow_run" ]; then
+            UPSTREAM_NAME="${{ github.event.workflow_run.name }}"
+            UPSTREAM_RUN_ID="${{ github.event.workflow_run.id }}"
+            UPSTREAM_CONCLUSION="${{ github.event.workflow_run.conclusion }}"
+            UPSTREAM_HEAD_BRANCH="${{ github.event.workflow_run.head_branch }}"
+            echo "upstream = $UPSTREAM_NAME (run $UPSTREAM_RUN_ID), conclusion=$UPSTREAM_CONCLUSION, head_branch=$UPSTREAM_HEAD_BRANCH"
+
+            RUN_MODE="apply"
+            RUN_TRIGGER_CONTEXT="$(jq -nc --arg name "$UPSTREAM_NAME" --argjson run_id "$UPSTREAM_RUN_ID" --arg conclusion "$UPSTREAM_CONCLUSION" '{name:$name, run_id:$run_id, conclusion:$conclusion}' 2>/dev/null || true)"
+            echo "trigger_context = $RUN_TRIGGER_CONTEXT"
+
+            if [ "$UPSTREAM_CONCLUSION" != "success" ]; then
+              RUN_SKIP=true
+              RUN_SKIP_REASON="upstream run $UPSTREAM_RUN_ID ($UPSTREAM_NAME) concluded '$UPSTREAM_CONCLUSION', not success — no-op, nothing to chain from."
+            else
+              # Find the upstream run's own artifact branch. population-turn.yml always names it
+              # population/<run_id>. corpus-turn.yml names it turn/<run_id> for a workflow_dispatch run,
+              # or — for a push-triggered run — the SAME branch the coordinator pushed (workflow_run's own
+              # head_branch already IS that branch for a push event; it is "master" or whatever ref was
+              # picked for a workflow_dispatch run, which is why turn/<run_id> is tried FIRST).
+              CANDIDATES=""
+              if [ "$UPSTREAM_NAME" = "Population turn" ]; then
+                CANDIDATES="population/$UPSTREAM_RUN_ID"
+                FAMILY_DIR="fsi-app/scripts/harness-runs/mint"
+              else
+                CANDIDATES="turn/$UPSTREAM_RUN_ID $UPSTREAM_HEAD_BRANCH"
+                FAMILY_DIR="fsi-app/scripts/harness-runs/corpus-turn"
+              fi
+
+              FOUND_BRANCH=""
+              for CAND in $CANDIDATES; do
+                git fetch --no-tags --depth=1 origin "+refs/heads/$CAND:refs/remotes/origin/$CAND" 2>/dev/null || true
+                if git rev-parse --verify --quiet "refs/remotes/origin/$CAND" >/dev/null; then
+                  FOUND_BRANCH="$CAND"
+                  break
+                fi
+              done
+
+              if [ -z "$FOUND_BRANCH" ]; then
+                RUN_SKIP=true
+                RUN_SKIP_REASON="no artifact branch found on origin for $UPSTREAM_NAME run $UPSTREAM_RUN_ID (tried: $CANDIDATES) — that run's own commit step found nothing new to push, or the branch already merged — no-op, nothing to chain from."
+              else
+                NEW_ARTIFACT=""
+                for f in $(git ls-tree -r --full-tree --name-only "refs/remotes/origin/$FOUND_BRANCH" -- "$FAMILY_DIR/"); do
+                  rel="${f#fsi-app/}"
+                  if [ ! -e "$rel" ]; then
+                    NEW_ARTIFACT="$f"
+                    break
+                  fi
+                done
+                if [ -z "$NEW_ARTIFACT" ]; then
+                  RUN_SKIP=true
+                  RUN_SKIP_REASON="$FOUND_BRANCH carries no new $FAMILY_DIR artifact this checkout doesn't already have — no-op, nothing to chain from."
+                elif ! git show "refs/remotes/origin/$FOUND_BRANCH:$NEW_ARTIFACT" > /tmp/upstream-artifact.json 2>/dev/null; then
+                  RUN_SKIP=true
+                  RUN_SKIP_REASON="could not read $NEW_ARTIFACT from $FOUND_BRANCH (transient git error) — no-op."
+                else
+                  EFFECTIVE_MODE="$(jq -r '.config.mode // ""' /tmp/upstream-artifact.json 2>/dev/null || echo '')"
+                  if [ "$UPSTREAM_NAME" = "Population turn" ]; then
+                    COUNT="$(jq -r '.metrics.minted // 0' /tmp/upstream-artifact.json 2>/dev/null || echo 0)"
+                    WANT_MODE="execute"
+                    COUNT_LABEL="minted"
+                  else
+                    COUNT="$(jq -r '.metrics.tickets_selected // 0' /tmp/upstream-artifact.json 2>/dev/null || echo 0)"
+                    WANT_MODE="apply"
+                    COUNT_LABEL="tickets_selected"
+                  fi
+                  case "$COUNT" in ''|*[!0-9]*) COUNT=0 ;; esac
+                  echo "$UPSTREAM_NAME artifact = $NEW_ARTIFACT effective_mode=$EFFECTIVE_MODE $COUNT_LABEL=$COUNT"
+                  if [ "$EFFECTIVE_MODE" != "$WANT_MODE" ]; then
+                    RUN_SKIP=true
+                    RUN_SKIP_REASON="$UPSTREAM_NAME run $UPSTREAM_RUN_ID ran with effective mode=$EFFECTIVE_MODE (wanted $WANT_MODE) — a dry run, nothing new was written — no-op."
+                  elif [ "$COUNT" -le 0 ]; then
+                    RUN_SKIP=true
+                    RUN_SKIP_REASON="$UPSTREAM_NAME run $UPSTREAM_RUN_ID applied for real but $COUNT_LABEL=$COUNT — nothing new to derive from — no-op."
+                  fi
+                fi
+              fi
+            fi
+
+          else
+            RUN_SKIP=true
+            RUN_SKIP_REASON="unrecognized trigger event '$EVENT' — no-op."
+            RUN_MODE="dry"
+          fi
+
+          {
+            echo "RUN_MODE=$RUN_MODE"
+            echo "RUN_SKIP=$RUN_SKIP"
+            echo "OUT_ROOT=$RUNNER_TEMP/downstream-chain-${{ github.run_id }}"
+          } >> "$GITHUB_ENV"
+          {
+            echo "RUN_TRIGGER_CONTEXT<<__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "$RUN_TRIGGER_CONTEXT"
+            echo "__RUN_TRIGGER_CONTEXT_EOF__"
+            echo "RUN_SKIP_REASON<<__RUN_SKIP_REASON_EOF__"
+            echo "$RUN_SKIP_REASON"
+            echo "__RUN_SKIP_REASON_EOF__"
+          } >> "$GITHUB_ENV"
+
+          if [ "$RUN_SKIP" = "true" ]; then
+            echo "::notice::downstream-chain NO-OP — $RUN_SKIP_REASON"
+          else
+            echo "downstream-chain proceeding: mode=$RUN_MODE trigger_context=${RUN_TRIGGER_CONTEXT:-(none - workflow_dispatch)}"
+          fi
+
+      - uses: actions/setup-node@v4
+        if: ${{ env.RUN_SKIP != 'true' }}
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: fsi-app/package-lock.json
+
+      - name: Install
+        if: ${{ env.RUN_SKIP != 'true' }}
+        working-directory: fsi-app
+        run: npm ci
+
+      - name: Verify required secrets
+        if: ${{ env.RUN_SKIP != 'true' }}
+        run: |
+          missing=0
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ]; then echo "::error::NEXT_PUBLIC_SUPABASE_URL is not set."; missing=1; fi
+          if [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then echo "::error::SUPABASE_SERVICE_ROLE_KEY is not set."; missing=1; fi
+          [ "$missing" -eq 0 ]
+
+      - name: Population BEFORE
+        if: ${{ env.RUN_SKIP != 'true' }}
+        working-directory: fsi-app
+        run: node scripts/verify/population-report.mjs
+
+      # The four deterministic, $0, no-arg-required, ADR-025 auto-adopt derivations — see this file's own
+      # header for why exactly these four and not the five run-population-flywheel.mjs already owns.
+      # Order matches docs/runbooks/MAINTENANCE-RUNBOOK.md's own numbering (§4b before §6a before §17)
+      # plus tier-opinions first (a pure host-vs-base_tier read, independent of the other three, cheapest
+      # to run first so a later step's failure still leaves it recorded).
+      - name: tier-opinions
+        if: ${{ env.RUN_SKIP != 'true' }}
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: tier-opinions
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      - name: derive-obligations
+        if: ${{ env.RUN_SKIP != 'true' }}
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: derive-obligations
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      - name: tag-proposals
+        if: ${{ env.RUN_SKIP != 'true' }}
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: tag-proposals
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      - name: apply-classifications
+        if: ${{ env.RUN_SKIP != 'true' }}
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: apply-classifications
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
+
+      - name: Population AFTER
+        if: ${{ always() && env.RUN_SKIP != 'true' }}
+        working-directory: fsi-app
+        run: node scripts/verify/population-report.mjs
+
+      # CACHE FLUSH AFTER A REAL APPLY (CAP-1000 posture — see maintenance.yml's own identical step for
+      # the full defect history this reuses). All four steps above can touch obligations/integrity_flags/
+      # sources rows the public ledgers or their detail pages read.
+      - name: Flush public/detail caches after a real apply
+        if: ${{ always() && env.RUN_SKIP != 'true' && env.RUN_MODE == 'apply' }}
+        working-directory: fsi-app
+        run: node scripts/lib/revalidate.mjs --apply app-data public-items regulations-detail market-detail operations-detail research-detail || true
+
+      - name: Upload this run's step artifact(s)
+        if: ${{ always() && env.RUN_SKIP != 'true' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: downstream-chain-${{ github.run_id }}
+          path: ${{ runner.temp }}/downstream-chain-${{ github.run_id }}/
+          if-no-files-found: warn
+          retention-days: 90
