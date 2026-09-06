@@ -25,6 +25,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
+import { readAllByIds } from '../lib/db.mjs';
 
 const N_PCT = Number(process.env.WAVE_ACCEPTANCE_N ?? 10); // ADR-014 proposed default
 const FLOOR = 3;
@@ -59,19 +60,28 @@ async function main() {
   const since = arg('--since');
   // Paginated (case-file 9): the agent_runs wave read + the item frame feed the acceptance-rate verdict;
   // a wave can exceed 1000 runs/items. All reads order by the unique id; fetchAllRows throws on error.
-  const baseItems = (f, t) => db.from('intelligence_items')
-    .select('id,title,item_type,priority,provenance_status,last_regenerated_at,jurisdiction_iso,canonical_instrument_key,is_archived')
-    .eq('is_archived', false).order('id').range(f, t);
+  const ITEM_COLUMNS = 'id,title,item_type,priority,provenance_status,last_regenerated_at,jurisdiction_iso,canonical_instrument_key,is_archived';
+  // Both the --ids CLI list and the 24h wave frame are runtime-scaled id lists with no declared cap —
+  // chunked via readAllByIds (db.mjs), not a single .in() inside fetchAllRows' page factory (an
+  // oversized .in() filter is still one over-length request line no matter how the RESPONSE is paged;
+  // IN-CHUNK class, 2026-09-06), against this file's own `db` client via the `client` option.
   let items;
-  if (ids) items = await fetchAllRows((f, t) => baseItems(f, t).in('id', ids.split(',')));
-  else {
+  if (ids) {
+    items = await readAllByIds('intelligence_items', ITEM_COLUMNS, ids.split(','), {
+      client: db,
+      match: (q) => q.eq('is_archived', false),
+    });
+  } else {
     // No frame given (the lane's own invocation shape): default to the last 24h, the practical
     // "wave that just landed" proxy named in the header — never a silent no-op self-skip when creds
     // ARE present, since the whole point of nightly wiring is to actually sample something.
     const effectiveSince = since || new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
     const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', effectiveSince).order('id').range(f, t));
     const waveIds = [...new Set(runs.map((r) => r.intelligence_item_id).filter(Boolean))];
-    items = await fetchAllRows((f, t) => baseItems(f, t).in('id', waveIds));
+    items = await readAllByIds('intelligence_items', ITEM_COLUMNS, waveIds, {
+      client: db,
+      match: (q) => q.eq('is_archived', false),
+    });
   }
   if (!items.length) { console.log('No items in wave frame (0 agent_runs in the window) — nothing to sample.'); return; }
 
@@ -88,6 +98,7 @@ async function main() {
     const srcIds = [...new Set(facts.map((f) => f.source_id).filter(Boolean))];
     let deadRow = 0;
     if (srcIds.length) {
+      // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
       const { data: srcs } = await db.from('sources').select('id,url').in('id', srcIds);
       const deadSet = new Set((srcs || []).filter((s) => s.url === DEAD_URL).map((s) => s.id));
       deadRow = facts.filter((f) => deadSet.has(f.source_id)).length;

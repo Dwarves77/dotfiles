@@ -74,6 +74,7 @@ export async function CouncilMembersRail({
     ? await supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
+        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
         .in("id", userIds)
     : { data: [] as { id: string; full_name: string | null; avatar_url: string | null }[] };
 

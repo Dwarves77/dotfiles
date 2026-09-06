@@ -279,6 +279,7 @@ async function readItemStates(itemIds) {
   for (let i = 0; i < itemIds.length; i += 100) {
     const chunk = itemIds.slice(i, i + 100);
     const { data, error } = await withTransientRetry(
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       () => sb.from("intelligence_items").select("id, provenance_status, is_archived").in("id", chunk),
       { label: `readItemStates chunk at ${i}` }
     );

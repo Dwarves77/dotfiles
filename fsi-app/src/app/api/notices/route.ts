@@ -84,6 +84,7 @@ async function handleGET(request: NextRequest) {
   let labelsByEntityId: Record<string, string> = {};
   const noticedEntityIds = [...new Set(notices.map((n) => n.entityId).filter((id): id is string => id != null))];
   if (noticedEntityIds.length > 0) {
+    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
     const { data: entities } = await supabase.from("entities").select("entity_id,canonical_name").in("entity_id", noticedEntityIds);
     labelsByEntityId = Object.fromEntries((entities ?? []).map((e: { entity_id: string; canonical_name: string }) => [e.entity_id, e.canonical_name]));
   }

@@ -143,7 +143,7 @@ if (IS_MAIN) {
     process.exit(2);
   }
 
-  const { readAll } = await import("../lib/db.mjs");
+  const { readAll, readAllByIds } = await import("../lib/db.mjs");
 
   // NO is_archived filter — matches migration 299's own self-check SQL verbatim (its header block has
   // none) and the live re-derivation below (2026-09-05, Lane KIT-BACKFILL): the set_provenance_status
@@ -161,11 +161,11 @@ if (IS_MAIN) {
   const items = await readAll("intelligence_items", "id, item_type", {
     match: (q) => q.eq("provenance_status", "verified").in("item_type", NEW_REQUIRED_ITEM_TYPES),
   });
+  // ids is the pre-kit item set (149 at last count, per the comment above) — a live-corpus figure with
+  // no enforced cap at this call site. Chunked via readAllByIds, IN-CHUNK class (2026-09-06).
   const ids = items.map((i) => i.id);
   const claimRows = ids.length
-    ? await readAll("section_claim_provenance", "intelligence_item_id, claim_kind, claim_text", {
-        match: (q) => q.in("intelligence_item_id", ids),
-      })
+    ? await readAllByIds("section_claim_provenance", "intelligence_item_id, claim_kind, claim_text", ids, { idColumn: "intelligence_item_id" })
     : [];
   const claimsByItemId = new Map();
   for (const c of claimRows) {

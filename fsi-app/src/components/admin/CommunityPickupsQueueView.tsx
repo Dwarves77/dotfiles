@@ -112,6 +112,7 @@ export function CommunityPickupsQueueView() {
         const { data: profileRows } = await supabase
           .from("profiles")
           .select("id, full_name")
+          // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
           .in("id", authorIds);
         for (const p of (profileRows ?? []) as Array<{ id: string; full_name: string | null }>) {
           profileMap.set(p.id, p);

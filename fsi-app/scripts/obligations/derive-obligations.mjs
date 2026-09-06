@@ -141,24 +141,26 @@ export function filterNewRows(derivedRows, existingForwardEventIds) {
 
 /**
  * @param {{ apply?: boolean }} opts
- * @param {{ readAll: Function, guardedInsertMany: Function }} deps
+ * @param {{ readAll: Function, readAllByIds: Function, guardedInsertMany: Function }} deps
  */
 export async function main({ apply = false } = {}, deps) {
-  const { readAll, guardedInsertMany } = deps;
+  const { readAll, readAllByIds, guardedInsertMany } = deps;
   console.log(`[derive-obligations] mode = ${apply ? "APPLY" : "DRY-RUN"}, version = ${DERIVATION_VERSION}`);
 
   const events = await readAll(
     "item_forward_events",
     "id, intelligence_item_id, event_date, date_precision, event_kind",
   );
+  // Every distinct item behind a forward event — corpus-scaled, no declared cap. Chunked via
+  // readAllByIds, not readAll's own match-in (IN-CHUNK class, 2026-09-06).
   const itemIds = [...new Set(events.map((e) => e.intelligence_item_id))];
   // NOTE: no `legal_instrument` column — intelligence_items carries no such field today (see
   // deriveObligationRow's own JSDoc). Selecting it would fail this read against the live schema.
   const items = itemIds.length
-    ? await readAll(
+    ? await readAllByIds(
         "intelligence_items",
         "id, title, jurisdiction_iso, transport_modes, is_archived",
-        { match: (q) => q.in("id", itemIds) },
+        itemIds,
       )
     : [];
   const itemsById = new Map(items.map((i) => [i.id, i]));
@@ -206,8 +208,8 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("[derive-obligations] no DB creds — cannot run here (exit 2).");
     process.exit(2);
   }
-  const { readAll, guardedInsertMany } = await import("../lib/db.mjs");
-  main({ apply: process.argv.includes("--apply") }, { readAll, guardedInsertMany }).catch((e) => {
+  const { readAll, readAllByIds, guardedInsertMany } = await import("../lib/db.mjs");
+  main({ apply: process.argv.includes("--apply") }, { readAll, readAllByIds, guardedInsertMany }).catch((e) => {
     console.error("[derive-obligations] fatal:", e);
     process.exit(1);
   });

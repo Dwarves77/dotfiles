@@ -1301,16 +1301,19 @@ function heldPathFor(outPath) {
 }
 
 /** Read `columns` from `table` for rows whose `keyColumn` is in `values`, in chunks (PostgREST `in`
- *  filters are URL-encoded; 50 keeps a chunk of long document URLs under the request-line limit). */
+ *  filters are URL-encoded; 50 keeps a chunk of long document URLs under the request-line limit).
+ *
+ *  CAP-1000 / run 34045479342 (2026-09-06): this IS db.mjs's `readAllByIds` — same chunk-and-
+ *  concatenate defense against the request-line limit that review-apply-*.mjs's post-apply
+ *  read-backs needed, just against the `sb` this function's own callers already hold (this
+ *  wrapper's signature stays `(sb, table, columns, keyColumn, values, opts)` because three other
+ *  scripts — propose-tags.mjs, origin-class-backfill.mjs, screen-reconcile-records.mjs — import
+ *  and call it directly with their own client). `readAllByIds`'s `client` option runs the chunked
+ *  read against THIS `sb` instead of constructing its own via `readClient()`, so there is exactly
+ *  one chunked-id-read implementation, not two drifting copies. */
 export async function fetchRowsIn(sb, table, columns, keyColumn, values, { chunk = 50 } = {}) {
-  const out = [];
-  for (let i = 0; i < values.length; i += chunk) {
-    const slice = values.slice(i, i + chunk);
-    const { data, error } = await sb.from(table).select(columns).in(keyColumn, slice);
-    if (error) throw new Error(`fetchRowsIn(${table}) failed: ${error.message}`);
-    out.push(...(data ?? []));
-  }
-  return out;
+  const { readAllByIds } = await import("../lib/db.mjs");
+  return readAllByIds(table, columns, values, { idColumn: keyColumn, chunk, client: sb });
 }
 
 /** Distinct values of `column` for rows whose `keyColumn` is in `values`. */

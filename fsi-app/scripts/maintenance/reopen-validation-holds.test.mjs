@@ -25,7 +25,7 @@ test("notesHead: short/absent notes pass through unchanged; long notes truncate 
 function unreachableDeps() {
   return {
     reopenMain: async () => { throw new Error("reopenMain must not be called when --arg is blank"); },
-    readAll: async () => { throw new Error("readAll must not be called when --arg is blank"); },
+    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
   };
 }
 
@@ -69,7 +69,7 @@ test("dry: passes reasonContains through trimmed, apply:false; shapes targets in
         ],
       };
     },
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "  ungrounded_url  " }, deps);
   assert.equal(calls.length, 1);
@@ -88,7 +88,7 @@ test("dry: passes reasonContains through trimmed, apply:false; shapes targets in
 test("dry: 0 matched rows -> empty plan, not an error", async () => {
   const deps = {
     reopenMain: async () => ({ mode: "dry-run", matched: 0, targets: [] }),
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "some-defect-nothing-matches" }, deps);
   assert.equal(r.counts.matched, 0);
@@ -99,21 +99,22 @@ test("dry: 0 matched rows -> empty plan, not an error", async () => {
 // ── apply mode: writes through reopenMain only, then reads back exactly the written ids ─────────────────
 
 test("apply: passes apply:true through; reads back only writtenIds; reports counts/applied", async () => {
-  const calls = { reopenMain: [], readAll: [] };
+  const calls = { reopenMain: [], readAllByIds: [] };
   const deps = {
     reopenMain: async (opts) => {
       calls.reopenMain.push(opts);
       return { mode: "apply", matched: 1, written: 1, writtenIds: ["cw-1"], failures: [] };
     },
-    readAll: async (table, cols, opts) => {
-      calls.readAll.push({ table, cols, opts });
+    readAllByIds: async (table, cols, ids) => {
+      calls.readAllByIds.push({ table, cols, ids });
       return [{ id: "cw-1", dryrun_disposition: "would_mint", hold_reason: null, notes: "[reopened ...] " + LONG_NOTES }];
     },
   };
   const r = await main({ mode: "apply", arg: "ungrounded_url" }, deps);
   assert.deepEqual(calls.reopenMain[0], { reasonContains: "ungrounded_url", apply: true });
-  assert.equal(calls.readAll.length, 1);
-  assert.equal(calls.readAll[0].table, "census_worklist");
+  assert.equal(calls.readAllByIds.length, 1);
+  assert.equal(calls.readAllByIds[0].table, "census_worklist");
+  assert.deepEqual(calls.readAllByIds[0].ids, ["cw-1"]);
   assert.equal(r.counts.matched, 1);
   assert.equal(r.counts.written, 1);
   assert.equal(r.counts.failed, 0);
@@ -130,7 +131,7 @@ test("apply: 0 matched -> no readAll call, empty read_back, exit 0 (a no-op is n
   const calls = [];
   const deps = {
     reopenMain: async () => ({ mode: "apply", matched: 0, written: 0, writtenIds: [], failures: [] }),
-    readAll: async (...args) => { calls.push(args); return []; },
+    readAllByIds: async (...args) => { calls.push(args); return []; },
   };
   const r = await main({ mode: "apply", arg: "nothing-matches-this" }, deps);
   assert.equal(r.counts.matched, 0);
@@ -149,7 +150,7 @@ test("apply: a per-row write failure is surfaced in the summary note and sets ex
       writtenIds: ["cw-1"],
       failures: [{ id: "cw-2", error: "RLS refused" }],
     }),
-    readAll: async () => [{ id: "cw-1", dryrun_disposition: "would_mint", hold_reason: null, notes: null }],
+    readAllByIds: async () => [{ id: "cw-1", dryrun_disposition: "would_mint", hold_reason: null, notes: null }],
   };
   const r = await main({ mode: "apply", arg: "ungrounded_url" }, deps);
   assert.equal(r.counts.matched, 2);

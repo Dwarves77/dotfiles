@@ -32,7 +32,20 @@ governing-files.mjs -> both). The FILE LIST this family's `harness_version` hash
 `screen-worklist.mjs` itself — one of its own two governing files — changed BYTES (the import line and the
 declaration), which is what moved the hash again. `screen-rules.mjs` is untouched.
 
-**harness_version at write time:** `sha256:bcba50585bb00ce3` (superseded above: `sha256:a6cb87abf8e61cd9`)
+**Re-stamped 2026-09-06 (lane R-B, operator ruling docs/ratifications/2026-09/RULING-2026-09-06.md):**
+one new `ON_VERTICAL_RULES` entry, `eu_weekly_oil_bulletin_price_series`, matching `title` against
+`/weekly oil bulletin/i` with `mechanism: "PRICES: EU Weekly Oil Bulletin sets the benchmark before-tax
+EU-average price for automotive/heating/marine fuel oils, a direct freight-fuel-cost price series"` —
+the dispatch-ready fix the ruling names for the six EU Weekly Oil Bulletin `market_signal` items
+(source_url `energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en`), which a `reviewed-verdicts.json`
+entry cannot bind (no `census_worklist` row for these six — see the ruling's mechanism-gap finding).
+`screen-rules.mjs` changed BYTES for the first time since round 3 (the "byte-identical to round 3" note
+below is superseded by this entry); `screen-worklist.mjs` is untouched. `RULE_NAMES` grows from 117 to
+118. Proven live against `classifyRelevance` (screen-rules.test.mjs, six real ids/titles/URL, plus a
+no-over-match guard on an unrelated oil-price-news title) — see `docs/ops/session-log.md`'s R-B addendum.
+No screen batch ran against real census data this wave; the "planned run" note below still stands.
+
+**harness_version at write time:** `sha256:954b696120342866` (superseded above: `sha256:bcba50585bb00ce3`, `sha256:a6cb87abf8e61cd9`)
 
 **Planned run:** the next real screen batch (round 4, whenever the census worklist next needs a
 re-screen — no round 4 is scheduled by this wave) is what supersedes this marker. Because emission is
@@ -42,8 +55,10 @@ unlike mint's manual procedure (see `scripts/harness-runs/mint/PENDING-RUN.md`).
 delete this file — F28 (`harness-run-integrity`) treats a `PENDING-RUN.md` whose recorded hash a landed
 artifact already matches as stale and flags it for removal.
 
-No classification RULE changed here (`screen-rules.mjs` is byte-identical to round 3's landed state;
-`screen-run-003.json`'s empty `defects_found` and its 23 `mechanism_question_flags` open item both still
-hold exactly as recorded) — only the runner script gained the ability to record its own history. A
-future proposer pass over the screen family should still read `screen-run-003.json` in full (per
-`PROPOSER-RUNBOOK.md`) before round 4, not treat this marker as that reading.
+Prior to the 2026-09-06 R-B entry above, no classification RULE had changed since the 2026-09-02
+re-stamp beyond that ruling's two flips; only the runner script had gained the ability to record its own
+history in between. `screen-run-003.json`'s empty `defects_found` and its 23 `mechanism_question_flags`
+open item both still hold exactly as recorded (the R-B rule is a new ON_VERTICAL addition, not a
+mechanism-question flip). A future proposer pass over the screen family should still read
+`screen-run-003.json` in full (per `PROPOSER-RUNBOOK.md`) before round 4, not treat this marker as that
+reading.

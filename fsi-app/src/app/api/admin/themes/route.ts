@@ -70,6 +70,7 @@ export async function GET(request: NextRequest) {
     const { data: briefRows, error: briefError } = await supabase
       .from("theme_briefs")
       .select("theme_id, title, brief_md, generated_at, member_hash")
+      // fitness-allow: F39 (themeIds is the connection_themes cluster count — curated, not corpus-item-scaled)
       .in("theme_id", themeIds);
 
     // A brief-load failure is non-fatal, same posture as the last-run read below — the themes snapshot

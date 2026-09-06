@@ -495,16 +495,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
-
-      const readChunked = async (table, columns, column, values) => {
-        const out = [];
-        for (const c of chunkList(values, READ_CHUNK)) {
-          const rows = await readAll(table, columns, { match: (q) => q.in(column, c) });
-          out.push(...rows);
-        }
-        return out;
-      };
+      const { readAll, readAllByIds, guardedUpdateByIds, guardedUpdate } = await import("../lib/db.mjs");
 
       return {
         readTargetCandidates: () =>
@@ -513,9 +504,9 @@ if (IS_MAIN) {
             "id, item_type, source_url, instrument_identifier, canonical_instrument_key, archive_reason",
             { match: (q) => q.eq("is_archived", false).eq("provenance_status", "verified").eq("item_grade", "record") },
           ),
-        readClaimsForItems: (ids) => readChunked("section_claim_provenance", "intelligence_item_id, claim_kind, claim_text", "intelligence_item_id", ids),
-        readCensusRowsForUrls: (urls) => readChunked("census_worklist", "id, document_url, dryrun_disposition, notes", "document_url", urls),
-        readItemsByIds: (ids) => readChunked("intelligence_items", "id, is_archived, archive_reason", "id", ids),
+        readClaimsForItems: (ids) => readAllByIds("section_claim_provenance", "intelligence_item_id, claim_kind, claim_text", ids, { idColumn: "intelligence_item_id", chunk: READ_CHUNK }),
+        readCensusRowsForUrls: (urls) => readAllByIds("census_worklist", "id, document_url, dryrun_disposition, notes", urls, { idColumn: "document_url", chunk: READ_CHUNK }),
+        readItemsByIds: (ids) => readAllByIds("intelligence_items", "id, is_archived, archive_reason", ids, { chunk: READ_CHUNK }),
         archiveTargets: (ids, patch) =>
           guardedUpdateByIds("intelligence_items", ids, patch, {
             cite: CITE,

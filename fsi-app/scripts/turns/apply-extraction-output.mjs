@@ -193,6 +193,7 @@ async function main() {
       // source_claim_id/source_section_id dropped from this select (lane FE-DEDUP, 2026-09-04): dedupeKey
       // no longer reads them -- migration 307 dropped the source-object term from the live key.
       "intelligence_item_id, event_date, event_kind, obligation_text",
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       { match: (q) => q.in("intelligence_item_id", idChunk) }
     );
     existing.push(...page);

@@ -368,11 +368,13 @@ export async function resolveRegionEntityId(sb, regionId, mode, deps = {}) {
   if (mode !== "apply") return previewEntityId; // dry: preview only, no writes (see doc comment)
 
   const candidateIds = codes.map((c) => entityId("jurisdiction", c));
+  // fitness-allow: F39 (candidateIds derives from one region's iso_codes — small, real-world country-code cardinality)
   const { data: alreadyEntities } = await sb.from("entities").select("entity_id").in("entity_id", candidateIds);
   const existingEntityIds = new Set((alreadyEntities || []).map((r) => r.entity_id));
   const { data: existingIdentRows } = await sb
     .from("entity_identifiers")
     .select("entity_id,scheme,value")
+    // fitness-allow: F39 (candidateIds derives from one region's iso_codes — small, real-world country-code cardinality)
     .in("entity_id", candidateIds);
   const existingIdentifierKeys = new Set((existingIdentRows || []).map((r) => `${r.entity_id}|${r.scheme}|${r.value}`));
 

@@ -188,7 +188,10 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     entity_id: string | null;
     occurred_at: string;
   }>;
-
+  // eventList.length <= batch structurally (the .limit(batch) read above), DEFAULT_BATCH = 500 — well
+  // under the ~2,000-UUID .in() danger threshold. Not assertBound: eventList legitimately reaching the
+  // full batch size is the NORMAL case for a deep queue (assertBound's "hit the cap == truncation"
+  // semantics do not apply to a worker's own page-size limit).
   const result: DrainResult = {
     mode,
     queueDepthBefore,
@@ -241,6 +244,7 @@ export async function runPropagationDrain(sb: DrainClient, opts: RunPropagationD
     .from("derived_values")
     .select("value_id,entity_id,method_id,method_version,inputs,unit,currency")
     .eq("admissibility", "stale")
+    // fitness-allow: F39 (eventIds.length <= batch, DEFAULT_BATCH=500, via .limit(batch) above)
     .in("invalidated_by_event", eventIds);
   if (staleErr) {
     result.errors.push({ eventId: "n/a", message: `reading stale derived_values failed: ${staleErr.message}` });

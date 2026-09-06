@@ -177,6 +177,7 @@ export async function fetchUpcomingObligations(supabase, opts = {}) {
     .from("item_forward_events")
     .select("id, intelligence_item_id, event_date, date_precision, event_kind, obligation_text, source_kind, confidence")
     .gte("event_date", spec.from)
+    // fitness-allow: F39 (spec.kinds is a finite event_kind vocabulary from the caller's spec, not a runtime id list)
     .in("event_kind", spec.kinds)
     .order("event_date", { ascending: true });
 
@@ -198,6 +199,7 @@ export async function fetchUpcomingObligations(supabase, opts = {}) {
       .select("id, title, legacy_id, jurisdiction_iso")
       .eq("is_archived", false)
       .eq("provenance_status", "verified") // customer read gate — see this module's header
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", itemIds.slice(i, i + 200));
     for (const row of itemRows ?? []) itemsById.set(row.id, row);
   }

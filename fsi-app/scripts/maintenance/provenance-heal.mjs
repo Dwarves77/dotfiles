@@ -105,7 +105,7 @@ const ITEM_COLUMNS =
 // pre-pass inline version for every existing `provenance-heal` dispatch below.
 export async function buildHealDeps() {
   const {
-    readAll, readClient, guardedInsert, guardedInsertMany, guardedUpdate, guardedUpdateByIds,
+    readAll, readAllByIds, readClient, guardedInsert, guardedInsertMany, guardedUpdate, guardedUpdateByIds,
     registerSource, institutionKey,
   } = await import("../lib/db.mjs");
   const { createClient } = await import("@supabase/supabase-js");
@@ -151,11 +151,14 @@ export async function buildHealDeps() {
     // behavior unchanged.
     readCandidateTypeItems: (itemTypes, { includeArchived = false } = {}) => readAll("intelligence_items", ITEM_COLUMNS, {
       match: (q) => {
+        // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
         const base = q.eq("provenance_status", "verified").in("item_type", itemTypes);
         return includeArchived ? base : base.eq("is_archived", false);
       },
     }),
-    readByIds: (ids) => readAll("intelligence_items", ITEM_COLUMNS, { match: (q) => q.in("id", ids) }),
+    // ids is a caller-supplied runtime list with no declared cap here — chunked via readAllByIds,
+    // not readAll's own match-in, IN-CHUNK class (2026-09-06).
+    readByIds: (ids) => readAllByIds("intelligence_items", ITEM_COLUMNS, ids),
 
     // ── per-item reads ───────────────────────────────────────────────────────────────────────
     readCaptures: (itemId) => readAll("agent_run_searches", "id, result_url, result_content", { match: (q) => q.eq("intelligence_item_id", itemId) }),
@@ -179,6 +182,7 @@ export async function buildHealDeps() {
     // whole-table `agent_run_searches` scan (the brief's own explicit line). `urls` is the small
     // http/https + trailing-slash variant set buildUrlVariants produces for one item's canonical URL.
     readCapturesByUrls: (urls) => (urls?.length
+      // fitness-allow: F39 (urls is the small http/https + trailing-slash variant set (buildUrlVariants), not a runtime id list)
       ? readAll("agent_run_searches", "id, intelligence_item_id, result_url, result_content", { match: (q) => q.in("result_url", urls) })
       : Promise.resolve([])),
     // `sources` read ONCE per RUN (main() calls this, not per item) — the SAME bounded whole-table

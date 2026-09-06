@@ -117,6 +117,7 @@ export async function GET(request: NextRequest) {
     const { data: itemRows, error: itemErr } = await supabase
       .from("intelligence_items")
       .select("id, title, legacy_id")
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", itemIds.slice(i, i + 200));
     if (itemErr) {
       return withNoStore(

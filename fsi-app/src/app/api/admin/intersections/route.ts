@@ -76,6 +76,7 @@ export async function GET(request: NextRequest) {
       .from("intelligence_items")
       .select("id, title, legacy_id, priority, intersection_summary")
       .eq("is_archived", false)
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       .in("id", ids.slice(i, i + 200));
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

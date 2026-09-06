@@ -46,6 +46,7 @@ async function reflectBlockState(hardFailures) {
       console.log(`[block-state] RED — opened block ${ins.inserted?.id ?? "?"} (${labels}).`);
     }
   } else if (open && open.length) {
+    // fitness-allow: F39 (open is a singleton block-state row keyed by fixed (category, subject_ref) — 0-1 rows in practice)
     await guardedUpdate("integrity_flags", (qb) => qb.in("id", open.map((r) => r.id)), { status: "resolved" }, { cite: BLOCK_CITE });
     console.log(`[block-state] GREEN — resolved ${open.length} stale block(s); generation unblocked.`);
   } else {

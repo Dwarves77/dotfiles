@@ -10957,6 +10957,169 @@ named, not investigated, this train.
 7. The map smoke spec gap UX-FIX's P6 audit names (no deterministic `transport_modes` classifier).
 8. A THETIS-MRV row to source FUELEU's `statutory_computations` writer.
 
+## Addendum 86, postscript 4: train 50, the read-back defect and its fix, the ATTACH consolidation, six dispatches (2026-09-06, coordinator, lane ASSEMBLE-50)
+
+Train 49 landed as PR #596, master tip `b3504d14`. I assembled train 50 (`train/wave50-2026-09-06`, cut
+from `origin/master` `b3504d14`) by merging two lane branches in the order dispatched:
+
+- **READBACK-CHUNK** (1b9b07c7). Maintenance #57 (below) applied cleanly - 349 rows moved
+  provisional to active, provisional 911 to 562, confirmed by SQL - but the step's own post-apply
+  read-back 400'd: a single Supabase `in()` GET carrying 911 ids exceeds whatever URL-length or filter-size
+  limit the API enforces, and the failure was masked by an `|| true` on the step so the apply itself was
+  never at risk, only the read-back's own confirmation. This lane's fix is `readAllByIds()` in
+  `fsi-app/scripts/lib/db.mjs`, a shared helper that chunks any id list into safe-sized batches and unions
+  the results, plus tests. All four `review-apply-*.mjs` wrappers and `export-census-rows.mjs`'s
+  `fetchRowsIn` now delegate to it instead of each carrying its own unchunked `in()` call.
+- **ATTACH-FINAL** (six commits ending 860033af). The seed extractor was reading STEP C's `source[]` key,
+  which is empty by construction on an orphan row; the fix reads `orphans[]`, the field the step actually
+  populates, and reproduces the 441-row worklist maintenance #55 (last postscript) found was not
+  reproducible. Eight Haiku slice lanes then ran against that seed: 176 of 441 orphans sourced with a real
+  url and quote (150 counted this train, 26 already counted in an earlier partial run), 265 left
+  unsourced with an explicit disposition per row (`not_found`, `analytical_inference`, or
+  `item_specific` - never a bare skip). 46 of the 176 sourced rows sit on hosts below the per-type
+  authority floor with no note explaining why; 40 have a quote whose tokens do not match the row's own
+  claim text closely enough to auto-trust. Neither set was dropped - both are flagged in the consolidated
+  file for the `attach-found-sources` apply step to prove (or refuse) against the page it actually
+  fetches, which is the only place a quote's truth is checkable. `consolidate-attach-worklist.mjs` +
+  test merges the eight slice outputs into the two files (`attach-found-sources-2026-09-06.json`,
+  `...-unsourced.json`) and MAINTENANCE-RUNBOOK.md gained §8b describing the shape.
+
+Both lanes' diffs against `origin/master` showed the same 129/125-file deletion set (the retired
+`docs/design/audit-2026-09-06/` capture directory and a `docs/ops/session-log.md` trim) because both were
+cut from an older master tip that still carried those files; neither lane's own commits touch them, so
+both merges auto-resolved to master's current (already-deleted) state with zero conflicts -
+`grep -rn '<<<<<<<'` clean on both. `coverage-scan.mjs` regenerated after the merge (db.mjs, the four
+review-apply wrappers, export-census-rows.mjs, and consolidate-attach-worklist.mjs are all governed
+surface): 848 governed files, 813 COVERED, 35 EXEMPT, 0 GAPS - a 1-file, 14-line delta from train 49's own
+847/812 baseline, committed separately. `assemble-train --fold --propose --ledger` folded 0 new artifact
+branches (26 already folded as of train 49, 0 conflicts), wrote 0 new proposer briefs, derived 0 ledger
+rows - train 49's own fold pass had already covered every stranded branch.
+
+**Dispatch ledger, six new rows this session** (docs/ops/dispatch-ledger.jsonl, #56-#61; #56-#57 landed
+as part of the READBACK-CHUNK merge, #58-#61 appended by me as coordinator-confirmed):
+
+- **#56/#57 - review-apply-provisional-sources**, dry then apply: dry found 6 groups (349 rows would
+  keep across tier-1/2/4); apply moved 349 rows provisional→active, live count 911→562 CONFIRMED by SQL.
+  This is the run whose read-back 400'd, fixed by READBACK-CHUNK above.
+- **#58/#59 - review-apply-canonical-candidates**, dry then apply: 23 groups; 6 accepts auto-resolved
+  (bsr.org, clean-trucking.eu ×2, nrel.gov, gmacenter.org, prnewswire.com) and 5 rejects (docs.nrel.gov,
+  en.npc.gov.cn.cdurl.cn, espo.be, events.reutersevents.com, safa.aero) applied automatically, 11 rows
+  total; the remaining 16 need individual review and are routed there, not silently skipped. Read-back OK
+  (proves READBACK-CHUNK's fix works against a real chunked read).
+- **#60/#61 - review-apply-coverage-gaps**, dry then apply: 37 groups, 91 rows would apply per the
+  ruling (kept/parked/declined); apply landed all 91, read-back `rows_named_in_ruling` 91 =
+  `rows_now_live` 91.
+
+I deliberately did **not** dispatch `review-apply-portal-links` this train - its own worklist carries
+57,469 ids, by far the widest `in()` read this codebase issues, and is exactly the shape that broke
+maintenance #57. It waits until this train's `readAllByIds` fix is actually live on `origin/master`,
+not merely merged onto a branch that has not landed yet.
+
+**Gates**, all run against the assembled train branch: fitness runner 32 functions, 0 violations
+(grep-confirmed all three allowlist objects - `NEVER_RUN_ALLOWLIST`, `STALE_NEXT_ALLOWLIST`,
+`WRITER_READER_ALLOWLIST` in closure-gate.mjs, plus F25/F38's own allowlists - are empty in source, so no
+expiry-carrying entry exists anywhere to state a grace deadline for); governance+fitness+discipline
+`node --test` 190/190; `closure-gate.mjs --report` PASS on NEVER-RUN, STALE-NEXT, WRITER-READER (0 write
+orphans across 34 tables/32 RPCs), and LANE-CONTRACT, with an empty allowlist section (no NEVER-RUN
+entries exist to grant grace against); `run-test-suite.sh` 5768 tests, 5763 pass, 0 fail, 5 skipped, exit
+0 (the audit-finding-status report naming 593 unlabeled finding-shaped lines across 108 pre-existing audit
+files is informational and untouched by this train - none of those files are in this train's write set);
+override-check `--range=origin/master..HEAD` C3 clean, C4 fails only on this container's own stray
+`/root/work/lanes/*` worktrees not registered in `docs/inventories/worktrees.md` (same pre-existing,
+content-unrelated finding train 48 and 49 both recorded); `tsc --noEmit` clean; all 18
+`.github/workflows`/`.github/actions` YAML files parse under Python's `yaml.safe_load`;
+`invariant-coverage.mjs` PASS (118 invariants + 63 doctrines, all wired); `next build --webpack` clean,
+full route manifest emitted.
+
+**UX compliance**: no `.tsx` or `.css` file is in this train's diff (`git diff --stat origin/master..HEAD
+-- '*.tsx' '*.css'` is empty) - both lanes are scripts-and-docs work. No UX compliance block applies.
+
+**Next**, in dispatch order: land train 50 via the browser transport; then `review-apply-portal-links`
+dry then apply (now unblocked by the readAllByIds fix); `census-off-vertical` dry then apply
+`arg=archive`; `origin-class-backfill` dry then apply `arg=R-E-accepted`; `attach-found-sources` dry then
+apply `arg=scripts/_worklists/attach-found-sources-2026-09-06.json`; `source-role-cleanup`;
+`downstream-chain.yml`'s first real run; `backfill-derivation-edges.mjs --apply`; the R-B
+`screen-rules.mjs` rule train 49 named but did not build; the 16 canonical-candidate rows maintenance #59
+routed to individual review, written up as a ruling digest for the operator rather than left as a bare
+count; the map smoke spec gap; a THETIS-MRV row for FUELEU's `statutory_computations` writer.
+
+## Addendum 86, postscript 4, continued: two more lanes, four more dispatches, the class fix's second live proof, R-B enacted (2026-09-06, coordinator, lane ASSEMBLE-50)
+
+After the section above landed I merged `origin/master` (PR #597, `f17d7e77` - a docs-only UI audit
+evidence package, postscript 60 below) into `train/wave50-2026-09-06`, resolving one conflict in this
+file by keeping both postscripts in file order; `docs/INDEX.md` merged cleanly with no conflict. Then two
+further lane branches, dispatched to close out the class of defect READBACK-CHUNK found and the R-B
+ruling train 49 named but did not build.
+
+**INCLAUSE-CLASS** (`c97f4a65`) audited every live `.in()` call site across `fsi-app/src` and
+`fsi-app/scripts`: 138 sites total. 26 were already BOUNDED (a literal array or an enum, nothing to fix).
+109 were investigated individually - the caller chain, an upstream `.limit()`/`.slice()`, or a
+small-by-construction row set (one user's own watchlist, one item's own claims) - and marked
+`fitness-allow: F39` with the specific reason, rather than left silent. The remaining 18 were genuinely
+unbounded (sitemap-scale, corpus-scale, or a post-write read-back with no cap) and were rewritten to
+route through one shared chunking core, `fetchAllByIdChunks` in `fsi-app/src/lib/db/paginate.mjs`;
+`readAllByIds` (reads) and `guardedUpdateByIds`/`guardedDelete` (writes) all delegate to it, and several
+pre-existing duplicate ad hoc chunking helpers were deleted in the same pass rather than left alongside
+the new one. A new fitness function, F39 unbounded-in-filter, now scans both trees for a raw `.in()` call
+whose id list cannot be proven bounded, registered as invariant RD-64-unbounded-in-filter with a
+`remediation-discipline` `SKILL.md` section and a `skill-contract-map` repin; the full 138-site table is
+`docs/audits/in-filter-audit-2026-09-06.md`.
+
+The class fix proved itself live before it even landed: maintenance #63 below (`census-off-vertical`,
+`arg=archive`) applied cleanly - 1,655 rows archived, CONFIRMED by SQL - but its own post-archive
+read-back, a single `in()` GET carrying all 1,655 ids, came back as an HTML error page instead of JSON.
+This is the second live instance of exactly the defect READBACK-CHUNK fixed once already for the
+`review-apply-*` family (maintenance #57, previous postscript); `census-off-vertical` was not yet
+wired to the shared helper when it ran. INCLAUSE-CLASS's fix, once merged, closes this specific gap and
+F39 guards the rest of the codebase against a third instance appearing anywhere else.
+
+**R-B** (`0f052df6`, `ec926c5a`) adds one `ON_VERTICAL` rule to `fsi-app/scripts/mint/screen-rules.mjs`
+matching the EU Weekly Oil Bulletin's `document_url`/`title` (mechanism: PRICES, a freight-fuel-cost
+benchmark series), per the operator's ruling in `docs/ratifications/2026-09/RULING-2026-09-06.md`. That
+ruling found reclassification could not be enacted through a `reviewed-verdicts.json` entry - the six
+rows were minted directly via an R-D `rows_file` batch with no `census_worklist` row, so the lookup
+`screenVerdictFor` performs on a null census id could never bind them - so a `screen-rules.mjs` code
+change was the only dispatch-ready fix. The rule takes effect on the next `screen-reconcile-records`
+dispatch, at which point the six oil-bulletin `market_signal` rows move from `ambiguous` to
+`on_vertical`. `RULING-2026-09-06.md` gained an "Enacted" line naming the commit.
+
+Both lanes merged onto `train/wave50-2026-09-06` with zero conflicts against each other and against
+`origin/master` - `grep -rn '<<<<<<<'` clean. `coverage-scan.mjs` regenerated again (db.mjs's new
+delegation and every touched call site are governed surface): 849 governed files, 814 COVERED, 35 EXEMPT,
+0 GAPS - a 1-file, 5-file delta from the mid-train 848/813 baseline above. `assemble-train --fold
+--propose --ledger` re-run: folded 0 (26 already folded), 0 new proposer briefs, 0 derived ledger rows -
+unchanged from the mid-train pass.
+
+**Dispatch ledger, four more rows this session** (docs/ops/dispatch-ledger.jsonl, #62-#65,
+coordinator-confirmed):
+
+- **#62/#63 - census-off-vertical**, dry then apply `arg=archive` (R-A): dry found `would_mint_total`
+  3,461, `off_vertical` 1,655, matching `RULING-2026-09-06` R-A's snapshot exactly. Apply archived 1,655
+  `census_worklist` rows (`is_archived=true`, `archive_reason=off_vertical`), CONFIRMED by SQL - 1,655
+  archived, 1,806 live = 1,550 on_vertical + 256 ambiguous parked. The apply's own read-back failed as
+  described above; the archive itself is unaffected and confirmed independently by SQL.
+- **#64/#65 - origin-class-backfill**, dry then apply `arg=R-E-accepted`: dry found `would_classify`
+  1,179, matching R-E's snapshot. Apply classified all 1,179 (1,173 official, 6 community-corroborated);
+  read-back present, exit 0.
+
+**Operator question answered**: the operator asked whether the site is being populated while the UI
+overhaul (postscript 60 below) is in progress. Answer recorded: no - population is paused; every write
+this postscript describes (#62-#65 above, and #56-#61 in the section before it) is a ruled curation write
+against rows that already existed, not new intake. No mint pipeline ran this session.
+
+**UX**: INCLAUSE-CLASS touches one `.tsx` file, `fsi-app/src/app/community/browse/page.tsx` - a two-line
+`fitness-allow: F39` comment added above two pre-existing, already-bounded `.in()` calls. No visual or
+behavioral change [CONFIRMED by `git diff`].
+
+**Next**, unchanged from the list above except for the items this continuation closed
+(`census-off-vertical`, `origin-class-backfill`, and the R-B rule are now done; `review-apply-portal-links`
+is now unblocked by the merged `readAllByIds` fix and stays next): `review-apply-portal-links` dry then
+apply; `attach-found-sources` dry then apply `arg=scripts/_worklists/attach-found-sources-2026-09-06.json`;
+`source-role-cleanup`; `downstream-chain.yml`'s first real run; `backfill-derivation-edges.mjs --apply`;
+the 16 canonical-candidate rows maintenance #59 routed to individual review, written up as a ruling digest
+for the operator; the map smoke spec gap; a THETIS-MRV row for FUELEU's `statutory_computations` writer;
+retiring `docs/design/redesign/` (postscript 60 names it superseded but does not retire it).
+
 ### Postscript 60 — 2026-09-06 (cloud session): UI audit evidence package
 
 The operator opened a UI review: the site is hard to read and hard to navigate, and he

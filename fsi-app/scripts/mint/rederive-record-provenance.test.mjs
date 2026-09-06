@@ -20,6 +20,7 @@ test("main dry-run: reads record-grade non-verified rows, calls the rpc per row,
   const calls = [];
   const deps = {
     readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return ROWS; },
+    readAllByIds: async () => { throw new Error("must not read back in dry-run"); },
     rpc: async (id) => { calls.push(["rpc", id]); return { valid: id !== "b" }; },
     guardedUpdateByIds: async () => { throw new Error("must not write in dry-run"); },
   };
@@ -31,10 +32,11 @@ test("main dry-run: reads record-grade non-verified rows, calls the rpc per row,
 test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the cite, patch is updated_at only (the trigger writes the status), re-reads the status with a fresh SELECT (run #9: the UPDATE's returning rows predate the AFTER trigger)", async () => {
   let captured;
   let reads = 0;
+  let readBackIds;
   const deps = {
-    readAll: async (table, cols, opts) => {
-      reads += 1;
-      if (reads === 1) return ROWS; // the candidate scan
+    readAll: async (table, cols, opts) => { reads += 1; return ROWS; }, // the candidate scan
+    readAllByIds: async (table, cols, ids) => {
+      readBackIds = ids;
       // the post-touch re-read: the derivation has flipped them by now
       return ["a", "c"].map((id) => ({ id, provenance_status: "verified" }));
     },
@@ -53,7 +55,8 @@ test("main apply: touches ONLY the stale ids through guardedUpdateByIds with the
   assert.ok(typeof captured.opts.applyMatch === "function");
   assert.equal(r.healed, 2);
   assert.equal(r.touched, 2);
-  assert.equal(reads, 2, "one candidate scan, one post-touch re-read");
+  assert.equal(reads, 1, "one candidate scan");
+  assert.deepEqual(readBackIds, ["a", "c"], "one post-touch re-read via readAllByIds");
   assert.notEqual(process.exitCode, 1);
 });
 

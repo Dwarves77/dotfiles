@@ -114,6 +114,7 @@ export async function hasBeenAuthored(sb, inputRefs, methodId, methodVersion) {
     const { data: values, error: vErr } = await sb
       .from("derived_values")
       .select("value_id")
+      // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
       .in("value_id", valueIds)
       .eq("method_id", methodId)
       .eq("method_version", methodVersion)

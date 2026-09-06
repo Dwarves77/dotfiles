@@ -154,7 +154,7 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+      const { readAll, guardedInsertMany, guardedUpdateByIds } = await import("../lib/db.mjs");
 
       // Same connection-signature + grounded-text column set propose-tags.mjs's own CLI reads, plus
       // created_at for --since selection — kept in lockstep with that file's SIG by hand (propose-tags.mjs
@@ -171,9 +171,11 @@ if (IS_MAIN) {
           match: (q) => q.eq("status", "open").like("created_by", `${TAG_NAMESPACE}%`),
         }),
         insertMany: (rows) => guardedInsertMany("integrity_flags", rows, { cite: CITE, select: "id" }),
-        updateStale: (ids) => guardedUpdate(
+        // ids is runtime-scaled (every stale integrity_flags row this tag-proposal pass found) with no
+        // declared cap — chunked via guardedUpdateByIds, not a single .in(), IN-CHUNK class (2026-09-06).
+        updateStale: (ids) => guardedUpdateByIds(
           "integrity_flags",
-          (qb) => qb.in("id", ids),
+          ids,
           {
             status: "resolved",
             resolved_at: new Date().toISOString(),

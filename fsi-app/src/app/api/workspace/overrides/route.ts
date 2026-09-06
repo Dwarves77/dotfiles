@@ -204,6 +204,7 @@ async function handlePOST(request: NextRequest) {
         ? await supabase
             .from("user_watchlist")
             .select("user_id")
+            // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
             .in("user_id", memberIds)
             .in("item_id", [itemId, intelItemId])
         : { data: [] as { user_id: string }[] };

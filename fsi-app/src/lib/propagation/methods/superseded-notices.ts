@@ -97,18 +97,21 @@ const DERIVED_VALUES_COLS =
 export async function fetchSupersededNotices(sb: NoticesClient, entityIds: string[], sinceIso: string): Promise<SupersededNotice[]> {
   if (entityIds.length === 0) return [];
 
+  // fitness-allow: F39 (entityIds is one user's watchlist (caller: resolve-watched-entities.ts), not corpus-scale)
   const newRes = await sb.from("derived_values").select(DERIVED_VALUES_COLS).in("entity_id", entityIds).gte("computed_at", sinceIso);
   if (newRes.error || !Array.isArray(newRes.data)) return [];
   const newRows = (newRes.data as RawDerivedValueRow[]).filter((r) => r.supersedes);
   if (newRows.length === 0) return [];
 
   const oldIds = [...new Set(newRows.map((r) => r.supersedes as string))];
+  // fitness-allow: F39 (entityIds is one user's watchlist (caller: resolve-watched-entities.ts), not corpus-scale)
   const oldRes = await sb.from("derived_values").select(DERIVED_VALUES_COLS).in("value_id", oldIds);
   const oldById = new Map<string, RawDerivedValueRow>((Array.isArray(oldRes.data) ? (oldRes.data as RawDerivedValueRow[]) : []).map((r) => [r.value_id, r]));
 
   const eventIds = [...new Set([...oldById.values()].map((r) => r.invalidated_by_event).filter((id): id is number => id != null))];
   let eventsById = new Map<number, RawPropagationEventRow>();
   if (eventIds.length > 0) {
+    // fitness-allow: F39 (entityIds is one user's watchlist (caller: resolve-watched-entities.ts), not corpus-scale)
     const evRes = await sb.from("propagation_events").select("event_id,table_name,row_pk,change_kind,occurred_at").in("event_id", eventIds);
     eventsById = new Map((Array.isArray(evRes.data) ? (evRes.data as RawPropagationEventRow[]) : []).map((e) => [e.event_id, e]));
   }

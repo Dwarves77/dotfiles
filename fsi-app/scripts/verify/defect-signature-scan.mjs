@@ -28,6 +28,7 @@
 
 import { createClient } from '@supabase/supabase-js';
 import { fetchAllRows } from '../../src/lib/db/paginate.mjs';
+import { readAllByIds } from '../lib/db.mjs';
 
 export const WAVE2_CUTOFF = '2026-07-13T00:00:00Z'; // exclude items grounded by the concurrent Wave 2
 
@@ -47,11 +48,17 @@ async function resolveFrame(db) {
   // Paginated (case-file 9): the frame + the agent_runs wave reads feed the defect-triage verdict; a month of
   // runs / the full non-archived corpus exceed PostgREST's 1000-row cap. All reads order by the unique id.
   const base = (f, t) => db.from('intelligence_items').select('id,title').eq('is_archived', false).order('id').range(f, t);
-  if (ids) { const list = ids.split(',').map((s) => s.trim()); return await fetchAllRows((f, t) => base(f, t).in('id', list)); }
+  // Both the --ids CLI list and the --since wave frame are runtime-scaled id lists with no declared
+  // cap — chunked via readAllByIds, not a single .in() inside fetchAllRows' page factory (IN-CHUNK
+  // class, 2026-09-06 — same fix as wave-acceptance-audit.mjs's identical shape).
+  if (ids) {
+    const list = ids.split(',').map((s) => s.trim());
+    return await readAllByIds('intelligence_items', 'id,title', list, { client: db, match: (q) => q.eq('is_archived', false) });
+  }
   if (since) {
     const runs = await fetchAllRows((f, t) => db.from('agent_runs').select('intelligence_item_id').gte('created_at', since).order('id').range(f, t));
     const wave = [...new Set(runs.map((x) => x.intelligence_item_id).filter(Boolean))];
-    return await fetchAllRows((f, t) => base(f, t).in('id', wave));
+    return await readAllByIds('intelligence_items', 'id,title', wave, { client: db, match: (q) => q.eq('is_archived', false) });
   }
   if (all) {
     const items = await fetchAllRows(base);

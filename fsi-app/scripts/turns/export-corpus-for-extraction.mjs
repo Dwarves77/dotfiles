@@ -183,6 +183,7 @@ async function main() {
     items = [];
     for (const idChunk of chunk(ids, 200)) {
       const rows = await readAll("intelligence_items", "id, created_at", {
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
         match: (q) => q.in("id", idChunk).eq("provenance_status", "verified").eq("is_archived", false),
       });
       items.push(...rows);
@@ -234,10 +235,12 @@ async function main() {
   for (const idChunk of chunk(targetIds, 200)) {
     if (!idChunk.length) continue;
     const claims = await readAll("section_claim_provenance", "id, intelligence_item_id, claim_kind, claim_text, source_span", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       match: (q) => q.in("intelligence_item_id", idChunk).in("claim_kind", CLAIM_KIND_FILTER),
     });
     claimRows.push(...claims);
     const sections = await readAll("intelligence_item_sections", "id, item_id, section_key, content_md", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       match: (q) => q.in("item_id", idChunk),
     });
     sectionRows.push(...sections);
@@ -246,6 +249,7 @@ async function main() {
     for (const contextIdChunk of chunk(contextIds, 200)) {
       if (!contextIdChunk.length) continue;
       const pool = await readAll("agent_run_searches", "id, intelligence_item_id, result_content, result_index", {
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
         match: (q) => q.in("intelligence_item_id", contextIdChunk),
       });
       poolRows.push(...pool);

@@ -28,6 +28,7 @@ export async function derivedCoveredTokens(sb, itemId) {
   const { data: bases } = await sb
     .from("section_claim_provenance")
     .select("id, claim_kind, source_span, search_result_id")
+    // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
     .in("id", basisIds)
     .eq("claim_kind", "FACT");
   const byId = new Map((bases || []).map((b) => [b.id, b]));
@@ -35,6 +36,7 @@ export async function derivedCoveredTokens(sb, itemId) {
   const srIds = [...new Set((bases || []).map((b) => b.search_result_id).filter(Boolean))];
   const capById = new Map();
   if (srIds.length) {
+    // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
     const { data: caps } = await sb.from("agent_run_searches").select("id, result_content").in("id", srIds);
     for (const c of caps || []) capById.set(c.id, c.result_content || "");
   }

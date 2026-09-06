@@ -18,7 +18,7 @@ test("resolveRulingPath: relative arg resolves against the REPO ROOT", () => {
 function unreachableDeps() {
   return {
     applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAll: async () => { throw new Error("readAll must not be called when --arg is blank"); },
+    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
   };
 }
 
@@ -41,7 +41,7 @@ test("dry: calls applyMain with apply:false; plan and needs_individual_review pa
         needs_individual_review: [{ candidateId: "c-3", itemId: "i-3", candidateUrl: "https://x", reason: "not registered" }],
       };
     },
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/canonical-candidates.ruling.json" }, deps);
   assert.equal(calls[0].apply, false);
@@ -63,7 +63,7 @@ test("apply: sums applied across groups; reads back candidate rows AND repointed
     ],
   }));
   try {
-    const calls = { applyMain: [], readAll: [] };
+    const calls = { applyMain: [], readAllByIds: [] };
     const deps = {
       applyMain: async (opts) => {
         calls.applyMain.push(opts);
@@ -77,8 +77,8 @@ test("apply: sums applied across groups; reads back candidate rows AND repointed
           needs_individual_review: [],
         };
       },
-      readAll: async (table, cols, opts) => {
-        calls.readAll.push({ table, cols });
+      readAllByIds: async (table, cols, ids) => {
+        calls.readAllByIds.push({ table, cols, ids });
         if (table === "canonical_source_candidates") {
           return [
             { id: "c-1", decision: "approved", promoted_to_source_id: "src-9", intelligence_item_id: "item-1" },
@@ -88,14 +88,14 @@ test("apply: sums applied across groups; reads back candidate rows AND repointed
         if (table === "intelligence_items") {
           return [{ id: "item-1", source_id: "src-9", source_url: "https://real-source.example/doc" }];
         }
-        throw new Error(`unexpected readAll table ${table}`);
+        throw new Error(`unexpected readAllByIds table ${table}`);
       },
     };
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
     assert.equal(calls.applyMain[0].apply, true);
-    assert.equal(calls.readAll.length, 2, "one read for the candidates table, one for the repointed items");
-    assert.equal(calls.readAll[0].table, "canonical_source_candidates");
-    assert.equal(calls.readAll[1].table, "intelligence_items");
+    assert.equal(calls.readAllByIds.length, 2, "one read for the candidates table, one for the repointed items");
+    assert.equal(calls.readAllByIds[0].table, "canonical_source_candidates");
+    assert.equal(calls.readAllByIds[1].table, "intelligence_items");
     assert.equal(r.applied, 2);
     assert.equal(r.read_back.candidates_named_in_ruling, 2);
     assert.equal(r.read_back.candidates_now_live, 2);
@@ -107,7 +107,7 @@ test("apply: sums applied across groups; reads back candidate rows AND repointed
   }
 });
 
-test("apply: no approved candidates among the ruled rows -> no intelligence_items read", async () => {
+test("apply: no approved candidates among the ruled rows -> intelligence_items read goes out with an empty id list (its own short circuit applies)", async () => {
   const dir = mkdtempSync(join(tmpdir(), "review-apply-canonical-candidates-"));
   const rulingPath = join(dir, "canonical-candidates.ruling.json");
   writeFileSync(rulingPath, JSON.stringify({
@@ -119,13 +119,17 @@ test("apply: no approved candidates among the ruled rows -> no intelligence_item
     const calls = [];
     const deps = {
       applyMain: async () => ({ queue: "canonical-candidates", mode: "apply", results: [{ key: "host::thin_match", decision: "reject", applied: 1 }], needs_individual_review: [] }),
-      readAll: async (table, cols, opts) => {
-        calls.push(table);
-        return [{ id: "c-9", decision: "rejected", promoted_to_source_id: null, intelligence_item_id: "item-9" }];
+      readAllByIds: async (table, cols, ids) => {
+        calls.push({ table, ids });
+        if (table === "canonical_source_candidates") {
+          return [{ id: "c-9", decision: "rejected", promoted_to_source_id: null, intelligence_item_id: "item-9" }];
+        }
+        return [];
       },
     };
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
-    assert.deepEqual(calls, ["canonical_source_candidates"]);
+    assert.deepEqual(calls.map((c) => c.table), ["canonical_source_candidates", "intelligence_items"]);
+    assert.deepEqual(calls[1].ids, [], "no candidate was approved, so the repointed-items read carries an empty id list");
     assert.equal(r.read_back.repointed_items_checked, 0);
   } finally {
     rmSync(dir, { recursive: true, force: true });

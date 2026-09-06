@@ -126,9 +126,12 @@ function fakeDeps({ events, items, existingObligations = [] }) {
     deps: {
       readAll: async (table, columns, opts) => {
         if (table === "item_forward_events") return events;
-        if (table === "intelligence_items") return items;
         if (table === "obligations") return existingObligations;
         throw new Error(`unexpected readAll(${table})`);
+      },
+      readAllByIds: async (table, columns, ids) => {
+        if (table === "intelligence_items") return items.filter((i) => ids.includes(i.id));
+        throw new Error(`unexpected readAllByIds(${table})`);
       },
       guardedInsertMany: async (table, rows, { cite }) => {
         assert.equal(table, "obligations");

@@ -153,6 +153,7 @@ export default async function CommunityPage() {
   const { data: roomGroupsRaw, error: roomErr } = await supabase
     .from("community_groups")
     .select("id, name, slug, region, privacy, member_count")
+    // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
     .in("slug", CANONICAL_ROOM_SLUGS as string[]);
   if (roomErr) console.warn("community: room groups read failed", roomErr.message);
 
@@ -216,6 +217,7 @@ export default async function CommunityPage() {
           .select(
             "id, group_id, title, body, reply_count, created_at, last_reply_at, author_user_id, referenced_intelligence_item_ids, signed_off_at, signed_off_by"
           )
+          // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
           .in("group_id", roomGroupIds)
           .is("parent_post_id", null)
           .order("last_reply_at", { ascending: false, nullsFirst: false })
@@ -276,6 +278,7 @@ export default async function CommunityPage() {
             .select(
               "id, post_id, requested_by, status, verifier_id, primary_doc_url, created_at, decided_at"
             )
+            // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
             .in("post_id", postIds)
         ).data ?? []) as Array<{
           id: string;
@@ -322,6 +325,7 @@ export default async function CommunityPage() {
       .select(
         "id, full_name, display_name, email, jurisdiction_overrides, workspace_role, verifier_status, org_id"
       )
+      // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
       .in("id", authorIds);
     for (const row of (authorRows ?? []) as ProfileRow[]) authorMap.set(row.id, row);
   }

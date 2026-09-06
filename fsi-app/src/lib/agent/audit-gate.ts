@@ -110,6 +110,7 @@ async function readItemClaims(sb: SupabaseClient, itemId: string): Promise<Claim
 async function readSearchUrls(sb: SupabaseClient, ids: string[]): Promise<Map<string, string | null>> {
   const m = new Map<string, string | null>();
   if (!ids.length) return m;
+  // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
   const { data, error } = await sb.from("agent_run_searches").select("id,result_url").in("id", ids);
   if (error) throw new Error(`audit-gate: searches read failed: ${error.message}`);
   for (const r of data ?? []) m.set(r.id as string, (r.result_url ?? null) as string | null);

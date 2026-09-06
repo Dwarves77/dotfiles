@@ -34,7 +34,7 @@ import { hostOf, institutionKey } from "./institution-key.mjs";
 // classify-source-role.ts above — no second copy of the range-walk loop. See that module's own header
 // for the defect class this closes (a `.limit(N>1000)` truncates regardless of N; readAll below used to
 // hand-roll the identical range(from, from+999) loop this helper already generalizes).
-import { fetchAllRows } from "../../src/lib/db/paginate.mjs";
+import { fetchAllRows, fetchAllByIdChunks } from "../../src/lib/db/paginate.mjs";
 
 // @supabase is lazy-required (not a top-level import) so this module is importable WITHOUT node_modules
 // installed — db.test.mjs injects a fake client and never touches the real one, so the discipline test
@@ -208,14 +208,71 @@ export function readClient() {
  * has exactly one fix location instead of two hand-rolled copies of the identical loop drifting apart.
  * `readClient()`'s write-guard proxy is unaffected: only `.select/.order/.range/.eq/...` are ever
  * called here, none of which the proxy intercepts.
+ *
+ * `client`, when given, is used INSTEAD of `readClient()` — for a caller that already holds its
+ * own Supabase-shaped client (e.g. `fetchRowsIn` below, which several scripts call with their own
+ * `readClient()` result). Optional; every existing caller that omits it gets the same default
+ * `readClient()` behavior as before.
  */
-export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
-  const sb = readClient();
+export async function readAll(table, columns = "*", { match, orderBy = "id", client } = {}) {
+  const sb = client || readClient();
   return fetchAllRows((from, to) => {
     let q = sb.from(table).select(columns).order(orderBy).range(from, to);
     if (match) q = match(q);
     return withTransientRetry(() => q, { label: `readAll(${table}) page at ${from}` });
   });
+}
+
+/**
+ * Paginated read-back over an EXPLICIT id list, chunked, in the sibling shape to
+ * guardedUpdateByIds's write-side chunking — same URL-length reason, the read end of it.
+ *
+ * WHY (Maintenance run 34045479342, review-apply-provisional-sources, apply, 2026-09-06): the
+ * post-apply read-back did `readAll(table, columns, { match: q => q.in("id", allIds) })` with
+ * allIds = every row_id named in the ruling — 911 UUIDs, ~35 KB URL-encoded into ONE PostgREST
+ * GET (`readAll`'s own pagination pages the RESPONSE past 1000 rows; it does nothing about a
+ * REQUEST whose `.in()` filter is itself huge — an oversized filter is still one page, and that
+ * page's request line is what blew the limit). The gateway rejected it: 400 Bad Request,
+ * "paginated read failed at offset 0: Bad Request" — thrown from `fetchAllRows` before any row
+ * came back, AFTER the mutations had already succeeded (349 rows moved provisional -> active as
+ * ruled; the write path was fine, only the verification read choked). The identical
+ * `.in("id", allIds)` read-back shape lived in three more review-apply-*.mjs wrappers
+ * (canonical-candidates x2, coverage-gaps, portal-links); portal-links' own ruling names 57,469
+ * ids, so it was guaranteed to fail the same way the first time it ran for real.
+ *
+ * `guardedUpdateByIds` above already solved this for WRITES (chunk, one `.in()` per chunk,
+ * concatenate) — see its own header and the 1,317-id `integrity_flags` test in db.test.mjs. This
+ * is the read-only twin: chunk the id list, page each chunk through the EXISTING `readAll` (so
+ * per-page ordering, the 1000-row cap, and transient retry all stay in the one place that already
+ * handles them), concatenate, and assert the result can never exceed what was asked for — a
+ * silent over-read at a read-back/verdict site is exactly the class `fetchAllRows`'s own header
+ * warns about, just from the opposite direction.
+ *
+ * `scripts/mint/export-census-rows.mjs`'s exported `fetchRowsIn` (also imported directly by
+ * scripts/connections/propose-tags.mjs, scripts/maintenance/origin-class-backfill.mjs and
+ * scripts/mint/screen-reconcile-records.mjs, so its own `(sb, table, columns, keyColumn, values)`
+ * signature stays put) now delegates here via the `client` option below, passing its own
+ * caller-supplied `sb` through — so there is exactly one chunked-id-read implementation, not two
+ * drifting copies, while every existing `fetchRowsIn` call site is unchanged.
+ *
+ * The chunk/concatenate/overread-assert logic itself lives in ONE place: `fetchAllByIdChunks`
+ * (src/lib/db/paginate.mjs) — transport-agnostic, so a `.ts` caller (an API route, a `src/lib/`
+ * module) builds on the identical core instead of a second hand-rolled chunking loop (IN-CHUNK,
+ * 2026-09-06). This function is that core's `.mjs`/readAll-shaped twin.
+ */
+export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client } = {}) {
+  return fetchAllByIdChunks(
+    ids,
+    (slice) =>
+      readAll(table, columns, {
+        client,
+        match: (q) => {
+          const qi = q.in(idColumn, slice);
+          return match ? match(qi) : qi;
+        },
+      }),
+    { chunk },
+  );
 }
 
 function requireCite(cite) {
@@ -308,7 +365,10 @@ export async function guardedUpdateByIds(table, ids, patch, { cite, select = "*"
     }
   };
   for (let i = 0; i < list.length; i += chunk) await runChunk(list.slice(i, i + chunk));
-  return out;
+  // Back-compat single-snapshot field for a caller expecting guardedUpdate's shape (e.g.
+  // apply-classifications.mjs's updateStale, migrated onto this chunked path 2026-09-06): the last
+  // chunk's snapshot path; every chunk's path is still in `.snapshots`.
+  return { ...out, snapshot: out.snapshots[out.snapshots.length - 1] ?? null };
 }
 
 /** Guarded DELETE — snapshots the rows (reversible) + requires a cite, then deletes by id. Used for
@@ -332,7 +392,14 @@ export const DELETE_PROTECTED_TABLES = new Set([
   "claim_versions",
   "disposition_ledger",
 ]);
-export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
+// Chunk size for guardedDelete's id-list (snapshot read AND delete both build a `.in("id", ids)`
+// PostgREST request — same URL-length reason as readAllByIds/guardedUpdateByIds' chunking). Fixed,
+// not adaptive: unlike guardedUpdateByIds, a DELETE has no trigger-cost variance to halve against,
+// only the request-line-length ceiling, so a flat chunk is sufficient (IN-CHUNK class, 2026-09-06 —
+// analyze-corpus.mjs's priorThemeIds and forward-events-retext.mjs's collision/duplicate id lists are
+// both runtime-scaled with no declared cap and were calling this un-chunked before this fix).
+export const DEFAULT_DELETE_CHUNK = 200;
+export async function guardedDelete(table, ids, { cite, stampIso, chunk = DEFAULT_DELETE_CHUNK } = {}) {
   requireCite(cite);
   if (DELETE_PROTECTED_TABLES.has(table)) {
     throw new Error(
@@ -342,18 +409,28 @@ export async function guardedDelete(table, ids, { cite, stampIso } = {}) {
   }
   if (!ids || !ids.length) throw new Error("db.mjs guardedDelete: ids required.");
   const sb = writeClient();
-  const prior = await withTransientRetry(
-    () => sb.from(table).select("*").in("id", ids),
-    { label: `guardedDelete(${table}) snapshot read` }
-  );
-  if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
-  const snapFile = snapshot(table, prior.data || [], cite, stampIso);
-  const res = await withTransientRetry(
-    () => sb.from(table).delete().in("id", ids).select("id"),
-    { label: `guardedDelete(${table}) delete` }
-  );
-  if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
-  return { deleted: res.data?.length ?? 0, snapshot: snapFile, rows: res.data };
+  const list = [...new Set(ids)];
+  const out = { deleted: 0, rows: [], snapshots: [] };
+  for (let i = 0; i < list.length; i += chunk) {
+    const slice = list.slice(i, i + chunk);
+    const prior = await withTransientRetry(
+      () => sb.from(table).select("*").in("id", slice),
+      { label: `guardedDelete(${table}) snapshot read` }
+    );
+    if (prior.error) throw new Error(`guardedDelete snapshot read failed: ${prior.error.message}`);
+    const snapFile = snapshot(table, prior.data || [], cite, stampIso);
+    out.snapshots.push(snapFile);
+    const res = await withTransientRetry(
+      () => sb.from(table).delete().in("id", slice).select("id"),
+      { label: `guardedDelete(${table}) delete` }
+    );
+    if (res.error) throw new Error(`guardedDelete failed: ${res.error.message}`);
+    out.deleted += res.data?.length ?? 0;
+    out.rows.push(...(res.data ?? []));
+  }
+  // Back-compat single-snapshot field: callers that read `.snapshot` (pre-chunking shape) get the
+  // last chunk's snapshot path; every chunk's path is still in `.snapshots`.
+  return { ...out, snapshot: out.snapshots[out.snapshots.length - 1] ?? null };
 }
 
 /** Guarded INSERT — requires a cite + snapshots the inserted row (the reversal record is "delete the

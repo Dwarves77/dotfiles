@@ -24,7 +24,8 @@ test("classifyLiveRecords: verdict per live item, reviewed verdicts keyed by the
 function deps(calls, reviewed = REVIEWED) {
   return {
     reviewed,
-    readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return table === "intelligence_items" && calls.filter((c) => c[0] === "readAll").length === 1 ? ITEMS : [{ id: "i1", is_archived: true, archive_reason: "off_vertical" }]; },
+    readAll: async (table, cols, opts) => { calls.push(["readAll", table]); return ITEMS; },
+    readAllByIds: async (table, cols, ids) => { calls.push(["readAllByIds", table, ids]); return [{ id: "i1", is_archived: true, archive_reason: "off_vertical" }]; },
     fetchRowsIn: async () => [...CENSUS.values()],
     readClient: () => ({}),
     guardedUpdateByIds: async (table, ids, patch, opts) => { calls.push(["guardedUpdateByIds", table, ids, patch, opts]); return { updated: ids.length, chunks: 1, halvings: 0, rows: ids.map((id) => ({ id })) }; },
