@@ -1217,6 +1217,28 @@ outcome a DRY run actually produces; see the defect note below):
 5. The browser lane fills `url` + `quote` for as many rows as it can find a source for, leaves a row
    bare (seed-only) where it found nothing, and returns the completed worklist file.
 
+**CONSOLIDATING PARALLEL BROWSER LANES** (Lane CONSOLIDATE-ATTACH, 2026-09-06): when the seed is split
+across several parallel browser-lane slices (each lane working its own `attach-found-sources.slice-<i>.
+seed.json` cut of the master seed, each returning its own `slice-<i>.json` (sourced) and
+`slice-<i>-unsourced.json` (disposition/`queries_tried`/optional `note` for rows it could not find a
+source for) — plus any earlier consolidated sourced/unsourced pair from a prior pass), run
+`node scripts/maintenance/lib/consolidate-attach-worklist.mjs --seed <master-seed.json> --sourced
+<file1.json> [<file2.json> ...] --unsourced <file1.json> [<file2.json> ...] --out-sourced
+<sourced.json> --out-unsourced <unsourced.json>` (also `npm run worklist:consolidate-attach --`,
+same args). It validates every sourced row's `(item_id, token)` against the master seed
+BYTE-IDENTICAL (never retyped), drops and reports any row failing that check, any duplicate
+`(item_id, token, url)` triple, any row with an empty `url`/`quote`, and any `url` that is not
+http(s); it then builds the unsourced file as every remaining seed row not sourced, carrying whichever
+slice's `disposition`/`queries_tried`/`note` names that exact pair. It prints the proof —
+`sourced_count + unsourced_count === seed.length`, plus counts of any rows found in BOTH files, any
+seed row missing from every input, and any seed pair duplicated across two slices' unsourced files —
+and exits non-zero if that invariant fails. It also reports (never drops) two quality flags per
+CLAUDE.md rule 18: a sourced row whose `url` host is Wikipedia or a known news/aggregator host with no
+`note` explaining why nothing more authoritative was found, and a sourced row whose `quote` does not
+contain `token` verbatim (case-sensitive, after whitespace-collapse — a report-only proxy; the real
+GROUND check is still `heal-provenance.mjs`'s own `locateSpanInText` against the fetched page). See
+that file's own header and `consolidate-attach-worklist.test.mjs` for the full contract.
+
 **THE DEFECT this section had, 2026-09-05 through 2026-09-06** [CONFIRMED by the coordinator, from
 maintenance dispatch #55 = `provenance-heal mode=dry arg=quarantined-live`, run **34041907817**]: this
 section originally said the seed comes from `steps.source[]` entries with `outcome` `no_candidate_url` or
