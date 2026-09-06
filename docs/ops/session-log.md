@@ -10956,3 +10956,38 @@ named, not investigated, this train.
    this train.
 7. The map smoke spec gap UX-FIX's P6 audit names (no deterministic `transport_modes` classifier).
 8. A THETIS-MRV row to source FUELEU's `statutory_computations` writer.
+
+### Postscript 60 — 2026-09-06 (cloud session): UI audit evidence package
+
+The operator opened a UI review: the site is hard to read and hard to navigate, and he
+wants a complete overhaul of every page with consistency as the governing constraint,
+because the last two redesigns were done one page at a time and drifted. He ruled that
+Claude Design makes the design decisions and my job is documentation only: "do not come up
+with solutions, your job is to just document." Every proposal I offered during the review
+was withdrawn on that instruction.
+
+What landed here is `docs/design/audit-2026-09-06/`: a 534-line assessment, a contact sheet,
+and 110 capture frames covering every page and every interaction state reachable while
+authenticated as owner. Six Sonnet agents captured in parallel, each in its own browser tab,
+scrolling each page top to bottom rather than photographing first paint.
+
+Findings worth carrying forward, all evidence-marked in the assessment: five different
+urgency vocabularies for one four-band system; two token sets live simultaneously in
+theme.css, whose own comment adopts one-screen-at-a-time migration as policy, which is the
+drift mechanism written into the stylesheet; two priority scales sharing names with
+different colours (--moderate grey vs --color-moderate yellow); two brand accents (orange
+--color-primary and navy --accent); two left-nav widths so the page shifts on navigation;
+five detail-page architectures; three URL identifier schemes on one page; a confirmed dead
+control (the "Complete brief" toggle is an unwired span with no handler and no role); and
+hit targets that land on their neighbours. Regulation detail measured FCP 14.1s with 44
+chained client fetches, last completing at 34.2s; that measurement was handed to the agent
+working on the application and the FCP figure still needs a foreground re-measure.
+
+`docs/design/redesign/` (the 2026-07 mock package) is superseded. The operator discarded it
+because of embedded mistakes, but the repo copy remains and its README tells agents "the
+mock wins", so the new README and the contact sheet both name it explicitly as do-not-use.
+Retiring the folder itself is not done here and is the obvious next unit.
+
+Next step for a cold session: mobile 390px capture is in flight; still uncaptured are
+tablet, logged-out screens, loading states, overlays, data-rich content extremes, and every
+non-admin role.
