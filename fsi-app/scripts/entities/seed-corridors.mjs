@@ -76,6 +76,7 @@
 // Exit 0 done · 2 no DB creds (self-skip, never crash).
 
 import { entityId, corridorSeed } from "../../src/lib/entities/entity-id.mjs";
+import { formatCorridorLabel } from "../../src/lib/entities/unlocode-names.mjs";
 
 export const CITE = Object.freeze({
   skill: "corridor-identity-seed",
@@ -247,10 +248,42 @@ export function planCorridorEntities(candidates, existingEntityIds = new Set()) 
     const alreadyExists = existingEntityIds.has(id);
     planned.push({ candidate: c, seed, entityId: id, alreadyExists });
     if (!alreadyExists) {
-      entities.push({ entity_id: id, kind: "corridor", canonical_name: seed, status: "active" });
+      // Lane SCOPE-READER (2026-09-06, migration 312): display_name is stamped at mint time so a
+      // freshly-created corridor never spends even one read cycle without a human-readable label —
+      // formatCorridorLabel() (src/lib/entities/unlocode-names.mjs) never throws, degrading to the raw
+      // UN/LOCODE code for an endpoint that module has no name for yet (never a fabricated name).
+      entities.push({
+        entity_id: id,
+        kind: "corridor",
+        canonical_name: seed,
+        display_name: formatCorridorLabel(c),
+        status: "active",
+      });
     }
   }
   return { entities, planned, skipped };
+}
+
+/**
+ * Lane SCOPE-READER (2026-09-06, migration 312): plan a display_name backfill for corridor entities
+ * that already exist but were minted before display_name existed (every corridor live at authoring
+ * time — migration 282/283 predate 312). Pure. `existingRows` is [{entity_id, canonical_name,
+ * display_name}]. Only rows with a NULL/empty display_name AND a canonical_name that still parses to
+ * seed-corridors.mjs's own "ORIGIN-DEST:mode" convention are planned — a row this script did not mint
+ * (a future kind reusing this table with a different canonical_name shape) is left alone, never guessed.
+ * Returns [{entity_id, display_name}], ready for one guardedUpdate per row (values differ per row, so a
+ * single shared-patch guardedUpdate call cannot express this — see main()'s own loop).
+ */
+export function planDisplayNameBackfill(existingRows) {
+  const out = [];
+  for (const r of existingRows ?? []) {
+    if (r?.display_name) continue;
+    const m = String(r?.canonical_name ?? "").match(/^([A-Z]{2}[A-Z2-9]{3})-([A-Z]{2}[A-Z2-9]{3}):([a-z_]+)$/);
+    if (!m) continue;
+    const [, origin, dest, mode] = m;
+    out.push({ entity_id: r.entity_id, display_name: formatCorridorLabel({ origin, dest, mode }) });
+  }
+  return out;
 }
 
 // ── orchestration (DB reads/writes via injected deps) ──────────────────────────────────────────────────
@@ -262,10 +295,10 @@ function parseArgs(argv) {
 
 /**
  * @param {{ apply?: boolean }} opts
- * @param {{ readAll: Function, guardedInsertMany: Function }} deps
+ * @param {{ readAll: Function, guardedInsertMany: Function, guardedUpdate: Function }} deps
  */
 export async function main({ apply = false } = {}, deps) {
-  const { readAll, guardedInsertMany } = deps;
+  const { readAll, guardedInsertMany, guardedUpdate } = deps;
   console.log(`[seed-corridors] mode = ${apply ? "APPLY" : "DRY-RUN (default)"}`);
 
   const [marketSeries, regionalFacts, items, existingCorridors] = await Promise.all([
@@ -274,7 +307,14 @@ export async function main({ apply = false } = {}, deps) {
     readAll("intelligence_items", "id,jurisdiction_iso"),
     // PK is entity_id, not id — readAll()'s default orderBy="id" fails on this table (same fix
     // backfill-entities.mjs already carries, found by propagation-drain run 33627113501).
-    readAll("entities", "entity_id", { match: (q) => q.eq("kind", "corridor"), orderBy: "entity_id" }),
+    // display_name added to the select list (migration 312, lane SCOPE-READER) for the backfill below.
+    // TWO-TRACK ORDERING (CLAUDE.md rule 3): this step MUST NOT be dispatched until the coordinator has
+    // applied migration 312 — readAll()'s fetchAllRows THROWS on any PostgREST error (paginate.mjs's own
+    // contract: "fail-closed, never a partial result"), so selecting a column that does not exist yet
+    // would fail this whole run (including the entity_scope write later in the same maintenance step),
+    // not degrade quietly. Named here, not discovered at dispatch time — see this lane's own REPORT for
+    // the exact apply-then-dispatch order the coordinator runs.
+    readAll("entities", "entity_id,canonical_name,display_name", { match: (q) => q.eq("kind", "corridor"), orderBy: "entity_id" }),
   ]);
   const existingEntityIds = new Set(existingCorridors.map((r) => r.entity_id));
   console.log(
@@ -309,6 +349,30 @@ export async function main({ apply = false } = {}, deps) {
     console.log("\nDRY RUN — nothing written. Re-run with --apply to write.");
   }
 
+  // Lane SCOPE-READER (2026-09-06, migration 312): display_name backfill for corridors that already
+  // existed before this column did. Runs against the PRE-insert `existingCorridors` read plus, when
+  // applying, the just-inserted rows too (they already carry display_name from planCorridorEntities()
+  // above, so re-planning against `existingCorridors` alone — which does not include them — never
+  // double-writes; planDisplayNameBackfill() is a no-op for a row it never sees).
+  const backfill = planDisplayNameBackfill(existingCorridors);
+  if (backfill.length > 0) {
+    console.log(`[seed-corridors] display_name backfill: ${backfill.length} pre-existing corridor(s) missing a label.`);
+    for (const b of backfill) console.log(`   ${b.entity_id} -> ${JSON.stringify(b.display_name)}`);
+    if (apply) {
+      for (const b of backfill) {
+        await guardedUpdate(
+          "entities",
+          (q) => q.eq("entity_id", b.entity_id),
+          { display_name: b.display_name },
+          { cite: CITE, select: "entity_id" },
+        );
+      }
+      console.log(`[seed-corridors] applied: backfilled display_name on ${backfill.length} corridor(s).`);
+    }
+  } else {
+    console.log("[seed-corridors] display_name backfill: nothing to do (every pre-existing corridor already labeled).");
+  }
+
   return {
     mode: apply ? "apply" : "dry-run",
     usingFallback,
@@ -317,6 +381,8 @@ export async function main({ apply = false } = {}, deps) {
     existing: candidates.length - entities.length - skipped.length,
     skipped: skipped.length,
     planned,
+    displayNameBackfillPlanned: backfill.length,
+    displayNameBackfillApplied: apply ? backfill.length : 0,
   };
 }
 
@@ -334,10 +400,10 @@ if (import.meta.url === `file://${process.argv[1]}`) {
       console.error("[seed-corridors] no DB creds — cannot run here (exit 2).");
       process.exit(2);
     }
-    const { readAll, guardedInsertMany } = await import("../lib/db.mjs");
+    const { readAll, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
     const opts = parseArgs(process.argv.slice(2));
     try {
-      await main(opts, { readAll, guardedInsertMany });
+      await main(opts, { readAll, guardedInsertMany, guardedUpdate });
       process.exit(0);
     } catch (e) {
       console.error("[seed-corridors] FATAL:", e);

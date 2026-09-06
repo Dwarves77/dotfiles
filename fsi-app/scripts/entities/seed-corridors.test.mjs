@@ -13,6 +13,7 @@ import {
   deriveCorridorCandidatesFromItemJurisdictions,
   resolveCorridorCandidates,
   planCorridorEntities,
+  planDisplayNameBackfill,
   main,
 } from "./seed-corridors.mjs";
 
@@ -122,7 +123,13 @@ test("planCorridorEntities: mints deterministic ids matching entityId('corridor'
 
   const { entities, planned, skipped } = planCorridorEntities(candidates, new Set());
   assert.equal(skipped.length, 0);
-  assert.deepEqual(entities, [{ entity_id: expectedId, kind: "corridor", canonical_name: expectedSeed, status: "active" }]);
+  assert.deepEqual(entities, [{
+    entity_id: expectedId,
+    kind: "corridor",
+    canonical_name: expectedSeed,
+    display_name: "Shanghai (CN) → Rotterdam (NL), ocean",
+    status: "active",
+  }]);
   assert.equal(planned[0].alreadyExists, false);
 
   const second = planCorridorEntities(candidates, new Set([expectedId]));
@@ -136,6 +143,29 @@ test("planCorridorEntities: a malformed candidate is skipped with a reason, neve
   assert.equal(entities.length, 1);
   assert.equal(skipped.length, 2);
   assert.ok(skipped.every((s) => typeof s.reason === "string" && s.reason.length > 0));
+});
+
+// ── planDisplayNameBackfill (lane SCOPE-READER, 2026-09-06, migration 312) ─────────────────────────────
+
+test("planDisplayNameBackfill: plans a label for a pre-existing corridor with no display_name", () => {
+  const rows = [{ entity_id: "cl:corridor:aaa", canonical_name: "CNSHA-NLRTM:ocean", display_name: null }];
+  const plan = planDisplayNameBackfill(rows);
+  assert.deepEqual(plan, [{ entity_id: "cl:corridor:aaa", display_name: "Shanghai (CN) → Rotterdam (NL), ocean" }]);
+});
+
+test("planDisplayNameBackfill: skips a row that already has a display_name", () => {
+  const rows = [{ entity_id: "cl:corridor:aaa", canonical_name: "CNSHA-NLRTM:ocean", display_name: "Already labeled" }];
+  assert.deepEqual(planDisplayNameBackfill(rows), []);
+});
+
+test("planDisplayNameBackfill: skips a row whose canonical_name does not match the corridor convention, never guesses", () => {
+  const rows = [{ entity_id: "cl:corridor:weird", canonical_name: "not-a-corridor-seed", display_name: null }];
+  assert.deepEqual(planDisplayNameBackfill(rows), []);
+});
+
+test("planDisplayNameBackfill: [] input returns [], never throws", () => {
+  assert.deepEqual(planDisplayNameBackfill([]), []);
+  assert.deepEqual(planDisplayNameBackfill(undefined), []);
 });
 
 test("ADR_EXAMPLE_CORRIDORS: exactly the ADR-024 §4 / migration 258 worked example, and it is a well-formed candidate", () => {
@@ -178,6 +208,10 @@ function deps(calls, { marketSeries = [], regionalFacts = [], items = [], existi
       calls.push(["guardedInsertMany", table, rows, opts]);
       return { inserted: rows.length };
     },
+    guardedUpdate: async (table, applyMatch, patch, opts) => {
+      calls.push(["guardedUpdate", table, patch, opts]);
+      return { updated: 1 };
+    },
   };
 }
 
@@ -215,6 +249,34 @@ test("main: an already-seeded corridor is idempotent — second apply creates on
   assert.equal(r.existing, 1);
   const w = calls.find((c) => c[0] === "guardedInsertMany");
   assert.equal(w[2].length, NAMED_CORRIDOR_SEEDS.length);
+});
+
+test("main apply: backfills display_name on a pre-existing corridor entity missing one, via guardedUpdate", async () => {
+  const expectedSeed = corridorSeed(ADR_EXAMPLE_CORRIDORS[0]);
+  const expectedId = entityId("corridor", expectedSeed);
+  const calls = [];
+  const r = await main(
+    { apply: true },
+    deps(calls, { existingCorridors: [{ entity_id: expectedId, canonical_name: expectedSeed, display_name: null }] }),
+  );
+  assert.equal(r.displayNameBackfillPlanned, 1);
+  assert.equal(r.displayNameBackfillApplied, 1);
+  const u = calls.find((c) => c[0] === "guardedUpdate");
+  assert.ok(u, "guardedUpdate should have been called");
+  assert.deepEqual(u[2], { display_name: "Shanghai (CN) → Rotterdam (NL), ocean" });
+});
+
+test("main dry-run: reports the backfill plan but never calls guardedUpdate", async () => {
+  const expectedSeed = corridorSeed(ADR_EXAMPLE_CORRIDORS[0]);
+  const expectedId = entityId("corridor", expectedSeed);
+  const calls = [];
+  const r = await main(
+    { apply: false },
+    deps(calls, { existingCorridors: [{ entity_id: expectedId, canonical_name: expectedSeed, display_name: null }] }),
+  );
+  assert.equal(r.displayNameBackfillPlanned, 1);
+  assert.equal(r.displayNameBackfillApplied, 0);
+  assert.ok(!calls.some((c) => c[0] === "guardedUpdate"));
 });
 
 test("main: live-derived candidates (e.g. a future corridor-namespaced market_series row) take priority over the fallback", async () => {

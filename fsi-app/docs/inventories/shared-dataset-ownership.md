@@ -681,6 +681,15 @@ documented somewhere, following the same disposition already established for
 (line 180) and for `pending_first_fetch`/`agent_runs`/`agent_run_searches` in the Open leaks summary's
 item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
 
+- **`entity_scope`** (migration 282) — writer: `scripts/entities/write-entity-scope.mjs` (wired into the
+  `seed-corridors` maintenance step), unchanged this lane. **Reader registered, lane SCOPE-READER,
+  2026-09-06**: `src/lib/entities/corridor-scope.ts`'s `listCorridorScopes()`/
+  `listCorridorsTouchingJurisdictions()` — entity_scope's first real reader, consumed by the Market Intel
+  carbon-cost overlay's corridor selector (`src/app/market/page.tsx`) and the regulation detail "Corridors
+  this applies on" block (`src/components/regulations/CorridorsAppliedStrip.tsx`). Read-only; no second
+  writer introduced. Both allowlist entries this table carried while it had zero readers (F14
+  `TERMINAL_SINK_ALLOWLIST`, closure-gate `WRITER_READER_ALLOWLIST`) are deleted in the same commit — see
+  those files' own retirement notes.
 - **`propagation_events`** (migration 284) — written by migration 284's `emit_propagation_event()` trigger
   (fires on `derived_values`/`statutory_computations`/`estimated_values` INSERT/UPDATE, the outbox
   producer) and by `fsi-app/src/lib/propagation/drain.ts`'s own `UPDATE ... SET drained_at = now()` after a

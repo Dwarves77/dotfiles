@@ -65,8 +65,12 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedInsertMany } = await import("../lib/db.mjs");
-      return { readAll, guardedInsertMany };
+      // guardedUpdate added (lane SCOPE-READER, 2026-09-06, migration 312): scripts/entities/
+      // seed-corridors.mjs's new display_name backfill (per-row guardedUpdate, values differ per
+      // corridor so a single shared-patch call cannot express it) needs it in --apply mode. Passing an
+      // extra dep through is not new logic in this wrapper — it still only calls seedMain/scopeMain.
+      const { readAll, guardedInsertMany, guardedUpdate } = await import("../lib/db.mjs");
+      return { readAll, guardedInsertMany, guardedUpdate };
     },
   });
 }

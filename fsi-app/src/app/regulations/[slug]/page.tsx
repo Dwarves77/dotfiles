@@ -99,6 +99,10 @@ import { JURISDICTIONS } from "@/lib/constants";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
+// Lane SCOPE-READER (2026-09-06): "Corridors this applies on" — entity_scope's second real reader (the
+// Market Intel carbon-cost overlay is the first). Self-contained server component, own fetch — see its
+// own header.
+import { CorridorsAppliedStrip } from "@/components/regulations/CorridorsAppliedStrip";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -305,6 +309,9 @@ export default async function RegulationDetailPage({
           honest omission (renders nothing) both while loading and when this item has no register rows,
           matching the component's pre-existing detail-variant contract. */}
       <ObligationRegister variant="detail" itemId={r.id} />
+      {/* Lane SCOPE-READER (2026-09-06, plan §W5): renders only when at least one corridor's scope
+          touches this regulation's jurisdiction — nothing renders empty by design. */}
+      <CorridorsAppliedStrip jurisdictionIso={r.jurisdictionIso} />
       <PeersDiscussingStrip entityId={peersEntityId} />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}

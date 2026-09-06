@@ -15,6 +15,7 @@ import { runSmoke as runCommunitySmoke } from './community-smoke.mjs';
 import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
 import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
 import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
+import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -30,4 +31,8 @@ export const UX_SMOKE_SPECS = [
   // lane-common-contract.md's UX contract — proved GREEN locally by the authoring lane (see its report's
   // "UX smoke specs:" output); the matching F35 ROW_COMPONENTS entry is added in the same commit.
   { name: "notices-rail", run: runNoticesRailSmoke },
+  // lane SCOPE-READER, 2026-09-06: mounts CarbonCostOverlay (unchanged shape, two new optional props)
+  // and the new CorridorsAppliedStripView (regulation-detail "Corridors this applies on" block) — the
+  // reader's two customer-facing surfaces.
+  { name: "corridor-scope", run: runCorridorScopeSmoke },
 ];
