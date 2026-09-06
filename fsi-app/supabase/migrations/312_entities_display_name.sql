@@ -37,7 +37,7 @@
 -- beyond the brief metadata lock every ADD COLUMN takes.
 --
 -- NUMBER COLLISION, NOTED FOR THE RECORD: lane w71f14 (2026-09-05, unmerged, superseded by operator
--- ruling) also wrote a file numbered 312 — DROP entities_scope — which was NOT merged into any train and
+-- ruling) also wrote a file numbered 312 (DROP entities_scope), which was NOT merged into any train and
 -- must never be applied. This file (312_entities_display_name.sql, lane SCOPE-READER) is the only live
 -- migration 312. See docs/inventories/migrations.md's 312 row for the disposition of the superseded file.
 --
