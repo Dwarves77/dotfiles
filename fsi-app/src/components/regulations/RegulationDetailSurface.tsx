@@ -740,7 +740,18 @@ function SummaryTabBrief({
   impact: ReturnType<typeof scoreResource>;
   onOpenTimeline: () => void;
 }) {
-  const [mode, setMode] = useState<"short" | "full">("short");
+  // DETAIL-WATERFALL lane (2026-09-06, docs/audits/perf-load-times-2026-09-03.md §11): the prior
+  // two-control toggle ("Short summary" / "Full summary") exposed a THIRD, unreachable-as-a-choice
+  // state — "Complete brief" appeared only as a caption string once `mode === "full"` (never as a
+  // selectable option) and as a nested accordion title buried inside the Full body, while the "Short
+  // summary" card rendered UNCONDITIONALLY regardless of `mode` (it was never gated on `mode ===
+  // "short"` at all). Operator finding, verbatim: "Clicking Full summary revealed a third option,
+  // Complete brief, that was not visible before, and the body still shows SHORT SUMMARY." Both
+  // symptoms trace to the same cause: the control had two positions but the content had three
+  // distinct bodies. Rebuilt below as one explicit three-state selector (short / full / complete)
+  // where the rendered body always matches the selected state — no card renders outside its own
+  // state, and every state a viewer can land on is a state they can also select.
+  const [mode, setMode] = useState<"short" | "full" | "complete">("short");
 
   const briefing = useMemo(
     () => (r.fullBrief ? extractOperationalBriefing(r.fullBrief) : null),
@@ -752,6 +763,7 @@ function SummaryTabBrief({
       briefing.whatItIsWhyItApplies?.hasContent ||
       briefing.complianceChain?.hasContent)
   );
+  const hasComplete = !!r.fullBrief;
 
   const shortText = r.whatIsIt || r.note || "";
 
@@ -777,23 +789,27 @@ function SummaryTabBrief({
         </Card>
       )}
 
-      {/* Short/Full toggle */}
-      <div style={{ display: "flex", gap: 2, margin: "0 0 14px", alignItems: "center" }}>
+      {/* Short / Full / Complete — one explicit three-state selector; the body below always matches
+          whichever state is selected, and every state a viewer can see is reachable from here. */}
+      <div style={{ display: "flex", gap: 2, margin: "0 0 14px", alignItems: "center", flexWrap: "wrap" }}>
         <Segment active={mode === "short"} side="left" onClick={() => setMode("short")}>
           Short summary
         </Segment>
-        <Segment active={mode === "full"} side="right" onClick={() => setMode("full")} disabled={!hasFull}>
+        <Segment active={mode === "full"} side="mid" onClick={() => setMode("full")} disabled={!hasFull}>
           Full summary
         </Segment>
+        <Segment active={mode === "complete"} side="right" onClick={() => setMode("complete")} disabled={!hasComplete}>
+          Complete brief
+        </Segment>
         <span style={{ marginLeft: 12, fontSize: 11, color: C.muted }}>
-          {mode === "short"
-            ? "Essentials only — switch to Full for the compliance chain, reporting, and workstreams."
-            : "Complete brief"}
+          {mode === "short" && "Essentials only — 30-second read."}
+          {mode === "full" && "Compliance chain, reporting, and workstreams."}
+          {mode === "complete" && "The full, unedited brief text."}
         </span>
       </div>
 
-      {/* Short summary card */}
-      {shortText && (
+      {/* Short summary card — only when Short is the selected state. */}
+      {mode === "short" && shortText && (
         <Card style={{ borderLeft: `3px solid ${C.accent}`, padding: "16px 20px", marginBottom: 14 }}>
           <div style={{ display: "flex", justifyContent: "space-between", gap: 14, alignItems: "baseline" }}>
             <span style={{ fontSize: 10, fontWeight: 800, letterSpacing: "0.13em", textTransform: "uppercase", color: C.accent }}>
@@ -802,6 +818,13 @@ function SummaryTabBrief({
             <span style={{ fontSize: 10.5, fontWeight: 700, color: C.muted }}>Generated · 30-second read</span>
           </div>
           <p style={{ fontSize: 14, lineHeight: 1.7, margin: "8px 0 0", maxWidth: "86ch", color: C.ink }}>{shortText}</p>
+        </Card>
+      )}
+      {mode === "short" && !shortText && hasAnyBriefContent && (
+        <Card style={{ borderLeft: `3px solid ${C.muted}`, padding: "16px 20px", marginBottom: 14 }}>
+          <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0, color: C.ink2 }}>
+            No short summary is on file for this item yet — switch to Full or Complete for the available brief.
+          </p>
         </Card>
       )}
 
@@ -844,7 +867,14 @@ function SummaryTabBrief({
         <ImmediateActionAccordion section={briefing.immediateAction} />
       )}
 
-      {/* Full-summary accordions */}
+      {/* Full-summary accordions — only when Full is selected. */}
+      {mode === "full" && !hasFull && (
+        <Card style={{ borderLeft: `3px solid ${C.muted}`, padding: "16px 20px", marginBottom: 14 }}>
+          <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0, color: C.ink2 }}>
+            No full-summary breakdown is on file for this item yet.
+          </p>
+        </Card>
+      )}
       {mode === "full" && hasFull && (
         <>
           {briefing?.whatItIsWhyItApplies?.hasContent && (
@@ -883,14 +913,25 @@ function SummaryTabBrief({
               </div>
             </Accordion>
           )}
-          {r.fullBrief && (
-            <Accordion title="Full regulatory analysis" summary="The complete brief text, sources rendered under the Sources tab.">
-              {/* stripSources = the #172 pattern: the raw "## Sources" section
-                  is NOT dumped here; structured rows render on the Sources tab. */}
-              <IntelligenceBrief markdown={r.fullBrief} stripSources />
-            </Accordion>
-          )}
         </>
+      )}
+
+      {/* Complete brief — the raw brief text, its own selectable state (previously a nested accordion
+          only reachable AFTER switching to Full, which is what made it read as an undiscoverable third
+          option). Sources still render on the Sources tab, not dumped here (the #172 pattern). */}
+      {mode === "complete" && (
+        hasComplete ? (
+          <Card style={{ padding: "16px 20px", marginBottom: 14 }}>
+            <PlateEyebrow>Complete brief</PlateEyebrow>
+            <IntelligenceBrief markdown={r.fullBrief!} stripSources />
+          </Card>
+        ) : (
+          <Card style={{ borderLeft: `3px solid ${C.muted}`, padding: "16px 20px", marginBottom: 14 }}>
+            <p style={{ fontSize: 13, lineHeight: 1.7, margin: 0, color: C.ink2 }}>
+              No complete brief is on file for this item yet.
+            </p>
+          </Card>
+        )
       )}
 
       {/* What changed */}
@@ -1221,7 +1262,7 @@ function Segment({
 }: {
   children: React.ReactNode;
   active: boolean;
-  side: "left" | "right";
+  side: "left" | "mid" | "right";
   onClick: () => void;
   disabled?: boolean;
 }) {
@@ -1246,8 +1287,8 @@ function Segment({
         background: active ? C.ink : C.card,
         color: active ? "#fff" : disabled ? "rgba(0,0,0,0.3)" : C.ink2,
         cursor: disabled ? "not-allowed" : "pointer",
-        borderRadius: side === "left" ? "6px 0 0 6px" : "0 6px 6px 0",
-        marginLeft: side === "right" ? -1 : 0,
+        borderRadius: side === "left" ? "6px 0 0 6px" : side === "right" ? "0 6px 6px 0" : 0,
+        marginLeft: side === "left" ? 0 : -1,
       }}
     >
       {children}
