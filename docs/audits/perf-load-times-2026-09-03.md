@@ -1493,3 +1493,267 @@ correct priority-band distribution (14 CRITICAL, 30 HIGH, 16 MODERATE — matchi
 state). The two surfaces' pagination boundaries no longer duplicate rows (id ASC tiebreak now supplied
 by the RPC's own ORDER BY). [CONFIRMED] Both conditions are **necessary**; either alone is
 insufficient and introduces either the ranking defect or the duplicate-row defect.
+
+## 16. DETAIL-WATERFALL lane (2026-09-06) — the regulation-detail client fetch waterfall and the
+summary/full/complete toggle, re-measured against production
+
+(The dispatch for this lane calls for a "new §11"; §11 was already taken by the 503-measuring-
+instrument section above at the time this lane started, so this is filed as §16 — cross-referenced
+here under the same operator finding this section addresses.)
+
+### 16.1 The operator's finding, quoted verbatim (production, 2026-09-06)
+
+> Regulation detail page, hard numbers: TTFB 28 ms, DOMContentLoaded 644 ms, Load event 772 ms, First
+> contentful paint 14,096 ms, Total payload 224 KB (78 resources), Client-side fetches 44, last
+> finishing at 34,218 ms, Scripts 25, last finishing at 33,666 ms. The server is fast and the payload
+> is tiny. The page still shows nothing for 14 seconds, and network activity runs for 34 seconds after
+> that. It is a fetch waterfall: 44 separate client-side calls to render one page, including
+> relevance?itemId=, register?itemId=, regulations?_rsc= and a bootstrap call, each a few hundred ms,
+> chained rather than parallel. Caveat: Chrome throttles rendering in background tabs; the 14 s paint
+> needs a re-measure with the tab in the foreground. The 44 fetches and the 34 s tail are structural
+> and stand either way.
+
+Second finding, verbatim: "Clicking Full summary revealed a third option, Complete brief, that was not
+visible before, and the body still shows SHORT SUMMARY."
+
+### 16.2 Re-measurement, foreground, this lane, 2026-09-06 (same Resource Timing method as §7-§9)
+
+Method: `mcp__claude-in-chrome`, a real foregrounded tab (not headless), `carosledge.com` (production),
+`performance.getEntriesByType('resource'|'navigation'|'paint')` read via `javascript_tool` after a
+36s/15s in-page wait past `load`, so any tail activity is captured. Two different regulations, chosen
+by random Supabase read (`intelligence_items`, domain=1, verified, legacy_id not null):
+
+**Item 1 — `eu-battery-regulation-2023-1542`** (EU Battery Regulation 2023/1542):
+TTFB 26 ms · DOMContentLoaded 749 ms · Load 1,222 ms · 33 resources · **8 fetch-initiated requests**,
+last ending at 2,173 ms · 17 script-initiated requests, last ending at 1,207 ms. Full fetch list (start →
+end, ms): `/api/auth/identity` 1213→1694, `/api/detail/relevance?itemId=…` 1261→2085,
+`/api/obligations/upcoming?itemId=…` 1262→1635, `/api/obligations/register?itemId=…` 1262→1727,
+`/api/community/entities/…/threads?limit=3` 1262→2173, `/api/workspace/bootstrap` 1312→1762,
+`/api/notices` 1318→1725, `/api/admin/attention` 1704→2066.
+
+**Item 2 — `o1`** (IMO GHG Strategy 2023): TTFB 27 ms · DOMContentLoaded 501 ms · Load 603 ms · 32
+resources · **7 fetch-initiated requests**, last ending at 1,398 ms. Fetch list: `/api/auth/identity`
+608→1077, `/api/detail/relevance?itemId=o1` 667→1151, `/api/obligations/upcoming?itemId=o1` 667→1001,
+`/api/obligations/register?itemId=o1` 667→1151, `/api/workspace/bootstrap` 676→1076, `/api/notices`
+679→1206, `/api/admin/attention` 1084→1398.
+
+`performance.getEntriesByType('paint')` returned `[]` on both loads (queried well after `load`) — no
+first-paint entry was recorded by the browser for either navigation in this tab. This is the
+background/automated-tab hazard §7-§9 and the operator's own caveat both name; it means FCP could not
+be re-measured this way in this environment, not that FCP is fast. Flagged, not asserted either
+direction: **[HYPOTHESIS]** whatever suppressed the paint entries here (automation-driven tab, no real
+compositor-visible paint) is the same class of hazard as "Chrome throttles rendering in background
+tabs" — unverified against a literal human-driven foreground tab, which this lane's tooling cannot
+produce.
+
+**[CONFIRMED] against production, 2026-09-06: current production does NOT reproduce the reported 44
+client-side fetches / 34,218 ms tail.** Both items measured 7-8 fetch-initiated requests finishing
+within 2.2 s of navigation start, issued in an overlapping window (starts within ~100 ms of each other
+— already effectively parallel, not chained), not the 44-call, 34-second waterfall the operator's
+production measurement recorded. Two honest readings, not adjudicated between here because this lane
+cannot re-run the operator's own capture:
+
+- **[HYPOTHESIS]** the operator's capture ran on an unauthenticated / cold-cache / first-visit session
+  (`/api/auth/identity`'s presence in every list here implies a logged-in session on THIS lane's
+  measurements; the operator's 44-fetch capture may have included auth/session bootstrap retries, a
+  `_rsc` prefetch storm from Link-hover prefetching across the surrounding nav, or a since-fixed
+  regression — PERF-10/PERF-13 in this same document, both dated 2026-09-04, converted several of
+  these reads from server-blocking to client-side AFTER the audit's own §7-§9 baseline and BEFORE the
+  operator's 2026-09-06 measurement quoted above, so the 44-fetch state may already be stale relative
+  to what's live now).
+- **[HYPOTHESIS]** the operator's tab was mid-navigation-storm from `_rsc` prefetches the Next.js
+  router issues for hover-prefetched links elsewhere on the page (the operator's own example named
+  `regulations?_rsc=`, which is a **list**-page RSC payload — i.e. a prefetch of a DIFFERENT route, not
+  a fetch this detail page's own components issue), which this lane's direct-navigation measurement
+  (typed URL, no prior hover) would not trigger the same way a real click-through session does.
+
+Either way, per the operator's own caveat ("the 44 fetches and the 34 s tail are structural and stand
+either way"), **the fetches this lane DID observe are still one-per-concern, unbatched, client-side
+reads that duplicate data reachable server-side** (§16.3) — that structural defect is real and worth
+fixing regardless of which explanation accounts for the gap between 7-8 and 44. Nothing here refutes
+the operator's finding; it narrows what could not be reproduced under this lane's own capture and
+names, as hypotheses, why.
+
+### 16.3 Fetch map — every client-side call this lane found, mounted by the regulation detail page
+
+| URL pattern | Component / hook | What it needs | Server loader already has it? | Blocks first paint? | Chained? |
+|---|---|---|---|---|---|
+| `/api/detail/relevance?itemId=` | `RelevanceBadgeClient.tsx` (`useEffect` on mount) | Per-viewer relevance lens (`resolveOrgIdFromCookies`) | No — deliberately dropped from `loadDetailCore` (PERF-10, `includeRelevance` defaults `false`) because it's a Dynamic API call | No — renders nothing while `relevance === null` | No — independent `useEffect`, fires on mount alongside the others |
+| `/api/obligations/upcoming?itemId=` | `UpcomingObligationsStrip.tsx` variant="detail" (`useEffect`) | This item's forward events, RLS-gated (must stay request-scoped per `read-upcoming.mjs`) | No — moved client-side by PERF-10 for the same Dynamic-API reason | No — detail variant renders `null` while loading | No |
+| `/api/obligations/register?itemId=` | `ObligationRegister.tsx` variant="detail" (`useEffect`) | This item's obligation-register rows, RLS-gated | No — same PERF-10 move; list variant gets an SSR seed (`initialResult`) the detail variant does not | No — detail variant renders `null` while loading | No |
+| `/api/workspace/bootstrap` | app-shell-level bootstrap (outside this page's own component tree — mounted by the shell every route renders inside) | Workspace/org bootstrap state for the whole app shell | Not applicable to this route's own loader — shell-scoped, not detail-scoped | No | No |
+| `/api/notices` | `NoticesRail.tsx` (rendered unconditionally at the bottom of this page — org-watchlist-wide, not item-scoped per its own header) | Org-wide recalculation notices | No — genuinely org-scoped, independent of this item | No — renders below the fold | No |
+| `/api/admin/attention` | app-shell-level (admin attention badge, shell-scoped like bootstrap) | Admin-only attention count | Not applicable — shell-scoped | No | No |
+| `/api/community/entities/…/threads?limit=3` | `PeersDiscussingStrip.tsx` (`peersEntityId`-scoped) | Community threads for this item's bound entity | No — genuinely per-request community data | No — below the fold, own loading state | No |
+| `/api/auth/identity` | app-shell `AuthProvider.tsx` | Session identity | Not applicable — shell-scoped, precedes any route | No | No |
+
+None of the 7-8 calls this lane measured are chained behind one another in the sense of "waits for a
+previous response before firing" — every one fires from its own independent `useEffect` on mount, so
+the browser issues them concurrently (subject to the 6-connections-per-host cap, which is what "a few
+hundred ms, chained" can look like on a trace even when no code enforces an order). **What IS true,
+and is the real structural defect regardless of the fetch-count discrepancy in §16.2**: three of
+these (`relevance`, `obligations/upcoming`, `obligations/register`) are all item-scoped-by-`itemId`,
+all resolve the same `orgId`/viewer identity independently inside their own Route Handler, and all fire
+from the same page mount — they are prime candidates for one batched round trip per §16.4, item 2, and
+none of them is needed for first paint (§16.4, item 3) even though today none of them blocks it either
+(each already degrades to a null/empty render while loading — the structural win of batching them is
+fewer round trips and one shared loading state, not fixing a paint-blocking defect that no longer
+exists post-PERF-10).
+
+`AiPromptBar.tsx` and `RecordGradeBadge.tsx`/`WatchButton.tsx` on this route do not themselves issue a
+fetch on mount in the two captures above — `WatchButton`'s client-side `getClientWatchMembership()`
+fallback (PERF-10 header, §16 above) did not fire in either capture, which is consistent with its own
+documented contract of only firing when `initialWatched` is omitted AND the button is actually
+interacted with or visible-and-mounted; not independently re-verified this lane (**[HYPOTHESIS]**).
+
+### 16.4 Build — status against the dispatch's 8-point BUILD list
+
+1. **Server loader vs. client re-fetch, non-overlap** — [CONFIRMED] by code read: `loadDetailCore`'s
+   item-scoped bundle (resourceLookup, peersEntityId, claimTiers) is genuinely item-scoped/org-
+   independent and is never re-fetched client-side; nothing in §16.3's fetch list duplicates data the
+   server loader already hands down. No change needed here — PERF-10/PERF-13 already did this work.
+2. **One batched `/api/detail/viewer-state?itemId=` route (relevance + register + watchlist + notes)**
+   — **NOT BUILT this lane.** Scoped, not done: the three itemId-scoped detail routes
+   (`/api/detail/relevance`, `/api/obligations/upcoming`, `/api/obligations/register`) each already
+   resolve `orgId`/viewer identity via the request-scoped, cookie-bound client independently; a batched
+   route would call the same three underlying read functions (`read-upcoming.mjs`, `read-register.mjs`,
+   the relevance lookup) once each, inside one Route Handler, and return `{relevance, upcoming,
+   register}` in one response — the same request-scoped-client constraint each currently respects
+   individually. **Left for the coordinator or a follow-up lane** because building and re-verifying
+   three call sites' RLS posture at once, inside this lane's remaining budget, would not get the "attack,
+   not assert" verification rule 15 requires for a change touching viewer-scoped RLS reads. Exact next
+   step: new Route Handler `src/app/api/detail/viewer-state/route.ts`, calling the same three
+   functions the existing three routes call, request-scoped client, single response shape; then
+   `RelevanceBadgeClient`, `UpcomingObligationsStrip` (detail variant), and `ObligationRegister`
+   (detail variant) either share one fetch (lifted to a parent, e.g. inside
+   `RegulationDetailSurface`) or keep their own components but read from one shared
+   SWR-style cache keyed by itemId so only one network request fires. Contract test per point 5 below
+   should be written against the ROUTE, not retrofitted after the fact.
+3. **Non-paint-blocking reads run after paint, into a labelled state** — [CONFIRMED] already true for
+   every one of the three itemId-scoped reads (each renders `null` while loading, matching its
+   documented "eventual empty state" contract per PERF-10) — no code change needed; this point of the
+   dispatch is already satisfied by PERF-10's prior work, re-verified by this lane's read of
+   `RelevanceBadgeClient.tsx`, `UpcomingObligationsStrip.tsx`, `ObligationRegister.tsx` in full.
+4. **`_rsc` refetches on navigation** — **NOT INVESTIGATED this lane.** `next.config`/router
+   `staleTimes` and any prefetch-storm cause are explicitly out of this lane's write set (owned by lane
+   UX-FIX per this lane's dispatch). Named here for the coordinator: the operator's own example
+   (`regulations?_rsc=`) is a **list**-page payload, which points at Link-hover prefetching of the
+   `/regulations` index from wherever the viewer navigated from, not a fetch this detail page's own
+   components issue — worth lane UX-FIX checking `staleTimes.dynamic`/`prefetch` behavior on the
+   regulations list's row links.
+5. **Contract test: hard fetch budget on mount** — **NOT BUILT this lane** (depends on point 2's
+   batched route existing first — a budget test written against today's 7-8-call shape would need
+   rewriting the moment the batch route lands, and CLAUDE.md rule 15 wants the test proving the real
+   built behavior, not a placeholder). Left as the coordinator's next step alongside point 2.
+6. **Summary/Full/Complete toggle rebuild** — **DONE this lane**, see §16.5.
+7. **Skeleton/loading states as first-class, screenshots at 375/1280** — **NOT DONE this lane**
+   (budget). Every one of the three itemId-scoped components already has an explicit
+   loading/empty/populated contract in code (cited in point 3); screenshots were not captured at both
+   breakpoints. Left for a follow-up pass.
+8. **Re-measure after the fix, foreground, same method** — see §16.6 for the one component this lane
+   actually changed (the toggle); the fetch-waterfall re-measure has nothing to compare against yet
+   since point 2 (the actual structural fix) was not built this lane.
+
+### 16.5 The toggle fix — root cause, fix, and the six §0 evidences
+
+**Root cause [CONFIRMED]**, read in full (`RegulationDetailSurface.tsx`, brief-grade `SummaryTabBrief`,
+pre-fix lines ~743-937) and reproduced live on production (`carosledge.com/regulations/o1`, screenshot
+below): the toggle had **two** selectable positions ("Short summary" / "Full summary") but the page
+carried **three** distinct content bodies — the Short-summary card, the Full-summary accordions, and a
+"Complete brief" accordion (the raw `full_brief` markdown) nested INSIDE the Full body, reachable only
+after switching to Full, never itself selectable. Two bugs, one root cause:
+- The "Short summary" card rendered **unconditionally** (`{shortText && (...)}`, never gated on
+  `mode === "short"`), so it stayed visible even after switching to Full — the operator's "the body
+  still shows SHORT SUMMARY."
+- "Complete brief" existed only as a caption string (`mode === "full" ? … : "Complete brief"`) shown
+  once Full was selected, plus the nested accordion title — never a control, so clicking Full made a
+  third state's NAME appear with no way to actually select it — the operator's "revealed a third
+  option... that was not visible before."
+
+Live production screenshot confirms the exact symptom (`carosledge.com/regulations/o1`, "IMO GHG
+Strategy 2023", 2026-09-06): after clicking "Full summary" the segmented control shows "Short summary"
+/ **Full summary** (active) / a greyed "Complete brief" label with no button styling, while the body
+directly below still renders the "SHORT SUMMARY" card.
+
+**Fix**: rebuilt as one explicit three-state selector (`mode: "short" | "full" | "complete"`), each a
+real, clickable `Segment` (44px min-height, unchanged from the existing law-2-compliant `Segment`
+component — extended to support a middle segment, `side: "left" | "mid" | "right"`). The body now
+matches the selected state with no leakage:
+- `short`: the Short-summary card only, gated on `mode === "short"` (previously ungated); an honest
+  fallback line when there is no short text.
+- `full`: the existing Full-summary accordions (what-it-is/why-it-applies, compliance chain, sections,
+  recommended actions), gated on `mode === "full" && hasFull`; an honest "not on file yet" card when
+  `!hasFull`. Disabled (not clickable) when `!hasFull`, same as before.
+- `complete`: the raw `full_brief` markdown (`IntelligenceBrief`, `stripSources` — sources still render
+  only on the Sources tab, the pre-existing #172 pattern, unchanged), gated on `mode === "complete"`,
+  moved OUT of the nested accordion into its own top-level state. Disabled when `!hasComplete`
+  (`!r.fullBrief`).
+
+Files: `fsi-app/src/components/regulations/RegulationDetailSurface.tsx` (the `SummaryTabBrief` and
+`Segment` functions).
+
+**§0 evidence, per component:**
+
+- **Reachable** — [CONFIRMED]: the toggle is inside `SummaryTabBrief`, rendered by `SummaryTab` inside
+  `RegulationDetailSurface`, mounted by every brief-grade regulation detail page render (route:
+  `src/app/regulations/[slug]/page.tsx` → `RegulationDetailSurface` → `SummaryTab` →
+  `SummaryTabBrief`); not gated behind any flag.
+- **Run** — [CONFIRMED], guarded write with read-back is not applicable (no data write; this is a pure
+  client render). Verified by: (a) live reproduction of the pre-fix defect on production (screenshot,
+  above) confirming the exact code path this lane edited is the one the operator saw; (b)
+  `npx tsc --noEmit` clean on the edited file (§16.7); the coordinator's live re-verification after
+  deploy is the actual "run" of the FIXED code — this lane cannot deploy. Exact dispatch for the
+  coordinator: after merge/deploy, navigate to any brief-grade regulation with `hasFull` true (e.g.
+  `carosledge.com/regulations/o1`), click each of the three segments in turn, confirm the body swaps
+  fully each time (no residual Short-summary card once Full or Complete is selected) — expected
+  artifact: a short screen recording or three screenshots (one per state), same as §16.7's evidence
+  here.
+- **Populated** — not applicable; this is a rendering fix over already-populated `r.fullBrief` /
+  `r.whatIsIt` data, no schema or row change.
+- **Visible** — [CONFIRMED]: rendering guard run in §16.7 (no `.tsx` change here triggers a NEW guard
+  requirement beyond what already runs — `run-rendering-guard.mjs` executed, see §16.7 for its output).
+  Screenshot above is the pre-fix defect; a post-fix screenshot requires a deploy this lane cannot
+  perform (no push access) — left for the coordinator per Run, above.
+- **Gated** — **NOT DONE this lane** (budget): no test asserts `mode==="short"` hides the Full/Complete
+  bodies or that all three segments are independently clickable. Left as a coordinator/follow-up
+  task — exact shape: a React Testing Library (or the repo's existing rendering-smoke pattern) mount of
+  `SummaryTabBrief` with a `fullBrief` fixture, asserting each of the three `Segment` clicks swaps
+  `data-testid`/text content exactly once, with no other state's markup present.
+- **Documented** — this §16.5 entry, plus the in-code comment block replacing the old two-state
+  comment (see the file's edited header comment above `SummaryTabBrief`'s `mode` state).
+
+### 16.6 Re-measure after the fix
+
+**Not performed** — the toggle fix is not deployed (this lane cannot push; the coordinator lands), so
+there is nothing live to re-measure yet. The pre-fix screenshot in §16.5 is this lane's "before"; the
+coordinator's post-deploy click-through (named in §16.5's "Run" evidence) is the "after." The
+fetch-waterfall re-measure (dispatch point 8) has no fix to re-measure against at all, since §16.4
+point 2 (the batched route, the actual structural change) was not built this lane — re-measuring the
+UNCHANGED fetch behavior would just reproduce §16.2's numbers.
+
+### 16.7 Gates run this lane
+
+- `node fsi-app/.discipline/fitness/runner.mjs`: see §16.8 (full lane gate log).
+- `npx tsc --noEmit -p fsi-app/tsconfig.json` (via `npx tsc --noEmit` inside `fsi-app/`): 0 errors
+  reported for `RegulationDetailSurface.tsx` (grepped the full output for the file; no matches — clean).
+- `node fsi-app/.discipline/rendering/run-rendering-guard.mjs`: run because a `.tsx` file changed — see
+  §16.8 for its output line.
+- Full gate suite (fitness, governance/fitness tests, closure gate, run-test-suite.sh,
+  override-check.mjs, rendering guard) run together and logged in §16.8 rather than duplicated here.
+
+### 16.8 UX compliance block (docs/design/ux-laws.md)
+
+**Screen: Regulation detail → Summary tab (brief-grade) → Short/Full/Complete toggle.**
+- **Goal**: let a viewer choose how much of the generated brief to read, without losing track of which
+  version they're looking at.
+- **Path**: one segmented control, three positions, one click each; no nested reveal, no state
+  reachable only as a side effect of another click (the defect this lane fixed).
+- **One primary action**: selecting a segment is the only interactive element in this control; each
+  segment is mutually exclusive (`aria-pressed`, unchanged from the pre-existing `Segment` component).
+- **Feedback state**: the active segment is visually distinct (filled dark background, unchanged
+  styling) and the body directly below swaps to match — the exact property that was broken before this
+  fix (segment could show "active" while the body showed a different state's content).
+- **44px targets**: unchanged `Segment` component already enforces `minHeight: 44` with
+  inline-flex/center (pre-existing law-2 compliance, not touched by this fix); the added third segment
+  reuses the identical style block, so it inherits the same floor — not independently re-measured this
+  lane (rendering guard in §16.7/§16.8's gate log is the mechanical check for this).
