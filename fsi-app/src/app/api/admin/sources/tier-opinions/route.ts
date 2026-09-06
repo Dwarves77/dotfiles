@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
   const { data: sources } = await supabase
     .from("sources")
     .select("id, name, url, base_tier, effective_tier, tier_override, override_reason")
+    // fitness-allow: F39 (ids is the request's own tier-opinion id list, admin-authored and small)
     .in("id", ids);
 
   const byId = new Map<string, {

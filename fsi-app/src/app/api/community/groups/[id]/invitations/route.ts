@@ -92,6 +92,7 @@ export async function GET(
     ? await auth.supabase
         .from("profiles")
         .select("id, full_name, avatar_url")
+        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
         .in("id", inviteeIds)
     : { data: [] as ProfileShape[] };
 

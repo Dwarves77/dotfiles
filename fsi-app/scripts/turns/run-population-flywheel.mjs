@@ -530,6 +530,7 @@ export async function resolveMintedItemIds(artifact, db) {
   const uuidRows = new Map(); // intelligence_items.id → row
   if (uuidIdsToResolve.size > 0) {
     for (const chunk of chunkArray(Array.from(uuidIdsToResolve), 100)) {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       const rows = await db.readAll("intelligence_items", "id", { match: (q) => q.in("id", chunk) });
       for (const row of rows) uuidRows.set(row.id, row);
     }
@@ -541,6 +542,7 @@ export async function resolveMintedItemIds(artifact, db) {
     for (const chunk of chunkArray(celexArray, 100)) {
       if (!chunk.length) continue;
       const rows = await db.readAll("intelligence_items", "id, canonical_instrument_key, is_archived, created_at, provenance_status", {
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
         match: (q) => q.in("canonical_instrument_key", chunk),
       });
       for (const row of rows) {
@@ -1116,10 +1118,12 @@ async function stepCorpusExport(ctx) {
     const claims = await readAll(
       "section_claim_provenance",
       "id, intelligence_item_id, claim_kind, claim_text, source_span",
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       { match: (q) => q.in("intelligence_item_id", idChunk).in("claim_kind", ["FACT", "GAP"]) },
     );
     claimRows.push(...claims);
     const sections = await readAll("intelligence_item_sections", "id, item_id, section_key, content_md", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       match: (q) => q.in("item_id", idChunk),
     });
     sectionRows.push(...sections);
@@ -1281,10 +1285,12 @@ async function fetchEdgeRowsForBatch(readAll, batchIds) {
   for (const idChunk of chunk(batchIds, 150)) {
     if (!idChunk.length) continue;
     const bySource = await readAll("item_cross_references", "id, source_item_id, target_item_id, origin", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       match: (q) => q.in("source_item_id", idChunk),
     });
     for (const r of bySource) byId.set(r.id, r);
     const byTarget = await readAll("item_cross_references", "id, source_item_id, target_item_id, origin", {
+      // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
       match: (q) => q.in("target_item_id", idChunk),
     });
     for (const r of byTarget) byId.set(r.id, r);

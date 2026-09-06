@@ -57,10 +57,10 @@ export function classifyLiveRecords(items, censusByUrl, reviewed = {}) {
 
 /**
  * @param {{ apply?: boolean }} opts
- * @param {{ readAll: Function, fetchRowsIn: Function, readClient: Function, guardedUpdateByIds: Function, archivePatch: Function, reviewed?: object }} deps
+ * @param {{ readAll: Function, readAllByIds: Function, fetchRowsIn: Function, readClient: Function, guardedUpdateByIds: Function, archivePatch: Function, reviewed?: object }} deps
  */
 export async function main({ apply = false } = {}, deps) {
-  const { readAll, fetchRowsIn, readClient, guardedUpdateByIds, archivePatch } = deps;
+  const { readAll, readAllByIds, fetchRowsIn, readClient, guardedUpdateByIds, archivePatch } = deps;
   const reviewed = deps.reviewed ?? loadReviewedVerdicts();
   console.log(`[screen-reconcile] mode = ${apply ? "APPLY" : "DRY-RUN"}`);
   const items = await readAll("intelligence_items", "id, title, source_url, item_grade, is_archived", {
@@ -88,7 +88,9 @@ export async function main({ apply = false } = {}, deps) {
     archivePatch("intelligence_items", ARCHIVE_REASON),
     { cite: CITE, select: "id", applyMatch: (q) => q.eq("item_grade", "record").eq("is_archived", false) },
   );
-  const after = await readAll("intelligence_items", "id, is_archived, archive_reason", { match: (q) => q.in("id", off.map((o) => o.id)) });
+  // Post-write read-back over off's ids — corpus-scaled, no declared cap (the exact
+  // Maintenance-34046850770 defect class). Chunked via readAllByIds, never a single .in(id, allIds).
+  const after = await readAllByIds("intelligence_items", "id, is_archived, archive_reason", off.map((o) => o.id));
   const archived = after.filter((r) => r.is_archived && r.archive_reason === ARCHIVE_REASON).length;
   console.log(`[screen-reconcile] archived ${archived} of ${off.length} (touched ${res.updated} in ${res.chunks} chunk(s), ${res.halvings} halvings)`);
   if (archived !== off.length) {
@@ -103,9 +105,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     console.error("[screen-reconcile] no DB creds — cannot run here (exit 2).");
     process.exit(2);
   }
-  const { readAll, readClient, guardedUpdateByIds, archivePatch } = await import("../lib/db.mjs");
+  const { readAll, readAllByIds, readClient, guardedUpdateByIds, archivePatch } = await import("../lib/db.mjs");
   const { fetchRowsIn } = await import("./export-census-rows.mjs");
-  main({ apply: process.argv.includes("--apply") }, { readAll, fetchRowsIn, readClient, guardedUpdateByIds, archivePatch }).catch((e) => {
+  main({ apply: process.argv.includes("--apply") }, { readAll, readAllByIds, fetchRowsIn, readClient, guardedUpdateByIds, archivePatch }).catch((e) => {
     console.error("[screen-reconcile] fatal:", e);
     process.exit(1);
   });

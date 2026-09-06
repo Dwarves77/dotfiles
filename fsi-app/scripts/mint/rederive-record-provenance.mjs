@@ -47,10 +47,10 @@ export function selectStale(candidates, verdicts) {
 
 /**
  * @param {{ apply?: boolean }} opts
- * @param {{ readAll: Function, rpc: Function, guardedUpdateByIds: Function }} deps
+ * @param {{ readAll: Function, readAllByIds: Function, rpc: Function, guardedUpdateByIds: Function }} deps
  */
 export async function main({ apply = false } = {}, deps) {
-  const { readAll, rpc, guardedUpdateByIds } = deps;
+  const { readAll, readAllByIds, rpc, guardedUpdateByIds } = deps;
   console.log(`[rederive-provenance] mode = ${apply ? "APPLY" : "DRY-RUN"}`);
   const candidates = await readAll(
     "intelligence_items",
@@ -79,7 +79,9 @@ export async function main({ apply = false } = {}, deps) {
   // still say the old status even though the derivation flipped them (population-turn run #9,
   // 2026-09-02: 10 rows healed live, "read back verified: 0", exit 1 — the data was right, the check was
   // reading the wrong moment).
-  const after = await readAll("intelligence_items", "id, provenance_status", { match: (q) => q.in("id", ids) });
+  // Post-touch read-back over `ids` — runtime-scaled, no declared cap (the exact
+  // Maintenance-34046850770 defect class). Chunked via readAllByIds, never a single .in(id, ids).
+  const after = await readAllByIds("intelligence_items", "id, provenance_status", ids);
   const healed = after.filter((r) => r.provenance_status === "verified").length;
   console.log(`[rederive-provenance] touched ${res.updated} in ${res.chunks} chunk(s) (${res.halvings} halvings); re-read verified: ${healed}`);
   if (healed !== stale.length) {
@@ -90,7 +92,7 @@ export async function main({ apply = false } = {}, deps) {
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
+  const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
     console.error("[rederive-provenance] no DB creds — cannot run here (exit 2).");
     process.exit(2);
@@ -102,7 +104,7 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (error) return { valid: false, recommended_status: null, failures: [{ criterion: "rpc", reason: error.message }] };
     return Array.isArray(data) ? data[0] : data;
   };
-  main({ apply: process.argv.includes("--apply") }, { readAll, rpc, guardedUpdateByIds }).catch((e) => {
+  main({ apply: process.argv.includes("--apply") }, { readAll, readAllByIds, rpc, guardedUpdateByIds }).catch((e) => {
     console.error("[rederive-provenance] fatal:", e);
     process.exit(1);
   });

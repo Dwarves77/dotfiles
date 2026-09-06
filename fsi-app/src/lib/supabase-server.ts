@@ -831,6 +831,7 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       supabase
         .from("item_timelines")
         .select("item_id, milestone_date, label, is_completed, sort_order")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("item_id", chunk)
     )
   );
@@ -1341,6 +1342,7 @@ export async function fetchResearchPipelineRows(
       const { data: biasRows, error: biasErr } = await supabase
         .from("source_bias_tags")
         .select("source_id, dimension, tag, confidence")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("source_id", distinctSourceIds);
       if (biasErr) {
         console.error("[research] source_bias_tags fetch error:", describeSupabaseError(biasErr));
@@ -1584,6 +1586,7 @@ async function enrichCategoryRows(
     const { data: srcRows, error: srcErr } = await serviceClient
       .from("sources")
       .select("id, name, base_tier, effective_tier")
+      // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
       .in("id", chipSourceIds);
     if (srcErr) {
       console.error(`[category-routing] source chip enrichment for ${rpcLabel} error:`, describeSupabaseError(srcErr));
@@ -1654,6 +1657,7 @@ async function enrichCategoryRows(
     const { data: biasRows, error: biasErr } = await serviceClient
       .from("source_bias_tags")
       .select("source_id, dimension, tag, confidence")
+      // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
       .in("source_id", chipSourceIds);
     if (biasErr) {
       console.error(`[category-routing] source_bias_tags enrichment for ${rpcLabel} error:`, describeSupabaseError(biasErr));
@@ -1933,6 +1937,7 @@ export async function fetchPriceStatsByItemIds(
       const { data: resolved, error: resolveErr } = await supabase
         .from("intelligence_items")
         .select("id, legacy_id")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("legacy_id", legacyIds);
       if (resolveErr) {
         console.error("[market] fetchPriceStatsByItemIds legacy_id resolve error:", describeSupabaseError(resolveErr));
@@ -1950,6 +1955,7 @@ export async function fetchPriceStatsByItemIds(
     const { data, error } = await supabase
       .from("published_price_statistics")
       .select("item_id, label, value_display, unit, released_at, sort_order")
+      // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
       .in("item_id", uuidIds)
       .order("item_id", { ascending: true })
       .order("sort_order", { ascending: true });
@@ -2082,6 +2088,7 @@ export async function fetchWorkspaceOverrideRowsRaw(orgId: string): Promise<Over
       .from("org_memberships")
       .select("user_id, user:profiles!user_id(full_name, display_name, email)")
       .eq("org_id", orgId)
+      // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
       .in("user_id", ownerIds);
     if (memberError) {
       // Warn-and-continue: an unresolved roster degrades to unassigned rows,
@@ -2389,6 +2396,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       const { data: typeRows, error: typeErr } = await getServiceSupabase()
         .from("intelligence_items")
         .select("id, item_type, domain")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", recentRows.map((r) => r.id));
       if (typeErr) {
         console.warn(`[supabase-server] recent-changes item_type enrichment failed (rows link to /regulations fallback): ${describeSupabaseError(typeErr)}`);
@@ -3999,6 +4007,7 @@ export async function fetchWatchlist(
             .from("intelligence_items")
             .select(columns)
             .eq("provenance_status", "verified") // Sprint 4 task 1.10: customer read gate
+            // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
             .in("legacy_id", legacyIds)
         );
       }
@@ -4008,6 +4017,7 @@ export async function fetchWatchlist(
             .from("intelligence_items")
             .select(columns)
             .eq("provenance_status", "verified")
+            // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
             .in("id", uuidIds)
         );
       }
@@ -4038,6 +4048,7 @@ export async function fetchWatchlist(
       const { data: srcs } = await supabase
         .from("sources")
         .select("id, name, jurisdictions")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", sourceIds);
       for (const s of (srcs || []) as Array<{
         id: string;
@@ -4065,6 +4076,7 @@ export async function fetchWatchlist(
       const { data: series } = await supabase
         .from("market_series")
         .select("id, label")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", marketSeriesIds);
       for (const s of (series || []) as Array<{ id: string; label: string }>) {
         marketSeriesLabels.set(s.id, { label: s.label });
@@ -4085,6 +4097,7 @@ export async function fetchWatchlist(
       const { data: profiles } = await supabase
         .from("profiles")
         .select("id, full_name")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
         .in("id", adderIds);
       for (const p of (profiles || []) as Array<{ id: string; full_name: string | null }>) {
         if (p.full_name) adderNames.set(p.id, p.full_name);

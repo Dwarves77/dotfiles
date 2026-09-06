@@ -166,7 +166,7 @@ if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_
   process.exit(2);
 }
 
-const { readAll, guardedInsert, guardedUpdate } = await import("../lib/db.mjs");
+const { readAll, readAllByIds, guardedInsert, guardedUpdate } = await import("../lib/db.mjs");
 const CITE = {
   skill: "flywheel-build-plan-2026-08-10",
   reason: "U6 generate-theme-brief: assemble the brief input bundle and persist an authored brief to theme_briefs (guarded path, rule 015).",
@@ -179,13 +179,17 @@ if (themeId) {
     console.error(`generate-theme-brief: no connection_themes row with id ${themeId}.`);
     process.exit(1);
   }
-  const allMembers = await readAll("intelligence_items", "id, title, legacy_id, item_type, jurisdiction_iso, added_date, priority", { match: (q) => q.in("id", theme.member_ids) });
-  const allEdges = await readAll("item_cross_references", "source_item_id, target_item_id, relationship, origin, basis, score", { match: (q) => q.in("source_item_id", theme.member_ids) });
+  // theme.member_ids is a runtime, corpus-scaled list (analyze-corpus.mjs's clustering output) with no
+  // declared cap — chunked via readAllByIds (db.mjs), not readAll's own match-in, so a large theme can
+  // never blow a single PostgREST .in() request line (IN-CHUNK class, 2026-09-06).
+  const allMembers = await readAllByIds("intelligence_items", "id, title, legacy_id, item_type, jurisdiction_iso, added_date, priority", theme.member_ids);
+  const allEdges = await readAllByIds("item_cross_references", "source_item_id, target_item_id, relationship, origin, basis, score", theme.member_ids, { idColumn: "source_item_id" });
   const intraEdges = allEdges.filter((e) => theme.member_ids.includes(e.target_item_id));
-  const forwardEvents = await readAll(
+  const forwardEvents = await readAllByIds(
     "item_forward_events",
     "id, intelligence_item_id, event_date, date_precision, event_kind, obligation_text, source_span, confidence",
-    { match: (q) => q.in("intelligence_item_id", theme.member_ids) },
+    theme.member_ids,
+    { idColumn: "intelligence_item_id" },
   );
 
   const bundle = buildBriefBundle(theme, allMembers, intraEdges, forwardEvents);

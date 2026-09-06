@@ -21,6 +21,10 @@ function deps() {
       if (table === "obligations") return store.obligations;
       throw new Error(`unexpected table ${table}`);
     },
+    readAllByIds: async (table, cols, ids, opts) => {
+      if (table === "intelligence_items") return ITEMS.filter((i) => ids.includes(i.id));
+      throw new Error(`unexpected table ${table}`);
+    },
     guardedInsertMany: async (table, rows, opts) => {
       assert.equal(table, "obligations");
       assert.ok(opts.cite?.skill || opts.cite?.reason, "every write carries a cite");

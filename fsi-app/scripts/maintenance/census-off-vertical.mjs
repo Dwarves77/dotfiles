@@ -53,7 +53,7 @@ export function sampleWithTitles(screenedOutRows, rowsById, n = SAMPLE_SIZE) {
 
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string }} opts
- * @param {{ readAll: Function, reviewed?: object, guardedUpdateByIds?: Function }} deps
+ * @param {{ readAll: Function, readAllByIds: Function, reviewed?: object, guardedUpdateByIds?: Function }} deps
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const apply = mode === "apply";
@@ -106,7 +106,12 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     );
     summary.applied = res.updated;
 
-    const after = await deps.readAll("census_worklist", "id, is_archived, archive_reason", { match: (q) => q.in("id", ids) });
+    // Maintenance run 34046850770: the post-write read-back over `ids` (a full off-vertical batch —
+    // 1,655 in that run, ~65 KB URL-encoded into ONE PostgREST GET) blew the gateway's request-line
+    // limit ("paginated read failed at offset 0: <!DOCTYPE html>") AFTER the chunked archive write above
+    // had already succeeded — the exact class guardedUpdateByIds solved for the write. readAllByIds is
+    // the read-only twin (db.mjs), chunking this read the same way.
+    const after = await deps.readAllByIds("census_worklist", "id, is_archived, archive_reason", ids);
     const archivedCount = after.filter((r) => r.is_archived && r.archive_reason === ARCHIVE_REASON).length;
     summary.read_back = { would_archive: ids.length, archived: archivedCount };
     summary.note = `archived ${archivedCount} of ${ids.length} off_vertical rows (ruling R-A).`;
@@ -128,8 +133,8 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
-      return { readAll, guardedUpdateByIds };
+      const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
+      return { readAll, readAllByIds, guardedUpdateByIds };
     },
   });
 }

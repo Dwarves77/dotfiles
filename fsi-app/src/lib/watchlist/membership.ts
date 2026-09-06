@@ -122,6 +122,7 @@ async function queryWatchedIds(
     .select("item_id")
     .eq(scopeCol, scopeVal)
     .eq("item_type", itemType)
+    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
     .in("item_id", itemIds);
   if (error || !data) return new Set();
   return new Set((data as { item_id: string }[]).map((r) => r.item_id));

@@ -539,12 +539,14 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdate, guardedUpdateByIds, guardedDelete } = await import("../lib/db.mjs");
+      const { readAll, readAllByIds, guardedUpdate, guardedUpdateByIds, guardedDelete } = await import("../lib/db.mjs");
       const SOURCE_COLUMNS = "id, url, base_tier, effective_tier, tier_override, institution_id, status, source_role";
       return {
         readInstitutions: () => readAll("institutions", "id, name, registrable_domain"),
         readSources: () => readAll("sources", SOURCE_COLUMNS),
-        readSourcesByIds: (ids) => readAll("sources", "id, base_tier, effective_tier", { match: (q) => q.in("id", ids) }),
+        // affectedSourceIds is runtime-scaled (every source under the institutions this pass merged) with
+        // no declared cap — chunked via readAllByIds, not a single .in(), IN-CHUNK class (2026-09-06).
+        readSourcesByIds: (ids) => readAllByIds("sources", "id, base_tier, effective_tier", ids),
         reassignSourcesInstitution: (duplicateId, canonicalId) =>
           guardedUpdate("sources", (q) => q.eq("institution_id", duplicateId), { institution_id: canonicalId }, { cite: CITE, select: "id" }),
         countSourcesForInstitution: async (institutionId) => {

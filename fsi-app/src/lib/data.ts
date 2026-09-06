@@ -1487,6 +1487,7 @@ const cachedCommunityPulse = unstable_cache(
       const { data: cgmRows, error: cgmErr } = await supabase
         .from("community_group_members")
         .select("group_id")
+        // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
         .in("user_id", userIds);
       if (cgmErr) {
         console.error("[dashboard] community pulse group_members error:", cgmErr.message);
@@ -1498,10 +1499,12 @@ const cachedCommunityPulse = unstable_cache(
       if (groupIds.length === 0) return { activeGroups: 0, threads: [] };
 
       const [groupsRes, postsRes] = await Promise.all([
+        // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
         supabase.from("community_groups").select("id, name, slug").in("id", groupIds),
         supabase
           .from("community_posts")
           .select("id, group_id, title, body, reply_count, last_reply_at, created_at")
+          // fitness-allow: F39 (scoped to one org's own membership/group rows, not corpus-scale)
           .in("group_id", groupIds)
           .is("parent_post_id", null)
           .order("last_reply_at", { ascending: false, nullsFirst: false })

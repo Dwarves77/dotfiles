@@ -44,9 +44,10 @@ export function notesHead(notes) {
 
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string }} opts - `arg` is the required --reason-contains scope.
- * @param {{ reopenMain: Function, readAll: Function }} deps - `reopenMain` is
- *   scripts/mint/reopen-validation-holds.mjs's own exported `main`; `readAll` is db.mjs's readAll, used
- *   ONLY for the post-apply read-back (this wrapper never selects or writes census_worklist itself).
+ * @param {{ reopenMain: Function, readAll: Function, readAllByIds: Function }} deps - `reopenMain` is
+ *   scripts/mint/reopen-validation-holds.mjs's own exported `main`; `readAllByIds` is db.mjs's chunked
+ *   id-list read, used ONLY for the post-apply read-back (this wrapper never selects or writes
+ *   census_worklist itself).
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const apply = mode === "apply";
@@ -82,11 +83,11 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
     summary.exitCode = 1;
   }
 
+  // writtenIds is the post-write read-back id list — runtime-scaled, no declared cap (the exact
+  // Maintenance-34046850770 defect class). Chunked via readAllByIds, never a single .in(id, allIds).
   const writtenIds = result.writtenIds ?? [];
   const rows = writtenIds.length
-    ? await deps.readAll("census_worklist", "id, dryrun_disposition, hold_reason, notes", {
-        match: (q) => q.in("id", writtenIds),
-      })
+    ? await deps.readAllByIds("census_worklist", "id, dryrun_disposition, hold_reason, notes", writtenIds)
     : [];
   summary.read_back = {
     reopened_count: rows.length,
@@ -108,9 +109,9 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll } = await import("../lib/db.mjs");
+      const { readAll, readAllByIds } = await import("../lib/db.mjs");
       const { main: reopenMain } = await import("../mint/reopen-validation-holds.mjs");
-      return { readAll, reopenMain };
+      return { readAll, readAllByIds, reopenMain };
     },
   });
 }

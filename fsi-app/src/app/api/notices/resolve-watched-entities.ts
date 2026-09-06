@@ -94,6 +94,7 @@ export async function resolveWatchedEntityIds(client: EntityResolveClient, watch
   const entityIds = new Set<string>();
 
   if (intelligenceItemIds.length > 0) {
+    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
     const itemsRes = await client.from("intelligence_items").select("id,instrument_entity_id").in("id", intelligenceItemIds);
     if (!itemsRes.error && Array.isArray(itemsRes.data)) {
       for (const row of itemsRes.data as Array<{ instrument_entity_id: string | null }>) {
@@ -101,6 +102,7 @@ export async function resolveWatchedEntityIds(client: EntityResolveClient, watch
       }
     }
 
+    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
     const refsRes = await client.from("entity_refs").select("entity_id").eq("ref_table", "intelligence_items").in("ref_id", intelligenceItemIds);
     if (!refsRes.error && Array.isArray(refsRes.data)) {
       for (const row of refsRes.data as Array<{ entity_id: string }>) {
@@ -110,6 +112,7 @@ export async function resolveWatchedEntityIds(client: EntityResolveClient, watch
   }
 
   if (sourceIds.length > 0) {
+    // fitness-allow: F39 (scoped to one user's own watchlist/notices/org-membership rows, not corpus-scale)
     const sourcesRes = await client.from("sources").select("id,organisation_entity_id").in("id", sourceIds);
     if (!sourcesRes.error && Array.isArray(sourcesRes.data)) {
       for (const row of sourcesRes.data as Array<{ organisation_entity_id: string | null }>) {

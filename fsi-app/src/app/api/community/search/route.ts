@@ -134,6 +134,7 @@ export async function GET(request: NextRequest) {
     ? await auth.supabase
         .from("community_groups")
         .select("id, name, slug")
+        // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
         .in("id", postGroupIds)
     : { data: [] as Array<{ id: string; name: string; slug: string }> };
   const groupNameById = new Map(

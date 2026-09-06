@@ -128,6 +128,7 @@ export async function ThemeStrip() {
     const { data: briefRows } = await supabase
       .from("theme_briefs")
       .select("theme_id, member_hash")
+      // fitness-allow: F39 (themeIds is the connection_themes cluster count — curated, not corpus-item-scaled)
       .in("theme_id", themes.map((t) => t.id));
     briefsByThemeId = new Map((briefRows ?? []).map((b: ThemeBriefRow) => [b.theme_id, b]));
   } catch {
@@ -160,6 +161,7 @@ export async function ThemeStrip() {
         .select("id, title, legacy_id, type, domain")
         .eq("is_archived", false)
         .eq("provenance_status", "verified")
+        // fitness-allow: F39 (already chunked above (idChunk/slice pattern) — bounded per chunk, not corpus-scale)
         .in("id", idList.slice(i, i + 200));
       for (const row of (itemRows ?? []) as ItemLite[]) itemsById.set(row.id, row);
     }

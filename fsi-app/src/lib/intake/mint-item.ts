@@ -232,6 +232,7 @@ export async function mintIntelligenceItem(sb: SupabaseClient, plan: MintPlan, o
   if (seed.source_id == null && sourceUrl) {
     const canon = canonicalizeUrl(sourceUrl);
     const urls = canon === sourceUrl ? [canon] : [canon, sourceUrl];
+    // fitness-allow: F39 (urls has at most 2 elements (canon + sourceUrl fallback), provably)
     const { data: srcRows, error: srcErr } = await sb.from("sources").select("id").in("url", urls).limit(1);
     if (srcErr) return { ok: false, action: "unsourced", flags, error: `mint refused (fail-closed): source registry probe read failed — ${srcErr.message}` };
     matchedSourceId = (srcRows?.[0]?.id as string | undefined) ?? null;

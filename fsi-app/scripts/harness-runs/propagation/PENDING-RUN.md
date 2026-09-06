@@ -23,10 +23,22 @@ family's own unit tests pass; `npx tsc --noEmit` clean.
 writes** — only the diagnostic `queue_depth_before` metric's accuracy. `events_considered`/`invalidated`/
 `recomputed`/`skipped_*` are computed exactly as before.
 
-**harness_version at write time:** `sha256:581d2f7d4510235b`
+**Second update (lane INCLAUSE-CLASS, 2026-09-06, the IN-CHUNK id-list class fix — see
+`docs/audits/in-filter-audit-2026-09-06.md`).** `drain.ts`'s own `.in("invalidated_by_event", eventIds)`
+call was investigated for the same class F39 (`unbounded-in-filter`, new this lane) checks for.
+`eventIds` traces back to `eventList`, which is read through a `.limit(batch)` clause (`DEFAULT_BATCH =
+500`) — a worker's own page-size cap, not an unbounded corpus-wide read, so hitting that cap on a deep
+queue is the expected steady-state case, not a truncation signal. An `assertBound` call was attempted
+first and reverted: `assertBound` throws when the row count reaches the bound, which fits a deliberately
+bounded top-N/sample read where hitting the cap means truncation, not a worker's own page-size limit
+where reaching `batch` is normal. Left as a plain explanatory comment plus a
+`// fitness-allow: F39 (eventIds.length <= batch, DEFAULT_BATCH=500, via .limit(batch) above)` marker
+directly above the call instead. No behavior change — comment-only.
+
+**harness_version at write time:** `sha256:ebe93513ffa2a4f9`
 
 **The planned run that supersedes this marker:** the next real `node scripts/turns/run-propagation-drain.mjs`
 dispatch (dry or apply, hand or chained via `propagation-drain.yml`) — its own `propagation-run-006.json`
 will carry an accurate `queue_depth_before` for the first time since run-002, and this marker is deleted
-the moment that artifact lands with `harness_version: sha256:581d2f7d4510235b` (or updated to a new hash,
+the moment that artifact lands with `harness_version: sha256:ebe93513ffa2a4f9` (or updated to a new hash,
 per rule (c), if the driver or either governing module changes again before that run lands).

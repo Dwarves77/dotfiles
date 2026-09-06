@@ -63,6 +63,7 @@ import { walkFeed } from "../../src/lib/sources/feed-walk.mjs";
 import { walkSource, DEFAULT_MAX_SITEMAP_FETCHES, DEFAULT_MAX_SITEMAP_ENTRIES } from "../../src/lib/sources/sitemap-walk.mjs";
 import { writeRunArtifact, hashHarnessVersion, claimRunId } from "../lib/run-artifact.mjs";
 import { GOVERNING_FILES } from "../harness-runs/governing-files.mjs";
+import { readAllByIds } from "../lib/db.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const FSI_ROOT = resolve(HERE, "..", "..");
@@ -1023,14 +1024,15 @@ async function main() {
   // has not drained it yet, so a second row would only pile up redundant work, not new signal.
   async function recordSitemapChange(targetSourceId, changed) {
     if (mode !== "apply") return; // dry: sitemap-walk.mjs already counted this via changeRecorded
+    // `changed` is a sitemap diff for one portal, up to DEFAULT_MAX_SITEMAP_ENTRIES (100,000) locs —
+    // runtime-scaled with no per-call cap. Chunked via readAllByIds (idColumn: source_url), never a
+    // single .in(), IN-CHUNK class (2026-09-06).
     const locs = changed.map((c) => c.loc);
-    const { data: matched, error: matchErr } = await sb
-      .from("intelligence_items")
-      .select("id")
-      .eq("source_id", targetSourceId)
-      .eq("is_archived", false)
-      .in("source_url", locs);
-    if (matchErr) throw new Error(`sitemap change: intelligence_items lookup failed for ${targetSourceId}: ${matchErr.message}`);
+    const matched = await readAllByIds("intelligence_items", "id", locs, {
+      idColumn: "source_url",
+      client: sb,
+      match: (q) => q.eq("source_id", targetSourceId).eq("is_archived", false),
+    });
     if (!matched || !matched.length) return; // no live item's canonical URL matches a changed loc — no signal
     const { data: pending, error: pendErr } = await sb
       .from("monitoring_queue")

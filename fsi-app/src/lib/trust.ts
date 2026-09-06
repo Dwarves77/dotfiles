@@ -774,6 +774,7 @@ export async function evaluateCandidatePromotion(
   const { data: citerSources, error: srcErr } = await client
     .from("sources")
     .select("id, base_tier, effective_tier")
+    // fitness-allow: F39 (scoped to one item's own claim/section/search rows — small by construction, not corpus-scale)
     .in("id", citingIds);
 
   if (srcErr) {

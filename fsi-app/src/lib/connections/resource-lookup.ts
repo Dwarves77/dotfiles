@@ -69,12 +69,14 @@ export async function buildResourceLookup(
     if (legacyIds.length > 0) {
       queries.push(
         supabase.from("intelligence_items").select("id, legacy_id, title, priority")
+          // fitness-allow: F39 (relatedIds is one detail page's own related-items widget list, small by construction)
           .eq("provenance_status", "verified").in("legacy_id", legacyIds)
       );
     }
     if (uuidIds.length > 0) {
       queries.push(
         supabase.from("intelligence_items").select("id, legacy_id, title, priority")
+          // fitness-allow: F39 (relatedIds is one detail page's own related-items widget list, small by construction)
           .eq("provenance_status", "verified").in("id", uuidIds)
       );
     }
