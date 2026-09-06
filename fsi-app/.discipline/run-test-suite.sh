@@ -84,7 +84,6 @@ node --test \
   fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \
-  fsi-app/scripts/lib/funded-pass-core.test.mjs \
   fsi-app/scripts/lib/institution-key.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \

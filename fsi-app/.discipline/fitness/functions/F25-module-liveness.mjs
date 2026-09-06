@@ -749,9 +749,15 @@ export const LEGACY_ALLOWLIST = [
       // 20/21 rows set, 1 unverified skipped by design). Removed from skill-contract-map.mjs's
       // citingFiles (both remediation-discipline and environmental-policy-and-innovation) in the same
       // commit.
-      o('scripts/apply-4c-plan.mjs',
-        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/ops/session-log.md, current as of this session, states in prose "the 4c relabel of the sub-floor facts remains frozen, on purpose" — a deliberate operator hold, not a discharged one-shot. An unapplied plan artifact (scripts/_plans/4c-plan-1783345619430.json, git-tracked, not gitignored) still sits waiting on that hold. Deleting either half of the pair would foreclose a deliberately-parked decision this lane has no authority to make.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/apply-4c-plan.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52 disposition):
+      // DELETED, with its judge/plan-emitter pair run-4c-relabel.mjs and the tracked plan artifact
+      // scripts/_plans/4c-plan-1783345619430.json — operator ruling 2026-09-06 (per this lane's own
+      // dispatch script): the 4c relabel freeze W71-C's entry described as "deliberately parked, not
+      // discharged" is now honored by DELETION, not indefinite exemption — a hold with no active plan to
+      // resume is a one-shot that never ran, not a standing capability, and the corpus's unlabeled-
+      // assertion quarantine class it targeted is unaffected (regen-quarantined.mjs / verify-item.mjs
+      // still drive the live quarantine-resolution path). No test existed for either file to remove
+      // alongside it.
       // 'scripts/audit-optionc-reachability.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the
       // Part 1 B archiving-decision bug class it investigated was fixed at the source 2026-06-01
       // (canonical-fetch.mjs's browserlessFetch replaced the plain-fetch reachability check everywhere
@@ -767,63 +773,75 @@ export const LEGACY_ALLOWLIST = [
       // "Consumed by" note, docs/ops/session-log.md's Pillar A2 dry-pass evidence). Docs updated in the
       // same commit: shared-dataset-ownership.md, migrations.md #252, ADR-019, MAINTENANCE-RUNBOOK.md,
       // and IntersectionDetectionView.tsx's empty-state copy (now points at discover-for-items.mjs).
-      o('scripts/funded-pass.mjs',
-        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/audits/dormant-systems-audit-2026-07-18.md rules this "Manual, unscheduled by design... keep-and-integrate", a standing operator ruling this lane has no authority to reverse. Not safely wireable into a scheduled/dry-run workflow step either — the file does an unconditional top-level readFileSync of scripts/tmp/funded-pass-worklist.json (a hand-authored, per-campaign artifact that does not currently exist), so any unattended dispatch would crash on ENOENT by construction, not run cleanly in dry mode. No harness-run artifact exists to prove a discharged run.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/funded-pass.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52 disposition):
+      // DELETED, with scripts/lib/funded-pass-core.mjs (orphaned as a direct, verified consequence —
+      // its only production importer was funded-pass.mjs itself; grep confirms nothing else imports it)
+      // and both files' tests. Operator ruling 2026-09-06 (rule 14 corollary — a refuted finding is
+      // corrected IN PLACE): the 2026-07-18 dormant-systems audit's "keep-and-integrate" verdict for this
+      // file (docs/audits/dormant-systems-audit-2026-07-18.md line 169, annotated superseded in the same
+      // commit) is SUPERSEDED — the file contradicts CLAUDE.md standing rule "no LLM call in any runtime"
+      // read together with the $0 build-mode posture (funded-pass drives PAID Sonnet/Haiku generation
+      // passes) and its own top-level readFileSync of scripts/tmp/funded-pass-worklist.json (a
+      // hand-authored, per-campaign artifact that does not exist) means any dispatch — scheduled or
+      // hand-run without first authoring that file — crashes on ENOENT by construction; no harness-run
+      // artifact exists proving it ever completed a run. funded-pass-lock.mjs (the run-lock primitive,
+      // migration 205, doctrine RD-38) and its golden funded-pass-lock-golden.mjs are UNAFFECTED — that
+      // golden is itself a real, non-test importer of funded-pass-lock.mjs (F25's own isTestFile() does
+      // not classify a `-golden.mjs` suffix as a test), so the lock stays wired and proven independent of
+      // funded-pass.mjs's own deletion.
       // 'scripts/gen/migration-258.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — same
       // one-shot-generator-already-applied reasoning as the migration-267/268/271 generators above
       // (migration 258 is applied live; no anti-drift test ever existed for this generator, unlike
       // 267/268/271 — grep confirms `src/__tests__/migration-258-codegen-drift.test.mjs`, named in this
       // file's own header, was never built). The migration SQL file is untouched.
-      // 'scripts/holdings-audit.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05): investigated, NOT
-      // resolved. shared-dataset-ownership.md's own line 619 already flags this "TO-VERIFY" (no
-      // completed-evidence found for the 2026-07-14 dispatch it names; the idempotent-once guard makes
-      // absence of a run ambiguous, not disprovable) and this lane has no live Supabase credentials in
-      // this worktree to settle it by querying holdings_quality's row count. Deleting on an unresolved
-      // TO-VERIFY would risk destroying a still-needed audit tool on a guess; left for the
-      // operator/coordinator with DB access to settle and close.
-      o('scripts/holdings-audit.mjs',
-        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled. TO-VERIFY, not resolved (lane W71-C, 2026-09-05): see the comment above.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/holdings-audit.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52
+      // disposition): WIRED, not deleted — registered in scripts/verify/run-data-audit-lane.mjs's own
+      // AUDITS table (SOFT/informational, self-skip exit 2 without creds, same convention as
+      // wave-acceptance-audit.mjs) — a real, CI-dispatched reachability path this file's own
+      // findDispatchRoots Source 4 now finds. The env-load is also now guarded (was an unguarded
+      // process.loadEnvFile that would ENOENT-crash a no-.env.local run). shared-dataset-ownership.md's
+      // TO-VERIFY note on the 2026-07-14 dispatch's write is UNCHANGED — this registration runs only the
+      // script's default read-only report path, never --write.
       // 'scripts/recovery-measure.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the ~347-recovery
       // read-only measurement tool (Phase 1/1b/2), a dated incident-response tool with no evidence of an
       // open, unresolved incident naming it (docs/ops/session-log.md carries no live reference).
-      o('scripts/regen-quarantined.mjs',
-        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/audits/dormant-systems-audit-2026-07-18.md rules this "Manual, unscheduled by design... keep-and-integrate" alongside funded-pass.mjs above, a standing operator ruling this lane has no authority to reverse; .discipline/governance/invariants.mjs itself cites this file as the live resolver a real, enforced invariant ("Quarantine is an open investigation, never terminal") depends on.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      // 'scripts/remediation/acquire-primaries-batch.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05):
-      // investigated, NOT resolved — this is not a discharged one-shot. writeSnapshot (the sole writer of
-      // raw_fetches, the permanent append-only capture store) is called ONLY from this file and
-      // _reground/acquire-*.mjs (docs/audits/ingest-behavioral-read-2026-07-18.md, verified live). It is
-      // the operator-fired acquire path's real, still-needed writer, not a completed backfill — deleting
-      // it would remove the only way raw_fetches is ever populated outside the _reground toolkit.
-      o('scripts/remediation/acquire-primaries-batch.mjs',
-        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — this is the sole writer of raw_fetches on the operator-fired acquire path, a real ongoing capability, not a completed one-shot.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      // 'scripts/remediation/refetch-capped-worklist.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05):
-      // investigated, NOT resolved. ADR-016 (docs/decisions/ADR-016-storage-side-uncap.md) documents this
-      // script as an active, numbered Implementation step ("Run refetch-capped-worklist.mjs (BUILD)...
-      // Run refetch-capped-worklist.mjs --execute") that has genuinely NOT been executed yet
-      // (docs/ops/session-log.md: "EXECUTE not run... emergency stop stays UP" — blocked on an open
-      // GUARD-1 pool-insert-size ruling). Deleting an ADR-documented, not-yet-run remediation step without
-      // a ruling that supersedes ADR-016 would reverse a decision this lane has no authority to reverse
-      // (ledger discipline B2).
-      o('scripts/remediation/refetch-capped-worklist.mjs',
-        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — ADR-016 documents this as a not-yet-executed Implementation step, blocked on an open GUARD-1 ruling, not a discharged one-shot.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/run-4c-relabel.mjs',
-        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see apply-4c-plan.mjs\'s entry above — the 4c relabel is deliberately frozen, not discharged.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      // 'scripts/source-role-cleanup.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05): investigated, NOT
-      // resolved — NOT a discharged one-shot. docs/ops/session-log.md is explicit and current: "REMAINING,
-      // NAMED HONESTLY: 246 rows in the cohort and 874 registry-wide still NULL... the durable path is
-      // scripts/source-role-cleanup.mjs, whose active-only scope was fixed... Nothing here is blocked on a
-      // ruling" — 874 roleless source rows still need exactly this script to repair them. F22's own
-      // residual note ("the rows they created are repaired by scripts/source-role-cleanup.mjs") describes
-      // this same live, incomplete repair, not a finished one.
-      o('scripts/source-role-cleanup.mjs',
-        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — 874 registry-wide NULL-role rows remain, this script is explicitly named "the durable path" to fix them, and the operator can run it directly with DB credentials.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/regen-quarantined.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52
+      // disposition): WIRED, not deleted — the decision loop is now an exported, injectable
+      // `runResolver()`, driven UNMODIFIED by scripts/maintenance/regen-quarantined.mjs (maintenance.yml
+      // step "regen-quarantined", `arg` = optional --only scope) — a real dispatch root (this file's own
+      // findDispatchRoots Source 1, via the workflow's literal `scripts/maintenance/regen-quarantined.mjs`
+      // run: line and this script's own path named in that step's comment). .discipline/governance/
+      // invariants.mjs still cites this file as the live resolver the "Quarantine is an open
+      // investigation, never terminal" invariant depends on — now reachable by dispatch, not only by hand.
+      // 'scripts/remediation/acquire-primaries-batch.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25
+      // expiry-52 disposition): WIRED, not deleted — dispatched via scripts/maintenance/acquire-primaries.mjs
+      // (maintenance.yml step "acquire-primaries", apply-only — never part of the 'all' dry fan-out since
+      // even this script's own dry path performs real network fetches; `arg` names the item scope to
+      // acquire for). Wrapped as a subprocess (not an in-process import) because the acquisition logic
+      // itself does live network I/O the wrapper does not duplicate — see that wrapper's own header. This
+      // is still the sole writer of raw_fetches on the operator-fired acquire path (docs/inventories/
+      // shared-dataset-ownership.md), now registered there.
+      // 'scripts/remediation/refetch-capped-worklist.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25
+      // expiry-52 disposition): WIRED, not deleted — dispatched via scripts/maintenance/refetch-capped.mjs
+      // (maintenance.yml step "refetch-capped"; dry/BUILD always allowed, apply/EXECUTE gated on
+      // `arg=GUARD-1-accepted` per ADR-016, docs/decisions/ADR-016-storage-side-uncap.md — its own
+      // Implementation-step numbering, cited in that wrapper's header comment). The open GUARD-1
+      // pool-insert-size ruling this file was blocked on is UNCHANGED by this wiring; the gate refuses
+      // EXECUTE without the explicit token exactly as ADR-016's drain order requires.
+      // 'scripts/run-4c-relabel.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52
+      // disposition): DELETED alongside its pure-node applier pair apply-4c-plan.mjs — see that entry's
+      // own removal note above for the operator ruling and full rationale (the 4c relabel freeze is now
+      // honored by deletion, not indefinite exemption).
+      // 'scripts/source-role-cleanup.mjs' entry REMOVED (lane ONESHOTS, 2026-09-06, F25 expiry-52
+      // disposition): WIRED, not deleted — dispatched via scripts/maintenance/source-role-cleanup.mjs
+      // (maintenance.yml step "source-role-cleanup", dry/apply, `arg=active-only` narrows scope). The
+      // FIX this lane also made (rule 13 — fix it now): this script's own connection code previously
+      // hardcoded a LOCAL-ONLY `supabase link` path with no CI fallback (an unguarded readFileSync that
+      // would ENOENT-crash the moment this ran from the only place with DB credentials, GitHub Actions) —
+      // now uses the shared scripts/lib/pg-conn.mjs resolver every other pg-direct tool in this repo uses,
+      // and self-skips (exit 2) rather than crashing when no candidate connects. docs/ops/session-log.md's
+      // "874 registry-wide NULL-role rows... the durable path is scripts/source-role-cleanup.mjs" note is
+      // now a real, reachable dispatch, not only a hand-run script.
       // 'scripts/source-state-min-wage.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the state
       // minimum-wage DATA PROGRAM (operator ruling 2026-07-07) is discharged: state_cost_facts carries
       // 13/13 live rows (docs/inventories/migrations.md #152, population report), matching exactly the "13
