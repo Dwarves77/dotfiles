@@ -83,10 +83,16 @@ export const TERMINAL_SINK_ALLOWLIST = {
   // portal_link_candidates: entry RETIRED 2026-07-19 — B1 (portal-harvest consumer) built the awaited
   // reader (src/lib/intake/portal-harvest.ts consumePortalCandidates), so the table is no longer a
   // write-orphan and a standing allowlist entry would be the stale-entry defect this list audits for.
-  entity_scope: {
-    reason: 'FIRST WRITER 2026-09-05 (Lane CORRIDORS-STATUTORY, migration 282, docs/specs/08-flywheel-design.md §1.2: "the join table that makes any entity addressable from any surface"). scripts/entities/write-entity-scope.mjs derives corridor-to-jurisdiction (\'touches_jurisdiction\') rows from the UN/LOCODE-prefix relationship and is wired into seed-corridors.mjs (a live maintenance.yml step). No reader exists yet — the spec names this table\'s PURPOSE (make an entity addressable from any surface) but not a first consumer, and building one (a UI surface or query using corridor jurisdiction scope) is a feature-shaped decision outside this lane\'s write set, not a small follow-up to the writer itself. DISPOSITION PENDING (build the first reader vs ratify as write-only pending a future surface) — grandfathered, not ratified.',
-    reviewByPhase: 'a future lane building the first surface/query that consumes entity_scope (candidate: a corridor detail view showing touched jurisdictions) — named, not scheduled.',
-  },
+  // entity_scope: entry RETIRED 2026-09-06 (Lane SCOPE-READER, operator ruling: "keep spec 08's scoping
+  // table, build the reader, and make every customer-facing corridor reference human-readable"). The
+  // candidate this entry itself named ("a corridor detail view showing touched jurisdictions") is now
+  // built: src/lib/entities/corridor-scope.ts's listCorridorScopes()/listCorridorsTouchingJurisdictions()
+  // read entity_scope directly (`.from("entity_scope").select(...)`), consumed by the Market Intel
+  // carbon-cost overlay's corridor selector (src/app/market/page.tsx) and the regulation detail
+  // "Corridors this applies on" block (src/components/regulations/CorridorsAppliedStrip.tsx). With a
+  // real code reader now live, entity_scope is no longer a write-orphan — the detector correctly flags a
+  // standing entry here as STALE, exactly the self-audit this allowlist is built to perform (same pattern
+  // this file's own entity_identifiers/portal_link_candidates/ingestion_control_log retirements above).
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

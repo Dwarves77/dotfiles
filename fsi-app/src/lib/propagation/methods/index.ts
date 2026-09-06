@@ -148,6 +148,15 @@ import {
   METHOD_ID as CARBON_INTENSITY_METHOD_ID,
   METHOD_VERSION as CARBON_INTENSITY_METHOD_VERSION,
 } from "./carbon-intensity.ts";
+// Lane W4-DAG, 2026-09-06: the first registered method whose declared inputs are `market_series` rows —
+// see market-series-delta.ts's own header for why this (computeSeriesDeltas' Δ1w, already rendered on the
+// live Market surface) and not carbon-cost-per-feu (still gapped on distance/payload/eex-eua today).
+import {
+  computeMarketSeriesDelta,
+  METHOD_ID as MARKET_SERIES_DELTA_METHOD_ID,
+  METHOD_VERSION as MARKET_SERIES_DELTA_METHOD_VERSION,
+} from "./market-series-delta.ts";
 
 registerMethod(AUTOMATE_VS_HIRE_METHOD_ID, AUTOMATE_VS_HIRE_METHOD_VERSION, computeAutomateVsHire);
 registerMethod(CARBON_INTENSITY_METHOD_ID, CARBON_INTENSITY_METHOD_VERSION, computeCarbonIntensity);
+registerMethod(MARKET_SERIES_DELTA_METHOD_ID, MARKET_SERIES_DELTA_METHOD_VERSION, computeMarketSeriesDelta);

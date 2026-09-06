@@ -22,6 +22,7 @@
 
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
+import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
@@ -109,7 +110,6 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
           }}
         >
           {shown.length} of {rows.length} headline series
-          {hiddenCount > 0 ? ` · ${hiddenCount} more below` : ""}
         </span>
       </div>
 
@@ -124,6 +124,20 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
           <RibbonCard key={row.seriesKey} row={row} />
         ))}
       </div>
+
+      <MoreBelowDisclosure count={hiddenCount} itemNoun="more headline series">
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {rows.slice(MAX_METRICS).map((row) => (
+            <RibbonCard key={row.seriesKey} row={row} />
+          ))}
+        </div>
+      </MoreBelowDisclosure>
     </div>
   );
 }

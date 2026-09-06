@@ -84,7 +84,6 @@ node --test \
   fsi-app/scripts/lib/fetch-now-decision.selftest.mjs \
   fsi-app/scripts/lib/flag-age.selftest.mjs \
   fsi-app/scripts/lib/free-pass.selftest.mjs \
-  fsi-app/scripts/lib/funded-pass-core.test.mjs \
   fsi-app/scripts/lib/institution-key.test.mjs \
   fsi-app/scripts/lib/liveness.selftest.mjs \
   fsi-app/scripts/lib/reachability.selftest.mjs \
@@ -131,6 +130,7 @@ node --test \
   fsi-app/src/lib/bootstrap/*.test.mjs \
   fsi-app/src/lib/watchlist/*.test.mjs \
   fsi-app/src/lib/detail/*.test.mjs \
+  fsi-app/src/lib/url-params/*.test.mjs \
   fsi-app/src/components/community/*.test.mjs \
   fsi-app/src/components/shell/*.test.mjs \
   fsi-app/src/lib/workspace/*.test.mjs \

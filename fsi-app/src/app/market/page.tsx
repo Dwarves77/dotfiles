@@ -52,17 +52,21 @@ import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRi
 // set) — this page assembles the per-corridor result via the pure carbonCostPerFeu() computation
 // (src/lib/market/carbon-cost-per-feu.mjs) from data already checked into the repo: the DESNZ emission-
 // factor fixture (scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json, an F34-compliant
-// static import, never a runtime fs read) and CARBON_COST_CORRIDORS below — the same ADR-024 §4 worked
-// example (CNSHA-NLRTM, ocean) scripts/entities/seed-corridors.mjs seeds into the entity spine, restated
-// here rather than imported from that scripts/ module (this page stays inside src/, matching every other
-// import on this file). Distance, payload and an EU ETS/FuelEU carbon price are the three inputs no
-// licence-clear live source in this product carries yet (see carbon-cost-per-feu.mjs's own header for why
-// each is a named GAP, not fabricated) — the overlay therefore renders today's honest state, and lights
-// up with a real range the moment any lane adds a distance producer, a licence-clear payload convention,
-// or the eex-eua market_series producer, with zero further code change here.
+// static import, never a runtime fs read) and — SINCE lane SCOPE-READER, 2026-09-06 — every corridor
+// entity actually live in the spine (`entities WHERE kind='corridor'`, read via
+// `getCachedCorridorScopes()`), not the single hand-typed CNSHA-NLRTM entry this page used to carry.
+// Distance, payload and an EU ETS/FuelEU carbon price are the three inputs no licence-clear live source
+// in this product carries yet (see carbon-cost-per-feu.mjs's own header for why each is a named GAP, not
+// fabricated) — the overlay therefore renders today's honest state, and lights up with a real range the
+// moment any lane adds a distance producer, a licence-clear payload convention, or the eex-eua
+// market_series producer, with zero further code change here.
 import { carbonCostPerFeu } from "@/lib/market/carbon-cost-per-feu.mjs";
 import { CarbonCostOverlay, type CarbonCostOverlayEntry } from "@/components/market/CarbonCostOverlay";
 import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json";
+// Lane SCOPE-READER (2026-09-06): entity_scope's first real reader (docs/specs/08-flywheel-design.md
+// §1.2) — the entity-spine-backed corridor list + labels + jurisdiction chips this overlay's selector
+// renders below. Cached per ADR-026's detail-page pattern (corridor-scope-cache.ts's own header).
+import { getCachedCorridorScopes } from "@/lib/entities/corridor-scope-cache";
 // Policy timeline (spec 02 §6 item 9): reuses the ALREADY-BUILT, RLS-scoped item_forward_events reader
 // (src/lib/forward-events/read-upcoming.mjs, mounted here unmodified — see that component's own header
 // for the read-layer contract). Genuinely dated and forward-looking ("days until" via formatEventDate),
@@ -86,15 +90,6 @@ import { IndexationPanel } from "@/components/market/IndexationPanel";
 
 const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 
-// The corridor(s) this overlay renders. ADR-024 §4's own worked example ("Shanghai–Rotterdam, ocean" —
-// CNSHA/NLRTM) — the same pair seed-corridors.mjs's ADR_EXAMPLE_CORRIDORS falls back to when no live
-// market_series/regional_data_facts row names a corridor (true for every run against today's live data;
-// see that script's own header). Not invented for this page: it is the ADR's own illustration, restated
-// here so this page never has to reach into scripts/ to render it.
-const CARBON_COST_CORRIDORS: ReadonlyArray<{ label: string; origin: string; dest: string; mode: string }> = [
-  { label: "Shanghai – Rotterdam, ocean", origin: "CNSHA", dest: "NLRTM", mode: "ocean" },
-];
-
 interface DesnzFixtureRow {
   mode: string;
   vehicle_class: string;
@@ -116,22 +111,35 @@ function findFactorForMode(mode: string): DesnzFixtureRow | null {
   return rows.find((r) => r.mode === mode) ?? null;
 }
 
-/** Builds the overlay entries for CARBON_COST_CORRIDORS. Pure composition of already-fetched/imported
- *  data through carbonCostPerFeu() — no I/O here, matching that module's own zero-dependency contract.
- *  distanceKm/payloadTonnesPerFeu/carbonPrice are null across the board today: no licence-clear distance
- *  dataset, no licence-clear tonnes-per-FEU convention, and market_series carries no eex-eua row yet (see
- *  carbon-cost-per-feu.mjs's header) — each renders as its own named GAP, never a fabricated number. */
-function buildCarbonCostOverlays(): CarbonCostOverlayEntry[] {
-  return CARBON_COST_CORRIDORS.map(({ label, origin, dest, mode }) => ({
-    label,
-    result: carbonCostPerFeu({
-      corridor: { origin, dest, mode },
-      factor: findFactorForMode(mode),
-      distanceKm: null,
-      payloadTonnesPerFeu: null,
-      carbonPrice: null,
-    }),
-  }));
+/** Builds the overlay entries for every live corridor entity (lane SCOPE-READER, 2026-09-06 — was a
+ *  single hand-typed CARBON_COST_CORRIDORS entry). Pure composition over corridors already fetched by
+ *  the caller through carbonCostPerFeu() — no I/O here, matching that module's own zero-dependency
+ *  contract. distanceKm/payloadTonnesPerFeu/carbonPrice are null across the board today: no licence-clear
+ *  distance dataset, no licence-clear tonnes-per-FEU convention, and market_series carries no eex-eua row
+ *  yet (see carbon-cost-per-feu.mjs's header) — each renders as its own named GAP, never a fabricated
+ *  number. A corridor whose `parsed` origin/dest/mode did not parse (should not happen — every live
+ *  corridor's canonical_name is written by seed-corridors.mjs's own convention — but corridor-scope.ts
+ *  never guesses one) is skipped rather than fed a fabricated origin/dest into carbonCostPerFeu(). */
+function buildCarbonCostOverlays(
+  corridors: Awaited<ReturnType<typeof getCachedCorridorScopes>>,
+): CarbonCostOverlayEntry[] {
+  return corridors
+    .filter((c) => c.parsed !== null)
+    .map((c) => {
+      const { origin, dest, mode } = c.parsed!;
+      return {
+        label: c.label,
+        entityId: c.entityId,
+        jurisdictions: c.jurisdictions.map((j) => ({ code: j.code, name: j.name })),
+        result: carbonCostPerFeu({
+          corridor: { origin, dest, mode },
+          factor: findFactorForMode(mode),
+          distanceKm: null,
+          payloadTonnesPerFeu: null,
+          carbonPrice: null,
+        }),
+      };
+    });
 }
 
 export default async function Market() {
@@ -143,10 +151,14 @@ export default async function Market() {
   // PERF-10 (2026-09-04): no per-viewer read runs here at all — see this file's header. The
   // market_series watch-membership batch read is gone; MarketSeriesBoard renders with
   // watchMembership: null, and each row's WatchButton resolves its own state client-side.
-  const [marketIntel, aggregates, seriesBoard] = await Promise.all([
+  const [marketIntel, aggregates, seriesBoard, corridorScopes] = await Promise.all([
     getPublicMarketIntelItems(),
     getPublicSurfaceCounts("market"),
     fetchMarketSeriesBoard(),
+    // Lane SCOPE-READER (2026-09-06): every live corridor entity, its label and jurisdiction chips —
+    // fails soft to [] (never throws) when the service client is unavailable, matching this page's
+    // other fetches' fail-soft posture (fetchMarketSeriesBoard etc.).
+    getCachedCorridorScopes(),
   ]);
 
   const totalSignals = aggregates.totalItems || marketIntel.resources.length;
@@ -172,11 +184,12 @@ export default async function Market() {
           the signal ledger and the full series board. Renders nothing when no series is populated yet
           (MarketComparativeRibbon's own null-return), never an empty shell. */}
       <MarketComparativeRibbon board={seriesBoard} />
-      {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static fixture + the ADR-024
-          example corridor, never a fetch inside the component itself (CORR write set). Renders today's
-          honest gap state until a distance producer, a licence-clear payload convention, or the eex-eua
-          market_series producer lands. */}
-      <CarbonCostOverlay overlays={buildCarbonCostOverlays()} />
+      {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
+          every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
+          never a fetch inside the component itself (CORR write set — the fetch lives in this page).
+          Renders today's honest gap state per corridor until a distance producer, a licence-clear
+          payload convention, or the eex-eua market_series producer lands. */}
+      <CarbonCostOverlay overlays={buildCarbonCostOverlays(corridorScopes)} />
       {/* PERF-11 (2026-09-04): trimmed the same way /regulations' first-paint and remainder rows are —
           see toLedgerRowPayload's own header for the field accounting (confirmed by grep against
           MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:

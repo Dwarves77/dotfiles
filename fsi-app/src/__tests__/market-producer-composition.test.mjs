@@ -48,6 +48,14 @@ import assert from "node:assert/strict";
 import { parseEuWeeklyOilBulletinCsv } from "../lib/market/parsers/eu-weekly-oil-bulletin.mjs";
 import { planMarketSeriesUpsert } from "../lib/market/write-market-series.mjs";
 import { producerFor } from "../lib/market/series-registry.mjs";
+// Lane W4-DAG, 2026-09-06: DAG authorship at write time (see author-market-series-delta.mjs's own
+// header) is now the FOURTH seam every market_series producer composes — F27's own gate requires the
+// full seam set proven together, not per-module. This file already covers producer<->write-market-series
+// for eu-weekly-oil-bulletin/ecb-fx/eia-v2 alike (none of the three import a distinct planner); adding
+// this one import here, rather than a fourth near-duplicate proof file, is what makes THIS file the
+// single proof for all three producers' full seam sets (parser+write+registry+author, or write+
+// registry+author for the two producers whose own parser is inline, not a separate src/lib module).
+import { authorMarketSeriesDeltaEdges } from "../../scripts/producers/market/author-market-series-delta.mjs";
 // Imports directly from the real vocabulary homes (lane W71-A, 2026-09-05: provenance-envelope.mjs
 // deleted — zero production importers, only test-only re-exports of these two — per its own header's
 // "VOCABULARY OWNERSHIP" note, origin_class lives in vocabularies.mjs and derivation in envelope.mjs).
@@ -156,6 +164,31 @@ test("idempotency: planning the parser's own prior output against itself yields 
     assert.equal(u.patch.value_numeric, original.value_numeric, `update for id=${u.id} changed value_numeric on an unchanged input`);
     assert.equal(u.patch.label, original.label, `update for id=${u.id} changed label on an unchanged input`);
   }
+});
+
+test("the FOURTH seam: real parser -> planner output IS consumable by authorMarketSeriesDeltaEdges (DAG authorship) — the composition every market_series producer now performs after its guarded write", async () => {
+  const { rows } = parseEuWeeklyOilBulletinCsv(PRODUCTION_CSV);
+  const { toCreate } = planMarketSeriesUpsert([], rows);
+  assert.equal(toCreate.length, 6);
+
+  // Simulate the DB assigning ids to the created rows (as guardedInsert's own read-back would), then a
+  // PRIOR week's row for the same series_key one week earlier — real market_series-shaped rows, not a
+  // hand-built fixture disconnected from what the parser/planner actually produce.
+  const latest = { ...toCreate[0], id: "row-latest" };
+  const prior = { ...toCreate[0], id: "row-prior", reference_period: "2026-08-17", value_numeric: toCreate[0].value_numeric - 5, origin_class: "official" };
+
+  const authorCalls = [];
+  const counts = await authorMarketSeriesDeltaEdges([latest.series_key], "apply", {
+    readAllFn: async () => [latest, prior],
+    authorEdgesFn: async (sb, figure) => { authorCalls.push(figure); return { ok: true, action: "authored", valueId: "v-composition" }; },
+    sb: {},
+    now: () => new Date("2026-08-25T00:00:00Z"),
+  });
+
+  assert.equal(counts.authored, 1, "the real parser->planner row shape must be authorable, not refused by an unexpected field mismatch");
+  assert.equal(authorCalls.length, 1);
+  assert.equal(authorCalls[0].table, "market_series");
+  assert.equal(authorCalls[0].method.id, "market_series_delta");
 });
 
 test("a row with no reference_period lands in skippedNoReferencePeriod, never a duplicate under the UNIQUE key", () => {

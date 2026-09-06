@@ -58,6 +58,27 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: APP_ROOT,
   },
+  // P4 fix (2026-09-06, docs/audits/perf-load-times-2026-09-03.md §10): "no client-side route
+  // cache, every back-navigation re-fetches and shows a ~3s skeleton reload." ROOT CAUSE
+  // [CONFIRMED] by reading `node_modules/next/dist/server/config-shared.js`: this Next version
+  // (16.1.6) defaults `experimental.staleTimes.dynamic` to 0 — every dynamic route segment (every
+  // route in this app: all read cookies()/auth per the redirects() comment below, so all are
+  // dynamic) is treated as immediately stale in the CLIENT Router Cache, so a back/forward
+  // navigation always re-requests the RSC payload instead of reusing what is already in memory,
+  // even though the app just rendered it seconds ago. This is a SEPARATE cache layer from
+  // ADR-026's server-side `unstable_cache` item-scoped split (which this does not touch or
+  // weaken — that cache still governs what a fresh fetch is allowed to reuse; this governs
+  // whether the CLIENT has to issue that fetch at all on a nav the user has already paid for).
+  // `dynamic: 30` gives the client a 30s window to serve a back-navigation from its own cache
+  // instead of re-fetching and re-rendering the full skeleton; `static` keeps the Next default
+  // (300s) — static segments were never the reported problem. Measured before/after with the
+  // perf audit's Resource Timing method: see docs/audits/perf-load-times-2026-09-03.md §10.
+  experimental: {
+    staleTimes: {
+      dynamic: 30,
+      static: 300,
+    },
+  },
   // PERF-9 (2026-09-04, item 3, ADR-026 §2): `experimental.ppr` (classic Partial Prerendering) was
   // tested here and found REMOVED in this Next version — the build itself refuses to start:
   // "`experimental.ppr` has been merged into `cacheComponents`... enabled via `cacheComponents`."

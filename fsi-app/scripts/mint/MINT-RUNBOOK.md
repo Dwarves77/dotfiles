@@ -358,6 +358,37 @@ A batch with a high `isolated_items` rate is not automatically a defect — some
 genuinely novel — but an UNMEASURED isolation rate is exactly the "invisible unless you go looking"
 failure this section exists to close; record it every batch, even when the number is zero.
 
+`obligations_derived` (lane MINT-FLYWHEEL, 2026-09-06) — the fourth §9 field, added alongside the three
+above: how many `obligations` rows `derive-obligations.mjs` inserted (apply mode) or would insert (dry
+mode preview) THIS dispatch. Read this together with `forward_events_extracted`, not as a batch-scoped
+count on its own — `derive-obligations.mjs` is unscoped (it reads every open `item_forward_events` row on
+the checkout, idempotent on `forward_event_id`, same posture as `analyze-corpus.mjs --signals`), so a
+dispatch with `forward_events_extracted: 0` for THIS batch can still report a nonzero
+`obligations_derived` when an EARLIER batch's forward events had not yet been derived. Deliberately not a
+THE-GATE-checked key (`OUTCOME_KEYS` in `run-population-flywheel.mjs`): every mint-run artifact already
+enriched before this field existed (mint-run-004 through mint-run-029) would otherwise read as newly stale
+under the gate for a field that did not exist when they were connected — that would be a false regression
+signal, not a real one.
+
+**What "the propagation outbox event emitted for each mint" turned out to mean — REFUTED as stated
+[CONFIRMED, 2026-09-06].** A build-plan reading of migration 284 (`propagation_events` /
+`emit_propagation_event()`, spec 08 §2.2 Part 1) suggested the outbox trigger might already fire when an
+`intelligence_items` row is minted, making a mint's propagation event free to prove. It does not: grepping
+every migration for `propagation_outbox_trg`/`emit_propagation_event` shows the trigger attached to
+`emission_factors`, `market_series`, `regional_data_facts` (migration 284) and `derived_values`
+(migration 285), `statutory_computations`/`estimated_values` (migration 286) — SIX tables, none of them
+`intelligence_items`. This is by design, not an oversight: spec 08's outbox exists for the DECISION
+PROPAGATION loop (a producer number changing invalidates the derived figures downstream of it, drained by
+`src/lib/propagation/drain.ts`) — a freshly minted `intelligence_items` row is not itself a producer
+figure and has no `derivation_edges` dependent to invalidate; the flywheel this runbook's §8 governs
+(connections, forward events, obligations, tags) is the DIFFERENT rule-17 tandem that applies to a mint. A
+mint's `derivation_edges` authorship (so a LATER producer change CAN find and invalidate anything derived
+from an item this batch minted) is a separate, not-yet-built gap — audit `docs/audits/
+plan-completion-audit-2026-09-05/README.md` finding 6, workstream W4.1 — out of this runbook's §8/§9
+scope and this lane's write set (`scripts/mint/**`, `scripts/turns/run-population-flywheel*.mjs`,
+`population-turn.yml`, this file, `harness-runs/mint*/PENDING-RUN.md`, tests — no migration, no
+`scripts/entities/**`).
+
 ## 10. Off-vertical disposition (relevance re-screen, task 3)
 
 If an item fails the $0 rule-based relevance re-screen (see the M0 report), do not author a payload at

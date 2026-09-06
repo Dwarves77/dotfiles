@@ -10792,3 +10792,167 @@ train could not close on its own authority. (2) The `workflow_run`-chained ledge
 chained run's own artifact is the evidence that settles it. (3) `docs/dispatches/proposer-brief-ledger-
 consume-train-wave48-2026-09-05.md` and the propagation sibling stay on disk for the record even though I
 completed both passes directly this train; nothing further is owed against them.
+
+## Addendum 86, postscript 3: train 49, nine lanes folded, migration 312 applied, two ledger rows, a reproducibility defect found (2026-09-06, coordinator, lane ASSEMBLE-49)
+
+I assembled train 49 (`train/wave49-2026-09-06`, cut from `origin/master` `f2d9694a` / train 48) by
+merging nine lane branches in the order the coordinator's own dispatch named: rulings, oneshots, chain,
+mintflywheel, w4data, fueleu, scopereader, uxfix, detailwf. Each lane's own §0 verdict, as I read it from
+its commit's git log (no separate REPORT.md file exists per lane; the commit message is the report):
+
+- **MINT-FLYWHEEL**: the audit's rule-17 finding ("the tandem is not built") is refuted - lane TANDEM
+  already built the mandatory-flywheel step inside the population runtime. This lane documents that in
+  `apply-mint-batch`'s header and adds an `obligations_derived` outcome rather than re-implementing
+  anything.
+- **CHAIN**: built `.github/workflows/downstream-chain.yml` and the shared `maintenance-step` composite
+  action, closing the gap MAINTENANCE-RUNBOOK §1 first named - population-turn's own mandatory flywheel
+  step already ran `derive-obligations`/`tag-proposals` for a mint's own items, but corpus-turn never ran
+  any of the four downstream steps, so a corpus turn used to just end. `propagation-drain.yml` now also
+  triggers off a completed `downstream-chain` run.
+- **SCOPE-READER**: built the first real `entity_scope` reader (`corridor-scope.ts`) and human-readable
+  corridor labels everywhere a corridor renders (migration 312, `unlocode-names.mjs`). Both allowlist
+  entries for `entity_scope` (F14 TERMINAL_SINK_ALLOWLIST, closure-gate WRITER-READER) are gone - the
+  table now has a real reader, not a grant.
+- **ONESHOTS**: resolved all 8 F25 expiry-52 allowlist entries - deleted 3 dead scripts
+  (`apply-4c-plan.mjs`, `funded-pass.mjs` + its lib, `run-4c-relabel.mjs`), wired 5 as real dispatch roots
+  (`regen-quarantined`, `acquire-primaries`, `refetch-capped`, `source-role-cleanup`, plus
+  `holdings-audit` registered soft in the data-audit lane). Zero expiry-carrying F25 entries remain
+  anywhere in the gate after this train.
+- **W4-DAG**: wired producer-authored `market_series` DAG edges - a `market_series_delta` method, an
+  `author-market-series-delta` helper, wired into 3 producers, `backfill-derivation-edges.mjs` gets a
+  third delegate. 12 edges are expected on the first live backfill (not yet dispatched this train).
+- **FUELEU**: the statutory rows-file needs per-ship MRV figures the FuelEU regulation itself does not
+  publish anywhere machine-readable - this lane found that rather than fabricate placeholder rows, and
+  built `validate-statutory-rows-file.mjs` (wired into `propagation-drain.yml` before
+  `write-statutory.mjs`) plus the real Annex I/IV six-period constants. `statutory_computations` stays at
+  0 until a THETIS-MRV row is actually sourced - a named next step, not a silent gap.
+- **RULINGS**: transcribed the operator's ruling on all four review queues (portal-links,
+  provisional-sources, canonical-candidates, coverage-gaps) plus R-A/R-B/R-E into
+  `RULING-2026-09-06.md` and the four `.ruling.json` files the `review-apply-*` scripts read. Finding:
+  R-B (the EU Weekly Oil Bulletin market_signal rows, reclassify not archive) cannot be applied through
+  `reviewed-verdicts.json`'s census-id-keyed override, because these rows were minted via an R-D
+  `rows_file` batch and carry no `census_worklist` row at all - the actual fix is one new
+  `screen-rules.mjs` ON_VERTICAL rule, named as the next dispatch for a code lane since this lane writes
+  no code.
+- **UX-FIX**: fixed five live defects (P1 room-membership chip conflation, P2 Operations' region-link
+  building a group label the ledger filter didn't recognize, P3 two dead-end "N more below" labels, P4
+  Next 16's zeroed route-cache `staleTimes.dynamic`, P5 dead Map list-view rows) and cut the
+  auth-bootstrap round trip from 3 sequential DB calls to 1 parallel batch of 2. P6 (Map mode-tag
+  coverage) turned out not to be a UI fix at all - no deterministic classifier for `transport_modes`
+  exists anywhere in the repo - so this lane built `mode-tag-coverage-audit.mjs` (soft, self-skipping) as
+  a named editorial backlog instead of inventing a fake auto-tagger.
+- **DETAIL-WATERFALL**: fixed the regulation-detail Summary/Full/Complete three-state toggle (the body
+  could show "active" on one segment while displaying a different state's content) and re-measured the
+  operator's reported 44-client-fetch / 34-second-tail waterfall against production. **Not reproduced**
+  in a foreground capture - two items measured 7-8 fetch-initiated requests, all finishing within 2.2s of
+  navigation start, already effectively parallel. Two hypotheses are named for the gap ([HYPOTHESIS]:
+  the operator's capture may have been cold-cache/unauthenticated; [HYPOTHESIS]: the operator's tab may
+  have been mid `_rsc`-prefetch storm from a different route) but neither is verified - this narrows the
+  finding, it does not refute it, and the fetches this lane DID observe are still one-per-concern,
+  unbatched, client-side reads duplicating data reachable server-side (a real structural defect either
+  way, per the operator's own "stands either way" caveat).
+
+**Conflicts, every one resolved by union of intent, `grep -rn '<<<<<<<'` clean afterward:**
+
+1. `.github/workflows/maintenance.yml` - auto-merged clean by git itself; verified both chain's four
+   steps refactored onto the `maintenance-step` composite AND oneshots' four new steps
+   (`regen-quarantined`/`acquire-primaries`/`refetch-capped`/`source-role-cleanup`) plus their `options:`
+   entries survive.
+2. `docs/runbooks/MAINTENANCE-RUNBOOK.md` - both chain and oneshots wrote a `## 33.`. Kept chain's §33
+   (the four-step chaining section) first, since `PROPAGATION-DRAIN-RUNBOOK.md` already cited it as §33
+   before this merge; renumbered oneshots' four sections (`regen-quarantined`, `acquire-primaries`,
+   `refetch-capped`, `source-role-cleanup`) to §34-§37. No internal cross-reference in either section
+   named the other's number, so no further fix was needed.
+3. `.github/workflows/propagation-drain.yml` - auto-merged clean by git itself; verified the
+   `workflow_run.workflows` list carries both `"Data producers"` and `"Downstream chain"` (chain's
+   trigger) and the `validate-statutory-rows-file.mjs` call (fueleu's gate) sits before
+   `write-statutory.mjs` in the drain job.
+4. `fsi-app/scripts/verify/run-data-audit-lane.mjs` - uxfix's `mode-tag-coverage` entry and oneshots'
+   `holdings-audit` entry both landed at the same spot in the `AUDITS` array. Resolved by keeping both
+   entries; `node -c` confirmed the file still parses.
+5. `docs/audits/perf-load-times-2026-09-03.md` - both uxfix and detailwf appended a `## 16.`. Kept
+   uxfix's §16 first; renumbered detailwf's entire section, its eight `### 16.x` subsections, and every
+   internal `§16.x` cross-reference inside that section (22 occurrences) to §17/§17.1-§17.8. No external
+   doc cited this file's §16 or §17 by number.
+6. `src/app/regulations/[slug]/page.tsx` - no conflict against lane/scopereader (merged three lanes
+   earlier in the same order): `CorridorsAppliedStrip`'s import and render both survive undisturbed.
+
+`fsi-app/.discipline/governance/coverage-scan.mjs` regenerated `coverage-report.json` after all nine
+merges: 847 governed files, 812 COVERED, 35 EXEMPT, **0 GAPS**.
+
+**`assemble-train --fold --propose --ledger`**: folded 0 new artifact branches (26 already folded, 0
+conflicts), 0 families needed a fresh proposer pass, 0 ledger rows derived - nothing new to fold since
+train 48's own assembly already covered the stranded artifact branches, and no artifact-branch-producing
+workflow (population-turn, source-sweep, propagation-drain, corpus-turn, ledger-consume,
+change-detection) has run since.
+
+**Migration 312 (`entities.display_name`) APPLIED LIVE 2026-09-06** by me via Supabase MCP, immediately
+after lane SCOPE-READER's report - post-check confirmed live: `entities.display_name` is `text`,
+nullable. `schema_migrations` version read back as `20260906154322` (`select version from
+supabase_migrations.schema_migrations order by version desc limit 1`). The file's own header and
+`docs/inventories/migrations.md`'s 312 row both carry the APPLIED note, matching migration 310's
+convention. **Lane w71f14's own unmerged file also numbered 312**
+(`312_drop_entity_scope.sql`, dropping `entity_scope` outright) was **not merged into any train** and is
+**superseded by the operator's ruling** to keep the table and build the reader instead - both the
+migration file's header and the migrations.md row now say so explicitly, so nobody re-applies it.
+
+**Two coordinator-confirmed dispatch-ledger rows appended**: Maintenance #54 (`w1-dispositions`, apply,
+run 34039929264, `arg=R-C-accepted`) - report-only, applied 0 by design, unlocks the wire-8/delete-10/
+hold-6/keep-2 worklist; train 48-49's own code lanes dispositioned the W7.1 allowlist independently, and
+the two worklists still need reconciling in a future hygiene pass. Maintenance #55
+(`provenance-heal`, dry, run 34041907817, `arg=quarantined-live`) - the seed run for
+`attach-found-sources`: `extract-worklist-seed.mjs` produced **0 seed rows** from its own `summary.json`
+(no `steps.source[]` entry carries outcome `no_candidate_url`/`unresolved`), so the 443-orphan worklist
+MAINTENANCE-RUNBOOK §8b expects is not reproducible from this dispatch - a defect or a selection
+mismatch to diagnose before the browser lane that consumes it can run. I have not diagnosed which; it is
+named, not investigated, this train.
+
+**UX compliance.** Three lanes touched `.tsx` this train:
+
+- **DETAIL-WATERFALL** (`RegulationDetailSurface.tsx`, the Summary/Full/Complete toggle), quoted from
+  that lane's own §17.8 in `perf-load-times-2026-09-03.md` (a citation, kept as that file's own text
+  rather than paraphrased): *Screen: Regulation detail →
+  Summary tab (brief-grade) → Short/Full/Complete toggle. Goal: let a viewer choose how much of the
+  generated brief to read, without losing track of which version they're looking at. Path: one segmented
+  control, three positions, one click each; no nested reveal, no state reachable only as a side effect of
+  another click (the defect this lane fixed). One primary action: selecting a segment is the only
+  interactive element in this control; each segment is mutually exclusive (`aria-pressed`, unchanged from
+  the pre-existing `Segment` component). Feedback state: the active segment is visually distinct (filled
+  dark background, unchanged styling) and the body directly below swaps to match - the exact property
+  that was broken before this fix (segment could show "active" while the body showed a different state's
+  content). 44px targets: unchanged `Segment` component already enforces `minHeight: 44` with
+  inline-flex/center (pre-existing law-2 compliance, not touched by this fix); the added third segment
+  reuses the identical style block, so it inherits the same floor - not independently re-measured this
+  lane (rendering guard is the mechanical check for this).*
+- **SCOPE-READER** (`CarbonCostOverlay`/`CorridorsAppliedStrip`/`CorridorsAppliedView`)  -  no formal UX
+  compliance block exists in the lane's commit message; from what it does describe: a new
+  `corridor-scope-smoke.mjs` UX smoke spec (375px/1280px, empty+populated states) was registered in
+  `ux-smoke-specs.mjs` and, per the lane's own account, "caught and fixed a real long-label overflow in
+  both components before landing"  -  i.e. the smoke spec is the enforcement mechanism, not a hand-written
+  compliance narrative. Not independently re-verified by me this postscript.
+- **UX-FIX** (P1-P5, five component/route files)  -  no formal UX compliance block exists in the lane's
+  commit message either. Summarized from what the commit describes: P1 makes the room-membership chip
+  read one source of truth (`isRoomMember()`) instead of conflating a hint with real membership; P2 makes
+  Operations' region link build the same iso-code set the promised count was computed from; P3 replaces
+  two dead "N more below" labels with `MoreBelowDisclosure`, a native `<details>` control (zero client
+  JS, keyboard-operable by construction); P5 makes Map list-view rows real links reusing the existing
+  `focusJurisdiction` handler, with `minHeight` 44px targets on every cell. None of these five is
+  independently re-verified against `docs/design/ux-laws.md`'s numbered laws by me this postscript;
+  the lane's own gate line reports rendering guard PASS.
+
+**Next** (unchanged priority order from what this train surfaced, not a new list):
+
+1. The ruling applies now that RULING-2026-09-06.md is landed: `review-apply-provisional-sources`,
+   `review-apply-canonical-candidates`, `review-apply-portal-links`, `review-apply-coverage-gaps` (dry
+   then apply, each against its own ruled `.ruling.json`); `census-off-vertical --arg archive` (R-A);
+   `origin-class-backfill --arg R-E-accepted` (R-E).
+2. `downstream-chain.yml`'s first real run  -  dispatch a population-turn or corpus-turn that actually
+   mints/selects, and confirm the chain fires and the four steps land per PROPAGATION-DRAIN-RUNBOOK.md.
+3. `backfill-derivation-edges.mjs --apply` for the W4-DAG market_series delegate (12 edges expected).
+4. Diagnose the `attach-found-sources` seed defect (Maintenance #55 above) before the browser lane runs.
+5. The R-B `screen-rules.mjs` ON_VERTICAL rule RULINGS names but does not build.
+6. The batched viewer-state route DETAIL-WATERFALL's §17.4 names (batching
+   `relevance`/`obligations/upcoming`/`obligations/register` into one round trip)  -  deferred, not built,
+   this train.
+7. The map smoke spec gap UX-FIX's P6 audit names (no deterministic `transport_modes` classifier).
+8. A THETIS-MRV row to source FUELEU's `statutory_computations` writer.

@@ -24,6 +24,7 @@ import Link from "next/link";
 import { getChangedSinceData, type SourceChangedRow, type ThemeChangedRow } from "@/lib/dashboard/changed-since";
 import { itemDetailHref } from "@/lib/item-links";
 import { formatRelative, toDate } from "@/lib/relative-time";
+import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 
 const WINDOW_DAYS = 14;
 const MAX_ROWS = 6;
@@ -116,11 +117,13 @@ export async function ChangedSinceStrip() {
               <SourceChangedItem key={row.itemId} row={row} />
             ))}
           </ul>
-          {sourceChanged.length > MAX_ROWS && (
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary, #666)", marginTop: 4 }}>
-              +{sourceChanged.length - MAX_ROWS} more
-            </div>
-          )}
+          <MoreBelowDisclosure count={Math.max(0, sourceChanged.length - MAX_ROWS)} itemNoun="more source changes">
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {sourceChanged.slice(MAX_ROWS).map((row) => (
+                <SourceChangedItem key={row.itemId} row={row} />
+              ))}
+            </ul>
+          </MoreBelowDisclosure>
         </div>
       )}
       {themeChanged.length > 0 && (
@@ -133,11 +136,13 @@ export async function ChangedSinceStrip() {
               <ThemeChangedItem key={`${row.itemId}-${row.themeId}-${row.reason}`} row={row} />
             ))}
           </ul>
-          {themeChanged.length > MAX_ROWS && (
-            <div style={{ fontSize: 12, color: "var(--color-text-secondary, #666)", marginTop: 4 }}>
-              +{themeChanged.length - MAX_ROWS} more
-            </div>
-          )}
+          <MoreBelowDisclosure count={Math.max(0, themeChanged.length - MAX_ROWS)} itemNoun="more theme changes">
+            <ul style={{ listStyle: "none", margin: 0, padding: 0 }}>
+              {themeChanged.slice(MAX_ROWS).map((row) => (
+                <ThemeChangedItem key={`${row.itemId}-${row.themeId}-${row.reason}`} row={row} />
+              ))}
+            </ul>
+          </MoreBelowDisclosure>
         </div>
       )}
     </div>

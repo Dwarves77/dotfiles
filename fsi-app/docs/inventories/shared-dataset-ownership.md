@@ -149,7 +149,6 @@ who may write a shared table; the test enforces it on every future PR.
       "src/lib/agent/canonical-pipeline.ts",
       "src/lib/intake/write-item.ts",
       "src/workflows/generate-brief.ts",
-      "scripts/apply-4c-plan.mjs",
       "scripts/maintenance/provenance-heal.mjs"
     ],
     "item_gate_a_state": [
@@ -614,11 +613,11 @@ asked for:
 | `scripts/_reground/restore-overclear.mjs` | `.discipline/governance/doctrine-register.mjs` cites it directly as the incident-remediation tool that restored 48 over-cleared claims. | `section_claim_provenance`, `claim_versions` (not shared-listed) |
 | `scripts/_reground/target-match-probe.mjs` | `.discipline/governance/doctrine-register.mjs` + `invariants.mjs` cite it as the real-data proof for the live `target-match.golden.mjs` gate. | none (read-only probe) |
 | `scripts/_reground/tombstone-delete.mjs` | `scripts/verify/disposition-content-gate.golden.mjs:21` hard-codes `resolve(ROOT, "scripts/_reground/tombstone-delete.mjs")` and reads its source; moving it breaks that golden test outright. | `intelligence_items` (delete), `disposition_ledger` (not shared-listed) |
-| `scripts/run-4c-relabel.mjs` | Self-described "standing dispatch step 3"; paired applier `scripts/apply-4c-plan.mjs` remains live. | none directly (emits a plan only; `apply-4c-plan.mjs` writes `intelligence_item_sections`, not a shared-8 table) |
-| `scripts/regen-quarantined.mjs` | `.discipline/governance/invariants.mjs:575` names it the resolver a live, enforced invariant ("Quarantine is an open investigation, never terminal") must drive to zero. | `intelligence_items` (indirectly, via the `validate_item_provenance` RPC under `--apply`; not a direct table literal) |
-| `scripts/funded-pass.mjs` | Imports the live `scripts/lib/funded-pass-core.mjs`; described in present tense in `docs/design/monthly-budget-design.md`. | none of the shared-8 directly (`agent_runs`, `integrity_flags` read-only in the excerpt seen) |
+| ~~`scripts/run-4c-relabel.mjs`~~ | **DELETED (lane ONESHOTS, 2026-09-06)** — the 4c relabel freeze (operator ruling 2026-07-04) is now honored by deletion, not indefinite exemption; see `.discipline/fitness/functions/F25-module-liveness.mjs`'s own removal note. | n/a (row kept for history) |
+| `scripts/regen-quarantined.mjs` | `.discipline/governance/invariants.mjs:575` names it the resolver a live, enforced invariant ("Quarantine is an open investigation, never terminal") must drive to zero. **WIRED (lane ONESHOTS, 2026-09-06)**: `maintenance.yml` step `regen-quarantined`, via `scripts/maintenance/regen-quarantined.mjs`. | `intelligence_items` (indirectly, via the `validate_item_provenance` RPC under `--apply`; not a direct table literal) |
+| ~~`scripts/funded-pass.mjs`~~ | **DELETED (lane ONESHOTS, 2026-09-06)** — operator ruling supersedes the 2026-07-18 dormant-systems "keep-and-integrate" verdict (contradicts the $0/no-LLM-runtime rule; its worklist input file does not exist). `scripts/lib/funded-pass-core.mjs` deleted alongside it (orphaned by the same deletion). See `docs/audits/dormant-systems-audit-2026-07-18.md`'s row (annotated superseded) and F25's own removal note. | n/a (row kept for history) |
 | `scripts/canonical-pipeline-proof.mjs` | Generic diagnostic for the still-live `src/lib/agent/canonical-pipeline.ts`; no completed-evidence, references live pipeline code. | none directly (drives the live pipeline's own writes) |
-| `scripts/holdings-audit.mjs` | No completed-evidence found for the 2026-07-14 dispatch it names (idempotent-once guard makes this ambiguous, not disprovable). **TO-VERIFY**: query `holdings_quality` row count to settle whether this has already run. | `holdings_quality` (not shared-listed — no harness/flywheel path writes it) |
+| `scripts/holdings-audit.mjs` | No completed-evidence found for the 2026-07-14 dispatch it names (idempotent-once guard makes this ambiguous, not disprovable). **TO-VERIFY**: query `holdings_quality` row count to settle whether this has already run. **WIRED (lane ONESHOTS, 2026-09-06)**: `scripts/verify/run-data-audit-lane.mjs`'s AUDITS table, soft/informational, dry-report path only. | `holdings_quality` (not shared-listed — no harness/flywheel path writes it) |
 | `scripts/lib/block1-reaudit.mjs` | Listed in `.discipline/fitness/functions/F25-module-liveness.mjs`'s immutable `LEGACY_ALLOWLIST`; moving it reds F25's "file no longer exists" check. | none of the shared-8 (writes `section_claim_provenance`, `agent_run_searches` per `docs/audits/connection-completeness-2026-06-03.md`) |
 | `scripts/lib/funded-release-plan.mjs` | Same F25 allowlist mechanism. | TO-VERIFY (not read in depth; no direct evidence of a shared-8 write found) |
 | `scripts/lib/inconclusive-probe.mjs` | Imported by `scripts/lib/inconclusive-report.mjs` and `inconclusive-probe.selftest.mjs`, the latter run via `.discipline/run-test-suite.sh`'s directory glob. | none (read-only probe library) |
@@ -681,6 +680,15 @@ documented somewhere, following the same disposition already established for
 (line 180) and for `pending_first_fetch`/`agent_runs`/`agent_run_searches` in the Open leaks summary's
 item 6 below. Added by Lane DP-ENGINE, 2026-09-02.
 
+- **`entity_scope`** (migration 282) — writer: `scripts/entities/write-entity-scope.mjs` (wired into the
+  `seed-corridors` maintenance step), unchanged this lane. **Reader registered, lane SCOPE-READER,
+  2026-09-06**: `src/lib/entities/corridor-scope.ts`'s `listCorridorScopes()`/
+  `listCorridorsTouchingJurisdictions()` — entity_scope's first real reader, consumed by the Market Intel
+  carbon-cost overlay's corridor selector (`src/app/market/page.tsx`) and the regulation detail "Corridors
+  this applies on" block (`src/components/regulations/CorridorsAppliedStrip.tsx`). Read-only; no second
+  writer introduced. Both allowlist entries this table carried while it had zero readers (F14
+  `TERMINAL_SINK_ALLOWLIST`, closure-gate `WRITER_READER_ALLOWLIST`) are deleted in the same commit — see
+  those files' own retirement notes.
 - **`propagation_events`** (migration 284) — written by migration 284's `emit_propagation_event()` trigger
   (fires on `derived_values`/`statutory_computations`/`estimated_values` INSERT/UPDATE, the outbox
   producer) and by `fsi-app/src/lib/propagation/drain.ts`'s own `UPDATE ... SET drained_at = now()` after a
@@ -878,7 +886,10 @@ established at line 180 for the migration-282/283 entity tables.
    is read-only. See the `theme_briefs` section above.
 5. **`scripts/holdings-audit.mjs` / `holdings_quality`** — not a shared-8 table (no harness/flywheel writer
    found), kept out of the allowlist above on that basis, but flagged here because the KEEP verdict itself
-   rests on an unconfirmed completion state (see the KEEP table above).
+   rests on an unconfirmed completion state (see the KEEP table above). **WIRED (lane ONESHOTS,
+   2026-09-06)**: registered in `scripts/verify/run-data-audit-lane.mjs`'s AUDITS table, SOFT/informational,
+   running only the script's default DRY/report path (never `--write`) — the TO-VERIFY completion state
+   above is UNCHANGED by this wiring; it needs live DB credentials to settle, not a dispatch root.
 6. **`supabase/functions/capture-worker/index.ts` / `pending_first_fetch`, `agent_runs`,
    `agent_run_searches`** — found 2026-09-01 reading the Edge Function directly (SCAN SCOPE widened to
    `supabase/functions/**`, matching the same-day fix to `.discipline/governance/producer-consumer-orphan.mjs`
@@ -1000,3 +1011,17 @@ re-implementing it, the same distinction that keeps it off the enforced JSON arr
     introduced by it), noted here so the doc stays honest that "passes the scanner" is not the same claim as
     "the scanner enforces this," for these five files specifically. Recorded here, narratively, on the same
     first-writer-disclosure basis as items 7, 8, and 9.
+
+11. **`raw_fetches` (table + storage bucket) / `scripts/remediation/acquire-primaries-batch.mjs`** — added
+    by lane ONESHOTS (2026-09-06, F25 expiry-52 disposition), wiring this script into `.github/workflows/
+    maintenance.yml` for the first time (step `acquire-primaries`, via `scripts/maintenance/
+    acquire-primaries.mjs`). Not a shared-8 table (`raw_fetches` is the permanent, append-only snapshot
+    store — `DELETE_PROTECTED_TABLES` in `scripts/lib/db.mjs`, invariant RD-46-primary-text-permanent —
+    not a harness/flywheel table), so not added to the enforced JSON allowlist above, same basis as items
+    5/7/8/10. `writeSnapshot` (`src/lib/sources/snapshot-store.mjs`) is the ONE function that writes
+    `raw_fetches`; on the OPERATOR-FIRED ACQUIRE path (as opposed to the `_reground/acquire-*.mjs` toolkit,
+    a separate manual path — see the `raw_fetches` mentions in that toolkit's own KEEP rows above) this
+    script is its SOLE caller (`grep -rn "writeSnapshot(" scripts/ src/` finds two production call sites:
+    this file, line 130, and `snapshot-store.test.mjs`'s own fixture — no other script or route calls it).
+    Recorded here, narratively, on the same first-writer-disclosure basis as items 7, 8, and 9 — not a gap,
+    a single-writer registration for a table the enforced JSON array structurally does not cover.

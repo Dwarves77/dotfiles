@@ -2526,3 +2526,242 @@ Confirm against `SELECT count(*) FROM indexation_clauses`. Note: `surcharge_audi
 `scripts/spec09/eudr-custody-producer.mjs`, still without a maintenance.yml step) round out the six
 customer-CSV tables `scripts/spec09/SOURCES.md` names; the EUDR/custody pair is left for a future lane
 since it takes a second `--custody-csv` flag `readCliCsvArgs` already supports but no step here uses yet.
+
+---
+
+## 33. `tier-opinions` / `derive-obligations` / `tag-proposals` / `apply-classifications` — also chained automatically
+
+**Lane CHAIN, 2026-09-06** (audit loop finding 5 / plan §1 "the loop as one unit" / rule 17). These four
+steps (§2, §4b, §6a, §17 above) now run TWICE over, by design: by hand from THIS workflow (as documented
+in their own sections above, unchanged), and automatically, in that exact order, from
+`.github/workflows/downstream-chain.yml` — a `workflow_run` chain off `["Population turn", "Corpus
+turn"]` completing with real work done (see that file's own header for the exact gate: `metrics.minted >
+0` for population-turn, `metrics.tickets_selected > 0` for corpus-turn, both read off the triggering
+run's own committed artifact, never assumed from `conclusion` alone). This closes the gap this runbook's
+own §1 named for the first time: population-turn.yml's mandatory flywheel step already runs
+`derive-obligations`/`tag-proposals` for a mint's own item ids, and corpus-turn.yml never ran any of the
+four — a mint or a turn used to end there. `downstream-chain.yml` calls the SAME
+`fsi-app/scripts/maintenance/<step>.mjs --mode --arg --out` invocation this workflow's own steps do,
+through `./.github/actions/maintenance-step` (a shared composite action — no second copy of the `run:`
+line in two workflow files). It always runs `mode=apply` on a real chain (never a partial "some steps"
+apply — all four, in order, or none, per the gate).
+
+Re-running these four after a sibling pass already covered part of the same ground is deliberate, not
+wasted work: all four are whole-corpus / append-or-merge-on-identity idempotent (§2/§4b/§6a/§17's own
+Idempotency notes), so a chained re-run finds nothing new to write for rows a prior pass already
+resolved, and finds real new work for rows it didn't (corpus-turn's own scope, which population-turn's
+flywheel never touches; new tag-proposal/classification candidates a later item's mint or turn made
+newly detectable).
+
+See `docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md` for the full workflow → trigger → gate → next table
+covering this hop plus every other hop in the loop (source-sweep → ledger-consume → population-turn →
+downstream-chain → propagation-drain, and corpus-turn → downstream-chain → propagation-drain).
+
+**First dispatch (coordinator, to close the closure-gate's NEVER-RUN grace window and prove the chain
+live end to end):** dispatch `source-sweep.yml` with `walker=sitemap mode=dry check_coverage=true` first
+to confirm live secrets/wiring cheaply, then a real chain-exercising sequence — e.g. `ledger-consume.yml`
+`mode=plan` (a `workflow_dispatch` plan run, to confirm candidates exist) followed by
+`population-turn.yml` `mode=apply limit=<small>` dispatched by hand (or let a prior `ledger-consume`
+`mode=apply` run with `promoted > 0` chain into it automatically) — a population-turn run that mints
+`metrics.minted > 0` is the artifact `downstream-chain.yml`'s own gate reads. Expected artifacts, in
+order: `population-turn` run's own `population/<run_id>` branch carrying its enriched `mint-run-NNN.json`
+(§9 outcomes already written by the mandatory flywheel step) → a NEW `downstream-chain.yml` Actions run,
+triggered automatically, its own `downstream-chain-<run_id>` GitHub Actions artifact (four `summary.json`
+files) → a NEW `propagation-drain.yml` Actions run, triggered automatically off that, its own
+`propagation/<run_id>` branch carrying `scripts/harness-runs/propagation/propagation-run-NNN.json`. Record
+each run's id in `docs/ops/dispatch-ledger.jsonl` (`{"workflow":"downstream-chain", ...}`) once it lands —
+`.discipline/governance/closure-gate.mjs`'s NEVER-RUN check reads exactly that ledger for
+`workflow:downstream-chain.yml`'s own dispatch evidence (a 3-train grace period applies from this lane's
+own train; see that file's own `gatherNeverRunTargets`).
+
+---
+
+## 34. `regen-quarantined`
+
+**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition — the operator-fired script
+runners W71-C's own investigation left INVESTIGATED-NOT-RESOLVED, per `docs/plans/complete-system-build-
+plan-2026-09-04.md`'s W7.1 ratchet). Written from `scripts/regen-quarantined.mjs`'s own header.
+
+**Purpose**: the Tier-2 snapshot-first restitution resolver (RD-4 research-or-erase). Drives quarantined
+items toward `verified` via the ONE `verify-item` entry (RD-24) — never a direct paid re-ground, never a
+delete. `.discipline/governance/invariants.mjs` names this the live resolver the enforced invariant
+"Quarantine is an open investigation, never terminal" depends on. Per item, `verify-item` reads the
+stored snapshot + existing claims and cheap-verifies ($0, no fetch, no model): `verified_cheap` items are
+re-validated under `--apply` via the $0 `validate_item_provenance` RPC (the `set_provenance_status`
+trigger flips the item iff it now passes the full gate); `stale_flag` / `needs_acquire` items are
+reported only — their resolution is the separately-gated Phase-3 paid path, never run from here.
+`research_finding`/`technology`/`tool`/`innovation` item types are excluded (Q2 calibration-spec HOLD).
+
+**What it does NOT do**: never fetches, never calls a model, never deletes. Spend is $0 in both modes.
+
+**Upstream**: `src/lib/sources/verify-item.mjs` (decision core), `snapshot-store.mjs`, `freshness-probe.mjs`,
+`cheap-verify.mjs` — all called unmodified. The decision loop itself is now `runResolver()`, exported from
+the target script and driven unmodified by the wrapper (`scripts/maintenance/regen-quarantined.mjs`).
+
+**Ruling**: none by token — RD-4/RD-24 are standing doctrine, not a per-dispatch ruling gate.
+
+**Dispatch**: `arg`, if given, narrows to a comma-separated `legacy_id`/id-prefix scope (`--only=`); omit
+for the full eligible set. `mode=dry` decides and reports, writing nothing. `mode=apply` re-validates
+every `verified_cheap` decision via the $0 RPC.
+
+**Artifact / read back**: `summary.json` under this run's `$OUT_ROOT/regen-quarantined/` (counts by
+outcome, `applied` = items actually flipped to verified this run). Confirm against `SELECT count(*) FROM
+intelligence_items WHERE provenance_status='quarantined' AND is_archived=false` before/after.
+
+**First dispatch** (coordinator): `mode=dry`, `step=regen-quarantined`, no `arg` — a full-scope decision
+report with zero writes, to see the live eligible/HOLD/decided split before ever applying.
+
+---
+
+## 35. `acquire-primaries`
+
+**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). Written from
+`scripts/remediation/acquire-primaries-batch.mjs`'s own header.
+
+**Purpose**: batch free-acquisition of authoritative primaries (operator dispatch 2026-07-16, "collect
+all the data and source everything for all items") — the o9 template at scale, $0, existing mechanisms
+only. Per non-verified item: skip if it already holds a floor-qualifying path-'a' snapshot; else fetch
+`source_url` + extract portal deep-links + pool corroborator URLs as candidates; for each candidate
+(bounded), free-capture (fetch → unpdf for PDF / htmlToText for HTML), resolve the host's CODIFIED tier
+(NULL = not knowable → HOLD, never a guessed tier), and accept the FIRST candidate at officialness path
+'a'. On accept: register the source at its honest codified tier, `writeSnapshot` (the sole writer of
+`raw_fetches` on this operator-fired acquire path — see `docs/inventories/shared-dataset-ownership.md`
+item 11), and repoint the item off any portal. On no-accept: HOLD (`integrity_flags`, honest reason,
+never a guessed tier).
+
+**What it does NOT do**: never guesses a source tier; never fabricates a certificate; a JS/bot-walled
+portal with no free candidate HOLDS for manual Chrome capture, never a forced acquire.
+
+**Upstream**: `scripts/lib/db.mjs` (`registerSource`, `guardedUpdate`, `guardedInsert`),
+`src/lib/sources/snapshot-store.mjs` (`writeSnapshot`), `officialness.mjs`, `portal-links.mjs`,
+`pdf-extract.mjs`, `host-authority.ts`, `source-blocks.mjs` — all called unmodified. The wrapper
+(`scripts/maintenance/acquire-primaries.mjs`) wraps the target script as a SUBPROCESS (not an in-process
+import), since even its own dry path performs real network fetches — see that wrapper's own header for
+why.
+
+**Ruling**: operator dispatch 2026-07-16 (verbatim in the target script's own header).
+
+**Dispatch**: `arg` names the item scope to acquire for (`--only=<legacy_id,...>` — there is no separate
+worklist FILE; the script reads live from `intelligence_items`, so `arg` IS "the worklist" this run
+drives; omit for the full non-verified set). **APPLY ONLY in practice** — this step is deliberately
+absent from the `all` dry fan-out (`maintenance.yml`'s `if:` for this step has no `|| (dry && all)`
+branch): even a NAMED dry dispatch performs real, live network fetches with no persisted effect, so it
+must never fire from a blanket sweep. `mode=apply` adds `--execute` (writes: register + snapshot +
+repoint).
+
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/acquire-primaries/`, parsed from the target
+script's own `scripts/tmp/acquire-batch-{applied,dryrun}.json` manifest (acquired/already-held/held/exempt
+counts). Confirm against `SELECT count(*) FROM raw_fetches WHERE created_at > '<run start>'` and a spot
+`SELECT source_id, source_url FROM intelligence_items WHERE id = ANY(<acquired ids>)`.
+
+**First dispatch** (coordinator): `mode=dry`, `step=acquire-primaries`, `arg` = a small named scope
+(2-3 `legacy_id`s known to be non-verified with a portal `source_url`) — a bounded first look at the
+acquire path's candidate selection and officialness verdicts before ever spending a write.
+
+---
+
+## 36. `refetch-capped`
+
+**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). Written from
+`scripts/remediation/refetch-capped-worklist.mjs`'s own header and `docs/decisions/ADR-016-storage-side-
+uncap.md`.
+
+**Purpose**: the ADR-016 storage-side uncap drain. `agent_run_searches.result_content` was captured under
+now-retired `PRIMARY_MAX_CHARS`/`CORROBORATOR_MAX_CHARS` caps; this drains the legacy-capped rows in full.
+`mode=dry` (BUILD) is read-only: pages past the 1000-row cap, classifies the three legacy populations
+(`legacy_40k`, `corroborator_60k`, `primary_600k`) by the exact premise-2 length predicates, dedups on
+`(item_id, result_url)`, and emits a worklist — no fetch, no write. `mode=apply` (EXECUTE) refuses while
+`system_state.global_processing_paused`, then per row: re-fetches `result_url` through the LIVE transport
+ladder (`refetchThroughLadder`, no copied transport code), applies the DIFF-ON-RECAPTURE guard (every
+grounded FACT span must still `.includes()`-match the fresh capture), and replaces the stored capture only
+on a clean match; any drift or roadblock HOLDs (`integrity_flags`) and keeps the old capture. Resolves an
+item's truncation-guard flag only once ALL its capped rows replaced clean.
+
+**What it does NOT do**: never replaces a capture whose grounded FACT spans would go missing; never runs
+EXECUTE without the explicit gate token below (ADR-016's own drain order: merge → deploy → BUILD worklist
+→ operator lifts the pause hold → EXECUTE → review drift-holds).
+
+**Upstream**: `src/lib/agent/canonical-pipeline.ts`'s `refetchThroughLadder`, `scripts/lib/db.mjs`
+(`guardedUpdate`, `guardedInsert`) — called unmodified via the target script.
+
+**Ruling**: ADR-016 (`docs/decisions/ADR-016-storage-side-uncap.md`) — an active, numbered Implementation
+step, not yet executed, blocked on an open GUARD-1 pool-insert-size ruling.
+
+**Dispatch**: `mode=dry` (BUILD) is always allowed — including inside an `all` dry fan-out, since it is
+read-only and $0. `mode=apply` (EXECUTE) is GATED: refused (exit 1, no subprocess spawned, no fetch) unless
+`arg` is EXACTLY `GUARD-1-accepted` — ADR-016's own explicit operator-acceptance token for the open
+GUARD-1 ruling. No other value unlocks it.
+
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/refetch-capped/`, parsed from the target
+script's own `scripts/tmp/refetch-capped-worklist-{build,execute}.json` artifact (populations, raw counts,
+replaced/held/reground-recommended/flags-resolved). Confirm against `SELECT length(result_content) FROM
+agent_run_searches WHERE id = ANY(<replaced ids>)`.
+
+**First dispatch** (coordinator): `mode=dry`, `step=refetch-capped`, no `arg` — the BUILD worklist, safe
+and read-only, to confirm the population counts against ADR-016's own expected `{legacy_40k:105,
+corroborator_60k:15, primary_600k:1}` before any EXECUTE is ever considered (which additionally needs the
+GUARD-1 ruling itself accepted — a separate operator decision this dispatch does not make).
+
+---
+
+## 37. `source-role-cleanup`
+
+**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). Written from
+`scripts/source-role-cleanup.mjs`'s own header. `docs/ops/session-log.md` is explicit and current: 874
+registry-wide `source_role IS NULL` rows remain and this script is "the durable path" to fix them.
+
+**Purpose**: the #3 source-classification cleanup (authorized 2026-06-04). Re-runs the deterministic
+`classifySourceRole` (name+url, no LLM/Browserless, $0) over `sources`; where it confidently disagrees
+with the stored `source_role`, proposes the fix. Default scope is EVERY row (not just `status='active'`,
+fixed 2026-08-11 — a row is most likely to be missing its role precisely because it was demoted/suspended
+before anyone classified it). The migration-123 trigger re-derives `category`/`intelligence_types` on
+UPDATE.
+
+**What it does NOT do**: never guesses a role for a row `classifySourceRole` cannot confidently resolve;
+never writes a row whose `source_role` changed under it since the plan was computed (the
+`IS NOT DISTINCT FROM` WHERE guard + read-back — see counts below).
+
+**Upstream**: `src/lib/sources/classify-source-role.ts` (pure classifier, unmodified). Connection FIX this
+lane also made (rule 13): the script previously hardcoded a LOCAL-ONLY `supabase link` connection path
+with no CI fallback (an unguarded `readFileSync` that would ENOENT-crash the moment this ran from GitHub
+Actions, the only place with DB credentials) — now uses the shared `scripts/lib/pg-conn.mjs` resolver
+every other pg-direct tool in this repo uses, and self-skips (exit 2) rather than crashing when no
+candidate connects.
+
+**Ruling**: authorized 2026-06-04 (the #3 source-classification cleanup, per the script's own header).
+
+**Dispatch**: needs a DIRECT Postgres connection (`scripts/lib/pg-conn.mjs`'s resolution order:
+`SUPABASE_DB_URL`/`DATABASE_URL` → a local `supabase link` → `NEXT_PUBLIC_SUPABASE_URL`+
+`SUPABASE_DB_PASSWORD`-derived candidates) — **not** the REST creds `maintenance.yml`'s "Verify required
+secrets" step checks. `SUPABASE_DB_PASSWORD` must be set as a repo secret for `apply` to connect in CI;
+`arg=active-only` narrows scope to `status='active'` sources (the pre-2026-08-11 scope); omit for the full
+registry-wide scope. `mode=dry` reports mismatches, writes nothing. `mode=apply` writes each confident
+mismatch via `UPDATE ... WHERE source_role IS NOT DISTINCT FROM <old>` + read-back.
+
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/source-role-cleanup/` (total rows, mismatches,
+by-transition counts, applied/halted). Confirm against `SELECT count(*) FROM sources WHERE source_role IS
+NULL` before/after (874 as of 2026-09-06, session-log.md).
+
+**First dispatch** (coordinator): `mode=dry`, `step=source-role-cleanup`, no `arg` — the full registry-wide
+mismatch report (no DB write either way) to see the real transition counts before any apply.
+
+---
+
+## Appendix: `holdings-audit` — wired via the data-audit lane, not this runtime
+
+**New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). `scripts/holdings-audit.mjs`
+is a READ-ONLY capture-quality audit (operator dispatch 2026-07-14) — classifying every stored capture
+(`raw_fetches` snapshots + `agent_run_searches` pool aggregates) against known defect classes, $0, no
+LLM/Browserless. Unlike the 35 steps above, it is **not** a `.github/workflows/maintenance.yml` step —
+it is registered in `scripts/verify/run-data-audit-lane.mjs`'s own `AUDITS` table (label
+`holdings-audit`, SOFT/informational, self-skip exit 2 without DB creds — same convention as
+`wave-acceptance-audit.mjs`), dispatched via `.github/workflows/data-audit-lane.yml`'s existing nightly/
+CI-with-secrets run. This registration runs only the script's default DRY/report path (never `--write`
+— `holdings_quality` gets a row only when an operator runs the script by hand with `--write`, and even
+then only once, guarded against double-writing). `docs/inventories/shared-dataset-ownership.md`'s
+TO-VERIFY note on the 2026-07-14 dispatch's write completion state is UNCHANGED by this wiring — settling
+it needs a live `SELECT count(*) FROM holdings_quality`, not a dispatch root.
+
+**First dispatch** (coordinator): none needed to add — `data-audit-lane.yml`'s next scheduled/manual run
+picks up the new `holdings-audit` entry automatically; confirm the run's own printed summary shows a
+`holdings-audit` line (PASS/FAIL/ERROR, `[soft]`).

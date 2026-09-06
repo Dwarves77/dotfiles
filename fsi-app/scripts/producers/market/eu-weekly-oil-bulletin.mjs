@@ -51,6 +51,10 @@ import { parseEuWeeklyOilBulletinCsv } from "../../../src/lib/market/parsers/eu-
 import { planMarketSeriesUpsert } from "../../../src/lib/market/write-market-series.mjs";
 import { producerFor } from "../../../src/lib/market/series-registry.mjs";
 import { readAll, guardedInsert, guardedUpdate } from "../../lib/db.mjs";
+// DAG authorship at write time (lane W4-DAG, 2026-09-06: "market_series has no edges" — the W3-W4
+// plan-completion audit's own finding). See author-market-series-delta.mjs's own header for the full
+// contract; this producer is the wiring, not a second implementation.
+import { authorMarketSeriesDeltaEdges } from "./author-market-series-delta.mjs";
 
 const KILL_SWITCH_ENV = "MARKET_PRODUCER_EU_OIL_BULLETIN_ENABLED";
 const REGISTRY_ENTRY = producerFor("eu-oil-bulletin");
@@ -140,6 +144,18 @@ async function main() {
   }
 
   console.log(`done — ${created} created, ${updated} updated (${parsedRows.length} rows parsed).`);
+
+  // DAG authorship at write time (see author-market-series-delta.mjs's own header) — every series_key
+  // this run's parsed rows touched. Never fatal to this producer's own already-committed write.
+  const touchedSeriesKeys = new Set(parsedRows.map((r) => r.series_key));
+  const authorCounts = await authorMarketSeriesDeltaEdges(touchedSeriesKeys, "apply");
+  console.log(
+    `eu-weekly-oil-bulletin: DAG authorship (market_series_delta): authored=${authorCounts.authored} ` +
+    `already=${authorCounts.skippedAlready} insufficient-history=${authorCounts.insufficientHistory} ` +
+    `unit-mismatch=${authorCounts.unitMismatch} refused=${authorCounts.refused} ` +
+    `unknown-method=${authorCounts.unknownMethod} errored=${authorCounts.errored}`
+  );
+
   process.exit(0);
 }
 

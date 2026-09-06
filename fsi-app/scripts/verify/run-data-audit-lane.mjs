@@ -103,6 +103,20 @@ const AUDITS = [
   // red here is a signal for operator review, never a build-blocking verdict on its own. Self-skips
   // (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as every other audit above.
   ["wave-acceptance", "scripts/verify/wave-acceptance-audit.mjs", false],
+  // Lane ONESHOTS (2026-09-06, F25 expiry-52 disposition): holdings-audit.mjs — read-only classification
+  // of every stored capture (operator dispatch 2026-07-14), $0, no LLM/Browserless. Had NO dispatch root
+  // anywhere (hand-run only); shared-dataset-ownership.md's own line already flags the 2026-07-14
+  // dispatch's write TO-VERIFY (the idempotent-once guard on holdings_quality makes absence of a prior
+  // run ambiguous, not disprovable). Wired here SOFT/informational — this registration runs the script's
+  // own default DRY/report path only (never --write from this lane, same "report, never auto-persist"
+  // posture as wave-acceptance above): a red here is a corpus-quality signal for operator review, not a
+  // build-blocking verdict. Self-skips (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as
+  // every other audit above.
+  ["holdings-audit", "scripts/holdings-audit.mjs", false],
+  // P6 (2026-09-06, lane UX-FIX): Map mode-tag (transport_modes) editorial coverage tracking.
+  // SOFT — a human editorial backlog (no deterministic classifier exists to auto-tag these; see
+  // that file's header), never a build-blocking verdict. Self-skips (exit 2) without creds.
+  ["mode-tag-coverage", "scripts/verify/mode-tag-coverage-audit.mjs", false],
 ];
 
 const results = [];
