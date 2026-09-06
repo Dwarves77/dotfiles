@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -765,6 +765,26 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/source-role-cleanup"
           node scripts/maintenance/source-role-cleanup.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/source-role-cleanup" || true
+
+      - name: canonical-autoverify
+        # scripts/maintenance/canonical-autoverify.mjs — lane CANONICAL-AUTOVERIFY, 2026-09-06. Operator
+        # ruling: a web-crawl-surfaced replacement source for canonical_source_candidates (decision=
+        # 'pending') is machine-verifiable the same way a human reviewer would check it, so it does not
+        # wait on individual review — reachability (the canonical Browserless fetch), page-class (login/
+        # about/directory/press/aggregator-datacard rejects), content proof (locateSpanInText / word-
+        # overlap against the item's own subject and institution — no LLM call), and authority (host-
+        # authority.mjs's codified tiers + the live sources registry; never downgrades authority without
+        # proof the current source is dead, never invents a tier for an ambiguous host). Not ruling-gated
+        # (no `arg` needed): every row it can confidently resolve is ruled in the SAME run; anything it
+        # cannot (ambiguous host tier, an unproven authority downgrade) is left decision='pending' and
+        # reported under `needs_individual_review`, same fallback bulk-approve/route.ts already uses.
+        # review-apply-canonical-candidates (above) is UNCHANGED and still applies an operator's own group
+        # ruling for rows already taken through that path; this step is the mechanism for rows that path
+        # could only route to a human.
+        if: env.RUN_STEP == 'canonical-autoverify' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/canonical-autoverify"
+          node scripts/maintenance/canonical-autoverify.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/canonical-autoverify"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

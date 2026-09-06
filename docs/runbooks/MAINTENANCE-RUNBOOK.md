@@ -1907,6 +1907,13 @@ invents a tier, routing that case through the existing `/admin` UI instead, the 
 
 **Ruling**: none by token — same per-group `decision`-field gate as §13.
 
+**Sequence (updated, lane CANONICAL-AUTOVERIFY, 2026-09-06)**: build digest (§6, `review-digests`) →
+operator group ruling on this step → **§38 `canonical-autoverify`, `mode=apply`** — a group this digest
+routed to `needs_individual_review` (§6's own recommendation now reads `auto-verify`, not `uncertain`,
+for exactly this reason) is what §38 exists to resolve without waiting on an operator's individual
+per-row click; this step keeps applying group rulings an operator HAS already taken, it just no longer is
+the only path a "needs a new source" row can take.
+
 **Dispatch**: `arg` is the ruling-file path, required in BOTH modes, resolved the same way as §13 —
 e.g. `arg: docs/ratifications/2026-09/canonical-candidates.ruling.json`. `mode=dry` reports the plan
 (`would_apply`/`would_review` per accept group, `would_apply` per reject group) plus
@@ -2790,6 +2797,86 @@ NULL` before/after (874 as of 2026-09-06, session-log.md).
 
 **First dispatch** (coordinator): `mode=dry`, `step=source-role-cleanup`, no `arg` — the full registry-wide
 mismatch report (no DB write either way) to see the real transition counts before any apply.
+
+---
+
+## 38. `canonical-autoverify`
+
+**New this runbook, lane CANONICAL-AUTOVERIFY, 2026-09-06.** Operator ruling (verbatim): "the problem
+with this is that its a human process, if the web crawl surfaced a secondary location for the source it
+should also confirm that source is accurate and not wait on human intervention. it has the tools to
+review and find sources to start, so its completely capable of doing that again for the secondary source
+or new source location."
+
+**Purpose**: auto-verify `canonical_source_candidates` rows (`decision='pending'`) — the queue §14
+(`review-apply-canonical-candidates`) can only ever auto-resolve when the candidate URL already matches a
+registered source; every genuinely NEW replacement source location the web crawl found was routed to
+"needs_individual_review" and left waiting on a human. This step performs the same verification a human
+reviewer would and rules the row itself: **reachability** (the canonical Browserless fetch,
+`src/lib/sources/canonical-fetch.mjs`; dead codes 404/410/5xx and Browserless hard-errors reject) →
+**page class** (a small pure classifier rejecting login/sign-in gateways, `/about` pages, directory/index
+listings, press releases on a substantive missing-link item, and aggregator/tracker/directory datacards
+when the item's own subject IS the institution the datacard merely lists — every rule cites the live
+pending row that motivated it, see the module's own header) → **content proof** (the item's FACT
+source_spans located verbatim via `scripts/mint/heal-provenance.mjs`'s `locateSpanInText`, when it has
+any; every one of the 16 live pending rows read 2026-09-06 carries ZERO FACT claims, so rule 3's own named
+fallback — the institution name plus the item's subject phrase both located, with a word-overlap fallback
+for a title's spacing/punctuation drift from the page's own prose — is what actually decides every row in
+practice) → **authority** (`src/lib/sources/host-authority.mjs`'s codified tiers plus a live-registry
+lookup keyed the same way `registerSource` dedups; a permanently-unregistered host class always rejects;
+an ambiguous host with no deterministic tier is never auto-accepted — SC-13's no-guess rule — and routes
+to `needs_individual_review` instead; a different-host candidate may never downgrade authority below the
+current host's tier unless the current source is CONFIRMED dead, 404/410/5xx or a fetch error — a 403/WAF
+block is explicitly NOT "dead" and does not license a downgrade).
+
+**Upstream, reused (never re-implemented)**: `src/lib/sources/canonical-fetch.mjs` (fetch),
+`src/lib/sources/access-wall.mjs`'s `detectAccessWall` (wall detection, folded into reachability),
+`scripts/mint/heal-provenance.mjs`'s `locateSpanInText` (content proof), `src/lib/sources/
+host-authority.mjs`'s `codifiedTierForHost`/`classTierForHost`/`permanentlyUnregisteredClass` (authority),
+`scripts/lib/db.mjs`'s `registerSource` (the ONE source-registration function — same one heal-provenance's
+STEP SOURCE uses) and `guardedUpdateByIds` (both writes). $0 — no LLM call anywhere in this module.
+
+**Accept path** (two writes, matching `bulk-approve/route.ts`'s and §14's own approve shape):
+`canonical_source_candidates.decision='approved'` + `promoted_to_source_id` (an already-registered host's
+existing source id, reused via `registerSource`'s own institutionKey dedup — never a duplicate row) +
+`verified`/`verified_status_code`/`verified_content_excerpt`; `intelligence_items.source_id`/`source_url`
+repointed to the candidate. **Reject path**: `canonical_source_candidates.decision='rejected'` +
+`reviewer_notes` naming the exact stage and reason (`auto: reject — <reason>`); `intelligence_items` is
+never touched. **Reviewer identity**: `reviewer_id` is left `null` (never set) — the same convention
+`scripts/review/lib/canonical-candidates.mjs`'s own `patchForDecision` already uses for every other
+machine-applied decision on this table; there is no automated-actor id anywhere else in this codebase to
+reuse, and inventing one would be a fabricated identity CLAUDE.md rule 2 forbids.
+
+**What it does NOT do**: never invents a tier for an ambiguous host (SC-13); never downgrades authority
+without proof the current source is dead; never touches a row whose `decision` is not `pending` (bounded,
+paginated read via `readAll`'s own match, and `guardedUpdateByIds`'s `applyMatch` re-checks on write —
+idempotent on re-run by construction). `review-apply-canonical-candidates` (§14) is UNCHANGED and keeps
+working for a group ruling an operator has already taken; this step is additive, not a replacement for
+that path — `scripts/review/lib/canonical-candidates.mjs`'s own digest recommendation now labels a mixed
+group `auto-verify` instead of `uncertain`, since this step is what actually resolves those rows, not a
+human.
+
+**Ruling**: none by token — not gated on an `arg`; this is a standing, always-on verification pass over
+whatever the queue holds each time it runs.
+
+**Dispatch**: `mode=dry` fetches and classifies every pending row, writes nothing — the summary's
+`verdicts` array shows every row's decision + reviewer_notes. `mode=apply` writes through
+`guardedUpdateByIds` (rule 015) for every row it can resolve; a row it cannot (ambiguous authority) is
+left `pending` and reported under `needs_individual_review`, same as §14's own fallback.
+
+**Artifact / read back**: `summary.json`'s `counts` (`pending_read`/`approved`/`rejected`/
+`needs_individual_review`), `verdicts` (dry and apply), and — apply mode only — `read_back`
+(`rows_named`/`rows_now_live`/`approved_now`/`rejected_now`/`still_pending`, re-read via `readAllByIds`).
+Confirm against `SELECT decision, count(*) FROM canonical_source_candidates WHERE id = ANY(<row ids>)
+GROUP BY decision`.
+
+**Registration**: `intelligence_items` is a harness/flywheel shared-8 table — `docs/inventories/
+shared-dataset-ownership.md`'s allowlist gains a `scripts/maintenance/canonical-autoverify.mjs` row for
+its `source_id`/`source_url` repoint on an accepted candidate.
+
+**First dispatch** (coordinator): `mode=dry`, `step=canonical-autoverify`, no `arg` — a live read of every
+pending row's verdict against the real registry and real fetched content, no write either way, before the
+first `mode=apply` run.
 
 ---
 
