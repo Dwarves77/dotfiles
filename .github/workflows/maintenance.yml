@@ -149,10 +149,16 @@ jobs:
         # apply dispatch, or every insert fails the CHECK and this step reports opinions_written=0,
         # exitCode 1). No --arg required; no ruling gate (an opinion is never a base_tier write itself —
         # that stays institution-canonicalize.mjs Part C's separate, gated path).
+        # CHAIN (lane CHAIN, 2026-09-06): also runs automatically, apply mode, after a real population-
+        # turn/corpus-turn (see .github/workflows/downstream-chain.yml) — the SAME invocation via the
+        # ./.github/actions/maintenance-step composite action (fsi-app/scripts/maintenance/tier-opinions.mjs),
+        # never a second copy of this run: line.
         if: env.RUN_STEP == 'tier-opinions' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/tier-opinions"
-          node scripts/maintenance/tier-opinions.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/tier-opinions"
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: tier-opinions
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
 
       - name: w1-dispositions
         # Gated on ruling R-C (finish-plan-2026-09-02.md §1). apply mode makes NO code edit — see the
@@ -178,10 +184,16 @@ jobs:
 
       - name: derive-obligations
         # Wave 2 lane OBLIG: migration 290 (applied 2026-09-03) is populated from item_forward_events here.
+        # CHAIN (lane CHAIN, 2026-09-06): also runs automatically, apply mode, after a real population-
+        # turn/corpus-turn (see .github/workflows/downstream-chain.yml) — the SAME invocation via the
+        # ./.github/actions/maintenance-step composite action (fsi-app/scripts/maintenance/derive-obligations.mjs),
+        # never a second copy of this run: line.
         if: env.RUN_STEP == 'derive-obligations' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/derive-obligations"
-          node scripts/maintenance/derive-obligations.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/derive-obligations"
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: derive-obligations
+          mode: ${{ env.RUN_MODE }}
+          out_root: ${{ env.OUT_ROOT }}
 
       - name: seed-corridors
         # Wave 2 lane CORR: corridor identity rows on the entity spine (ADR-024 §4).
@@ -253,10 +265,18 @@ jobs:
         # NEVER writes intelligence_items.*_tags; only the sibling tag-ratification step, gated on an
         # operator's own `ratify:tags` resolution, ever does that. Wraps scripts/connections/
         # propose-tags.mjs's own guarded proposeTags() core unmodified — see the step's own header.
+        # CHAIN (lane CHAIN, 2026-09-06): also runs automatically, apply mode, blank arg (this step's own
+        # "unqualified apply runs the untagged default" contract, see the runbook), after a real
+        # population-turn/corpus-turn (see .github/workflows/downstream-chain.yml) — the SAME invocation
+        # via the ./.github/actions/maintenance-step composite action (fsi-app/scripts/maintenance/tag-proposals.mjs),
+        # never a second copy of this run: line.
         if: env.RUN_STEP == 'tag-proposals' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/tag-proposals"
-          node scripts/maintenance/tag-proposals.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/tag-proposals"
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: tag-proposals
+          mode: ${{ env.RUN_MODE }}
+          arg: ${{ env.RUN_ARG }}
+          out_root: ${{ env.OUT_ROOT }}
 
       - name: tag-ratification
         # apply requires --arg = comma-separated integrity_flags id(s) to apply (never a blanket
@@ -276,10 +296,17 @@ jobs:
         # Apply: proposes fresh flags, resolves stale ones, then auto-adopts eligible flags (sources +
         # integrity_flags via autoAdoptClassification, guarded path, rule 015). Flags with residue stay
         # open; see apply-classifications.mjs's header and docs/specs/08-flywheel-design.md §Loop B.
+        # CHAIN (lane CHAIN, 2026-09-06): also runs automatically, apply mode, after a real population-
+        # turn/corpus-turn (see .github/workflows/downstream-chain.yml) — the SAME invocation via the
+        # ./.github/actions/maintenance-step composite action (fsi-app/scripts/maintenance/apply-classifications.mjs),
+        # never a second copy of this run: line.
         if: env.RUN_STEP == 'apply-classifications' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
-        run: |
-          mkdir -p "$OUT_ROOT/apply-classifications"
-          node scripts/maintenance/apply-classifications.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/apply-classifications"
+        uses: ./.github/actions/maintenance-step
+        with:
+          step: apply-classifications
+          mode: ${{ env.RUN_MODE }}
+          arg: ${{ env.RUN_ARG }}
+          out_root: ${{ env.OUT_ROOT }}
 
       - name: seed-benchmark-instruments
         # Wave 3 lane COMMUNITY-A (spec 05 §3, component 4): the house-seeded recurring benchmark.
@@ -364,11 +391,35 @@ jobs:
         if: env.RUN_STEP == 'migration-299-precheck' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/migration-299-precheck"
+          # DEFECT FIX (lane CHAIN, 2026-09-06, maintenance #49 [CONFIRMED]): the script prints its JSON
+          # verdict to stdout ONLY on the paths that reach a real check; its no-DB-creds early exit
+          # (exit 2) prints ONLY to stderr (console.error) and writes nothing to stdout at all — the old
+          # `node ... | tee summary.json` then wrote a 0-BYTE summary.json, which is not valid JSON. This
+          # is a shell-level fix (migration-299-precheck.mjs itself is scripts/mint/**, outside this
+          # lane's write set) that stays correct no matter how the script's own stdout behaves in the
+          # future: capture stdout, validate it as JSON, and synthesize a valid, honest envelope (never a
+          # fabricated verdict — it reports "no_valid_json_on_stdout" plus the real exit code and a
+          # stderr tail) when it is not. summary.json is therefore ALWAYS parseable JSON.
+          set +e
           if [ "$RUN_ARG" = "post" ]; then
-            node scripts/mint/migration-299-precheck.mjs --post | tee "$OUT_ROOT/migration-299-precheck/summary.json" || true
+            RAW="$(node scripts/mint/migration-299-precheck.mjs --post 2>"$OUT_ROOT/migration-299-precheck/stderr.log")"
           else
-            node scripts/mint/migration-299-precheck.mjs | tee "$OUT_ROOT/migration-299-precheck/summary.json" || true
+            RAW="$(node scripts/mint/migration-299-precheck.mjs 2>"$OUT_ROOT/migration-299-precheck/stderr.log")"
           fi
+          CODE=$?
+          set -e
+          echo "$RAW"
+          cat "$OUT_ROOT/migration-299-precheck/stderr.log" >&2 || true
+          if [ -n "$RAW" ] && printf '%s' "$RAW" | jq -e . >/dev/null 2>&1; then
+            printf '%s' "$RAW" > "$OUT_ROOT/migration-299-precheck/summary.json"
+          else
+            MODE_LABEL="pre"; [ "$RUN_ARG" = "post" ] && MODE_LABEL="post"
+            jq -n --arg mode "$MODE_LABEL" --arg exit_code "$CODE" \
+              --arg stderr_tail "$(tail -c 2000 "$OUT_ROOT/migration-299-precheck/stderr.log" 2>/dev/null || true)" \
+              '{mode:$mode, ok:false, error:"no_valid_json_on_stdout", exit_code:($exit_code|tonumber), stderr_tail:$stderr_tail}' \
+              > "$OUT_ROOT/migration-299-precheck/summary.json"
+          fi
+          exit 0
 
       - name: attach-found-sources
         # Lane ATTACH-SOURCES (2026-09-05), W3.1. wiring-audit-2026-09-04.md gap 4: HEAL apply #42

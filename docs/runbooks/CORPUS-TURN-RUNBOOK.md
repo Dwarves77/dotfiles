@@ -212,6 +212,23 @@ walker=sitemap  mode=apply  host=aircargonews.net                            # o
 walker=sitemap  mode=apply  all_hosts=true  max_hosts=40  time_budget_seconds=600  # a shorter budget, e.g. testing the cutoff itself
 ```
 
+## Downstream chain (lane CHAIN, 2026-09-06)
+
+A corpus turn that actually consumed tickets (`config.mode == "apply"` and `metrics.tickets_selected > 0`
+on its own `corpus-turn-run-NNN.json`) automatically fires `.github/workflows/downstream-chain.yml` —
+`workflow_run` on `["Corpus turn"]` completed, no schedule (rule 16). That workflow runs, in order,
+`tier-opinions`, `derive-obligations`, `tag-proposals`, `apply-classifications` (all four whole-corpus,
+$0, idempotent, no operator `--arg`; see `MAINTENANCE-RUNBOOK.md` §2/§4b/§6a/§17), then its own green
+completion fires `propagation-drain.yml` in turn. THIS closes the gap this corpus turn's own steps above
+never did: steps 1-5 above extract forward events and recluster the connection graph, but never touch
+`obligations`, source-classification `integrity_flags`, or `source_tier_opinions` — see
+`docs/runbooks/PROPAGATION-DRAIN-RUNBOOK.md` for the full workflow → trigger → gate → next table covering
+the whole loop, not only this workflow's own piece of it.
+
+A dry-mode or empty-scope (0 tickets selected) corpus turn is a legitimate no-op and chains to nothing —
+`downstream-chain.yml`'s own gate reads exactly this artifact's `config.mode`/`metrics.tickets_selected`
+before doing any real work, and logs why it skipped when it does.
+
 ## How a coordinator requests a turn
 
 **Option A — `workflow_dispatch` (Actions tab, or `gh workflow run corpus-turn.yml`):** pick `mode`

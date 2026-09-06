@@ -46,8 +46,11 @@ name: Propagation drain
 #
 # ── CHAINING — HOW THIS RUN DECIDES WHAT TO DO (lane CHAIN, 2026-09-04) ─────────────────────────────────
 #
-# `on.workflow_run: workflows: ["Data producers"], types: [completed]` fires this workflow every time
-# `producers.yml` finishes, in ADDITION to `workflow_dispatch`. The first job step below ("Resolve run
+# `on.workflow_run: workflows: ["Data producers", "Downstream chain"], types: [completed]` fires this
+# workflow every time `producers.yml` OR `downstream-chain.yml` finishes (the latter ADDED lane CHAIN,
+# 2026-09-06 — see that file's own header "THEN THE DRAIN"), in ADDITION to `workflow_dispatch`. The gate
+# below reads ONLY `github.event.workflow_run.conclusion`, never the upstream name, so both sources reach
+# the SAME "conclusion == success is the complete gate" logic unchanged. The first job step below ("Resolve run
 # parameters and the chaining gate") decides, for BOTH trigger shapes, what this run does — every later
 # step reads its RUN_* outputs (RUN_MODE/RUN_BATCH/RUN_BACKFILL_ENTITIES/RUN_SEED_DERIVED_VALUES/RUN_SKIP/
 # RUN_SKIP_REASON/RUN_TRIGGER_CONTEXT) instead of `inputs.*` directly — `inputs` is always empty on a
@@ -116,8 +119,13 @@ on:
   # workflow_run (lane CHAIN, 2026-09-04): event-driven off a completed run, NOT a schedule — see this
   # file's own header "CHAINING" section and population-turn.yml's identical rule-16 reading. Fires once
   # per "Data producers" run, any conclusion; the first job step decides whether it earns a drain.
+  # "Downstream chain" ADDED (lane CHAIN, 2026-09-06): closes the last hop of the population-turn /
+  # corpus-turn loop — see .github/workflows/downstream-chain.yml's own header ("THEN THE DRAIN"). The
+  # gate logic immediately below already reads ONLY `github.event.workflow_run.conclusion`, generically,
+  # never the upstream NAME — so a green (including a no-op-green, gate-skipped) downstream-chain run
+  # drains exactly like a green "Data producers" run always has, with no logic change here.
   workflow_run:
-    workflows: ["Data producers"]
+    workflows: ["Data producers", "Downstream chain"]
     types: [completed]
   # schedule:
   #   - cron: '*/30 * * * *'   # BUILD MODE (2026-09-02) — see header above; stays commented out until the
