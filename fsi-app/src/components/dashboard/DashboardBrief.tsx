@@ -18,6 +18,7 @@ import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { ListRow } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
+import { StatBlock } from "@/components/ui/StatBlock";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import { jurisdictionCode, dueInfo, metaLine } from "@/lib/dashboard/row-fields";
@@ -284,22 +285,8 @@ export function DashboardBrief({
 
 function RailStat({ label, note, value, href }: { label: string; note: string; value: number; href: string }) {
   return (
-    <Link href={href} prefetch={false} style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10, textDecoration: "none" }}>
-      <span style={{ minWidth: 0 }}>
-        <span style={{ display: "block", fontSize: "var(--fs-13)", fontWeight: 700, color: "var(--ink)" }}>{label}</span>
-        <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 2 }}>{note}</span>
-      </span>
-      <span
-        style={{
-          flexShrink: 0,
-          fontFamily: "var(--font-display)",
-          fontSize: 20,
-          color: "var(--ink)",
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {value.toLocaleString()}
-      </span>
+    <Link href={href} prefetch={false} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
+      <StatBlock layout="row" label={label} note={note} value={value.toLocaleString()} />
     </Link>
   );
 }
