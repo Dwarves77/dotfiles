@@ -542,6 +542,18 @@ export const ON_VERTICAL_RULES = [
     label: "Core sustainability: prohibition on incineration/landfill of specified waste (Landfill Directive family)",
     mechanismQuestion: "QUESTION (mechanism re-audit 2026-08-31): landfill/incineration prohibition rules govern DISPOSAL METHOD (a facility-level choice), not the freight/logistics movement of the waste — no prong clearly satisfied. Kept on_vertical (never silently flipped); flagged for operator review.",
   },
+
+  // ── R-B (operator ruling 2026-09-06, docs/ratifications/2026-09/RULING-2026-09-06.md) ────────────────
+  // The six EU Weekly Oil Bulletin market_signal items (source_url
+  // https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en) mint with a title but no census
+  // row (RD batch, not a census worklist row) — a reviewed-verdicts.json entry cannot bind them (see the
+  // ruling's mechanism-gap finding). This rule is the dispatch-ready fix named in that ruling.
+  {
+    name: "eu_weekly_oil_bulletin_price_series",
+    test: /weekly oil bulletin/i,
+    label: "R-B: EU Weekly Oil Bulletin freight-fuel price series (energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en)",
+    mechanism: "PRICES: EU Weekly Oil Bulletin sets the benchmark before-tax EU-average price for automotive/heating/marine fuel oils, a direct freight-fuel-cost price series",
+  },
 ];
 
 // ── OFF-VERTICAL rules (the runbook's denylist, MINT-RUNBOOK.md §0 + the M0 report's sampled false
