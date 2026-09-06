@@ -693,7 +693,47 @@ test("META: exactly 10 OFF_VERTICAL_RULES entries are flipped (verdict: on_verti
   assert.deepEqual(flipped.sort(), expected);
 });
 
-test("META: RULE_NAMES is unaffected by the flips (still 117 unique names — the mechanism re-audit changes verdicts/annotations, never match logic or the rule roster)", () => {
-  assert.equal(RULE_NAMES.length, 117);
-  assert.equal(new Set(RULE_NAMES).size, 117);
+test("META: RULE_NAMES is unaffected by the flips (117 names as of Wave M-screen-3 — the mechanism re-audit changes verdicts/annotations, never match logic or the rule roster; grows to 118 below with the R-B addition)", () => {
+  assert.equal(RULE_NAMES.length, 118);
+  assert.equal(new Set(RULE_NAMES).size, 118);
+});
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════
+// R-B (operator ruling 2026-09-06, docs/ratifications/2026-09/RULING-2026-09-06.md) — the six EU Weekly Oil
+// Bulletin market_signal items, live-verified titles/URLs (Supabase project kwrsbpiseruzbfwjpvsp,
+// intelligence_items WHERE item_type='market_signal' AND source_url ilike '%weekly-oil-bulletin%').
+// ════════════════════════════════════════════════════════════════════════════════════════════════════════
+const EU_WEEKLY_OIL_BULLETIN_ITEMS = [
+  ["4fae403a-ced5-4c8f-82b7-af0fd6127061", "EU Weekly Oil Bulletin — Euro-Super 95 (EU average, before taxes)"],
+  ["70869a22-39eb-4eb7-ba49-d3826b5b2265", "EU Weekly Oil Bulletin — Automotive gas oil / diesel (EU average, before taxes)"],
+  ["0ee667cc-a403-4fe3-b5f8-4f829a4a9103", "EU Weekly Oil Bulletin — Residual fuel oil 1%S (EU average, before taxes)"],
+  ["180b8163-6ae5-4f35-98dd-02e46c06b561", "EU Weekly Oil Bulletin — Heavy fuel oil 3.5%S (EU average, before taxes)"],
+  ["2d306cc6-084d-44d0-ae88-bb391767f787", "EU Weekly Oil Bulletin — LPG motor fuel (EU average, before taxes)"],
+  ["32783a47-0073-4cff-a2ae-369508bcdfe9", "EU Weekly Oil Bulletin — Heating gas oil (EU average, before taxes)"],
+];
+const EU_WEEKLY_OIL_BULLETIN_URL = "https://energy.ec.europa.eu/data-and-analysis/weekly-oil-bulletin_en";
+const EU_WEEKLY_OIL_BULLETIN_MECHANISM =
+  "PRICES: EU Weekly Oil Bulletin sets the benchmark before-tax EU-average price for automotive/heating/marine fuel oils, a direct freight-fuel-cost price series";
+
+for (const [id, title] of EU_WEEKLY_OIL_BULLETIN_ITEMS) {
+  test(`R-B: live item ${id} ("${title}") -> on_vertical via eu_weekly_oil_bulletin_price_series`, () => {
+    const r = classifyRelevance({ title, document_url: EU_WEEKLY_OIL_BULLETIN_URL });
+    assert.equal(r.verdict, "on_vertical");
+    assert.equal(r.rule, "eu_weekly_oil_bulletin_price_series");
+    assert.ok(r.basis.includes(EU_WEEKLY_OIL_BULLETIN_MECHANISM), `basis must carry the ruling's exact mechanism text: ${r.basis}`);
+  });
+}
+
+test("R-B: an unrelated oil-price news title does NOT match the new rule (no over-match)", () => {
+  const r = classifyRelevance({
+    title: "Oil prices climb as OPEC+ weighs further output cuts",
+    document_url: "https://example-news.com/markets/oil-prices-opec-cuts",
+  });
+  assert.notEqual(r.rule, "eu_weekly_oil_bulletin_price_series");
+  assert.equal(r.verdict, "ambiguous");
+  assert.equal(r.rule, "no_signal_ambiguous");
+});
+
+test("META: RULE_NAMES includes the new R-B rule name", () => {
+  assert.ok(RULE_NAMES.includes("eu_weekly_oil_bulletin_price_series"));
 });
