@@ -145,7 +145,7 @@ export function Sidebar() {
         </Link>
       </div>
 
-      <nav className="py-3 px-2.5 flex flex-col gap-2.5 overflow-y-auto">
+      <nav className="py-3 px-2.5 flex flex-col gap-2.5 overflow-y-auto min-h-0">
         {SECTIONS.map((section, i) => (
           <div key={section.label}>
             {i > 0 && navDivider}
