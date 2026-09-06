@@ -267,6 +267,7 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 - [gap-census-2026-07](./census/gap-census-2026-07.md) — Converging full-corpus gap census (skeleton, 2026-07-19): per surface, enumerated/held/missing-from-held-sources (Session A)/missing-from-the-world (Session C), cap-hit sources, rollup tallies, flag-back and dedup logs. Data layer is `census_worklist` (mig 221, [migrations](./inventories/migrations.md)). Rank fields present, empty until operator review.
 
 ## design
+- [UI audit 2026-09-06](design/audit-2026-09-06/README.md) — site-wide UI evidence package: assessment, contact sheet, 110 capture frames. Supersedes `design/redesign/`.
 
 - [decision-package-2026-07-06](./design/decision-package-2026-07-06.md) — Decision Package — 52 live non-verified items (read-only)
 - [design-principles](./design/design-principles.md) — Caro's Ledge Design Principles
