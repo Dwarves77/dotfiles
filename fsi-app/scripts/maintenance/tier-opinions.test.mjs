@@ -35,6 +35,13 @@ test("planTierOpinions: a source with no url, or an unparseable url, is skipped 
   assert.deepEqual(planTierOpinions(undefined), []);
 });
 
+test("planTierOpinions: a PROVISIONAL source is scanned exactly like an active one (lane CANONICAL-AUTOVERIFY-2, 2026-09-06 — canonical-autoverify.mjs now registers ambiguous-host accepts status='provisional'; this step's own planner has no status field to filter on, by design, so a provisional row already gets the same 'does the class table disagree' opinion an active row would)", () => {
+  const plan = planTierOpinions([{ id: "s1", url: LEGAL_HOST_URL, base_tier: 5, status: "provisional" }]);
+  assert.equal(plan.length, 1);
+  assert.equal(plan[0].source_id, "s1");
+  assert.equal(plan[0].class_tier, 1);
+});
+
 test("planTierOpinions: multiple sources — only the disagreeing ones appear, order preserved", () => {
   const plan = planTierOpinions([
     { id: "agree", url: LEGAL_HOST_URL, base_tier: 1 },

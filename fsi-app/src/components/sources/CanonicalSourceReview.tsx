@@ -284,7 +284,7 @@ export function CanonicalSourceReview() {
           No pending canonical source candidates
         </h3>
         <p className="mt-1 text-xs max-w-sm" style={{ color: "var(--color-text-secondary)" }}>
-          When the discovery agent finds replacement sources for items with stale, missing, or thin coverage, canonical-autoverify runs first (reachability, page class, content proof, authority) and only what it cannot resolve on its own appears here for review.
+          When the discovery agent finds replacement sources for items with stale, missing, or thin coverage, canonical-autoverify runs first (reachability, page class, content proof, authority) and rules every row itself — approved or rejected, with a transient fetch error retried automatically. This queue is the bulk-approve operator override, not a routine review step.
         </p>
       </div>
     );

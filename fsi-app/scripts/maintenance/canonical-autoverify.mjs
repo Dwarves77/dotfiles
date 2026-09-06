@@ -1,23 +1,32 @@
 #!/usr/bin/env node
 // canonical-autoverify.mjs — MAINT step that auto-verifies `canonical_source_candidates` rows
-// (decision='pending') instead of routing them to a human ("needs_individual_review"). Lane
-// CANONICAL-AUTOVERIFY, 2026-09-06.
+// (decision='pending'). Lane CANONICAL-AUTOVERIFY, 2026-09-06, ruling-confirmed same day: verification of
+// a replacement source location is AUTOMATIC, never a human process — there is no `needs_individual_review`
+// outcome. Every row this step reads resolves to `approved` or `rejected`, plus `deferred` for a
+// transient fetch error only (not a human outcome — the fetch itself never completed; retried next run).
 //
 // OPERATOR RULING THIS BUILDS (verbatim, 2026-09-06): "the problem with this is that its a human process,
 // if the web crawl surfaced a secondary location for the source it should also confirm that source is
 // accurate and not wait on human intervention. it has the tools to review and find sources to start, so
-// its completely capable of doing that again for the secondary source or new source location."
+// its completely capable of doing that again for the secondary source or new source location." CONFIRMED
+// the same day after this step's first version still left two classes waiting on a human: an ambiguous
+// candidate host (no codified authority tier) now ACCEPTS at the deterministic sub-floor default tier,
+// registered PROVISIONAL — never stuck; a current source that is merely WALL-BLOCKED (403/WAF), not dead,
+// now REJECTS the candidate outright — a wall is not a dead link, so the current citation stands and no
+// authority-downgrade question is even reached.
 //
 // WHAT THIS REPLACES. The group-ruling path (scripts/review/lib/canonical-candidates.mjs +
 // scripts/review/apply-canonical-candidates.mjs, wired by review-apply-canonical-candidates.mjs) only
 // ever auto-resolves a candidate whose URL ALREADY matches a registered source; every other row —
-// including every genuinely NEW source location the web crawl found — is routed to
-// "needs_individual_review" and waits for a human. That is the human-process gap the ruling names. This
+// including every genuinely NEW source location the web crawl found — used to be routed to
+// "needs_individual_review" and wait for a human. That is the human-process gap the ruling names. This
 // step performs the SAME verification a human reviewer would (fetch the page, check it is not a wall/
 // wrong-page-type, confirm the page actually supports the item's claim, rate its authority) and rules the
-// row itself. `review-apply-canonical-candidates.mjs` is UNCHANGED and still applies a group ruling an
-// operator has already taken; this step is the mechanism for the individual rows that path could not
-// auto-resolve.
+// row itself, all the way to a terminal outcome. `review-apply-canonical-candidates.mjs` is UNCHANGED and
+// still applies a group ruling an operator has already taken (its own, separate `needs_individual_review`
+// fallback is for a DIFFERENT unresolvable case — a group ruled "accept" that names a candidate needing a
+// brand-new source with no existing registry match at all — untouched by this ruling); this step is the
+// mechanism for the individual rows that path could not auto-resolve.
 //
 // $0 — no LLM call anywhere in this module. Every check below is a deterministic string/regex/host-class
 // test, reusing modules that already exist rather than re-implementing them (CLAUDE.md "one module every
@@ -38,23 +47,37 @@
 //     case — "the institution name plus the item's subject phrase both located" — therefore applies to
 //     every row this step has actually seen live, not as an edge case.
 //   - AUTHORITY: src/lib/sources/host-authority.mjs's codifiedTierForHost / classTierForHost /
-//     permanentlyUnregisteredClass, PLUS a live-registry lookup (existingTierForHost, institutionKey-
-//     keyed exactly like db.mjs's registerSource dedups) — a host already registered inherits its real
-//     tier before falling back to the static class table, the same order scripts/mint/heal-provenance.mjs's
-//     classifyCitedUrlForOrphan uses.
+//     permanentlyUnregisteredClass / defaultTierForHost, PLUS a live-registry lookup (existingTierForHost,
+//     institutionKey-keyed exactly like db.mjs's registerSource dedups) — a host already registered
+//     inherits its real tier before falling back to the static class table, the same order
+//     scripts/mint/heal-provenance.mjs's classifyCitedUrlForOrphan uses. An AMBIGUOUS host (no codified
+//     tier, not already registered) is not a dead end (SC-13 still forbids GUESSING an active tier, but
+//     does not forbid registering PROVISIONAL at the sub-floor default — the same status
+//     source-growth.ts's registerCitedSources already mints an unclassified machine-discovered host at):
+//     content proof already passed, so it accepts, provisional, and tier-opinions.mjs's next dispatch is
+//     the deterministic second look that can raise or confirm the tier once the host is actually in the
+//     registry to opine about. An authority DOWNGRADE (a different-host candidate whose tier is worse than
+//     the item's actually-linked current source) never auto-accepts unless the current source is CONFIRMED
+//     dead (404/410/5xx/DNS) — reachable-but-walled (403/WAF/bot-check) is explicitly NOT dead and rejects
+//     the candidate outright instead ("a wall is not a dead link": the current citation stands).
 //   - REGISTRATION / RE-POINT on accept: scripts/lib/db.mjs's registerSource (the ONE source-registration
 //     function — also used by heal-provenance.mjs's STEP SOURCE, never a third copy) plus a
 //     guardedUpdateByIds repoint of intelligence_items.source_id/source_url, the SAME two-write shape
 //     bulk-approve/route.ts's approve path and apply-canonical-candidates.mjs's accept path both use.
+//     registerSource's own `extra` pass-through (already part of its signature, never a new parameter) is
+//     how a provisional accept is minted `status: 'provisional'` instead of the function's normal
+//     `'active'` default.
 //
-// DECISION OUTCOMES: 'approved' (auto-accepted), 'rejected' (auto-rejected, reviewer_notes names why), or
-// left 'pending' with a `needs_individual_review` line in the summary (SC-13: never invent a tier, never
-// silently downgrade authority without proof the current source is dead — the two cases this step still
-// cannot rule on its own, same fallback bulk-approve/route.ts and apply-canonical-candidates.mjs already
-// use for their own unresolvable rows).
+// DECISION OUTCOMES (only two human-relevant ones, no third): 'approved' (auto-accepted — either at a
+// codified/existing tier, or PROVISIONAL at the sub-floor default for an ambiguous host) and 'rejected'
+// (auto-rejected, reviewer_notes names the exact stage and reason). 'deferred' exists ONLY for a transient
+// fetch error (Browserless hard-error/DNS timeout/network blip that never completed the request) — the row
+// is left 'pending' and retried the next dispatch; it is not a verdict on the candidate and never a human
+// wait.
 //
 // IDEMPOTENT: only decision='pending' rows are ever read or matched on write (readAll's own match +
-// guardedUpdateByIds's applyMatch), so a re-run only ever touches rows still pending.
+// guardedUpdateByIds's applyMatch), so a re-run only ever touches rows still pending (which, after a clean
+// apply, is only ever the 'deferred' rows from a transient fetch failure).
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { runCli } from "./lib/cli.mjs";
@@ -75,12 +98,16 @@ export function isDeadStatus(status) {
 
 /**
  * Classify one fetch result. `fetchResult` = { status, text, error } — `error` set when the fetch itself
- * threw (Browserless hard-error, DNS failure, timeout). Pure.
- * @returns {{ ok: boolean, reason?: string, wall?: {kind:string, evidence:string} }}
+ * threw (Browserless hard-error, DNS failure, timeout — the request never completed, so nothing was
+ * actually learned about the page). Pure.
+ * @returns {{ ok: boolean, reason?: string, wall?: {kind:string, evidence:string}, transient?: boolean }}
  */
 export function classifyReachability(fetchResult) {
   if (fetchResult?.error) {
-    return { ok: false, reason: `fetch failed: ${String(fetchResult.error).slice(0, 200)}` };
+    // TRANSIENT, not a verdict on the page: the fetch itself never completed, so this is not proof the
+    // candidate (or the current source) is dead — the caller routes this to 'deferred', never 'rejected'
+    // (rule: no human outcome, but also no false-negative reject of a possibly-good candidate).
+    return { ok: false, transient: true, reason: `fetch failed: ${String(fetchResult.error).slice(0, 200)}` };
   }
   const status = fetchResult?.status;
   if (isDeadStatus(status)) {
@@ -220,6 +247,43 @@ export function phraseLocated(phrase, text) {
 }
 
 /**
+ * A `candidate_publisher` value is often "Core Name (trailing annotation)" — the annotation is sometimes
+ * a genuine alternate name a page uses instead of the full name (row 44fa2c94: "World Resources Institute
+ * (WRI)" — the page says "About WRI"), sometimes pure descriptive metadata a page never restates verbatim
+ * (row 7aae8bba, live 2026-09-06: "GreenBlue (parent 501(c)(3) nonprofit of SPC)" — greenblue.org's own
+ * page says "GreenBlue" and "SPC" throughout but never "nonprofit"/"501"/"parent", so word-overlap's
+ * half-the-words threshold against the FULL descriptive string undercounts an institution the page
+ * plainly is). Rather than guess which case a given publisher string is (SC-13's own posture — never
+ * infer intent from a string), try BOTH the whole string and its two natural sub-parts (everything before
+ * the first "(", and the content of that parenthetical with one trailing ")" stripped) as independent
+ * name candidates — the institution check below passes if ANY of them locates. Pure.
+ * @param {string} name @returns {string[]} at least one entry (the trimmed input), more if it parenthesizes.
+ */
+export function institutionNameCandidates(name) {
+  const s = String(name ?? "").trim();
+  if (!s) return [];
+  const idx = s.indexOf("(");
+  if (idx === -1) return [s];
+  const before = s.slice(0, idx).trim();
+  let inside = s.slice(idx + 1).trim();
+  if (inside.endsWith(")")) inside = inside.slice(0, -1).trim();
+  const out = [s];
+  if (before && before !== s) out.push(before);
+  if (inside && inside !== s) out.push(inside);
+  return out;
+}
+
+/** institutionNameCandidates + phraseLocated, OR'd across every candidate name — located as soon as ONE
+ *  of them locates (see institutionNameCandidates's own header for why more than one name is tried). Pure. */
+export function institutionLocated(institutionName, text) {
+  for (const candidate of institutionNameCandidates(institutionName)) {
+    const r = phraseLocated(candidate, text);
+    if (r.located) return r;
+  }
+  return { located: false, method: null };
+}
+
+/**
  * Content proof for one candidate. `factTokens` are the item's own verbatim FACT source_spans (Gate-A
  * figure tokens / slot claims), when it has any — tried FIRST, per rule 3. Every one of the 16 live
  * pending rows this step has been run against carries zero FACT claims (SQL, 2026-09-06), so
@@ -233,7 +297,7 @@ export function proveContent({ text, institutionName, subjectTitle, factTokens =
     const hit = locateSpanInText(token, text);
     if (hit) return { pass: true, method: "fact_token", located: [{ token, method: hit.method }], reason: `FACT token located verbatim (${hit.method}).` };
   }
-  const inst = phraseLocated(institutionName, text);
+  const inst = institutionLocated(institutionName, text);
   const subj = phraseLocated(subjectTitle, text);
   if (inst.located && subj.located) {
     return {
@@ -270,37 +334,86 @@ export function existingTierForHost(host, sources, sourcesById) {
 }
 
 /**
+ * The tier of the item's ACTUALLY-LINKED current source, or null when the item has none (`missing_link`
+ * rows always carry `current_source_id: null` — there is no established authority to protect, so a
+ * host-tier guess off `current_source_url`'s text is not a real "current" to downgrade from; only
+ * `stale_url` rows carry a real `current_source_id`). Exact-id lookup, never a host-based re-derivation —
+ * the row that is actually cited may sit at a different exact URL than any other row sharing its host.
+ * Pure given `sources`.
+ * @param {string|null} currentSourceId @param {Array<{id:string,base_tier:number,tier_override?:number}>} sources
+ */
+export function linkedCurrentTier(currentSourceId, sources) {
+  if (!currentSourceId) return null;
+  const s = (sources ?? []).find((row) => row.id === currentSourceId);
+  if (!s) return null;
+  return s.tier_override ?? s.base_tier ?? null;
+}
+
+/**
  * Authority check for a candidate. `codifiedTierForHost`/`classTierForHost`/`permanentlyUnregisteredClass`
  * are injected (from host-authority.mjs) so this module stays free of the .ts import (this file is plain
  * .mjs; the maintenance wrapper below imports the compiled host-authority helpers through a dynamic
  * import so the same TS module every route/heal-provenance uses is the one authority source, never a
- * second copy). Pure given its inputs.
- * @param {{ candidateHost: string, currentHost: string, sources: any[], classTierForHost: Function,
- *   permanentlyUnregisteredClass: Function, currentIsConfirmedDead: boolean }} args
+ * second copy). Never returns a bare "needs a human" failure (operator ruling 2026-09-06): an AMBIGUOUS
+ * candidate host (no codified tier, not already registered) is reported as `kind: "ambiguous"` — the
+ * caller (decideRow) turns this into an ACCEPT at the deterministic sub-floor default
+ * (`host-authority.ts`'s own `defaultTierForHost`), registered PROVISIONAL — the SAME status the registry
+ * already mints an unclassified machine-discovered host at (`source-growth.ts`'s `registerCitedSources`,
+ * `status: "provisional"` when a citation's host does not classify), never a guessed ACTIVE tier. A
+ * genuine AUTHORITY DOWNGRADE (candidate tier worse than the item's actually-linked current source) still
+ * never auto-accepts UNLESS that current source is CONFIRMED dead (`currentIsConfirmedDead`) — reachable-
+ * but-walled (`currentIsWalled`, 403/WAF/bot-check) is explicitly NOT dead and reports `kind:
+ * "downgrade_walled"` so the caller REJECTS the candidate outright (the current citation stands; only a
+ * confirmed-dead current URL licenses a different-publisher replacement). Pure given its inputs.
+ * @param {{ candidateHost: string, currentHost: string, currentSourceId: string|null, sources: any[],
+ *   classTierForHost: Function, permanentlyUnregisteredClass: Function, currentIsConfirmedDead: boolean,
+ *   currentIsWalled: boolean }} args
  */
-export function checkAuthority({ candidateHost, currentHost, sources, classTierForHost, permanentlyUnregisteredClass, currentIsConfirmedDead }) {
+export function checkAuthority({
+  candidateHost, currentHost, currentSourceId, sources, classTierForHost, permanentlyUnregisteredClass,
+  currentIsConfirmedDead, currentIsWalled,
+}) {
   if (permanentlyUnregisteredClass(candidateHost) != null) {
-    return { ok: false, tier: null, reason: `${candidateHost} is a permanently-unregistered host class (aggregator/hosting-platform) — never the publisher.` };
+    return { ok: false, kind: "permanent", tier: null, reason: `${candidateHost} is a permanently-unregistered host class (aggregator/hosting-platform) — never the publisher.` };
   }
   const candExisting = existingTierForHost(candidateHost, sources);
   const candTier = candExisting?.tier ?? classTierForHost(candidateHost);
-  if (candTier == null) {
-    return { ok: false, tier: null, reason: `${candidateHost} has no deterministic authority tier (SC-13: never guess) — needs individual review.`, sourceId: candExisting?.sourceId ?? null };
-  }
+  // SAME HOST checked BEFORE the ambiguous branch, deliberately: candidateHost === currentHost can never
+  // be a downgrade (it is literally the org's own site the item already points at), so it is never worth
+  // minting a NEW provisional registration for a host that may simply not be in `sources` under either
+  // row's exact URL yet — e.g. row 643f8625 (Fraunhofer IML): `iml.fraunhofer.de` IS already registered
+  // (active, tier 3) under a different exact path than either this row's current or candidate URL, and
+  // existingTierForHost's institutionKey match finds it regardless of which of the two paths is asked.
   if (candidateHost === currentHost) {
-    return { ok: true, tier: candTier, sourceId: candExisting?.sourceId ?? null, reason: `same host as current source, tier ${candTier}.` };
+    return { ok: true, tier: candTier, sourceId: candExisting?.sourceId ?? null, reason: `same host as current source, tier ${candTier ?? "unregistered — accepted on host identity alone"}.` };
   }
-  const currExisting = existingTierForHost(currentHost, sources);
-  const currTier = currExisting?.tier ?? classTierForHost(currentHost);
+  if (candTier == null) {
+    return {
+      ok: false, kind: "ambiguous", tier: null, sourceId: candExisting?.sourceId ?? null,
+      reason: `${candidateHost} has no codified authority tier — content proof passed, so it registers ` +
+        `provisional at its deterministic default tier rather than waiting on a human; tier-opinions ` +
+        `refines it on its next dispatch.`,
+    };
+  }
+  // Only a REAL linked current source is something to protect (see linkedCurrentTier's own header). A
+  // missing_link row (currentSourceId null) has no established authority to downgrade FROM — any
+  // content-proven, tier-resolvable candidate is strictly an improvement over no source at all.
+  const currTier = linkedCurrentTier(currentSourceId, sources);
   if (currTier == null || candTier <= currTier) {
-    return { ok: true, tier: candTier, sourceId: candExisting?.sourceId ?? null, reason: `tier ${candTier} does not downgrade the current host's tier (${currTier ?? "unknown"}).` };
+    return { ok: true, tier: candTier, sourceId: candExisting?.sourceId ?? null, reason: `tier ${candTier} does not downgrade the current host's tier (${currTier ?? "unknown / no linked current source"}).` };
   }
   if (currentIsConfirmedDead) {
     return { ok: true, tier: candTier, sourceId: candExisting?.sourceId ?? null, reason: `current host tier ${currTier} but its URL is confirmed dead — downgrade to tier ${candTier} accepted.` };
   }
+  if (currentIsWalled) {
+    return {
+      ok: false, kind: "downgrade_walled", tier: candTier, sourceId: candExisting?.sourceId ?? null,
+      reason: "current source reachable behind an access wall; candidate is a different publisher.",
+    };
+  }
   return {
-    ok: false, tier: candTier, sourceId: candExisting?.sourceId ?? null,
-    reason: `would downgrade authority (current tier ${currTier} -> candidate tier ${candTier}) with no proof the current source is dead — needs individual review.`,
+    ok: false, kind: "downgrade", tier: candTier, sourceId: candExisting?.sourceId ?? null,
+    reason: `would downgrade authority (current tier ${currTier} -> candidate tier ${candTier}) with no proof the current source is dead.`,
   };
 }
 
@@ -309,11 +422,12 @@ export function checkAuthority({ candidateHost, currentHost, sources, classTierF
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 
 /**
- * Decide one candidate row. Pure given its inputs (the fetch already happened in the caller).
+ * Decide one candidate row. Pure given its inputs (the fetches already happened in the caller).
  * @param {object} row canonical_source_candidates row
  * @param {{ title: string }} item the item's { title } (subject phrase)
- * @param {object} fetchResult { status, text, error, host, path }
- * @param {object} deps { sources, classTierForHost, permanentlyUnregisteredClass, factTokens }
+ * @param {object} fetchResult { status, text, error, host, path } — the CANDIDATE fetch
+ * @param {object} deps { sources, classTierForHost, permanentlyUnregisteredClass, defaultTierForHost,
+ *   currentIsConfirmedDead, currentIsWalled, factTokens }
  */
 export function decideRow(row, item, fetchResult, deps) {
   const candidateHost = hostOf(row.candidate_url);
@@ -321,6 +435,17 @@ export function decideRow(row, item, fetchResult, deps) {
 
   const reach = classifyReachability(fetchResult);
   if (!reach.ok) {
+    if (reach.transient) {
+      // Not a human outcome, not a verdict on the candidate — the fetch itself never completed (network
+      // blip, Browserless hard-error, timeout). Left 'pending' by the caller; retried next dispatch.
+      return {
+        id: row.id, decision: "deferred",
+        reviewer_notes: `auto: deferred — ${reach.reason}, retry next run`,
+        verified_status_code: fetchResult?.status ?? null,
+        verified_content_excerpt: null,
+        proof: { stage: "reachability", ...reach },
+      };
+    }
     return {
       id: row.id, decision: "rejected",
       reviewer_notes: `auto: reject — ${reach.reason}`,
@@ -359,18 +484,59 @@ export function decideRow(row, item, fetchResult, deps) {
 
   const authority = checkAuthority({
     candidateHost, currentHost,
+    currentSourceId: row.current_source_id ?? null,
     sources: deps.sources ?? [],
     classTierForHost: deps.classTierForHost,
     permanentlyUnregisteredClass: deps.permanentlyUnregisteredClass,
     currentIsConfirmedDead: !!deps.currentIsConfirmedDead,
+    currentIsWalled: !!deps.currentIsWalled,
   });
-  if (!authority.ok) {
+
+  if (!authority.ok && authority.kind === "ambiguous") {
+    // ACCEPT (operator ruling 2026-09-06): content proof already passed — the same verification a human
+    // reviewer would perform — so an ambiguous candidate host registers PROVISIONAL at the deterministic
+    // sub-floor default (host-authority.ts's defaultTierForHost: the codified tier if one exists, else
+    // PROVISIONAL_DEFAULT_TIER=5), the SAME status the registry already uses for a machine-discovered host
+    // that does not classify (source-growth.ts's registerCitedSources). Never guessed ACTIVE, never stuck
+    // waiting on a human: tier-opinions.mjs's next dispatch is the deterministic second look that can
+    // raise or confirm the tier once the host is actually in the registry to opine about.
+    const provisionalTier = deps.defaultTierForHost ? deps.defaultTierForHost(candidateHost) : null;
     return {
-      id: row.id, decision: "needs_individual_review",
-      reviewer_notes: `auto: needs_individual_review — ${authority.reason}`,
+      id: row.id, decision: "approved",
+      reviewer_notes: `auto: accepted; tier provisional (default ${provisionalTier}), tier-opinions refines`,
+      verified_status_code: fetchResult?.status ?? null,
+      verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
+      proof: { stage: "accept_provisional", content, authority },
+      candidateHost, authorityTier: provisionalTier, existingSourceId: null, provisional: true,
+    };
+  }
+
+  if (!authority.ok) {
+    // "permanent" (aggregator/hosting-platform) or "downgrade"/"downgrade_walled" — every remaining
+    // authority failure is a REJECT, never a human wait. `downgrade_walled` uses authority.reason verbatim
+    // (operator ruling 2026-09-06: "a wall is not a dead link" — the current citation stands).
+    return {
+      id: row.id, decision: "rejected",
+      reviewer_notes: `auto: reject — ${authority.reason}`,
       verified_status_code: fetchResult?.status ?? null,
       verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
       proof: { stage: "authority", content, ...authority },
+    };
+  }
+
+  if (authority.tier == null) {
+    // Same host as current, but genuinely unregistered anywhere yet (no existing tier, no codified
+    // class) — the identity match still licenses the accept (it is the org's own site the item already
+    // names), but there is no known tier to inherit, so this is the SAME provisional-default posture as
+    // the ambiguous branch above, never a guessed/defaulted-to-7 registerSource insert.
+    const provisionalTier = deps.defaultTierForHost ? deps.defaultTierForHost(candidateHost) : null;
+    return {
+      id: row.id, decision: "approved",
+      reviewer_notes: `auto: accepted (same host as current source, unregistered); tier provisional (default ${provisionalTier}), tier-opinions refines`,
+      verified_status_code: fetchResult?.status ?? null,
+      verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
+      proof: { stage: "accept_provisional", content, authority },
+      candidateHost, authorityTier: provisionalTier, existingSourceId: null, provisional: true,
     };
   }
 
@@ -408,7 +574,8 @@ const matchQueue = (qb) => qb.eq("decision", "pending");
  * @param {{ mode?: "dry"|"apply" }} opts
  * @param {{ readAll: Function, guardedUpdateByIds: Function, registerSource: Function,
  *   fetchCandidate: (url: string) => Promise<{status:number,text:string,host?:string,path?:string,error?:any}>,
- *   hostAuthority: { classTierForHost: Function, permanentlyUnregisteredClass: Function } }} deps
+ *   hostAuthority: { classTierForHost: Function, permanentlyUnregisteredClass: Function,
+ *     defaultTierForHost: Function } }} deps
  */
 export async function main({ mode = "dry" } = {}, deps) {
   const apply = mode === "apply";
@@ -423,11 +590,31 @@ export async function main({ mode = "dry" } = {}, deps) {
   const verdicts = [];
   for (const row of rows) {
     const fetchResult = await deps.fetchCandidate(row.candidate_url).catch((e) => ({ error: e, status: null, text: "" }));
+
+    // The CURRENT source's own reachability decides dead-vs-walled for the authority-downgrade rule
+    // (checkAuthority's own header) — only fetched when there is a current URL at all (a missing_link
+    // row's currentHost is never load-bearing for the downgrade check, but fetching costs nothing extra
+    // to keep this simple and uniform rather than conditioning on issue_classification).
+    let currentIsConfirmedDead = false, currentIsWalled = false;
+    if (row.current_source_url) {
+      const currentFetch = await deps.fetchCandidate(row.current_source_url).catch((e) => ({ error: e, status: null, text: "" }));
+      const currentReach = classifyReachability(currentFetch);
+      if (!currentReach.ok) {
+        if (currentReach.wall) currentIsWalled = true;
+        else if (!currentReach.transient) currentIsConfirmedDead = true;
+        // a TRANSIENT current-fetch failure proves nothing either way — left both false, same as an
+        // untested current source; the row's own candidate-side reachability still governs its verdict.
+      }
+    }
+
     const item = itemById.get(row.intelligence_item_id) ?? null;
     const verdict = decideRow(row, item, fetchResult, {
       sources,
       classTierForHost: deps.hostAuthority.classTierForHost,
       permanentlyUnregisteredClass: deps.hostAuthority.permanentlyUnregisteredClass,
+      defaultTierForHost: deps.hostAuthority.defaultTierForHost,
+      currentIsConfirmedDead,
+      currentIsWalled,
       factTokens: [], // every live row this step has seen carries zero FACT claims — see proveContent's own header
     });
     verdicts.push(verdict);
@@ -437,7 +624,7 @@ export async function main({ mode = "dry" } = {}, deps) {
     pending_read: rows.length,
     approved: verdicts.filter((v) => v.decision === "approved").length,
     rejected: verdicts.filter((v) => v.decision === "rejected").length,
-    needs_individual_review: verdicts.filter((v) => v.decision === "needs_individual_review").length,
+    deferred: verdicts.filter((v) => v.decision === "deferred").length,
   };
   summary.verdicts = verdicts.map((v) => ({ id: v.id, decision: v.decision, reviewer_notes: v.reviewer_notes }));
 
@@ -447,9 +634,9 @@ export async function main({ mode = "dry" } = {}, deps) {
   }
 
   let approvedApplied = 0, rejectedApplied = 0;
-  const needsReview = [];
+  const deferred = [];
   for (const v of verdicts) {
-    if (v.decision === "needs_individual_review") { needsReview.push({ id: v.id, reason: v.reviewer_notes }); continue; }
+    if (v.decision === "deferred") { deferred.push({ id: v.id, reason: v.reviewer_notes }); continue; }
     if (v.decision === "rejected") {
       await deps.guardedUpdateByIds(TABLE, [v.id], {
         decision: "rejected", reviewed: true, reviewer_notes: v.reviewer_notes,
@@ -458,10 +645,18 @@ export async function main({ mode = "dry" } = {}, deps) {
       rejectedApplied += 1;
       continue;
     }
-    // approved
+    // approved — either an existing/codified-tier source (v.existingSourceId or a codified candTier), or
+    // an ambiguous-host provisional accept (v.provisional): registerSource dedups by institutionKey either
+    // way, so a host already registered under either status is reused, never duplicated.
     let sourceId = v.existingSourceId;
     if (!sourceId) {
-      const reg = await deps.registerSource({ url: v.candidateHost ? `https://${v.candidateHost}/` : (rows.find((r) => r.id === v.id) || {}).candidate_url, name: v.candidateHost, base_tier: v.authorityTier }, { cite: CITE });
+      const reg = await deps.registerSource({
+        url: v.candidateHost ? `https://${v.candidateHost}/` : (rows.find((r) => r.id === v.id) || {}).candidate_url,
+        name: v.candidateHost, base_tier: v.authorityTier,
+        // The SAME provisional status the registry already mints an unclassified machine-discovered host
+        // at (source-growth.ts's registerCitedSources) — never a guessed ACTIVE tier (SC-13).
+        ...(v.provisional ? { extra: { status: "provisional" } } : {}),
+      }, { cite: CITE });
       sourceId = reg.source_id;
     }
     const row = rows.find((r) => r.id === v.id);
@@ -476,7 +671,7 @@ export async function main({ mode = "dry" } = {}, deps) {
   }
 
   summary.applied = approvedApplied + rejectedApplied;
-  summary.needs_individual_review = needsReview;
+  summary.deferred = deferred;
 
   const readBack = await deps.readAllByIds(TABLE, "id,decision,promoted_to_source_id,intelligence_item_id", rows.map((r) => r.id));
   summary.read_back = {

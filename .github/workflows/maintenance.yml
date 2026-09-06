@@ -767,20 +767,23 @@ jobs:
           node scripts/maintenance/source-role-cleanup.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/source-role-cleanup" || true
 
       - name: canonical-autoverify
-        # scripts/maintenance/canonical-autoverify.mjs — lane CANONICAL-AUTOVERIFY, 2026-09-06. Operator
-        # ruling: a web-crawl-surfaced replacement source for canonical_source_candidates (decision=
-        # 'pending') is machine-verifiable the same way a human reviewer would check it, so it does not
-        # wait on individual review — reachability (the canonical Browserless fetch), page-class (login/
-        # about/directory/press/aggregator-datacard rejects), content proof (locateSpanInText / word-
-        # overlap against the item's own subject and institution — no LLM call), and authority (host-
-        # authority.mjs's codified tiers + the live sources registry; never downgrades authority without
-        # proof the current source is dead, never invents a tier for an ambiguous host). Not ruling-gated
-        # (no `arg` needed): every row it can confidently resolve is ruled in the SAME run; anything it
-        # cannot (ambiguous host tier, an unproven authority downgrade) is left decision='pending' and
-        # reported under `needs_individual_review`, same fallback bulk-approve/route.ts already uses.
+        # scripts/maintenance/canonical-autoverify.mjs — lane CANONICAL-AUTOVERIFY, 2026-09-06; ruling
+        # CONFIRMED same day (lane CANONICAL-AUTOVERIFY-2): verification of a replacement source location
+        # is automatic, never a human process — there is NO `needs_individual_review` outcome. Every
+        # pending row resolves to `approved` or `rejected`, plus `deferred` (not a human outcome — a
+        # transient Browserless/network fetch error, retried next run) — reachability (the canonical
+        # Browserless fetch), page-class (login/about/directory/press/aggregator-datacard rejects), content
+        # proof (locateSpanInText / word-overlap against the item's own subject and institution — no LLM
+        # call), and authority (host-authority.mjs's codified tiers + defaultTierForHost + the live sources
+        # registry; an ambiguous candidate host ACCEPTS provisional at the deterministic default tier
+        # instead of waiting on a human — tier-opinions.mjs's next dispatch refines it; a downgrade below
+        # the item's actually-linked current source never auto-accepts unless that source is CONFIRMED
+        # dead — reachable-but-walled, e.g. 403/WAF, REJECTS the candidate instead, since a wall is not a
+        # dead link). Not ruling-gated (no `arg` needed): every row is ruled in the SAME run.
         # review-apply-canonical-candidates (above) is UNCHANGED and still applies an operator's own group
-        # ruling for rows already taken through that path; this step is the mechanism for rows that path
-        # could only route to a human.
+        # ruling for rows already taken through that path (its own, separate `needs_individual_review`
+        # fallback covers a different, untouched case — see runbook §14/§38); this step is the mechanism
+        # for rows that path could only route to a human. See runbook §38 for the full outcome table.
         if: env.RUN_STEP == 'canonical-autoverify' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           mkdir -p "$OUT_ROOT/canonical-autoverify"

@@ -11,8 +11,11 @@ import {
   significantWords,
   wordsOverlapLocated,
   phraseLocated,
+  institutionNameCandidates,
+  institutionLocated,
   proveContent,
   existingTierForHost,
+  linkedCurrentTier,
   checkAuthority,
   decideRow,
   main,
@@ -49,6 +52,18 @@ test("classifyReachability: a login wall (row 6f26a2db LR client portal) rejects
 test("classifyReachability: real 200 content passes", () => {
   const r = classifyReachability({ status: 200, text: "H2Accelerate TRUCKS is an innovative European collaboration of 15 partners." });
   assert.equal(r.ok, true);
+});
+
+test("classifyReachability: a fetch error is flagged transient — not proof the page is dead (lane CANONICAL-AUTOVERIFY-2, 2026-09-06: this routes to 'deferred', never 'rejected')", () => {
+  const r = classifyReachability({ error: new Error("Browserless hard-error: upstream timeout") });
+  assert.equal(r.ok, false);
+  assert.equal(r.transient, true);
+});
+
+test("classifyReachability: a dead HTTP status is NOT transient — it is a confirmed verdict", () => {
+  const r = classifyReachability({ status: 404, text: "" });
+  assert.equal(r.ok, false);
+  assert.equal(r.transient, undefined);
 });
 
 // ── PAGE CLASS ────────────────────────────────────────────────────────────────────────────────────────
@@ -115,6 +130,30 @@ test("phraseLocated: prefers the exact verbatim locate when it works", () => {
   assert.notEqual(r.method, "word_overlap");
 });
 
+test("institutionNameCandidates: no parenthesis -> the string alone", () => {
+  assert.deepEqual(institutionNameCandidates("DNV"), ["DNV"]);
+});
+
+test("institutionNameCandidates: splits into whole / before-paren / inside-paren, tolerating nested parens (row 7aae8bba live publisher string, 2026-09-06)", () => {
+  const full = "GreenBlue (parent 501(c)(3) nonprofit of SPC)";
+  const cands = institutionNameCandidates(full);
+  assert.equal(cands[0], full);
+  assert.equal(cands[1], "GreenBlue");
+  assert.equal(cands[2], "parent 501(c)(3) nonprofit of SPC");
+});
+
+test("institutionLocated: the FULL descriptive publisher string fails word-overlap (real greenblue.org page never says 'nonprofit'/'501'/'parent'), but the CORE name before the parenthesis locates trivially (live 2026-09-06 full-page fetch)", () => {
+  const text = "Sustainable Packaging Coalition - GreenBlue ABOUT PROJECTS ... About GreenBlue GreenBlue Events Presented by GreenBlue and UNIDO";
+  const full = "GreenBlue (parent 501(c)(3) nonprofit of SPC)";
+  assert.equal(phraseLocated(full, text).located, false, "sanity: the full descriptive string alone does NOT locate against this real text");
+  assert.equal(institutionLocated(full, text).located, true, "the core-name candidate rescues it");
+});
+
+test("institutionLocated: an abbreviation-style parenthetical still locates via ITS OWN candidate (row 44fa2c94, WRI)", () => {
+  const r = institutionLocated("World Resources Institute (WRI)", "About WRI. Making Big Ideas Happen.");
+  assert.equal(r.located, true);
+});
+
 test("proveContent: passes when a FACT token locates verbatim, before even checking institution/subject", () => {
   const r = proveContent({ text: "The rate is set at $44,836 per violation.", institutionName: "Nonexistent Org", subjectTitle: "Nonexistent Subject", factTokens: ["$44,836 per violation"] });
   assert.equal(r.pass, true);
@@ -158,66 +197,109 @@ test("existingTierForHost: finds an active registered host by institutionKey, ig
   assert.equal(r.sourceId, "src-h2acc");
 });
 
+test("linkedCurrentTier: null when there is no linked current source (every missing_link row's currentSourceId)", () => {
+  assert.equal(linkedCurrentTier(null, SOURCES_FIXTURE), null);
+});
+
+test("linkedCurrentTier: exact-id lookup, respecting tier_override over base_tier", () => {
+  const sources = [{ id: "s1", base_tier: 4, tier_override: 2 }];
+  assert.equal(linkedCurrentTier("s1", sources), 2);
+});
+
 test("checkAuthority: same host as current is always ok (row 1b70ca74, h2accelerate.eu/trucks/ vs current h2accelerate.eu)", () => {
   const r = checkAuthority({
-    candidateHost: "h2accelerate.eu", currentHost: "h2accelerate.eu", sources: SOURCES_FIXTURE,
+    candidateHost: "h2accelerate.eu", currentHost: "h2accelerate.eu", currentSourceId: null, sources: SOURCES_FIXTURE,
     classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
-    currentIsConfirmedDead: false,
+    currentIsConfirmedDead: false, currentIsWalled: false,
   });
   assert.equal(r.ok, true);
   assert.equal(r.tier, 4);
 });
 
-test("checkAuthority: refuses to downgrade authority without proof the current source is dead (row 62849804, DNV tier 4 vs IRENA tier 3, current URL only WAF-blocked, not confirmed dead)", () => {
+test("checkAuthority: a missing_link row (no linked current source) never triggers a downgrade check, even to a worse-tier candidate (row f2d50cc1, BSR tier 6 vs safa.aero's own registered tier 4 — safa.aero is not THIS item's linked source)", () => {
   const r = checkAuthority({
-    candidateHost: "dnv.com", currentHost: "irena.org", sources: SOURCES_FIXTURE,
+    candidateHost: "bsr.org", currentHost: "safa.aero", currentSourceId: null,
+    sources: [
+      { id: "src-bsr", url: "https://bsr.org", status: "active", base_tier: 6 },
+      { id: "src-safa", url: "https://safa.aero", status: "active", base_tier: 4 },
+    ],
+    classTierForHost: () => null, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
+    currentIsConfirmedDead: false, currentIsWalled: false,
+  });
+  assert.equal(r.ok, true);
+  assert.equal(r.tier, 6);
+});
+
+test("checkAuthority: a stale_url row's REAL linked current source protects against downgrade (row 62849804, DNV tier 4 vs IRENA tier 3, current URL only WAF-blocked, not confirmed dead)", () => {
+  const r = checkAuthority({
+    candidateHost: "dnv.com", currentHost: "irena.org", currentSourceId: "src-irena", sources: SOURCES_FIXTURE,
     classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
-    currentIsConfirmedDead: false,
+    currentIsConfirmedDead: false, currentIsWalled: false,
   });
   assert.equal(r.ok, false);
+  assert.equal(r.kind, "downgrade");
   assert.match(r.reason, /downgrade/);
 });
 
-test("checkAuthority: accepts the downgrade once the current source is confirmed dead", () => {
+test("checkAuthority: a WALLED (not dead) current source rejects the downgrade outright — 'downgrade_walled', never an accept (operator ruling 2026-09-06: a wall is not a dead link)", () => {
   const r = checkAuthority({
-    candidateHost: "dnv.com", currentHost: "irena.org", sources: SOURCES_FIXTURE,
+    candidateHost: "dnv.com", currentHost: "irena.org", currentSourceId: "src-irena", sources: SOURCES_FIXTURE,
     classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
-    currentIsConfirmedDead: true,
+    currentIsConfirmedDead: false, currentIsWalled: true,
+  });
+  assert.equal(r.ok, false);
+  assert.equal(r.kind, "downgrade_walled");
+  assert.match(r.reason, /access wall/);
+});
+
+test("checkAuthority: accepts the downgrade once the current source is CONFIRMED dead (never both dead and walled at once — dead wins if ever passed together, since it is checked first)", () => {
+  const r = checkAuthority({
+    candidateHost: "dnv.com", currentHost: "irena.org", currentSourceId: "src-irena", sources: SOURCES_FIXTURE,
+    classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
+    currentIsConfirmedDead: true, currentIsWalled: false,
   });
   assert.equal(r.ok, true);
 });
 
-test("checkAuthority: an ambiguous, unregistered candidate host never auto-accepts (row 7aae8bba, greenblue.org — SC-13 no-guess)", () => {
+test("checkAuthority: an ambiguous, unregistered candidate host is flagged 'ambiguous', never a bare failure (row 7aae8bba, greenblue.org — SC-13 no-guess-ACTIVE, but decideRow turns this into a provisional accept)", () => {
   const r = checkAuthority({
-    candidateHost: "greenblue.org", currentHost: "sustainablepackaging.org",
+    candidateHost: "greenblue.org", currentHost: "sustainablepackaging.org", currentSourceId: null,
     sources: [{ id: "src-spc", url: "https://sustainablepackaging.org/", status: "active", base_tier: 4 }],
     classTierForHost: () => null, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture,
-    currentIsConfirmedDead: false,
+    currentIsConfirmedDead: false, currentIsWalled: false,
   });
   assert.equal(r.ok, false);
-  assert.match(r.reason, /no deterministic authority tier/);
+  assert.equal(r.kind, "ambiguous");
+  assert.match(r.reason, /no codified authority tier/);
 });
 
 test("checkAuthority: rejects a permanently-unregistered host class regardless of tier", () => {
   const r = checkAuthority({
-    candidateHost: "law.justia.com", currentHost: "example.gov", sources: [],
+    candidateHost: "law.justia.com", currentHost: "example.gov", currentSourceId: null, sources: [],
     classTierForHost: () => 1, permanentlyUnregisteredClass: (h) => (h === "law.justia.com" ? "aggregator" : null),
-    currentIsConfirmedDead: false,
+    currentIsConfirmedDead: false, currentIsWalled: false,
   });
   assert.equal(r.ok, false);
+  assert.equal(r.kind, "permanent");
   assert.match(r.reason, /permanently-unregistered/);
 });
 
 // ── decideRow: end-to-end per-row pipeline, one case per stage ──────────────────────────────────────────
 
-const ROW_BASE = { id: "row-1", intelligence_item_id: "item-1", current_source_url: "https://h2accelerate.eu/", issue_classification: "missing_link", candidate_url: "https://h2accelerate.eu/trucks/", candidate_title: "H2Accelerate TRUCKS – H2Accelerate", candidate_publisher: "H2Accelerate Collaboration" };
+const ROW_BASE = { id: "row-1", intelligence_item_id: "item-1", current_source_id: null, current_source_url: "https://h2accelerate.eu/", issue_classification: "missing_link", candidate_url: "https://h2accelerate.eu/trucks/", candidate_title: "H2Accelerate TRUCKS – H2Accelerate", candidate_publisher: "H2Accelerate Collaboration" };
 const ITEM = { title: "H2 Accelerate" };
-const BASE_DEPS = { sources: SOURCES_FIXTURE, classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, currentIsConfirmedDead: false, factTokens: [] };
+const BASE_DEPS = { sources: SOURCES_FIXTURE, classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: (h) => classTierForHostFixture(h) ?? 5, currentIsConfirmedDead: false, currentIsWalled: false, factTokens: [] };
 
 test("decideRow: reachability rejection short-circuits before page-class/content/authority", () => {
   const v = decideRow(ROW_BASE, ITEM, { status: 404, text: "" }, BASE_DEPS);
   assert.equal(v.decision, "rejected");
   assert.equal(v.proof.stage, "reachability");
+});
+
+test("decideRow: a transient fetch error defers, never rejects — not a human outcome, retried next run", () => {
+  const v = decideRow(ROW_BASE, ITEM, { error: new Error("Browserless hard-error: timeout") }, BASE_DEPS);
+  assert.equal(v.decision, "deferred");
+  assert.match(v.reviewer_notes, /retry next run/);
 });
 
 test("decideRow: page-class rejection (about page) short-circuits before content/authority", () => {
@@ -241,20 +323,60 @@ test("decideRow: full accept path (row 1b70ca74) — reachable, clean page-class
   assert.equal(v.existingSourceId, "src-h2acc");
 });
 
-test("decideRow: authority ambiguity routes to needs_individual_review, never a silent accept (row 7aae8bba shape)", () => {
-  const row = { ...ROW_BASE, current_source_url: "https://sustainablepackaging.org/", candidate_url: "https://greenblue.org/projects/sustainable-packaging-coalition/", candidate_title: "Sustainable Packaging Coalition - GreenBlue", candidate_publisher: "GreenBlue" };
-  const deps = { ...BASE_DEPS, sources: [{ id: "src-spc", url: "https://sustainablepackaging.org/", status: "active", base_tier: 4 }], classTierForHost: () => null };
+test("decideRow: a stale_url row's CONFIRMED-DEAD current source licenses the downgrade accept (DNS/404/410/5xx, not a wall)", () => {
+  const row = { ...ROW_BASE, current_source_id: "src-irena", current_source_url: "https://www.irena.org/Energy-Transition/Technology/Maritime-transport", issue_classification: "stale_url", candidate_url: "https://www.dnv.com/services/alternative-fuels-insights-afi--128171/", candidate_title: "Alternative Fuels Insight (AFI) – DNV", candidate_publisher: "DNV" };
+  const deps = { ...BASE_DEPS, currentIsConfirmedDead: true, classTierForHost: classTierForHostFixture };
+  const v = decideRow(row, { title: "Alternative Fuels Insight (IRENA/IMO)" }, { status: 200, text: "Alternative Fuels Insight (AFI) is DNV's open platform for evaluating the uptake of alternative fuels and technologies." }, deps);
+  assert.equal(v.decision, "approved");
+  assert.equal(v.authorityTier, 4);
+});
+
+test("decideRow: an ambiguous authority host ACCEPTS provisional at the deterministic default tier, never a human wait (row 7aae8bba, greenblue.org — operator ruling 2026-09-06)", () => {
+  const row = { ...ROW_BASE, current_source_id: null, current_source_url: "https://sustainablepackaging.org/", candidate_url: "https://greenblue.org/projects/sustainable-packaging-coalition/", candidate_title: "Sustainable Packaging Coalition - GreenBlue", candidate_publisher: "GreenBlue" };
+  const deps = { ...BASE_DEPS, sources: [{ id: "src-spc", url: "https://sustainablepackaging.org/", status: "active", base_tier: 4 }], classTierForHost: () => null, defaultTierForHost: () => 5 };
   const v = decideRow(row, { title: "Sustainable Packaging Coalition" }, { status: 200, text: "Sustainable Packaging Coalition - GreenBlue. Our Pillars translate sustainable packaging into action." }, deps);
-  assert.equal(v.decision, "needs_individual_review");
+  assert.equal(v.decision, "approved");
+  assert.equal(v.provisional, true);
+  assert.equal(v.authorityTier, 5);
+  assert.equal(v.existingSourceId, null);
+  assert.match(v.reviewer_notes, /tier provisional \(default 5\)/);
+});
+
+test("decideRow: a missing_link row's unrelated-host 'current' URL never blocks a lower-tier accept (row f2d50cc1, BSR/SAFA — no current_source_id, so no downgrade to protect against)", () => {
+  const row = { ...ROW_BASE, current_source_id: null, current_source_url: "https://www.safa.aero/", candidate_url: "https://www.bsr.org/en/collaboration/groups/sustainable-air-freight-alliance", candidate_title: "Sustainable Air Freight Alliance (SAFA)", candidate_publisher: "BSR" };
+  const deps = {
+    ...BASE_DEPS,
+    sources: [
+      { id: "src-bsr", url: "https://bsr.org", status: "active", base_tier: 6 },
+      { id: "src-safa", url: "https://safa.aero", status: "active", base_tier: 4 },
+    ],
+    classTierForHost: (h) => (h === "bsr.org" ? null : null),
+  };
+  const text = "Sustainable Air Freight Alliance. SAFA ensures all air freight value chain stakeholders... Let's talk about how BSR can help you.";
+  const v = decideRow(row, { title: "SAFA (Sustainable Air Freight Alliance)" }, { status: 200, text }, deps);
+  assert.equal(v.decision, "approved");
+  assert.equal(v.provisional, undefined);
+  assert.equal(v.authorityTier, 6);
+  assert.equal(v.existingSourceId, "src-bsr");
+});
+
+test("decideRow: a stale_url row's WALLED (not dead) current source rejects the downgrade candidate outright (row 62849804, IRENA -> DNV/AFI)", () => {
+  const row = { ...ROW_BASE, current_source_id: "src-irena", current_source_url: "https://www.irena.org/Energy-Transition/Technology/Maritime-transport", issue_classification: "stale_url", candidate_url: "https://www.dnv.com/services/alternative-fuels-insights-afi--128171/", candidate_title: "Alternative Fuels Insight (AFI) – DNV", candidate_publisher: "DNV" };
+  const deps = { ...BASE_DEPS, currentIsWalled: true, classTierForHost: classTierForHostFixture };
+  const v = decideRow(row, { title: "Alternative Fuels Insight (IRENA/IMO)" }, { status: 200, text: "Alternative Fuels Insight (AFI) is DNV's open platform for evaluating the uptake of alternative fuels and technologies." }, deps);
+  assert.equal(v.decision, "rejected");
+  assert.match(v.reviewer_notes, /access wall/);
 });
 
 // ── main(): the whole dry/apply loop against a small fixture ────────────────────────────────────────────
 
 function buildMainDeps({ rows, items, sources, fetchResults, hostAuthority }) {
   const writes = { canonical_source_candidates: [], intelligence_items: [] };
+  const registrations = [];
   const live = new Map(rows.map((r) => [r.id, { ...r }]));
   return {
     writes,
+    registrations,
     readAll: async (table) => {
       if (table === "canonical_source_candidates") return [...live.values()].filter((r) => r.decision === "pending");
       if (table === "sources") return sources;
@@ -270,9 +392,9 @@ function buildMainDeps({ rows, items, sources, fetchResults, hostAuthority }) {
       if (table === "canonical_source_candidates") for (const id of ids) Object.assign(live.get(id), patch);
       return { updated: ids.length };
     },
-    registerSource: async ({ url, base_tier }) => ({ source_id: `new-${url}`, created: true }),
+    registerSource: async (source) => { registrations.push(source); return { source_id: `new-${source.url}`, created: true }; },
     fetchCandidate: async (url) => fetchResults[url] ?? { status: 200, text: "" },
-    hostAuthority: hostAuthority ?? { classTierForHost: () => null, permanentlyUnregisteredClass: () => null },
+    hostAuthority: hostAuthority ?? { classTierForHost: () => null, permanentlyUnregisteredClass: () => null, defaultTierForHost: () => 5 },
   };
 }
 
@@ -337,16 +459,60 @@ test("main: a rejected row writes only canonical_source_candidates, never intell
   assert.equal(deps.writes.canonical_source_candidates[0].patch.decision, "rejected");
 });
 
-test("main: needs_individual_review rows are never written, and are reported separately from rejected", async () => {
-  const rows = [{ ...ROW_BASE, id: "row-3", decision: "pending", current_source_url: "https://sustainablepackaging.org/", candidate_url: "https://greenblue.org/projects/sustainable-packaging-coalition/", candidate_title: "Sustainable Packaging Coalition - GreenBlue", candidate_publisher: "GreenBlue" }];
+test("main: an ambiguous-host row registers PROVISIONAL at the default tier and repoints the item — no needs_individual_review outcome exists any more (row 7aae8bba shape, operator ruling 2026-09-06)", async () => {
+  const rows = [{ ...ROW_BASE, id: "row-3", decision: "pending", current_source_id: null, current_source_url: "https://sustainablepackaging.org/", candidate_url: "https://greenblue.org/projects/sustainable-packaging-coalition/", candidate_title: "Sustainable Packaging Coalition - GreenBlue", candidate_publisher: "GreenBlue" }];
   const items = [{ id: "item-1", title: "Sustainable Packaging Coalition" }];
   const deps = buildMainDeps({
     rows, items, sources: [{ id: "src-spc", url: "https://sustainablepackaging.org/", status: "active", base_tier: 4 }],
     fetchResults: { "https://greenblue.org/projects/sustainable-packaging-coalition/": { status: 200, text: "Sustainable Packaging Coalition - GreenBlue. Our Pillars." } },
+    hostAuthority: { classTierForHost: () => null, permanentlyUnregisteredClass: () => null, defaultTierForHost: () => 5 },
   });
   const s = await main({ mode: "apply" }, deps);
-  assert.equal(s.counts.needs_individual_review, 1);
+  assert.equal(s.counts.approved, 1);
+  assert.equal(s.applied, 1);
+  assert.equal(deps.registrations.length, 1);
+  assert.equal(deps.registrations[0].base_tier, 5);
+  assert.deepEqual(deps.registrations[0].extra, { status: "provisional" });
+  assert.equal(deps.writes.canonical_source_candidates[0].patch.decision, "approved");
+  assert.equal(deps.writes.intelligence_items.length, 1);
+  assert.equal("needs_individual_review" in s.counts, false);
+});
+
+test("main: a transient fetch-error row defers (left pending, no write either way), never counted as rejected", async () => {
+  const rows = [{ ...ROW_BASE, id: "row-4", decision: "pending" }];
+  const items = [{ id: "item-1", title: "H2 Accelerate" }];
+  const deps = buildMainDeps({
+    rows, items, sources: SOURCES_FIXTURE,
+    fetchResults: {}, // candidate_url fetch throws below via override
+    hostAuthority: { classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: () => 5 },
+  });
+  deps.fetchCandidate = async (url) => (url === ROW_BASE.candidate_url ? { error: new Error("Browserless hard-error: timeout"), status: null, text: "" } : { status: 200, text: "" });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.counts.deferred, 1);
+  assert.equal(s.counts.rejected, 0);
   assert.equal(s.applied, 0);
   assert.equal(deps.writes.canonical_source_candidates.length, 0);
-  assert.equal(s.needs_individual_review.length, 1);
+  assert.equal(s.deferred.length, 1);
+});
+
+test("main: a downgrade-walled row (IRENA -> DNV/AFI) rejects, never approves, when the current source is only WAF-blocked", async () => {
+  const rows = [{
+    ...ROW_BASE, id: "row-5", decision: "pending", current_source_id: "src-irena",
+    current_source_url: "https://www.irena.org/Energy-Transition/Technology/Maritime-transport", issue_classification: "stale_url",
+    candidate_url: "https://www.dnv.com/services/alternative-fuels-insights-afi--128171/", candidate_title: "Alternative Fuels Insight (AFI) – DNV", candidate_publisher: "DNV",
+  }];
+  const items = [{ id: "item-1", title: "Alternative Fuels Insight (IRENA/IMO)" }];
+  const deps = buildMainDeps({
+    rows, items, sources: SOURCES_FIXTURE,
+    fetchResults: {
+      "https://www.dnv.com/services/alternative-fuels-insights-afi--128171/": { status: 200, text: "Alternative Fuels Insight (AFI) is DNV's open platform for evaluating the uptake of alternative fuels and technologies." },
+      "https://www.irena.org/Energy-Transition/Technology/Maritime-transport": { status: 403, text: "Access denied. Please verify you are a human to continue." },
+    },
+    hostAuthority: { classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: () => 5 },
+  });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.counts.rejected, 1);
+  assert.equal(s.counts.approved, 0);
+  assert.equal(deps.writes.intelligence_items.length, 0);
+  assert.match(deps.writes.canonical_source_candidates[0].patch.reviewer_notes, /access wall/);
 });
