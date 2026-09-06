@@ -1,34 +1,42 @@
 #!/usr/bin/env node
-// backfill-derivation-edges.mjs — lane DAG-AUTHOR, propagation build-out, 2026-09-04. Closes the ONE
-// historical gap DAG authorship-at-write-time cannot reach on its own: every `emission_factors` /
-// `regional_data_facts` row that was written BEFORE this lane wired `authorCarbonIntensityEdges` /
-// `authorAutomateVsHireForRegions` into the two producer chokepoints (scripts/gen/emission-factors-
-// common.mjs's seedFactors, scripts/producers/regional/run-envelope-producer.mjs's runEnvelopeProducer)
-// carries no `derivation_edges` row and never will unless something walks the live tables once, after
-// the fact, and authors them.
+// backfill-derivation-edges.mjs — lane DAG-AUTHOR, propagation build-out, 2026-09-04 (extended by lane
+// W4-DAG, 2026-09-06, for market_series — see the third bullet below). Closes the ONE historical gap DAG
+// authorship-at-write-time cannot reach on its own: every `emission_factors` / `regional_data_facts` /
+// `market_series` row that was written BEFORE the relevant producer chokepoint was wired to author its own
+// edges (scripts/gen/emission-factors-common.mjs's seedFactors, scripts/producers/regional/
+// run-envelope-producer.mjs's runEnvelopeProducer, scripts/producers/market/
+// eia-v2-petroleum-spot-producer.mjs's main) carries no `derivation_edges` row and never will unless
+// something walks the live tables once, after the fact, and authors them. 2026-09-06: `market_series` had
+// 2,727 live `eia-v2:*` rows (2017-12-15 through 2026-08-28, six series) written before this lane wired
+// `authorMarketSeriesDeltaEdges` into that producer — the exact same historical-gap shape this script
+// already closes for the other two tables, extended here rather than given a second script.
 //
 // NO REIMPLEMENTED AUTHORING LOGIC — the whole point of this script is to have none of its own. It calls
-// the SAME TWO EXPORTED FUNCTIONS the live producers call, over historical rows those producers were never
-// handed (they only ever see rows from their OWN run):
+// the SAME THREE EXPORTED FUNCTIONS the live producers call, over historical rows those producers were
+// never handed (they only ever see rows from their OWN run):
 //   - authorCarbonIntensityEdges (scripts/gen/emission-factors-common.mjs) — one derivation_edges +
 //     derived_values pair per live, licence-clear (mayEmbedAsSeed) emission_factors row.
 //   - authorAutomateVsHireForRegions (scripts/producers/regional/run-envelope-producer.mjs) — one
 //     derivation_edges pair (wage + energy) + derived_values row per region with BOTH an hourly wage
 //     (labor_markets, unit matching /\/hour$/i — see src/lib/operations/automate-vs-hire.mjs's
 //     isHourlyWageUnit) and an operational_cost fact.
-// Both functions are individually idempotent (they delegate to author-edges.mjs's hasBeenAuthored, which
+//   - authorMarketSeriesDeltaEdges (scripts/producers/market/author-market-series-delta.mjs) — one
+//     derivation_edges pair (latest + nearest-at-or-before-7-days-prior observation) + derived_values row
+//     per series_key with at least 2 observations inside its own bounded lookback window (21 days).
+// Every function is individually idempotent (they delegate to author-edges.mjs's hasBeenAuthored, which
 // checks EVERY declared input against live derivation_edges before writing anything) — so this script is
 // safe to re-run at any bound, any number of times, and a producer's own future write racing this backfill
 // can never double-author the same figure.
 //
 // RETIREMENT — THIS SCRIPT IS A ONE-TIME BRIDGE, NOT A STANDING JOB:
-//   Run it once, unbounded (no --limit), with --apply. Confirm the printed summary reports
-//   `candidates: 0` on BOTH counters (emission_factors and regions) on a SECOND unbounded --apply run
-//   immediately after — that second run finding nothing left is the retirement signal, because every row
-//   written from that point forward is already authored at write time by the two chokepoints above.
+//   Run it once, unbounded (no --limit), with --apply. Confirm the printed summary reports `authored: 0`
+//   on ALL THREE counters (emission_factors, regions, market_series) on a SECOND unbounded --apply run
+//   immediately after — that second run authoring nothing new (every candidate resolving to `already`/
+//   `insufficient-history`/etc, never a fresh `authored`) is the retirement signal, because every row
+//   written from that point forward is already authored at write time by the three chokepoints above.
 //   At that point: delete this file, drop its `workflow_dispatch` checkbox from propagation-drain.yml, and
 //   remove its section from the propagation runbook (docs/runbooks). Until that second confirming run has
-//   actually been observed, LEAVE IT WIRED — a single "0 candidates" run does not by itself prove no
+//   actually been observed, LEAVE IT WIRED — a single "0 authored" run does not by itself prove no
 //   in-flight write raced it.
 //
 // SAFETY POSTURE — --dry is the DEFAULT (mirrors backfill-lineage-edges.mjs's posture, for the same
@@ -52,6 +60,7 @@ import { fileURLToPath } from "node:url";
 import { readAll, readClient } from "../lib/db.mjs";
 import { authorCarbonIntensityEdges } from "../gen/emission-factors-common.mjs";
 import { authorAutomateVsHireForRegions } from "../producers/regional/run-envelope-producer.mjs";
+import { authorMarketSeriesDeltaEdges } from "../producers/market/author-market-series-delta.mjs";
 
 /** Every live (non-superseded) emission_factors row, the same shape authorCarbonIntensityEdges wants for
  *  BOTH its `writtenRows` and `insertRes.rows` arguments — each live row already carries both
@@ -76,29 +85,46 @@ export async function loadCandidateRegionIds(readAllFn = readAll) {
   return [...new Set(rows.map((r) => r.region_id).filter(Boolean))];
 }
 
+/** Every distinct series_key present in `market_series` today (lane W4-DAG, 2026-09-06). Deliberately
+ *  UNFILTERED beyond distinctness (no "has at least 2 observations" pre-check here, mirroring
+ *  loadCandidateRegionIds's own posture) — authorMarketSeriesDeltaEdges already applies its own bounded
+ *  lookback window and counts every outcome (insufficientHistory/unitMismatch/authored/...) by name; this
+ *  script's job is only to hand it every series_key that could possibly qualify, never to pre-judge which
+ *  do. Reads only the `series_key` column (no date filter) — the set of distinct keys is small (6 today)
+ *  even though the underlying row count (2,727+) is not; `readAll` still pages correctly either way. */
+export async function loadCandidateSeriesKeys(readAllFn = readAll) {
+  const rows = await readAllFn("market_series", "series_key");
+  return [...new Set(rows.map((r) => r.series_key).filter(Boolean))];
+}
+
 /**
  * The whole orchestration, DI'd for testing. `sb` is only ever constructed (or required) when `apply` is
  * true — a dry run never touches a client, mirroring authorAutomateVsHireForRegions's own dry posture.
  * @param {{apply: boolean, limit?: number|null}} opts
  * @param {{
  *   loadEfFn?: typeof loadLiveEmissionFactors, loadRegionsFn?: typeof loadCandidateRegionIds,
+ *   loadSeriesKeysFn?: typeof loadCandidateSeriesKeys,
  *   authorCarbonIntensityEdgesFn?: typeof authorCarbonIntensityEdges,
  *   authorAutomateVsHireForRegionsFn?: typeof authorAutomateVsHireForRegions,
+ *   authorMarketSeriesDeltaEdgesFn?: typeof authorMarketSeriesDeltaEdges,
  *   readAllFn?: typeof readAll, sb?: object, readClientFn?: typeof readClient,
  * }} [deps]
  */
 export async function runBackfill({ apply, limit = null }, deps = {}) {
   const loadEfFn = deps.loadEfFn ?? loadLiveEmissionFactors;
   const loadRegionsFn = deps.loadRegionsFn ?? loadCandidateRegionIds;
+  const loadSeriesKeysFn = deps.loadSeriesKeysFn ?? loadCandidateSeriesKeys;
   const authorEfFn = deps.authorCarbonIntensityEdgesFn ?? authorCarbonIntensityEdges;
   const authorRegionsFn = deps.authorAutomateVsHireForRegionsFn ?? authorAutomateVsHireForRegions;
+  const authorSeriesFn = deps.authorMarketSeriesDeltaEdgesFn ?? authorMarketSeriesDeltaEdges;
   const readAllFn = deps.readAllFn ?? readAll;
 
   let efRows = await loadEfFn(readAllFn);
   let regionIds = await loadRegionsFn(readAllFn);
-  if (limit) { efRows = efRows.slice(0, limit); regionIds = regionIds.slice(0, limit); }
+  let seriesKeys = await loadSeriesKeysFn(readAllFn);
+  if (limit) { efRows = efRows.slice(0, limit); regionIds = regionIds.slice(0, limit); seriesKeys = seriesKeys.slice(0, limit); }
 
-  const candidates = { emissionFactors: efRows.length, regions: regionIds.length };
+  const candidates = { emissionFactors: efRows.length, regions: regionIds.length, marketSeries: seriesKeys.length };
 
   if (!apply) {
     return { mode: "dry-run", candidates };
@@ -107,8 +133,9 @@ export async function runBackfill({ apply, limit = null }, deps = {}) {
   const sb = deps.sb ?? (deps.readClientFn ?? readClient)();
   const efCounts = await authorEfFn(efRows, { rows: efRows }, { sb });
   const regionCounts = await authorRegionsFn(regionIds, "apply", { sb });
+  const seriesCounts = await authorSeriesFn(seriesKeys, "apply", { sb });
 
-  return { mode: "apply", candidates, efCounts, regionCounts };
+  return { mode: "apply", candidates, efCounts, regionCounts, seriesCounts };
 }
 
 // ── CLI entrypoint — never reached on import (proved by backfill-derivation-edges.test.mjs importing the
@@ -131,7 +158,7 @@ async function main() {
   console.log(`[backfill-derivation-edges] mode = ${apply ? "APPLY" : "DRY-RUN (default)"}${limit ? ` limit=${limit}` : ""}`);
 
   const result = await runBackfill({ apply, limit });
-  console.log(`[backfill-derivation-edges] candidates: emission_factors=${result.candidates.emissionFactors} (live, non-superseded) regions=${result.candidates.regions} (carry labor_markets or operational_cost facts)`);
+  console.log(`[backfill-derivation-edges] candidates: emission_factors=${result.candidates.emissionFactors} (live, non-superseded) regions=${result.candidates.regions} (carry labor_markets or operational_cost facts) market_series=${result.candidates.marketSeries} (distinct series_key)`);
 
   if (result.mode === "dry-run") {
     console.log("[backfill-derivation-edges] DRY RUN — nothing authored. Re-run with --apply to write.");
@@ -152,8 +179,14 @@ async function main() {
     `no-hourly-wage=${rg.skippedNoHourlyWage} no-entity=${rg.skippedNoEntity} ` +
     `refused=${rg.refused} unknown-method=${rg.unknownMethod} errored=${rg.errored}`
   );
+  const ms = result.seriesCounts;
+  console.log(
+    `[backfill-derivation-edges] market_series (market_series_delta): authored=${ms.authored} ` +
+    `already=${ms.skippedAlready} insufficient-history=${ms.insufficientHistory} ` +
+    `unit-mismatch=${ms.unitMismatch} refused=${ms.refused} unknown-method=${ms.unknownMethod} errored=${ms.errored}`
+  );
 
-  const hardFailures = ef.errored + rg.errored;
+  const hardFailures = ef.errored + rg.errored + ms.errored;
   console.log(`[backfill-derivation-edges] APPLY complete.${hardFailures ? ` ${hardFailures} row(s) errored — see warnings above.` : ""}`);
   process.exit(0);
 }
