@@ -44,12 +44,23 @@
 // script writing intelligence_items directly is exactly the shape F13 already carves out.
 //
 // One consequence, named honestly: mint-item.ts's rule-16 post-insert participation (connection discovery
-// + forward-event extraction, both run unconditionally inside that chokepoint) does NOT run here.
-// MINT-RUNBOOK.md §8 already treats discovery + forward-event extraction as a SEPARATE, later,
-// post-apply pass over the newly-minted items ("Steps 1-2 above happen in a DIFFERENT turn than the mint
-// batch itself") — this script's job ends at "the item exists, is grounded, and its provenance verdict
-// is recorded", matching that runbook's own hand-off model. This gap is recorded in every run's
-// `proposer_notes`, not silently absorbed.
+// + forward-event extraction, both run unconditionally inside that chokepoint) does NOT run inside THIS
+// function. UPDATED (lane MINT-FLYWHEEL, 2026-09-06): this header used to describe that gap as deferred
+// to "a SEPARATE, later, post-apply pass" that nothing in the runtime ever actually triggered — CLAUDE.md
+// rule 17's own named violation (measured: ~650 population items applied with no flywheel pass, 551
+// record items minted with only a title as fact). That is no longer true. `.github/workflows/
+// population-turn.yml` runs `scripts/turns/run-population-flywheel.mjs` as a MANDATORY step of the SAME
+// job, immediately after this script's own apply step, over EXACTLY the item ids this run minted
+// (extracted from THIS batch's enriched mint-run-NNN.json) — discovery, forward-event extraction,
+// obligation derivation, tag proposals/ratification, and the §9 outcomes write all run before the job is
+// allowed to report success. A batch whose flywheel step fails FAILS THE WHOLE JOB (no `|| true`); a
+// future apply for a NEW batch is itself refused by THE GATE (`run-population-flywheel.mjs
+// --check-gate`, run before this script's own export step) until every PRIOR batch that minted anything
+// carries its §9 outcomes. So the two-phase split (this script writes the item; a sibling script connects
+// it) still exists as a matter of process boundaries — this script has no DB creds for discovery scoring
+// or forward-event extraction and is not the right place to add them — but it is no longer an
+// UNENFORCED hand-off: see MINT-RUNBOOK.md §8/§9 and run-population-flywheel.mjs's own header for the
+// full mechanism and the mandatory-tandem contract.
 //
 // ── M4 pre-check ─────────────────────────────────────────────────────────────────────────────────────
 // Before writing anything for a payload: does ANY intelligence_items row (archived included) already
@@ -754,9 +765,10 @@ export async function run(values, deps) {
       `${applyFailed.length} apply_failed, ${Object.values(notAppliedCounts).reduce((a, b) => a + b, 0)} not_applied, ` +
       `${validationFailedHeld} validation_failed census_worklist row(s) held (dryrun_disposition='hold', see hold_reason/notes — ` +
       "lane URL-GUIL; re-admitted only by scripts/mint/reopen-validation-holds.mjs re-validating against the live gate, never a blind unhold). " +
-      "Discovery + forward-event " +
-      "extraction (MINT-RUNBOOK.md §8) did NOT run as part of this apply — that is a separate post-apply " +
-      "pass over the newly-minted items, per that runbook's own hand-off model, not skipped in error.",
+      "Discovery + forward-event extraction (MINT-RUNBOOK.md §8) did NOT run as part of THIS function — " +
+      "that runs next, as a mandatory step of the SAME population-turn job " +
+      "(scripts/turns/run-population-flywheel.mjs, lane MINT-FLYWHEEL 2026-09-06 update), which fails the " +
+      "whole job if it does not complete over this batch's minted items.",
   });
 
   const errors = validateRunArtifact(enriched);

@@ -1169,6 +1169,16 @@ async function stepDeriveObligations(ctx) {
   if (typeof summary?.exitCode === "number" && summary.exitCode !== 0) {
     throw new Error(`derive-obligations: ${summary.note ?? JSON.stringify(summary)}`);
   }
+  // MINT-FLYWHEEL (2026-09-06, brief §0 "Populated"/"Documented" evidence): §9's outcomes payload
+  // recorded edges_discovered/forward_events_extracted/isolated_items only — derive-obligations ran
+  // (unscoped, every dispatch) but the count it actually wrote was never carried into the mint-run
+  // artifact, so a reader of mint-run-NNN.json alone could not see whether THIS batch's forward events
+  // produced any obligations rows. Apply mode: summary.applied is the guarded-insert read-back count
+  // (deriveObligationsMain's own MISMATCH check already fails the step above if it disagrees with the
+  // plan). Dry mode: summary.counts.to_insert is derive-obligations.mjs's own dry-preview count (no
+  // write happens in dry mode, so this is what WOULD be applied, named as a preview, never conflated
+  // with a real write in stepWriteOutcomes below).
+  ctx.state.obligationsDerived = ctx.apply ? (summary.applied ?? 0) : (summary.counts?.to_insert ?? 0);
   return summary;
 }
 
@@ -1308,6 +1318,16 @@ async function stepWriteOutcomes(ctx) {
     edges_discovered: ctx.state.edgesDiscovered ?? 0,
     forward_events_extracted: ctx.state.forwardEventsExtracted ?? 0,
     isolated_items: ctx.state.isolatedItems ?? 0,
+    // obligations_derived (2026-09-06): the derive-obligations step's own read-back/plan count — see
+    // stepDeriveObligations' comment. Deliberately NOT added to OUTCOME_KEYS/THE GATE: every
+    // already-connected mint-run artifact on this checkout (mint-run-004 through mint-run-029) was
+    // enriched before this field existed and would otherwise flip back to "stale" under the gate with
+    // no code regression to explain it — this is an additional recorded metric, not a new gate
+    // requirement. derive-obligations.mjs is unscoped (runs over the whole open item_forward_events
+    // backlog every dispatch, idempotent on forward_event_id) — this count is this DISPATCH's own
+    // insert/preview total, not scoped to only this batch's items, exactly like analyze-corpus's
+    // unscoped signals step above; the batch-scoped counts are edges_discovered/forward_events_extracted.
+    obligations_derived: ctx.state.obligationsDerived ?? 0,
     ids_resolved_by_key: ctx.state.idsResolvedByKey ?? 0,
     // trigger_context (lane CHAIN, 2026-09-04): who fired THIS dispatch — {name, run_id, conclusion} of
     // the upstream workflow_run, or null for a plain workflow_dispatch. loadOutcomes' flat shape

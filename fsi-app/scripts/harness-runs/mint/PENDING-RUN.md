@@ -31,13 +31,32 @@ Because `governing-files.mjs` is itself one of `meta-harness`'s own `GOVERNING_F
 edit also moves the `meta-harness` family's own `harness_version` — see
 `scripts/harness-runs/meta-harness/PENDING-RUN.md`, re-pinned the same commit this file lands in.
 
-**harness_version at write time:** `sha256:79d41d6130773f0a`
+**RE-PINNED (lane MINT-FLYWHEEL, 2026-09-06):** a second governing-file change landed before the run above
+discharged the DEAD-EXEC marker, per this file's own closing sentence ("re-pinned to a new hash... if a
+governing file changes again before that run lands"). `scripts/mint/MINT-RUNBOOK.md` (one of the 8 files
+`GOVERNING_FILES.mint` names, unchanged since DEAD-EXEC) gained: (1) a rewritten §8/§9 "propagation
+outbox" paragraph correcting a build-plan hypothesis — REFUTED [CONFIRMED, 2026-09-06]: migration 284/
+285/286's `propagation_outbox_trg` attaches only to `emission_factors`/`market_series`/
+`regional_data_facts`/`derived_values`/`statutory_computations`/`estimated_values`, never
+`intelligence_items` — a mint emits NO `propagation_events` row; and (2) documentation of the new
+`obligations_derived` §9 field (below). `scripts/mint/apply-mint-batch.mjs` and
+`scripts/turns/run-population-flywheel.mjs` were also edited this same lane (adding
+`obligations_derived` to the outcomes write, and correcting apply-mint-batch.mjs's own stale header/
+proposer-note claim that flywheel connection is "a separate, later, post-apply pass" — it is now a
+mandatory same-job step, per `.github/workflows/population-turn.yml`'s existing lane-TANDEM/TANDEM-2
+wiring) — neither file is in `GOVERNING_FILES.mint`, so neither changes the hash on its own; only the
+MINT-RUNBOOK.md edit does.
 
-**The planned run that supersedes THIS marker:** the next `population-turn` dispatch (or a direct
-`validate-mint-payload.mjs` / mint-kit run) under this landed code — its artifact's own recorded
-`harness_version` should read this hash; nothing about `scanBrief`/`extractFactualTokens`/`containsToken`'s
-OUTPUT changed (same two `src/lib/agent/` bodies, called directly instead of through a pass-through
-re-export), so no behavioral defect is expected to surface, only the marker's discharge. Per F28's
-reverse-audit, this marker is deleted the moment a run artifact lands with `harness_version` matching the
-hash above (or re-pinned to a new hash, per rule (c), if a governing file changes again before that run
-lands).
+**harness_version at write time:** `sha256:96b9cc82d6505b7d` (recomputed live this lane, `node -e`
+against `governing-files.mjs`'s own `GOVERNING_FILES.mint` array and `run-artifact.mjs`'s
+`hashHarnessVersion` — the same 8 files DEAD-EXEC's marker names, unreordered; only MINT-RUNBOOK.md's
+content moved, so this supersedes `sha256:79d41d6130773f0a` outright, not additively).
+
+**The planned run that supersedes THIS marker:** the next `population-turn` dispatch under this landed
+code — its artifact's own recorded `harness_version` should read the hash above. No mint-kit VALIDATION
+behavior changed (this lane touched documentation and outcome-metric plumbing, not `validate-mint-payload.mjs`,
+`payload-schema.json`, `item-type-required-slots.json`, `gate-a-scan.mjs`/`gate-a-match.mjs`,
+`canonicalize-citation-url.mjs`, or `record-facts.mjs`), so no behavioral defect is expected to surface,
+only the marker's discharge. Per F28's reverse-audit, this marker is deleted the moment a run artifact
+lands with `harness_version` matching the hash above (or re-pinned again, per rule (c), if a governing
+file changes again before that run lands).
