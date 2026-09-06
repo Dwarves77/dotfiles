@@ -17,7 +17,7 @@ test("resolveRulingPath: relative arg resolves against the REPO ROOT", () => {
 function unreachableDeps() {
   return {
     applyMain: async () => { throw new Error("applyMain must not be called when --arg is blank"); },
-    readAll: async () => { throw new Error("readAll must not be called when --arg is blank"); },
+    readAllByIds: async () => { throw new Error("readAllByIds must not be called when --arg is blank"); },
   };
 }
 
@@ -40,7 +40,7 @@ test("dry: calls applyMain with apply:false, plan passed through unmodified", as
       calls.push(opts);
       return { queue: "coverage-gaps", mode: "dry-run", results: [{ key: "MISSING::EU::ocean", decision: "kept", would_apply: 4 }] };
     },
-    readAll: async () => { throw new Error("dry mode must never call readAll"); },
+    readAllByIds: async () => { throw new Error("dry mode must never call readAllByIds"); },
   };
   const r = await main({ mode: "dry", arg: "docs/ratifications/2026-09/coverage-gaps.ruling.json" }, deps);
   assert.equal(calls[0].apply, false);
@@ -60,7 +60,7 @@ test("apply: sums applied across groups; reads back the ruling's row_ids against
     ],
   }));
   try {
-    const calls = { applyMain: [], readAll: [] };
+    const calls = { applyMain: [], readAllByIds: [] };
     const deps = {
       applyMain: async (opts) => {
         calls.applyMain.push(opts);
@@ -73,13 +73,13 @@ test("apply: sums applied across groups; reads back the ruling's row_ids against
           ],
         };
       },
-      readAll: async (table, cols, opts) => {
-        calls.readAll.push({ table, cols });
+      readAllByIds: async (table, cols, ids) => {
+        calls.readAllByIds.push({ table, cols, ids });
         return [{ id: "g-1", disposition: "declined" }, { id: "g-2", disposition: "kept" }];
       },
     };
     const r = await main({ mode: "apply", arg: rulingPath }, deps);
-    assert.equal(calls.readAll[0].table, "coverage_gap_candidates");
+    assert.equal(calls.readAllByIds[0].table, "coverage_gap_candidates");
     assert.equal(r.applied, 2);
     assert.equal(r.read_back.rows_named_in_ruling, 2);
     assert.equal(r.read_back.rows_now_live, 2);

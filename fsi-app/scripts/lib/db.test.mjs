@@ -9,7 +9,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 process.env.DISCIPLINE_SNAP_DIR = join(tmpdir(), 'db-test-snapshots'); // redirect prior-value snapshots
-const { reclassifyToSource, registerSource, readAll, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
+const { reclassifyToSource, registerSource, readAll, readAllByIds, guardedDelete, guardedUpdateByIds, readClient, institutionKey, archivePatch, __setWriteClientForTest, withTransientRetry } = await import('./db.mjs');
 
 // GOLDEN (operator ruling 2026-07-13, Part A root-cause): archiving an intelligence_item resets its
 // provenance_status off 'verified' (the stale-verified cache class — 168 archived rows read 'verified'
@@ -39,7 +39,11 @@ function makeClient(handler, calls) {
       eq(c, v) { state.ops.push(['eq', c, v]); return b; },
       in(c, v) { state.ops.push(['in', c, v]); return b; },
       order(c) { state.ops.push(['order', c]); return b; },
-      range(a, z) { state.ops.push(['range', a, z]); return settle(); },
+      // range() stays CHAINABLE (does not settle) so a caller that adds a filter AFTER .range()
+      // — exactly what readAll's own `match(q)` does — still lands in the ops it settles with.
+      // Real supabase-js is lazy the same way (nothing executes until awaited); only .then()
+      // below triggers settle(), same as a real thenable query builder.
+      range(a, z) { state.ops.push(['range', a, z]); return b; },
       limit() { return settle(); },
       single() { return settle(); },
       then(res, rej) { return settle().then(res, rej); },
@@ -409,6 +413,80 @@ test('withTransientRetry: does NOT retry on non-transient status codes', async (
 });
 
 test.after(() => __setWriteClientForTest(null)); // restore real client factory
+
+// ---------------------------------------------------------------------------
+// readAllByIds (Maintenance run 34045479342, 2026-09-06): the read-only twin of
+// guardedUpdateByIds's chunking, for the four review-apply-*.mjs post-apply read-backs whose
+// single `.in("id", allIds)` GET blew the request-line limit on a 911-id (and, for
+// review-apply-portal-links, a 57,469-id) ruling.
+// ---------------------------------------------------------------------------
+
+test('readAllByIds: empty id list short-circuits — no client call at all', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient(() => { throw new Error('must not be called for an empty id list'); }, calls));
+  const rows = await readAllByIds('sources', 'id,status', []);
+  assert.deepEqual(rows, []);
+  assert.equal(calls.length, 0);
+});
+
+test('readAllByIds: dedupes ids before chunking', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((id) => ({ id, status: 'active' })), error: null };
+  }, calls));
+  const rows = await readAllByIds('sources', 'id,status', ['a', 'b', 'a', 'b', 'c'], { chunk: 50 });
+  const inOps = calls.filter((c) => c.ops.some((o) => o[0] === 'in'));
+  assert.equal(inOps.length, 1, 'a deduped 3-id list fits in one chunk of 50');
+  assert.deepEqual(inOps[0].ops.find((o) => o[0] === 'in')[2].sort(), ['a', 'b', 'c']);
+  assert.equal(rows.length, 3);
+});
+
+test('readAllByIds: chunks the id list at the requested size, one `.in()` GET per chunk, concatenates', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((id) => ({ id })), error: null };
+  }, calls));
+  const ids = ['i1', 'i2', 'i3', 'i4', 'i5'];
+  const rows = await readAllByIds('sources', 'id', ids, { chunk: 2 });
+  const inOps = calls.filter((c) => c.ops.some((o) => o[0] === 'in')).map((c) => c.ops.find((o) => o[0] === 'in')[2].length);
+  assert.deepEqual(inOps, [2, 2, 1], 'a 5-id list at chunk 2 goes out as three GETs, none over the chunk size');
+  assert.equal(rows.length, 5);
+  assert.deepEqual(rows.map((r) => r.id).sort(), ids.slice().sort());
+});
+
+test('readAllByIds: 911-id ruling (the run 34045479342 count) goes out chunked, never as one GET', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((id) => ({ id, status: 'active' })), error: null };
+  }, calls));
+  const ids = Array.from({ length: 911 }, (_, i) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`);
+  const rows = await readAllByIds('sources', 'id,status', ids, { chunk: 50 });
+  const sizes = calls.filter((c) => c.ops.some((o) => o[0] === 'in')).map((c) => c.ops.find((o) => o[0] === 'in')[2].length);
+  assert.ok(sizes.every((n) => n <= 50), 'no single GET carries more than the chunk size');
+  assert.equal(sizes.reduce((a, b) => a + b, 0), 911);
+  assert.equal(rows.length, 911);
+});
+
+test('readAllByIds: an extra `match` filter is re-applied on top of the id filter, per chunk', async () => {
+  const calls = [];
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: inOp[2].map((id) => ({ id })), error: null };
+  }, calls));
+  await readAllByIds('sources', 'id', ['a', 'b'], { chunk: 50, match: (q) => q.eq('status', 'active') });
+  assert.ok(calls.every((c) => c.ops.some((o) => o[0] === 'eq' && o[1] === 'status' && o[2] === 'active')));
+});
+
+test('readAllByIds: throws if a chunk somehow returns more rows than ids requested (fail-closed, not a silent over-read)', async () => {
+  __setWriteClientForTest(() => makeClient((s) => {
+    const inOp = s.ops.find((o) => o[0] === 'in');
+    return { data: [...inOp[2], 'extra-row'].map((id) => ({ id })), error: null };
+  }, []));
+  await assert.rejects(() => readAllByIds('sources', 'id', ['a', 'b']), /more rows.*than ids/);
+});
 
 test('guardedUpdateByIds: IN-CHUNK (2026-09-04) — a 1,317-id integrity_flags list (the live open flywheel-signal count that broke backlog applies #24/#26 as one .in() GET) goes out as 14 requests of ≤100 ids, each URL-sized well under the gateway header limit', async () => {
   const calls = [];

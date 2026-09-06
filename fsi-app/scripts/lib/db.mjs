@@ -208,14 +208,76 @@ export function readClient() {
  * has exactly one fix location instead of two hand-rolled copies of the identical loop drifting apart.
  * `readClient()`'s write-guard proxy is unaffected: only `.select/.order/.range/.eq/...` are ever
  * called here, none of which the proxy intercepts.
+ *
+ * `client`, when given, is used INSTEAD of `readClient()` — for a caller that already holds its
+ * own Supabase-shaped client (e.g. `fetchRowsIn` below, which several scripts call with their own
+ * `readClient()` result). Optional; every existing caller that omits it gets the same default
+ * `readClient()` behavior as before.
  */
-export async function readAll(table, columns = "*", { match, orderBy = "id" } = {}) {
-  const sb = readClient();
+export async function readAll(table, columns = "*", { match, orderBy = "id", client } = {}) {
+  const sb = client || readClient();
   return fetchAllRows((from, to) => {
     let q = sb.from(table).select(columns).order(orderBy).range(from, to);
     if (match) q = match(q);
     return withTransientRetry(() => q, { label: `readAll(${table}) page at ${from}` });
   });
+}
+
+/**
+ * Paginated read-back over an EXPLICIT id list, chunked, in the sibling shape to
+ * guardedUpdateByIds's write-side chunking — same URL-length reason, the read end of it.
+ *
+ * WHY (Maintenance run 34045479342, review-apply-provisional-sources, apply, 2026-09-06): the
+ * post-apply read-back did `readAll(table, columns, { match: q => q.in("id", allIds) })` with
+ * allIds = every row_id named in the ruling — 911 UUIDs, ~35 KB URL-encoded into ONE PostgREST
+ * GET (`readAll`'s own pagination pages the RESPONSE past 1000 rows; it does nothing about a
+ * REQUEST whose `.in()` filter is itself huge — an oversized filter is still one page, and that
+ * page's request line is what blew the limit). The gateway rejected it: 400 Bad Request,
+ * "paginated read failed at offset 0: Bad Request" — thrown from `fetchAllRows` before any row
+ * came back, AFTER the mutations had already succeeded (349 rows moved provisional -> active as
+ * ruled; the write path was fine, only the verification read choked). The identical
+ * `.in("id", allIds)` read-back shape lived in three more review-apply-*.mjs wrappers
+ * (canonical-candidates x2, coverage-gaps, portal-links); portal-links' own ruling names 57,469
+ * ids, so it was guaranteed to fail the same way the first time it ran for real.
+ *
+ * `guardedUpdateByIds` above already solved this for WRITES (chunk, one `.in()` per chunk,
+ * concatenate) — see its own header and the 1,317-id `integrity_flags` test in db.test.mjs. This
+ * is the read-only twin: chunk the id list, page each chunk through the EXISTING `readAll` (so
+ * per-page ordering, the 1000-row cap, and transient retry all stay in the one place that already
+ * handles them), concatenate, and assert the result can never exceed what was asked for — a
+ * silent over-read at a read-back/verdict site is exactly the class `fetchAllRows`'s own header
+ * warns about, just from the opposite direction.
+ *
+ * `scripts/mint/export-census-rows.mjs`'s exported `fetchRowsIn` (also imported directly by
+ * scripts/connections/propose-tags.mjs, scripts/maintenance/origin-class-backfill.mjs and
+ * scripts/mint/screen-reconcile-records.mjs, so its own `(sb, table, columns, keyColumn, values)`
+ * signature stays put) now delegates here via the `client` option below, passing its own
+ * caller-supplied `sb` through — so there is exactly one chunked-id-read implementation, not two
+ * drifting copies, while every existing `fetchRowsIn` call site is unchanged.
+ */
+export async function readAllByIds(table, columns, ids, { idColumn = "id", chunk = 50, match, client } = {}) {
+  const list = [...new Set(ids ?? [])];
+  if (!list.length) return [];
+  const out = [];
+  for (let i = 0; i < list.length; i += chunk) {
+    const slice = list.slice(i, i + chunk);
+    const rows = await readAll(table, columns, {
+      client,
+      match: (q) => {
+        const qi = q.in(idColumn, slice);
+        return match ? match(qi) : qi;
+      },
+    });
+    out.push(...rows);
+  }
+  if (out.length > list.length) {
+    throw new Error(
+      `readAllByIds(${table}): got ${out.length} rows back for ${list.length} requested ids — more rows ` +
+      `than ids is impossible for a same-column id filter; something is wrong upstream (duplicate rows, ` +
+      `or a match() that widened the filter).`
+    );
+  }
+  return out;
 }
 
 function requireCite(cite) {

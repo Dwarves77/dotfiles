@@ -47,9 +47,12 @@ export function resolveRulingPath(arg) {
 
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string }} opts - `arg` is the required ruling-file path.
- * @param {{ applyMain: Function, readAll: Function }} deps - `applyMain` is
- *   scripts/review/apply-provisional-sources.mjs's own exported `main`; `readAll` is db.mjs's readAll,
- *   used ONLY for the post-apply read-back (this wrapper never selects or writes `sources` itself).
+ * @param {{ applyMain: Function, readAll: Function, readAllByIds: Function }} deps - `applyMain` is
+ *   scripts/review/apply-provisional-sources.mjs's own exported `main` (which uses `readAll` itself,
+ *   internally, for its own filtered live-queue read); `readAllByIds` is db.mjs's readAllByIds
+ *   (chunked id-list read — a single `.in("id", allIds)` GET over this queue's full ruling blew the
+ *   request-line limit on 911 ids, Maintenance run 34045479342, 2026-09-06), used here ONLY for the
+ *   post-apply read-back (this wrapper never selects or writes `sources` itself).
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const apply = mode === "apply";
@@ -81,9 +84,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 
   const ruling = JSON.parse(readFileSync(rulingPath, "utf8"));
   const allIds = [...new Set(ruling.groups.flatMap((g) => g.row_ids ?? []))];
-  const rows = allIds.length
-    ? await deps.readAll(ProvisionalSources.TABLE, ProvisionalSources.SELECT_COLUMNS, { match: (q) => q.in("id", allIds) })
-    : [];
+  const rows = await deps.readAllByIds(ProvisionalSources.TABLE, ProvisionalSources.SELECT_COLUMNS, allIds);
   summary.read_back = {
     rows_named_in_ruling: allIds.length,
     rows_now_live: rows.length,
@@ -100,9 +101,9 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
+      const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
       const { main: applyMain } = await import("../review/apply-provisional-sources.mjs");
-      return { readAll, guardedUpdateByIds, applyMain };
+      return { readAll, readAllByIds, guardedUpdateByIds, applyMain };
     },
   });
 }

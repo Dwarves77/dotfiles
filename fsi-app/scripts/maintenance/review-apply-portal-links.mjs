@@ -54,9 +54,13 @@ export function resolveRulingPath(arg) {
 
 /**
  * @param {{ mode?: "dry"|"apply", arg?: string }} opts - `arg` is the required ruling-file path.
- * @param {{ applyMain: Function, readAll: Function }} deps - `applyMain` is
- *   scripts/review/apply-portal-links.mjs's own exported `main`; `readAll` is db.mjs's readAll, used
- *   ONLY for the post-apply read-back (this wrapper never selects or writes portal_link_candidates itself).
+ * @param {{ applyMain: Function, readAll: Function, readAllByIds: Function }} deps - `applyMain` is
+ *   scripts/review/apply-portal-links.mjs's own exported `main` (which uses `readAll` itself,
+ *   internally, for its own filtered live-queue read); `readAllByIds` is db.mjs's readAllByIds
+ *   (chunked id-list read). This queue's own ruling names 57,469 ids — a single `.in("id", allIds)`
+ *   GET over that list is the request-line-limit defect Maintenance run 34045479342 confirmed on
+ *   provisional-sources (911 ids), 2026-09-06, guaranteed to fail here even harder. Used here ONLY
+ *   for the post-apply read-back (this wrapper never selects or writes portal_link_candidates itself).
  */
 export async function main({ mode = "dry", arg = "" } = {}, deps) {
   const apply = mode === "apply";
@@ -88,9 +92,7 @@ export async function main({ mode = "dry", arg = "" } = {}, deps) {
 
   const ruling = JSON.parse(readFileSync(rulingPath, "utf8"));
   const allIds = [...new Set(ruling.groups.flatMap((g) => g.row_ids ?? []))];
-  const rows = allIds.length
-    ? await deps.readAll(PortalLinks.TABLE, PortalLinks.SELECT_COLUMNS, { match: (q) => q.in("id", allIds) })
-    : [];
+  const rows = await deps.readAllByIds(PortalLinks.TABLE, PortalLinks.SELECT_COLUMNS, allIds);
   summary.read_back = {
     rows_named_in_ruling: allIds.length,
     rows_now_live: rows.length,
@@ -107,9 +109,9 @@ if (IS_MAIN) {
     main,
     needsDb: true,
     buildDeps: async () => {
-      const { readAll, guardedUpdateByIds } = await import("../lib/db.mjs");
+      const { readAll, readAllByIds, guardedUpdateByIds } = await import("../lib/db.mjs");
       const { main: applyMain } = await import("../review/apply-portal-links.mjs");
-      return { readAll, guardedUpdateByIds, applyMain };
+      return { readAll, readAllByIds, guardedUpdateByIds, applyMain };
     },
   });
 }
