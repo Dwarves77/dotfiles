@@ -1,5 +1,253 @@
 [
   {
+    "item_id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+    "token": "$300",
+    "class": "figure",
+    "sentence": "ANTT's 2025 management report references R$300 billion in projected concession investments and describes 2025 as the agency's highest-ever year for concession expansion.",
+    "search_id": "0ca904de-de68-4e2f-a1de-818871751f63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+    "token": "2023",
+    "class": "deadline",
+    "sentence": "ANTT reports 2.8 million transport registrations issued in 2023.",
+    "search_id": "0ca904de-de68-4e2f-a1de-818871751f63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+    "token": "15%",
+    "class": "figure",
+    "sentence": "The consortium states a 15% reduction in shipping GHG emissions as the platform's target outcome.",
+    "search_id": "25980079-e8e8-4728-9d8d-6cecc6b2616f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+    "token": "April 2026",
+    "class": "deadline",
+    "sentence": "**Technology Profile** | April 2026",
+    "search_id": "92b2bd69-e647-4492-88be-d4666e06f21e",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$100",
+    "class": "figure",
+    "sentence": "A second disruption, delayed reopening, or resumed Middle East hostilities would invalidate the $89/bbl Q4 forecast and sustain the $100+/bbl environment.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$140",
+    "class": "figure",
+    "sentence": "IATA Jet Fuel Price Monitor weekly readings stabilizing above $140/bbl through July → airlines convert temporary fuel surcharges into structural cost pass-through clauses → freight forwarder air rates reprice.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$3.237",
+    "class": "figure",
+    "sentence": "Gulf Coast kerosene-type jet fuel spot price FOB reached $3.569/gallon as of June 1, 2026 (the most recent observation at time of brief), up sharply from prior weeks, with the May 29 reading at $3.237/gallon. *Source: FRED – Kerosene-Type Jet Fuel Prices: U.S.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "20%",
+    "class": "figure",
+    "sentence": "- \"The current Brent spot price is approximately $99/barrel as of early June 2026, down from an April average of $117/barrel following Strait of Hormuz disruption, but still approximately 20% above the 2025 full-year average of $69/barrel.\" (Grounded: EIA STEO and EIA Daily Prices as cited above.)",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "4.9%",
+    "class": "figure",
+    "sentence": "The Gulf Coast 3:2:1 crack spread — a direct indicator of refinery margins and the relationship between crude input cost and distillate output price — closed at $35.32/barrel on June 4, 2026 (down 4.9% on the day), remaining historically elevated and signaling continued refinery margin compression pressure for airlines and freight operators drawing on Gulf Coast product supply. *Source: EIA Today in Energy – Daily Prices (6/04/26 close), U.S.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "6 June 2026",
+    "class": "deadline",
+    "sentence": "*As of 6 June 2026 — re-check window: weekly (IATA Fuel Price Monitor updates every Monday; EIA STEO next release 9 June 2026)*",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "9 June 2026",
+    "class": "deadline",
+    "sentence": "*As of 6 June 2026 — re-check window: weekly (IATA Fuel Price Monitor updates every Monday; EIA STEO next release 9 June 2026)*",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "1 GW",
+    "class": "figure",
+    "sentence": "The reference capacity in the related scenario is 1.1 GW, from a range of 1 GW to 2.4 GW.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "10.8%",
+    "class": "figure",
+    "sentence": "The share in heating and cooling grows to 45.2% from 36.3% while in transportation it advances to 25.8% from 10.8%.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "10%",
+    "class": "figure",
+    "sentence": "A key issue is the weak renewable energy target, falling over 10% below the EU Commission's recommendation.\" *Source: 1point5.caneurope.org/countries/slovenia/, CAN Europe Together for 1.5°C, accessed 2026.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "100 MW",
+    "class": "figure",
+    "sentence": "FACT: \"There is a need for 400 MW in batteries, 100 MW in electrolyzers and more pumped storage hydropower capacity, though the references to the Kozjak project were deleted.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "100%",
+    "class": "figure",
+    "sentence": "At least 85% of power supply needs to be from domestic sources in 2030 and 100% by 2040, the government said.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "180 MW",
+    "class": "figure",
+    "sentence": "It would be able to generate 180 MW and store 2.6 GWh.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "1990",
+    "class": "deadline",
+    "sentence": "These scenarios are based on two key commitments: the European Union's target of a 90 per cent net emissions reduction by 2040 compared to 1990 levels, and Slovenia's national commitment to achieve climate neutrality by 2045.\" *Source: ceenergynews.com/climate/slovenia-new-nepn-2030-2040/, CEE Energy News, May 13, 2026.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2.4 GW",
+    "class": "figure",
+    "sentence": "The reference capacity in the related scenario is 1.1 GW, from a range of 1 GW to 2.4 GW.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2005",
+    "class": "deadline",
+    "sentence": "FACT: \"The previous target was 36% and the baseline is the 2005 level.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2019",
+    "class": "deadline",
+    "sentence": "Action: Verify that any client-facing sustainability documentation referencing Slovenian energy or transport policy is updated to cite the December 2024 adopted NEPN, not the 2023 draft or the 2019 original.",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "Re-check window: Monitor for publication of draft long-term scenarios (expected late 2026 or 2027, per industry-standard NEPN preparation timelines — *Analytical inference:* based on the January 2028 draft submission deadline and typical 12–18 month scenario-to-draft lead time; no published schedule for the scenario consultation closing date has been identified in the source corpus as of May 2026).",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "FACT: \"Member States must submit a draft updated NEPN to the European Commission by 1 January 2028 and adopt the final version by 1 January 2029.\" *Source: ceenergynews.com/climate/slovenia-new-nepn-2030-2040/, CEE Energy News, May 13, 2026.*",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2033",
+    "class": "deadline",
+    "sentence": "Slovenia aims to achieve it only by 2033, the deadline it set for quitting the use of coal.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2040",
+    "class": "deadline",
+    "sentence": "# Slovenia NEPN 2030–2040: National Energy and Climate Plan Preparation Initiated",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "25%",
+    "class": "figure",
+    "sentence": "FACT: \"Slovenia managed to reach its EU-mandated 25% share [of renewables in gross final energy consumption] in 2022, or 25.4% to be exact, through a so-called statistical transfer with neighboring Croatia.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "250 MW",
+    "class": "figure",
+    "sentence": "A small modular reactor (SMR), of 250 MW, would come online by mid-century, the NECP reads.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "30%",
+    "class": "figure",
+    "sentence": "FACT: \"The buildings sector's goal is 55% while industrial production, including waste heat, needs to reach 30%, the NECP reads.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "36.3%",
+    "class": "figure",
+    "sentence": "The share in heating and cooling grows to 45.2% from 36.3% while in transportation it advances to 25.8% from 10.8%.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "36%",
+    "class": "figure",
+    "sentence": "FACT: \"The previous target was 36% and the baseline is the 2005 level.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "40.7%",
+    "class": "figure",
+    "sentence": "FACT: The NEPN targets \"a share of renewables in gross final energy consumption [of] 33%.\" FACT: The breakdown: \"renewable sources need to amount to 55.4% [in electricity], against 40.7% projected for this year [2024].",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
     "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
     "token": "90%",
     "class": "figure",
@@ -181,6 +429,2894 @@
     "class": "figure",
     "sentence": "**Current operational milestone:** The solar park's total production capacity has reached 3,860 MW. *Source: DEWA Strategic Initiatives — MBR Solar Park, Dubai Electricity and Water Authority (DEWA), accessed 2025. https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
     "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+    "token": "5,000 MW",
+    "class": "figure",
+    "sentence": "**The 2030 target — significantly upgraded:** The solar park's total production capacity will exceed 8,000 MW by 2030, compared to the original plan of 5,000 MW. *Source: DEWA Strategic Initiatives — MBR Solar Park, Dubai Electricity and Water Authority (DEWA), accessed 2025. https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+    "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+    "token": "50 km",
+    "class": "figure",
+    "sentence": "**The programme:** The Mohammed bin Rashid Al Maktoum Solar Park (MBR Solar Park) is the largest single-site solar park in the world operating under the Independent Power Producer (IPP) model, located at Seih Al-Dahal approximately 50 km south of Dubai, covering a total site area of 77 km². *Source: Wikipedia — Mohammed bin Rashid Al Maktoum Solar Park, Wikimedia Foundation, April 2026. https://en.wikipedia.org/wiki/Mohammed_bin_Rashid_Al_Maktoum_Solar_Park",
+    "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+    "token": "7,260 MW",
+    "class": "figure",
+    "sentence": "| Arabian Business — MBR Solar Park Reaches 3,860 MW (Dec 2025) | https://www.arabianbusiness.com/business/energy/mohammed-bin-rashid-al-maktoum-solar-park-reaches-record-3860-mw-capacity | 5 | Trade press confirmation of 3,860 MW milestone and 2030 target of 7,260 MW (note: the DEWA primary source states \"more than 8,000 MW by 2030\"; the 7,260 MW figure is from this trade press source and was not directly accessible due to CAPTCHA); flagged for re-retrieval to resolve the target capacity discrepancy. |",
+    "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+    "token": "77 km",
+    "class": "figure",
+    "sentence": "**The programme:** The Mohammed bin Rashid Al Maktoum Solar Park (MBR Solar Park) is the largest single-site solar park in the world operating under the Independent Power Producer (IPP) model, located at Seih Al-Dahal approximately 50 km south of Dubai, covering a total site area of 77 km². *Source: Wikipedia — Mohammed bin Rashid Al Maktoum Solar Park, Wikimedia Foundation, April 2026. https://en.wikipedia.org/wiki/Mohammed_bin_Rashid_Al_Maktoum_Solar_Park",
+    "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "1e27cdcc-a3f8-4633-89f5-6ebfd2a21d5e",
+    "token": "8,000 MW",
+    "class": "figure",
+    "sentence": "**The 2030 target — significantly upgraded:** The solar park's total production capacity will exceed 8,000 MW by 2030, compared to the original plan of 5,000 MW. *Source: DEWA Strategic Initiatives — MBR Solar Park, Dubai Electricity and Water Authority (DEWA), accessed 2025. https://dewa.gov.ae/en/about-us/strategic-initiatives/mbr-solar-park",
+    "search_id": "f70253b9-102f-4dbd-8459-058387d1b664",
+    "queries_tried": []
+  },
+  {
+    "item_id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+    "token": "17%",
+    "class": "figure",
+    "sentence": "The climate-related objectives are to achieve the goal of carbon peaking as scheduled, to reduce the carbon dioxide emissions per unit of GDP by 17% by 2030, and to build a clean, low-carbon, safe and efficient new energy system.\" *Source: Climate-Laws.org, \"15th Five-Year Plan,\" 2026. https://climate-laws.org/document/14th-five-year-plan_0496",
+    "search_id": "f506b7f3-f72d-4f7c-a9c3-ce854a73ff5e",
+    "queries_tried": []
+  },
+  {
+    "item_id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "**MONITORING — Multiple implementing instruments expected H2 2026 through 2027.**",
+    "search_id": "f506b7f3-f72d-4f7c-a9c3-ce854a73ff5e",
+    "queries_tried": []
+  },
+  {
+    "item_id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+    "token": "59%",
+    "class": "figure",
+    "sentence": "**CSDS deadline (FACT):** \"The Chinese Sustainability Disclosure Standards (CSDS), issued by the Ministry of Finance and aligned with ISSB frameworks, require large listed companies — representing approximately 59% of China's stock market capitalization — to publish full ESG reports for the 2025 financial year by April 30, 2026.\" *Source: AllBright Law Offices, \"China's Eco-Environment Code: Codifying the Green Transformation,\" April 30, 2026. https://www.allbrightlaw.com/EN/10531/177523769611f595.aspx",
+    "search_id": "f506b7f3-f72d-4f7c-a9c3-ce854a73ff5e",
+    "queries_tried": []
+  },
+  {
+    "item_id": "27dfbe4c-f152-422e-8eb9-1e14d6e99a10",
+    "token": "June 2026",
+    "class": "deadline",
+    "sentence": "*No final implementing guidance (MEE circulars, State Council regulations, or judicial interpretations) has been published as of the date of this brief (June 2026).",
+    "search_id": "ecc70892-3182-40cb-a8ee-cf59e51bd0ea",
+    "queries_tried": []
+  },
+  {
+    "item_id": "2943632e-cca4-412c-8e89-487b301692ce",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "Workspaces dependent on drayage at POLA — particularly those moving time-sensitive freight verticals (live events, film and TV, high-value automotive) — face the highest disruption exposure in the 2028–2035 transition window as equipment replacement cycles and potential service gaps materialise.",
+    "search_id": "e4404e72-cf77-481a-afc4-2c4aba20c754",
+    "queries_tried": []
+  },
+  {
+    "item_id": "2943632e-cca4-412c-8e89-487b301692ce",
+    "token": "March 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Port of Long Beach estimated changes would cost \"the port and its tenants upwards of $1 billion\" (CalMatters, March 2025).",
+    "search_id": "e4404e72-cf77-481a-afc4-2c4aba20c754",
+    "queries_tried": []
+  },
+  {
+    "item_id": "2943632e-cca4-412c-8e89-487b301692ce",
+    "token": "October 2024",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The combination of ISO 14001 governance infrastructure, CAAP 2030/2035 targets, and the October 2024 EPA grant represents a transition from voluntary aspiration to capital-backed implementation.",
+    "search_id": "e4404e72-cf77-481a-afc4-2c4aba20c754",
+    "queries_tried": []
+  },
+  {
+    "item_id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+    "token": "$100",
+    "class": "figure",
+    "sentence": "| UNDP India — Catalysing Climate Finance Guidebook | https://www.undp.org/india/publications/catalysing-climate-finance-guidebook-policy-and-financing-options-support-green-low-emission-and-climate-resilient-development | 3 | Companion UNDP publication on climate finance policy for developing-country decision-makers; contextualises the $100 billion/year developed-country commitment and private capital catalysis strategy; relevant for understanding the policy architecture behind green bond instruments. |",
+    "search_id": "c039b5b0-137f-40a5-a833-bc12c7a6304c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "2fc50445-67ac-411d-b454-ced5d0851d1d",
+    "token": "January 2025",
+    "class": "deadline",
+    "sentence": "The brief synthesises across six source blocks; the primary UNDP publication page is supplemented by the BIOFIN programme site, the INFF Knowledge Platform, the UNDP Catalysing Climate Finance Guidebook, and a peer-reviewed Frontiers in Environmental Science paper (January 2025).",
+    "search_id": "c039b5b0-137f-40a5-a833-bc12c7a6304c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "1 January 2024",
+    "class": "deadline",
+    "sentence": "Operational implication: The EU ETS cost figure for Far East-Europe ocean routes ($400,000 per large vessel voyage) cited in the RMT 2024 directly connects to the EU ETS for Shipping (Directive 2023/959/EU, extending EU ETS to maritime sector from 1 January 2024 for intra-EU voyages, with 40% of emissions from extra-EU voyages covered in 2024 rising to 70% in 2025 and 100% in 2026). *Legal Confirmation Required:* whether and how EU ETS pass-through costs appear as line items in carrier invoices to freight forwarders on those lanes, and how the workspace should account for them in Scope 3 emissions disclosures, requires legal and compliance review against the workspace's specific carrier contracts and reporting framework.",
+    "search_id": "2084cbdf-2b86-48b1-a5be-7360d01d9040",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "100%",
+    "class": "figure",
+    "sentence": "Operational implication: The EU ETS cost figure for Far East-Europe ocean routes ($400,000 per large vessel voyage) cited in the RMT 2024 directly connects to the EU ETS for Shipping (Directive 2023/959/EU, extending EU ETS to maritime sector from 1 January 2024 for intra-EU voyages, with 40% of emissions from extra-EU voyages covered in 2024 rising to 70% in 2025 and 100% in 2026). *Legal Confirmation Required:* whether and how EU ETS pass-through costs appear as line items in carrier invoices to freight forwarders on those lanes, and how the workspace should account for them in Scope 3 emissions disclosures, requires legal and compliance review against the workspace's specific carrier contracts and reporting framework.",
+    "search_id": "0572a486-e70f-4194-8932-c70030db39e5",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "20%",
+    "class": "figure",
+    "sentence": "Operational implication: The UNCTAD SDG Pulse finding that ports are \"repositioning themselves to enable the energy transition in maritime transport\" — embracing electrification and shore power — connects directly to IMO's 2023 GHG Strategy, which sets a net-zero target by or around 2050 and a 20% (striving for 30%) reduction in total GHG emissions by 2030 compared to 2008.",
+    "search_id": "0572a486-e70f-4194-8932-c70030db39e5",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "24 September 2025",
+    "class": "deadline",
+    "sentence": "**Re-check window — MONITORING:** The UNCTAD Review of Maritime Transport 2025 was published 24 September 2025 (listed in the Transport Infrastructure and Services programme page).",
+    "search_id": "2084cbdf-2b86-48b1-a5be-7360d01d9040",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "30%",
+    "class": "figure",
+    "sentence": "Operational implication: The UNCTAD SDG Pulse finding that ports are \"repositioning themselves to enable the energy transition in maritime transport\" — embracing electrification and shore power — connects directly to IMO's 2023 GHG Strategy, which sets a net-zero target by or around 2050 and a 20% (striving for 30%) reduction in total GHG emissions by 2030 compared to 2008.",
+    "search_id": "0572a486-e70f-4194-8932-c70030db39e5",
+    "queries_tried": []
+  },
+  {
+    "item_id": "319f785d-0589-489a-9eae-5ba59905f0ec",
+    "token": "40%",
+    "class": "figure",
+    "sentence": "Operational implication: The EU ETS cost figure for Far East-Europe ocean routes ($400,000 per large vessel voyage) cited in the RMT 2024 directly connects to the EU ETS for Shipping (Directive 2023/959/EU, extending EU ETS to maritime sector from 1 January 2024 for intra-EU voyages, with 40% of emissions from extra-EU voyages covered in 2024 rising to 70% in 2025 and 100% in 2026). *Legal Confirmation Required:* whether and how EU ETS pass-through costs appear as line items in carrier invoices to freight forwarders on those lanes, and how the workspace should account for them in Scope 3 emissions disclosures, requires legal and compliance review against the workspace's specific carrier contracts and reporting framework.",
+    "search_id": "0572a486-e70f-4194-8932-c70030db39e5",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "13 December 2023",
+    "class": "deadline",
+    "sentence": "- Dates of source publication: GLEC Framework v3.0, revised and updated 13 December 2023.",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "17.5 kg",
+    "class": "figure",
+    "sentence": "FACT: Logistics hub default emission intensity values (median values): Transshipment ambient: 0.6 kg CO2e/t; Transshipment temperature-controlled: 2.2 kg CO2e/t; Warehouse ambient: 17.5 kg CO2e/t; Warehouse temperature-controlled: 33.0 kg CO2e/t; Maritime container terminals: 10.7 kg CO2e/container. *Source: GLEC Framework v3.0, Smart Freight Centre, 2023, Module 2, Table 3. https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "2.2 kg",
+    "class": "figure",
+    "sentence": "FACT: Logistics hub default emission intensity values (median values): Transshipment ambient: 0.6 kg CO2e/t; Transshipment temperature-controlled: 2.2 kg CO2e/t; Warehouse ambient: 17.5 kg CO2e/t; Warehouse temperature-controlled: 33.0 kg CO2e/t; Maritime container terminals: 10.7 kg CO2e/container. *Source: GLEC Framework v3.0, Smart Freight Centre, 2023, Module 2, Table 3. https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "3.86 kg",
+    "class": "figure",
+    "sentence": "WTW emission factor for HFO (2.5% sulfur), European source: 93.7 g CO2e/MJ; 3.86 kg CO2e/kg. *Source: GLEC Framework v3.0, Smart Freight Centre, 2023, Module 1. https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "33.0 kg",
+    "class": "figure",
+    "sentence": "FACT: Logistics hub default emission intensity values (median values): Transshipment ambient: 0.6 kg CO2e/t; Transshipment temperature-controlled: 2.2 kg CO2e/t; Warehouse ambient: 17.5 kg CO2e/t; Warehouse temperature-controlled: 33.0 kg CO2e/t; Maritime container terminals: 10.7 kg CO2e/container. *Source: GLEC Framework v3.0, Smart Freight Centre, 2023, Module 2, Table 3. https://smart-freight-centre-media.s3.amazonaws.com/documents/GLEC_FRAMEWORK_v3_UPDATED_13_12_23.pdf",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "4.02 kg",
+    "class": "figure",
+    "sentence": "WTW emission factor for Jet Kerosene (Jet A1 and Jet A), European source: 93.5 g CO2e/MJ; 4.02 kg CO2e/kg.",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "4.10 kg",
+    "class": "figure",
+    "sentence": "FACT: WTW emission factor for diesel (European source, 5% biodiesel blend): 96.0 g CO2e/MJ; 4.10 kg CO2e/kg.",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3581c084-9486-4085-82cc-b650380bd83d",
+    "token": "December 2023",
+    "class": "deadline",
+    "sentence": "- Dates of source publication: GLEC Framework v3.0, revised and updated 13 December 2023.",
+    "search_id": "471e3eb3-f3e5-4b61-9a0b-92fb5ee1a821",
+    "queries_tried": []
+  },
+  {
+    "item_id": "38322420-45a2-474a-b910-23b2dd215c49",
+    "token": "1 January 2027",
+    "class": "deadline",
+    "sentence": "Commission a review of the December 2025 targeted amendments (effective for reporting periods beginning on or after 1 January 2027) to determine whether any reliefs affect the workspace's data provision obligations toward clients.",
+    "search_id": "b553ea5a-2cf6-4bec-b2d0-6c63fe06c12a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "38322420-45a2-474a-b910-23b2dd215c49",
+    "token": "11 December 2025",
+    "class": "deadline",
+    "sentence": "FACT: \"The amendments are effective for reporting periods beginning on or after 1 January 2027, with early application permitted.\" *Source: ISSB issues targeted amendments to IFRS S2 to support implementation, IFRS Foundation, 11 December 2025.* https://www.ifrs.org/news-and-events/news/2025/12/issb-issues-targeted-amendments-ifrs-s2/",
+    "search_id": "b553ea5a-2cf6-4bec-b2d0-6c63fe06c12a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "38322420-45a2-474a-b910-23b2dd215c49",
+    "token": "2026-05-27",
+    "class": "deadline",
+    "sentence": "**Date of generation:** 2026-05-27.",
+    "search_id": "b553ea5a-2cf6-4bec-b2d0-6c63fe06c12a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "38322420-45a2-474a-b910-23b2dd215c49",
+    "token": "May 2024",
+    "class": "deadline",
+    "sentence": "FACT: \"Jurisdictions representing over half the global economy by GDP take steps towards ISSB Standards\" (headline from the IFRS Foundation's jurisdictional tracker, dated 28 May 2024). *Source: Use of IFRS Sustainability Disclosure Standards by jurisdiction, IFRS Foundation, 2024.* https://www.ifrs.org/ifrs-sustainability-disclosure-standards-around-the-world/use-by-jurisdiction/",
+    "search_id": "b553ea5a-2cf6-4bec-b2d0-6c63fe06c12a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3c22f667-5e4f-41c0-a3b6-a5b5dd531697",
+    "token": "January 2027",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The 180-day STA from July 2, 2026 expires approximately early January 2027.",
+    "search_id": "729e5f92-5446-4e77-8888-8c1b72b5f84f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3c22f667-5e4f-41c0-a3b6-a5b5dd531697",
+    "token": "November 2026",
+    "class": "deadline",
+    "sentence": "Re-check window: November 2026.",
+    "search_id": "5f42c161-e565-44e2-8226-4323071e0b56",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3c22f667-5e4f-41c0-a3b6-a5b5dd531697",
+    "token": "September 2026",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The 60-day window from publication (July 6, 2026) places the initial ASL population expected around early September 2026, coinciding with the comment period deadline.",
+    "search_id": "0918927f-409f-457f-9f6c-e2ed50cd556f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "$9.94",
+    "class": "figure",
+    "sentence": "*Analytical inference:* Based on sourced data, China ETS carbon prices remain significantly below levels required to drive decarbonization. \"Closing CEA prices in China reached an all-time high of RMB 104.5 (US$14.6) per ton of CO2 in November 2024... prices have fallen considerably in recent months, dropping to a monthly average closing price of RMB 71 (US$9.94) in August of this year, a year-on-year decrease of 21.7 percent.\" *Source: China Briefing, October 2, 2025.* [https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/](https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/) These levels are materially below the USD 50–100/tCO2 estimated to be required by 2030 for Paris Agreement alignment. *Source: IEEFA, November 3, 2025.* [https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement](https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement)",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "1.74%",
+    "class": "figure",
+    "sentence": "The EU ETS is the most-referenced comparator for China's planned transition. \"The EU ETS… helped reduce carbon dioxide equivalent (CO2e) emissions from 4.6 billion tonnes in 2005, when it was first introduced, to 3.2 billion tonnes in 2024.\" Its linear reduction factor (LRF) \"started at 1.74% in 2013 and is expected to increase to 4.4% from 2028.\" *Source: IEEFA, November 3, 2025.* [https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement](https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement) *Analytical inference:* IEEFA's analysis suggests China should adopt a similarly clear, progressively increasing cap reduction rate to create market certainty — this design choice, once announced, will be the key predictor of carbon price trajectory in China.",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "10%",
+    "class": "figure",
+    "sentence": "**CCER offset use limits:** \"Allowing limited use of certified voluntary carbon credits as offsets.\" *Source: Climate Cooperation China, October 28, 2025.* [https://climatecooperation.cn/climate/china-unveils-roadmap-for-absolute-emission-caps-2027-and-2030-milestones-for-national-carbon-markets/](https://climatecooperation.cn/climate/china-unveils-roadmap-for-absolute-emission-caps-2027-and-2030-milestones-for-national-carbon-markets/) *Specific CCER offset percentage cap not available from primary sources as of July 14, 2026.* Historically, China's pilot ETS schemes have capped CCER offsets at 5–10% of total compliance obligation, but the national ETS limit for newly included sectors is not sourced.",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "2005",
+    "class": "deadline",
+    "sentence": "The EU ETS is the most-referenced comparator for China's planned transition. \"The EU ETS… helped reduce carbon dioxide equivalent (CO2e) emissions from 4.6 billion tonnes in 2005, when it was first introduced, to 3.2 billion tonnes in 2024.\" Its linear reduction factor (LRF) \"started at 1.74% in 2013 and is expected to increase to 4.4% from 2028.\" *Source: IEEFA, November 3, 2025.* [https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement](https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement) *Analytical inference:* IEEFA's analysis suggests China should adopt a similarly clear, progressively increasing cap reduction rate to create market certainty — this design choice, once announced, will be the key predictor of carbon price trajectory in China.",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "The EU ETS is the most-referenced comparator for China's planned transition. \"The EU ETS… helped reduce carbon dioxide equivalent (CO2e) emissions from 4.6 billion tonnes in 2005, when it was first introduced, to 3.2 billion tonnes in 2024.\" Its linear reduction factor (LRF) \"started at 1.74% in 2013 and is expected to increase to 4.4% from 2028.\" *Source: IEEFA, November 3, 2025.* [https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement](https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement) *Analytical inference:* IEEFA's analysis suggests China should adopt a similarly clear, progressively increasing cap reduction rate to create market certainty — this design choice, once announced, will be the key predictor of carbon price trajectory in China.",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "26,000 tCO2e",
+    "class": "figure",
+    "sentence": "| Does the workspace operate any China-based entity exceeding 26,000 tCO2e/year? | *Legal Confirmation Required.* This threshold determines \"key emitter\" status. *Source: China Briefing, October 2, 2025* |",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "26,000 tonnes",
+    "class": "figure",
+    "sentence": "*Legal Confirmation Required:* If the workspace operates warehousing, freight handling, ground transport, or fueling operations in China at scale, counsel should assess whether any operational entity could be classified as a \"key emitter\" under Chinese law (currently defined as entities with annual GHG emissions exceeding 26,000 tonnes CO2 equivalent). *Source: China Briefing, October 2, 2025.* [https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/](https://www.china-briefing.com/news/china-carbon-trading-emissions-cap/)",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "4.4%",
+    "class": "figure",
+    "sentence": "The EU ETS is the most-referenced comparator for China's planned transition. \"The EU ETS… helped reduce carbon dioxide equivalent (CO2e) emissions from 4.6 billion tonnes in 2005, when it was first introduced, to 3.2 billion tonnes in 2024.\" Its linear reduction factor (LRF) \"started at 1.74% in 2013 and is expected to increase to 4.4% from 2028.\" *Source: IEEFA, November 3, 2025.* [https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement](https://ieefa.org/resources/chinas-emissions-trading-system-ets-reforms-track-needs-robust-enforcement) *Analytical inference:* IEEFA's analysis suggests China should adopt a similarly clear, progressively increasing cap reduction rate to create market certainty — this design choice, once announced, will be the key predictor of carbon price trajectory in China.",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "40%",
+    "class": "figure",
+    "sentence": "| 2024 | ETS expanded to steel, cement, aluminum; ~1,334 new entities; coverage raised from ~40% to ~60% of China's total carbon emissions | In force | IEEFA, November 2025; China Briefing, October 2025 |",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "60%",
+    "class": "figure",
+    "sentence": "| 2024 | ETS expanded to steel, cement, aluminum; ~1,334 new entities; coverage raised from ~40% to ~60% of China's total carbon emissions | In force | IEEFA, November 2025; China Briefing, October 2025 |",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "August 2025",
+    "class": "deadline",
+    "sentence": "| August 25, 2025 | Opinions on Advancing Green and Low-Carbon Transformation issued — strategic roadmap for ETS expansion and absolute cap transition | Issued; implementing regulations pending | www.gov.cn, August 2025 |",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "January 2026",
+    "class": "deadline",
+    "sentence": "| July 2021 | China national ETS launched, power sector only | In force | www.gov.cn, January 2026 |",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "November 2025",
+    "class": "deadline",
+    "sentence": "| 2024 | ETS expanded to steel, cement, aluminum; ~1,334 new entities; coverage raised from ~40% to ~60% of China's total carbon emissions | In force | IEEFA, November 2025; China Briefing, October 2025 |",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "October 2025",
+    "class": "deadline",
+    "sentence": "| 2024 | ETS expanded to steel, cement, aluminum; ~1,334 new entities; coverage raised from ~40% to ~60% of China's total carbon emissions | In force | IEEFA, November 2025; China Briefing, October 2025 |",
+    "search_id": "e463f842-4592-47b1-aa11-0a411de5ae0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e756291-f79e-487e-84d5-efc535cfef27",
+    "token": "September 2025",
+    "class": "deadline",
+    "sentence": "| **2027** | **ETS to encompass all major industrial sectors (target)** | **Target; implementing regulations pending** | www.gov.cn, August 2025; ICAP, September 2025 |",
+    "search_id": "96e88260-4406-4912-9e33-d2a1c76c3cf6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3e9c3ebe-10f2-4502-b629-b746f7d3438a",
+    "token": "USD 300",
+    "class": "figure",
+    "sentence": "3. **Map Colombia corridor exposure to the CAF rail and sustainable mobility investment programme.** *Analytical inference:* The CAF Development Bank's USD 300 million programme for railway, sustainable mobility, and logistics efficiency in Colombia (cited as a corroborating source below) may reshape modal options and corridor economics on Colombia trade lanes.",
+    "search_id": "4d1e009c-96c5-44bf-a047-9133c0f26220",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3ed4f908-cc26-4bdd-ad6f-64cfb6b49cbe",
+    "token": "92 GW",
+    "class": "figure",
+    "sentence": "| Energy-Storage.News – Global Energy Storage Deployments on Track for Record Year in 2025 | https://www.energy-storage.news/global-energy-storage-deployments-on-track-for-record-year-in-2025-bnef-says/ | 5 | Covers BNEF 2H 2025 Outlook: 92 GW/2025 (pre-final), FEOC provisions retained in final legislation, LDES market share trajectory, and LFP market-peak timing — provides temporal bridge between 2025 mid-year forecast and 2026 final actuals reported in the BNEF primary source. |",
+    "search_id": "e052e213-a165-4ee4-8256-d241ded67919",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "token": "€414,000",
+    "class": "figure",
+    "sentence": "*Analytical inference:* A workspace operating a 2,000 MWh/year facility in Ireland versus Finland faces an annual electricity cost differential of approximately €414,000 at H2 2025 rates (2,000 MWh × (€0.2552 – €0.0748)/kWh).",
+    "search_id": "e79382a2-3fc9-493a-8718-008813877a7b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "token": "100%",
+    "class": "figure",
+    "sentence": "| IEA – Electricity Mid-Year Update 2025 Executive Summary | https://www.iea.org/reports/electricity-mid-year-update-2025/executive-summary | 3 | Provides the 2019-baseline comparison showing the EU-US price gap doubled from ~50% in 2019 to ~100% by 2025 — critical context for interpreting the trajectory of EU industrial competitiveness on energy costs. |",
+    "search_id": "e79382a2-3fc9-493a-8718-008813877a7b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "token": "2,000 MWh",
+    "class": "figure",
+    "sentence": "Non-household electricity prices in the EU (defined as medium-sized consumers with annual consumption between 500 MWh and 2,000 MWh) were highest in Ireland (€0.2552 per kWh), Cyprus (€0.2429 per kWh), and Germany (€0.2264 per kWh) in the second half of 2025.",
+    "search_id": "e79382a2-3fc9-493a-8718-008813877a7b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "token": "2030",
+    "class": "deadline",
+    "sentence": "As EU ETS Phase 4 tightens allowance supply through 2030, the carbon cost component of EU industrial electricity prices faces upward pressure independent of fuel market movements.",
+    "search_id": "e79382a2-3fc9-493a-8718-008813877a7b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f11f1fc-5b1f-422a-93bc-a34f6b3c9f3b",
+    "token": "50%",
+    "class": "figure",
+    "sentence": "*Analytical inference:* The IEA Electricity 2025 Executive Summary and Electricity Mid-Year Update 2025 are described as stating that EU industrial electricity prices in 2025 were approximately double US levels and approximately 50% above China levels, and that in 2019 the EU premium over the US was only approximately 50% before roughly doubling by 2025.",
+    "search_id": "e79382a2-3fc9-493a-8718-008813877a7b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+    "token": "1 February 2022",
+    "class": "deadline",
+    "sentence": "METI released the \"GX League Basic Concept\" on 1 February 2022, and the GX League was launched in FY2023. *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html",
+    "search_id": "4c8c4089-492a-4280-bc91-280c403158dd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+    "token": "27 March 2024",
+    "class": "deadline",
+    "sentence": "The GX League is a framework established by METI in which a group of internationally competitive companies that are boldly taking on the challenge of transitioning to carbon neutrality will drive GX (Green Transformation). *Source: From FY2024, 179 Companies Newly Participate in the GX League, METI, 27 March 2024. https://www.meti.go.jp/english/press/2024/0327_003.html",
+    "search_id": "4c8c4089-492a-4280-bc91-280c403158dd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+    "token": "April 2023",
+    "class": "deadline",
+    "sentence": "- \"FY\" refers to Japan's fiscal year, running April–March (e.g., FY2023 = April 2023–March 2024).",
+    "search_id": "e8e0a929-d798-4a01-be3f-408c65dca9f2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "3f7e1aed-02b0-4c14-b44a-d1a688685c95",
+    "token": "March 2024",
+    "class": "deadline",
+    "sentence": "- \"FY\" refers to Japan's fiscal year, running April–March (e.g., FY2023 = April 2023–March 2024).",
+    "search_id": "4c8c4089-492a-4280-bc91-280c403158dd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "40c05a1e-f834-4a14-b2dd-a16707df703c",
+    "token": "17 July 2023",
+    "class": "deadline",
+    "sentence": "| 17 July 2023 | File referred to TRAN Committee, European Parliament | Completed | Parliament formally begins its position |",
+    "search_id": "bfeb7563-551d-4896-be4e-ed0ff43f82a9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "40c05a1e-f834-4a14-b2dd-a16707df703c",
+    "token": "2026-05-27",
+    "class": "deadline",
+    "sentence": "*Document generated: 2026-05-27.",
+    "search_id": "53c69512-06ed-4050-9aa2-5ea0fdfbfd12",
+    "queries_tried": []
+  },
+  {
+    "item_id": "40c05a1e-f834-4a14-b2dd-a16707df703c",
+    "token": "22 May 2026",
+    "class": "deadline",
+    "sentence": "Workspaces procuring road transport on EU cross-border lanes should establish which carrier partners are investing in ZEV fleets and what their timeline is, before the final directive fixes the eligibility criteria. *Source: European Parliament Legislative Train Schedule, European Parliament, as of 22 May 2026.* https://www.europarl.europa.eu/legislative-train/theme-a-european-green-deal/file-revision-of-the-weights-and-dimensions-directive",
+    "search_id": "bfeb7563-551d-4896-be4e-ed0ff43f82a9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "40c05a1e-f834-4a14-b2dd-a16707df703c",
+    "token": "7 October 2024",
+    "class": "deadline",
+    "sentence": "| 7 October 2024 | TRAN Committee votes to start interinstitutional negotiations | Completed | Mandate to enter trilogue confirmed |",
+    "search_id": "bfeb7563-551d-4896-be4e-ed0ff43f82a9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+    "token": "2026-06-08",
+    "class": "deadline",
+    "sentence": "Specific filing deadlines for the one-time report are not reproduced in the available source blocks. *Specific deadline for ACT one-time fleet reporting not available from primary sources as of 2026-06-08.* Workspaces operating medium or heavy-duty vehicles in New York State should confirm filing status with operations counsel immediately.",
+    "search_id": "c68a2837-6f2c-436a-9a0b-54b64ffdeae6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5511a87f-2bba-485a-9f54-6911ef385a63",
+    "token": "December 2025",
+    "class": "deadline",
+    "sentence": "DEC finalized the Mandatory GHG Reporting Program in December 2025. *Source: NYSDEC Press Release, DEC Finalizes Program to Track Climate Pollution Sources, December 1, 2025, https://dec.ny.gov/news/press-releases/2025/12/dec-finalizes-program-to-track-climate-pollution-sources.",
+    "search_id": "117b9d08-4f49-4a6b-a09c-99b176cee3c9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "01 January 2026",
+    "class": "deadline",
+    "sentence": "FACT: Dromon Bureau of Shipping circular states owners/operators are to submit revised SEEMP Part III \"before 30 October 2025 so that the plan can be approved and the Confirmation of Compliance issued on behalf of the Flag Administration before 01 January 2026.\" *Source: Dromon Bureau of Shipping Circular C25040, 23 July 2025. https://www.dromon.com/2025/07/30/imo-cii-guidelines-seemp-part-iii-revision/",
+    "search_id": "581a428c-1176-4a42-a8bd-d1a1fd31fc9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2024",
+    "class": "deadline",
+    "sentence": "| 1 January 2024 | Z = 7% | Applied |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2025",
+    "class": "deadline",
+    "sentence": "| 1 January 2025 | Z = 9% | Applied |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2027",
+    "class": "deadline",
+    "sentence": "| 1 January 2027 | Z = 13.625% | Upcoming |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2028",
+    "class": "deadline",
+    "sentence": "| 1 January 2028 | Z = 16.250%; GFI regulations begin reporting (if adopted) | Upcoming |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2029",
+    "class": "deadline",
+    "sentence": "| 1 January 2029 | Z = 18.875% | Upcoming |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 January 2030",
+    "class": "deadline",
+    "sentence": "| 1 January 2030 | Z = 21.500% | Upcoming |",
+    "search_id": "cd8e5dab-483a-48ad-8614-7bf04603a1d1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "1 March 2027",
+    "class": "deadline",
+    "sentence": "FACT: \"The draft text is expected to be adopted at the Second Extraordinary Session of the Marine Environment Protection Committee (MEPC ES.2), scheduled for October 2025, with entry into force on 1 March 2027.\" *Source: LISCR MEPC 83 Meeting Summary. https://www.liscr.com/marketing/liscr/media/liscr/online%20library/maritime/mepc-83-meeting-summary.pdf",
+    "search_id": "5c8fbc43-8f29-45ee-b3b9-db3b31674a7f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "11 April 2025",
+    "class": "deadline",
+    "sentence": "This document provides a structured regulatory analysis of **Resolution MEPC.338(76)**, titled \"2021 Guidelines on the Operational Carbon Intensity Reduction Factors Relative to Reference Lines (CII Reduction Factors Guidelines, G3),\" adopted by the IMO Marine Environment Protection Committee on 17 June 2021, and subsequently **amended by Resolution MEPC.400(83)** adopted on 11 April 2025 at MEPC 83.",
+    "search_id": "5c8fbc43-8f29-45ee-b3b9-db3b31674a7f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "15%",
+    "class": "figure",
+    "sentence": "**Rating boundary methodology (G4):** FACT: \"The middle point of rating level C shall be the value equivalent to the required annual operational CII.\" Rating boundaries are set using statistical dd vectors from the 2019 fleet distribution, such that the middle 30% of ships receive C, upper 20% receive D, further upper 15% receive E, lower 20% receive B, and further lower 15% receive A. *Source: Dromon Technical Publication CII & SEEMP Part III, August 2022. https://www.dromon.com/wp-content/uploads/2022/12/Dromon-TP-on-CII-SEEMP-III.pdf",
+    "search_id": "581a428c-1176-4a42-a8bd-d1a1fd31fc9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "2 October 2025",
+    "class": "deadline",
+    "sentence": "| 1 March 2027 | Mid-term GFI measures enter into force (if adopted at MEPC ES.2 October 2025) | Conditional |",
+    "search_id": "ee3323be-cab9-4aa1-876a-5e687ba96768",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "4%",
+    "class": "figure",
+    "sentence": "FACT: The mid-term measures comprise \"regulating GHG fuel intensity of the fuel used by a ship (GFI regulations)\" and \"accelerating decarbonization through the IMO Net-Zero Fund,\" applying to \"ships of 5,000 GT and above engaged in international voyages,\" with base-tier targets of 4% GFI reduction in 2028, 8% in 2030, and 30% in 2035 relative to 2008 reference GHG intensity of 93.3 gCO2eq/MJ. *Source: ClassNK TEC-1354. https://www.classnk.or.jp/hp/pdf/tech_info/tech_img/T1354e.pdf",
+    "search_id": "581a428c-1176-4a42-a8bd-d1a1fd31fc9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "55f90df0-7d80-443d-8017-3ca078b5df42",
+    "token": "93.3 gCO2",
+    "class": "figure",
+    "sentence": "FACT: The mid-term measures comprise \"regulating GHG fuel intensity of the fuel used by a ship (GFI regulations)\" and \"accelerating decarbonization through the IMO Net-Zero Fund,\" applying to \"ships of 5,000 GT and above engaged in international voyages,\" with base-tier targets of 4% GFI reduction in 2028, 8% in 2030, and 30% in 2035 relative to 2008 reference GHG intensity of 93.3 gCO2eq/MJ. *Source: ClassNK TEC-1354. https://www.classnk.or.jp/hp/pdf/tech_info/tech_img/T1354e.pdf",
+    "search_id": "581a428c-1176-4a42-a8bd-d1a1fd31fc9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "576554b3-7e69-431c-aa4f-474131458b14",
+    "token": "£4.70",
+    "class": "figure",
+    "sentence": "**Buy-out mechanism:** \"The price currently set is £4.70 per litre for the main SAF obligation and £5.00 per litre for the PtL obligation (to be introduced from 2028).\" *Source: A new sustainable aviation fuel mandate, Norton Rose Fulbright, May 2024. https://www.nortonrosefulbright.com/en/knowledge/publications/b5f9f70c/a-new-sustainable-aviation-fuel-mandate",
+    "search_id": "e8e4896d-19ab-4f10-982c-dcc30fa939fb",
+    "queries_tried": []
+  },
+  {
+    "item_id": "576554b3-7e69-431c-aa4f-474131458b14",
+    "token": "£5.00",
+    "class": "figure",
+    "sentence": "**Buy-out mechanism:** \"The price currently set is £4.70 per litre for the main SAF obligation and £5.00 per litre for the PtL obligation (to be introduced from 2028).\" *Source: A new sustainable aviation fuel mandate, Norton Rose Fulbright, May 2024. https://www.nortonrosefulbright.com/en/knowledge/publications/b5f9f70c/a-new-sustainable-aviation-fuel-mandate",
+    "search_id": "50facf87-8083-4683-8a15-d2c884a613f7",
+    "queries_tried": []
+  },
+  {
+    "item_id": "576554b3-7e69-431c-aa4f-474131458b14",
+    "token": "April 2026",
+    "class": "deadline",
+    "sentence": "Map the workspace's HGV-dependent supply chain against the proposed phase-out dates: 2035 for HGVs up to 26 tonnes and 2040 for heavier HGVs (subject to consultation). *Source: Decarbonising Transport: A Better, Greener Britain, Department for Transport, July 2021. https://assets.publishing.service.gov.uk/government/uploads/system/uploads/attachment_data/file/1009448/decarbonising-transport-a-better-greener-britain.pdf Industry consultation responses are now available and indicate infrastructure readiness, grid connections, and energy costs remain critical barriers. *Source: HGV decarbonisation: Industry responds to government consultation on zero emission targets, Motor Transport, 2 April 2026. https://motortransport.co.uk/energy/industry-backs-multi-pronged-approach-to-hgv-decarbonisation-regulation/89817.article Re-check window: Q4 2026, when regulatory pathway decisions are expected.",
+    "search_id": "e8e4896d-19ab-4f10-982c-dcc30fa939fb",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+    "token": "$149.24",
+    "class": "figure",
+    "sentence": "FACT: The average credit price for 2023 was CAD $127 per credit; for 2024 the average credit price was CAD $157 per credit; prices reached CAD $166 in Q2 2024 before decreasing to CAD $149.24 by Q4 2024. *Source: IETA Business Brief — Canada Clean Fuel Regulation (CFR), IETA/cKinetics, September 2025. https://www.ieta.org/uploads/wp-content/2025/09/IETA_Business_Brief-Canada-Clean-Fuel-Regilation-CFR-September_2025finalone.pdf",
+    "search_id": "95b4cbd0-3bcc-4817-8000-8bcb83a6fe61",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+    "token": "14 gCO₂",
+    "class": "figure",
+    "sentence": "*Operational implication:* As the annual reduction requirement deepens (3.5 gCO₂e/MJ in 2023, escalating 1.5 gCO₂e/MJ per year to 14 gCO₂e/MJ in 2030), primary suppliers' per-litre compliance costs rise.",
+    "search_id": "95b4cbd0-3bcc-4817-8000-8bcb83a6fe61",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+    "token": "3.5 gCO₂",
+    "class": "figure",
+    "sentence": "*Operational implication:* As the annual reduction requirement deepens (3.5 gCO₂e/MJ in 2023, escalating 1.5 gCO₂e/MJ per year to 14 gCO₂e/MJ in 2030), primary suppliers' per-litre compliance costs rise.",
+    "search_id": "69518117-686b-4b6e-8111-b4f6df478f9a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+    "token": "41 gCO₂",
+    "class": "figure",
+    "sentence": "HDRD produced 2.11 million t CO₂e credits with a CI drop of 37% to 41 gCO₂e/MJ.",
+    "search_id": "95b4cbd0-3bcc-4817-8000-8bcb83a6fe61",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b2c6655-b59f-4e8a-a813-466cd26cce5b",
+    "token": "January 2025",
+    "class": "deadline",
+    "sentence": "FACT: Version 4.0 of the Fuel LCA Model was released in January 2025.",
+    "search_id": "95b4cbd0-3bcc-4817-8000-8bcb83a6fe61",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+    "token": "1 July 2026",
+    "class": "deadline",
+    "sentence": "The EU de minimis removal from 1 July 2026 adds a further structural headwind to China-origin small-parcel air volumes.",
+    "search_id": "d8620d52-6d77-4d08-8717-d5a1e31378ab",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+    "token": "1 June 2026",
+    "class": "deadline",
+    "sentence": "By 1 June 2026, Iran's state-affiliated outlet Tasnim reported that Tehran had resolved to fully close the Strait of Hormuz and \"activate other fronts including the Bab al-Mandeb Strait,\" a critical shipping lane linking the Red Sea to the Gulf of Aden.",
+    "search_id": "d8620d52-6d77-4d08-8717-d5a1e31378ab",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+    "token": "2 June 2026",
+    "class": "deadline",
+    "sentence": "*Context note: This brief covers May–June 2026 air cargo market conditions as documented by IATA monthly data (March and April 2026), Xeneta spot-rate analysis (May 2026), WorldACD weekly data (weeks 18–21, May 2026), and Flexport operational reporting (through 2 June 2026).",
+    "search_id": "d8620d52-6d77-4d08-8717-d5a1e31378ab",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5b37050b-7b9e-462c-8eae-84a51d3b3010",
+    "token": "July 2026",
+    "class": "deadline",
+    "sentence": "- US IEEPA tariff hearings scheduled for July 2026: the US Trade Representative has proposed additional tariffs of 10% to 12.5% on goods from 60 trading partners, including the EU and China, under a separate legal framework.",
+    "search_id": "d8620d52-6d77-4d08-8717-d5a1e31378ab",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "€98,391,491.81.",
+    "class": "figure",
+    "sentence": "The project's total budget is €128,382,980.31, with EU contribution of €29,991,488.50 and private co-investment of €98,391,491.81. *Source: H2Accelerate TRUCKS Fact Sheet, CORDIS / European Commission, January 2023. https://cordis.europa.eu/project/id/101101446",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "1,000 km",
+    "class": "figure",
+    "sentence": "**Range adequacy for long-haul — FACT:** The Commission's 2025 readiness report notes that \"one H₂ FC truck available in series production has a range of up to 800 km and one prototype is expected to reach a range of 1,000 km.\" It also confirms that \"most lorry transport services cover a distance of 600 km or less.\" *Source: COM(2025) 260 final, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "1,047 km",
+    "class": "figure",
+    "sentence": "4. **Track OEM participant exits and production commitments.** Daimler Truck AG's participation ended within the grant period. *Analytical inference:* This may affect corridor coverage if Daimler's liquid hydrogen programme (which demonstrated 1,047 km range) does not advance to series production independently.",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "1047 km",
+    "class": "figure",
+    "sentence": "**Key milestone — Daimler range demonstration — FACT:** \"Project partner Daimler Trucks have demonstrated an impressive 1047 km range for their liquid hydrogen fuelled fuel cell HD truck (fall 2023).\" *Source: H2Accelerate TRUCKS Periodic Reporting, Period 1, CORDIS / European Commission, 31 December 2024. https://cordis.europa.eu/project/id/101101446/reporting",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "16 tonnes",
+    "class": "figure",
+    "sentence": "**Regulatory compliance driver for hauliers — FACT:** The CO₂ emission performance standards (Regulation EU 2024/1610) set targets that manufacturers \"will have to address almost all categories of vehicle, in particular almost all lorries of more than 16 tonnes, which account for 75% of HDV sales in the EU.\" The 2025 readiness report notes that \"manufacturers indicated, in the stakeholder consultation carried out under the support study, that approximately one in three new heavy-duty vehicles could be expected to be zero-emission by 2030.\" *Source: COM(2025) 260 final, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "2040",
+    "class": "deadline",
+    "sentence": "On the policy side, Regulation (EU) 2024/1610 — amending the CO₂ emission performance standards for new heavy-duty vehicles (Regulation EU 2019/1242) — sets fleet-wide CO₂ emission reduction targets of 45% by 2030, 65% by 2035, and 90% by 2040 compared to 2019 levels, applied to new lorries above 5 tonnes, buses, and coaches. *Source: COM(2025) 260 final — Communication on the technological and market readiness of heavy-duty road transport vehicles, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "45%",
+    "class": "figure",
+    "sentence": "On the policy side, Regulation (EU) 2024/1610 — amending the CO₂ emission performance standards for new heavy-duty vehicles (Regulation EU 2019/1242) — sets fleet-wide CO₂ emission reduction targets of 45% by 2030, 65% by 2035, and 90% by 2040 compared to 2019 levels, applied to new lorries above 5 tonnes, buses, and coaches. *Source: COM(2025) 260 final — Communication on the technological and market readiness of heavy-duty road transport vehicles, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "5 tonnes",
+    "class": "figure",
+    "sentence": "On the policy side, Regulation (EU) 2024/1610 — amending the CO₂ emission performance standards for new heavy-duty vehicles (Regulation EU 2019/1242) — sets fleet-wide CO₂ emission reduction targets of 45% by 2030, 65% by 2035, and 90% by 2040 compared to 2019 levels, applied to new lorries above 5 tonnes, buses, and coaches. *Source: COM(2025) 260 final — Communication on the technological and market readiness of heavy-duty road transport vehicles, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "6%",
+    "class": "figure",
+    "sentence": "Heavy-duty vehicles are currently responsible for more than a quarter of greenhouse gas emissions from road transport in the Union and for over 6% of the Union's total greenhouse gas emissions, as stated in the recitals to Regulation (EU) 2024/1610. *Source: Regulation (EU) 2024/1610, Recital (5), European Parliament and Council, 14 May 2024. https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=OJ:L_202401610",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "65%",
+    "class": "figure",
+    "sentence": "On the policy side, Regulation (EU) 2024/1610 — amending the CO₂ emission performance standards for new heavy-duty vehicles (Regulation EU 2019/1242) — sets fleet-wide CO₂ emission reduction targets of 45% by 2030, 65% by 2035, and 90% by 2040 compared to 2019 levels, applied to new lorries above 5 tonnes, buses, and coaches. *Source: COM(2025) 260 final — Communication on the technological and market readiness of heavy-duty road transport vehicles, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "75%",
+    "class": "figure",
+    "sentence": "**Regulatory compliance driver for hauliers — FACT:** The CO₂ emission performance standards (Regulation EU 2024/1610) set targets that manufacturers \"will have to address almost all categories of vehicle, in particular almost all lorries of more than 16 tonnes, which account for 75% of HDV sales in the EU.\" The 2025 readiness report notes that \"manufacturers indicated, in the stakeholder consultation carried out under the support study, that approximately one in three new heavy-duty vehicles could be expected to be zero-emission by 2030.\" *Source: COM(2025) 260 final, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "800 km",
+    "class": "figure",
+    "sentence": "**Range adequacy for long-haul — FACT:** The Commission's 2025 readiness report notes that \"one H₂ FC truck available in series production has a range of up to 800 km and one prototype is expected to reach a range of 1,000 km.\" It also confirms that \"most lorry transport services cover a distance of 600 km or less.\" *Source: COM(2025) 260 final, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "July 2024",
+    "class": "deadline",
+    "sentence": "**Current phase and deployment status — FACT:** As of the Period 1 reporting (covering February 2023 to July 2024), the project was 18 months into a 72-month execution, with activities focused on prototype testing, homologation preparation, supply chain assessment, HRS network coordination, and driver training protocol development.",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5eed63be-f54a-4ca7-ac90-7c6ef013b96f",
+    "token": "May 2025",
+    "class": "deadline",
+    "sentence": "On the policy side, Regulation (EU) 2024/1610 — amending the CO₂ emission performance standards for new heavy-duty vehicles (Regulation EU 2019/1242) — sets fleet-wide CO₂ emission reduction targets of 45% by 2030, 65% by 2035, and 90% by 2040 compared to 2019 levels, applied to new lorries above 5 tonnes, buses, and coaches. *Source: COM(2025) 260 final — Communication on the technological and market readiness of heavy-duty road transport vehicles, European Commission, 27 May 2025. https://eur-lex.europa.eu/legal-content/EN/TXT/HTML/?uri=CELEX:52025DC0260",
+    "search_id": "7e4c90da-0758-43f9-9000-a344e2a23762",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "For workspaces routing ocean cargo through Singapore, Rotterdam, or Tokyo, the bunkering cost and availability picture will diverge by port in 2026–2028.",
+    "search_id": "43954bcf-8c64-498e-af6f-e77cf66f66cd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+    "token": "2030",
+    "class": "deadline",
+    "sentence": "For workspaces that place volume on spot or short-term ocean contracts, access to compliant capacity in 2027–2030 is a booking-desk problem, not only a compliance problem.",
+    "search_id": "43954bcf-8c64-498e-af6f-e77cf66f66cd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+    "token": "43%",
+    "class": "figure",
+    "sentence": "- Over 43% of the global fleet by deadweight tonnage was already powered by alternative fuels as of 2024, and 63% of newbuild orders in early 2025 were alternative-fuel vessels — so fleet transition is already structurally underway, not hypothetical.",
+    "search_id": "43954bcf-8c64-498e-af6f-e77cf66f66cd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "5fc45237-2db2-40b8-a052-88e4c77add73",
+    "token": "60%",
+    "class": "figure",
+    "sentence": "*Analytical inference:* When over 60% of newbuild orders are alternative-fuel vessels, the conventional-fuel fleet becomes a progressively smaller share of capacity being added.",
+    "search_id": "43954bcf-8c64-498e-af6f-e77cf66f66cd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+    "token": "1 January 2023",
+    "class": "deadline",
+    "sentence": "IMO CII rating enforcement on carriers has been in effect since 1 January 2023; annual ratings are published.",
+    "search_id": "02277eae-a5ca-40a9-b6a4-123fa3e2559c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+    "token": "100,000 tonnes",
+    "class": "figure",
+    "sentence": "It does **not** contain the granular policy claims present in the existing brief preview — including the GX-ETS mandatory threshold (100,000 tonnes), the transition date (2026), the GX-Surcharge introduction date (FY2028), Nomura Research Institute capacity estimates, or hydrogen port facility names.",
+    "search_id": "9faff953-f2a4-4dd3-adcf-5cc0527ce14d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+    "token": "26 October 2021",
+    "class": "deadline",
+    "sentence": "*Source: MLIT Maritime Bureau portal press release, \"Japan sets a target for global shipping of achieving net-zero GHG emissions by 2050,\" 26 October 2021; IMO MEPC.377(80), July 2023.*",
+    "search_id": "02277eae-a5ca-40a9-b6a4-123fa3e2559c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+    "token": "5,000 GT",
+    "class": "figure",
+    "sentence": "| 1 January 2023 | IMO CII rating system enters force for vessels ≥5,000 GT on international voyages | **In force as of 1 January 2023** | Carriers on Japan routes rated annually; D/E-rated vessels face mandatory operational improvement plans |",
+    "search_id": "02277eae-a5ca-40a9-b6a4-123fa3e2559c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "68e05861-c953-485d-b081-cb6777dcfd99",
+    "token": "April 2025",
+    "class": "deadline",
+    "sentence": "**Regulatory Fact Document** | Generated April 2025",
+    "search_id": "02277eae-a5ca-40a9-b6a4-123fa3e2559c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "12 January 2022",
+    "class": "deadline",
+    "sentence": "| 12 January 2022 | Decree 10.936/2022 — PNRS regulations, National Reverse Logistics Program, MTR | In force | MTR compliance for waste transport |",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "13 February 2023",
+    "class": "deadline",
+    "sentence": "| 13 February 2023 | Decree 11.413/2023 — reverse logistics deepening, CCRLR/CERE certificates | In force | Credit mechanism now available |",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "15 July 2020",
+    "class": "deadline",
+    "sentence": "| 15 July 2020 | Lei nº 14.026/2020 amends Art.",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2010",
+    "class": "deadline",
+    "sentence": "12.305, enacted on 2 August 2010, which establishes the Política Nacional de Resíduos Sólidos (PNRS) — the National Solid Waste Policy.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2014",
+    "class": "deadline",
+    "sentence": "| 2 August 2014 | Original Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2021",
+    "class": "deadline",
+    "sentence": "| 2 August 2021 | Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2022",
+    "class": "deadline",
+    "sentence": "| 2 August 2022 | Art.",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2023",
+    "class": "deadline",
+    "sentence": "| 2 August 2023 | Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "2 August 2024",
+    "class": "deadline",
+    "sentence": "| 2 August 2024 | Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "23 December 2010",
+    "class": "deadline",
+    "sentence": "| 23 December 2010 | Decree 7.404/2010 — first implementing regulation | In force | Review for operational baseline |",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "3 August 2010",
+    "class": "deadline",
+    "sentence": "FACT: \"Esta Lei entra em vigor na data de sua publicação.\" The law was published on 3 August 2010 (Diário Oficial da União, Seção 1, 3/8/2010, Página 3). *Source: Lei nº 12.305/2010, Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "August 2012",
+    "class": "deadline",
+    "sentence": "16 and 18 (state and municipal plan obligations as conditions for Union resource access) — by two years from publication, meaning those provisions entered force approximately August 2012. *Source: Lei nº 12.305/2010, Art.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "August 2024",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The 180-day adaptation window from August 2024 publication would have closed approximately February 2025.",
+    "search_id": "1d3aa5b4-4a5d-46e8-93ff-e2ccbe17b88c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "February 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The 180-day adaptation window from August 2024 publication would have closed approximately February 2025.",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "July 2026",
+    "class": "deadline",
+    "sentence": "Specific penalty quantum (fine amounts): *Specific administrative fine amounts not available from primary PNRS sources as of July 2026.",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6a857887-8f3d-4812-886d-a30a396baea5",
+    "token": "May 2025",
+    "class": "deadline",
+    "sentence": "| April–May 2025 | Decrees 12.438 and 12.451/2025 — regulate Art.",
+    "search_id": "8dd2b25a-e44c-4a33-a559-fdf3c7b3fce6",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6b55b53d-f383-453a-a029-707b86b80013",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "Given the coalition's annual Davos cadence, an updated status report or membership announcement is expected at or around the WEF Annual Meeting in January 2027.",
+    "search_id": "fbe91eb5-a8ff-4ae8-8c9d-b7a93d5e374f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6b55b53d-f383-453a-a029-707b86b80013",
+    "token": "January 2027",
+    "class": "deadline",
+    "sentence": "Given the coalition's annual Davos cadence, an updated status report or membership announcement is expected at or around the WEF Annual Meeting in January 2027.",
+    "search_id": "fbe91eb5-a8ff-4ae8-8c9d-b7a93d5e374f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+    "token": "$25",
+    "class": "figure",
+    "sentence": "Singapore's carbon tax rose to S$25/tCO₂e in 2024 and is legislatively scheduled to reach S$45/tCO₂e by 2026 and S$50–80/tCO₂e by 2030.",
+    "search_id": "cc4761d8-82f8-4545-9f34-78083fe130e3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+    "token": "$45",
+    "class": "figure",
+    "sentence": "Singapore's carbon tax rose to S$25/tCO₂e in 2024 and is legislatively scheduled to reach S$45/tCO₂e by 2026 and S$50–80/tCO₂e by 2030.",
+    "search_id": "cee04548-71ef-41eb-8f78-bbf29aafce96",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+    "token": "1 January 2024",
+    "class": "deadline",
+    "sentence": "| 1 January 2024 | Carbon tax raised to S$25/tCO₂e | **In force as of 1 January 2024** | Current carrier rate cards should already reflect this; confirm with Singapore-lane carriers |",
+    "search_id": "cc4761d8-82f8-4545-9f34-78083fe130e3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6d2ebbdb-262e-442a-bc20-1f58806b6605",
+    "token": "25,000 tCO₂e",
+    "class": "figure",
+    "sentence": "The tax is levied on facilities emitting 25,000 tCO₂e or more per year.",
+    "search_id": "cc4761d8-82f8-4545-9f34-78083fe130e3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6f1e6615-2394-440b-bd4c-88b7bf711c72",
+    "token": "2026-05-27",
+    "class": "deadline",
+    "sentence": "*Specific entry-into-force date (typically 20 days after OJ publication) and application date not available from the provided source block text as of 2026-05-27.* Full entry-into-force and first application dates require retrieval of the operative articles; see New Sources Identified.",
+    "search_id": "09a3fa3e-86d2-49d8-98f3-d36920d3fa57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+    "token": "2026-06-08",
+    "class": "deadline",
+    "sentence": "**Date of generation:** 2026-06-08.",
+    "search_id": null,
+    "queries_tried": []
+  },
+  {
+    "item_id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "**Re-check window:** Monitor EU EPBD member state transposition deadlines through 2026–2027.",
+    "search_id": null,
+    "queries_tried": []
+  },
+  {
+    "item_id": "6f39b6b9-8f6f-4d92-abc4-ba1f763a572c",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Workspaces subject to EU CSRD reporting obligations (first reports for large companies covering FY2024, phasing to additional entities through 2026–2028) face increasing client and regulator scrutiny of Scope 2 emissions from warehouse electricity.",
+    "search_id": null,
+    "queries_tried": []
+  },
+  {
+    "item_id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+    "token": "30 April 2025",
+    "class": "deadline",
+    "sentence": "The 2025 IISD paper on \"Options for International Agreements on Fossil Fuel Subsidies\" (presented at the 30 April 2025 meeting) indicates the initiative is now explicitly modelling binding pathway options, not only information-sharing.",
+    "search_id": "3ac46d06-e31f-4fff-9aaa-06d226bfb0e0",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7115c978-8384-4dd0-b9a8-c3d24c43a868",
+    "token": "30 March 2026",
+    "class": "deadline",
+    "sentence": "Three parallel WTO informal initiatives — the Trade and Environmental Sustainability Structured Discussions (TESSD), the Dialogue on Plastics Pollution and Environmentally Sustainable Plastics Trade (DPP), and the Fossil Fuel Subsidy Reform initiative (FFSR) — have each reached a significant structural milestone at or immediately ahead of the WTO's 14th Ministerial Conference (MC14), held in Yaoundé, Cameroon from 26–30 March 2026.",
+    "search_id": "3ac46d06-e31f-4fff-9aaa-06d226bfb0e0",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "1 January 2026",
+    "class": "deadline",
+    "sentence": "| 1 January 2026 | Second obligation period begins.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "1 January 2028",
+    "class": "deadline",
+    "sentence": "| 1 January 2028 | PtL sub-obligation begins for the first time: 0.215% of obligated amount.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "1 January 2035",
+    "class": "deadline",
+    "sentence": "| 1 January 2035 | Main obligation: 15.882%.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "12 May 2026",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Given that the Order came into force on 1 January 2025 and the first obligation period ends 31 December 2025, guidance must be published sufficiently in advance of the 12 May 2026 SAF certificate application deadline to be actionable.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "15 September 2026",
+    "class": "deadline",
+    "sentence": "The specified date by which SAF certificates (evidence) must be produced or a buy-out payment made is defined as \"15th September of the year immediately following an obligation period (or the next working day after 15th September if 15th September is not a working day).\" For the 2025 obligation period, this is 15 September 2026. *Source: Article 3(3), SAF Order 2024. https://legislation.gov.uk/ukdsi/2024/9780348261714",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "26 October 2026",
+    "class": "deadline",
+    "sentence": "| 26 October 2026 | End of buy-out payment period for 2025 obligation. | Article 21(11) |",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "31 December 2025",
+    "class": "deadline",
+    "sentence": "The first obligation period runs 1 January 2025 to 31 December 2025.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "400 tonnes",
+    "class": "figure",
+    "sentence": "15.9 TJ of jet fuel is approximately 380–400 tonnes of aviation turbine fuel (based on a typical lower heating value for Jet-A of approximately 43–44 MJ/kg).",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "89 gCO₂",
+    "class": "figure",
+    "sentence": "The carbon intensity formula embedded in the Order (Article 4(4)) uses a fossil jet fuel reference of 89 gCO₂e/MJ and a SAF reference carbon intensity of 26.7 gCO₂e/MJ. *Source: Article 4(4), SAF Order 2024. https://legislation.gov.uk/ukdsi/2024/9780348261714",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "April 2025",
+    "class": "deadline",
+    "sentence": "Re-check window: April 2025.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "782878c0-757f-4a73-998f-48f52bbfa585",
+    "token": "March 2025",
+    "class": "deadline",
+    "sentence": "If not published by March 2025, escalate to carrier partners who are obligated suppliers for status.",
+    "search_id": "a949d2f6-8b44-40a7-b9f4-f7e77449d947",
+    "queries_tried": []
+  },
+  {
+    "item_id": "78b711f5-5109-458e-8ed7-375f67e22664",
+    "token": "2025",
+    "class": "deadline",
+    "sentence": "*Operational implication:* Lanes overlapping with grant-funded corridor planning projects may see faster-than-average infrastructure deployment and could affect road carrier procurement decisions in 2025–2027.",
+    "search_id": "2bf1f897-c9a7-4ea7-8a72-d1bd0aa99765",
+    "queries_tried": []
+  },
+  {
+    "item_id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "The 2030 horizon is the hard conversion point; procurement decisions about freight partners are likely to accelerate in 2027–2028 as institutions realise the gap between current emissions trajectories and their stated commitments.",
+    "search_id": "ba4ca371-9829-409a-97b5-7461417856cf",
+    "queries_tried": []
+  },
+  {
+    "item_id": "79e73a30-8e06-4702-98d9-80ec2a3514ad",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "The 2030 horizon is the hard conversion point; procurement decisions about freight partners are likely to accelerate in 2027–2028 as institutions realise the gap between current emissions trajectories and their stated commitments.",
+    "search_id": "ba4ca371-9829-409a-97b5-7461417856cf",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "1 May 2026",
+    "class": "deadline",
+    "sentence": "| 1 May 2026 | Verifier records verified compliance balances in FuelEU database | Upcoming |",
+    "search_id": "50d32e0e-6ad6-487e-a85b-cde4bf920345",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "18.23 gCO₂",
+    "class": "figure",
+    "sentence": "- 2050: 18.23 gCO₂eq/MJ (80% reduction)",
+    "search_id": "50d32e0e-6ad6-487e-a85b-cde4bf920345",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "30 April 2026",
+    "class": "deadline",
+    "sentence": "| 30 April 2026 | Deadline for pooling registration in FuelEU database; banking/borrowing approval | Upcoming |",
+    "search_id": "124ab58d-8871-4391-bb6d-dbd868f41622",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "30 June 2026",
+    "class": "deadline",
+    "sentence": "| 30 June 2026 | FuelEU document of compliance issuance deadline; FuelEU penalty payment deadline (first cycle) | Upcoming |",
+    "search_id": "124ab58d-8871-4391-bb6d-dbd868f41622",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "31 December 2031",
+    "class": "deadline",
+    "sentence": "| 31 December 2031 | Reference monitoring period for RFNBO subtarget trigger assessment | Upcoming — MONITORING |",
+    "search_id": "50d32e0e-6ad6-487e-a85b-cde4bf920345",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "31 March 2026",
+    "class": "deadline",
+    "sentence": "| 31 March 2026 | Verifier must notify company of compliance calculations and record in FuelEU database | Upcoming |",
+    "search_id": "164a4326-42a4-4de0-abd8-f4f61fe02ca9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "34.64 gCO₂",
+    "class": "figure",
+    "sentence": "- 2045: 34.64 gCO₂eq/MJ (62% reduction)",
+    "search_id": "50d32e0e-6ad6-487e-a85b-cde4bf920345",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "62.90 gCO₂",
+    "class": "figure",
+    "sentence": "- 2040: 62.90 gCO₂eq/MJ (31% reduction)",
+    "search_id": "124ab58d-8871-4391-bb6d-dbd868f41622",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7a0ead55-7a7b-403b-8ba3-33862cb296e2",
+    "token": "77.94 gCO₂",
+    "class": "figure",
+    "sentence": "- 2035: 77.94 gCO₂eq/MJ (14.5% reduction)",
+    "search_id": "50d32e0e-6ad6-487e-a85b-cde4bf920345",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7d2f8d88-46b6-4998-a10e-75093500f46c",
+    "token": "20 March 2023",
+    "class": "deadline",
+    "sentence": "**Effective date (required slot):** The standard was published on 20 March 2023 (Stage 60.60, \"International Standard published\"). *Source: ISO 14083:2023 catalogue record, ISO, March 2023. https://www.iso.org/standard/78864.html",
+    "search_id": "1e56bf0c-67a4-4d14-93e9-3e306fdb6cf4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+    "token": "2025-06-10",
+    "class": "deadline",
+    "sentence": "*Specific industrial electricity rates, diesel/fuel costs, labor rates, port handling, and drayage costs for the Greenwood, South Carolina operational area are not available from primary sources as of 2025-06-10.*",
+    "search_id": "51e9398e-aa78-4839-9109-277e2b852d0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+    "token": "April 2025",
+    "class": "deadline",
+    "sentence": "**Chapter 11 bankruptcy filing (FACT — corroborating source):** Chemical & Engineering News (ACS) reported that Ascend Performance Materials filed for bankruptcy in April 2025.",
+    "search_id": "51e9398e-aa78-4839-9109-277e2b852d0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+    "token": "December 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The sequential industrial wind-down — industrial fiber spinning closure announced January 2024, Greenwood County plant closure effective February 2025, Chapter 11 filing April 2025, and Chapter 11 emergence December 2025 — represents a full or near-full cessation of active manufacturing at the Greenwood site.",
+    "search_id": "51e9398e-aa78-4839-9109-277e2b852d0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+    "token": "February 2025",
+    "class": "deadline",
+    "sentence": "**Greenwood County plant closure (FACT — corroborating source):** The Index-Journal reported that Ascend announced closure of its Greenwood County plant effective February 2025. *Source: Ascend to Close Greenwood County Plant in February, Index-Journal. https://www.indexjournal.com/news/ascend-to-close-greenwood-county-plant-in-february/article_4f9f376e-8c16-11ef-8601-af267b00a94c.html",
+    "search_id": "51e9398e-aa78-4839-9109-277e2b852d0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7e43c296-063c-4b21-813a-460379bd2dbe",
+    "token": "January 2024",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The sequential industrial wind-down — industrial fiber spinning closure announced January 2024, Greenwood County plant closure effective February 2025, Chapter 11 filing April 2025, and Chapter 11 emergence December 2025 — represents a full or near-full cessation of active manufacturing at the Greenwood site.",
+    "search_id": "51e9398e-aa78-4839-9109-277e2b852d0b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+    "token": "$3.04",
+    "class": "figure",
+    "sentence": "The Henry Hub natural gas spot price as of 1 June 2026 stood at **$3.07 per million BTU (MMBtu)**, down from **$3.34/MMBtu** on 29 May 2026 — a single-session decline of approximately 8% — and broadly within a range of $3.04–$3.34/MMBtu across the five most recent published trading days (26 May–1 June 2026). *Source: U.S.",
+    "search_id": "88bbaf76-e115-45ba-bdc9-8d5c71e6e774",
+    "queries_tried": []
+  },
+  {
+    "item_id": "7fd6fbf1-9428-4e24-aaf1-21ecf29b861b",
+    "token": "$3.80",
+    "class": "figure",
+    "sentence": "If the spot price moves above $3.80/MMBtu on a sustained basis (3+ consecutive sessions), re-classify to COST ALERT and initiate carrier fuel-surcharge review.",
+    "search_id": "88bbaf76-e115-45ba-bdc9-8d5c71e6e774",
+    "queries_tried": []
+  },
+  {
+    "item_id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+    "token": "2026-05-29",
+    "class": "deadline",
+    "sentence": "**Market Signal Brief | MONITORING | Issued: 2026-05-29**",
+    "search_id": "6fc9402a-d0da-4017-aa15-8aa22c8025a3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+    "token": "July 2027",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Workspaces that begin building LEED v5 transport emissions documentation capability ahead of the July 2027 switchover will be positioned to respond to v5 project procurement RFQs that include emissions data requirements — a requirement that is directionally signaled by USGBC's project impact reporting roadmap, even if specific credit documentation requirements are not yet confirmed in these sources.",
+    "search_id": "6fc9402a-d0da-4017-aa15-8aa22c8025a3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+    "token": "June 2027",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Clients managing portfolio-level LEED programs — corporate occupiers, institutional real estate holders — face a bifurcated period through June 2027 where new projects may register under either v4.1 or v5.",
+    "search_id": "6fc9402a-d0da-4017-aa15-8aa22c8025a3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "878294c8-ebc3-4cae-9644-4e931bc6549f",
+    "token": "May 2026",
+    "class": "deadline",
+    "sentence": "Green Building Council's LEED v5 rollout, the May 2026 extension of LEED v4/v4.1 registration deadlines, and the evolving credentialing and certification landscape.",
+    "search_id": "6fc9402a-d0da-4017-aa15-8aa22c8025a3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "18.4%",
+    "class": "figure",
+    "sentence": "The **CVSA Roadcheck 2026 results** — inspection counts, OOS rates, violation breakdowns — are scheduled to be released later in 2026. *Source: CVSA International Roadcheck Announcement, CVSA, February 12, 2026. https://cvsa.org/news/2026-roadcheck/ These results will indicate whether the ELD and cargo securement focus areas generated higher OOS rates than the 2025 baselines (18.4% vehicles OOS, 5.9% drivers OOS in 2025), and whether the enforcement intensity has increased. *Source: International Roadcheck 2026: ELDs under scrutiny, FreightWaves, February 14, 2026. https://www.freightwaves.com/news/international-roadcheck-2026-elds-under-scrutiny",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "5.9%",
+    "class": "figure",
+    "sentence": "The **CVSA Roadcheck 2026 results** — inspection counts, OOS rates, violation breakdowns — are scheduled to be released later in 2026. *Source: CVSA International Roadcheck Announcement, CVSA, February 12, 2026. https://cvsa.org/news/2026-roadcheck/ These results will indicate whether the ELD and cargo securement focus areas generated higher OOS rates than the 2025 baselines (18.4% vehicles OOS, 5.9% drivers OOS in 2025), and whether the enforcement intensity has increased. *Source: International Roadcheck 2026: ELDs under scrutiny, FreightWaves, February 14, 2026. https://www.freightwaves.com/news/international-roadcheck-2026-elds-under-scrutiny",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "81.6%",
+    "class": "figure",
+    "sentence": "| International Roadcheck 2026: ELDs under scrutiny — FreightWaves | https://www.freightwaves.com/news/international-roadcheck-2026-elds-under-scrutiny | 5 | FreightWaves trade reporting establishing 2025 pass rates (81.6% vehicles, 94.1% drivers), capacity/rate context from prior Roadcheck, and broader market interpretation; essential for the rate and competitive narrative. |",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "94.1%",
+    "class": "figure",
+    "sentence": "| International Roadcheck 2026: ELDs under scrutiny — FreightWaves | https://www.freightwaves.com/news/international-roadcheck-2026-elds-under-scrutiny | 5 | FreightWaves trade reporting establishing 2025 pass rates (81.6% vehicles, 94.1% drivers), capacity/rate context from prior Roadcheck, and broader market interpretation; essential for the rate and competitive narrative. |",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "January 2025",
+    "class": "deadline",
+    "sentence": "Prior revocations in 2026 (February, March, April, May batches) added 79+ devices to the revoked list since January 2025, each carrying a 60-day paper-log grace period followed by mandatory out-of-service enforcement. *Source: FMCSA ELD Revoked Devices News & Events, FMCSA, eld.fmcsa.dot.gov, June 2, 2026. https://eld.fmcsa.dot.gov/Support/_NewsAndEventCurrentPage",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88a2918c-c362-455d-94f5-754c35a5cba9",
+    "token": "July 2026",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* Three signals — the Roadcheck-week capacity contraction, the rolling ELD revocation OOS deadlines through July 2026, and the structural driver availability decline — are not individually sufficient to sustain rate elevation, but their simultaneous presence in Q2 2026 raises the probability that the post-Roadcheck rate normalization is shallower and slower than the historical one-week reversal pattern.",
+    "search_id": "57aefccc-306a-4bbd-965a-60e4818fee57",
+    "queries_tried": []
+  },
+  {
+    "item_id": "88c3a053-e5c4-44f2-b1cb-ecb1a313090a",
+    "token": "December 2025",
+    "class": "deadline",
+    "sentence": "**Pending academic peer review publication:** *Analytical inference:* The Nature Editorial from September 2024 noted that the Climate Machine project was expected to publish \"an academic report later this year [2024], with a public report following in 2025.\" The December 2025 press release is the public report.",
+    "search_id": "1bee0e62-94f0-4656-85c1-fe8cfbf53590",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "1 July 2030",
+    "class": "deadline",
+    "sentence": "| Reporting period 2030 (1 July 2030–30 June 2031) | 45% CO₂ reduction target applies to all vehicle sub-groups other than vocational vehicles; 90% ZEV mandate for urban buses begins; 10% trailer reduction (semi-trailers), 7.5% (other trailers) | Future deadline |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "1 July 2035",
+    "class": "deadline",
+    "sentence": "| Reporting period 2035 (1 July 2035–30 June 2036) | 65% CO₂ reduction for all sub-groups including vocational vehicles; 100% ZEV mandate for urban buses | Future deadline |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "1 July 2040",
+    "class": "deadline",
+    "sentence": "| Reporting period 2040 (1 July 2040–30 June 2041) | 90% CO₂ reduction for all sub-groups; end of ZLEV mechanism | Future deadline |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "26 June 2025",
+    "class": "deadline",
+    "sentence": "| By ~26 June 2025 | Commission assessment of CO₂-neutral fuel registration methodology (within one year of entry into force) | Anticipated |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "30 June 2036",
+    "class": "deadline",
+    "sentence": "| Reporting period 2035 (1 July 2035–30 June 2036) | 65% CO₂ reduction for all sub-groups including vocational vehicles; 100% ZEV mandate for urban buses | Future deadline |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8c186db2-ca7c-4b92-8960-3337a4d01b09",
+    "token": "30 September 2024",
+    "class": "deadline",
+    "sentence": "| 30 September 2024 (and annually) | Member State competent authorities report prior reporting period HDV registration data to Commission | Recurring obligation |",
+    "search_id": "8f1de7fe-c090-4e56-a725-42ca31590c9b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "05 January 2026",
+    "class": "deadline",
+    "sentence": "| 05 January 2026 | Ordinance GM/MMA No.",
+    "search_id": "a8be9dc3-f78c-44fc-b6ba-86627c94a354",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "17%",
+    "class": "figure",
+    "sentence": "1,560 (published 05/01/2026) established that \"for the year 2026, the targets set for 2025 in Annex II of the Phase 2 Implementation Schedule\" remain in force \"until new regulations are issued.\" The target for environmentally appropriate collection and disposal \"stands at 17% of the total weight of household electronic products sold in the domestic market.\" *Source: New MMA Ordinances reinforce rules and expand the scope of reverse logistics in Brazil, Trench Rossi Watanabe, 06/01/2026. https://www.trenchrossi.com/en/legal-alerts/new-mma-ordinances-reinforce-rules-and-expand-the-scope-of-reverse-logistics-in-brazil/",
+    "search_id": "2189c2b9-d9a3-479d-b74e-aaad6507d55a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "2026-07-14",
+    "class": "deadline",
+    "sentence": "12,305/2010 not available from the corpus source blocks as of 2026-07-14.",
+    "search_id": "2189c2b9-d9a3-479d-b74e-aaad6507d55a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "30 April 2026",
+    "class": "deadline",
+    "sentence": "| **1–30 April 2026** | **Annual qualification window: result verifiers submit to Ministry via SINIR** | **Upcoming — MONITORING** |",
+    "search_id": "2189c2b9-d9a3-479d-b74e-aaad6507d55a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "31 March 2026",
+    "class": "deadline",
+    "sentence": "| **1–31 March 2026** | **Annual qualification window: management entities submit to Ministry via SINIR** | **Upcoming — ACTION REQUIRED** |",
+    "search_id": "a8be9dc3-f78c-44fc-b6ba-86627c94a354",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "April 2026",
+    "class": "deadline",
+    "sentence": "*Operational implication:* Workspaces acting as or advising importers of electronics, batteries, or packaging in general must confirm their registration status ahead of the March/April 2026 qualification windows or face exclusion from the collective model system for the year.",
+    "search_id": "2189c2b9-d9a3-479d-b74e-aaad6507d55a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "August 2024",
+    "class": "deadline",
+    "sentence": "| August 2024 | Ordinance GM/MMA No.",
+    "search_id": "2189c2b9-d9a3-479d-b74e-aaad6507d55a",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "January 2026",
+    "class": "deadline",
+    "sentence": "1,560 and 1,561 (January 2026).",
+    "search_id": "a8be9dc3-f78c-44fc-b6ba-86627c94a354",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8de055dc-0930-48fd-b18a-b403f6e7313f",
+    "token": "March 2026",
+    "class": "deadline",
+    "sentence": "### 6.1 New qualification call for management entities (March 2026)",
+    "search_id": "a8be9dc3-f78c-44fc-b6ba-86627c94a354",
+    "queries_tried": []
+  },
+  {
+    "item_id": "8fb37a9e-6c7c-4252-9cd6-7ffaf6de45bc",
+    "token": "53%",
+    "class": "figure",
+    "sentence": "The City of Melbourne has reported the following operational outcomes as context for the amendment's ambition: reduced Council operations emissions by 53% between 2013 and 2019; certified carbon neutral since 2012; 100% renewable energy via the Melbourne Renewable Energy Project; over 22,000 trees planted since 2012; $40 million invested in stormwater harvesting capturing approximately 180,000 kilolitres per year; $17.1 million in Clean Energy Finance Corporation-funded energy efficiency and renewable energy. *Source: participate.melbourne.vic.gov.au/amendment-c376/how-does-this-affect-me, City of Melbourne, 2025.* *Analytical inference:* These figures establish the municipal baseline against which the amendment's contribution to net zero by 2040 is measured; they also signal the City's track record as a credible advocate for the amendment's objectives.",
+    "search_id": "4e2a638a-2d36-4681-be29-02b1c03de869",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "1 April 2019",
+    "class": "deadline",
+    "sentence": "**Effective date:** SECR was implemented on 1 April 2019, when the Companies (Directors' Report) and Limited Liability Partnerships (Energy and Carbon Report) Regulations 2018 came into force. *Source: \"The UK government's Streamlined Energy and Carbon Reporting (SECR) policy was implemented on 1 April 2019, when the Companies (Directors' Report) and Limited Liability Partnerships (Energy and Carbon Report) Regulations 2018 came into force.\" — The Carbon Trust, carbontrust.com.*",
+    "search_id": "f1c00901-8cd6-455a-b003-6a99ddece2ed",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "1 April 2024",
+    "class": "deadline",
+    "sentence": "| 1 April 2024 | Government's own target deadline for post-implementation review | Missed — review not published by this date |",
+    "search_id": "f1c00901-8cd6-455a-b003-6a99ddece2ed",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "40 MWh",
+    "class": "figure",
+    "sentence": "Even if a company meets the size thresholds, it qualifies as a low energy user and is exempt from substantive reporting if it does not consume more than 40,000 kWh (40 MWh) in the reporting period. *Source: \"A statutory de minimis exemption exists for quoted or large unquoted companies and LLPs that can confirm their energy use is low - 40MWh or less over the reporting period.\" — The Carbon Trust, carbontrust.com.* A statement confirming low energy user status must still be included in the relevant report. *Source: \"These companies will still need to include a statement in their report confirming that they are a low energy user.\" — The Carbon Trust, carbontrust.com.*",
+    "search_id": "e83b3c9b-9323-4b4e-9a33-2420e0929583",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "95%",
+    "class": "figure",
+    "sentence": "Please consider the ISSB's approach to materiality in your answer.\" — Linklaters, sustainablefutures.linklaters.com.* The government acknowledges that Scope 3 emissions can account for 80-95% of the total value chain of an organisation's carbon footprint. *Source: \"The government acknowledges that Scope 3 emissions can account for 80-95% of the total value chain of an organisation's carbon footprint.\" — Linklaters, sustainablefutures.linklaters.com.*",
+    "search_id": "f1c00901-8cd6-455a-b003-6a99ddece2ed",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "June 2023",
+    "class": "deadline",
+    "sentence": "- June 2023: ISSB published IFRS S1 and IFRS S2. *Source: \"June 2023 ISSB standards launched: IFRS 1 and IFRS 2.\" — Energy Advice Hub, energyadvicehub.org/whats-happening-with-secr/.*",
+    "search_id": "db31d9e7-d644-4d69-858a-367535917a63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9090a7c2-34bf-41b7-b998-35524def1c5e",
+    "token": "May 2024",
+    "class": "deadline",
+    "sentence": "**Timeline:** Call for Evidence launched October 2023; closed December 2023; summary of responses published May 2024. *Source: \"The Call for Evidence closed in December 2023 and a summary of responses was published in May 2024.\" — Energy Advice Hub, energyadvicehub.org/whats-happening-with-secr/.*",
+    "search_id": "db31d9e7-d644-4d69-858a-367535917a63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "11%",
+    "class": "figure",
+    "sentence": "| 2026 | 11% |",
+    "search_id": "3ffacf6c-d251-490a-a351-d15beee1ebdd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "13.625%",
+    "class": "figure",
+    "sentence": "| 2027 | 13.625% |",
+    "search_id": "91dd7bf3-7fe9-4861-9a03-c10a265d8e04",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "16.25%",
+    "class": "figure",
+    "sentence": "| 2027–2030 | CII reduction factors: 13.625% (2027), 16.25% (2028), 18.875% (2029), 21.5% (2030) relative to 2019 reference | Enacted but not yet in effect |",
+    "search_id": "91dd7bf3-7fe9-4861-9a03-c10a265d8e04",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "16.250%",
+    "class": "figure",
+    "sentence": "| 2028 | 16.250% |",
+    "search_id": "91dd7bf3-7fe9-4861-9a03-c10a265d8e04",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "18.875%",
+    "class": "figure",
+    "sentence": "| 2029 | 18.875% |",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "21.5%",
+    "class": "figure",
+    "sentence": "The annual reduction factors (Z) run from 5% in 2023 through 21.5% in 2030, relative to the 2019 reference lines, per MEPC.338(76) as amended by MEPC.400(83). *Source: Lloyd's Register Class News 13/2025, \"New IMO CII Guidelines require SEEMP Part III revisions,\" LR, 18 July 2025. https://www.lr.org/en/knowledge/class-news/13-25/",
+    "search_id": "91dd7bf3-7fe9-4861-9a03-c10a265d8e04",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "21.500%",
+    "class": "figure",
+    "sentence": "| 2030 | 21.500% |",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "31 December 2025",
+    "class": "deadline",
+    "sentence": "Confirm with key ocean carriers that their SEEMP Part III was revised and approved by 31 December 2025 per MEPC.400(83). *Analytical inference:* Carriers that failed this deadline may face confirmation of compliance issues that flow through to vessel availability or operational restrictions.",
+    "search_id": "3ffacf6c-d251-490a-a351-d15beee1ebdd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "31 March 2024",
+    "class": "deadline",
+    "sentence": "| 31 March 2024 | First CII submission deadline (for 2023 reporting year data) | Passed |",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "7%",
+    "class": "figure",
+    "sentence": "| 2024 | 7% |",
+    "search_id": "3ffacf6c-d251-490a-a351-d15beee1ebdd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "78%",
+    "class": "figure",
+    "sentence": "IMO reports that \"of those ships, for the 2023 reporting period, 24,653 ships reported operational CII ratings. 78% of the CIIs reported met the 'C' or better target.",
+    "search_id": "91dd7bf3-7fe9-4861-9a03-c10a265d8e04",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "9%",
+    "class": "figure",
+    "sentence": "| 2025 | 9% |",
+    "search_id": "3ffacf6c-d251-490a-a351-d15beee1ebdd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "93c344a1-f947-4e48-bb84-85d3f7223037",
+    "token": "June 2021",
+    "class": "deadline",
+    "sentence": "| June 2021 | MEPC 76 adopts MEPC.328(76) — Revised MARPOL Annex VI with EEXI and CII provisions | Enacted |",
+    "search_id": "3ffacf6c-d251-490a-a351-d15beee1ebdd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "10,400 GW",
+    "class": "figure",
+    "sentence": "**FACT:** Under the IEA's accelerated case — which assumes governments address key policy, grid integration, financing and permitting challenges in the short term — cumulative renewable electricity capacity reaches over 10,400 GW by 2030, bridging most of the gap to global tripling.",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "11,500 GW",
+    "class": "figure",
+    "sentence": "**FACT:** In the IEA's main case, cumulative renewable capacity reaches 9,530 GW in 2030 — a 2.6-times increase from 2022 — which falls short of the approximately 11,500 GW required to achieve the COP28 tripling goal.",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "129 GW",
+    "class": "figure",
+    "sentence": "Workspaces with supply chains originating in Chinese manufacturing regions that depend on low-cost renewable power claims for Scope 3 emissions accounting should note that the profitability and pace of new Chinese renewable additions is expected to slow under the new regime, even if the IEA's downward revision to China is only 5% in percentage terms (129 GW in absolute terms).",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "2,000 GW",
+    "class": "figure",
+    "sentence": "3. **On the gap to target:** The IEA's main case falls short of the COP28 tripling goal by approximately 2,000 GW.",
+    "search_id": "45f06665-f210-43ff-b6dd-be935b04eda2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "2026-06-03",
+    "class": "deadline",
+    "sentence": "*Specific primary-source quantitative figures from the IEA Electricity Mid-Year Update 2025 PDF not available from primary source blocks as of 2026-06-03.*",
+    "search_id": "45f06665-f210-43ff-b6dd-be935b04eda2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "248 GW",
+    "class": "figure",
+    "sentence": "**FACT:** Globally, the IEA has lowered its renewable energy growth forecast for 2025–2030 by 5% compared with last year, reflecting policy, regulatory and market changes since October 2024; this revision means 248 GW less renewable capacity is expected to be commissioned over 2025–2030.",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "39%",
+    "class": "figure",
+    "sentence": "**FACT:** Solar's share of U.S. electricity generation is forecast to rise from 7% in 2025 to 8% in 2026 and 9% in 2027; natural gas's share falls from 42% in 2024 to 39% in 2026 before recovering to 40% in 2027.",
+    "search_id": "45f06665-f210-43ff-b6dd-be935b04eda2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "7%",
+    "class": "figure",
+    "sentence": "**FACT:** The global offshore wind capacity forecast has been revised 27% downwards from the prior year's Renewables 2024 report, owing to policy changes in the United States, macroeconomic pressures, supply chain challenges, undersubscribed auctions, and project cancellations.",
+    "search_id": "994c40c3-8832-44b7-a7ec-c9c077897f20",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "8%",
+    "class": "figure",
+    "sentence": "**FACT:** Solar's share of U.S. electricity generation is forecast to rise from 7% in 2025 to 8% in 2026 and 9% in 2027; natural gas's share falls from 42% in 2024 to 39% in 2026 before recovering to 40% in 2027.",
+    "search_id": "994c40c3-8832-44b7-a7ec-c9c077897f20",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "9,530 GW",
+    "class": "figure",
+    "sentence": "**FACT:** In the IEA's main case, cumulative renewable capacity reaches 9,530 GW in 2030 — a 2.6-times increase from 2022 — which falls short of the approximately 11,500 GW required to achieve the COP28 tripling goal.",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "9%",
+    "class": "figure",
+    "sentence": "**FACT:** Solar's share of U.S. electricity generation is forecast to rise from 7% in 2025 to 8% in 2026 and 9% in 2027; natural gas's share falls from 42% in 2024 to 39% in 2026 before recovering to 40% in 2027.",
+    "search_id": "994c40c3-8832-44b7-a7ec-c9c077897f20",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "90 GW",
+    "class": "figure",
+    "sentence": "*Operational implication:* For operations with any on-site renewable generation or energy procurement exposure in the EU, the confirmation of +90 GW of renewable capacity added year-on-year (European Commission corroborating source) and the ongoing EU grid-adequacy assessment suggest that renewable electricity access is expanding, but the Iberian blackout event introduces concrete evidence that grid resilience is not keeping pace with variable generation growth.",
+    "search_id": "346e3def-8c60-419e-813c-0370942a6347",
+    "queries_tried": []
+  },
+  {
+    "item_id": "947e08f3-0136-423d-8f62-03bb071bad49",
+    "token": "February 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The IEA Electricity Mid-Year Update 2025 itself — as the primary item — likely revises the February 2025 Electricity 2025 flagship's demand, supply, and price forecasts with 2024 actuals and a refreshed 2025–2026 outlook; the full PDF was listed as a corroborating source but no verbatim content from it is available in this generation.",
+    "search_id": "6a613f32-0f60-485c-a02f-a45e46b46803",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "10.83 km",
+    "class": "figure",
+    "sentence": "For trucks (excluding tractors), Phase 1 targets ran from 11 categories ranging from 10.83 km/L (GVW 3.5–7.5 t, max load ≤ 1.5 t) down to 4.04 km/L (GVW > 20 t). *Source: dieselnet.com Table 4.3.* For tractors: GVW ≤ 20 t = 3.09 km/L; GVW > 20 t = 2.01 km/L. *Source: dieselnet.com Table 4.4.*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "2.01 km",
+    "class": "figure",
+    "sentence": "For trucks (excluding tractors), Phase 1 targets ran from 11 categories ranging from 10.83 km/L (GVW 3.5–7.5 t, max load ≤ 1.5 t) down to 4.04 km/L (GVW > 20 t). *Source: dieselnet.com Table 4.3.* For tractors: GVW ≤ 20 t = 3.09 km/L; GVW > 20 t = 2.01 km/L. *Source: dieselnet.com Table 4.4.*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "25.4 km",
+    "class": "figure",
+    "sentence": "Japan adopted 2030 fuel economy standards for light-duty passenger vehicles in June 2020 (25.4 km/L fleet average, a 32.4% improvement over the 2016 fleet average, tested on WLTP excluding extra-high speed). *Source: dieselnet.com — \"The standards require an average fleet gasoline-equivalent fuel economy of 25.4 km/L by 2030.\"* *Analytical inference:* The passenger vehicle standard's shift to WLTP and inclusion of EVs/PHEVs signals the likely direction of future HDV standard evolution, relevant for the workspace's 5-year carrier fleet planning horizon.",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "3.09 km",
+    "class": "figure",
+    "sentence": "For trucks (excluding tractors), Phase 1 targets ran from 11 categories ranging from 10.83 km/L (GVW 3.5–7.5 t, max load ≤ 1.5 t) down to 4.04 km/L (GVW > 20 t). *Source: dieselnet.com Table 4.3.* For tractors: GVW ≤ 20 t = 3.09 km/L; GVW > 20 t = 2.01 km/L. *Source: dieselnet.com Table 4.4.*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "3.5 tonnes",
+    "class": "figure",
+    "sentence": "This brief covers Japan's Top Runner fuel economy standards for heavy-duty vehicles (HDVs) — diesel-fueled trucks, tractors, and buses with a gross vehicle weight (GVW) of 3.5 tonnes or more — across two enforcement phases: the Phase 1 standards enforceable from fiscal year (FY) 2015 and the Phase 2 standards enforceable from FY 2025.",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "32.4%",
+    "class": "figure",
+    "sentence": "Japan adopted 2030 fuel economy standards for light-duty passenger vehicles in June 2020 (25.4 km/L fleet average, a 32.4% improvement over the 2016 fleet average, tested on WLTP excluding extra-high speed). *Source: dieselnet.com — \"The standards require an average fleet gasoline-equivalent fuel economy of 25.4 km/L by 2030.\"* *Analytical inference:* The passenger vehicle standard's shift to WLTP and inclusion of EVs/PHEVs signals the likely direction of future HDV standard evolution, relevant for the workspace's 5-year carrier fleet planning horizon.",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "35%",
+    "class": "figure",
+    "sentence": "| Non-tractors | 7.5 < GVW ≤ 8 | 35% | 50% |",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "4.04 km",
+    "class": "figure",
+    "sentence": "For trucks (excluding tractors), Phase 1 targets ran from 11 categories ranging from 10.83 km/L (GVW 3.5–7.5 t, max load ≤ 1.5 t) down to 4.04 km/L (GVW > 20 t). *Source: dieselnet.com Table 4.3.* For tractors: GVW ≤ 20 t = 3.09 km/L; GVW > 20 t = 2.01 km/L. *Source: dieselnet.com Table 4.4.*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "40%",
+    "class": "figure",
+    "sentence": "| Non-tractors | 8 < GVW ≤ 20 | 40% | 50% |",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "5.71 km",
+    "class": "figure",
+    "sentence": "**Improvement quantum:** *Source: transportpolicy.net — \"For trucks, 7.63 km/L, a 13.4% improvement over the 2015 baseline at 6.72 km/L.\"* and *\"For buses, 6.52 km/L, a 14.3% improvement over the 2015 baseline at 5.71 km/L.\"*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "55%",
+    "class": "figure",
+    "sentence": "| Non-tractors | > 20 t | 55% | 55% |",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "6.52 km",
+    "class": "figure",
+    "sentence": "**Improvement quantum:** *Source: transportpolicy.net — \"For trucks, 7.63 km/L, a 13.4% improvement over the 2015 baseline at 6.72 km/L.\"* and *\"For buses, 6.52 km/L, a 14.3% improvement over the 2015 baseline at 5.71 km/L.\"*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "6.72 km",
+    "class": "figure",
+    "sentence": "**Improvement quantum:** *Source: transportpolicy.net — \"For trucks, 7.63 km/L, a 13.4% improvement over the 2015 baseline at 6.72 km/L.\"* and *\"For buses, 6.52 km/L, a 14.3% improvement over the 2015 baseline at 5.71 km/L.\"*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "7.63 km",
+    "class": "figure",
+    "sentence": "**Improvement quantum:** *Source: transportpolicy.net — \"For trucks, 7.63 km/L, a 13.4% improvement over the 2015 baseline at 6.72 km/L.\"* and *\"For buses, 6.52 km/L, a 14.3% improvement over the 2015 baseline at 5.71 km/L.\"*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "April 2015",
+    "class": "deadline",
+    "sentence": "| **FY 2015 (April 2015)** | **Phase 1 HDV standards became fully enforceable** | **In force** | Carrier fleet compliance with Phase 1 targets is baseline expectation |",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "96d8a3c1-0479-4dcf-822e-e5f17ee757c1",
+    "token": "April 2025",
+    "class": "deadline",
+    "sentence": "**Effective date (required slot):** Phase 1 standards have been in force since FY 2015; Phase 2 standards became **fully enforceable in model year (MY) 2025** (Japanese FY 2025, i.e., from April 2025). *Source: transportpolicy.net — \"which will become fully enforceable in model year (MY) 2025.\"*",
+    "search_id": "da40460d-1a29-4921-9144-cb03a0f81acd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+    "token": "2026-06-03",
+    "class": "deadline",
+    "sentence": "**Dates:** Brief generated 2026-06-03.",
+    "search_id": "38174205-a038-4dbf-baf0-13b4b983ca85",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9e594959-7de8-41e8-a25c-5b1976f77b34",
+    "token": "30 June 2027",
+    "class": "deadline",
+    "sentence": "However, LEED v4 and v4.1 commercial project registration has been extended to 30 June 2027 as the effective cut-off for registration under those versions. *Source: LEED rating system, U.S.",
+    "search_id": "d695cfc1-d49e-4aa2-b427-e9bf8edc801c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+    "token": "2026-06-06",
+    "class": "deadline",
+    "sentence": "**Effective date of this document:** 2026-06-06.",
+    "search_id": "3dd472f0-e7a4-44e2-9f53-b4797347f5e9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "FACT: \"The initial focus is on finding incentives for steel, aluminum, cement and heavy goods vehicles (with sustainable aviation fuel and ancillary grid services to follow in 2026 to 2028).\" *Source: A&O Shearman, November 21, 2023. https://www.aoshearman.com/en/insights/nine-key-takeaways-from-the-uaes-new-hydrogen-strategy",
+    "search_id": "3dd472f0-e7a4-44e2-9f53-b4797347f5e9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "9ffa15d6-ed9b-45e3-a3b5-162b750569fc",
+    "token": "November 2023",
+    "class": "deadline",
+    "sentence": "It was published in November 2023 and establishes production targets, domestic demand targets, governance structures, and sectoral incentive pathways for hydrogen across the UAE economy through 2050.",
+    "search_id": "3dd472f0-e7a4-44e2-9f53-b4797347f5e9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+    "token": "$725",
+    "class": "figure",
+    "sentence": "**Green Economy investment anchor:** NYC Economic Development Corporation corroborating reporting identifies $725M+ in green infrastructure investment associated with PlaNYC-aligned programs, including the Harbor Climate Collaborative. *Source: NYC Economic Development Corporation — Green Economy Action Plan. https://edc.nyc/green-economy-action-plan [Note: This source was not among the primary SOURCE blocks provided; content carried as labeled below — see Section 2.]",
+    "search_id": "1b99546c-0616-481c-850e-cede66f919da",
+    "queries_tried": []
+  },
+  {
+    "item_id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+    "token": "April 2023",
+    "class": "deadline",
+    "sentence": "- NYC is described in official city materials as the first major city in America to launch a climate budgeting initiative, integrating sustainability into city budget decision-making. *Grounded in: NYC Mayor's Office Press Release, April 2023.*",
+    "search_id": "1b99546c-0616-481c-850e-cede66f919da",
+    "queries_tried": []
+  },
+  {
+    "item_id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+    "token": "April 2024",
+    "class": "deadline",
+    "sentence": "A PlaNYC progress report (April 2024) exists as a corroborating source but the SOURCE block for that URL returned only a homepage wrapper without substantive PDF content — no verifiable milestone data can be extracted from it for FACT-class claims.",
+    "search_id": "1b99546c-0616-481c-850e-cede66f919da",
+    "queries_tried": []
+  },
+  {
+    "item_id": "a4153234-f634-4fb7-8acb-d57c7bc07595",
+    "token": "June 2025",
+    "class": "deadline",
+    "sentence": "**The \"City of Yes for Carbon Neutrality\" zoning text amendment** is identified in the press release as a forthcoming initiative to \"remove obstacles to deploying clean energy, facilitate building retrofits for sustainability, and eliminate barriers to electrification.\" The primary SOURCE blocks do not contain an enactment date or current status of this amendment. *Specific enactment date and current status not available from primary sources as of June 2025.*",
+    "search_id": "1b99546c-0616-481c-850e-cede66f919da",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ae628786-ad32-4dd4-bd43-64a812029966",
+    "token": "80%",
+    "class": "figure",
+    "sentence": "FACT: The IRENA dataset underpinning the report covers \"25,000 projects and 80% of new global capacity.\"",
+    "search_id": "224be46a-8578-47ac-a456-c7e372500fd2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ae628786-ad32-4dd4-bd43-64a812029966",
+    "token": "91%",
+    "class": "figure",
+    "sentence": "**Supplier sustainability claims scrutiny:** The IRENA finding that 91% of new utility-scale capacity is cheaper than new fossil fuel capacity is a publicly available reference point.",
+    "search_id": "224be46a-8578-47ac-a456-c7e372500fd2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ae628786-ad32-4dd4-bd43-64a812029966",
+    "token": "93%",
+    "class": "figure",
+    "sentence": "*Analytical inference:* The 93% BESS cost reduction over 2010–2024 is the single most important data point for workspaces evaluating on-site solar-plus-storage at warehouse or depot facilities.",
+    "search_id": "224be46a-8578-47ac-a456-c7e372500fd2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ae628786-ad32-4dd4-bd43-64a812029966",
+    "token": "USD 0.060",
+    "class": "figure",
+    "sentence": "FACT: Geothermal LCOE was USD 0.060/kWh in 2024, down from USD 0.072/kWh in 2023 — a 16% decrease.",
+    "search_id": "ac98a8c5-6057-463a-92b4-f5c6297d472d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "aea2e314-8969-4242-b4cf-54223707bdfb",
+    "token": "2024",
+    "class": "deadline",
+    "sentence": "Why now: CSRD Phase 1 reporters (large EU-listed companies) are in their first reporting year as of financial year 2024.",
+    "search_id": "25331cd8-0d3c-4010-9030-faf5b72cd685",
+    "queries_tried": []
+  },
+  {
+    "item_id": "aea2e314-8969-4242-b4cf-54223707bdfb",
+    "token": "28 April 2026",
+    "class": "deadline",
+    "sentence": "| April 28, 2026 | GHG Protocol appoints new CEO (Tim Mohin); \"new phase in global standards evolution\" signalled | Announced (GHG Protocol press release, 28 April 2026) | Indicator that standard update activity will accelerate; monitor public consultation schedule |",
+    "search_id": "25331cd8-0d3c-4010-9030-faf5b72cd685",
+    "queries_tried": []
+  },
+  {
+    "item_id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+    "token": "0.7%",
+    "class": "figure",
+    "sentence": "The supply gap between committed hydrogen capacity and secured offtake is directly relevant to whether PtL-SAF can scale to meet the ReFuelEU Aviation 2030 mandate (0.7% PtL-SAF sub-target under the EU framework). *Analytical inference:* If the 9-mtpa lower bound materializes post-attrition rather than the 14-mtpa upper bound, feedstock availability for PtL-SAF would be constrained, and premium pricing for aviation-grade SAF should be expected.",
+    "search_id": "a24f214e-bf72-4a72-862c-76aaf013d976",
+    "queries_tried": []
+  },
+  {
+    "item_id": "b2193d25-f7de-4efb-a816-9d5532e08b44",
+    "token": "March 2025",
+    "class": "deadline",
+    "sentence": "1. **Cost competitiveness of clean hydrogen vs. grey hydrogen.** The corpus does not provide levelized production cost data or a timeline for cost parity. *Specific cost-of-supply figures not available from primary sources as of 2025-09-15.* The Hydrogen Council's companion report \"Hydrogen: Closing the Cost Gap\" (March 2025, developed with McKinsey) is the relevant source but was not in the accessible corpus.",
+    "search_id": "1d4b7407-d19d-4252-821f-71700d0ac1e9",
+    "queries_tried": []
+  },
+  {
+    "item_id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+    "token": "15%",
+    "class": "figure",
+    "sentence": "*Operational implication:* The transport electrification trajectory under STEPS — electric heavy freight trucks reaching approximately 15% of global sales in 2035, concentrated in China and the EU — creates a bifurcated freight market in the near term: electrified lanes in China and Europe, oil-dependent operations elsewhere.",
+    "search_id": "bbef2090-fb08-4d5c-b4cd-5fe776af1515",
+    "queries_tried": []
+  },
+  {
+    "item_id": "b6fd00bf-2573-4103-8f67-216c8bec66c7",
+    "token": "6%",
+    "class": "figure",
+    "sentence": "Under the STEPS, electricity accounts for 6% of global transport energy demand by 2035, and by 2050 nearly 25% of the global heavy truck fleet is electrified — a total of around 25 million vehicles. *Source: Motor Transport, Janet Wood, 13 November 2025. https://motortransport.co.uk/china-steers-global-shift-to-electric-freight-iea-reports/52669.article",
+    "search_id": "bbef2090-fb08-4d5c-b4cd-5fe776af1515",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bced4406-2371-4dcb-8981-062d6f192eca",
+    "token": "10%",
+    "class": "figure",
+    "sentence": "*Legal Confirmation Required:* classification of dryers operating on mixed fuel regimes where wood-derived fuel is between 10% and 90% of heat input; this may be an unresolved definitional boundary for facilities with variable fuel blends.",
+    "search_id": "e1f04980-5007-456b-ba1c-6c0780b926b3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bced4406-2371-4dcb-8981-062d6f192eca",
+    "token": "90%",
+    "class": "figure",
+    "sentence": "- \"Post-dryer atmospheric refiner\" (where 90%+ by weight of annual throughput has been previously dried onsite): existing sources 4.1E-03 lb/ODT or 8.5E-01 ppmvd; new sources 3.3E-03 lb/ODT or 6.5E-01 ppmvd.",
+    "search_id": "e1f04980-5007-456b-ba1c-6c0780b926b3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bced4406-2371-4dcb-8981-062d6f192eca",
+    "token": "October 2026",
+    "class": "deadline",
+    "sentence": "Re-check window: October 2026 for any petition filings.",
+    "search_id": "272c1802-7ebb-46d8-97b7-d88ac11c8587",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "0.1%",
+    "class": "figure",
+    "sentence": "*Specific sulphur percentage cap values (global 0.5% from 2020, ECA 0.1% from 2015) not available as verbatim spans from the corpus source blocks.",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "0.5%",
+    "class": "figure",
+    "sentence": "Full threshold trajectory (including the 2020 global 0.5% cap) requires retrieval from the MARPOL Annex VI enacted text.*",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "1 January 2026",
+    "class": "deadline",
+    "sentence": "## MONITORING | EEXI and CII Mandatory Revision — No Later Than 1 January 2026",
+    "search_id": "90a1e558-f0bc-4db6-9c39-495fbca2344d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "1%",
+    "class": "figure",
+    "sentence": "*Analytical inference:* ICCT's assessment that the EEXI \"is expected to avoid about 1% of future emissions by 2030\" and that CII \"merely grades ships\" without hard consequences suggests the current iteration of these measures has limited operational teeth.",
+    "search_id": "a513a5f1-9540-4fd0-a14d-269b02d87905",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "July 2025",
+    "class": "deadline",
+    "sentence": "*Specific launch date for the IMO GFI Registry not available from primary sources as of July 2025.*",
+    "search_id": "f87a6a7a-7347-4a5e-adb4-c56bae463e1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "bfb6a9fe-eb29-4e1e-8158-48ce7f6db3b3",
+    "token": "October 2026",
+    "class": "deadline",
+    "sentence": "**Expected timing:** *Analytical inference:* Based on the one-year adjournment from October 2025, the reconvened extraordinary session is expected in October 2026.",
+    "search_id": "3198e65b-ad1c-4c57-a5fc-33dc58133591",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "1 January 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* FuelEU Maritime (in force from 1 January 2025 for vessels ≥5,000 GT on EU routes) sets greenhouse gas intensity reduction targets for ship fuels.",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "120,000 tCO₂e",
+    "class": "figure",
+    "sentence": "Two carriers — Hapag-Lloyd and North Sea Container Line — have committed to deploying hydrogen-derived e-methanol and a second e-fuel pathway from 2027, with a total committed abatement of at least 120,000 tCO₂e over three years across the second tender. *Source: Aspen Institute — ZEMBA Second Tender Winners, aspeninstitute.org, December 17 2025. https://www.aspeninstitute.org/news/zemba-second-tender-winners/",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "2026-05-28",
+    "class": "deadline",
+    "sentence": "*Specific membership breakdown by freight volume, sector, or geography not available from primary sources as of 2026-05-28.*",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "5,000 GT",
+    "class": "figure",
+    "sentence": "*Analytical inference:* FuelEU Maritime (in force from 1 January 2025 for vessels ≥5,000 GT on EU routes) sets greenhouse gas intensity reduction targets for ship fuels.",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "82,000 tCO₂e",
+    "class": "figure",
+    "sentence": "- The first tender delivered more than 82,000 tCO₂e avoided via biomethane on the Singapore–Rotterdam corridor in 2025–26, using a book-and-claim mechanism. *Source: Aspen Institute — Inaugural ZEMBA Tender Completion, aspeninstitute.org, 2024. https://www.aspeninstitute.org/news/zemba-inaugural-tender-2024/",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "c113dd5d-e96c-4c57-b6ce-8c736bc3fbd1",
+    "token": "December 2025",
+    "class": "deadline",
+    "sentence": "**Phase 2 completed — Second tender (December 2025):**",
+    "search_id": "5737e4a7-36eb-4ad1-878f-5bf9f7224e52",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cc0958fb-6453-4163-8363-27515817597f",
+    "token": "2026-06-06",
+    "class": "deadline",
+    "sentence": "- **Date of generation:** 2026-06-06.",
+    "search_id": "a4d6502a-7b27-4846-8f6b-a1ff3a7baafe",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cc0958fb-6453-4163-8363-27515817597f",
+    "token": "31 July 2026",
+    "class": "deadline",
+    "sentence": "*Re-check window:* Review by 31 July 2026 for published Commission assessment output.",
+    "search_id": "06f7f535-2d29-4f65-8b8d-1ed0c92c00e4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cc0958fb-6453-4163-8363-27515817597f",
+    "token": "361,159,641 tonnes",
+    "class": "figure",
+    "sentence": "Total 2024 emissions for all applicable State pairs, as reported by 126 States and estimated for 12 more, amounted to 361,159,641 tonnes. *Source: GreenAir News, 18 December 2025. https://www.greenairnews.com/?p=8325.",
+    "search_id": "a4d6502a-7b27-4846-8f6b-a1ff3a7baafe",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cc0958fb-6453-4163-8363-27515817597f",
+    "token": "August 2026",
+    "class": "deadline",
+    "sentence": "*Re-check window:* August 2026.",
+    "search_id": "a4d6502a-7b27-4846-8f6b-a1ff3a7baafe",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "$10,725",
+    "class": "figure",
+    "sentence": "At fleet scale (e.g., 50 ZEVs), annual registration fee exposure rises to approximately $10,725 annually for pure EVs — a quantifiable, predictable cost not present in ICE fleet registration.",
+    "search_id": "2137b912-91e5-4630-9b8b-6fad348156b8",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "1,000 kW",
+    "class": "figure",
+    "sentence": "Stations must contain at least four charging ports each capable of delivering 150 kilowatts simultaneously.\" *Source: Advanced Energy NC Electric Transportation Transition, Advanced Energy, August 28, 2023. https://www.advancedenergy.org/news/north-carolinas-electric-transportation-transition *Operational implication:* 150 kW is adequate for Class 4–6 commercial vehicles but is below the 350–1,000 kW charging capabilities emerging for Class 8 freight trucks.",
+    "search_id": "2137b912-91e5-4630-9b8b-6fad348156b8",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "13 percent",
+    "class": "figure",
+    "sentence": "The ACT rule — if reinstated — would have set manufacturer ZEV sales share requirements: the National Law Review source states \"manufacturers would be responsible for offering zero-emission vehicles sales shares of 10 – 13 percent in 2026, increasing to 40 – 75 percent in 2035, depending on vehicle size.\" *Source: National Law Review — NC Executive Order 271 Analysis, Womble Bond Dickinson (US) LLP, November 29, 2022. https://natlawreview.com/article/new-north-carolina-executive-order-aims-to-increase-percentage-zero-emission-trucks",
+    "search_id": "924dce69-6d7d-4fa6-b58a-e119ed24b1c3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "13%",
+    "class": "figure",
+    "sentence": "| National Law Review — NC EO 271 ACT Analysis (Womble Bond Dickinson) | https://natlawreview.com/article/new-north-carolina-executive-order-aims-to-increase-percentage-zero-emission-trucks | 5 | Provides specific ACT manufacturer sales target figures (10–13% in 2026, 40–75% in 2035) and DEQ rule submission deadline (May 15, 2023) not available in primary government sources. |",
+    "search_id": "2137b912-91e5-4630-9b8b-6fad348156b8",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "150 kW",
+    "class": "figure",
+    "sentence": "Stations must contain at least four charging ports each capable of delivering 150 kilowatts simultaneously.\" *Source: Advanced Energy NC Electric Transportation Transition, Advanced Energy, August 28, 2023. https://www.advancedenergy.org/news/north-carolinas-electric-transportation-transition *Operational implication:* 150 kW is adequate for Class 4–6 commercial vehicles but is below the 350–1,000 kW charging capabilities emerging for Class 8 freight trucks.",
+    "search_id": "f6e4489a-4410-4a1e-9eea-ae03702dcce8",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "35%",
+    "class": "figure",
+    "sentence": "The remaining 35 percent can be disbursed to projects anywhere throughout the state.\" *Source: NCDOT Transportation Emission Reduction Projects Page, NCDOT, updated January 6, 2025. https://www.ncdot.gov/initiatives-policies/environmental/climate-change/Pages/electric-vehicles.aspx *Analytical inference:* Workspaces operating freight services in lower-population areas of North Carolina should note that 35% of Carbon Reduction Program funds are available statewide — this is a potential funding mechanism for rural depot charging or alternative fuel infrastructure that would not be prioritized under the population-weighted allocation.",
+    "search_id": "0456d05f-dcdb-4f22-8fdb-f1e9e0831dcd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "75 percent",
+    "class": "figure",
+    "sentence": "The ACT rule — if reinstated — would have set manufacturer ZEV sales share requirements: the National Law Review source states \"manufacturers would be responsible for offering zero-emission vehicles sales shares of 10 – 13 percent in 2026, increasing to 40 – 75 percent in 2035, depending on vehicle size.\" *Source: National Law Review — NC Executive Order 271 Analysis, Womble Bond Dickinson (US) LLP, November 29, 2022. https://natlawreview.com/article/new-north-carolina-executive-order-aims-to-increase-percentage-zero-emission-trucks",
+    "search_id": "924dce69-6d7d-4fa6-b58a-e119ed24b1c3",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cd5c84e3-7a41-4797-bbcd-002884de0c47",
+    "token": "August 2023",
+    "class": "deadline",
+    "sentence": "The Advanced Energy source notes North Carolina was home to \"about 66,000\" ZEVs as of August 2023, against a 1.25 million target. *Source: Advanced Energy NC Electric Transportation Transition, Advanced Energy, August 28, 2023. https://www.advancedenergy.org/news/north-carolinas-electric-transportation-transition The gap is substantial.",
+    "search_id": "58086bfb-acda-450f-94a8-774dbd02ef60",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+    "token": "20 kg",
+    "class": "figure",
+    "sentence": "*Operational implication:* At 20 kg/hour, the current facility is demonstration-scale, not commercial distribution scale.",
+    "search_id": "6f5d519e-a60d-43db-8b5e-86fd9cfdc86c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "cfcf9e4c-6562-4c2e-8463-0cc6e5cb0bad",
+    "token": "5 GW",
+    "class": "figure",
+    "sentence": "*Analytical inference:* The strategy's infrastructure requirements — dedicated hydrogen pipelines, electrolyser installations, solar farm expansions at Mohammed bin Rashid Al Maktoum Solar Park (projected to reach 5 GW by 2030), hydrogen oases construction — will generate sustained project cargo and heavy-lift logistics demand between now and 2031. *Source: CMS Expert Guide to Hydrogen – United Arab Emirates, CMS Law, 11 Feb 2025. https://cms.law/en/int/expert-guides/cms-expert-guide-to-hydrogen/united-arab-emirates.",
+    "search_id": "6f5d519e-a60d-43db-8b5e-86fd9cfdc86c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "token": "$3.66",
+    "class": "figure",
+    "sentence": "*Operational implication:* For a benchmarking report, the total fee is $61.00 + $3.66 surcharge (6% of $61) = $64.66 per building, per year.",
+    "search_id": "d9ecc0f1-aa38-4aee-b1a7-4c7149fb1435",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "token": "$64.66",
+    "class": "figure",
+    "sentence": "*Operational implication:* For a benchmarking report, the total fee is $61.00 + $3.66 surcharge (6% of $61) = $64.66 per building, per year.",
+    "search_id": "0ce2703f-2380-4876-9823-a0faef9eab9c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "token": "December 2026",
+    "class": "deadline",
+    "sentence": "MONITORING — A/RCx Compliance Cycles Now Active; Next Deadlines December 2026 and December 2027",
+    "search_id": "0ce2703f-2380-4876-9823-a0faef9eab9c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "token": "December 2027",
+    "class": "deadline",
+    "sentence": "MONITORING — A/RCx Compliance Cycles Now Active; Next Deadlines December 2026 and December 2027",
+    "search_id": "0ce2703f-2380-4876-9823-a0faef9eab9c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d031e36e-e7b2-4b62-b295-4288fb17067f",
+    "token": "July 2026",
+    "class": "deadline",
+    "sentence": "Analysis date: July 2026.",
+    "search_id": "67ff92dd-3a74-4e65-81ff-8e7e678b5afc",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+    "token": "2022",
+    "class": "deadline",
+    "sentence": "This brief synthesises the IEA's 2022 foundational report on EV battery supply chains, the IEA's 2024 sustainability follow-up, IEA 2025 critical minerals and 2026 EV outlook data, and RMI's independent corroborating analysis.",
+    "search_id": "4732bc23-1ec4-4b86-86f3-49e394dd7628",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+    "token": "75%",
+    "class": "figure",
+    "sentence": "The ScienceDirect article (pii/S0301420725002971) is cited as a candidate source for a 75% figure but was blocked by Cloudflare; that figure is not span-grounded here and cannot be asserted as FACT.*",
+    "search_id": "b9b128e7-3c68-411d-a5b4-d4cf52fdf851",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+    "token": "December 2024",
+    "class": "deadline",
+    "sentence": "- **IEA 2024 sustainability follow-up content** — recycling targets, ESG standards, and lifecycle emissions findings from the December 2024 report were blocked at retrieval.",
+    "search_id": "7439b309-da95-44d0-842c-999483a9f12d",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d131224a-e42b-475b-aa38-c9b35d26a2f5",
+    "token": "May 2023",
+    "class": "deadline",
+    "sentence": "The RMI article (May 2023) is an independent nonprofit synthesis, classified Tier 4 (industry body / think-tank analysis).",
+    "search_id": "4732bc23-1ec4-4b86-86f3-49e394dd7628",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+    "token": "15 November 2024",
+    "class": "deadline",
+    "sentence": "The analysis synthesises three corpus sources: the UAE Ministry of Climate Change and Environment news page (which returned a 404 error), the Climate Action Tracker's UAE policies and action assessment (published 15 November 2024), and the Science Direct access-blocked page.",
+    "search_id": "b5714566-71f2-4f59-a461-fb94cf75b3f0",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d2da85da-0912-497a-b645-31e4ca73cd18",
+    "token": "6 June 2026",
+    "class": "deadline",
+    "sentence": "**effective_date:** The UAE Net Zero 2050 Strategic Initiative was announced in 2021 with the LTS published in early 2024. *Specific enactment date of a binding transport-sector instrument flowing from the initiative is not available from primary corpus sources as of 6 June 2026.*",
+    "search_id": "48d88bef-aeb8-442f-8963-297c967de07b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d91f76f0-0ec3-4d47-b54f-2a525945dc52",
+    "token": "13 October 2023",
+    "class": "deadline",
+    "sentence": "*Note on initial phase:* The PIB press release of 13 October 2023 states that \"In its initial phase, the GCP focuses on two key activities: water conservation and afforestation.",
+    "search_id": "2eec3773-f947-4ea4-bab5-4fe9eb52091f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "d91f76f0-0ec3-4d47-b54f-2a525945dc52",
+    "token": "14 October 2023",
+    "class": "deadline",
+    "sentence": "The article also notes that \"since then, while the move has been hailed as a paradigm shift from the conventional focus on carbon emissions to a more holistic approach by recognising and incentivising efforts such as water conservation and waste management, experts have also raised concerns.\"* *Source: Down to Earth, Shagun, 14 October 2023. https://www.downtoearth.org.in/governance/centre-notifies-green-credit-programme-92305",
+    "search_id": "88d78eb1-b2e9-4671-b3b3-47325384aba5",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$0.10",
+    "class": "figure",
+    "sentence": "*Analytical inference:* Heating oil spot is a proxy for distillate pricing more broadly and sits $0.10/gallon below NY Harbor ULSD, consistent with standard cetane and sulfur quality differentials.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$0.445",
+    "class": "figure",
+    "sentence": "*Operational implication:* The Los Angeles diesel price premium over Gulf Coast ($0.445/gallon as of 2 June 2026) directly affects drayage and last-mile road costs on West Coast port egress — significant for ocean-to-air transshipment operations at LAX or Long Beach where road legs connect the two modes.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$0.75",
+    "class": "figure",
+    "sentence": "*Operational implication:* A $0.75/gallon intraweek range (22 May to 2 June) on the primary jet-fuel pricing benchmark signals that aviation fuel surcharges built on weekly or monthly averages are currently lagging actual spot exposure.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$0.843",
+    "class": "figure",
+    "sentence": "Mont Belvieu propane spot: **$0.843/gallon on 2 June 2026**. *Source: EIA Spot Prices, U.S.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$14",
+    "class": "figure",
+    "sentence": "However, the EIA's 2026 forecast is $14/barrel above the 2025 average of $69/barrel, meaning year-on-year fuel cost comparison benchmarks remain significantly elevated for any workspace using 2025 actuals as budget reference.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$2.50",
+    "class": "figure",
+    "sentence": "*Analytical inference:* The WTI–Brent spread (approximately $2–$2.50/barrel as of 2 June 2026) is narrower than historical norms, which *Analytical inference:* reflects the integration of WTI Midland into the Brent basket since June 2023, reducing the traditional structural discount that landlocked Cushing delivery imposed.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.042",
+    "class": "figure",
+    "sentence": "Gulf Coast Regular: $3.042/gallon on 2 June 2026",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.187",
+    "class": "figure",
+    "sentence": "- New York Harbor Regular: $3.187/gallon on 2 June 2026",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.237",
+    "class": "figure",
+    "sentence": "Gulf Coast jet fuel spot price stood at **$3.987/gallon on 22 May 2026**, then fell sharply to **$3.253/gallon on 27 May**, recovered to **$3.304/gallon on 28 May**, and settled at **$3.237/gallon on 29 May**, before rebounding to **$3.569/gallon on 2 June 2026**.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.253",
+    "class": "figure",
+    "sentence": "Gulf Coast jet fuel spot price stood at **$3.987/gallon on 22 May 2026**, then fell sharply to **$3.253/gallon on 27 May**, recovered to **$3.304/gallon on 28 May**, and settled at **$3.237/gallon on 29 May**, before rebounding to **$3.569/gallon on 2 June 2026**.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.304",
+    "class": "figure",
+    "sentence": "Gulf Coast jet fuel spot price stood at **$3.987/gallon on 22 May 2026**, then fell sharply to **$3.253/gallon on 27 May**, recovered to **$3.304/gallon on 28 May**, and settled at **$3.237/gallon on 29 May**, before rebounding to **$3.569/gallon on 2 June 2026**.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.551",
+    "class": "figure",
+    "sentence": "$3.551/gallon as of 2 June 2026. *Source: EIA Spot Prices, U.S.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.569",
+    "class": "figure",
+    "sentence": "Gulf Coast jet fuel spot price stood at **$3.987/gallon on 22 May 2026**, then fell sharply to **$3.253/gallon on 27 May**, recovered to **$3.304/gallon on 28 May**, and settled at **$3.237/gallon on 29 May**, before rebounding to **$3.569/gallon on 2 June 2026**.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.62",
+    "class": "figure",
+    "sentence": "The EIA projects gasoline retail prices averaging **$3.88/gallon in 2026** and **$3.62/gallon in 2027**. *Source: EIA STEO, Release Date 12 May 2026.* https://www.eia.gov/outlooks/steo/",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.634",
+    "class": "figure",
+    "sentence": "Gulf Coast: **$3.634/gallon**",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.656",
+    "class": "figure",
+    "sentence": "- New York Harbor: **$3.656/gallon**",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$3.88",
+    "class": "figure",
+    "sentence": "The EIA projects gasoline retail prices averaging **$3.88/gallon in 2026** and **$3.62/gallon in 2027**. *Source: EIA STEO, Release Date 12 May 2026.* https://www.eia.gov/outlooks/steo/",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$4.079",
+    "class": "figure",
+    "sentence": "- Los Angeles: **$4.079/gallon**",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "$69",
+    "class": "figure",
+    "sentence": "However, the EIA's 2026 forecast is $14/barrel above the 2025 average of $69/barrel, meaning year-on-year fuel cost comparison benchmarks remain significantly elevated for any workspace using 2025 actuals as budget reference.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "1 May 2026",
+    "class": "deadline",
+    "sentence": "The EIA now expects OPEC spare capacity to average **2.5 million b/d in 2027**, down from a previous forecast of **3.8 million b/d**, following the UAE's departure from OPEC effective 1 May 2026. *Source: EIA STEO, Release Date 12 May 2026.* https://www.eia.gov/outlooks/steo/",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "12 May 2026",
+    "class": "deadline",
+    "sentence": "Forecast figures are from EIA STEO released 12 May 2026.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "30%",
+    "class": "figure",
+    "sentence": "1. **\"Jet fuel spot prices have fallen significantly from the April 2026 peak.\"** This is grounded: Brent peaked at $138/barrel on 7 April 2026 and is currently trading near $98/barrel. *Source: EIA STEO, May 2026.* https://www.eia.gov/outlooks/steo/ The workspace can accurately describe a 30%+ decline from the crisis peak when discussing current fuel surcharge trajectories with clients.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "de368414-d5bd-4fff-a90c-9ce8ba312fe2",
+    "token": "7 May 2026",
+    "class": "deadline",
+    "sentence": "The STEO was completed 7 May 2026 and projected $106/b Brent for May–June; actual spot has come in below that. *Analytical inference:* Citing the STEO forecast as current pricing will overstate fuel costs to clients; use the EIA daily spot data (most recent release 3 June 2026) for current-state claims, and the STEO for directional medium-term framing only.",
+    "search_id": "66c5cef4-8288-49c5-84c4-0c38cc458d1b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "1 January 2025",
+    "class": "deadline",
+    "sentence": "The EU FuelEU Maritime regulation, in force from 1 January 2025, adds a well-to-wake GHG intensity limit on vessels calling at EU ports, tightening progressively from 2025 to 2050.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "20%",
+    "class": "figure",
+    "sentence": "*Analytical inference:* The regulatory driver for this trajectory is the IMO 2023 Revised GHG Strategy, which sets a 20% reduction in GHG intensity from international shipping by 2030 versus 2008 baseline, and net-zero by or around 2050.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "2008",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The regulatory driver for this trajectory is the IMO 2023 Revised GHG Strategy, which sets a 20% reduction in GHG intensity from international shipping by 2030 versus 2008 baseline, and net-zero by or around 2050.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "2025-05-27",
+    "class": "deadline",
+    "sentence": "*Specific deployment figures, fleet size, terminal capacity, charter terms, and bunkering pilot results not available from primary source blocks as of 2025-05-27.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "This converts from a planning signal into a surcharge and contract renegotiation event if carrier fleets are non-compliant by 2027–2028, when the initial flexibility mechanisms under FuelEU Maritime narrow.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "2030",
+    "class": "deadline",
+    "sentence": "It is registered as a research gap and high-priority retrieval target because European import terminal capacity directly affects whether ammonia as a marine fuel reaches commercial scale on northern European trade lanes within IMO 2030 compliance windows.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "June 2025",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The Pilbara bunkering pilot corroborator is described as covering the world's first ship-to-ship ammonia bunkering transfer at anchorage, at Port Dampier, Western Australia, with GCMD, announced June 2025.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "November 2026",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The NYK time-charter corroborator is described in the prompt metadata as the \"world's first time-charter agreement for an ammonia-fueled medium gas carrier,\" with a delivery date referenced as November 2026.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e34ad64e-a170-4f9a-94f2-81055befb80f",
+    "token": "October 2024",
+    "class": "deadline",
+    "sentence": "*Analytical inference:* The Brunsbüttel terminal corroborator is described as covering an October 2024 opening with approximately 3 Mt/yr import capacity, positioned as a key node in European hydrogen economy infrastructure.",
+    "search_id": "528a53a4-b893-424a-a6b2-2588410b1977",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e65ec48d-09f3-4c6f-923d-391a99d73049",
+    "token": "December 2025",
+    "class": "deadline",
+    "sentence": "Dates cited reflect published Metro Government sources as of April–May 2023 and December 2025.",
+    "search_id": "84828207-1ab8-4560-a24e-6c7074a47aa1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e65ec48d-09f3-4c6f-923d-391a99d73049",
+    "token": "May 2023",
+    "class": "deadline",
+    "sentence": "Dates cited reflect published Metro Government sources as of April–May 2023 and December 2025.",
+    "search_id": "84828207-1ab8-4560-a24e-6c7074a47aa1",
+    "queries_tried": []
+  },
+  {
+    "item_id": "e65ec48d-09f3-4c6f-923d-391a99d73049",
+    "token": "May 2026",
+    "class": "deadline",
+    "sentence": "Effective date (Instrument 2): Specific enactment date not available from primary sources as of May 2026. *Operational implication:* The requirement is described as active (\"are required\"), indicating it is currently in force.",
+    "search_id": "37a4d8d7-9bd6-4db8-99cb-569a3c4e83d2",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "100%",
+    "class": "figure",
+    "sentence": "- 100% zero-emission cargo-handling equipment by 2030.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "1990",
+    "class": "deadline",
+    "sentence": "- Reduce GHG emissions 40% below 1990 levels by 2030; 80% below 1990 levels by 2050.",
+    "search_id": "4b5fffe8-3373-4752-ac12-2906cf049823",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "2008",
+    "class": "deadline",
+    "sentence": "The program has evolved from its original 2008 inception through successive tier upgrades.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "2023",
+    "class": "deadline",
+    "sentence": "Post-2023 enforcement developments require independent verification against Port of Los Angeles and Port of Long Beach official publications.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "2030",
+    "class": "deadline",
+    "sentence": "- Reduce GHG emissions 40% below 1990 levels by 2030; 80% below 1990 levels by 2050.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "2035",
+    "class": "deadline",
+    "sentence": "- 100% zero-emission drayage trucks by 2035.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "40%",
+    "class": "figure",
+    "sentence": "- Reduce GHG emissions 40% below 1990 levels by 2030; 80% below 1990 levels by 2050.",
+    "search_id": "b7b83a65-d87c-4a95-9ae1-d0188788712b",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "80%",
+    "class": "figure",
+    "sentence": "- Reduce GHG emissions 40% below 1990 levels by 2030; 80% below 1990 levels by 2050.",
+    "search_id": "36940a93-781e-4234-b274-4e36c17fe1d8",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ec55d661-a91b-4af9-92d7-e0f508349f57",
+    "token": "April 2026",
+    "class": "deadline",
+    "sentence": "This brief reflects known program status as of April 2026.",
+    "search_id": "f86e8343-4e42-43c4-aabb-ba28b634bb14",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+    "token": "11 February 2026",
+    "class": "deadline",
+    "sentence": "As of February 2026, the project is in its third round of the \"round-robin\" exercise — meaning operators rotate vehicles across progressively more demanding logistics lanes. *Source: Centre for Sustainable Road Freight (CSRF), \"Latest news from Project JOLT,\" 11 February 2026. https://www.csrf.ac.uk/2026/02/latest-news-from-project-jolt-2/",
+    "search_id": "edd972cf-d8e8-4e04-895b-5ed127f69dfd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+    "token": "200 km",
+    "class": "figure",
+    "sentence": "For freight operations relying on long-haul road legs (typically defined as trunking or line-haul above 150–200 km), none of these three barriers resolves independently of the others.",
+    "search_id": "edd972cf-d8e8-4e04-895b-5ed127f69dfd",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+    "token": "300 km",
+    "class": "figure",
+    "sentence": "- On lanes above 300 km, what is your current planning assumption for eHGV range sufficiency, and is that assumption based on manufacturer specification or real-world logged data?",
+    "search_id": "dbca315a-2dd6-415c-b6f3-38a2f9c41a7c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "ed6c5c76-7d09-4b91-a906-a12e73bc04c1",
+    "token": "350 kW",
+    "class": "figure",
+    "sentence": "*Analytical inference:* Grid connection timelines for high-power depot charging (typically 150–350 kW per vehicle connection) in the UK currently run from 12 months to several years depending on local distribution network operator (DNO) capacity.",
+    "search_id": "dbca315a-2dd6-415c-b6f3-38a2f9c41a7c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+    "token": "100,000 tCO₂",
+    "class": "figure",
+    "sentence": "*Legal Confirmation Required:* Whether a freight forwarding workspace, depending on its specific operational role in Japan (carrier, agent, NVOCC, or freight forwarder), meets the defined obligated-entity threshold of 100,000 tCO₂/year under the GX-ETS, and whether any compliance obligation attaches directly to that entity or only to the carrier it engages, requires legal review against the GX Promotion Act and implementing regulations.",
+    "search_id": "06c5d9aa-01bc-49c3-9bf7-e848545b3aea",
+    "queries_tried": []
+  },
+  {
+    "item_id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+    "token": "June 2026",
+    "class": "deadline",
+    "sentence": "The workspace should re-check this status in Q1 FY2027 (April–June 2026 for Japan-facing analysis).",
+    "search_id": "06c5d9aa-01bc-49c3-9bf7-e848545b3aea",
+    "queries_tried": []
+  },
+  {
+    "item_id": "f436708f-7f3a-4ee4-957b-a536e90c9162",
+    "token": "USD 31.60",
+    "class": "figure",
+    "sentence": "*Analytical inference:* At FY2027 price limits, the penalty rate for a one-tonne shortfall is JPY 4,300 × 1.1 = JPY 4,730/tCO₂ (approximately USD 31.60).",
+    "search_id": "06c5d9aa-01bc-49c3-9bf7-e848545b3aea",
     "queries_tried": []
   }
 ]
