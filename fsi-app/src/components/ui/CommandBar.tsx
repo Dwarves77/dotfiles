@@ -18,6 +18,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
+import { formatNumber } from "@/lib/format";
 
 export interface CommandBarProps {
   /** Total item count for the placeholder ("Search or ask across N items…"). */
@@ -81,7 +82,7 @@ export function CommandBar({ itemCount, onSearch, scope }: CommandBarProps) {
           setValue(e.target.value);
           onSearch?.(e.target.value);
         }}
-        placeholder={`Search or ask across ${itemCount.toLocaleString()} items…`}
+        placeholder={`Search or ask across ${formatNumber(itemCount)} items…`}
         aria-label="Search or ask across the workspace"
         style={{
           flex: 1,

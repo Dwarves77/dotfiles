@@ -19,6 +19,7 @@ import { BandTile } from "@/components/ui/BandTile";
 import { ListRow } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
+import { formatNumber } from "@/lib/format";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import { jurisdictionCode, dueInfo, metaLine } from "@/lib/dashboard/row-fields";
@@ -286,7 +287,7 @@ export function DashboardBrief({
 function RailStat({ label, note, value, href }: { label: string; note: string; value: number; href: string }) {
   return (
     <Link href={href} prefetch={false} style={{ textDecoration: "none", color: "inherit", display: "block" }}>
-      <StatBlock layout="row" label={label} note={note} value={value.toLocaleString()} />
+      <StatBlock layout="row" label={label} note={note} value={formatNumber(value)} />
     </Link>
   );
 }

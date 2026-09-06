@@ -22,6 +22,7 @@ import { UserMenu } from "@/components/auth/UserMenu";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 import { BandGradientRule } from "@/components/ui/BandGradientRule";
+import { formatNumber } from "@/lib/format";
 
 interface NavItem {
   href: string;
@@ -116,7 +117,7 @@ export function Sidebar() {
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {count.toLocaleString()}
+            {formatNumber(count)}
           </span>
         )}
       </Link>
