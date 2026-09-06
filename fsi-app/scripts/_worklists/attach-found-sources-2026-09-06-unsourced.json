@@ -1,0 +1,250 @@
+[
+  {
+    "item_id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+    "token": "$300",
+    "class": "figure",
+    "sentence": "ANTT's 2025 management report references R$300 billion in projected concession investments and describes 2025 as the agency's highest-ever year for concession expansion.",
+    "search_id": "0ca904de-de68-4e2f-a1de-818871751f63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "053123bc-2c11-45ec-a5a1-83828b666b11",
+    "token": "2023",
+    "class": "deadline",
+    "sentence": "ANTT reports 2.8 million transport registrations issued in 2023.",
+    "search_id": "0ca904de-de68-4e2f-a1de-818871751f63",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+    "token": "15%",
+    "class": "figure",
+    "sentence": "The consortium states a 15% reduction in shipping GHG emissions as the platform's target outcome.",
+    "search_id": "25980079-e8e8-4728-9d8d-6cecc6b2616f",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0781a8c0-5e17-4841-819c-fe9cd91eff15",
+    "token": "April 2026",
+    "class": "deadline",
+    "sentence": "**Technology Profile** | April 2026",
+    "search_id": "92b2bd69-e647-4492-88be-d4666e06f21e",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$100",
+    "class": "figure",
+    "sentence": "A second disruption, delayed reopening, or resumed Middle East hostilities would invalidate the $89/bbl Q4 forecast and sustain the $100+/bbl environment.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$140",
+    "class": "figure",
+    "sentence": "IATA Jet Fuel Price Monitor weekly readings stabilizing above $140/bbl through July → airlines convert temporary fuel surcharges into structural cost pass-through clauses → freight forwarder air rates reprice.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "$3.237",
+    "class": "figure",
+    "sentence": "Gulf Coast kerosene-type jet fuel spot price FOB reached $3.569/gallon as of June 1, 2026 (the most recent observation at time of brief), up sharply from prior weeks, with the May 29 reading at $3.237/gallon. *Source: FRED – Kerosene-Type Jet Fuel Prices: U.S.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "20%",
+    "class": "figure",
+    "sentence": "- \"The current Brent spot price is approximately $99/barrel as of early June 2026, down from an April average of $117/barrel following Strait of Hormuz disruption, but still approximately 20% above the 2025 full-year average of $69/barrel.\" (Grounded: EIA STEO and EIA Daily Prices as cited above.)",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "4.9%",
+    "class": "figure",
+    "sentence": "The Gulf Coast 3:2:1 crack spread — a direct indicator of refinery margins and the relationship between crude input cost and distillate output price — closed at $35.32/barrel on June 4, 2026 (down 4.9% on the day), remaining historically elevated and signaling continued refinery margin compression pressure for airlines and freight operators drawing on Gulf Coast product supply. *Source: EIA Today in Energy – Daily Prices (6/04/26 close), U.S.",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "6 June 2026",
+    "class": "deadline",
+    "sentence": "*As of 6 June 2026 — re-check window: weekly (IATA Fuel Price Monitor updates every Monday; EIA STEO next release 9 June 2026)*",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0980d468-79aa-4343-b353-7bd6d5b75c2b",
+    "token": "9 June 2026",
+    "class": "deadline",
+    "sentence": "*As of 6 June 2026 — re-check window: weekly (IATA Fuel Price Monitor updates every Monday; EIA STEO next release 9 June 2026)*",
+    "search_id": "22e76595-55fb-4c34-8445-c57c761d33b4",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "1 GW",
+    "class": "figure",
+    "sentence": "The reference capacity in the related scenario is 1.1 GW, from a range of 1 GW to 2.4 GW.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "10.8%",
+    "class": "figure",
+    "sentence": "The share in heating and cooling grows to 45.2% from 36.3% while in transportation it advances to 25.8% from 10.8%.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "10%",
+    "class": "figure",
+    "sentence": "A key issue is the weak renewable energy target, falling over 10% below the EU Commission's recommendation.\" *Source: 1point5.caneurope.org/countries/slovenia/, CAN Europe Together for 1.5°C, accessed 2026.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "100 MW",
+    "class": "figure",
+    "sentence": "FACT: \"There is a need for 400 MW in batteries, 100 MW in electrolyzers and more pumped storage hydropower capacity, though the references to the Kozjak project were deleted.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "100%",
+    "class": "figure",
+    "sentence": "At least 85% of power supply needs to be from domestic sources in 2030 and 100% by 2040, the government said.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "180 MW",
+    "class": "figure",
+    "sentence": "It would be able to generate 180 MW and store 2.6 GWh.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "1990",
+    "class": "deadline",
+    "sentence": "These scenarios are based on two key commitments: the European Union's target of a 90 per cent net emissions reduction by 2040 compared to 1990 levels, and Slovenia's national commitment to achieve climate neutrality by 2045.\" *Source: ceenergynews.com/climate/slovenia-new-nepn-2030-2040/, CEE Energy News, May 13, 2026.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2.4 GW",
+    "class": "figure",
+    "sentence": "The reference capacity in the related scenario is 1.1 GW, from a range of 1 GW to 2.4 GW.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2005",
+    "class": "deadline",
+    "sentence": "FACT: \"The previous target was 36% and the baseline is the 2005 level.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2019",
+    "class": "deadline",
+    "sentence": "Action: Verify that any client-facing sustainability documentation referencing Slovenian energy or transport policy is updated to cite the December 2024 adopted NEPN, not the 2023 draft or the 2019 original.",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2027",
+    "class": "deadline",
+    "sentence": "Re-check window: Monitor for publication of draft long-term scenarios (expected late 2026 or 2027, per industry-standard NEPN preparation timelines — *Analytical inference:* based on the January 2028 draft submission deadline and typical 12–18 month scenario-to-draft lead time; no published schedule for the scenario consultation closing date has been identified in the source corpus as of May 2026).",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2028",
+    "class": "deadline",
+    "sentence": "FACT: \"Member States must submit a draft updated NEPN to the European Commission by 1 January 2028 and adopt the final version by 1 January 2029.\" *Source: ceenergynews.com/climate/slovenia-new-nepn-2030-2040/, CEE Energy News, May 13, 2026.*",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2033",
+    "class": "deadline",
+    "sentence": "Slovenia aims to achieve it only by 2033, the deadline it set for quitting the use of coal.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "d6c5434b-53c2-4e4f-801a-de98c253d07c",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "2040",
+    "class": "deadline",
+    "sentence": "# Slovenia NEPN 2030–2040: National Energy and Climate Plan Preparation Initiated",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "25%",
+    "class": "figure",
+    "sentence": "FACT: \"Slovenia managed to reach its EU-mandated 25% share [of renewables in gross final energy consumption] in 2022, or 25.4% to be exact, through a so-called statistical transfer with neighboring Croatia.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "250 MW",
+    "class": "figure",
+    "sentence": "A small modular reactor (SMR), of 250 MW, would come online by mid-century, the NECP reads.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "30%",
+    "class": "figure",
+    "sentence": "FACT: \"The buildings sector's goal is 55% while industrial production, including waste heat, needs to reach 30%, the NECP reads.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "36.3%",
+    "class": "figure",
+    "sentence": "The share in heating and cooling grows to 45.2% from 36.3% while in transportation it advances to 25.8% from 10.8%.\" *Source: balkangreenenergynews.com/slovenia-adopts-updated-integrated-national-energy-and-climate-plan/, Balkan Green Energy News, December 27, 2024.*",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "36%",
+    "class": "figure",
+    "sentence": "FACT: \"The previous target was 36% and the baseline is the 2005 level.",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  },
+  {
+    "item_id": "0f46aabf-2ed3-4d2d-bf02-b7b802e70cd6",
+    "token": "40.7%",
+    "class": "figure",
+    "sentence": "FACT: The NEPN targets \"a share of renewables in gross final energy consumption [of] 33%.\" FACT: The breakdown: \"renewable sources need to amount to 55.4% [in electricity], against 40.7% projected for this year [2024].",
+    "search_id": "aab21fc7-5538-485e-95d1-ad0d46ab26ff",
+    "queries_tried": []
+  }
+]
