@@ -79,7 +79,7 @@ export function DetailHeader({ band, tier, title, meta, actions }: DetailHeaderP
             {title}
           </h1>
         </div>
-        {actions && <div style={{ display: "flex", gap: 8, flexShrink: 0, flexWrap: "wrap" }}>{actions}</div>}
+        {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>{actions}</div>}
       </div>
     </header>
   );
@@ -158,6 +158,7 @@ export function SectionIndex({ sections }: { sections: SectionIndexEntry[] }) {
   return (
     <nav
       aria-label="Section index"
+      data-guard-strip
       style={{
         position: "sticky",
         top: 0,
@@ -171,6 +172,7 @@ export function SectionIndex({ sections }: { sections: SectionIndexEntry[] }) {
         gap: 10,
         overflowX: "auto",
         whiteSpace: "nowrap",
+        maxWidth: "100%",
       }}
     >
       {sections.map((s, i) => (
@@ -234,7 +236,15 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
   );
 }
 
-// ── Layout: content column + rail ───────────────────────────────────────
+// ── Page wrapper: the ONE outer frame (max-width + responsive side padding)
+// shared by header/timeline/index/layout, so a detail surface never re-declares its own copy of the
+// --cl-detail-pad-x breakpoint (globals.css, lane MOBILE-2 precedent). One instance per page.
+
+export function DetailPageWrapper({ children }: { children: React.ReactNode }) {
+  return <div style={{ maxWidth: 1440, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 40px" }}>{children}</div>;
+}
+
+// ── Layout: content column + rail (no padding/max-width of its own — lives inside DetailPageWrapper) ──
 
 export function DetailLayout({ children, rail }: { children: React.ReactNode; rail: React.ReactNode }) {
   return (
@@ -245,9 +255,6 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
         gridTemplateColumns: "minmax(0,1fr) 300px",
         gap: 24,
         alignItems: "start",
-        maxWidth: 1440,
-        margin: "0 auto",
-        padding: "0 40px 40px",
       }}
     >
       <style>{`
@@ -256,7 +263,7 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
         }
       `}</style>
       <div style={{ minWidth: 0 }}>{children}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{rail}</div>
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{rail}</div>
     </div>
   );
 }
