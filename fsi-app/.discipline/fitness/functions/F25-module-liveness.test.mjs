@@ -7,6 +7,9 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import {
   buildImportGraph,
   findUnimported,
@@ -17,6 +20,8 @@ import {
   LEGACY_ALLOWLIST,
   findDispatchRoots,
   latestTrainWave,
+  inWidenedScope,
+  parseBoundaryRegistryPaths,
 } from './F25-module-liveness.mjs';
 
 
@@ -32,6 +37,7 @@ const DYNIMPORT_OF = (spec) => 'const m = await im' + 'port("' + spec + '");';
 
 const EMPTY = new Map();
 const NO_MANIFEST = new Set();
+const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 
 /** Build a fake tree: { path: contents }. */
 function tree(map) {
@@ -256,6 +262,33 @@ test('findDispatchRoots: a *-golden.mjs / *.golden.mjs file under scripts/verify
   assert.equal(roots.has('fsi-app/scripts/verify/plain.mjs'), false);
 });
 
+test('findDispatchRoots: a tracked hook source (fsi-app/.discipline/hooks/*) that execs a .mjs file is a dispatch root', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/hooks/pre-commit':
+      '#!/bin/sh\nexec node "$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs" --mode=pre-commit\n',
+    'fsi-app/.discipline/hooks/pre-push':
+      '#!/bin/sh\nnode fsi-app/.discipline/governance/check-pretooluse-wired.mjs\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/governance/worktree-isolation-hook.mjs'));
+  assert.ok(roots.has('fsi-app/.discipline/governance/check-pretooluse-wired.mjs'));
+});
+
+test('findDispatchRoots: a hook printing a suggestion in an echo string is NOT a dispatch root (advisory text, not an invocation)', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/hooks/pre-push':
+      '#!/bin/sh\necho "run: node fsi-app/.discipline/governance/wire-pretooluse-settings.mjs --apply"\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  // Source 6 is line-scoped and skips `echo` lines precisely so a hook's advisory error text (telling the
+  // operator to run a script by hand) is never mistaken for the hook actually running it.
+  assert.equal(roots.has('fsi-app/.discipline/governance/wire-pretooluse-settings.mjs'), false);
+});
+
 test('latestTrainWave: parses the highest waveNN from `git log --oneline <ref>`', () => {
   const fakeExec = () => 'abcdef1 train/wave36 2026 09 04 (#583)\nfedcba2 train/wave35 2026 09 04 (#582)\n';
   assert.equal(latestTrainWave('/repo', fakeExec), 36);
@@ -311,11 +344,94 @@ test('every W7.1-widened allowlist entry (one carrying an expiry) has a valid di
 // The widened scope's own shape: scripts/** in full (not just scripts/lib/**) and .discipline/** are now
 // covered — asserted against the SHIPPED fitnessFunction.check() logic indirectly via a scope-shaped
 // allowlist entry that only makes sense once the scope actually reaches those directories (e.g. a
-// scripts/verify/ or .discipline/governance/ entry existing at all proves the scope reaches there, since
-// an entry for a file OUTSIDE scope would trip nothing and be pointless to carry).
-test('the widened allowlist reaches scripts/** beyond scripts/lib/ and .discipline/**', () => {
+// scripts/verify/ entry existing at all proves the scope reaches there, since an entry for a file OUTSIDE
+// scope would trip nothing and be pointless to carry).
+test('the widened allowlist reaches scripts/** beyond scripts/lib/', () => {
   const files = LEGACY_ALLOWLIST.map((e) => e.file);
   assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/verify/')), 'scripts/verify/ entries present');
-  assert.ok(files.some((f) => f.startsWith('fsi-app/.discipline/governance/')), '.discipline/governance/ entries present');
-  assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/spec09/')), 'scripts/spec09/ entries present');
+});
+
+// The widened scope's own reach into .discipline/governance/ and scripts/spec09/ is asserted DIRECTLY
+// against inWidenedScope now (lane W71-A, 2026-09-05) rather than via a still-allowlisted entry in either
+// directory — every file that had one there (the four .discipline/governance/ operator-CLI/hook entries,
+// scripts/spec09/run-fixture-import.mjs) is now wired instead, which is the scope working as designed,
+// not evidence it stopped reaching those directories.
+test('inWidenedScope reaches fsi-app/.discipline/governance/ and fsi-app/scripts/spec09/', () => {
+  assert.ok(inWidenedScope('fsi-app/.discipline/governance/some-new-module.mjs', NO_MANIFEST));
+  assert.ok(inWidenedScope('fsi-app/scripts/spec09/some-new-producer.mjs', NO_MANIFEST));
+});
+
+// ── Source 7: OUT-OF-REPO-BOUNDARY.md's tables are themselves the registry ──
+
+test('parseBoundaryRegistryPaths: a backticked governance/*.mjs path in a table row is found', () => {
+  const text = '| thing | `governance/pretooluse-skill-gate.mjs` | applier | check | enforced |\n';
+  const found = parseBoundaryRegistryPaths(text);
+  assert.ok(found.includes('fsi-app/.discipline/governance/pretooluse-skill-gate.mjs'));
+});
+
+test('parseBoundaryRegistryPaths: the bare install-hooks.mjs literal is found', () => {
+  const text = '| `install-hooks.mjs` | usage | invoker | doc |\n';
+  assert.ok(parseBoundaryRegistryPaths(text).includes('fsi-app/.discipline/install-hooks.mjs'));
+});
+
+test('parseBoundaryRegistryPaths: a non-backticked mention is NOT found (prose is not a registry row)', () => {
+  const text = 'See governance/pretooluse-skill-gate.mjs for details (no backticks here).\n';
+  assert.deepEqual(parseBoundaryRegistryPaths(text), []);
+});
+
+test('parseBoundaryRegistryPaths: an unrelated backticked path outside governance/dispatch/consistency is NOT found', () => {
+  const text = '| `src/lib/foo.mjs` | not a boundary tool |\n';
+  assert.deepEqual(parseBoundaryRegistryPaths(text), []);
+});
+
+test('findDispatchRoots Source 7: OUT-OF-REPO-BOUNDARY.md rows become dispatch roots', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs: {}\n',
+    'fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md':
+      '| x | `governance/pretooluse-skill-gate.mjs` | `governance/wire-pretooluse-settings.mjs` | check | here |\n' +
+      '| `dispatch/start.mjs` | usage | operator | doc |\n' +
+      '| `install-hooks.mjs` | usage | operator | doc |\n',
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/governance/pretooluse-skill-gate.mjs'));
+  assert.ok(roots.has('fsi-app/.discipline/governance/wire-pretooluse-settings.mjs'));
+  assert.ok(roots.has('fsi-app/.discipline/dispatch/start.mjs'));
+  assert.ok(roots.has('fsi-app/.discipline/install-hooks.mjs'));
+});
+
+// The registry cannot rot silently: every path OUT-OF-REPO-BOUNDARY.md's tables actually name in THIS
+// tree must resolve to a real file. A row naming a deleted/renamed script would otherwise sit unnoticed.
+test('OUT-OF-REPO-BOUNDARY.md: every registry row resolves to a real file on disk (registry cannot rot)', () => {
+  const text = readFileSync(resolve(REPO_ROOT, 'fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md'), 'utf8');
+  const paths = parseBoundaryRegistryPaths(text);
+  assert.ok(paths.length > 0, 'the registry names at least one path');
+  for (const p of paths) {
+    assert.ok(existsSync(resolve(REPO_ROOT, p)), `${p} named in OUT-OF-REPO-BOUNDARY.md must exist`);
+  }
+});
+
+// ── Source 8: subprocess-spawn dispatch (resolve(HERE, 'x.mjs') + spawnSync/execFileSync) ──
+
+test('findDispatchRoots Source 8: a script already reachable via Source 1 that spawns a sibling script by resolve(HERE, ...) makes that sibling reachable too', () => {
+  const files = {
+    '.github/workflows/example.yml':
+      'jobs:\n  x:\n    steps:\n      - run: node fsi-app/.discipline/consistency/override-check.mjs --range=x\n',
+    'fsi-app/.discipline/consistency/override-check.mjs':
+      "import { spawnSync } from 'node:child_process';\nconst RUNNER = resolve(HERE, 'runner.mjs');\nspawnSync(process.execPath, [RUNNER]);\n",
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.ok(roots.has('fsi-app/.discipline/consistency/override-check.mjs'), 'the spawning script itself is a Source-1 root');
+  assert.ok(roots.has('fsi-app/.discipline/consistency/runner.mjs'), 'Source 8 follows the spawn to the sibling script');
+});
+
+test('findDispatchRoots Source 8: a resolve(HERE, ...) mention with no spawnSync/execFileSync call does NOT create a root (must be a real subprocess call)', () => {
+  const files = {
+    '.github/workflows/example.yml': 'jobs:\n  x:\n    steps:\n      - run: node fsi-app/.discipline/consistency/override-check.mjs\n',
+    'fsi-app/.discipline/consistency/override-check.mjs': "const RUNNER = resolve(HERE, 'runner.mjs'); // just a path, never spawned\n",
+  };
+  const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
+  const roots = findDispatchRoots('/repo', (f) => files[f], list);
+  assert.equal(roots.has('fsi-app/.discipline/consistency/runner.mjs'), false);
 });

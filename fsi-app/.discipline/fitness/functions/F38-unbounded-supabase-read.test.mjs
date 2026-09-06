@@ -48,11 +48,8 @@ test('override: a trailing `// fitness-allow: F38 (reason)` suppresses a new ove
   assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/some-new-file.ts', src), []);
 });
 
-test('GREEN: the real ALLOWLIST entry (mint-gate-calibration.mjs .limit(8000)) passes clean against the real file on disk', () => {
-  const entry = ALLOWLIST.find((e) => e.file === 'fsi-app/scripts/verify/mint-gate-calibration.mjs');
-  assert.ok(entry, 'ALLOWLIST must still carry the mint-gate-calibration.mjs entry');
-  const content = readFileSync(resolve(REPO_ROOT, entry.file), 'utf8');
-  assert.deepEqual(fitnessFunction.check(entry.file, content), [], `${entry.file} must pass F38`);
+test('ALLOWLIST is empty (lane W71-A, 2026-09-05): mint-gate-calibration.mjs, its only entry, was deleted with the entry — no live caller existed to page through fetchAllRows/exactCount instead', () => {
+  assert.deepEqual(ALLOWLIST, []);
 });
 
 test('every ALLOWLIST entry carries a non-trivial reason and a numeric expiry train/wave', () => {

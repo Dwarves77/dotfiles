@@ -68,10 +68,14 @@ const INCONCLUSIVE = [
 // KNOWN-ANSWER set — the probe MUST surface each of these files (it is blind if it does
 // not). Per-file: is the CURRENT state still corrupt, or fixed-to-sound (we still must SEE
 // it). expectFlag=true => probe must flag at least one site here.
+// CORRECTION (lane W71-C, 2026-09-05): scripts/audit-optionc-reachability.mjs and
+// scripts/recovery-measure.mjs were DELETED (F25 module-liveness: unwired one-shots, their diagnostic
+// jobs discharged — see F25-module-liveness.mjs's LEGACY_ALLOWLIST comments for each). Their
+// KNOWN_ANSWERS rows are removed below: a deleted file can never be "surfaced" by a live-tree scan, so a
+// row expecting it would misreport BLIND as a regression instead of the correct, permanent outcome. The
+// bug class itself and its third confirmed instance (verification.ts) remain fully documented above.
 export const KNOWN_ANSWERS = [
-  { file: "scripts/audit-optionc-reachability.mjs", fixed: true, note: "fabrication detector — FIXED 2026-06-01 (non-answer -> INCONCLUSIVE; de-allowlisted). BLIND is now EXPECTED: the fix removed the pattern." },
   { file: "src/lib/sources/verification.ts",        fixed: true, note: "reachability SSOT — FIXED 2026-06-01 (non-answer -> tier M). Still SURFACES for the DEAD(404/410)->tier L genuine-negative path (REVIEW), which is correct." },
-  { file: "scripts/recovery-measure.mjs",           note: "recovery classification (corrected to inconclusive-5xx — must still be SEEN to confirm it stayed sound)" },
 ];
 
 const NEG_WINDOW = 14; // lines after an anchor to scan for its conclusion

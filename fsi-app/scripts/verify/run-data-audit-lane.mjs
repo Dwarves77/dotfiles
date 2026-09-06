@@ -68,6 +68,11 @@ const AUDITS = [
   // (Class-4 fix, 2026-08-09: presence checks passed on the mig-118 guard that was one set_config
   // call from defeat; a security invariant is proven by attacking it, not by asserting it exists.)
   ["prov-guard-adversarial", "scripts/verify/prov-guard-adversarial-audit.mjs", true],
+  // Spec09 org-scope cross-org RLS proof (lane MIG311-FIX, 2026-09-05): the adversarial proof migration
+  // 311 could not run inline (its fixture inserts violate live FKs added since — org_memberships_user_id_
+  // fkey -> profiles(id), migration 075; surcharge_audits FKs -> entities(entity_id), migration 296) now
+  // runs here instead, against live orgs/entities, re-attacked on every lane pass. See that file's header.
+  ["spec09-org-rls-adversarial", "scripts/verify/spec09-org-rls-adversarial-audit.mjs", true],
   // REGISTRY-CITED AUDITS previously ABSENT from this lane (2026-08-09 wiring-truth sweep, Decision 2):
   // each is an `audit:` enforcer of a live invariant in .discipline/governance/invariants.mjs but was
   // never in the run list — cited-as-enforcement yet never executed. Now wired. Each self-skips (exit 2)
@@ -92,6 +97,12 @@ const AUDITS = [
   ["source-vs-item", "scripts/verify/source-vs-item.mjs", true],
   ["staged-transit", "scripts/verify/staged-transit-audit.mjs", true],
   ["skill-conformance", "scripts/audit-skill-conformance.mjs", false],
+  // ADR-014 wave-acceptance sampling, wired here 2026-09-05 (lane W71-A) resolving the ADR's own
+  // "not wired" status note — SOFT (informational): the escalation threshold it computes (§4, >10%
+  // accuracy-defect) requires the LIVE L2/L3 Chrome pass this mechanical pre-scan cannot perform, so a
+  // red here is a signal for operator review, never a build-blocking verdict on its own. Self-skips
+  // (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as every other audit above.
+  ["wave-acceptance", "scripts/verify/wave-acceptance-audit.mjs", false],
 ];
 
 const results = [];

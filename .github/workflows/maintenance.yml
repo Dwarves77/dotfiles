@@ -588,9 +588,18 @@ jobs:
       # docs/runbooks/MAINTENANCE-RUNBOOK.md §29-32.
       - name: spec09-surcharge-audit-csv
         if: env.RUN_STEP == 'spec09-surcharge-audit-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        # No-arg dry branch (lane W71-A, 2026-09-05): a plain "arg is required, skipping" left this whole
+        # family unproven on every dry-all maintenance run — the only proof that parse->org-stamp->insert
+        # ->read-back actually works end to end was `scripts/spec09/run-fixture-import.mjs`, imported by
+        # its own test but never RUN by anything (F25-module-liveness.mjs's own former allowlist entry for
+        # it). Runs all six tables' fixtures through the fake-insert pipeline here (once, in this step
+        # only, not duplicated across the other three spec09-*-csv steps below) whenever no real customer
+        # CSV was named — the honest dry-run substitute the fixtures exist for.
         run: |
           if [ -z "$RUN_ARG" ]; then
-            echo "spec09-surcharge-audit-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+            echo "spec09-surcharge-audit-csv: no '<csv-path>,<org-id>' arg named -- running the fixture proof for all six CSV-upload tables instead (node scripts/spec09/run-fixture-import.mjs)."
+            mkdir -p "$OUT_ROOT/spec09-csv-upload"
+            node scripts/spec09/run-fixture-import.mjs --out "$OUT_ROOT/spec09-csv-upload"
           else
             CSV_PATH="${RUN_ARG%%,*}"
             ORG_ID="${RUN_ARG#*,}"
@@ -605,7 +614,7 @@ jobs:
         if: env.RUN_STEP == 'spec09-dqi-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           if [ -z "$RUN_ARG" ]; then
-            echo "spec09-dqi-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+            echo "spec09-dqi-csv: no '<csv-path>,<org-id>' arg named -- skipping (the six-table fixture proof already ran in the spec09-surcharge-audit-csv step above; see scripts/spec09/run-fixture-import.mjs)."
           else
             CSV_PATH="${RUN_ARG%%,*}"
             ORG_ID="${RUN_ARG#*,}"
@@ -620,7 +629,7 @@ jobs:
         if: env.RUN_STEP == 'spec09-auxiliary-energy-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           if [ -z "$RUN_ARG" ]; then
-            echo "spec09-auxiliary-energy-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+            echo "spec09-auxiliary-energy-csv: no '<csv-path>,<org-id>' arg named -- skipping (the six-table fixture proof already ran in the spec09-surcharge-audit-csv step above; see scripts/spec09/run-fixture-import.mjs)."
           else
             CSV_PATH="${RUN_ARG%%,*}"
             ORG_ID="${RUN_ARG#*,}"
@@ -635,7 +644,7 @@ jobs:
         if: env.RUN_STEP == 'spec09-indexation-csv' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
         run: |
           if [ -z "$RUN_ARG" ]; then
-            echo "spec09-indexation-csv: arg is required -- '<csv-path>,<org-id>'. Skipping (no input named)."
+            echo "spec09-indexation-csv: no '<csv-path>,<org-id>' arg named -- skipping (the six-table fixture proof already ran in the spec09-surcharge-audit-csv step above; see scripts/spec09/run-fixture-import.mjs)."
           else
             CSV_PATH="${RUN_ARG%%,*}"
             ORG_ID="${RUN_ARG#*,}"

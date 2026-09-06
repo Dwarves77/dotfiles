@@ -12,6 +12,30 @@ asserts the pointer is actually present (run in pre-push, where the operator's e
 |---|---|---|---|---|
 | `~/.claude/settings.json` → `hooks.PreToolUse` must route **Bash, Edit, Write, MultiEdit, NotebookEdit, Agent, Task, Workflow, and every `mcp__*`** to the action-time skill gate (matcher `^(Bash\|Edit\|Write\|MultiEdit\|NotebookEdit\|Agent\|Task\|Workflow\|mcp__.+)$`) | `governance/pretooluse-skill-gate.mjs` (decision logic) + `governance/skill-map.mjs` (skill↔file/op map) | `governance/wire-pretooluse-settings.mjs --apply` (backs up, preserves all other keys incl. credentials) | `governance/check-pretooluse-wired.mjs` | pre-push **step 3c** (SKIPs in CI/headless where settings.json is absent) |
 
+## Operator-CLI register (human-invoked, out-of-workflow)
+
+A second boundary class: tools invoked by neither a workflow, a package.json script, nor another
+in-repo mechanism — a person runs them from a terminal, per their own documented usage line. F25's
+import graph and dispatch-root scan cannot see a human typing a command, so this table IS the
+reachability evidence (`F25-module-liveness.mjs`'s `findDispatchRoots` Source 7 parses every backticked
+path below, the same way it already parses the boundary-dependency table above). A row naming a file
+that no longer exists is a rotted registry entry — `F25-module-liveness.test.mjs` asserts every parsed
+path resolves against the real tree, so this table cannot drift silently.
+
+| Operator CLI | Usage (its own header) | Who runs it, and when | Documented at |
+|---|---|---|---|
+| `install-hooks.mjs` | `node fsi-app/.discipline/install-hooks.mjs [--force\|--dry-run\|--hooks-dir=]` | Operator, once per fresh checkout (or after a hook source file changes) — installs/refreshes the tracked hook family into `.git/hooks/` | `.discipline/INSTALL.md`, `docs/doctrine/worktree-isolation.md` |
+| `dispatch/start.mjs` | `node fsi-app/.discipline/dispatch/start.mjs <slug>` | Operator, at the start of a dispatch — mints a `Dispatch-UUID` recorded in every commit body during that dispatch | `.discipline/dispatch/README.md` |
+| `dispatch/audit.mjs` | `node fsi-app/.discipline/dispatch/audit.mjs <uuid>\|--list-recent\|--aggregate-by-skill` | Operator, any time after a dispatch — reports its commits, claimed skills, and outcomes | `.discipline/dispatch/README.md` |
+
+`.discipline/consistency/runner.mjs` is NOT listed here: it is spawned as a real child process by
+`consistency/override-check.mjs` (`const RUNNER = resolve(HERE, 'runner.mjs'); spawnSync(process.execPath,
+[RUNNER], ...)`), and override-check.mjs's own path is a literal dispatch-root match in
+`.github/workflows/discipline.yml` (the "Consistency backstop" job) and `.discipline/hooks/pre-push`. That
+makes it a plain wired module by subprocess dispatch, not an operator-CLI exemption — `findDispatchRoots`
+Source 8 mechanizes the `resolve(HERE, 'x.mjs')` + `spawnSync` shape so this stays true without a registry
+row that could go stale.
+
 ## The action-time skill gate (why it exists)
 
 Before this gate, skills/rules were enforced at **commit-time** (commit-msg hook), in **CI**

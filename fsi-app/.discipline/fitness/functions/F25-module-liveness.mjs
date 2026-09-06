@@ -150,7 +150,101 @@ export function findDispatchRoots(
     if (/(?:\.golden|-golden)\.mjs$/.test(f)) roots.add(f);
   }
 
+  // Source 6 (lane W7.1-CLOSE, 2026-09-05): the tracked hook SOURCES install-hooks.mjs copies
+  // byte-for-byte into .git/hooks/ — fsi-app/.discipline/hooks/{pre-commit,pre-push,post-checkout,
+  // commit-msg}. install-hooks.mjs itself is an operator-run installer with no static importer of these
+  // files (it copies them as opaque text via readFileSync/writeFileSync, never an import specifier), so
+  // the import graph cannot see this dispatch shape at all. [CONFIRMED] this lane: reading every hook
+  // source found post-checkout and pre-commit both run
+  // `exec node "$REPO_ROOT/fsi-app/.discipline/governance/worktree-isolation-hook.mjs"`, and pre-push's
+  // step 3c runs `node fsi-app/.discipline/governance/check-pretooluse-wired.mjs` — real, live
+  // invocations once the hooks are installed, not merely advisory text (contrast: pre-push's step-3c
+  // FAILURE message only *prints* a suggestion to run wire-pretooluse-settings.mjs in an echo string —
+  // that is not an invocation and does NOT make wire-pretooluse-settings.mjs a dispatch root; nor does
+  // check-pretooluse-wired.mjs's own doc-comment mention of pretooluse-skill-gate.mjs, which is read only
+  // via ~/.claude/settings.json, outside this repo, never a tracked path). Matches the same MJS_PATH_RE
+  // already used for Source 1, scoped to the four tracked hook files.
+  const HOOK_SOURCE_FILES = ['pre-commit', 'pre-push', 'post-checkout', 'commit-msg'];
+  for (const name of HOOK_SOURCE_FILES) {
+    const rel = `fsi-app/.discipline/hooks/${name}`;
+    let text;
+    try { text = readFileFn(rel); } catch { continue; }
+    if (!text) continue;
+    // Comment/echo-line-filtered, not whole-text like Source 1: a shell hook can `echo` advice naming a
+    // script it does NOT run (pre-push's step-3c failure message tells the operator to run
+    // wire-pretooluse-settings.mjs by hand — that is text, not an invocation), and treating an echoed
+    // suggestion as a dispatch root would wrongly mark an unreached script reachable. Whole-text (not
+    // per-line) matching is still needed on what remains: the real invocations here are a two-line
+    // indirection (`RUNNER="$REPO_ROOT/.../x.mjs"` on one line, `exec node "$RUNNER"` on the next), so
+    // requiring `node` on the SAME line as the path would miss the genuine case while only echo lines
+    // needed excluding.
+    const invocationText = text
+      .split('\n')
+      .filter((line) => { const t = line.trim(); return t && !t.startsWith('#') && !t.startsWith('echo'); })
+      .join('\n');
+    for (const m of invocationText.matchAll(MJS_PATH_RE)) roots.add(normalize(m[1]));
+  }
+
+  // Source 7 (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md §W7 /
+  // docs/audits/wiring-audit-2026-09-04/B1-modules.md): OUT-OF-REPO-BOUNDARY.md is itself the in-repo
+  // registry of tools invoked from OUTSIDE any workflow, package.json script, or import graph — a git
+  // hook's shared settings.json, or a human at a terminal. Its two markdown tables (the boundary-
+  // dependency table and the "Operator-CLI register" beneath it) name every such tool in backticked
+  // `governance/*.mjs` / `dispatch/*.mjs` / `install-hooks.mjs` paths; the registry row IS the
+  // reachability evidence, the same "a documented indirection is itself dispatch-root evidence" shape
+  // Source 4 and Source 6 already use for run-data-audit-lane.mjs's AUDITS table and the tracked hook
+  // sources, respectively. parseBoundaryRegistryPaths() is factored out (not inlined) so
+  // F25-module-liveness.test.mjs can assert every parsed path resolves against the REAL file, which is
+  // what keeps this registry from rotting silently the way a plain doc reference could.
+  try {
+    const text = readFileFn('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md');
+    for (const p of parseBoundaryRegistryPaths(text)) roots.add(p);
+  } catch { /* registry absent is its own violation surface, not this resolver's job to hide */ }
+
+  // Source 8 (lane W71-A, 2026-09-05): subprocess-spawn dispatch. A script already known to be a
+  // dispatch root (via any source above) that computes a SIBLING script's path with this repo's own
+  // `resolve(HERE, 'x.mjs')` convention (HERE = `dirname(fileURLToPath(import.meta.url))`) and passes it
+  // to `spawnSync`/`execFileSync` makes that target reachable too — a real `node <path>` child-process
+  // invocation neither the static import graph (it is not an import specifier) nor Source 1 (the
+  // TARGET's own path is never a string literal in any workflow file; only the SPAWNING script's path
+  // is) can see. Concrete instance this closes: `.discipline/consistency/override-check.mjs` (a Source-1
+  // dispatch root via `.github/workflows/discipline.yml`'s "Consistency backstop" job and
+  // `.discipline/hooks/pre-push`) spawns `.discipline/consistency/runner.mjs` this exact way — a plainly
+  // wired module by subprocess dispatch, not a registry/operator-CLI exemption (see
+  // OUT-OF-REPO-BOUNDARY.md's own note on this). Fixed-point over the growing root set: a spawn chain
+  // more than one hop deep would otherwise need its own hand-added source.
+  const RESOLVE_HERE_RE = /resolve\(\s*HERE\s*,\s*['"`]([\w.-]+\.mjs)['"`]\s*\)/g;
+  let grew = true;
+  while (grew) {
+    grew = false;
+    for (const spawnRoot of Array.from(roots)) {
+      let text;
+      try { text = readFileFn(spawnRoot); } catch { continue; }
+      if (!/spawnSync|execFileSync/.test(text)) continue;
+      const dir = posix.dirname(spawnRoot);
+      for (const m of text.matchAll(RESOLVE_HERE_RE)) {
+        const target = posix.join(dir, m[1]);
+        if (!roots.has(target)) { roots.add(target); grew = true; }
+      }
+    }
+  }
+
   return roots;
+}
+
+// Every backticked path under governance/, dispatch/, or consistency/, or the bare `install-hooks.mjs`
+// literal, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's markdown tables — factored out of
+// findDispatchRoots's Source 7 so its own unit test can assert every parsed path resolves against the
+// real tree (a row naming a deleted or renamed file would otherwise rot silently).
+export function parseBoundaryRegistryPaths(text) {
+  // Opening backtick required (a real inline-code span, not prose), but NOT a closing one immediately
+  // after `.mjs` — the boundary-dependency table's own applier cell is `` `governance/
+  // wire-pretooluse-settings.mjs --apply` `` (a CLI invocation with flags inside the same code span), so
+  // anchoring to the closing backtick would miss it.
+  const RE = /`((?:governance|dispatch|consistency)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
+  const found = new Set();
+  for (const m of text.matchAll(RE)) found.add(`fsi-app/.discipline/${m[1]}`);
+  return [...found];
 }
 
 // Latest landed train/wave number, read from `git log --oneline origin/master` (the expiry oracle named
@@ -261,6 +355,21 @@ const PROVEN_BUT_UNWIRED = [
   // which already did the live work; this was a parallel, unused implementation, not an
   // orchestrator-blocked module like its scripts/lib/sources siblings.
   { file: 'src/lib/sources/instrument-identity.ts', disposition: null }, // not covered by the Aug-31 register
+  {
+    file: 'src/lib/contracts/corridor-id.mjs',
+    disposition:
+      'Newly unwired as a direct, verified side effect of lane W71-C (2026-09-05) deleting ' +
+      'scripts/gen/migration-258.mjs (the migration-258 generator was this module\'s only production ' +
+      'importer, via renderCorridorIdSql() — the migration itself is applied live and unaffected). Same ' +
+      'shape as provenance-envelope.mjs\'s own entry below: a genuinely reusable identity module ' +
+      '(corridorId(), validateCorridorSpec(), isSameCorridor() — runtime logic, not just SQL codegen), not ' +
+      'a one-shot, with a concrete named future consumer — migration 258\'s own inventory row states ' +
+      '"deliberately NO factor rows... a separate, independently-verified data unit"; whichever lane loads ' +
+      'corridor-scoped emission-factor data is this module\'s real caller. Its src/__tests__/' +
+      'contracts-corridor-id.test.mjs proof stays wired via the src/__tests__/*.test.mjs glob regardless. ' +
+      'No expiry granted (lane W71-C\'s brief forbids adding one) — wire it into that future loader, or ' +
+      'delete it with its test if that loader never materializes.',
+  },
 ];
 
 // SCRIPTS_LIB (the 15 "proven, never consumed" scripts/lib entries) ARCHIVED 2026-09-01 (lane hyg,
@@ -517,15 +626,36 @@ export const LEGACY_ALLOWLIST = [
       // against this tree. Lane SPEC09-B's own diff (authored before SPEC09-A's fold) still described
       // both as present/"UNCHANGED"; the ASSEMBLE-47 coordinator lane removed both here rather than
       // re-adding entries F25 would immediately flag STALE (a module that already has a dispatch root).
-      w('src/lib/contracts/provenance-envelope.mjs',
-        'wire into WO-17\'s envelope-carrying migration generator when that workstream starts (complete-system-build-plan-2026-09-04.md), or delete if WO-17 has not started by the expiry train', 50,
-        'Zero production importers as of lane W71-WIRE (2026-09-05): its only production callers were scripts/gen/migration-267/268/271-*.mjs, deleted this lane once confirmed byte-applied live; six *-composition/*-parser.test.mjs files still import its ORIGIN_CLASS_VALUES/DERIVATION_VALUES re-exports, but test-only importers do not satisfy F25. Re-confirmed by ASSEMBLE-47 (2026-09-05, wave46->wave47 ratchet): WO-17 has not started (board checked); situation genuinely unchanged, so the expiry is re-granted to wave50 rather than resolved by fiat — a coordinator with no authority over WO-17\'s schedule cannot honestly wire or delete this on its behalf.'),
-      o('scripts/spec09/run-fixture-import.mjs',
-        'a local, deps-injected proof harness (lane SPEC09-B, 2026-09-05) run by hand to prove the CSV upload pipeline\'s parse->org-stamp->insert->read-back path end to end against this lane\'s six fixture CSVs, with no live Supabase credentials available in this worktree — same "documented manual, artifact-proven" class as scripts/mint/screen-worklist.mjs above (MINT-RUNBOOK.md\'s pattern). Its own CLI run writes a JSON artifact to scripts/_snapshots/spec09-csv-upload/ (gitignored). Not imported by production code by design — it exists to be run once as this lane\'s own local proof, not to be a runtime dependency of the real route/producer pair, which is why it is a fixture-driven wrapper around the SAME parseCsvUpload contract rather than a thing anything else calls.', 50,
-        'UNWIRED MODULE (B1-class): its own .test.mjs is production-importer-adjacent but the module itself has no OTHER importer and is not in any workflow. RESOLVED by ASSEMBLE-47 (2026-09-05): deliberately kept as a one-shot local authoring aid, NOT given a maintenance.yml step — it asserts it needs no live Supabase credentials (its own deps-injected fake insert), so a CI dispatch would add a step that proves nothing a fixture test does not already prove; re-expiring to wave50 as the honest "no further action intended" disposition rather than a deferred decision.'),
-      o('.discipline/install-hooks.mjs',
-        'operator-run, out-of-repo install step (copies hooks into the shared .git/hooks / git-common-dir) — documented as such in .discipline/governance/invariants.mjs\'s worktree-isolation residual note ("this install is operator-run and lives outside the repo"); not invoked from any workflow or package.json script by design', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Not on B1\'s Appendix A (predates its 2026-08-21 window) but flagged the same way under the widened scope — measured against this tree, not assumed absent.'),
+      // 'src/lib/contracts/provenance-envelope.mjs' entry REMOVED (lane W71-A, 2026-09-05,
+      // docs/plans/complete-system-build-plan-2026-09-04.md §W7): the module itself was DELETED, not
+      // wired. grep across src/+scripts/ for a duplicate "provenance envelope" DDL-rendering module found
+      // none — nothing reimplements this shape elsewhere — but confirmed zero PRODUCTION consumers
+      // either: every production file that mentions "provenance-envelope.mjs" does so only in a doc
+      // comment (operations-ask-context.mjs, supabase-server.ts, regional-facts-envelope.mjs,
+      // region-grid.mjs, refresh-published-price-statistics.mjs, eu-weekly-oil-bulletin.mjs,
+      // assumption-register-common.mjs — none `import` from it), and every real production caller of
+      // ORIGIN_CLASS/DERIVATION imports them directly from their real homes (vocabularies.mjs,
+      // envelope.mjs) rather than through this module's re-export, exactly as the module's own header
+      // says those homes are. Its only remaining importers were the six *-composition/*-parser.test.mjs
+      // files (test-only, never satisfied F25) — repointed to import ORIGIN_CLASSES/DERIVATIONS directly
+      // from vocabularies.mjs/envelope.mjs in the same commit, so nothing breaks. WO-17 (the named future
+      // consumer this entry was waiting on) has still not started; rather than re-grant a fourth expiry
+      // (41->43->46->47->52) on a module with genuinely zero live callers, WO-17 gets a plain
+      // renderEnvelopeDDL-shaped generator when it actually starts — reusing the general APPROACH this
+      // module proved (factor-tier.mjs's own pattern, generalised) costs nothing extra at that point,
+      // and it is not "duplicated logic" to reintroduce a helper for a workstream that doesn't exist yet.
+      // 'scripts/spec09/run-fixture-import.mjs' entry REMOVED (lane W71-A, 2026-09-05,
+      // docs/plans/complete-system-build-plan-2026-09-04.md §W7): now reachable by construction — it is
+      // the honest dry-run substitute for the no-arg branch of maintenance.yml's spec09-surcharge-audit-csv
+      // step (the four spec09-*-csv steps previously just echoed "arg is required... skipping" on a
+      // dry-all run, leaving the whole six-table CSV-upload pipeline permanently unproven in CI). Its own
+      // path is now a literal Source-1 dispatch-root match in that workflow file.
+      // '.discipline/install-hooks.mjs' entry REMOVED (lane W71-A, 2026-09-05, docs/plans/
+      // complete-system-build-plan-2026-09-04.md §W7): now reachable by construction —
+      // OUT-OF-REPO-BOUNDARY.md's new "Operator-CLI register" table names it (usage line, invoker: the
+      // operator on a fresh checkout or hook-source change, per .discipline/INSTALL.md), and
+      // findDispatchRoots' new Source 7 parses that table into a dispatch root. Same treatment as the
+      // settings.json boundary-dependency table's existing row.
 
       // ── ASSEMBLE-47 RATCHET NOTE (2026-09-05): every entry below (install-hooks.mjs above included)
       // carried expiry:46, set before wave46 itself had landed on origin/master. F25's own mechanism
@@ -558,95 +688,172 @@ export const LEGACY_ALLOWLIST = [
       //  (b) dated, operator-authorized ONE-SHOT programs already run against production, left in the
       //      tree at their original path as historical record (this repo's established pattern — see
       //      scripts/_archive/README.md for the same convention applied one step further, after archival).
-      o('.discipline/consistency/runner.mjs',
-        'CLI entry point for the Layer-4 consistency scanner, invoked by the operator/coordinator directly (its own header: `node fsi-app/.discipline/consistency/runner.mjs [--check=Cn|--list]`), not from a workflow or package.json script.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s 2026-08-21 window.'),
-      o('.discipline/dispatch/audit.mjs',
-        'operator CLI for auditing a dispatch UUID against git log — out-of-repo-boundary class, run by hand per its own usage header.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/dispatch/start.mjs',
-        'operator CLI that mints a dispatch UUID — out-of-repo-boundary class, run by hand per its own usage header.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/governance/check-pretooluse-wired.mjs',
-        'runs in pre-push on the operator\'s machine (its own header: "settings.json is outside the repo, so this check runs in pre-push where that file exists") — genuinely cannot be a workflow/package.json dispatch root by design.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; same out-of-repo-boundary class as install-hooks.mjs.'),
-      o('.discipline/governance/pretooluse-skill-gate.mjs',
-        'the action-time PreToolUse hook body itself — invoked by the Claude Code harness via ~/.claude/settings.json (out-of-repo), never by a workflow or npm script.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; out-of-repo-boundary class.'),
-      o('.discipline/governance/wire-pretooluse-settings.mjs',
-        'the operator-run applier that writes the PreToolUse hook into ~/.claude/settings.json — out-of-repo-boundary class, same pairing as check-pretooluse-wired.mjs above.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('.discipline/governance/worktree-isolation-hook.mjs',
-        'invoked by the installed post-checkout/pre-commit git hook scripts (git hooks run in the invoking process, not CI) — out-of-repo-boundary class by design (RD-19).', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/_dataops/interlock.mjs',
-        'the RE-RUN INTERLOCK guard for already-executed Sprint-4 data-op scripts (docs/runbooks/sprint4-dataops-ledger.md) — imported BY those one-shot scripts, not the other way around; those scripts already ran once against the single shared prod/dev Supabase project and are not meant to run again.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; Sprint-4 one-shot family.'),
-      o('scripts/_diag/_pdf-probe.mjs',
-        'a scratch probe (its own header: "PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport was wired; the leading underscore is this repo\'s own scratch-file marker.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // '.discipline/consistency/runner.mjs' entry REMOVED (lane W71-A, 2026-09-05): F25 itself flags it
+      // STALE now — findDispatchRoots' new Source 8 mechanizes the subprocess-spawn shape
+      // consistency/override-check.mjs already used to run it (`const RUNNER = resolve(HERE,
+      // 'runner.mjs'); spawnSync(process.execPath, [RUNNER], ...)`), and override-check.mjs is itself a
+      // Source-1 dispatch root ('.github/workflows/discipline.yml`'s "Consistency backstop" job,
+      // `.discipline/hooks/pre-push`). Plainly wired by subprocess dispatch, not an operator-CLI
+      // exemption — see OUT-OF-REPO-BOUNDARY.md's own note under the new Operator-CLI register.
+      // '.discipline/dispatch/audit.mjs' and '.discipline/dispatch/start.mjs' entries REMOVED (lane
+      // W71-A, 2026-09-05): now reachable by construction — OUT-OF-REPO-BOUNDARY.md's new
+      // "Operator-CLI register" table names both (usage line + invoker: the operator, per
+      // .discipline/dispatch/README.md's own lifecycle section) and findDispatchRoots' new Source 7
+      // parses that table into a dispatch root, same treatment as install-hooks.mjs above.
+      // '.discipline/governance/check-pretooluse-wired.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
+      // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 (hook scripts install-hooks.mjs
+      // writes) — fsi-app/.discipline/hooks/pre-push's step 3c genuinely runs this file, a real dispatch
+      // root the graph-only scan could never see (the hook copies it as text, not an import). See Source 6's
+      // header comment for the [CONFIRMED] evidence.
+      // '.discipline/governance/pretooluse-skill-gate.mjs' and
+      // '.discipline/governance/wire-pretooluse-settings.mjs' entries REMOVED (lane W71-A, 2026-09-05):
+      // both were ALREADY named as backticked `governance/*.mjs` paths in OUT-OF-REPO-BOUNDARY.md's
+      // pre-existing boundary-dependency table (source-of-truth and applier columns respectively) —
+      // findDispatchRoots' new Source 7 parses that same table, so both are now reachable by
+      // construction without any change to the registry itself.
+      // '.discipline/governance/worktree-isolation-hook.mjs' entry REMOVED (lane W7.1-CLOSE, 2026-09-05):
+      // F25 itself flagged it STALE once findDispatchRoots() gained Source 6 — fsi-app/.discipline/hooks/
+      // post-checkout and pre-commit both genuinely `exec node .../worktree-isolation-hook.mjs`, a real
+      // dispatch root the graph-only scan could never see (the hooks copy it as text via install-hooks.mjs,
+      // never an import specifier). See Source 6's header comment for the [CONFIRMED] evidence.
+      // 'scripts/_dataops/interlock.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED. Its only two
+      // importers (scripts/_archive/phase2-{reconcile,build-binding}.mjs) are themselves already archived
+      // (inert, out of F25 scope), and every script docs/runbooks/sprint4-dataops-ledger.md names as
+      // guarded by it is gone from the tree the same way — the guard has nothing left to guard. The
+      // ledger doc is updated in the same commit to say so; it remains the historical audit record.
+      // 'scripts/_diag/_pdf-probe.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — a scratch probe
+      // ("PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport
+      // was wired; no importer, no dispatch, nothing downstream depends on it.
       ...['executor-ground', 'free-pass-run', 'id-stamp', 'lease', 'restore-overclear', 'target-match-probe', 'tombstone-delete'].map((n) =>
         o(`scripts/_reground/${n}.mjs`,
           'part of the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) for the promotion-lane drain — a dated, hand-run, per-item toolkit, not a scheduled or imported runtime.', 52,
           'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; _reground one-shot toolkit.')),
-      o('scripts/_ruling/null-tier-host-ruling.mjs',
-        'the operator\'s own written-down 2026-08-11 batched ruling over the 57 SC-13-worklisted null-tier hosts — a ruling record + its one-time apply, not a recurring runtime.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/_wave-alpha/backfill-canonical-keys.mjs',
-        'Wave-α Track C8 one-time backfill for migration 200\'s canonical_instrument_key — a numbered migration\'s data step, same one-shot class as the migration-26x/27x generators above.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      {
+        file: 'fsi-app/scripts/_ruling/null-tier-host-ruling.mjs',
+        reason:
+          'RECLASSIFIED (lane W71-C, 2026-09-05, was a W7.1 expiring one-shot): this is NOT a discharged one-shot ' +
+          '— fsi-app/src/lib/sources/host-authority-ruling-conformance.test.mjs imports its exported RULING array ' +
+          'directly (a relative import of this exact file, three directories up) and asserts host-authority.ts ' +
+          'stays byte-for-byte in sync with the ruling, host for host, forever. The ruling text ' +
+          'itself is applied/codified/verified (docs/audits/null-tier-host-ruling-2026-08-11.md: "Status: applied, ' +
+          'codified, verified") — but the FILE is the permanent single record + regression fixture the conformance ' +
+          'test depends on, same shape as fsi-app/src/lib/intake/intake-url-corpus.mjs\'s own entry above ("a ' +
+          'data-only golden-fixture file with no production call site to be wired into"). A test-only importer does ' +
+          'not satisfy F25\'s production-importer bar, so it still needs an entry — but deleting the file would ' +
+          'break a live, CI-run conformance proof, and no expiry is honest here: this file is never meant to gain a ' +
+          'production importer, the same posture as types.contractable-barrier.check.ts above.',
+        reviewByPhase: 'n/a — permanent data-fixture cited by a live conformance test; re-review only if the test is deleted or the file\'s role changes',
+      },
+      // 'scripts/_wave-alpha/backfill-canonical-keys.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED
+      // — migration 200's canonical_instrument_key backfill applied live 2026-07-11 (wave-alpha; RD-5,
+      // 20/21 rows set, 1 unverified skipped by design). Removed from skill-contract-map.mjs's
+      // citingFiles (both remediation-discipline and environmental-policy-and-innovation) in the same
+      // commit.
       o('scripts/apply-4c-plan.mjs',
-        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled.', 52,
+        'standing dispatch step 3a (ruling 2026-07-04) — the pure-node applier half of the 4c content-relabel pair with run-4c-relabel.mjs below; hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/ops/session-log.md, current as of this session, states in prose "the 4c relabel of the sub-floor facts remains frozen, on purpose" — a deliberate operator hold, not a discharged one-shot. An unapplied plan artifact (scripts/_plans/4c-plan-1783345619430.json, git-tracked, not gitignored) still sits waiting on that hold. Deleting either half of the pair would foreclose a deliberately-parked decision this lane has no authority to make.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/audit-optionc-reachability.mjs',
-        'Part 1 B reachability audit for the archiving-decision bug class fixed 2026-06-01 — a dated investigation tool, not a recurring runtime.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/canonical-pipeline-proof.mjs',
-        'a direct-execution proof harness for the canonical-pipeline step functions ("before wrapped as \'use step\'") — a development-time proving tool, not a runtime.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/connections/backfill-edges.mjs',
-        'PILLAR A2 one-time item_cross_references backfill from shared provenance — the connections loop stage now has a live, CI-dispatched discovery runtime (scripts/connections/discover-for-items.mjs, corpus-turn.yml); operator/coordinator to confirm this backfill already ran or is superseded before its expiry.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/audit-optionc-reachability.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the
+      // Part 1 B archiving-decision bug class it investigated was fixed at the source 2026-06-01
+      // (canonical-fetch.mjs's browserlessFetch replaced the plain-fetch reachability check everywhere
+      // that matters); this was the one-time diagnostic that found the defect, not a recurring check.
+      // 'scripts/canonical-pipeline-proof.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — a
+      // development-time proof harness for the canonical-pipeline step functions "before wrapped as 'use
+      // step'"; the pipeline has been live, wrapped, and running through /api/agent/run for weeks, so the
+      // thing this proved is now proven by the live system itself.
+      // 'scripts/connections/backfill-edges.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED —
+      // superseded, not merely unwired: scripts/connections/discover-for-items.mjs (wired into
+      // corpus-turn.yml) is now the live, CI-dispatched connection-discovery runtime for the same table
+      // (item_cross_references), and backfill-edges.mjs's own cold-start pass already ran (migration 252's
+      // "Consumed by" note, docs/ops/session-log.md's Pillar A2 dry-pass evidence). Docs updated in the
+      // same commit: shared-dataset-ownership.md, migrations.md #252, ADR-019, MAINTENANCE-RUNBOOK.md,
+      // and IntersectionDetectionView.tsx's empty-state copy (now points at discover-for-items.mjs).
       o('scripts/funded-pass.mjs',
-        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled.', 52,
+        'the sanctioned machine-gated FUNDED-PASS runner (operator ruling 2026-07-14) driving a named worklist file through the canonical pipeline — hand-dispatched per run, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/audits/dormant-systems-audit-2026-07-18.md rules this "Manual, unscheduled by design... keep-and-integrate", a standing operator ruling this lane has no authority to reverse. Not safely wireable into a scheduled/dry-run workflow step either — the file does an unconditional top-level readFileSync of scripts/tmp/funded-pass-worklist.json (a hand-authored, per-campaign artifact that does not currently exist), so any unattended dispatch would crash on ENOENT by construction, not run cleanly in dry mode. No harness-run artifact exists to prove a discharged run.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/gen/migration-258.mjs',
-        'a numbered migration generator (258_emission_factors_and_licence_gate.sql) already executed against the live schema — same one-shot class as the migration-267/268/271 generators above.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/gen/migration-258.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — same
+      // one-shot-generator-already-applied reasoning as the migration-267/268/271 generators above
+      // (migration 258 is applied live; no anti-drift test ever existed for this generator, unlike
+      // 267/268/271 — grep confirms `src/__tests__/migration-258-codegen-drift.test.mjs`, named in this
+      // file's own header, was never built). The migration SQL file is untouched.
+      // 'scripts/holdings-audit.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05): investigated, NOT
+      // resolved. shared-dataset-ownership.md's own line 619 already flags this "TO-VERIFY" (no
+      // completed-evidence found for the 2026-07-14 dispatch it names; the idempotent-once guard makes
+      // absence of a run ambiguous, not disprovable) and this lane has no live Supabase credentials in
+      // this worktree to settle it by querying holdings_quality's row count. Deleting on an unresolved
+      // TO-VERIFY would risk destroying a still-needed audit tool on a guess; left for the
+      // operator/coordinator with DB access to settle and close.
       o('scripts/holdings-audit.mjs',
-        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled.', 52,
+        'a read-only capture-quality audit (operator dispatch 2026-07-14) with an optional guarded write — hand-dispatched, not scheduled. TO-VERIFY, not resolved (lane W71-C, 2026-09-05): see the comment above.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/recovery-measure.mjs',
-        'the ~347-recovery read-only measurement tool (Phase 1/1b/2) — a dated incident-response tool, not a recurring runtime.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/recovery-measure.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the ~347-recovery
+      // read-only measurement tool (Phase 1/1b/2), a dated incident-response tool with no evidence of an
+      // open, unresolved incident naming it (docs/ops/session-log.md carries no live reference).
       o('scripts/regen-quarantined.mjs',
-        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass.', 52,
+        'the Tier-2 snapshot-first restitution resolver (RD-4) driving quarantined items toward verified via the ONE verify-item entry — hand-dispatched per drain pass. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): docs/audits/dormant-systems-audit-2026-07-18.md rules this "Manual, unscheduled by design... keep-and-integrate" alongside funded-pass.mjs above, a standing operator ruling this lane has no authority to reverse; .discipline/governance/invariants.mjs itself cites this file as the live resolver a real, enforced invariant ("Quarantine is an open investigation, never terminal") depends on.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/remediation/acquire-primaries-batch.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05):
+      // investigated, NOT resolved — this is not a discharged one-shot. writeSnapshot (the sole writer of
+      // raw_fetches, the permanent append-only capture store) is called ONLY from this file and
+      // _reground/acquire-*.mjs (docs/audits/ingest-behavioral-read-2026-07-18.md, verified live). It is
+      // the operator-fired acquire path's real, still-needed writer, not a completed backfill — deleting
+      // it would remove the only way raw_fetches is ever populated outside the _reground toolkit.
       o('scripts/remediation/acquire-primaries-batch.mjs',
-        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled.', 52,
+        'batch free-acquisition tool for authoritative primaries (operator dispatch 2026-07-16) — hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — this is the sole writer of raw_fetches on the operator-fired acquire path, a real ongoing capability, not a completed one-shot.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
+      // 'scripts/remediation/refetch-capped-worklist.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05):
+      // investigated, NOT resolved. ADR-016 (docs/decisions/ADR-016-storage-side-uncap.md) documents this
+      // script as an active, numbered Implementation step ("Run refetch-capped-worklist.mjs (BUILD)...
+      // Run refetch-capped-worklist.mjs --execute") that has genuinely NOT been executed yet
+      // (docs/ops/session-log.md: "EXECUTE not run... emergency stop stays UP" — blocked on an open
+      // GUARD-1 pool-insert-size ruling). Deleting an ADR-documented, not-yet-run remediation step without
+      // a ruling that supersedes ADR-016 would reverse a decision this lane has no authority to reverse
+      // (ledger discipline B2).
       o('scripts/remediation/refetch-capped-worklist.mjs',
-        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code.', 52,
+        'the ADR-016 storage-cap uncap drain for legacy STORAGE-CAPPED rows — a bounded one-time drain of rows captured under caps since removed from code. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — ADR-016 documents this as a not-yet-executed Implementation step, blocked on an open GUARD-1 ruling, not a discharged one-shot.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
       o('scripts/run-4c-relabel.mjs',
-        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled.', 52,
+        'standing dispatch step 3 (ruling 2026-07-04) — the judge+plan-emitter half of the 4c pair with apply-4c-plan.mjs above; hand-dispatched, not scheduled. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see apply-4c-plan.mjs\'s entry above — the 4c relabel is deliberately frozen, not discharged.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      w('scripts/seed-community-regional-rooms.mjs', 'operator/coordinator: confirm the 7 canonical regional community_groups rows exist, then either wire this into a maintenance.yml step (same shape as scripts/seed/community-topics-seed.mjs, already wired) or record it as already-applied and reclassify one-shot', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. A seeder that should either be re-run once via MAINT or confirmed already-applied — genuinely unclear from this lane\'s scope, unlike the dated one-shots above.'),
+      // 'scripts/source-role-cleanup.mjs' entry LEFT IN PLACE (lane W71-C, 2026-09-05): investigated, NOT
+      // resolved — NOT a discharged one-shot. docs/ops/session-log.md is explicit and current: "REMAINING,
+      // NAMED HONESTLY: 246 rows in the cohort and 874 registry-wide still NULL... the durable path is
+      // scripts/source-role-cleanup.mjs, whose active-only scope was fixed... Nothing here is blocked on a
+      // ruling" — 874 roleless source rows still need exactly this script to repair them. F22's own
+      // residual note ("the rows they created are repaired by scripts/source-role-cleanup.mjs") describes
+      // this same live, incomplete repair, not a finished one.
       o('scripts/source-role-cleanup.mjs',
-        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time.', 52,
+        'the #3 source-classification cleanup (authorized 2026-06-04), a one-time deterministic reclassification pass over active sources at authorization time. INVESTIGATED, NOT resolved (lane W71-C, 2026-09-05): see the comment above — 874 registry-wide NULL-role rows remain, this script is explicitly named "the durable path" to fix them, and the operator can run it directly with DB credentials.', 52,
         'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/source-state-min-wage.mjs',
-        'the state minimum-wage DATA PROGRAM (operator ruling 2026-07-07) populating state_cost_facts with cited figures — a one-time population program, not a recurring runtime.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window.'),
-      o('scripts/sprint4-114-spancheck-test.mjs',
-        'task 1.14\'s unit test for span-check.ts, named with a hyphen (`-test.mjs`) rather than this repo\'s later dot convention (`.test.mjs`) — isTestFile() does not recognize it, but it is a proof file by function, not a production module; rename to the dot convention (which would make it self-excluding) or delete once superseded.', 52,
-        'Zero non-test importers, no workflow/package.json dispatch. Predates the .test.mjs naming convention isTestFile() now expects.'),
-      w('scripts/verify/audit-finding-status.mjs', 'wire into discipline.yml\'s existing docs/audits enforcement surface (standing rule 14) or scripts/verify/run-data-audit-lane.mjs\'s AUDITS table', 52,
-        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Enforces standing rule 14 (every audit finding carries a verification-status token) — its own purpose argues for CI wiring, not exemption.'),
-      w('scripts/verify/wave-acceptance-audit.mjs', 'wire into wave-close per its own header\'s stated intent, or formally mark DESIGNED-ONLY if wave-close has no home for it yet', 52,
-        'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Its own header says so verbatim: "SCAFFOLD (authored 2026-07-15, NOT WIRED into wave-close)".'),
-      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'mint-gate-calibration', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
+      // 'scripts/source-state-min-wage.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — the state
+      // minimum-wage DATA PROGRAM (operator ruling 2026-07-07) is discharged: state_cost_facts carries
+      // 13/13 live rows (docs/inventories/migrations.md #152, population report), matching exactly the "13
+      // US states" the program's own header describes. Its one test reference (F13 in
+      // src/lib/sources/phase-r-cheap-fixes.test.mjs) is removed in the same commit.
+      // 'scripts/sprint4-114-spancheck-test.mjs' entry REMOVED (lane W71-C, 2026-09-05): WIRED, not
+      // deleted — this is a real regression proof for spanCheckFetch's RetryableError-on-timeout behavior
+      // (src/lib/agent/span-check.ts), still live production code (generate-brief.ts's canonical
+      // pipeline). Its only defect was naming (`-test.mjs` hyphen, not the `.test.mjs`/`.npmtest.mjs`
+      // convention isTestFile() and run-test-suite.sh's globs expect) and a needless tsc-subprocess
+      // compile step. Rewritten as fsi-app/src/lib/agent/span-check.npmtest.mjs (node:test, imports
+      // spanCheckFetch directly — Node 24 type-stripping makes the relative .ts import portable, same
+      // pattern every other src/lib/agent/*.test.mjs uses) — `.npmtest.mjs` because span-check.ts imports
+      // the "workflow" npm package for RetryableError, so it cannot join the no-npm-ci glob. Picked up
+      // automatically by discipline.yml's `git ls-files 'fsi-app/src/**/*.npmtest.mjs'` glob — no
+      // workflow-file edit needed. The old file is deleted; deleting it outright with no replacement (the
+      // brief's default expectation for this class) would have removed real safety-net proof over live
+      // retry-on-timeout behavior with nothing to replace it, which is a worse outcome than the small fix.
+      // 'scripts/verify/audit-finding-status.mjs' entry REMOVED (lane W71-A, 2026-09-05): now reachable
+      // by construction — a real "verify:audit-findings" package.json script (Source 2) and a real
+      // report-only invocation from run-test-suite.sh, both wired this lane. The recursion bug that left
+      // 27 of 101 docs/audits/ files unscanned was fixed in the same diff (rule 13).
+      // 'scripts/verify/wave-acceptance-audit.mjs' entry REMOVED (lane W71-A, 2026-09-05): ADR-014's
+      // "wave-close" mechanism was [REFUTED] this lane — it does not exist anywhere in the repo (trains
+      // land continuously; no wave-boundary hook to gate). Wired instead into
+      // run-data-audit-lane.mjs's AUDITS table as a SOFT nightly audit (Source 4), using "since 24h ago"
+      // as the honest practical proxy for a wave boundary; self-skips (exit 2) without creds.
+      // 'mint-gate-calibration' entry REMOVED (lane W71-A, 2026-09-05): the script itself was deleted
+      // (no live caller — see F38-unbounded-supabase-read.mjs's own removed-entry note for the evidence).
+      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
         o(`scripts/verify/${n}.mjs`,
           'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 52,
           'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
