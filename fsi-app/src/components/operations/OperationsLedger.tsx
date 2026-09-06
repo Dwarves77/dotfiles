@@ -39,6 +39,7 @@ import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMa
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { STATE_LABELS, buildStateRoster, formatFactStatus } from "@/lib/operations/state-roster.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
+import { buildRegulationsRegionHref } from "@/lib/url-params/regulations-region-link";
 import { SEVERITY_TO_OPERATIONS_BUCKET } from "@/lib/agent/metadata-vocab";
 
 // ── Severity vocabulary (Operations: Critical / High / Moderate / Low) ──
@@ -702,6 +703,7 @@ function RegionCard({
                 dim={d}
                 spotlight={activeDim === d.key}
                 regionKey={region.key}
+                regionIsoCodes={region.isoCodes}
                 regs={d.key === "regulatory" ? regs : []}
                 facts={d.key === "regulatory" ? [] : factsFor(region.key, d.key)}
               />
@@ -726,11 +728,12 @@ function RegionCard({
 // ── Dimension cell ──
 
 function DimensionCell({
-  dim, spotlight, regionKey, regs, facts,
+  dim, spotlight, regionKey, regionIsoCodes, regs, facts,
 }: {
   dim: Dimension;
   spotlight: boolean;
   regionKey: string;
+  regionIsoCodes: string[];
   regs: Resource[];
   facts: OperationsFact[];
 }) {
@@ -782,7 +785,7 @@ function DimensionCell({
       </div>
 
       {isD1 ? (
-        <D1Body regionKey={regionKey} regs={regs} summary={dim.summary} />
+        <D1Body regionKey={regionKey} regionIsoCodes={regionIsoCodes} regs={regs} summary={dim.summary} />
       ) : pending ? (
         <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
           {dim.name} pending for this region — populates when a sourced, dated fact lands.
@@ -794,7 +797,14 @@ function DimensionCell({
   );
 }
 
-function D1Body({ regionKey, regs, summary }: { regionKey: string; regs: Resource[]; summary: string }) {
+function D1Body({
+  regionKey, regionIsoCodes, regs, summary,
+}: {
+  regionKey: string;
+  regionIsoCodes: string[];
+  regs: Resource[];
+  summary: string;
+}) {
   if (regs.length === 0) {
     return (
       <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
@@ -814,7 +824,11 @@ function D1Body({ regionKey, regs, summary }: { regionKey: string; regs: Resourc
           </Link>
         ))}
       </div>
-      <Link href={`/regulations?region=${encodeURIComponent(regionKey.toLowerCase())}`} style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none", margin: "7px 0 0" }}>
+      {/* P2 fix (2026-09-06): the href now carries the region's FULL iso-code set (the same
+          codes `resolveRegionCode` used to compute `regs.length` above), via the shared builder
+          both surfaces import — not a bare group label the ledger's filter never recognized. See
+          regulations-region-link.ts for the root cause. */}
+      <Link href={buildRegulationsRegionHref(regionIsoCodes)} style={{ display: "inline-block", fontSize: 11, fontWeight: 800, color: "var(--color-primary)", textDecoration: "none", margin: "7px 0 0" }}>
         Open {regionKey} regulations →
       </Link>
     </>

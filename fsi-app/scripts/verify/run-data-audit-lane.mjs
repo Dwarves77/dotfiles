@@ -103,6 +103,10 @@ const AUDITS = [
   // red here is a signal for operator review, never a build-blocking verdict on its own. Self-skips
   // (exit 2) without SUPABASE_URL/SERVICE_ROLE_KEY, same convention as every other audit above.
   ["wave-acceptance", "scripts/verify/wave-acceptance-audit.mjs", false],
+  // P6 (2026-09-06, lane UX-FIX): Map mode-tag (transport_modes) editorial coverage tracking.
+  // SOFT — a human editorial backlog (no deterministic classifier exists to auto-tag these; see
+  // that file's header), never a build-blocking verdict. Self-skips (exit 2) without creds.
+  ["mode-tag-coverage", "scripts/verify/mode-tag-coverage-audit.mjs", false],
 ];
 
 const results = [];

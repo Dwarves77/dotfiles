@@ -136,3 +136,23 @@ export function homeJurisdictionsInRoom(
   if (!overrides || overrides.length === 0) return false;
   return overrides.some((j) => roomForJurisdiction(j) === key);
 }
+
+/**
+ * Single source of truth for "you belong to this room" (P1 fix, 2026-09-06).
+ *
+ * `RoomVM` carries TWO independent booleans that must never be conflated into
+ * one UI claim: `joined` is real membership (a row in `community_group_members`,
+ * the same fact the Join/Leave button in the room panel reads), and `youHere`
+ * is a derived HINT (the caller's home jurisdiction falls in this room's
+ * region) used only to pick a sensible default room to open — it asserts
+ * nothing about membership. Before this fix the rooms-grid tile computed its
+ * "YOU'RE HERE" chip as `youHere || joined` while the room panel's Join button
+ * read `joined` alone, so a user whose org is EU-based but who had never
+ * joined the EU room saw the tile claim membership and the panel deny it.
+ * Every membership-claiming surface (tile chip, room count, Join/Leave button)
+ * must call this function so there is exactly one place that decides what
+ * "you're here" means.
+ */
+export function isRoomMember(room: { joined: boolean }): boolean {
+  return room.joined;
+}

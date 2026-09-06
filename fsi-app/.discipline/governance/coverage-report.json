@@ -2212,6 +2212,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/lib/community/rooms.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/lib/connections/anticipate.test.mjs",
       "kinds": [
         "PROOF"
@@ -4249,6 +4258,15 @@
       "skills": [
         "source-credibility-model"
       ],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/lib/url-params/regulations-region-link.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
       "proofWired": true,
       "status": "COVERED"
     },
@@ -9145,8 +9163,8 @@
     }
   ],
   "summary": {
-    "governed_files": 839,
-    "covered": 806,
+    "governed_files": 841,
+    "covered": 808,
     "exempt": 33,
     "gaps": 0,
     "orphaned_proofs": 0,

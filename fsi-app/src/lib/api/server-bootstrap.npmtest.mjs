@@ -19,16 +19,18 @@ const ROOT = resolve(dirname(fileURLToPath(import.meta.url)), "..", "..", "..");
 const jiti = createJiti(import.meta.url, { interopDefault: true, alias: { "@": resolve(ROOT, "src") } });
 const { resolveServerBootstrapFromClient, resolveServerBootstrap } = await jiti.import("./server-bootstrap.ts");
 
-/** Minimal fake Supabase client covering exactly the calls
- *  resolveServerBootstrapFromClient issues: auth.getClaims(), then
- *  .from("org_memberships")...maybeSingle(), .from("profiles")...maybeSingle(), and — only when a
- *  membership resolves an org_id — .from("workspace_settings")...maybeSingle(). */
+/** Minimal fake Supabase client covering exactly the calls resolveServerBootstrapFromClient
+ *  issues (auth bootstrap fix, 2026-09-06 — collapsed from 3 sequential DB round trips to 1
+ *  parallel batch of 2): auth.getClaims(), then in parallel .from("org_memberships") — now with
+ *  workspace_settings NESTED under organizations() in the same select, no separate query — and
+ *  .from("profiles")...maybeSingle(). `membershipData.organizations.workspace_settings` is an
+ *  ARRAY (PostgREST's to-many embed shape for a FK column with no UNIQUE constraint), matching
+ *  what a real embedded query returns. */
 function fakeSupabase({
   claimsData = null,
   claimsError = null,
   membershipData = null,
   profileData = null,
-  workspaceData = null,
 } = {}) {
   return {
     auth: {
@@ -41,6 +43,7 @@ function fakeSupabase({
         return {
           select(cols) {
             assert.match(cols, /org_id/);
+            assert.match(cols, /workspace_settings/);
             return {
               eq(col) {
                 assert.equal(col, "user_id");
@@ -62,26 +65,21 @@ function fakeSupabase({
           },
         };
       }
-      if (table === "workspace_settings") {
-        return {
-          select(cols) {
-            assert.match(cols, /sector_profile/);
-            return { eq(col) { assert.equal(col, "org_id"); return { maybeSingle: async () => ({ data: workspaceData, error: null }) }; } };
-          },
-        };
-      }
-      throw new Error(`unexpected table: ${table}`);
+      throw new Error(`unexpected table: ${table} — workspace_settings is now nested in the org_memberships select, never a separate query`);
     },
   };
 }
 
-// ── authenticated: claims carry sub + email, membership/profile/workspace all resolve ──
-test("authenticated: getClaims returns claims.sub + claims.email, full bootstrap resolves", async () => {
+// ── authenticated: claims carry sub + email, membership/profile/nested-workspace all resolve ──
+test("authenticated: getClaims returns claims.sub + claims.email, full bootstrap resolves (workspace_settings nested, ONE round trip)", async () => {
   const supabase = fakeSupabase({
     claimsData: { claims: { sub: "user-123", email: "jane@acme.example", role: "authenticated" } },
-    membershipData: { org_id: "org-abc", role: "member", organizations: { id: "org-abc", name: "Acme Freight" } },
+    membershipData: {
+      org_id: "org-abc",
+      role: "member",
+      organizations: { id: "org-abc", name: "Acme Freight", workspace_settings: [{ sector_profile: ["ocean", "air"] }] },
+    },
     profileData: { sector_overrides: ["ocean"] },
-    workspaceData: { sector_profile: ["ocean", "air"] },
   });
   const bootstrap = await resolveServerBootstrapFromClient(supabase);
   assert.deepEqual(bootstrap, {
@@ -106,14 +104,14 @@ test("authenticated, no email claim → user.email is null (matches the prior op
   assert.equal(bootstrap.orgId, null);
 });
 
-// ── authenticated, no membership row → EMPTY-shaped org fields, user still populated, no workspace query ──
-test("authenticated but no membership → orgId null, workspaceSectors empty, workspace_settings never queried", async () => {
+// ── authenticated, no membership row → EMPTY-shaped org fields, user still populated ──
+test("authenticated but no membership → orgId null, workspaceSectors empty (only 2 queries ever issued: org_memberships, profiles)", async () => {
   const supabase = {
     auth: { async getClaims() { return { data: { claims: { sub: "user-1" } }, error: null }; } },
     from(table) {
       if (table === "org_memberships") return { select() { return { eq() { return { order() { return { limit() { return { maybeSingle: async () => ({ data: null, error: null }) }; } }; } }; } }; } };
       if (table === "profiles") return { select() { return { eq() { return { maybeSingle: async () => ({ data: null, error: null }) }; } }; } };
-      throw new Error(`must not query ${table} when there is no org membership`);
+      throw new Error(`unexpected third table queried: ${table}`);
     },
   };
   const bootstrap = await resolveServerBootstrapFromClient(supabase);
@@ -162,7 +160,11 @@ test("claims object with no sub → EMPTY bootstrap, no queries", async () => {
 test("symmetric-secret fallback shape (claims sourced from getUser() internally by getClaims) → resolves the same as the asymmetric path", async () => {
   const supabase = fakeSupabase({
     claimsData: { claims: { sub: "user-456", role: "authenticated", email: "b@example.com" } },
-    membershipData: { org_id: "org-xyz", role: "owner", organizations: { id: "org-xyz", name: "Beta Logistics" } },
+    membershipData: {
+      org_id: "org-xyz",
+      role: "owner",
+      organizations: { id: "org-xyz", name: "Beta Logistics", workspace_settings: [] },
+    },
     profileData: null,
   });
   const bootstrap = await resolveServerBootstrapFromClient(supabase);

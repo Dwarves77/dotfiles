@@ -37,6 +37,7 @@ import { JURISDICTION_CENTROIDS } from "@/components/map/jurisdictionCentroids";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
 import { TIER1_PRIORITY_ISOS } from "@/lib/tier1-priority-jurisdictions";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { buildRegulationsRegionHref } from "@/lib/url-params/regulations-region-link";
 import type { CommunityActivityRow, JurisdictionTone, MapJurisdiction } from "@/components/map/MapView";
 
 const MapView = dynamic(
@@ -729,7 +730,7 @@ export function MapPageView(props: MapPageViewProps) {
                           </p>
                         )}
                         <Link
-                          href={`/regulations?region=${encodeURIComponent(selectedRow.id.toUpperCase())}`}
+                          href={buildRegulationsRegionHref([selectedRow.id])}
                           style={{
                             display: "inline-block",
                             fontSize: 11.5,
@@ -1072,7 +1073,12 @@ export function MapPageView(props: MapPageViewProps) {
                     Items
                   </span>
                   {registerRows.map((row) => (
-                    <ListRow key={row.id} row={row} />
+                    <ListRow
+                      key={row.id}
+                      row={row}
+                      selected={row.id === selectedJurId}
+                      onSelect={() => focusJurisdiction(row.id)}
+                    />
                   ))}
                 </div>
                 {remainderNote && (
@@ -1116,16 +1122,35 @@ interface RegisterRow {
   subtitle: string;
 }
 
-function ListRow({ row }: { row: RegisterRow }) {
+// P5 fix (2026-09-06): "Map list-view rows are not navigable (dead clicks)." ROOT CAUSE
+// [CONFIRMED] by reading: this file already has TWO working row interactions for the exact same
+// jurisdiction data — the split/map register tile grid's `onClick={() => focusJurisdiction(row.id)}`
+// (~line 917), and the selected-jurisdiction detail panel's `Link href={\`/regulations?region=...\`}`
+// (~line 732, now built with the shared P2 builder below) — but the dedicated List-view table
+// never got either: `ListRow` rendered five plain `<span>` cells with no click handler, no href,
+// nothing. Fixed at the cause with the SAME row link the ledgers use (regulations rows are real
+// `<Link>`s to a destination, not a bare selection toggle): the whole row IS the
+// `buildRegulationsRegionHref` link, via a `display: contents` wrapper so one accessible control
+// covers the whole CSS-grid row without breaking the fixed `gridTemplateColumns` layout the header
+// row shares with it — `minHeight: 44` on every cell meets the 44px target law
+// (docs/design/ux-laws.md). It also still calls `focusJurisdiction` on click so the map/split
+// view's own selection state (shared across all three view modes) stays in sync.
+function ListRow({ row, selected, onSelect }: { row: RegisterRow; selected: boolean; onSelect: () => void }) {
   const cell: React.CSSProperties = {
     borderBottom: "1px solid var(--color-border-subtle)",
     display: "flex",
     alignItems: "center",
-    background: "transparent",
+    minHeight: 44,
+    background: selected ? "var(--color-bg-ai-strip)" : "transparent",
   };
   return (
-    <>
-      <span style={{ ...cell, padding: "12px 0 12px 20px" }}>
+    <Link
+      href={buildRegulationsRegionHref([row.id])}
+      aria-label={`Open ${row.label} regulations (${row.count} items)`}
+      onClick={onSelect}
+      style={{ display: "contents", cursor: "pointer", textDecoration: "none", color: "inherit" }}
+    >
+      <span style={{ ...cell, padding: "12px 0 12px 20px", borderLeft: selected ? "3px solid var(--color-primary)" : "3px solid transparent" }}>
         <span
           aria-hidden="true"
           style={{ width: 9, height: 9, borderRadius: 999, background: TONE_COLOR[row.tone], display: "inline-block" }}
@@ -1163,7 +1188,7 @@ function ListRow({ row }: { row: RegisterRow }) {
       >
         {row.count}
       </span>
-    </>
+    </Link>
   );
 }
 

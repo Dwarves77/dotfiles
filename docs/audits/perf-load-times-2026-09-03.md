@@ -1493,3 +1493,88 @@ correct priority-band distribution (14 CRITICAL, 30 HIGH, 16 MODERATE — matchi
 state). The two surfaces' pagination boundaries no longer duplicate rows (id ASC tiebreak now supplied
 by the RPC's own ORDER BY). [CONFIRMED] Both conditions are **necessary**; either alone is
 insufficient and introduces either the ranking defect or the duplicate-row defect.
+
+## 16. Lane UX-FIX: operator baseline (2026-09-06), P4 route-cache fix + auth-bootstrap round-trip cut
+
+Operator-measured baseline, verbatim (production, 2026-09-06, shell load, all pages): "TTFB 150ms,
+FCP 940ms, load complete 3.1s. Auth/session bootstrap is the primary bottleneck (~1.9s). SPA route
+transitions are instantaneous. Back-navigation triggers a ~3s skeleton reload due to no client-side
+route cache." Treated as the baseline per rule B4 (measure, do not merely assume the prediction) — see
+16.3 for why this lane could not re-run the operator's exact live method against this baseline itself.
+
+### 16.1 P4 — no client-side route cache (back-navigation ~3s skeleton)
+
+[CONFIRMED] by reading `node_modules/next/dist/server/config-shared.js` (Next 16.1.6, this repo's
+pinned version — `fsi-app/package.json`): `experimental.staleTimes.dynamic` defaults to `0`. Every
+route in this app reads `cookies()`/auth (per `next.config.ts`'s own redirects() comment) and is
+therefore classified dynamic, so the client Router Cache treated every one of them as immediately
+stale — a back/forward navigation always re-issues the RSC fetch and re-renders the full
+`loading.tsx` skeleton, even for a route the browser rendered seconds earlier. This is a SEPARATE
+cache layer from ADR-026's server-side `unstable_cache` item-scoped split (PERF-2, §7-§9 above);
+the two do not interact and this fix touches neither the RSC payload shape nor what a fresh fetch is
+allowed to reuse.
+
+**Fix applied** (`fsi-app/next.config.ts`): `experimental.staleTimes = { dynamic: 30, static: 300 }`
+— `static` is the unchanged Next default; `dynamic` moves from 0 to 30 seconds, letting the client
+Router Cache serve a back-navigation within that window from memory instead of re-fetching. See
+next.config.ts's own inline comment for the full citation.
+
+### 16.2 Auth/session bootstrap (~1.9s) — the round trip cut
+
+[CONFIRMED] by reading `fsi-app/src/lib/api/server-bootstrap.ts` (the function
+`GET /api/auth/identity` calls, per `AuthProvider.tsx`'s PERF-10 client-fetch mechanism, §12-§13
+above): `resolveServerBootstrapFromClient` issued the session's identity resolution as **three
+sequential** round trips to Postgres — `auth.getClaims()` (local JWT verify, not a network call, per
+§13's own PERF-7 finding), then `Promise.all([org_memberships, profiles])`, then a THIRD,
+separately-awaited `workspace_settings` query gated on the `orgId` the second step resolved. The
+third hop cannot start until the second resolves, so the identity route's own server-side path was
+two full sequential DB round trips stacked on top of the browser's own outer fetch to the Route
+Handler (PERF-10's own added hop) — the shape a ~1.9s "auth bootstrap" bottleneck takes.
+
+**Fix applied**: `workspace_settings` is now embedded in the SAME `org_memberships` query via
+PostgREST's nested-select syntax (`organizations(id, name, workspace_settings(sector_profile))`) —
+`workspace_settings.org_id REFERENCES organizations(id)` is a real FK (migration 006), so PostgREST
+resolves it as one join, not a second request. Down from 3 sequential DB round trips to 1 parallel
+batch of 2 (`org_memberships`-with-nested-workspace, and the unrelated `profiles` lookup, run via the
+same `Promise.all`). No behavior change for any caller: `workspace_settings` has no `UNIQUE(org_id)`
+constraint so PostgREST returns the embed as an array; `[0]` is taken exactly as the old
+`.maybeSingle()` direct query resolved it (one settings row per org in practice, migration 006).
+
+### 16.3 Why this lane could not re-run the operator's own before/after measurement
+
+The operator's method (§7's own citation: `performance.getEntriesByType('navigation'/'resource')`
+read live, in-page, against a real deployment, signed in) requires a deployed build reachable from a
+browser session. This lane's worktree (`lane/uxfix-2026-09-06`) is unmerged and undeployed — there is
+no production or preview URL serving these changes yet, and fabricating before/after numbers against
+a deployment that does not carry this fix would violate rule 2 (never fabricate). `next build
+--webpack` (§ gates, this lane's REPORT) confirms the app still builds clean with `staleTimes` set
+and every route's dynamic/static classification unchanged from before this lane; that is the limit of
+what is verifiable pre-deploy.
+
+### 16.4 EXACT dispatch for the coordinator (live measurement, once this lane's branch is deployed)
+
+1. Deploy this lane's merged commit to a Vercel preview (or land to `origin/master` and let the next
+   production deploy carry it) — no other action needed; `next.config.ts` and `server-bootstrap.ts`
+   are the only files this measurement depends on.
+2. Using `mcp__Vercel__get_deployment` (or `carosledge.com` once production), confirm
+   `githubCommitSha` matches this lane's merge commit and `readyState: READY`, exactly as §7's own
+   preflight does.
+3. In a Chrome session signed in as the operator, against that deployment: for EACH of `/`,
+   `/regulations`, `/market`, `/operations`, `/research`, `/community`:
+   - **Auth bootstrap**: `performance.getEntriesByType('resource').find(r =>
+     r.name.includes('/api/auth/identity'))` — record `responseEnd - startTime`. Compare directly
+     against the operator's stated ~1.9s baseline (16's header).
+   - **Back-navigation skeleton**: navigate in, click through to a detail page, then browser-back;
+     record whether `loading.tsx`'s skeleton renders at all (a `MutationObserver`/screenshot on the
+     back-nav, or simply whether the RSC `fetch` in `read_network_requests` fires a second time for
+     the same route within the 30s `staleTimes.dynamic` window — it should NOT).
+4. **Expected artifact**: a new dated subsection appended to THIS file (§17, following this section's
+   numbering convention) with a before→after table in §7.1's exact shape (server-render / requests),
+   the auth-bootstrap resource-timing number, and an explicit pass/fail on "back-navigation issues no
+   second RSC fetch within 30s." Do not overwrite §16 — append, per this doc's own append-only
+   convention every prior PERF section follows.
+
+### 16.5 Files touched (this section)
+
+`fsi-app/next.config.ts` (P4), `fsi-app/src/lib/api/server-bootstrap.ts` +
+`fsi-app/src/lib/api/server-bootstrap.npmtest.mjs` (auth bootstrap). Gates: see this lane's REPORT.
