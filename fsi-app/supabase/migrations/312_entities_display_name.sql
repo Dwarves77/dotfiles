@@ -35,7 +35,17 @@
 -- SAFE BY CONSTRUCTION: `entities` has 665+ live rows (instrument alone) but ADD COLUMN ... nullable,
 -- no default, no rewrite of any existing value — a pure additive schema change, no backfill, no lock
 -- beyond the brief metadata lock every ADD COLUMN takes.
-
+--
+-- NUMBER COLLISION, NOTED FOR THE RECORD: lane w71f14 (2026-09-05, unmerged, superseded by operator
+-- ruling) also wrote a file numbered 312 — DROP entities_scope — which was NOT merged into any train and
+-- must never be applied. This file (312_entities_display_name.sql, lane SCOPE-READER) is the only live
+-- migration 312. See docs/inventories/migrations.md's 312 row for the disposition of the superseded file.
+--
+-- APPLIED LIVE 2026-09-06 by the coordinator via Supabase MCP immediately after lane SCOPE-READER
+-- reported (schema_migrations version 20260906154322, read back via `select version from
+-- supabase_migrations.schema_migrations order by version desc limit 1`); post-check passed
+-- (entities.display_name confirmed nullable text via information_schema.columns).
+--
 -- ── Preconditions ────────────────────────────────────────────────────────────────────────────────────
 DO $$
 BEGIN
