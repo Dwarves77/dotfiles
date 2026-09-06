@@ -68,6 +68,7 @@ export function Sidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   const userRole = useWorkspaceStore((s) => s.userRole);
+  const orgName = useWorkspaceStore((s) => s.orgName);
   const isAdmin = userRole === "owner" || userRole === "admin";
   const { data: bootstrap } = useWorkspaceBootstrap();
   const counts = bootstrap?.navCounts;
@@ -168,38 +169,50 @@ export function Sidebar() {
 
       <div className="flex-1" />
 
+      {/* Footer (README §0.3 nav card: "sections Brief / Intelligence /
+          Network / Operator" — the artboard (01-dashboard.png) supersedes
+          that prose with two plain rows, no section label: Account (right
+          = workspace name) and Admin (right = role badge). The interactive
+          sign-out menu (UserMenuDropdown) has no artboard placement of its
+          own, so it stays as a compact utility row beneath — logged in
+          DEVIATION-LOG.md. */}
       <div className="flex flex-col" style={{ borderTop: "1px solid var(--line-3)" }}>
-        <p
-          style={{
-            fontSize: "var(--fs-95)",
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            margin: "10px 12px 2px",
-          }}
+        <Link
+          href="/profile"
+          prefetch={false}
+          onClick={() => setMobileOpen(false)}
+          aria-current={isActive("/profile") ? "page" : undefined}
+          className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5"
+          style={{ color: "var(--ink)" }}
         >
-          Operator
-        </p>
-        <div className="flex items-center gap-2 px-3.5 pb-3.5">
-          <div className="min-w-0 flex-1">
-            <UserMenu />
-          </div>
-          {isAdmin && (
-            <Link
-              href="/admin"
-              prefetch={false}
-              onClick={() => setMobileOpen(false)}
-              aria-current={isActive("/admin") ? "page" : undefined}
-              className="shrink-0 text-[10px] font-extrabold tracking-[0.08em] uppercase rounded-md px-2.5 py-1.5 transition-colors"
-              style={{
-                color: isActive("/admin") ? "var(--brand)" : "var(--ink-2)",
-                border: `1px solid ${isActive("/admin") ? "var(--brand)" : "var(--line-1)"}`,
-              }}
+          <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Account</span>
+          <span
+            className="truncate"
+            style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+          >
+            {orgName || "—"}
+          </span>
+        </Link>
+        {isAdmin && (
+          <Link
+            href="/admin"
+            prefetch={false}
+            onClick={() => setMobileOpen(false)}
+            aria-current={isActive("/admin") ? "page" : undefined}
+            className="flex items-center justify-between gap-2 px-3.5 pb-2"
+            style={{ color: "var(--ink)" }}
+          >
+            <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Admin</span>
+            <span
+              className="shrink-0 text-[10px] font-extrabold tracking-[0.08em] uppercase rounded-md px-2 py-0.5"
+              style={{ color: "var(--brand)", border: "1px solid var(--brand)" }}
             >
-              Admin
-            </Link>
-          )}
+              {userRole}
+            </span>
+          </Link>
+        )}
+        <div className="px-3.5 pb-3.5">
+          <UserMenu />
         </div>
       </div>
     </>

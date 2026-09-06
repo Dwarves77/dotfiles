@@ -24,8 +24,7 @@
 
 import { getAppData, getWatchlist, getWorkspaceAggregates } from "@/lib/data";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
-import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
-import { Masthead } from "@/components/ui/Masthead";
+import { DashboardMasthead } from "@/components/dashboard/DashboardMasthead";
 import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
 import { formatLocaleDate } from "@/lib/format";
 
@@ -53,12 +52,12 @@ export default async function Home() {
 
   return (
     <>
-      <SystemErrorBanner message={data._error} />
       <div style={{ padding: "20px 40px 0" }}>
-        <Masthead
-          title="Dashboard — Your brief"
+        <DashboardMasthead
           dateLabel={dateStr}
-          commandBar={{ itemCount: itemsCount, scope: "dashboard" }}
+          itemCount={itemsCount}
+          aggregatesLoaded={aggregates.totalItems > 0}
+          totalJurisdictions={aggregates.totalJurisdictions}
         />
       </div>
       <DashboardBrief
@@ -68,6 +67,7 @@ export default async function Home() {
         auditDate={data.auditDate}
         surfaceCoverage={surfaceCoverage}
         watchlistPromise={watchlistPromise}
+        fetchError={data._error}
       />
     </>
   );

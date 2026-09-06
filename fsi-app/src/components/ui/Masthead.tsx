@@ -66,33 +66,35 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
       >
         VOL {EDITORIAL_VOLUME} · No. {weekNo} · {dateLabel}
       </p>
-      <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
-        <h1
-          data-guard-title
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            letterSpacing: "0.04em",
-            textTransform: "uppercase",
-            fontSize: size === "list" ? 34 : 28,
-            lineHeight: 1.05,
-            color: "var(--ink)",
-            margin: 0,
-            minWidth: 0,
-            wordBreak: "break-word",
-          }}
-        >
-          {title}
-        </h1>
-      </div>
-      {dek && (
-        <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-2)", margin: "8px 0 0" }}>{dek}</div>
-      )}
-      {commandBar && (
-        <div style={{ marginTop: 16 }}>
-          <CommandBar itemCount={commandBar.itemCount} onSearch={commandBar.onSearch} scope={commandBar.scope} />
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+          <h1
+            data-guard-title
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 400,
+              letterSpacing: "0.04em",
+              textTransform: "uppercase",
+              fontSize: size === "list" ? 34 : 28,
+              lineHeight: 1.05,
+              color: "var(--ink)",
+              margin: 0,
+              minWidth: 0,
+              wordBreak: "break-word",
+            }}
+          >
+            {title}
+          </h1>
+          {dek && (
+            <div style={{ fontSize: "var(--fs-13)", color: "var(--ink-2)", margin: "8px 0 0" }}>{dek}</div>
+          )}
         </div>
-      )}
+        {commandBar && (
+          <div style={{ flex: "0 1 420px", minWidth: 260 }}>
+            <CommandBar itemCount={commandBar.itemCount} onSearch={commandBar.onSearch} scope={commandBar.scope} />
+          </div>
+        )}
+      </div>
     </header>
   );
 }
