@@ -11186,3 +11186,59 @@ Assessment is now 629 lines, Part E covers all of the above. Next unit for anyon
 this up: mobile still needs capturing with a tool that sets the rendering viewport
 (Playwright's viewport option or CDP Emulation.setDeviceMetricsOverride), and tablet,
 logged-out, loading states and overlays remain uncaptured.
+
+## Addendum 86, postscript 5: train 51, canonical-autoverify folded, four dispatches, the UI overhaul in flight (2026-09-06, coordinator, lane ASSEMBLE-51)
+
+I am writing this as the coordinator. Train 50 landed on `origin/master` as PR #598
+(`59014010`); #597 and #599 were the docs-only UI-audit-evidence packages from the design
+session that landed around it (#597 `f17d7e77` before train 50, #599 `130f023f` after).
+Master's tip going into this train was `130f023f`.
+
+**Train 51 / ASSEMBLE-51** folded one lane branch onto train 50: `lane/canonical-autoverify-2026-09-06`,
+two commits (`46773631` automatic verification of replacement source locations, `751a251c` no human
+outcome / ambiguous hosts register provisional). Clean cherry-pick as expected, `grep -rn '<<<<<<<'`
+clean, `coverage-report.json` regenerated (849 governed files, 814 COVERED, 35 EXEMPT, 0 GAPS).
+`assemble-train --fold --propose --ledger`: folded 0 (26 already folded from train 50), 0 new proposer
+briefs, 0 derived ledger rows.
+
+**Dispatches #66-#69**, all coordinator-confirmed, appended to `docs/ops/dispatch-ledger.jsonl`:
+
+- **#66/#67 — review-apply-portal-links**, dry then apply `arg=docs/ratifications/2026-09/portal-links.ruling.json`:
+  dry found 301 groups, 171 drop groups = 53,718 rows would be rejected, 130 link groups = 3,751 rows
+  skipped (no mutation by design). Apply rejected the 53,718 (status candidate->rejected as ruled);
+  read-back `rows_named_in_ruling` 57,469 = `rows_now_live` 57,469 through the chunked path, CONFIRMED
+  by SQL (rejected 53,718, candidate 3,751, promoted 3). This is the first dispatch after the
+  `readAllByIds`/`fetchAllByIdChunks` fix landed in train 50 (lane READBACK-CHUNK), and it is by far the
+  widest read-back the class of defect could hit — it held clean.
+- **#68/#69 — attach-found-sources**, dry then apply `arg=scripts/_worklists/attach-found-sources-2026-09-06.json`:
+  dry found 176 worklist rows ready, 0 not ready, 0 malformed; would_capture_and_ground 27,
+  would_register_and_capture 10, would_fetch 6. Apply grounded 82 of the 176 (38
+  source_registered_and_grounded, 1 grounded_on_existing_source, 43 gate_a_written, 6
+  reclassified_rewritten); 36 token_not_in_page, 9 unresolved, 2 unfetchable, 1 sentence_removed. 359 of
+  the original 441 orphan figures remain.
+
+**The autoverify ruling and build**: the operator's ruling is that verification of a replacement source
+location is automatic, done by the pipeline, never a human review queue. The pipeline rules reachability,
+page class, content proof (`locateSpanInText` against the actually-fetched page), and authority
+(host-authority, never a hand-typed tier). An ambiguous host registers provisional at
+`defaultTierForHost`'s default tier; `tier-opinions.mjs` already scans the whole `sources` table with no
+status filter, so it picks up a provisional row on its very next dispatch with no code change of its own
+(confirmed with a test in the folded lane). Of the 16 pending rows, dry-verification approved 6 and
+rejected 10. First real dispatch of `canonical-autoverify` is still pending — that is next, along with
+`tier-opinions` dry then apply once the autoverify rows have moved.
+
+**The UI overhaul, in flight**: UI-SYSTEM landed on a lane branch (design tokens, spacing, urgency
+vocabulary — the fixes the audit in postscripts 60/61 called for). Six page lanes are running against
+that base now, one per surface. UI-DELTA is queued behind them: an action row, workspace tags with a
+migration, and a provisional-source popover, all per Claude Design's own spec from the review the
+operator ran. None of the six page lanes nor UI-DELTA are folded into this train — they are targeted to
+land as train 52.
+
+**Next**: `canonical-autoverify` dry then apply, then `tier-opinions` dry then apply; `source-role-cleanup`;
+`downstream-chain.yml`'s first real run; `backfill-derivation-edges.mjs --apply`; the 16
+canonical-candidate rows routed to individual review, written up as a ruling digest for the operator; the
+map smoke spec gap; a THETIS-MRV row for FUELEU's `statutory_computations` writer; retiring
+`docs/design/redesign/`; train 52 (the six UI page lanes + UI-DELTA).
+
+**UX compliance**: `CanonicalSourceReview.tsx` — the one `.tsx` file this train's fold touched — changed
+one line of copy text; no layout, no structural, no interaction change [CONFIRMED by `git diff`].
