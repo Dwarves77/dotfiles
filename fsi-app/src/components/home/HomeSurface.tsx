@@ -17,6 +17,22 @@
  * recomputed from visible rows); honest-state frames for every absent field;
  * the What-changed half stays date-stamped (never implies live detection);
  * superseded items render in their own ledger, never mixed into active lists.
+ *
+ * RETIRED FROM THE LIVE ROUTE (2026-09-06, UI system handoff): `/` (app/page.tsx)
+ * now mounts <DashboardBrief/> (src/components/dashboard/DashboardBrief.tsx),
+ * assembled from the new UI system's shared parts per
+ * docs/design/handoff-2026-09-06 — the artboard has no priority-tile/Ask-bar/
+ * This-week/five-surfaces/Housekeeping sections, so this body is not the
+ * target design. This file (and DashboardHero/DashboardAskBar/
+ * DashboardTopPriority/DashboardSurfaceCoverage/DashboardByOwner/
+ * DashboardCoverageGaps/WhatChanged/Supersessions below it) is kept — not
+ * deleted — only because .discipline/rendering/smoke/home-sections-smoke.mjs
+ * and list-order-smoke.mjs still mount it/DashboardTopPriority directly and
+ * F35 (row-ux-coverage) cites it; retiring those gates correctly is out of
+ * this lane's scope (dashboard assembly only) and is logged as follow-up in
+ * docs/design/handoff-2026-09-06/DEVIATION-LOG.md. A later lane should
+ * either delete this file + its smoke coverage together, or fold the
+ * drag-reorder "Due next" behavior it implements into DashboardBrief.
  */
 
 import { Suspense, useEffect, useMemo, useState } from "react";

@@ -24,6 +24,7 @@ import type { UrgencyBand } from "@/lib/urgency/bands";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
 import { TierChip } from "@/components/ui/Chips";
+import { Absence } from "@/components/ui/Absence";
 
 export interface ListRowProps {
   href: string;
@@ -124,14 +125,14 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
             <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
           </>
         ) : (
-          <span style={{ fontSize: "var(--fs-12)", color: "var(--ink-3)" }}>—</span>
+          <Absence reason="pending" />
         )}
       </span>
       <span style={{ display: "flex", alignItems: "center" }}>
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
       <span style={{ display: "flex", alignItems: "center" }}>
-        {tier != null ? <TierChip tier={tier} /> : <span style={{ color: "var(--ink-3)" }}>—</span>}
+        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
       </span>
       <span
         style={{
