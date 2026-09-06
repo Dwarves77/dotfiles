@@ -124,11 +124,17 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // record of the run lives in git history, docs/inventories/migrations.md #200). No contentHash change (the
 // skill text itself did not move); removing a deleted file's citation is the drift this gate exists to catch,
 // not a re-pin.
+// 2026-09-06 (Lane INCLAUSE-CLASS, IN-CHUNK id-list class): remediation-discipline re-pinned — added
+// "Section 4 — category 39: a PostgREST `.in(col, list)` filter URL-encodes its whole list into the GET
+// request" (invariant RD-64, F39) — a runtime-sized `.in()` list eventually 400s the request itself
+// (distinct from category 38's response-truncation shape). No citingFiles change, same posture as the
+// category 36/37/38 re-pins above (the files below cite the skill as a whole, not this section
+// specifically).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: '3799fc8ebfad134db3e7898146b0621d2b3035c0d2c45c2325dc3f799baf2452',
+    contentHash: 'b3507fd5735f41cd8556b5b55a3e70c2dbadea6a1a514ced1ed7c3e025bdff54',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
