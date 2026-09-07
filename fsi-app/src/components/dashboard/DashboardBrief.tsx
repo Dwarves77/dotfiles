@@ -186,7 +186,9 @@ export function DashboardBrief({
   const monitorTotal = aggregates.byPriority.MODERATE ?? 0;
 
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "16px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
+    // Content column top padding is 20px (README §0.3), matching operator ruling 4.2's nav-card
+    // margin-top (fix58-tokens, 2026-09-07, page-frame.json B171) so the two align.
+    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
       <style>{`
         @media (max-width: 1280px) {
           .cl-brief-outer { grid-template-columns: 1fr !important; }

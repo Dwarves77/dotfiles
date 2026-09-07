@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T19:42:22.718Z",
+  "runAt": "2026-09-07T19:59:08.833Z",
   "specs": [
     {
       "part": "Absence",
@@ -375,7 +375,8 @@
         "Ruling 2.5 restates the family rules (band = tinted pill + round dot; workspace tag = square dot, removable; kind/mode/topic = neutral, no dot, no border; tier = the only bordered chip) without new numbers for band/tier/tag beyond what the artboard states, so the artboard markup is the numeric source for those three.",
         "TagChip has no `border` set at all (correct per ruling 2.5's 'no dot, NO border'); the artboard's neutral tag also has no border rule. Both sides agree, not asserted as a property since 'unset' has no single canonical getComputedStyle form worth comparing.",
         "CONFIRMED, verified not a harness artefact: `--radius-pill` computes to nothing (CSSOM initial value, 0) in the real product, not just this harness. src/app/theme.css declares it TWICE inside the SAME plain `:root{}` rule (no `@theme` involved, no Tailwind step in play): line 55 `--radius-pill: 999px;`, then line 201 `--radius-pill: var(--radius-pill);` — a property declared in terms of itself, which CSS defines as invalid, and the invalid LATER declaration wins over the valid earlier one within one rule (there is no 'fall back to the earlier declaration' in CSS custom properties). Every chip that reads `var(--radius-pill)` — BandChip, WorkspaceTagPill, and TagChip (see next note) — renders SQUARE corners everywhere in the shipped product, not just in this measurement. Confirmed by probing `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` directly against theme.css alone (empty string) before writing this spec.",
-        "TagChip's radius is a second, separate issue on top of the broken token: even if `--radius-pill` were fixed to 999px, the artboard's neutral tag uses `border-radius:4px` (a squared tag, matching the tier chip's own 4px-square convention), not a pill — TagChip.tsx reaches for the pill token where the design wants the square one."
+        "TagChip's radius is a second, separate issue on top of the broken token: even if `--radius-pill` were fixed to 999px, the artboard's neutral tag uses `border-radius:4px` (a squared tag, matching the tier chip's own 4px-square convention), not a pill — TagChip.tsx reaches for the pill token where the design wants the square one.",
+        "FIXED by fix58-tokens (2026-09-07): removed theme.css's self-referential `--radius-pill: var(--radius-pill);` redeclaration (it carried no independent value and only broke the earlier valid one); `--radius-pill` now resolves to 999px sitewide. TagChip.tsx also switched to `border-radius:4px` (the design's square-tag value, not the pill token)."
       ],
       "selector": "[data-audit=\"band\"] span",
       "expect": {
@@ -473,9 +474,9 @@
         {
           "name": "filter chip group label",
           "selector": "[data-audit=\"filter-group\"] .cl-filter-group-label",
-          "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value.",
+          "note": "SPEC CORRECTED 2026-09-07 (fix58-tokens, B23-25): the README type-scale quote ('rail labels 10.5px uppercase .12em/700') is prose; where prose and an artboard disagree the artboard wins (dispatch rule). 'Caros Ledge UI System.dc.html' p2 Filters rail card's own group label ('Mode', line ~468) is font-size 10px, letter-spacing .12em, font-weight 700, uppercase, color #7A6E6C — this is the numeric source, not the README paraphrase.",
           "expect": {
-            "font-size": "10.5px",
+            "font-size": "10px",
             "letter-spacing": "0.12em",
             "font-weight": "700",
             "text-transform": "uppercase"
@@ -991,12 +992,13 @@
       "notes": [
         "The artboard's own Filters rail card is a CHECKBOX list, not chip pills — ListSurfaceShell.tsx's own header comment logs this as a DEVIATION already recorded in DEVIATION-LOG.md, so this spec does not compare FilterChip's pill geometry against the artboard's checkbox rows (that would be comparing two different widget types under one name). What IS comparable and is checked below: the group LABEL typography (10px/700/.12em/uppercase muted, matching the artboard's per-group label 'Mode', 'Jurisdiction' etc.) and, per operator ruling 2.5 ('Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not'), that the built FilterChip pill uses the shared chip system's pill radius (--radius-pill) at desktop width, not a bordered box.",
         "Chips.tsx's own header comment states the group-label class is `.cl-filter-group-label` at font-size var(--fs-95)=9.5px, not the artboard's 10px — logged as the comparison; the artboard's Filters-card group label ('Mode') is 10px/700/.12em/uppercase/#7A6E6C exactly, read from p2's Filters card markup.",
-        "SITEWIDE FINDING, confirmed live (not a harness artefact): both filter-chip border-radius checks below measure 0px against theme.css's own --radius-pill:999px token. Root cause, confirmed by reading src/app/theme.css line 213: `--radius-pill: var(--radius-pill);` — a CUSTOM PROPERTY THAT REFERENCES ITSELF inside the same :root block that first declares `--radius-pill: 999px` at line 55. Per the CSS custom-properties spec, a property whose computed value cycles back to itself is 'guaranteed-invalid' and resolves to nothing wherever it is USED (there is no fallback in the `var(--radius-pill)` calls that consume it) — a definition-order bug, not a consumer bug. This is not scoped to FilterChip: every pill-radius shared part that reads `var(--radius-pill)` (BandChip, TagChip, WorkspaceTagPill, FilterChip — all in Chips.tsx) renders a SQUARE corner sitewide instead of the design's pill. Confirmed by a standalone debug mount reading `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` against the real theme.css + globals.css bundle: returns the empty string. This lane writes no product code (dispatch: 'NO product code is written by this lane'); the fix (delete the redundant redeclaration at line 213, or point it at a differently-named canonical token) belongs to a product lane, flagged here with its exact line and mechanism per CLAUDE.md rule 13 ('a flag is a commitment')."
+        "SITEWIDE FINDING, confirmed live (not a harness artefact): both filter-chip border-radius checks below measure 0px against theme.css's own --radius-pill:999px token. Root cause, confirmed by reading src/app/theme.css line 213: `--radius-pill: var(--radius-pill);` — a CUSTOM PROPERTY THAT REFERENCES ITSELF inside the same :root block that first declares `--radius-pill: 999px` at line 55. Per the CSS custom-properties spec, a property whose computed value cycles back to itself is 'guaranteed-invalid' and resolves to nothing wherever it is USED (there is no fallback in the `var(--radius-pill)` calls that consume it) — a definition-order bug, not a consumer bug. This is not scoped to FilterChip: every pill-radius shared part that reads `var(--radius-pill)` (BandChip, TagChip, WorkspaceTagPill, FilterChip — all in Chips.tsx) renders a SQUARE corner sitewide instead of the design's pill. Confirmed by a standalone debug mount reading `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` against the real theme.css + globals.css bundle: returns the empty string. This lane writes no product code (dispatch: 'NO product code is written by this lane'); the fix (delete the redundant redeclaration at line 213, or point it at a differently-named canonical token) belongs to a product lane, flagged here with its exact line and mechanism per CLAUDE.md rule 13 ('a flag is a commitment'). FIXED by fix58-tokens (2026-09-07): theme.css's self-referential redeclaration removed; `--radius-pill` now resolves to 999px sitewide.",
+        "SPEC CORRECTED 2026-09-07 (fix58-tokens): the `expect.letter-spacing` value below was typed as 0.1em, contradicting this same file's own note above ('the artboard's Filters-card group label is 10px/700/.12em/uppercase') and the dc.html p2 reading it cites — corrected to 0.12em to match the artboard source both notes already point to."
       ],
       "selector": "[data-audit=\"group\"] .cl-filter-group-label",
       "expect": {
         "font-weight": "700",
-        "letter-spacing": "0.1em",
+        "letter-spacing": "0.12em",
         "text-transform": "uppercase",
         "color": "#7A6E6C"
       },
@@ -1976,7 +1978,7 @@
           "name": "exactly one '+ Tag' trigger in the detail header (operator 3.2, mechanism repair train 58 2026-09-07)",
           "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
           "textMatch": "Tag",
-          "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). Investigation, train 58 (2026-09-07): measured count is 5, not 1 or 2 — higher than either the passing or the single-known-defect state predicts. `:not(.cl-masthead)` (added this session) already excludes the masthead's own header, and this mount's fixture (PAGE_FRAME_FIXTURES) passes no workspace tags with 'Tag' in their name, so the extra matches are NOT the Masthead CommandBar and NOT a tag pill's own label. Not resolved this session — this lane found the count wrong but did not trace which five elements match; the fix lane should inspect the live DOM (`page.locator(...).allTextContents()` against this exact selector) before assuming which control is the duplicate, rather than trust this note's earlier guess of 'the legitimate trigger plus one duplicate'.",
+          "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). RESOLVED, fix58-tokens (2026-09-07): the count-5 reading was a HARNESS BUG, not a product defect. `targetsOf()`/`readTarget()` in run-audit.mjs carried `textMatch` through for `forbid` entries only; an ordinary target's or child's own `textMatch` field was silently dropped, so this row's selector ran as the bare `header:not(.cl-masthead) button` (every action-row button: the overflow '⋯', Export brief, Share, Watch, + Tag — five, not filtered to 'Tag' at all). Confirmed by a standalone debug mount dumping every matched button's textContent before the fix. Fixed at the root in run-audit.mjs (targetsOf, readTarget, and the probe() call-site mapping that had ALSO been dropping the field a second time — three places, not one — now all carry `textMatch` through for ordinary targets/children, not just `forbid`), not in this spec — the product's ActionRow already renders exactly one 'Tag'-labelled trigger, which is what a working count now measures.",
           "expect": {
             "count": "1"
           }
@@ -2334,7 +2336,7 @@
         "Sidebar.tsx's desktop nav card mixes inline style with Tailwind utility classes (`text-xl uppercase`, `text-[10px] font-bold tracking-[0.15em] uppercase`, etc. on the title/tagline). This harness injects `globals.css`/`theme.css` as RAW text without running Tailwind's build step (no PostCSS/Vite plugin — see mounts.mjs's STYLE_INJECT), so Tailwind's `@import \"tailwindcss\"` and its generated utility classes never resolve in this measured tree: a Tailwind-only property (e.g. the title's `text-xl` font-size) reads back as the browser's un-styled default, which is a HARNESS LIMITATION, not a product value — confirmed empirically (probed `aside.hidden > div:nth-child(2) h1` font-size: read 32px, the UA default h1 size, and text-transform: none, neither of which Sidebar.tsx's own inline style sets). This spec therefore asserts ONLY properties Sidebar.tsx sets via inline `style={}`, which bypass Tailwind entirely and are real regardless of this harness's raw-injection limitation. Title/tagline font-size, weight and text-transform (all Tailwind-class-driven in the desktop card) are NOT asserted here for that reason, not because they are known-correct.",
         "The aside's own box model (width 252, margin, background, border, radius, band-gradient cap) is already covered by spec/page-frame.json's own top-level target on this same mount/selector; this spec adds the nav card's INTERNAL typography and active-state treatment, which page-frame.json does not touch.",
         "dc.html p1 nav card section label ('Brief'): font-size 9.5px, letter-spacing .14em, text-transform uppercase, color #7A6E6C, font-weight 700, padding 8px 8px 4px (the FIRST section only omits the divider/border-top the later two sections carry).",
-        "dc.html p1 nav card active row ('Dashboard'): background #F5F2EE, `box-shadow: inset 3px 0 0 #5A5552` (an inset spine, not a border), font-weight 700 — Sidebar.tsx's active row uses `borderLeft: '2px solid var(--brand)'` instead of an inset box-shadow spine, and `fontWeight: 800` not 700.",
+        "dc.html p1 nav card active row ('Dashboard'): background #F5F2EE, `box-shadow: inset 3px 0 0 #5A5552` (an inset spine, not a border), font-weight 700. FIXED by fix58-tokens (2026-09-07, B96-B98): Sidebar.tsx's active row now uses that box-shadow spine (not `border-left`) and fontWeight 700 (not 800). Section-label letter-spacing (0.14em) and font-weight (700) were also unified across the card/drawer variants — the drawer variant already carried the correct values, only the desktop card diverged.",
         "The mount's `next/navigation` stub (../smoke/stub-next-navigation.mjs, shared guard code, reused as-is per its own header) fixes `usePathname()` to `/community/smoke-test` — so `Sidebar.isActive()` marks COMMUNITY active (prefix match), not Dashboard, in this measured tree. The active-row targets below therefore select the Network section's Community row, not Brief's Dashboard row; this is a mount artefact of which item ends up `aria-current`, not of the STYLING those properties measure (the active-row style rule itself is identical regardless of which row it lands on)."
       ],
       "selector": "aside.hidden nav > div:nth-child(1) > p",
@@ -2372,9 +2374,9 @@
         {
           "name": "active nav row — spine technique",
           "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
-          "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). Sidebar.tsx uses `border-left: 2px solid` instead, which this target measures directly — an absent box-shadow (none) is the honest record of the artboard's technique not being built, distinct from asserting a colour on a technique that isn't there.",
+          "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). FIXED by fix58-tokens (2026-09-07, B98): Sidebar.tsx's active row now sets this box-shadow instead of `border-left`. SPEC CORRECTED in the same commit: `expect` is written in CSSOM's own canonical serialisation order (colour first, then offsets/blur/spread, then the `inset` keyword last), matching this file's own list-surface.json convention for box-shadow — the source-order string in this note is the design statement, not the literal getComputedStyle form.",
           "expect": {
-            "box-shadow": "inset 3px 0px 0px #5A5552"
+            "box-shadow": "rgb(90, 85, 82) 3px 0px 0px 0px inset"
           }
         },
         {
@@ -2822,8 +2824,8 @@
       "selector": "[data-audit=\"reason\"] span",
       "property": "text-transform",
       "expected": "uppercase",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "uppercase",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -2839,8 +2841,8 @@
       "selector": "[data-audit=\"reason\"] span",
       "property": "letter-spacing",
       "expected": "0.08em (= 0.84px at 10.5px)",
-      "actual": "0.21px",
-      "status": "MISMATCH",
+      "actual": "0.84px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4478,8 +4480,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4526,8 +4528,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "font-weight",
       "expected": "800",
-      "actual": "700",
-      "status": "MISMATCH",
+      "actual": "800",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4542,8 +4544,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "letter-spacing",
       "expected": "0.06em (= 0.63px at 10.5px)",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "actual": "0.63px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4558,8 +4560,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "text-transform",
       "expected": "uppercase",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "uppercase",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4590,8 +4592,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "border-width",
       "expected": "1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "1px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4606,8 +4608,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "border-style",
       "expected": "solid",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "solid",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4622,8 +4624,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "border-color",
       "expected": "#FED7AA",
-      "actual": "rgb(249, 115, 22)",
-      "status": "MISMATCH",
+      "actual": "rgb(254, 215, 170)",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4638,8 +4640,8 @@
       "selector": "[data-audit=\"band\"] span span",
       "property": "width",
       "expected": "7px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "7px",
+      "status": "MATCH",
       "note": "dc.html #sys: dot 7x7px, round, background = band hex. BandChip.tsx builds a 6x6px dot."
     },
     {
@@ -4654,8 +4656,8 @@
       "selector": "[data-audit=\"band\"] span span",
       "property": "height",
       "expected": "7px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "7px",
+      "status": "MATCH",
       "note": "dc.html #sys: dot 7x7px, round, background = band hex. BandChip.tsx builds a 6x6px dot."
     },
     {
@@ -4702,8 +4704,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "padding-top",
       "expected": "3px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "3px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4718,8 +4720,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "padding-bottom",
       "expected": "3px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "3px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4734,8 +4736,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "padding-left",
       "expected": "7px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "7px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4750,8 +4752,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "padding-right",
       "expected": "7px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "7px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4782,8 +4784,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "border-color",
       "expected": "rgba(0,0,0,.2)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.2)",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4829,9 +4831,9 @@
       "target": "tier chip",
       "selector": "[data-audit=\"tier\"] span",
       "property": "letter-spacing",
-      "expected": "0.06em (= 0.63px at 10.5px)",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "expected": "0.06em (= 0.6px at 10px)",
+      "actual": "0.6px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4846,8 +4848,8 @@
       "selector": "[data-audit=\"tier\"] span",
       "property": "font-size",
       "expected": "10px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px."
     },
     {
@@ -4910,8 +4912,8 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "padding-left",
       "expected": "8px",
-      "actual": "9px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
     {
@@ -4926,8 +4928,8 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "padding-right",
       "expected": "8px",
-      "actual": "9px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
     {
@@ -4942,8 +4944,8 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "border-radius",
       "expected": "4px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "4px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
     {
@@ -5006,8 +5008,8 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "letter-spacing",
       "expected": "0.04em (= 0.42px at 10.5px)",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "actual": "0.42px",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
     {
@@ -5022,8 +5024,8 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "text-transform",
       "expected": "uppercase",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "uppercase",
+      "status": "MATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
     {
@@ -5118,8 +5120,8 @@
       "selector": "[data-audit=\"workspace-tag\"] span",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "README §0.4 'Workspace tags': 'Pill with a 6px square ink dot, #F5F2EE fill, rgba(0,0,0,.14) border, 11.5px/600 label, removable ×.'"
     },
     {
@@ -5181,10 +5183,10 @@
       "target": "filter chip group label",
       "selector": "[data-audit=\"filter-group\"] .cl-filter-group-label",
       "property": "font-size",
-      "expected": "10.5px",
-      "actual": "9.5px",
-      "status": "MISMATCH",
-      "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value."
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "SPEC CORRECTED 2026-09-07 (fix58-tokens, B23-25): the README type-scale quote ('rail labels 10.5px uppercase .12em/700') is prose; where prose and an artboard disagree the artboard wins (dispatch rule). 'Caros Ledge UI System.dc.html' p2 Filters rail card's own group label ('Mode', line ~468) is font-size 10px, letter-spacing .12em, font-weight 700, uppercase, color #7A6E6C — this is the numeric source, not the README paraphrase."
     },
     {
       "spec": "chips",
@@ -5197,10 +5199,10 @@
       "target": "filter chip group label",
       "selector": "[data-audit=\"filter-group\"] .cl-filter-group-label",
       "property": "letter-spacing",
-      "expected": "0.12em (= 1.14px at 9.5px)",
-      "actual": "0.95px",
-      "status": "MISMATCH",
-      "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value."
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1.2px",
+      "status": "MATCH",
+      "note": "SPEC CORRECTED 2026-09-07 (fix58-tokens, B23-25): the README type-scale quote ('rail labels 10.5px uppercase .12em/700') is prose; where prose and an artboard disagree the artboard wins (dispatch rule). 'Caros Ledge UI System.dc.html' p2 Filters rail card's own group label ('Mode', line ~468) is font-size 10px, letter-spacing .12em, font-weight 700, uppercase, color #7A6E6C — this is the numeric source, not the README paraphrase."
     },
     {
       "spec": "chips",
@@ -5214,9 +5216,9 @@
       "selector": "[data-audit=\"filter-group\"] .cl-filter-group-label",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
-      "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value."
+      "actual": "700",
+      "status": "MATCH",
+      "note": "SPEC CORRECTED 2026-09-07 (fix58-tokens, B23-25): the README type-scale quote ('rail labels 10.5px uppercase .12em/700') is prose; where prose and an artboard disagree the artboard wins (dispatch rule). 'Caros Ledge UI System.dc.html' p2 Filters rail card's own group label ('Mode', line ~468) is font-size 10px, letter-spacing .12em, font-weight 700, uppercase, color #7A6E6C — this is the numeric source, not the README paraphrase."
     },
     {
       "spec": "chips",
@@ -5232,7 +5234,7 @@
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value."
+      "note": "SPEC CORRECTED 2026-09-07 (fix58-tokens, B23-25): the README type-scale quote ('rail labels 10.5px uppercase .12em/700') is prose; where prose and an artboard disagree the artboard wins (dispatch rule). 'Caros Ledge UI System.dc.html' p2 Filters rail card's own group label ('Mode', line ~468) is font-size 10px, letter-spacing .12em, font-weight 700, uppercase, color #7A6E6C — this is the numeric source, not the README paraphrase."
     },
     {
       "spec": "chips",
@@ -7723,8 +7725,8 @@
       "selector": "[data-audit=\"group\"] .cl-filter-group-label",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -7738,8 +7740,8 @@
       "target": "FilterChipGroup / FilterChip",
       "selector": "[data-audit=\"group\"] .cl-filter-group-label",
       "property": "letter-spacing",
-      "expected": "0.1em (= 0.95px at 9.5px)",
-      "actual": "0.95px",
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1.2px",
       "status": "MATCH",
       "note": null
     },
@@ -7851,8 +7853,8 @@
       "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
     },
     {
@@ -7963,8 +7965,8 @@
       "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
     },
     {
@@ -10270,8 +10272,8 @@
       "selector": ".cl-tier-chip",
       "property": "font-size",
       "expected": "10px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
     },
     {
@@ -10313,9 +10315,9 @@
       "target": "cell 7 — tier chip",
       "selector": ".cl-tier-chip",
       "property": "letter-spacing",
-      "expected": "0.06em (= 0.63px at 10.5px)",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "expected": "0.06em (= 0.6px at 10px)",
+      "actual": "0.6px",
+      "status": "MATCH",
       "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
     },
     {
@@ -10358,8 +10360,8 @@
       "selector": ".cl-tier-chip",
       "property": "border-top-color",
       "expected": "rgba(0,0,0,.2)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.2)",
+      "status": "MATCH",
       "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
     },
     {
@@ -10402,8 +10404,8 @@
       "selector": ".cl-tier-chip",
       "property": "text-align",
       "expected": "center",
-      "actual": "start",
-      "status": "MISMATCH",
+      "actual": "center",
+      "status": "MATCH",
       "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
     },
     {
@@ -10655,27 +10657,10 @@
       "viewport": 1440,
       "target": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
-      "property": "background-color",
-      "expected": "#F5F2EE",
-      "actual": "rgb(245, 242, 238)",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band'); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each — the same fixture shapes ../smoke/market-rows-smoke.mjs and research-rows-smoke.mjs already prove render without crashing)",
-      "viewport": 1440,
-      "target": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
-      "property": "border-radius",
-      "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": null
     },
     {
@@ -10689,10 +10674,10 @@
       "viewport": 1440,
       "target": "market row — signal-kind TagChip label text",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
-      "property": "text",
-      "expected": "Cost alert",
-      "actual": "Cost alert",
-      "status": "MATCH",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
       "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert' — matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert')."
     },
     {
@@ -10974,8 +10959,8 @@
       "selector": ".cl-command-bar",
       "property": "border-color",
       "expected": "rgba(0,0,0,.25)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
       "note": "dc.html p1: height 40px, border 1px solid rgba(0,0,0,.25), border-radius 8px, background #fff."
     },
     {
@@ -10993,8 +10978,8 @@
       "selector": ".cl-command-bar",
       "property": "border-radius",
       "expected": "8px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "dc.html p1: height 40px, border 1px solid rgba(0,0,0,.25), border-radius 8px, background #fff."
     },
     {
@@ -11107,8 +11092,8 @@
       "selector": ".cl-cmdk-hint",
       "property": "font-size",
       "expected": "10px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "dc.html p1: font-size 10px, font-family ui-monospace/monospace, color #7A6E6C, padding 0 10px."
     },
     {
@@ -11126,8 +11111,8 @@
       "selector": ".cl-cmdk-hint",
       "property": "font-family",
       "expected": "contains:monospace",
-      "actual": "\"Plus Jakarta Sans\", system-ui, sans-serif",
-      "status": "MISMATCH",
+      "actual": "ui-monospace, SFMono-Regular, Menlo, monospace",
+      "status": "MATCH",
       "note": "dc.html p1: font-size 10px, font-family ui-monospace/monospace, color #7A6E6C, padding 0 10px."
     },
     {
@@ -11164,8 +11149,8 @@
       "selector": ".cl-command-bar button",
       "property": "height",
       "expected": "40px",
-      "actual": "30px",
-      "status": "MISMATCH",
+      "actual": "40px",
+      "status": "MATCH",
       "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
@@ -11183,8 +11168,8 @@
       "selector": ".cl-command-bar button",
       "property": "padding-left",
       "expected": "14px",
-      "actual": "16px",
-      "status": "MISMATCH",
+      "actual": "14px",
+      "status": "MATCH",
       "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
@@ -11202,8 +11187,8 @@
       "selector": ".cl-command-bar button",
       "property": "padding-right",
       "expected": "14px",
-      "actual": "16px",
-      "status": "MISMATCH",
+      "actual": "14px",
+      "status": "MATCH",
       "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px."
     },
     {
@@ -11962,8 +11947,8 @@
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "property": "padding-top",
       "expected": "20px",
-      "actual": "16px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
     },
     {
@@ -12342,9 +12327,9 @@
       "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
       "property": "count",
       "expected": "1",
-      "actual": "5",
-      "status": "MISMATCH",
-      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). Investigation, train 58 (2026-09-07): measured count is 5, not 1 or 2 — higher than either the passing or the single-known-defect state predicts. `:not(.cl-masthead)` (added this session) already excludes the masthead's own header, and this mount's fixture (PAGE_FRAME_FIXTURES) passes no workspace tags with 'Tag' in their name, so the extra matches are NOT the Masthead CommandBar and NOT a tag pill's own label. Not resolved this session — this lane found the count wrong but did not trace which five elements match; the fix lane should inspect the live DOM (`page.locator(...).allTextContents()` against this exact selector) before assuming which control is the duplicate, rather than trust this note's earlier guess of 'the legitimate trigger plus one duplicate'."
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). RESOLVED, fix58-tokens (2026-09-07): the count-5 reading was a HARNESS BUG, not a product defect. `targetsOf()`/`readTarget()` in run-audit.mjs carried `textMatch` through for `forbid` entries only; an ordinary target's or child's own `textMatch` field was silently dropped, so this row's selector ran as the bare `header:not(.cl-masthead) button` (every action-row button: the overflow '⋯', Export brief, Share, Watch, + Tag — five, not filtered to 'Tag' at all). Confirmed by a standalone debug mount dumping every matched button's textContent before the fix. Fixed at the root in run-audit.mjs (targetsOf, readTarget, and the probe() call-site mapping that had ALSO been dropping the field a second time — three places, not one — now all carry `textMatch` through for ordinary targets/children, not just `forbid`), not in this spec — the product's ActionRow already renders exactly one 'Tag'-labelled trigger, which is what a working count now measures."
     },
     {
       "spec": "page-frame",
@@ -13741,8 +13726,8 @@
       "selector": "aside.hidden nav > div:nth-child(1) > p",
       "property": "letter-spacing",
       "expected": "0.14em (= 1.33px at 9.5px)",
-      "actual": "1.14px",
-      "status": "MISMATCH",
+      "actual": "1.33px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -13792,8 +13777,8 @@
       "selector": "aside.hidden nav > div:nth-child(1) > p",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -13843,8 +13828,8 @@
       "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": "dc.html p1: font-weight 700 on the active row."
     },
     {
@@ -13859,10 +13844,10 @@
       "target": "active nav row — spine technique",
       "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
       "property": "box-shadow",
-      "expected": "inset 3px 0px 0px #5A5552",
-      "actual": "none",
-      "status": "MISMATCH",
-      "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). Sidebar.tsx uses `border-left: 2px solid` instead, which this target measures directly — an absent box-shadow (none) is the honest record of the artboard's technique not being built, distinct from asserting a colour on a technique that isn't there."
+      "expected": "rgb(90, 85, 82) 3px 0px 0px 0px inset",
+      "actual": "rgb(90, 85, 82) 3px 0px 0px 0px inset",
+      "status": "MATCH",
+      "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). FIXED by fix58-tokens (2026-09-07, B98): Sidebar.tsx's active row now sets this box-shadow instead of `border-left`. SPEC CORRECTED in the same commit: `expect` is written in CSSOM's own canonical serialisation order (colour first, then offsets/blur/spread, then the `inset` keyword last), matching this file's own list-surface.json convention for box-shadow — the source-order string in this note is the design statement, not the literal getComputedStyle form."
     },
     {
       "spec": "sidebar",
@@ -14121,8 +14106,8 @@
       "selector": "[data-audit=\"stack\"] span:nth-child(1)",
       "property": "font-size",
       "expected": "10px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "dc.html p14: font-size 10px, letter-spacing .12em, text-transform uppercase, color #7A6E6C, font-weight 700."
     },
     {
@@ -14138,9 +14123,9 @@
       "target": "stack — label",
       "selector": "[data-audit=\"stack\"] span:nth-child(1)",
       "property": "letter-spacing",
-      "expected": "0.12em (= 1.26px at 10.5px)",
-      "actual": "0.84px",
-      "status": "MISMATCH",
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1.2px",
+      "status": "MATCH",
       "note": "dc.html p14: font-size 10px, letter-spacing .12em, text-transform uppercase, color #7A6E6C, font-weight 700."
     },
     {
@@ -14193,8 +14178,8 @@
       "selector": "[data-audit=\"stack\"] span:nth-child(1)",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": "dc.html p14: font-size 10px, letter-spacing .12em, text-transform uppercase, color #7A6E6C, font-weight 700."
     },
     {
@@ -14265,8 +14250,8 @@
       "selector": "[data-audit=\"stack\"] span:nth-child(3)",
       "property": "font-size",
       "expected": "10.5px",
-      "actual": "11px",
-      "status": "MISMATCH",
+      "actual": "10.5px",
+      "status": "MATCH",
       "note": "dc.html p14: font-size 10.5px, color #7A6E6C."
     },
     {
@@ -14283,8 +14268,8 @@
       "selector": "[data-audit=\"stack\"] span:nth-child(3)",
       "property": "color",
       "expected": "#7A6E6C",
-      "actual": "rgb(90, 107, 103)",
-      "status": "MISMATCH",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
       "note": "dc.html p14: font-size 10.5px, color #7A6E6C."
     },
     {
@@ -14319,8 +14304,8 @@
       "selector": "[data-audit=\"row\"] > div > span:nth-child(1) > span:nth-child(1)",
       "property": "font-size",
       "expected": "12.5px",
-      "actual": "13px",
-      "status": "MISMATCH",
+      "actual": "12.5px",
+      "status": "MATCH",
       "note": "dc.html p1: `<b>Regulations</b>` — bold label at the row's own 12.5px context font-size, default ink colour."
     },
     {
@@ -14373,8 +14358,8 @@
       "selector": "[data-audit=\"row\"] > div > span:nth-child(1) > span:nth-child(2)",
       "property": "font-size",
       "expected": "10.5px",
-      "actual": "11px",
-      "status": "MISMATCH",
+      "actual": "10.5px",
+      "status": "MATCH",
       "note": "dc.html p1: `display:block;font-size:10.5px;color:#7A6E6C` under the bold label."
     },
     {
@@ -14427,8 +14412,8 @@
       "selector": "[data-audit=\"row\"] > div > span:nth-child(2) > span",
       "property": "font-size",
       "expected": "18px",
-      "actual": "20px",
-      "status": "MISMATCH",
+      "actual": "18px",
+      "status": "MATCH",
       "note": "dc.html p1: font-family Anton, font-size 18px, right-aligned."
     },
     {
@@ -14648,8 +14633,8 @@
       "selector": "[data-audit=\"band\"] a",
       "property": "font-weight",
       "expected": "600",
-      "actual": "700",
-      "status": "MISMATCH",
+      "actual": "600",
+      "status": "MATCH",
       "note": "README §0.4: 'text left, one action link right.' dc.html p15 action link ('See audit log →'): font-size 11px, font-weight 600. StateNote.tsx's action link is inline-styled at font-weight 700."
     },
     {
@@ -14868,8 +14853,8 @@
       "selector": "nav",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.12)",
-      "actual": "rgba(0, 0, 0, 0.08)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -14885,8 +14870,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "padding-top",
       "expected": "9px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -14902,8 +14887,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "padding-bottom",
       "expected": "9px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -14919,8 +14904,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "padding-left",
       "expected": "12px",
-      "actual": "14px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -14936,8 +14921,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "padding-right",
       "expected": "12px",
-      "actual": "14px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -14953,8 +14938,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "font-size",
       "expected": "12.5px",
-      "actual": "13px",
-      "status": "MISMATCH",
+      "actual": "12.5px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -14970,8 +14955,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -15004,8 +14989,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "border-bottom-width",
       "expected": "2px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "2px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -15021,8 +15006,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "border-bottom-color",
       "expected": "#5A5552",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MISMATCH",
+      "actual": "rgb(90, 85, 82)",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -15038,8 +15023,8 @@
       "selector": "nav [aria-current=\"page\"]",
       "property": "margin-bottom",
       "expected": "-1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "-1px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px."
     },
     {
@@ -15055,8 +15040,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "padding-top",
       "expected": "9px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {
@@ -15072,8 +15057,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "padding-bottom",
       "expected": "9px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {
@@ -15089,8 +15074,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "font-size",
       "expected": "12.5px",
-      "actual": "13px",
-      "status": "MISMATCH",
+      "actual": "12.5px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {
@@ -15140,8 +15125,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "border-bottom-width",
       "expected": "2px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "2px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {
@@ -15157,8 +15142,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "border-bottom-color",
       "expected": "transparent",
-      "actual": "rgb(90, 107, 103)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0)",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {
@@ -15174,8 +15159,8 @@
       "selector": "nav a:not([aria-current])",
       "property": "margin-bottom",
       "expected": "-1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "-1px",
+      "status": "MATCH",
       "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px."
     },
     {

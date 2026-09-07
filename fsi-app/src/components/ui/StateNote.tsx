@@ -42,7 +42,7 @@ export function StateNote({ band, children, action }: StateNoteProps) {
             style={{
               flexShrink: 0,
               fontSize: "var(--fs-11)",
-              fontWeight: 700,
+              fontWeight: 600,
               color: "var(--ink)",
               textDecoration: "underline",
               textDecorationColor: "rgba(0,0,0,.3)",
@@ -57,7 +57,7 @@ export function StateNote({ band, children, action }: StateNoteProps) {
             style={{
               flexShrink: 0,
               fontSize: "var(--fs-11)",
-              fontWeight: 700,
+              fontWeight: 600,
               color: "var(--ink)",
               textDecoration: "underline",
               textDecorationColor: "rgba(0,0,0,.3)",
