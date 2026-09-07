@@ -1,10 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { Toast } from "@/components/ui/Toast";
 import { Plus, Trash2, Search, ExternalLink } from "lucide-react";
 import { formatLocaleDate } from "@/lib/format";
+import { fetchWorkspaceTags } from "@/lib/tags/client";
+import type { WorkspaceTag } from "@/lib/tags/types";
 
 // ───────────────────────────────────────────────────────────────────────────
 // SavedSearchesSection (PR-L Settings restoration — Decision #14, F10)
@@ -29,6 +31,11 @@ interface SavedSearch {
   topics: string[];
   jurisdictions: string[];
   priorities: string[];
+  /** Workspace tag ids this saved search filters by (lane uitags,
+   *  2026-09-07, README "Workspace tags": tags are the source for saved
+   *  views). Additive — every pre-existing SavedSearch record has no
+   *  tagIds field, which JSON.parse leaves undefined; treated as []. */
+  tagIds?: string[];
   createdAt: string;
 }
 
@@ -68,11 +75,23 @@ export function SavedSearchesSection() {
   const [draft, setDraft] = useState<{
     name: string;
     query: string;
-  }>({ name: "", query: "" });
+    tagIds: string[];
+  }>({ name: "", query: "", tagIds: [] });
   const [toast, setToast] = useState<{ message: string; visible: boolean }>({
     message: "",
     visible: false,
   });
+  const [workspaceTags, setWorkspaceTags] = useState<WorkspaceTag[]>([]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchWorkspaceTags().then((tags) => {
+      if (!cancelled) setWorkspaceTags(tags);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const addSearch = () => {
     if (!draft.name.trim()) return;
@@ -86,12 +105,13 @@ export function SavedSearchesSection() {
       topics: [],
       jurisdictions: [],
       priorities: [],
+      tagIds: draft.tagIds,
       createdAt: new Date().toISOString(),
     };
     const updated = [...searches, next];
     setSearches(updated);
     saveToStorage(updated);
-    setDraft({ name: "", query: "" });
+    setDraft({ name: "", query: "", tagIds: [] });
     setCreating(false);
     setToast({ message: "Saved search created", visible: true });
   };
@@ -114,6 +134,7 @@ export function SavedSearchesSection() {
     if (s.modes.length > 0) params.set("mode", s.modes.join(","));
     if (s.priorities.length > 0)
       params.set("priority", s.priorities.join(","));
+    if (s.tagIds && s.tagIds.length > 0) params.set("tag", s.tagIds.join(","));
     const qs = params.toString();
     return qs ? `/regulations?${qs}` : "/regulations";
   };
@@ -211,6 +232,52 @@ export function SavedSearchesSection() {
                 hookup ships in PR-K.
               </p>
             </div>
+            {workspaceTags.length > 0 && (
+              <div>
+                <label
+                  className="block text-[10px] font-bold uppercase mb-1"
+                  style={{
+                    letterSpacing: "0.12em",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  Workspace tags (optional)
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  {workspaceTags.map((t) => {
+                    const active = draft.tagIds.includes(t.id);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() =>
+                          setDraft((p) => ({
+                            ...p,
+                            tagIds: active
+                              ? p.tagIds.filter((id) => id !== t.id)
+                              : [...p.tagIds, t.id],
+                          }))
+                        }
+                        className="text-xs px-2 py-1 rounded-full border"
+                        style={{
+                          borderColor: "var(--color-border)",
+                          backgroundColor: active
+                            ? "var(--color-surface-overlay)"
+                            : "transparent",
+                          color: active
+                            ? "var(--color-text-primary)"
+                            : "var(--color-text-secondary)",
+                          fontWeight: active ? 700 : 400,
+                        }}
+                        aria-pressed={active}
+                      >
+                        {t.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
             <div className="flex gap-2">
               <Button
                 variant="primary"
@@ -222,7 +289,7 @@ export function SavedSearchesSection() {
               <Button
                 variant="secondary"
                 onClick={() => {
-                  setDraft({ name: "", query: "" });
+                  setDraft({ name: "", query: "", tagIds: [] });
                   setCreating(false);
                 }}
               >
@@ -325,7 +392,8 @@ function countFilters(s: SavedSearch): number {
     s.modes.length +
     s.topics.length +
     s.jurisdictions.length +
-    s.priorities.length
+    s.priorities.length +
+    (s.tagIds?.length ?? 0)
   );
 }
 
