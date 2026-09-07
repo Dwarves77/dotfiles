@@ -39,7 +39,6 @@
  * PERF-10 note for the full mechanism).
  */
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
@@ -48,11 +47,9 @@ import type { ClaimTierMap } from "@/lib/agent/parse-record-sections";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { selectThemeBriefForItem } from "@/lib/research/theme-brief.mjs";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { ResearchFindingDetailSurface } from "@/components/research/ResearchFindingDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
 import { NoticesRail } from "@/components/figures/NoticesRail";
-import { formatLocaleDate } from "@/lib/format";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -302,44 +299,13 @@ export default async function ResearchFindingDetailPage({
 
   console.log(`[perf] /research/${id} data ${result.elapsedMs}ms`);
 
-  // Masthead meta: severity is derived client-side inside the surface to
-  // keep severity-vocab in one place; here we surface the source name +
-  // added date, paralleling the "Effective · Reviewed" pattern on
-  // /regulations.
-  const metaParts = [
-    r.sourceName,
-    r.added
-      ? `Published ${formatLocaleDate(new Date(r.added), {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}`
-      : null,
-  ].filter(Boolean) as string[];
-
+  // UI SYSTEM HANDOFF (lane uidetails2, 2026-09-07): the back-link +
+  // EditorialMasthead pair is REMOVED — the ONE detail architecture's
+  // DetailHeader (inside ResearchFindingDetailSurface) now owns the
+  // title/meta/breadcrumb-equivalent for this route, matching the
+  // regulations/market/operations detail surfaces.
   return (
     <>
-      {/* Back-link — lane MOBILE-2, 2026-09-03 sweep: 32px side padding had no responsive step-down
-          (same shape as the header padding fix item 1 addresses on Regulations) —
-          --cl-detail-pad-x (globals.css) steps to 16px at <=767px. */}
-      <div style={{ paddingTop: 10, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
-        <Link
-          href="/research"
-          prefetch={false}
-          style={{
-            color: "var(--color-text-muted, var(--muted))",
-            fontSize: 12,
-            textDecoration: "none",
-          }}
-        >
-          ← Research
-        </Link>
-      </div>
-      <EditorialMasthead
-        eyebrow="Research"
-        title={r.title}
-        meta={metaParts.join(" · ")}
-      />
       <ResearchFindingDetailSurface
         resource={r}
         related={related}
