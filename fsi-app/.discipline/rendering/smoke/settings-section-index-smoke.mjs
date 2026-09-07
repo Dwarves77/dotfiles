@@ -57,7 +57,10 @@ const PROPS = {
   userEmail: 'smoke@example.com',
 };
 
-const SECTION_IDS = ['general', 'saved', 'data', 'archive', 'help'];
+// Addendum item 7 (2026-09-07, lane uisettings2, DEVIATION-LOG.md): Notifications moved off the
+// profile page onto Settings as its own anchored section placed right after General, so the index
+// grew from R9's original five entries to six.
+const SECTION_IDS = ['general', 'notifications', 'saved', 'data', 'archive', 'help'];
 
 export async function runSmoke(browser) {
   const failures = [];
@@ -92,10 +95,10 @@ export async function runSmoke(browser) {
 
     const linkTexts = await page.$$eval('nav[aria-label="Section index"] a', (els) => els.map((el) => el.textContent?.trim() ?? ''));
     checks++;
-    const expectedOrdinals = ['S1', 'S2', 'S3', 'S4', 'S5'];
+    const expectedOrdinals = ['S1', 'S2', 'S3', 'S4', 'S5', 'S6'];
     const hasAllOrdinals = expectedOrdinals.every((s, i) => linkTexts[i]?.startsWith(s));
-    if (linkTexts.length !== 5 || !hasAllOrdinals) {
-      failures.push(`${label}: section index links did not read S1..S5 in order — got ${JSON.stringify(linkTexts)}.`);
+    if (linkTexts.length !== 6 || !hasAllOrdinals) {
+      failures.push(`${label}: section index links did not read S1..S6 in order — got ${JSON.stringify(linkTexts)}.`);
     }
 
     // Every href resolves to a real anchor id actually present in the DOM.

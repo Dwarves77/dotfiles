@@ -49,8 +49,12 @@ interface Props {
 // items become anchored SECTIONS in one scrolling page, reusing the sticky S1 . S2 . S3 SectionIndex
 // from the detail architecture (src/components/detail/DetailShell.tsx) rather than a second tab row.
 // `key` doubles as the anchor id every card below is mounted under.
+// Addendum item 7 (2026-09-07, docs/design/handoff-2026-09-06/DEVIATION-LOG.md): notification
+// preferences move off the profile page and become their own anchored "Notifications" section,
+// placed immediately after General — a sixth SectionIndex entry alongside R9's original five.
 const SETTINGS_SECTIONS: SectionIndexEntry[] = [
   { id: "general", label: "General" },
+  { id: "notifications", label: "Notifications" },
   { id: "saved", label: "Saved searches" },
   { id: "data", label: "Data & supersessions" },
   { id: "archive", label: "Archive" },
@@ -166,15 +170,18 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
         <div id="general" style={{ scrollMarginTop: 56, display: "grid", gap: 16, marginBottom: 32 }}>
           <DashboardSettingsCard />
           <FreightSectorsCard />
+          <AccountCard title="Briefing schedule" meta="Cadence · time · jurisdictions · delivery">
+            <BriefingScheduleSection />
+          </AccountCard>
+        </div>
+
+        <div id="notifications" style={{ scrollMarginTop: 56, marginBottom: 32 }}>
           <AccountCard title="Notifications" meta="In-app channel available now · email and push coming soon">
             <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 4px" }}>
               Choose what gets your attention. Conservative by default — higher-volume notifications are off
               until you opt in.
             </p>
             <NotificationPreferences userId={userId} />
-          </AccountCard>
-          <AccountCard title="Briefing schedule" meta="Cadence · time · jurisdictions · delivery">
-            <BriefingScheduleSection />
           </AccountCard>
         </div>
 
