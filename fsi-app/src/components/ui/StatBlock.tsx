@@ -9,6 +9,14 @@
  * three fields read left-to-right — label + note on the left, numeral on
  * the right — for a stat used inline in a list (the dashboard rail's
  * "Across the platform" rows, README screen 1).
+ *
+ * `tone="critical"` (additive extension, admin lane 2026-09-06 — README
+ * screen 13 "Platform admin": Sources/Ingest counters read in
+ * `--immediate` red because they are needs-attention queue depths, not
+ * a second priority scale — see docs/design/handoff-2026-09-06/
+ * DEVIATION-LOG.md) paints the numeral in the immediate band colour
+ * instead of ink. Never used to invent a fifth urgency vocabulary: it is
+ * one on/off tone, not a band.
  */
 
 export interface StatBlockProps {
@@ -17,9 +25,10 @@ export interface StatBlockProps {
   note?: React.ReactNode;
   loading?: boolean;
   layout?: "stack" | "row";
+  tone?: "default" | "critical";
 }
 
-export function StatBlock({ label, value, note, loading, layout = "stack" }: StatBlockProps) {
+export function StatBlock({ label, value, note, loading, layout = "stack", tone = "default" }: StatBlockProps) {
   const numeral = loading ? (
     <span
       aria-hidden="true"
@@ -39,7 +48,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack" }: Sta
         fontSize: layout === "row" ? 20 : 26,
         lineHeight: 1,
         letterSpacing: "0.04em",
-        color: "var(--ink)",
+        color: tone === "critical" ? "var(--immediate)" : "var(--ink)",
         fontVariantNumeric: "tabular-nums",
       }}
     >

@@ -38,11 +38,17 @@ export interface MastheadProps {
   size?: "list" | "detail";
   dek?: ReactNode;
   dateLabel: string;
-  commandBar?: { itemCount: number; onSearch?: (q: string) => void; scope?: string };
+  commandBar?: { itemCount: number; onSearch?: (q: string) => void; scope?: string; placeholder?: string };
   volNumber?: number;
+  /**
+   * Appended to the "VOL IV · No. N · <date>" line (additive extension,
+   * admin/account/settings lane 2026-09-06 — README screens 13-15 append
+   * "· Operator view" / "· Personal" to name whose view this is).
+   */
+  eyebrowSuffix?: string;
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber }: MastheadProps) {
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix }: MastheadProps) {
   const weekNo = volNumber ?? isoWeekNumber(new Date());
   return (
     <header
@@ -65,6 +71,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         }}
       >
         VOL {EDITORIAL_VOLUME} · No. {weekNo} · {dateLabel}
+        {eyebrowSuffix ? ` · ${eyebrowSuffix}` : ""}
       </p>
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: 20, flexWrap: "wrap" }}>
         <h1
@@ -90,7 +97,12 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
       )}
       {commandBar && (
         <div style={{ marginTop: 16 }}>
-          <CommandBar itemCount={commandBar.itemCount} onSearch={commandBar.onSearch} scope={commandBar.scope} />
+          <CommandBar
+            itemCount={commandBar.itemCount}
+            onSearch={commandBar.onSearch}
+            scope={commandBar.scope}
+            placeholder={commandBar.placeholder}
+          />
         </div>
       )}
     </header>
