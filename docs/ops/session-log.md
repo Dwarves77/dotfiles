@@ -11361,3 +11361,96 @@ discipline suites), closure-gate `--report`, `run-test-suite.sh`, override-check
 lane's own tool output for exact pass/fail lines. Bundle: `git bundle create` of
 `origin/master..HEAD` at this container's own `train/wave53-2026-09-07` tip, verified with
 `git bundle verify`.
+
+## Addendum 86, postscript 8: train 54, downstream-chain's NEVER-RUN fires, the first real chain, the wall-defer fix (2026-09-07, coordinator, lane ASSEMBLE-54)
+
+I am writing this as the coordinator. Train 53 landed on `origin/master` as PR #602 (`c25922f8`,
+the F25-wave52 fold). Master's tip going into this train was `c25922f8`.
+
+**Master went RED on `closure-gate --report`'s NEVER-RUN check for `downstream-chain.yml`.**
+That workflow was built in train 49 (`docs/runbooks/TRAIN-ASSEMBLY-RUNBOOK.md`, lane CHAIN,
+2026-09-06's own header calls it "THEN THE DRAIN" — the missing last hop of the population/corpus
+loop) but never fired: `workflow_run` needs `population-turn.yml` or `corpus-turn.yml` to complete,
+and population has been paused since the T46 validation window. NEVER-RUN's own grace period is
+3 trains from a workflow's build train; that grace expired at train 53, and the gate went red the
+moment train 53 landed and the wave counter caught up — the same shape as train 53's own F25
+expiry, a ratchet doing exactly what it was built to do, on schedule.
+
+**The fix is not a code change — it is evidence.** `downstream-chain.yml`'s own gate reads
+`github.event.workflow_run.conclusion`, generically, off either `Data producers` or `Downstream
+chain` itself; nothing about the workflow is broken, it simply had never been proven to run. The
+coordinator hand-dispatched it directly (`workflow_dispatch`, `mode=dry`): **Downstream chain #1**,
+run `34078833140`, green in 45 seconds — the first run ever of `derive-obligations` +
+`tag-proposals` + `apply-classifications` + `tier-opinions` as one chained closer, artifact
+`downstream-chain-34078833140`. Its completion (`workflow_run`, `conclusion: success`) chained
+`propagation-drain.yml` automatically, per that workflow's own "CHAINING" contract
+(`workflows: ["Data producers", "Downstream chain"]`, added lane CHAIN 2026-09-06): run
+`34078881801`, `RUN_MODE=apply` (the chained default), `RUN_BACKFILL_ENTITIES`/
+`RUN_SEED_DERIVED_VALUES` both false (the two opt-in checkboxes stay hand-only, per the
+workflow's own header — a chained dispatch never ticks either). It drained for real:
+`queue_depth_before` 1,772, `events_considered`/`events_drained` 500, 0 invalidated, 0 recomputed,
+0 errors (`propagation-run-006.json`, `harness_version sha256:ebe93513ffa2a4f9`).
+
+**That same landed artifact cleared a second, independent violation.** `scripts/harness-runs/
+propagation/PENDING-RUN.md` had been sitting since lane ASSEMBLE-48/INCLAUSE-CLASS as an honest
+acknowledgment that the drain's governing files (`drain.ts`) had moved bytes since the last real
+run recorded why — F28 (`harness-run-integrity`) rule (c), staleness-coupling. The marker named its
+own deletion condition verbatim: "the moment [a run] lands with `harness_version:
+sha256:ebe93513ffa2a4f9`." `propagation-run-006.json` landed with exactly that hash. Deleted the
+marker; fitness runner went from 1 violation (F28) to 33/33 PASS.
+
+**Second lane, same train: `lane/canonical-autoverify-4-2026-09-07` (`4fe10852`), cherry-picked
+onto train 53 with zero conflicts.** Maintenance #71 (canonical-autoverify dry, run `34078398318`,
+the first dispatch on train 52's $0 fetch-path fix) rejected 2 of 16 pending rows as "access wall
+(bot_challenge)" on the CANDIDATE page — BSR/SAFA and NAPA/Blue Visby — both of which had already
+passed content proof on the same page from this container. A wall on a candidate means "could not
+verify from this network," not "the page is unfit," and rejecting it permanently discards a valid
+replacement, since idempotency only ever re-reads `decision='pending'` rows. Fix, candidate side
+only (the CURRENT source's own wall handling — `checkAuthority`'s `downgrade_walled`, "a wall is
+not a dead link" — is unchanged): `decideRow`'s reachability branch now routes a candidate-side
+access wall to `deferred` (row stays `pending`, `reviewer_notes` records "access wall from this
+network (attempt N)") instead of an immediate `rejected`, with a 3-attempt cap round-tripped
+through `reviewer_notes` (no new column) before the row finally rejects. Maintenance #71's apply
+is held until this fix lands.
+
+`coverage-report.json` regenerated (canonical-autoverify.mjs + test governed surface, unchanged
+shape): 849 governed files, 814 COVERED, 35 EXEMPT, 0 GAPS — no drift.
+
+**Dispatch ledger**: three rows appended after #70 — #71 (canonical-autoverify dry, run
+`34078398318`, the wall-rejection finding above), #72 (Downstream chain #1, dry, run
+`34078833140`), #73 (propagation-drain apply, run `34078881801`). `assemble-train
+--fold --propose --ledger` then found and folded the `propagation/34078881801` artifact branch
+itself (1 folded, 26 already folded, 0 conflicts, 0 new proposer briefs), deriving its own ledger
+row with the real `propagation-run-006` metrics; that derived row was merged into #73 rather than
+left as a duplicate (same treatment train 48's dispatch log describes — "edited/replaced per the
+coordinator's own confirmed facts").
+
+**`closure-gate --report` verified PASS on all four checks post-fold, NEVER-RUN specifically
+confirmed PASS for `downstream-chain.yml`** — read directly from the gate's own report output, not
+inferred from a green fitness run. This is the point of this train.
+
+**Next**: `canonical-autoverify` dry then apply, re-run against the wall-defer fix (the 2 walled
+candidates should now defer instead of reject); `tier-opinions` dry then apply once rows have
+moved; UI train 55 (the six UI page lanes + UI-DELTA still queued behind train 51, unfolded
+through this one).
+
+**UX compliance**: no `.tsx` or `.css` file was touched this train — the fold is entirely
+`.mjs`/`.json`/`.md`. No UX compliance block is required.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): fitness runner 33/33 PASS (0 violations, after the
+`PENDING-RUN.md` fix); `node --test` over `.discipline/**/*.test.mjs` 764/764 PASS; closure-gate
+`--report` PASS on all four checks (NEVER-RUN/STALE-NEXT/WRITER-READER/LANE-CONTRACT), NEVER-RUN
+specifically confirmed PASS for `downstream-chain.yml`; `run-test-suite.sh` 5868/5863/0 (5
+skipped, EXIT 0; the audit-finding-status 596-unlabeled-line report is informational, `|| true`,
+pre-existing, untouched by this train); override-check `--range=origin/master..HEAD` fails only on
+this container's own sibling `/root/work/lanes/*` worktrees (autoverify4, f25, uiadmin*, uilists*,
+train53, etc. — other lanes running concurrently on the shared host) not listed in
+`docs/inventories/worktrees.md`, pre-existing noise unrelated to this train's content, same
+finding trains 48-50 already recorded; `tsc --noEmit` clean; all 18 `.github/workflows` YAML files
+parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119 invariants + 63 doctrines all
+wired); `next build --webpack` clean (EXIT 0, 82 static pages generated, full route manifest
+emitted — the `SUPABASE_SERVICE_ROLE_KEY not configured` fail-closed warnings are the expected,
+by-design behavior for a credential-free container build, never a silent anon-key downgrade).
+Bundle: `git bundle create` of `origin/master..HEAD` at this container's own
+`train/wave54-2026-09-07` tip (4 commits, tip `958b227f`), verified with `git bundle verify`.
