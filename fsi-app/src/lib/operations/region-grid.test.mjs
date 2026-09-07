@@ -217,3 +217,24 @@ test("degenerate inputs never throw and never invent cells", () => {
   assert.deepEqual(g.emptyRegions, []);
   assert.doesNotThrow(() => buildRegionGrid({ regionKeys: null, sourcedDimensions: undefined, facts: "nope" }));
 });
+
+// DEFECT-FIX (item 3.3, 2026-09-07): the Operations "Regions side by side" matrix used to be fed
+// only 5 of 6 dimensions (OperationsLedger.tsx's own MATRIX_DIMENSIONS, formerly SOURCED_DIMENSIONS,
+// filtered out `regulatory_feasibility`). This proves the underlying data layer already handles a
+// sixth, structurally-always-empty dimension (regulatory_feasibility has 0 rows in
+// regional_data_facts by design — derived from regulation cross-references instead) correctly: a
+// complete grid, every cell present and 'absent', never dropped and never fabricated as populated.
+test("a dimension with ZERO facts across every region (regulatory_feasibility's real shape) still produces a complete grid — every cell present, all 'absent', never dropped", () => {
+  const sixDims = [...DIMS, "regulatory_feasibility"];
+  const g = buildRegionGrid({ regionKeys: REGIONS, sourcedDimensions: sixDims, facts: liveShapedFacts() });
+  assert.equal(g.cells.length, 30, "5 regions x 6 dimensions");
+  for (const regionKey of REGIONS) {
+    const cell = g.byCell[`${regionKey}|regulatory_feasibility`];
+    assert.ok(cell, `regulatory_feasibility cell for ${regionKey} must exist`);
+    assert.equal(cell.state, "absent");
+    assert.equal(cell.factCount, 0);
+  }
+  const dimCov = g.dimensionCoverage.find((d) => d.dimension === "regulatory_feasibility");
+  assert.equal(dimCov.filled, 0, "never invented a fill count for a dimension with no sourced rows");
+  assert.equal(dimCov.total, REGIONS.length);
+});

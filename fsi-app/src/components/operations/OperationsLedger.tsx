@@ -90,7 +90,17 @@ const DIMENSIONS: Dimension[] = [
   { num: 6, key: "cost", db: "operational_cost", name: "Operational cost data" },
 ];
 
-const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== "regulatory");
+// DEFECT-FIX (item 3.3, 2026-09-07): all six dimensions render in the "Regions side by side"
+// matrix, D1-D6, same order everywhere — the audit's own words. This used to filter out
+// `regulatory` ("D1 has ZERO rows in regional_data_facts — it is derived from regulation
+// cross-references", region-grid.mjs's own header), rendering only 5 of 6 dimension rows. The
+// audit's binding ruling: add the row back; "when the data has no D6 value the cell renders the
+// Absence convention, never a blank, never invented data" — exactly what happens now, since
+// `buildRegionGrid` (region-grid.mjs, unchanged, generic over any dimension list) computes
+// `state: 'absent'` for every regulatory_feasibility cell (0 rows, always) and
+// RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any
+// `state === 'absent'` cell (see that file's own header) — no fabricated count, no blank cell.
+const MATRIX_DIMENSIONS = DIMENSIONS;
 
 // ── US state matching (By-state sub-list, restored — unchanged from the pre-rebuild component) ──
 
@@ -245,7 +255,7 @@ export function OperationsLedger({
     () =>
       buildRegionGrid({
         regionKeys: regions.map((r) => r.key),
-        sourcedDimensions: SOURCED_DIMENSIONS.map((d) => d.db),
+        sourcedDimensions: MATRIX_DIMENSIONS.map((d) => d.db),
         facts: (operationsCoverage?.facts ?? []).map((f) => ({ regionKey: f.region_code, dimension: f.dimension, factLabel: f.fact_label, lastUpdated: f.last_updated })),
         coverageRows: (operationsCoverage?.coverage ?? []).map((c) => ({ regionKey: c.region_code, dimension: c.dimension, state: c.state, factCount: c.fact_count })),
         crossRefCountsByRegion: Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0])),
@@ -343,7 +353,7 @@ export function OperationsLedger({
         <>
           <RegionDimensionMatrix
             regions={regions.map((r) => ({ key: r.key, label: r.label }))}
-            dimensions={SOURCED_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
+            dimensions={MATRIX_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
             facts={operationsCoverage?.facts ?? []}
             coverageRows={operationsCoverage?.coverage ?? []}
             crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
