@@ -53,3 +53,31 @@ test("classifyTimelineEntries preserves the original entry object on each row (n
 test("empty input returns an empty classification, never a fabricated row", () => {
   assert.deepEqual(classifyTimelineEntries([]), []);
 });
+
+// ── Design audit "the track green-to-next-dot finding" (docs/design/handoff-2026-09-06/
+// AUDIT-2026-09-07.md, milestonetimeline.json, dc.html #sys line 202: `height:2px;background:
+// linear-gradient(90deg,#16A34A 0,#16A34A 58%,rgba(0,0,0,.12) 58%)`). Source-level, same
+// convention as ListRow.npmtest.mjs's own header explains (no JSX mount infra for plain
+// `node --test`; the audit harness and the rendering guard's smoke specs are the real-DOM check).
+import { readFileSync } from "node:fs";
+const TSX_SOURCE = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "MilestoneTimeline.tsx"), "utf8");
+
+test("track is 2px tall (was 1px, flat, no green segment)", () => {
+  assert.match(TSX_SOURCE, /height: 2,\s*\n\s*background: `linear-gradient/);
+});
+
+test("track renders a green-to-'next'-dot gradient with a hard colour stop, not a flat line", () => {
+  assert.match(
+    TSX_SOURCE,
+    /linear-gradient\(90deg, var\(--awareness\) 0%, var\(--awareness\) \$\{greenPercent\}%, rgba\(0,0,0,\.12\) \$\{greenPercent\}%\)/
+  );
+});
+
+test("greenPercent is derived from the 'next' dot's own space-between position, 100% when every dot has passed, 0% as the safe fallback", () => {
+  assert.match(TSX_SOURCE, /const nextIndex = classified\.findIndex\(\(c\) => c\.state === "next"\);/);
+  assert.match(TSX_SOURCE, /const allPassed = classified\.every\(\(c\) => c\.state === "passed"\);/);
+  assert.match(
+    TSX_SOURCE,
+    /nextIndex >= 0 \? \(list\.length > 1 \? \(nextIndex \/ \(list\.length - 1\)\) \* 100 : 0\) : allPassed \? 100 : 0/
+  );
+});
