@@ -921,6 +921,15 @@ export const LEGACY_ALLOWLIST = [
       //    and docs/runbooks/MAINTENANCE-RUNBOOK.md §39 for the wiring detail. Each entry now reads
       //    STALE ALLOWLIST ("now HAS a production importer") the moment the wiring lands, which is this
       //    same commit — so the four entries are removed here rather than left to red on their own gate.
+      // Lane UIADMIN2 (2026-09-07) had cherry-picked commit 34b476c5 (DetailShell.tsx, already folded
+      // via lane uidetails-2026-09-06 in this train) and, alongside it, re-added the seven
+      // 'scripts/verify/*.mjs' entries above (stale — already disposed of by F25-WAVE52, expiry 52,
+      // long past) plus two NEW entries for FactCard.tsx/fact-paragraphs.ts at expiry 55, reasoning
+      // its own /settings SectionIndex use pulled them in as an unwired same-commit dependency. Both
+      // are DROPPED at this train's fold (UI-FOLD, 2026-09-07): never re-grant an expiry, and by fold
+      // time both files have real production importers — the four detail-surface `[slug]/page.tsx`
+      // routes (regulations/market/research/operations, landed via lane uidetails-2026-09-06/
+      // uidetails2-2026-09-07) plus FactBlocks.tsx. No allowlist entry needed for either file.
     ];
   })(),
 

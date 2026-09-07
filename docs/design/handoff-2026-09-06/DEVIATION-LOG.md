@@ -5,6 +5,66 @@ belongs here, not in a page's stylesheet (README "Overview"). Includes cases whe
 the design shows does not exist in the app's data yet and is rendered via the Absence
 convention instead.
 
+## RULINGS (operator, via Claude Design, 2026-09-07)
+
+Design rulings received from the operator (via Claude Design) on 2026-09-07, binding on every UI
+lane. Copied verbatim (per the dispatch that carried them) into this fold.
+
+R1. Auth copy: keep the app's current approved wording inside artboard 16's layout, inputs and
+buttons; the artboard's headline and paragraph are placeholder.
+
+R2. Nav footer: two unlabelled rows below a divider, Account (workspace name right-aligned) and
+Admin (OWNER badge); no 'Operator' heading.
+
+R3. Detail summary depths: two ('Summary | Full brief'), beside the S1..Sn section index; the old
+third depth was the dead span.
+
+R4. Breadcrumb on details: 'VOL IV . NO. 36 . <Surface> / <Jurisdiction> / N of M in <Band>'; the
+last segment is live place-keeping from the list-position contract, not decorative. Command-bar
+placeholder on details is scoped ('Ask about this regulation' / signal / finding / profile).
+
+R5. Detail action row: Export brief (primary ink) . Share . Watch (star filled when watched) . +
+Tag, all visible on every detail header; the ... menu holds only rare and destructive items.
+
+R6. Workspace tags: pill with 6 px square ink dot, #F5F2EE fill, rgba(0,0,0,.14) border, 11.5px/600,
+removable x; shown under the detail title, on the list row second line, as a 'Workspace tags' facet
+group with live counts, and as the source for saved views. The + Tag popover: 280 px, anchored below
+the trigger, left-aligned; white, radius 10, 1px rgba(0,0,0,.12), card shadow, no band rule; 40 px
+input row with the search glyph 15 px #7A6E6C, 13 px text, bottom border rgba(0,0,0,.08); 40 px rows,
+12 px padding, pill + right-aligned muted 11 px count, hover #FAFAF8, applied tags show a check in ink
+instead of the count; max height 320 px scrolling; footer 'Create "<typed>"' 12.5px/600 with the pill
+preview when no exact match, top border rgba(0,0,0,.08); multi-select, stays open, arrows move, Enter
+applies/creates, Esc closes, Backspace on empty input removes the last applied tag; applying updates
+the detail tag row and rail facet counts immediately. Data: migration, workspace-scoped RLS like the
+other workspace tables, tag names unique per workspace case-insensitively, deleting a tag deletes its
+links (never soft-hides).
+
+R7. Features not in the 17 artboards: leave exactly as is and list them; never remove or restyle
+without a ruling. Rulings so far: Regulations row priority retag + Dismiss live in the row's ... menu;
+the Dismissed stash stays as a collapsed disclosure at the card foot; Operations by-state sub-list
+stays; the PERF-12 virtualized remainder stays.
+
+R8. Community room feed: image 12's thread table is the room index, not the room. A thread opens as
+its own page in the standard frame (masthead with breadcrumb Community / <room> / <thread title>,
+content column at <=72ch, rail). Inside it a post is a FactCard: sourced variant when it carries
+citations, dashed inference variant when it does not; verifier sign-off is a tier square plus a
+small-caps attribution line in the card foot (same family as a source's tier, not a new badge); the
+composer is one card at the foot of the thread. The compact table stays exactly as drawn; the feed
+lives one level down. NEEDS AN ARTBOARD (queued by Claude Design): do not build the thread page until
+it arrives; keep CommunityRooms' feed as is meanwhile.
+
+R9. Settings sub-nav: the five second-level items (General / Saved searches / Data & supersessions /
+Archive / Help) become the section index, reusing the sticky S1 . S2 . S3 SectionIndex from the
+detail architecture: a horizontal row of section links directly under the Account tab row,
+left-aligned, active in ink; the five become anchored sections in one scrolling page, not five
+routes. Archive's viewer stays a page under Data; Help stays a route if it already is one (link it,
+do not nest it). One tab row on the page. Can be built now from existing parts (no new component, no
+artboard needed).
+
+R10. Mobile 390 and tablet 1024: not designed; no responsive rules are invented; they arrive as
+artboards (queue: overlays, then mobile 390, then community thread and the settings section index
+artboards).
+
 | Date | Page | Deviation | Reason | Who ruled |
 |---|---|---|---|---|
 | 2026-09-06 | System (0.3 frame) | Nav width built at 252px per README's literal CSS token block, not the ~220px the system-sheet artboard's own annotation prose states ("220px nav card in a 16px gutter... content 1180px max"). | The system sheet's prose numbers do not reconcile with each other either (220+16+1180+300=1716, over the stated 1440 frame) — read as descriptive/rounded annotation, not a literal spec. README's fenced code block ("Nav `252px`, always" + the exact `grid-template-columns` line) is formatted for verbatim lift into theme.css/components and is internally consistent (1440 − 20 − 40 gutters − 300 rail − 28 gap ≈ content column), so it is the followed value. | UI-SYSTEM lane, 2026-09-06 (session decision, not an operator ruling — flag for operator confirmation if the 220px annotation was intended literally) |
@@ -62,7 +122,8 @@ convention instead.
 | 2026-09-07 | Admin (`/admin`) — Ingest tile | 13-admin.png shows "INGEST 4,579" (sample data); built tile sums three real `useAdminAttention` counts (`staged_updates_pending` + `integrity_flags_unresolved` + `platform_integrity_flags_open`) — a different, real number in this environment (0, no DB). | README: "Content is realistic sample data... not fixtures to ship." The built figure is a real, already-live aggregate (no new read) rather than a re-derivation of the mock's specific 4,579. | uiadmin lane, 2026-09-07 |
 | 2026-09-07 | Admin (`/admin`) — Sources/Organizations rows | 13-admin.png's "Sources · Provisional review" and "Organizations" rows show a `ListRow`-style anatomy (band spine, jurisdiction-style leading column, a Tier chip, one `⋯` per row). The pre-existing `SourceHealthDashboard` and `OrganizationsTable` components (real, wired admin functionality — bulk add, tier override, member management, invitations, corpus turns, error tracking, the assumption register) were left as-is: only the page's masthead, counter row, and issues-rail chrome were converted to shared parts this pass. | Full scope: rebuilding two large, functionally rich admin views onto `ListRow` (which has no per-row action-menu content model beyond a generic `overflow` slot, and expects the row's fixed 8-column list-surface grid, not admin's row shapes — tier-override controls, bulk-approve, org member counts) is a real `ListRow` extension or a new admin-row shared part, not a same-pass fix; attempting it under this lane's remaining budget risked breaking real, live admin write-paths (source approve/reject, tier commit, member role/ban) with no way to verify against a real Supabase project in this sandbox (see the no-DB note below). | uiadmin lane, 2026-09-07 — next admin pass: give `ListRow` (or a documented sibling row primitive) an admin row-action variant, then port `SourceHealthDashboard`'s provisional-review table and `OrganizationsTable` onto it. |
 | 2026-09-07 | Account (`/profile`) + Settings (`/settings`) — merged tab row | Built. Retired the pre-existing stacked pair (`AccountMasthead`'s own Profile/Settings tabs over `AccountPrimitives.SubTabBar`'s 7 sub-tabs) for ONE `TabRow` (new shared part, `src/components/ui/TabRow.tsx`) spanning the frame above the two-column grid on both routes, matching 14-account.png/15-settings.png: Personal · Organization · Members & roles · N · Sector profile · N · Jurisdictions · N · Verifier badge · Activity · Settings. `AccountMasthead.tsx` deleted (dead after the swap — nothing else imported it). | Directly instructed ("one tab row spanning the frame ABOVE the two-column grid"); no shared tab-row part existed yet (the base UI-system lane's one page, the dashboard, has none), so this is a new addable shared part, not a page-local fork — both `/profile` and `/settings` consume the same component. | uiadmin lane, 2026-09-07 |
-| 2026-09-07 | Settings (`/settings`) — General/Saved/Data/Archive/Help | 15-settings.png shows only the merged Account tab row plus "Dashboard defaults"/"Freight sectors"/"Notifications" content (== the pre-existing "General" tab's body) — no second-level tab row for Saved searches / Data & supersessions / Archive / Help is visible on the artboard. Built keeps the pre-existing 5-tab `SubTabBar` as a second-level row beneath the merged Account row, so those four real features (saved searches, CSV upload, supersession history, archive, help placeholder) stay reachable. | The artboard depicts no other home for this functionality and CLAUDE.md rule 13 forbids leaving working features orphaned; removing the second tab row would delete reachable UI, not align it to spec. | uiadmin lane, 2026-09-07 — flag for operator: confirm whether Saved/Data/Archive/Help belong under Settings' merged row (as built) or should move elsewhere in the artboard's model. |
+| 2026-09-07 | Settings (`/settings`) — General/Saved/Data/Archive/Help | SUPERSEDED by ruling R9 (see the row below) — kept here for history. Original text: 15-settings.png shows only the merged Account tab row plus "Dashboard defaults"/"Freight sectors"/"Notifications" content (== the pre-existing "General" tab's body) — no second-level tab row for Saved searches / Data & supersessions / Archive / Help is visible on the artboard. Built keeps the pre-existing 5-tab `SubTabBar` as a second-level row beneath the merged Account row, so those four real features (saved searches, CSV upload, supersession history, archive, help placeholder) stay reachable. | The artboard depicts no other home for this functionality and CLAUDE.md rule 13 forbids leaving working features orphaned; removing the second tab row would delete reachable UI, not align it to spec. | uiadmin lane, 2026-09-07 — flag resolved by R9 below. |
+| 2026-09-07 | Settings (`/settings`) — sub-nav replaced with SectionIndex (ruling R9) | Per R9, the second-level `SubTabBar` (General / Saved searches / Data & supersessions / Archive / Help) is retired. Cherry-picked lane uidetails-2026-09-06's commit `34b476c5` (`src/components/detail/DetailShell.tsx`, `SectionIndex`) onto this branch rather than fork a copy. `SettingsPage.tsx` now renders all five bodies inline, always mounted, as anchored sections (`#general #saved #data #archive #help`) under one sticky `S1 . S2 . S3 . S4 . S5` `SectionIndex` directly below the merged Account tab row — matching R9's "horizontal row of section links directly under the Account tab row, left-aligned … one scrolling page, not five routes" exactly. Removed the old `?tab`/hash sub-nav mechanism (`tab` state, `LEGACY_HASH_ALIASES`, `onTabClick`); `/settings#general` (linked twice from `UserProfilePage.tsx`) still resolves because `general` survives as the section's anchor id. Archive and Help stay exactly where they were (no separate route exists for either today, and R9 only requires linking Help "if it already is one" — it is not); this is logged as a deviation from R9's own "Archive's viewer stays a page under Data" / "Help stays a route" clauses, which describe a shape neither this artboard set nor the current app has built yet. | R9 is explicit that the five become anchored sections reusing `SectionIndex`, not that Archive/Help move to new routes this lane did not otherwise need to invent; inventing routes/pages for either under this lane's scope (ruling R9 only) would be new information architecture with no artboard behind it. | uiadmin2 lane, 2026-09-07 — flag for operator: confirm Archive staying inline (vs. becoming its own page linked from Data) and whether Help should get a real route once one exists. |
 | 2026-09-07 | Account (`/profile`) — stat blocks vs. rail | 14-account.png shows four `StatBlock`s (Sectors followed / Home jurisdictions / Member since / Plan) stacked 2×2 **inside the persistent right rail**, visible on every tab. Built keeps the pre-existing placement: a full-width 4-across stat-block strip above the tab body, present only because it was already page-level (not per-tab), not moved into a rail card. The Admin/Quick-links rail cards from the artboard are not built. | Hoisting the stat strip into a true persistent rail plus adding Admin/Quick-links cards is a page-shape change beyond a component swap (every one of the 7 profile sub-tabs currently owns its own body/rail combination, e.g. `PersonalTab`'s own two-column grid) and risked breaking those tab bodies under this lane's remaining budget. The swap actually made (`StatTile` → shared `StatBlock`, `tone="critical"` extension) removed the page-local duplicate component without touching that structure. | uiadmin lane, 2026-09-07 — next pass: hoist a persistent rail (stat blocks + Admin card + Quick links) to the `/profile` page level, above/beside the per-tab body, matching 14-account.png exactly. |
 | 2026-09-07 | Screenshot capture — no live Supabase project | This sandbox has no configured `NEXT_PUBLIC_SUPABASE_URL`/`ANON_KEY` (`.env.local` absent, per instruction, and no project env is injected). `next build --webpack` succeeds regardless (every data path here fails soft to `[]`/`0`/skeleton), but `next dev` requires a syntactically-valid URL just to construct the proxy's Supabase client, so screenshots were taken with a placeholder URL (`https://placeholder.supabase.co`) exported only for the `next dev` process — never written to a file, never committed. All three pages render their real, honest empty/error states (StateNote/SystemErrorBanner "data unavailable", stat blocks reading 0) rather than the mock's populated sample data — expected given no DB, not a defect. | Matches the UI-SYSTEM lane's own documented environment limitation (its DEVIATION-LOG "Gate: `next build --webpack`" row) — this lane's sandbox has the same no-network-egress-to-a-real-project constraint. | uiadmin lane, 2026-09-07 — needs a follow-up run of these three screenshots against a real (or branch) Supabase project with seeded data before pixel-comparing populated states. |
 | 2026-09-07 | Screenshot capture — auth bypass method | To render `/admin`, `/profile`, `/settings` (all auth-gated: `requirePlatformAdmin`, or a `redirect` on no session) for a local-only Playwright capture, this lane added a temporary `process.env.UI_SCREENSHOT_BYPASS === "1"` short-circuit in `src/proxy.ts` (the auth middleware) and in the three page files, exported the env var only for the `next dev` process used to take the three `built/*.png` screenshots, then reverted all four files (verified by `grep -rn "UI_SCREENSHOT_BYPASS" src/` returning nothing) before running the final gates and this commit. Same approach as the UI-SYSTEM lane's commit 2aa17758 (dashboard screenshot), which also left no bypass code in its committed diff. | Directed by the dispatch ("the same env-only auth bypass approach the UI-SYSTEM lane used and fully reverted"). | uiadmin lane, 2026-09-07 |
