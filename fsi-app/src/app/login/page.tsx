@@ -1,17 +1,44 @@
 "use client";
 
+/**
+ * /login — UI system handoff 2026-09-06, README screen 16 "Sign in · Sign
+ * up": AuthFrame (masthead identity left) + this form (right). Assembled
+ * from AuthFrame + the shared AuthPanel bits + Button — see
+ * src/components/auth/AuthFrame.tsx and AuthPanel.tsx headers.
+ *
+ * Functionality unchanged from the pre-existing page: Supabase password
+ * sign-in, same-origin redirect allowlist (Wave-α A6). Added: a real
+ * magic-link path (supabase.auth.signInWithOtp) and a real forgot-password
+ * link to /auth/reset-password — the mock shows both controls and CLAUDE.md
+ * forbids shipping an unwired control (the audit's dead "Complete brief"
+ * toggle is exactly this failure mode). "Keep me signed in" is NOT built:
+ * src/lib/supabase-browser.ts's client always persists the session via
+ * cookies with no session-only mode wired, and that file is outside this
+ * lane's write set — see DEVIATION-LOG.md.
+ */
+
 import { useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
-import { APP_NAME } from "@/lib/constants";
 import { sanitizeReturnPath } from "@/lib/auth/safe-return-path.mjs";
-import { LogIn, AlertCircle } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { AuthFrame } from "@/components/auth/AuthFrame";
+import {
+  AuthTabs,
+  AuthField,
+  AuthErrorBanner,
+  AuthDivider,
+  CheckEmailPanel,
+  AUTH_INPUT_STYLE,
+} from "@/components/auth/AuthPanel";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [magicLoading, setMagicLoading] = useState(false);
+  const [magicSent, setMagicSent] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   // Wave-α A6: same-origin allowlist — `?redirect=https://evil.com` was
@@ -39,127 +66,104 @@ export default function LoginPage() {
     router.refresh();
   };
 
+  const handleMagicLink = async () => {
+    if (!email.trim()) {
+      setError("Enter your work email above first.");
+      return;
+    }
+    setError("");
+    setMagicLoading(true);
+    const supabase = createSupabaseBrowserClient();
+    const origin = typeof window !== "undefined" ? window.location.origin : "";
+    const { error } = await supabase.auth.signInWithOtp({
+      email,
+      options: {
+        emailRedirectTo: `${origin}/auth/callback?next=${encodeURIComponent(redirect)}`,
+      },
+    });
+    setMagicLoading(false);
+    if (error) {
+      setError(error.message);
+      return;
+    }
+    setMagicSent(true);
+  };
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="w-full max-w-sm space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {APP_NAME}
-          </h1>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Sign in to your workspace
-          </p>
-        </div>
+    <AuthFrame>
+      <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
+        <AuthTabs active="signin" redirect={redirect !== "/" ? redirect : null} />
 
-        {/* Error */}
-        {error && (
-          <div
-            className="flex items-center gap-2 p-3 rounded-lg text-sm"
-            style={{
-              backgroundColor: "rgba(220, 38, 38, 0.06)",
-              border: "1px solid rgba(220, 38, 38, 0.15)",
-              color: "var(--color-error)",
-            }}
-          >
-            <AlertCircle size={14} />
-            {error}
-          </div>
+        {magicSent ? (
+          <CheckEmailPanel email={email} note="We sent a sign-in link to" />
+        ) : (
+          <>
+            {error && (
+              <AuthErrorBanner message={error} />
+            )}
+
+            <form onSubmit={handleLogin} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <AuthField label="Work email">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  autoComplete="email"
+                  style={AUTH_INPUT_STYLE}
+                  placeholder="name@company.com"
+                />
+              </AuthField>
+
+              <AuthField label="Password">
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  autoComplete="current-password"
+                  style={AUTH_INPUT_STYLE}
+                  placeholder="••••••••"
+                />
+              </AuthField>
+
+              <div style={{ display: "flex", justifyContent: "flex-end", fontSize: "var(--fs-12)" }}>
+                <a href="/auth/reset-password" style={{ fontWeight: 600, color: "var(--ink)" }}>
+                  Forgot password?
+                </a>
+              </div>
+
+              <Button
+                type="submit"
+                variant="primary"
+                disabled={loading}
+                className="w-full justify-center"
+                style={{ padding: "11px 14px", fontSize: "var(--fs-13)", fontWeight: 700 }}
+              >
+                {loading ? "Signing in…" : "Sign in"}
+              </Button>
+            </form>
+
+            <AuthDivider />
+
+            <Button
+              type="button"
+              variant="secondary"
+              disabled={magicLoading}
+              onClick={handleMagicLink}
+              className="w-full justify-center"
+              style={{ padding: "10px 14px", fontSize: "var(--fs-125)", fontWeight: 600 }}
+            >
+              {magicLoading ? "Sending link…" : "Continue with a magic link"}
+            </Button>
+
+            <p style={{ fontSize: "var(--fs-115)", color: "var(--ink-3)", lineHeight: 1.5, marginTop: 6 }}>
+              Invited to a workspace? Open the invitation link in your email —
+              it signs you in and joins the workspace in one step.
+            </p>
+          </>
         )}
-
-        {/* Form */}
-        <form onSubmit={handleLogin} className="space-y-4">
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              Email
-            </label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-              }}
-              placeholder="you@company.com"
-            />
-          </div>
-
-          <div>
-            <label
-              className="block text-sm font-medium mb-1.5"
-              style={{ color: "var(--color-text-primary)" }}
-            >
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors"
-              style={{
-                borderColor: "var(--color-border)",
-                backgroundColor: "var(--color-surface)",
-                color: "var(--color-text-primary)",
-              }}
-              placeholder="••••••••"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-            style={{
-              backgroundColor: "var(--color-invert-bg)",
-              color: "var(--color-invert-text)",
-            }}
-          >
-            <LogIn size={14} />
-            {loading ? "Signing in..." : "Sign in"}
-          </button>
-        </form>
-
-        <p
-          className="text-center text-xs"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          Don&apos;t have an account?{" "}
-          {/* Carry the redirect target into signup so an invited, not-yet-
-              registered user returns to /invitations/[token] after email
-              verification instead of being dropped at /onboarding (Wave-α
-              Track D d3 accept-path fix). */}
-          <a
-            href={
-              redirect !== "/"
-                ? `/signup?redirect=${encodeURIComponent(redirect)}`
-                : "/signup"
-            }
-            className="underline"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Create one
-          </a>
-        </p>
       </div>
-    </div>
+    </AuthFrame>
   );
 }

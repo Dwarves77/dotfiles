@@ -8,7 +8,11 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceOverridesHydration } from "@/lib/hooks/useWorkspaceOverridesHydration";
 import { computeShowNoWorkspaceBanner } from "@/components/app-shell-banner";
 
-const NO_SIDEBAR_ROUTES = ["/login", "/auth"];
+// UI system handoff 2026-09-06 (README screens 16/17): /login, /signup,
+// /onboarding and /workspace/new render the AuthFrame identity split
+// instead of the standard Sidebar + content grid — additive extension of
+// this list by lane uiauth, 2026-09-06 (see DEVIATION-LOG.md).
+const NO_SIDEBAR_ROUTES = ["/login", "/auth", "/signup", "/onboarding", "/workspace/new"];
 // Routes where the no-workspace banner is suppressed (the user is already
 // going through the setup flow, no need to nag).
 const NO_WORKSPACE_BANNER_SUPPRESS = [
