@@ -5,21 +5,19 @@
 // — sitting directly above the real H1, read as the title doubling; the header's 36px side padding
 // had no responsive escape at a 390px phone; ZERO `[data-guard-title]` anywhere on the page, so
 // nothing was measured there before this lane). Fixed in that file (see its own module header for the
-// root cause and fix); the other three detail surfaces (Operations/Research, already reasonably solid
-// per PageMasthead.tsx's own responsive handling — read, out of this lane's write set — plus a
-// `px-9`->responsive padding sweep fix and a `data-guard-title`/`data-guard-container` instrumentation
-// pass this lane made while reading them; Market, entirely out of write set, see below) are mounted
-// here for the SAME stress fixture so a regression on any of the four is caught the same way.
+// root cause and fix).
+//
+// lane uidetails2 (2026-09-07): the other three detail surfaces (Operations, Research, Market) were
+// rebuilt onto the SAME shared ONE detail architecture RegulationDetailSurface adopted (DetailShell.tsx,
+// README §0.5) — header/exposure/timeline/index/rail all now shared, not per-surface reimplementations.
+// All four surfaces are therefore first-class here: mounted, measured, and asserted identically
+// (expectTitles: 1 on every state — one shared <DetailHeader> per mount).
 //
 // Mounts the four REAL detail surfaces:
-//   - RegulationDetailSurface.tsx        (src/components/regulations/) — fixed this lane.
-//   - OperationsDetailSurface.tsx        (src/components/operations/) — padding/guard-title fixed.
-//   - ResearchFindingDetailSurface.tsx   (src/components/research/) — padding/guard-title fixed.
-//   - MarketSignalDetailSurface.tsx      (src/components/pages/) — OUTSIDE this lane's write set
-//     (`src/components/pages/**` is not in the lane brief's write set, which lists
-//     `src/components/{regulations,market,operations,research,home,dashboard,shared}/**`). Mounted
-//     READ-ONLY here for coverage/regression-proof only; this spec does NOT edit it and any finding on
-//     it is reported as NEEDS WRITE-SET EXPANSION rather than fixed in place.
+//   - RegulationDetailSurface.tsx        (src/components/regulations/)
+//   - OperationsDetailSurface.tsx        (src/components/operations/)
+//   - ResearchFindingDetailSurface.tsx   (src/components/research/)
+//   - MarketSignalDetailSurface.tsx      (src/components/pages/)
 //
 // Each surface is mounted with a long official title (>80 chars, the length threshold
 // RegulationDetailSurface itself uses to switch from the Anton poster face to the wrapping body
@@ -324,10 +322,11 @@ window.__mount = (props) => {
 
 const OPERATIONS_STATES = [
   {
-    // OperationsDetailSurface has NO breadcrumb of its own — the title (r.title, via
-    // EditorialMasthead -> PageMasthead.tsx) is rendered by the page (src/app/operations/[slug]/
-    // page.tsx), outside this component; see this file's own module header. This state stresses
-    // what IS inside the write set: the six section cards + their own headings.
+    // lane uidetails2 (2026-09-07): OperationsDetailSurface now renders the ONE detail architecture's
+    // <DetailHeader> (DetailShell.tsx) internally — the guarded H1 lives there, ONE per mount, not one
+    // per section heading (DetailSection's own <h2> carries no data-guard-title, same as every other
+    // detail surface's section body). This state stresses the six section cards' own heading wrap plus
+    // the shared header/exposure/timeline/rail chrome.
     label: 'six-sections',
     props: {
       resource: baseResource({ id: 'ops-1' }),
@@ -341,13 +340,12 @@ const OPERATIONS_STATES = [
       relevance: null,
       resourceLookup: {},
     },
-    expectTitles: 6, // one data-guard-title per OperationsSectionCard heading
+    expectTitles: 1,
   },
   // Row-chip rule (lane CHIPS, 2026-09-05, W3.4): baseResource() defaults itemGrade to null, so the
-  // 'six-sections' state above never exercises RecordGradeBadge — Operations has no dedicated
-  // record-facts summary render (unlike Regulations/Research/Market, see this file's own header),
-  // so this state reuses the normal six sections and only flips itemGrade, proving the badge itself
-  // renders in the pill strip (and the Ask bar mounts) at both viewports without a layout regression.
+  // 'six-sections' state above never exercises RecordGradeBadge — this state reuses the normal six
+  // sections and only flips itemGrade, proving the badge itself renders in the header's chip row at
+  // both viewports without a layout regression.
   {
     label: 'record-grade-badge',
     props: {
@@ -362,7 +360,7 @@ const OPERATIONS_STATES = [
       relevance: null,
       resourceLookup: {},
     },
-    expectTitles: 6,
+    expectTitles: 1,
   },
 ];
 
@@ -383,7 +381,8 @@ window.__mount = (props) => {
 
 const RESEARCH_STATES = [
   {
-    // Same shape as Operations: no breadcrumb inside this component (see module header).
+    // lane uidetails2 (2026-09-07): same move as Operations above — the guarded H1 lives in the
+    // shared <DetailHeader>, ONE per mount, not one per ResearchSectionCard heading.
     label: 'six-sections',
     props: {
       resource: baseResource({ id: 'res-1' }),
@@ -396,11 +395,10 @@ const RESEARCH_STATES = [
       resourceLookup: {},
       themeBrief: undefined,
     },
-    expectTitles: 6,
+    expectTitles: 1,
   },
-  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (ResearchRecordFacts),
-  // previously unreachable dead code (hasSections was true but ResearchSections rendered null; see this
-  // lane's report). No expectTitles: this surface has no data-guard-title on the record-facts path.
+  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (ResearchRecordFacts).
+  // Now also exercises the shared <DetailHeader> (lane uidetails2, 2026-09-07): expectTitles: 1.
   {
     label: 'record-grade-facts',
     props: {
@@ -419,10 +417,14 @@ const RESEARCH_STATES = [
       resourceLookup: {},
       themeBrief: undefined,
     },
+    expectTitles: 1,
   },
 ];
 
-// ── Market (read-only mount — src/components/pages/, outside this lane's write set) ───────────────
+// ── Market — src/components/pages/MarketSignalDetailSurface.tsx. Was read-only/out-of-write-set for
+// the prior lane (uidetails, regulations-only); lane uidetails2 (2026-09-07) owns this file directly
+// (rebuilt onto the ONE detail architecture, DetailShell.tsx), so it is now asserted the same as the
+// other three surfaces — expectTitles included, "not asserted" caveats below retired. ─────────────
 const MARKET_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
@@ -455,14 +457,11 @@ const MARKET_STATES = [
       relevance: null,
       resourceLookup: {},
     },
-    // Not asserted — MarketSignalDetailSurface.tsx is outside this lane's write set and was not
-    // audited for a data-guard-title on its own H1 (that would be a write-set-expansion item, not a
-    // guaranteed pass); the state still mounts and is measured for overflow/law-2, just not titles.
+    expectTitles: 1,
   },
-  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (RecordFactsCard) added
-  // to this file's "moving" tab; per surface-of.mjs, 0 live record items route here today (all are
-  // domain=1 -> regulations), so this is forward-looking coverage, same posture as the rest of this
-  // state's "not asserted" note above.
+  // Record-grade (RECORD-SURFACE lane, 2026-09-04) — itemGrade:'record' branch (RecordGradeSections).
+  // Per surface-of.mjs, 0 live record items route here today (all are domain=1 -> regulations), so
+  // this is forward-looking coverage.
   {
     label: 'record-grade-facts',
     props: {
@@ -486,13 +485,13 @@ const MARKET_STATES = [
       relevance: null,
       resourceLookup: {},
     },
+    expectTitles: 1,
   },
 ];
 
 // Bespoke runner (same shape as regulations-rows-smoke.mjs's runLedgerSpec) rather than the generic
-// ux-harness.mjs `runUxSpec`, because two of this spec's four surfaces carry DISCLOSED, CONFIRMED
-// false positives / out-of-write-set findings runUxSpec's unconditional assertGuardClean/assertUxClean
-// would fail on:
+// ux-harness.mjs `runUxSpec`, because this spec's surfaces carry DISCLOSED, CONFIRMED false positives
+// runUxSpec's unconditional assertGuardClean/assertUxClean would fail on:
 //   - `knownSafePlaceholders` — static field-label text ("Type": AtAGlanceCard's own row label,
 //     RegulationDetailSurface.tsx; "Source": the source-attribution label, Operations/Research) that
 //     exact-matches the placeholder-literal scanner's HEADER_LITERALS set (the SAME false-positive
@@ -510,11 +509,10 @@ const MARKET_STATES = [
 //     exercise this exact fallback) — the dashed "—" is the parser's honest "unrated", never a wrong
 //     or fabricated tier, and NO_DATA_TOKENS (source-entry-filter.mjs) happens to also list "—" as a
 //     placeholder-name token, the same coincidental collision as "Title" above.
-//   - `skipSmallTargetSubstrings` — interactive targets belonging to a component OUTSIDE this lane's
-//     write set (`@/components/ui/AiPromptBar`, mounted by RegulationDetailSurface but not editable
-//     here) or to MarketSignalDetailSurface.tsx itself (src/components/pages/, outside the write set
-//     entirely — see this file's own header). Named explicitly, not a blanket exclusion, so a NEW
-//     small-target regression inside a write-set file still fails this spec.
+//   - `skipSmallTargetSubstrings` — kept as a parameter for spec-shape parity with
+//     regulations-rows-smoke.mjs; empty on every call below now that AiPromptBar (the sole prior
+//     source of a below-floor target) is unmounted from all four detail surfaces (README §0.5: "no
+//     per-tab ask bar" — CommandBar/Masthead is the one search/ask surface).
 async function runDetailSpec(browser, { name, entry, states, knownSafePlaceholders = [], skipSmallTargetSubstrings = [], skipAllAssertions = false, alias = {} }) {
   const failures = [];
   let checks = 0;
@@ -580,17 +578,22 @@ export async function runSmoke(browser) {
       name: 'detail-operations',
       entry: OPERATIONS_ENTRY,
       states: OPERATIONS_STATES,
-      knownSafePlaceholders: ['Source'],
+      // 'Action'/'Type': same false-positive class as Regulation's own list above (BandChip's band
+      // label + AtAGlanceCard's row label, both real shared-part copy, never fabricated content).
+      knownSafePlaceholders: ['Source', 'Action', 'Type'],
+      // lane uidetails2 (2026-09-07): OperationsDetailSurface now mounts the shared DetailShell's
+      // InThisListStat rail widget (useSearchParams inside a Suspense-wrapped bridge — see
+      // DetailShell.tsx's own header), same as RegulationDetailSurface above. Needs the same
+      // next/navigation stub outside a real Next App Router tree.
+      alias: ALIAS,
     }),
     runDetailSpec(browser, {
       name: 'detail-research',
       entry: RESEARCH_ENTRY,
       states: RESEARCH_STATES,
-      knownSafePlaceholders: ['Source', 'Title', '—'],
+      knownSafePlaceholders: ['Source', 'Title', '—', 'Action', 'Type'],
+      alias: ALIAS,
     }),
-    // Market: MarketSignalDetailSurface.tsx was outside the lane's write set; the coordinator brought its
-    // header to the same fix (crumb wrap, last crumb omitted at <=640, pad token, data-guard-title on the
-    // H1, 44px tabs) at integration, so it is asserted like the other three.
     runDetailSpec(browser, {
       name: 'detail-market',
       entry: MARKET_ENTRY,
@@ -598,7 +601,9 @@ export async function runSmoke(browser) {
       // 'Severity'/'Status': column headers of the signal's own table, not data. 'Title'/'—': the
       // same TIER-CHIP-lane record-fact false positives documented in this function's own header
       // comment above (RecordFactLine's identity slot label, and the honest unrated dashed chip).
-      knownSafePlaceholders: ['Severity', 'Status', 'Title', '—'],
+      // 'Action'/'Type': same false-positive class as Regulation's own list above.
+      knownSafePlaceholders: ['Severity', 'Status', 'Title', '—', 'Action', 'Type'],
+      alias: ALIAS,
     }),
   ]);
   return {

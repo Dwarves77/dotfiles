@@ -14,9 +14,18 @@
 // through that per-kind renderer tree. F25 module-liveness confirmed the tree had zero remaining
 // production importers before deletion. The ProseSection-specific assertions below (its scoping, its
 // typography match with GfmSection) are retired with it — CLAUDE.md rule 13 (a refuted/retired
-// premise is corrected in place, not silently dropped). What survives is the invariant that never
-// depended on ProseSection: Operations, Market Intel and Research still render tabular section
-// content through GfmSection, and GfmSection still actually enables GFM.
+// premise is corrected in place, not silently dropped).
+//
+// lane uidetails2 (2026-09-07): Operations, Market Intel and Research were themselves rebuilt onto
+// the ONE detail architecture and now render every section's content_md through the same shared
+// FactBlocks (src/components/detail/FactBlocks.tsx), which routes non-claim "prose" blocks through
+// GfmSection internally — see FactBlocks.npmtest.mjs. A per-surface direct `import { GfmSection }`
+// used only to satisfy this test (with no call site) is exactly the dead-import smell CLAUDE.md rule
+// 13 forbids; Market's copy was that and has been removed. Research keeps a legitimate direct
+// GfmSection usage of its own (the WO-25 "cluster synthesis" ThemeBriefCard renders brief.briefMd,
+// content that never flows through FactBlocks/content_md), so it still appears in the direct-importer
+// list below, but the invariant that actually matters for all three is: content_md-carrying sections
+// render via FactBlocks, and GfmSection (wherever it is reached from) still actually enables GFM.
 //
 // WHY A SOURCE-TEXT ASSERTION. This repo has no component render harness — zero *.test.tsx, no
 // vitest/jest/tsx runner; `node --test` over *.mjs is the only execution-wired proof surface (the same
@@ -51,14 +60,23 @@ test("regulations/sections/ (RegulationSections, ProseSection, and the rest of t
   assert.equal(importersOf("RegulationSections").length, 0, "RegulationSections should have been deleted (lane uidetails, 2026-09-06 — zero production importers per F25)");
 });
 
-test("Operations, Market Intel and Research each render sections through GfmSection", () => {
+test("Operations, Market Intel and Research each render content_md sections through the shared FactBlocks (which itself renders prose through GfmSection)", () => {
   const expected = [
     "components/operations/OperationsDetailSurface.tsx",
     "components/pages/MarketSignalDetailSurface.tsx",
     "components/research/ResearchFindingDetailSurface.tsx",
   ];
-  const actual = importersOf("GfmSection");
-  for (const f of expected) assert.ok(actual.includes(f), `${f} must import GfmSection (found: ${actual.join(", ")})`);
+  const actual = importersOf("FactBlocks");
+  for (const f of expected) assert.ok(actual.includes(f), `${f} must import FactBlocks (found: ${actual.join(", ")})`);
+  // FactBlocks is the one place a content_md prose block reaches GfmSection — see FactBlocks.npmtest.mjs.
+  assert.ok(importersOf("GfmSection").includes("components/detail/FactBlocks.tsx"));
+});
+
+test("no surface carries a direct GfmSection import with no call site (the dead-import smell rule 13 forbids)", () => {
+  for (const f of importersOf("GfmSection")) {
+    const src = readFileSync(join(SRC, f), "utf8");
+    assert.match(src, /<GfmSection[\s/>]/, `${f} imports GfmSection but never renders <GfmSection .../> — remove the dead import`);
+  }
 });
 
 test("GfmSection actually enables GFM — remark-gfm is what makes a table a table", () => {

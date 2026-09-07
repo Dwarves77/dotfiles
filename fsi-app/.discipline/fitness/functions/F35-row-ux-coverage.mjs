@@ -61,10 +61,14 @@ export const ROW_COMPONENTS = Object.freeze({
   // directly now lives in DetailShell.tsx's <DetailHeader>, the real shared home for the title on
   // every detail surface that adopts it. Tracking moved to that file rather than left pointing at a
   // component that no longer carries the attribute itself.
-  'src/components/detail/DetailShell.tsx': 'the ONE detail architecture header (README §0.5) — home of the shared data-guard-title element, lane uidetails 2026-09-06',
-  'src/components/operations/OperationsDetailSurface.tsx': 'same header shape as the regulation detail (read)',
-  'src/components/research/ResearchFindingDetailSurface.tsx': 'same header shape as the regulation detail (read)',
-  'src/components/pages/MarketSignalDetailSurface.tsx': 'the market detail surface; same header shape (read)',
+  // lane uidetails2 (2026-09-07): OperationsDetailSurface.tsx, ResearchFindingDetailSurface.tsx and
+  // MarketSignalDetailSurface.tsx were rebuilt onto the SAME shared ONE detail architecture as
+  // RegulationDetailSurface.tsx above (DetailShell.tsx's <DetailHeader>) — same move, same reason:
+  // the data-guard-title H1 they used to carry directly now lives in DetailShell.tsx, so tracking
+  // them here as separate per-file requirements would demand a literal duplicate of the attribute
+  // string in a file that no longer renders its own <h1>. Dropped from this per-file list exactly as
+  // RegulationDetailSurface.tsx already was; DetailShell.tsx (below) remains the one tracked home.
+  'src/components/detail/DetailShell.tsx': 'the ONE detail architecture header (README §0.5) — home of the shared data-guard-title element for all four detail surfaces (regulations, market, research, operations), lane uidetails 2026-09-06 / uidetails2 2026-09-07',
   // lane NOTICES (2026-09-05): the entity-label link sat below the law-2 44/24px interactive-target
   // floor and an unbroken long entity name overflowed the row — found by notices-rail-smoke.mjs, which
   // mounts the real component (via NoticesRail, the shared rail Market and all four detail surfaces use).

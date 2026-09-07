@@ -53,9 +53,37 @@ test("the searchParams read for 'In this list' lives inside a component calling 
   assert.match(SOURCE, /<Suspense fallback=\{null\}>\s*<InThisListBridge/);
 });
 
-test("InThisListStat reads the provisional pos/of URL param contract, not a hardcoded/fabricated position", () => {
+test("InThisListStat reads the confirmed list/pos/of URL param contract (the lists lane's withListPosition), not a hardcoded/fabricated position", () => {
   assert.match(SOURCE, /searchParams\.get\("pos"\)/);
   assert.match(SOURCE, /searchParams\.get\("of"\)/);
+  assert.match(SOURCE, /searchParams\.get\("list"\)/);
+});
+
+// Lane uidetails2 (2026-09-07): the breadcrumb's own last segment ("1 of 9 in Action") reuses the
+// SAME InThisListBridge/list-pos-of contract, mounted directly inside DetailHeader so every detail
+// surface picks it up with no page-local change.
+test("DetailHeader renders the breadcrumb list-position segment via the same shared bridge, not a second searchParams reader", () => {
+  assert.match(SOURCE, /function BreadcrumbListPosition/);
+  const headerBody = SOURCE.slice(
+    SOURCE.indexOf("export function DetailHeader"),
+    SOURCE.indexOf("// ── Exposure grid")
+  );
+  assert.match(headerBody, /<BreadcrumbListPosition band=\{band\} \/>/);
+  // BreadcrumbListPosition itself must not call the hook directly — only render the shared bridge.
+  const bridgeCompBody = SOURCE.slice(
+    SOURCE.indexOf("function BreadcrumbListPosition"),
+    SOURCE.indexOf("export function InThisListStat")
+  );
+  assert.doesNotMatch(bridgeCompBody.split("function ")[1] ?? bridgeCompBody, /useSearchParams\(\)/);
+  assert.match(bridgeCompBody, /<InThisListBridge/);
+});
+
+test("the breadcrumb list-position segment renders nothing when pos/of are absent — Absence-by-omission, never a fabricated '1 of 1'", () => {
+  const bridgeCompBody = SOURCE.slice(
+    SOURCE.indexOf("function BreadcrumbListPosition"),
+    SOURCE.indexOf("export function InThisListStat")
+  );
+  assert.match(bridgeCompBody, /\{known && `/);
 });
 
 test("an unknown list position renders the Absence convention, never a fabricated '1 of 1'", () => {

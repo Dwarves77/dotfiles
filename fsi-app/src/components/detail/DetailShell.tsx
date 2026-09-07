@@ -37,9 +37,18 @@ export interface DetailHeaderProps {
   /** Breadcrumb-style meta line, e.g. "Regulations · European Union". */
   meta?: React.ReactNode;
   actions?: React.ReactNode;
+  /**
+   * Extension point (lane uidetails2, 2026-09-07): additional chips
+   * rendered in the same row as the band/tier chips — item-type, topic,
+   * mode chips, etc. Additive prop, never a fork of this component (README
+   * §0.5 "extend the shared part additively" — used by market/research/
+   * operations detail, which each carry more header chips than the
+   * regulation detail's band+tier alone).
+   */
+  extraChips?: React.ReactNode;
 }
 
-export function DetailHeader({ band, tier, title, meta, actions }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, meta, actions, extraChips }: DetailHeaderProps) {
   return (
     <header
       style={{
@@ -56,11 +65,13 @@ export function DetailHeader({ band, tier, title, meta, actions }: DetailHeaderP
           {meta && (
             <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "0 0 8px", overflowWrap: "anywhere" }}>
               {meta}
+              <BreadcrumbListPosition band={band} />
             </p>
           )}
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
             <BandChip band={band} />
             {typeof tier === "number" && <TierChip tier={tier} />}
+            {extraChips}
           </div>
           <h1
             data-guard-title
@@ -82,6 +93,64 @@ export function DetailHeader({ band, tier, title, meta, actions }: DetailHeaderP
         {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>{actions}</div>}
       </div>
     </header>
+  );
+}
+
+// ── Exposure grid (WHERE / WHO PAYS / YOUR LANES / TRAJECTORY) ──────────
+//
+// Extension (lane uidetails2, 2026-09-07, README §0.5 + the 05/07/09
+// artboards' own top label: "identical architecture to the regulation
+// detail: header + exposure + timeline -> index -> sections -> rail").
+// Generic, prop-driven so each of the four detail surfaces supplies its
+// own four columns without a page-local fork of the card chrome. The
+// regulation detail (built by an earlier lane, before this component
+// existed) does not yet call it — logged in DEVIATION-LOG.md as a gap for
+// a future lane, out of this lane's stated scope (market/research/
+// operations only).
+
+export interface ExposureItem {
+  label: string;
+  value: React.ReactNode;
+}
+
+export function DetailExposure({ items }: { items: ExposureItem[] }) {
+  if (items.length === 0) return null;
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        padding: "16px 20px",
+        marginBottom: 16,
+      }}
+    >
+      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
+        Exposure
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: `repeat(${Math.min(items.length, 4)}, minmax(0,1fr))`,
+          gap: 18,
+        }}
+        className="cl-exposure-grid"
+      >
+        <style>{`
+          @media (max-width: 900px) { .cl-exposure-grid { grid-template-columns: repeat(2, minmax(0,1fr)) !important; } }
+          @media (max-width: 520px) { .cl-exposure-grid { grid-template-columns: 1fr !important; } }
+        `}</style>
+        {items.map((it, i) => (
+          <div key={i} style={{ minWidth: 0 }}>
+            <p style={{ fontSize: "var(--fs-95)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 6px" }}>
+              {it.label}
+            </p>
+            <div style={{ fontSize: "var(--fs-125)", lineHeight: 1.5, color: "var(--ink)", overflowWrap: "anywhere" }}>{it.value}</div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 
@@ -268,6 +337,89 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
   );
 }
 
+// ── Rail: "At a glance" key/value card ──────────────────────────────────
+//
+// Extension (lane uidetails2, 2026-09-07): the first rail card on every
+// 05/07/09 artboard — band/type/jurisdiction/topic/source/published/
+// re-check date as plain label:value rows. Generic so each surface
+// supplies its own real rows (never a fabricated field — a row a surface
+// has no data for is simply omitted by its caller, matching the rest of
+// this architecture's Absence convention).
+
+export interface AtAGlanceRow {
+  label: string;
+  value: React.ReactNode;
+}
+
+export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
+  const present = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
+  if (present.length === 0) return null;
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        padding: "14px 16px",
+      }}
+    >
+      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
+        At a glance
+      </p>
+      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 14px", fontSize: "var(--fs-12)" }}>
+        {present.map((r, i) => (
+          <>
+            <span key={`${i}-k`} style={{ color: "var(--ink-3)", fontWeight: 600 }}>
+              {r.label}
+            </span>
+            <span key={`${i}-v`} style={{ color: "var(--ink)", fontWeight: 700, overflowWrap: "anywhere" }}>
+              {r.value}
+            </span>
+          </>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ── Rail: legend card (Impact / Timeline / Source tier) ─────────────────
+//
+// Extension (lane uidetails2, 2026-09-07): static legend text repeated
+// verbatim on every 05/07/09 artboard's rail. One shared copy rather than
+// three page-local strings (CLAUDE.md rule 13, no duplication).
+
+export function RailLegend() {
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        padding: "14px 16px",
+      }}
+    >
+      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
+        Legend
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: "var(--fs-11)", color: "var(--ink-2)", lineHeight: 1.5 }}>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Impact</strong> — four scored dimensions, sorted low to
+          high: green left, red right. Height is the score, 1-3; the number is the sum, /12.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Timeline</strong> — passed · next · ahead.
+        </p>
+        <p style={{ margin: 0 }}>
+          <strong style={{ color: "var(--ink)" }}>Source tier</strong> — T1 binding law through T6
+          commentary.
+        </p>
+      </div>
+    </div>
+  );
+}
+
 // ── Rail: full impact meter card ────────────────────────────────────────
 
 export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
@@ -292,27 +444,65 @@ export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
 // ── Rail: "In this list · N of M" ────────────────────────────────────────
 //
 // AlphaSense behaviour (README §0.5): opening an item from a list keeps
-// the reader's place. The list-position contract (which URL params carry
-// it) is not yet documented by the lists lane in DEVIATION-LOG as of this
-// lane's build (2026-09-06) — this reads `pos`/`of` as the provisional
-// contract and logs it there (see DEVIATION-LOG.md). Reading searchParams
-// is a Dynamic API under classical rendering (PERF-10, this repo's own
-// precedent — see RegulationsLedger.tsx's SearchParamsFilterBridge), so
-// this is resolved CLIENT-SIDE inside a small Suspense-wrapped bridge,
-// never on the server page, so the four detail routes' static generation
-// (generateStaticParams) is unaffected.
+// the reader's place. The list-position contract IS now documented — the
+// lists lane's `withListPosition` (src/components/list-surface/
+// list-surface-helpers.ts, lane uilists-2026-09-06, logged in that lane's
+// own DEVIATION-LOG.md entry) appends `?list=<surface>&pos=<n>&of=<m>` to
+// every row href. Lane uidetails2 (2026-09-07) reads all three params —
+// `pos`/`of` for the "N of M" line (this shell already read those as a
+// provisional contract; now confirmed against the shipped one) and `list`
+// so a caller can label which filtered set the position was computed
+// against (see DEVIATION-LOG.md's list-position row for this lane's own
+// entry recording the regulation detail's adoption of the same contract).
+// Reading searchParams is a Dynamic API under classical rendering
+// (PERF-10, this repo's own precedent — see RegulationsLedger.tsx's
+// SearchParamsFilterBridge), so this is resolved CLIENT-SIDE inside a
+// small Suspense-wrapped bridge, never on the server page, so the four
+// detail routes' static generation (generateStaticParams) is unaffected.
 
-function InThisListBridge({ onParams }: { onParams: (pos: string | null, of: string | null) => void }) {
+function InThisListBridge({
+  onParams,
+}: {
+  onParams: (pos: string | null, of: string | null, list: string | null) => void;
+}) {
   const searchParams = useSearchParams();
   useEffect(() => {
-    onParams(searchParams.get("pos"), searchParams.get("of"));
+    onParams(searchParams.get("pos"), searchParams.get("of"), searchParams.get("list"));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
   return null;
 }
 
-export function InThisListStat({ backHref, backLabel }: { backHref: string; backLabel: string }) {
+// ── Header: breadcrumb's last segment ("1 of 9 in Action") ──────────────
+//
+// Lane uidetails2 (2026-09-07, README §0.5 + 05/07/09 artboards, each
+// breadcrumb's own last segment: "1 of 9 in Action" / "1 of 4" / "2 of 6").
+// Reuses the SAME InThisListBridge as InThisListStat above (one shared
+// list/pos/of URL-param contract, not a second reader) — mounted directly
+// inside DetailHeader's meta line so every detail surface that adopts
+// DetailHeader (all four: regulations, market, research, operations) picks
+// this up automatically the moment the lists lane's row hrefs carry the
+// params, with NO page-local change needed. Renders nothing when the
+// params are absent (Absence-by-omission — the breadcrumb simply ends at
+// `meta`, never a fabricated "1 of 1"), matching InThisListStat's own
+// honest-omission contract.
+function BreadcrumbListPosition({ band }: { band: UrgencyBand }) {
   const [params, setParams] = useState<{ pos: string | null; of: string | null } | null>(null);
+  const pos = params?.pos ? Number(params.pos) : null;
+  const of = params?.of ? Number(params.of) : null;
+  const known = pos != null && of != null && Number.isFinite(pos) && Number.isFinite(of);
+  return (
+    <>
+      <Suspense fallback={null}>
+        <InThisListBridge onParams={(p, o) => setParams({ pos: p, of: o })} />
+      </Suspense>
+      {known && ` · ${pos} of ${of} in ${band.label}`}
+    </>
+  );
+}
+
+export function InThisListStat({ backHref, backLabel }: { backHref: string; backLabel: string }) {
+  const [params, setParams] = useState<{ pos: string | null; of: string | null; list: string | null } | null>(null);
 
   const pos = params?.pos ? Number(params.pos) : null;
   const of = params?.of ? Number(params.of) : null;
@@ -329,10 +519,10 @@ export function InThisListStat({ backHref, backLabel }: { backHref: string; back
       }}
     >
       <Suspense fallback={null}>
-        <InThisListBridge onParams={(p, o) => setParams({ pos: p, of: o })} />
+        <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
-        In this list
+        In this list{params?.list ? ` · ${params.list}` : ""}
       </p>
       <p style={{ fontSize: "var(--fs-13)", color: "var(--ink)", margin: "0 0 8px" }}>
         {known ? `${pos} of ${of}` : <Absence reason="not in primary source" />}
