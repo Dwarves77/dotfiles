@@ -18,12 +18,12 @@
  * 768px the row variant's bars grow to heights 5/10/16 for scores 1/2/3
  * (from 5/7/9) on a rgba(0,0,0,.25) baseline (from --line-1's rgba(0,0,0,.12))
  * and the unscored baseline narrows from 40px to 30px — a CSS media query on
- * this shared part, never a page-local mobile copy. The spec's own phrase
- * "8px bars" is ambiguous between bar width and a bar-area height; taken
- * here as the explicit "heights 5/10/16" it also states, bar width
- * unchanged (4px) since the spec gives no separate mobile width number —
- * logged in DEVIATION-LOG.md as a spec-ambiguity note, not invented past
- * what the numbers actually say.
+ * this shared part, never a page-local mobile copy.
+ *
+ * FOLD-56 (2026-09-07): the spec's "8px bars" is resolved as bar WIDTH — bars
+ * widen from 4px to 8px below 768px (desktop 4px untouched), additive to the
+ * same media block; see DEVIATION-LOG.md's superseded entry for the prior
+ * ambiguity note.
  */
 
 import type { ImpactScores } from "@/types/resource";
@@ -172,9 +172,11 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
 // Mobile-390 spec "LIST ROW" (lane moblist, 2026-09-07): row-variant bars grow to heights
 // 5/10/16 for scores 1/2/3 on a rgba(0,0,0,.25) baseline below 768px; unscored baseline
 // narrows 40px -> 30px. A CSS media query on this shared part, not a page-local override.
+// FOLD-56 (F5): bar width also widens 4px -> 8px below 768px (desktop 4px untouched).
 const MOBILE_CSS = `
   @media (max-width: 767px) {
     .cl-impact-bars { height: 16px !important; border-bottom: 1px solid rgba(0,0,0,.25); padding-bottom: 1px; }
+    .cl-impact-bar { width: 8px !important; }
     .cl-impact-bar[data-score="1"] { height: 5px !important; }
     .cl-impact-bar[data-score="2"] { height: 10px !important; }
     .cl-impact-bar[data-score="3"] { height: 16px !important; }
