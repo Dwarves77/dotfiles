@@ -43,28 +43,47 @@ export function BandChip({ band }: { band: UrgencyBand }) {
   );
 }
 
+// Mobile-390 spec (FOLD-56, F4): the tier square below 768px is 9.5px/800 letter-spacing .06em
+// text in a 1px rgba(0,0,0,.2) radius-4 box — additive media block on the shared part, same
+// pattern as FILTER_GROUP_MOBILE_CSS above.
+const TIER_CHIP_MOBILE_CSS = `
+  @media (max-width: 767px) {
+    .cl-tier-chip {
+      font-size: 9.5px !important;
+      font-weight: 800 !important;
+      letter-spacing: 0.06em !important;
+      border: 1px solid rgba(0,0,0,.2) !important;
+      border-radius: 4px !important;
+    }
+  }
+`;
+
 /** Bordered square tier chip, T1-T6. Clamped so a raw out-of-range source
  *  tier never renders a broken label. */
 export function TierChip({ tier }: { tier: number }) {
   const clamped = Math.max(1, Math.min(6, Math.round(tier)));
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        justifyContent: "center",
-        width: 24,
-        height: 20,
-        fontSize: "var(--fs-105)",
-        fontWeight: 800,
-        color: "var(--ink-2)",
-        border: "1px solid var(--line-1)",
-        borderRadius: 4,
-        fontVariantNumeric: "tabular-nums",
-      }}
-    >
-      T{clamped}
-    </span>
+    <>
+      <style>{TIER_CHIP_MOBILE_CSS}</style>
+      <span
+        className="cl-tier-chip"
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 24,
+          height: 20,
+          fontSize: "var(--fs-105)",
+          fontWeight: 800,
+          color: "var(--ink-2)",
+          border: "1px solid var(--line-1)",
+          borderRadius: 4,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        T{clamped}
+      </span>
+    </>
   );
 }
 
