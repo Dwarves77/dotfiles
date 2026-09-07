@@ -45,7 +45,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
       style={{
         display: "block",
         fontFamily: "var(--font-display)",
-        fontSize: layout === "row" ? 20 : 26,
+        fontSize: layout === "row" ? 18 : 26,
         lineHeight: 1,
         letterSpacing: "0.04em",
         color: tone === "critical" ? "var(--immediate)" : "var(--ink)",
@@ -60,9 +60,9 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
     <span
       style={{
         display: "block",
-        fontSize: layout === "row" ? "var(--fs-13)" : "var(--fs-105)",
-        fontWeight: layout === "row" ? 700 : 800,
-        letterSpacing: layout === "row" ? "normal" : "0.08em",
+        fontSize: layout === "row" ? "var(--fs-125)" : "var(--fs-10)",
+        fontWeight: 700,
+        letterSpacing: layout === "row" ? "normal" : "0.12em",
         textTransform: layout === "row" ? "none" : "uppercase",
         color: layout === "row" ? "var(--ink)" : "var(--ink-3)",
       }}
@@ -75,8 +75,8 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
     <span
       style={{
         display: "block",
-        fontSize: "var(--fs-11)",
-        color: layout === "row" ? "var(--ink-3)" : "var(--ink-2)",
+        fontSize: "var(--fs-105)",
+        color: "var(--ink-3)",
         marginTop: layout === "row" ? 2 : 4,
       }}
     >
