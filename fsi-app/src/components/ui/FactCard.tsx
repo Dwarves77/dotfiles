@@ -67,17 +67,20 @@ export interface FactCardProps {
   label?: string | null;
 }
 
+// Operator ruling 2.4 (2026-09-07): eyebrow label is 9.5px / .12em (dc.html #sys fact card
+// block), not the 10px/.1em this used before.
 const EYEBROW: React.CSSProperties = {
-  fontSize: "var(--fs-10)",
+  fontSize: "var(--fs-95)",
   fontWeight: 800,
-  letterSpacing: "0.1em",
+  letterSpacing: "0.12em",
   textTransform: "uppercase",
   margin: "0 0 6px",
 };
 
+// Ruling 2.4's sourced body line-height is 20.15px at 13px type (1.55), not 1.6 (20.8px).
 const BODY: React.CSSProperties = {
   fontSize: "var(--fs-13)",
-  lineHeight: 1.6,
+  lineHeight: 1.55,
   margin: 0,
   maxWidth: "72ch",
   overflowWrap: "anywhere",
@@ -120,7 +123,9 @@ export function FactCard({ variant, text, source, label }: FactCardProps) {
   if (variant === "counsel") {
     return (
       <div style={{ ...SOURCED_SHAPE, borderLeft: "2px solid var(--action)" }}>
-        <p style={{ ...EYEBROW, color: "var(--action)" }}>Legal confirmation required</p>
+        {/* Ruling 2.4: counsel is "2px solid #F97316 left edge, otherwise as sourced" — the
+            eyebrow text itself is ink, matching the sourced variant, not orange. */}
+        <p style={{ ...EYEBROW, color: "var(--ink)" }}>Legal confirmation required</p>
         <p style={{ ...BODY, color: "var(--ink)" }}>{text}</p>
       </div>
     );

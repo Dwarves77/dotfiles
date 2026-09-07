@@ -88,19 +88,25 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow }:
     <header
       aria-label={title}
       style={{
+        position: "relative",
         background: "var(--card)",
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
         marginBottom: 16,
         overflow: "hidden",
+        /* dc.html #p3 (char 201809), the band-pill/action-row card: padding:16px 20px 18px. */
+        padding: "16px 20px 18px",
       }}
     >
       {/* Ruling 5.2 (2026-09-07): every 3px rule on a detail header uses the dark grey gradation
           from 5.1, never the band-coloured rule (that stays confined to the nav card cap / mobile
-          top bar / drawer). */}
-      <SectionRule />
-      <div style={{ padding: "16px 24px" }}>
+          top bar / drawer). Positioned absolute so it spans the card's full width regardless of
+          the header's own padding (the padding above is a real, measured card property; the rule
+          is not indented by it). */}
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+        <SectionRule />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
@@ -115,7 +121,6 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow }:
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
           </div>
         )}
-      </div>
       </div>
     </header>
   );
@@ -260,16 +265,19 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
   return (
     <div
       style={{
+        position: "relative",
         background: "var(--card)",
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
         marginBottom: 16,
         overflow: "hidden",
+        padding: "16px 20px",
       }}
     >
-      <SectionRule />
-      <div style={{ padding: "16px 20px" }}>
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+        <SectionRule />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
           Timeline
@@ -320,7 +328,6 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
           </StateNote>
         </div>
       )}
-      </div>
     </div>
   );
 }
@@ -446,14 +453,41 @@ export function SectionIndex({
 }: {
   sections: SectionIndexEntry[];
   /**
-   * Right-aligned control rendered in the same sticky row as the S1 · S2 ·
-   * S3 … links — additive slot (lane uiactions, 2026-09-07) for the
-   * detail architecture's Summary | Full brief depth switch (see
+   * Right-aligned control rendered in the same sticky row as the S1 S2 S3 …
+   * pill group — additive slot (lane uiactions, 2026-09-07) for the detail
+   * architecture's Summary | Full brief depth switch (see
    * `SummaryDepthSwitch` below). Optional: omitted, the row renders exactly
    * as before (index links only).
    */
   trailing?: React.ReactNode;
 }) {
+  // Restructured, fix lane fix58-detail (2026-09-07, sectionindex.json): dc.html #p3 "sticky
+  // index" block is a bordered PILL GROUP (white, 1px border, 8px radius, 4px padding), whose
+  // current-section item is a FILLED dark pill ("S1 Summary", no separator dot) and whose other
+  // items are plain 6px-radius links ("S2 Obligations") — not the previous bare flex row of
+  // middot-separated underline-free links. `active` tracks the section currently in view via
+  // IntersectionObserver, so the filled pill is a real scroll-spy state, not a static "first item
+  // always filled" fake.
+  const [active, setActive] = useState(0);
+  useEffect(() => {
+    if (sections.length === 0) return;
+    const els = sections.map((s) => document.getElementById(s.id)).filter((el): el is HTMLElement => el != null);
+    if (els.length === 0) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter((e) => e.isIntersecting).sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
+        if (visible.length > 0) {
+          const idx = els.indexOf(visible[0].target as HTMLElement);
+          if (idx >= 0) setActive(idx);
+        }
+      },
+      { rootMargin: "-64px 0px -70% 0px", threshold: 0 },
+    );
+    els.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sections.map((s) => s.id).join("|")]);
+
   if (sections.length === 0) return null;
   return (
     <nav
@@ -464,8 +498,7 @@ export function SectionIndex({
         top: 0,
         zIndex: 5,
         background: "var(--page)",
-        borderBottom: "1px solid var(--line-2)",
-        padding: "10px 0",
+        padding: "6px 0",
         marginBottom: 16,
         display: "flex",
         alignItems: "center",
@@ -484,28 +517,48 @@ export function SectionIndex({
           .cl-section-index-link { min-height: 36px !important; }
         }
       `}</style>
-      <div data-guard-strip style={{ display: "flex", alignItems: "center", gap: 10, overflowX: "auto", whiteSpace: "nowrap", minWidth: 0, maxWidth: "100%" }}>
-        {sections.map((s, i) => (
-          <span key={s.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            {i > 0 && <span style={{ color: "var(--ink-3)" }} aria-hidden="true">·</span>}
+      <div
+        data-guard-strip
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
+          background: "var(--card)",
+          border: "1px solid var(--line-1)",
+          borderRadius: 8,
+          padding: 4,
+          fontSize: "12.5px",
+          overflowX: "auto",
+          whiteSpace: "nowrap",
+          minWidth: 0,
+          maxWidth: "100%",
+        }}
+      >
+        {sections.map((s, i) => {
+          const isActive = i === active;
+          return (
             <a
+              key={s.id}
               href={`#${s.id}`}
               className="cl-section-index-link"
+              aria-current={isActive ? "true" : undefined}
               style={{
-                fontSize: "var(--fs-105)",
-                fontWeight: 700,
-                color: "var(--ink-2)",
+                fontSize: "12.5px",
+                fontWeight: isActive ? 700 : 600,
+                color: isActive ? "#FFFFFF" : "var(--ink-2)",
+                background: isActive ? "var(--brand)" : "transparent",
                 textDecoration: "none",
                 display: "inline-flex",
                 alignItems: "center",
                 minHeight: 44,
-                padding: "0 2px",
+                borderRadius: 6,
+                padding: "6px 12px",
               }}
             >
-              S{i + 1} · {s.label}
+              S{i + 1} {s.label}
             </a>
-          </span>
-        ))}
+          );
+        })}
       </div>
       {trailing && <div style={{ flexShrink: 0 }}>{trailing}</div>}
     </nav>
@@ -576,6 +629,7 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
     <section
       id={id}
       style={{
+        position: "relative",
         background: "var(--card)",
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
@@ -583,10 +637,14 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
         marginBottom: 16,
         scrollMarginTop: 56,
         overflow: "hidden",
+        padding: "16px 20px",
       }}
     >
-      <SectionRule />
-      <div style={{ padding: "16px 20px" }}>
+      {/* Absolute so the rule spans the card's full width regardless of the section's own padding
+          (the padding is a real, measured card property; the rule is not indented by it). */}
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+        <SectionRule />
+      </div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <h2
           style={{
@@ -594,7 +652,8 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
             fontWeight: 400,
             letterSpacing: "0.04em",
             textTransform: "uppercase",
-            fontSize: 16,
+            /* README §0.4 type scale: card titles 20px (artboard p3 section header, "Summary"). */
+            fontSize: 20,
             margin: 0,
             color: "var(--ink)",
           }}
@@ -604,7 +663,6 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
         {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
       </div>
       <div style={{ maxWidth: "72ch" }}>{children}</div>
-      </div>
     </section>
   );
 }
@@ -673,13 +731,15 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
         At a glance
       </p>
-      <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "6px 14px", fontSize: "var(--fs-12)" }}>
+      {/* dc.html #p3 "At a glance" card: grid-template-columns:96px 1fr;gap:7px 12px (row-gap 7,
+          column-gap 12) — a fixed label column, not `auto`. */}
+      <div style={{ display: "grid", gridTemplateColumns: "96px 1fr", gap: "7px 12px", fontSize: "var(--fs-12)" }}>
         {present.map((r, i) => (
           <>
             <span key={`${i}-k`} style={{ color: "var(--ink-3)", fontWeight: 600 }}>
               {r.label}
             </span>
-            <span key={`${i}-v`} style={{ color: "var(--ink)", fontWeight: 700, overflowWrap: "anywhere" }}>
+            <span key={`${i}-v`} style={{ color: "var(--ink)", fontWeight: 600, overflowWrap: "anywhere" }}>
               {r.value}
             </span>
           </>
@@ -854,15 +914,18 @@ export function InThisListStat({
   return (
     <div
       style={{
+        position: "relative",
         background: "var(--card)",
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
         overflow: "hidden",
+        padding: "14px 16px",
       }}
     >
-      <SectionRule />
-      <div style={{ padding: "14px 16px" }}>
+      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
+        <SectionRule />
+      </div>
       <Suspense fallback={null}>
         <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
@@ -908,7 +971,6 @@ export function InThisListStat({
             )}
           </span>
         )}
-      </div>
       </div>
     </div>
   );

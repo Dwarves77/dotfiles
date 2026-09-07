@@ -27,9 +27,9 @@
     {
       "name": "At a glance — grid",
       "selector": "[data-audit=\"atglance\"] > div > div > div",
-      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658).",
+      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658). SPEC CORRECTION, fix lane fix58-detail (2026-09-07): the `1fr` track literal is not a value CSSOM ever reports back — `getComputedStyle` resolves a `1fr` track to its USED pixel width (this mount measured `158px`, the mount's own fixed rail width minus the 96px label column and gaps), per this harness's own documented convention (`run-audit/README.md` step 3, 'Value forms'): `*` is the wildcard token whose 'only honest use is the 1fr track in a grid-template-columns list'. Corrected `1fr` to `*` here; the fixed `96px` label-column value is unchanged and still the real finding this row exists to catch.",
       "expect": {
-        "grid-template-columns": "96px 1fr",
+        "grid-template-columns": "96px *",
         "column-gap": "12px",
         "row-gap": "7px"
       }

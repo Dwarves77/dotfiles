@@ -89,10 +89,14 @@ async function probe(page, targets, forbids) {
       };
       const readTarget = (t) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
-        // `textMatch` narrows a selector by textContent — a spec that wants "exactly one button
-        // whose text contains X" out of several siblings the bare CSS selector also hits (fix58-tokens,
-        // 2026-09-07: this was already read from forbid entries but silently ignored for ordinary
-        // targets/children, producing a false MISMATCH on page-frame.json's '+ Tag' trigger count row).
+        // HARNESS FIX, found independently by two fix lanes (fix58-tokens and fix58-detail,
+        // 2026-09-07): `textMatch` narrows a selector to elements whose OWN text contains a
+        // substring — already honored for `forbid` entries (see readForbid below) but silently
+        // dropped here for ordinary targets, so a spec like page-frame.json's "+ Tag" trigger
+        // count (`header:not(.cl-masthead) button` + `textMatch: "Tag"`) measured every button
+        // under the selector (5: the overflow menu, Export brief, Share, Watch, + Tag) instead
+        // of the one it named. Same filter, same rule. Both lanes' fixes were identical; kept
+        // once here at the fold.
         if (t.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(t.textMatch));
         if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null, placeholder: null };
         const el = nodes[0];

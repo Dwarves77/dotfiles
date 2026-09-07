@@ -47,9 +47,13 @@ const PARA: React.CSSProperties = {
   maxWidth: "78ch",
 };
 
+// Concession table cell geometry, dc.html p9 (Operations profile) markup: th/td both
+// `padding:8px 12px`. th additionally carries `border-bottom:1px solid rgba(0,0,0,.12)`, td
+// `border-bottom:1px solid rgba(0,0,0,.06)` — see the `th`/`td` component overrides below, which
+// apply the lighter body-row border on top of this shared base.
 const CELL_BASE: React.CSSProperties = {
   border: "1px solid var(--color-border)",
-  padding: "6px 10px",
+  padding: "8px 12px",
   fontSize: 13,
   lineHeight: 1.5,
   textAlign: "left",
@@ -66,16 +70,30 @@ const COMPONENTS: Components = {
       <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>{children}</table>
     </div>
   ),
-  thead: ({ children }) => (
-    <thead style={{ backgroundColor: "var(--color-surface-raised)" }}>{children}</thead>
-  ),
+  // dc.html p9 concession table thead: background #FAFAF8 (var(--page), the same off-white the
+  // rest of the design system uses for a raised-but-not-card surface — not
+  // var(--color-surface-raised), which resolves to the tinted #F5F2EE instead).
+  thead: ({ children }) => <thead style={{ backgroundColor: "var(--page)" }}>{children}</thead>,
   th: ({ children, style }) => (
-    <th style={{ ...CELL_BASE, fontWeight: 600, color: "var(--color-text-primary)", ...(style ?? {}) }}>
+    <th
+      style={{
+        ...CELL_BASE,
+        fontSize: 10,
+        letterSpacing: "0.1em",
+        textTransform: "uppercase",
+        fontWeight: 700,
+        color: "var(--ink-3)",
+        borderBottom: "1px solid rgba(0,0,0,.12)",
+        ...(style ?? {}),
+      }}
+    >
       {children}
     </th>
   ),
   td: ({ children, style }) => (
-    <td style={{ ...CELL_BASE, color: "var(--color-text-secondary)", ...(style ?? {}) }}>{children}</td>
+    <td style={{ ...CELL_BASE, color: "var(--color-text-secondary)", borderBottom: "1px solid rgba(0,0,0,.06)", ...(style ?? {}) }}>
+      {children}
+    </td>
   ),
 
   ul: ({ children }) => (

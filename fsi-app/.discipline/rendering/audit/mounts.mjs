@@ -369,10 +369,13 @@ window.__mount = () => {
 `;
 
 // ── Operations region x dimension matrix (real component, real prop shape) ────────────────────
-// Reproduces the EXACT dimensions list OperationsLedger.tsx passes in production
-// (SOURCED_DIMENSIONS: DIMENSIONS filtered to exclude "regulatory") so the matrix's rendered row
-// count is measured against the same 6-dimension DIMENSIONS array the operator's ruling 3.3 names,
-// not an audit-invented list.
+// Reproduces the EXACT dimensions list OperationsLedger.tsx passes in production. Fix lane
+// fix58-detail (2026-09-07, operator ruling 3.3): OperationsLedger.tsx's `MATRIX_DIMENSIONS`
+// (fed to RegionDimensionMatrix's `dimensions` prop, ~line 356) is now `= DIMENSIONS` unfiltered
+// -- the prior `SOURCED_DIMENSIONS` derivation this mount reproduced (dropping "regulatory") was
+// removed from the product when ruling 3.3 landed. This mount was left pointed at that retired
+// 5-item shape, which made the audit measure a prop the product no longer passes; corrected to
+// mirror the real `MATRIX_DIMENSIONS = DIMENSIONS` (all six, in order).
 const OPSMATRIX_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
@@ -384,9 +387,8 @@ const regions = [
   { key: 'US', label: 'United States' },
 ];
 
-// Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) and its
-// SOURCED_DIMENSIONS derivation (filters out "regulatory") -- the audit reproduces the production
-// data shape exactly rather than asserting an invented one.
+// Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) -- the audit reproduces
+// the production data shape exactly rather than asserting an invented one.
 const DIMENSIONS = [
   { num: 1, key: 'regulatory', db: 'regulatory_feasibility', name: 'Regulatory feasibility' },
   { num: 2, key: 'resources', db: 'regional_resources', name: 'Regional resource availability' },
@@ -395,7 +397,6 @@ const DIMENSIONS = [
   { num: 5, key: 'infrastructure', db: 'infrastructure', name: 'Infrastructure capacity' },
   { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost data' },
 ];
-const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== 'regulatory');
 
 let root = null;
 window.__mount = () => {
@@ -405,7 +406,7 @@ window.__mount = () => {
     React.createElement('div', { style: { width: 900 }, 'data-audit': 'ops-matrix' },
       React.createElement(RegionDimensionMatrix, {
         regions,
-        dimensions: SOURCED_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name })),
+        dimensions: DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name })),
         facts: [],
         coverageRows: [],
       }),
@@ -1260,7 +1261,7 @@ export const AUDIT_MOUNTS = {
   },
   'ops-matrix': {
     id: 'ops-matrix',
-    description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own SOURCED_DIMENSIONS (5 of the real 6 DIMENSIONS).',
+    description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own MATRIX_DIMENSIONS (all 6 DIMENSIONS, ruling 3.3).',
     viewport: 1440,
     entry: OPSMATRIX_ENTRY,
   },
