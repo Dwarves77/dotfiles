@@ -27,19 +27,23 @@
  * at a smaller measure, per the mobile spec's own framing).
  */
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
+import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { BandGradientRule } from "@/components/ui/BandGradientRule";
 import { formatNumber } from "@/lib/format";
 
 // Deferred so the drawer/mobile bundle (no sign-out UI on the drawer per
 // the mobile spec's two-row footer) doesn't pay for UserMenuDropdown's
-// chunk; only the desktop card mounts it.
-const UserMenuLazy = dynamic(() => import("@/components/auth/UserMenu").then((m) => m.UserMenu), { ssr: false });
+// chunk; only the desktop card's Account row (its menu trigger, coordinator
+// default 2026-09-07) mounts it, and only once opened.
+const UserMenuDropdownLazy = dynamic(() => import("@/components/auth/UserMenuDropdown"), { ssr: false });
 
 interface NavItem {
   href: string;
@@ -109,11 +113,19 @@ export interface SidebarProps {
 
 export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   const pathname = usePathname();
+  const { user, signOut } = useAuth();
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
   const isAdmin = userRole === "owner" || userRole === "admin";
   const { data: bootstrap } = useWorkspaceBootstrap();
   const counts = bootstrap?.navCounts;
+  // Coordinator default (2026-09-07, resolving the third-footer-row defect
+  // confirmed against artboard 02 / ruling R2): the desktop card's Account
+  // row is itself the trigger for the menu the deleted third row used to
+  // open, so sign-out (and everything else that menu held) keeps a home.
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const { total: adminAttentionTotal } = useAdminAttention();
+  const showAdminDot = isAdmin && adminAttentionTotal > 0;
 
   const isActive = (href: string) => {
     if (href === "/") return pathname === "/";
@@ -222,37 +234,85 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
     ));
   };
 
-  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer): two plain
-  //    rows, no section label — Account (right = workspace name) and Admin
-  //    (right = role badge, "OWNER" per R2). The interactive sign-out menu
-  //    (UserMenuDropdown) has no artboard placement of its own on the card;
-  //    the drawer footer is the two rows only (mobile spec: "two unlabelled
-  //    44px rows"), UserMenu stays a desktop-card-only utility row beneath
-  //    (logged in DEVIATION-LOG.md). ──
+  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer): exactly
+  //    two unlabelled rows below a divider — Account (right = workspace
+  //    name) and Admin (right = role badge, "OWNER" per R2). No third row
+  //    (coordinator default, 2026-09-07, resolving the operator-confirmed
+  //    defect against artboard 02 / R2): the desktop card's Account row IS
+  //    the trigger for the same UserMenuDropdown the deleted third row
+  //    ("jasonlosh ▾") used to open — sign-out, workspace profile, admin
+  //    panel and settings all move there, anchored to the row, so no
+  //    function is lost. The drawer's Account row stays a plain link
+  //    (mobile spec: "two unlabelled 44px rows", no menu placement there —
+  //    logged in DEVIATION-LOG.md). ──
   const footer = (variant: "card" | "drawer") => {
     const drawer = variant === "drawer";
     return (
       <div className="flex flex-col" style={{ borderTop: `1px solid ${drawer ? "var(--line-2)" : "var(--line-3)"}` }}>
-        <Link
-          href="/profile"
-          prefetch={false}
-          onClick={drawer ? onDrawerClose : undefined}
-          aria-current={isActive("/profile") ? "page" : undefined}
-          className="flex items-center justify-between gap-2"
-          style={
-            drawer
-              ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
-              : { padding: "12px 14px 6px", color: "var(--ink)" }
-          }
-        >
-          <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Account</span>
-          <span
-            className="truncate"
-            style={{ fontSize: drawer ? "10.5px" : "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+        {!drawer && user ? (
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setAccountMenuOpen((v) => !v)}
+              aria-haspopup="menu"
+              aria-expanded={accountMenuOpen}
+              aria-label={
+                showAdminDot
+                  ? `Open account menu (${adminAttentionTotal} admin item${adminAttentionTotal === 1 ? "" : "s"} need attention)`
+                  : "Open account menu"
+              }
+              className="w-full flex items-center justify-between gap-2 cursor-pointer"
+              style={{
+                minHeight: 44,
+                padding: "12px 14px 6px",
+                color: "var(--ink)",
+                background: accountMenuOpen ? "var(--tag)" : "transparent",
+                border: "none",
+                textAlign: "left",
+              }}
+            >
+              <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Account</span>
+              <span
+                className="truncate"
+                style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+              >
+                {orgName || "—"}
+              </span>
+            </button>
+            {accountMenuOpen && (
+              <UserMenuDropdownLazy
+                user={user}
+                orgName={orgName}
+                isAdmin={isAdmin}
+                showAdminDot={showAdminDot}
+                adminAttentionTotal={adminAttentionTotal}
+                onClose={() => setAccountMenuOpen(false)}
+                onSignOut={signOut}
+              />
+            )}
+          </div>
+        ) : (
+          <Link
+            href="/profile"
+            prefetch={false}
+            onClick={drawer ? onDrawerClose : undefined}
+            aria-current={isActive("/profile") ? "page" : undefined}
+            className="flex items-center justify-between gap-2"
+            style={
+              drawer
+                ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
+                : { minHeight: 44, padding: "12px 14px 6px", color: "var(--ink)" }
+            }
           >
-            {orgName || "—"}
-          </span>
-        </Link>
+            <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Account</span>
+            <span
+              className="truncate"
+              style={{ fontSize: drawer ? "10.5px" : "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+            >
+              {orgName || "—"}
+            </span>
+          </Link>
+        )}
         {isAdmin && (
           <Link
             href="/admin"
@@ -263,7 +323,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
             style={
               drawer
                 ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
-                : { padding: "6px 14px 8px", color: "var(--ink)" }
+                : { minHeight: 44, padding: "6px 14px 8px", color: "var(--ink)" }
             }
           >
             <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Admin</span>
@@ -282,11 +342,6 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               {drawer ? "OWNER" : userRole}
             </span>
           </Link>
-        )}
-        {!drawer && (
-          <div className="px-3.5 pb-3.5 pt-1">
-            <UserMenuLazy />
-          </div>
         )}
       </div>
     );

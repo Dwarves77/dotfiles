@@ -609,6 +609,13 @@ import { createRoot } from 'react-dom/client';
 import { AppShell } from '@/components/AppShell';
 import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+// 'owner' so Sidebar's nav-card footer renders BOTH rows (Account + the
+// role-gated Admin row, R2) — sidebar.json's footer assertions need both
+// present. Same role the admin-issues-rail/account-members entries already
+// set, for the same reason.
+useWorkspaceStore.getState().setUserRole('owner');
 
 const F = ${JSON.stringify(PAGE_FRAME_FIXTURES)};
 

@@ -45,3 +45,51 @@ test("fix58-tokens: active nav row (card variant) uses the inset 3px spine box-s
   assert.match(SOURCE, /fontWeight:\s*active \? 700 : 600/);
   assert.doesNotMatch(SOURCE, /borderLeft:\s*`2px solid \$\{active/);
 });
+
+// Nav footer third-row defect (operator-confirmed, artboard 02 / R2, 2026-09-07): production
+// rendered THREE footer rows (Account, Admin, a third "jasonlosh ▾" UserMenu utility row holding
+// sign-out and its other items). R2 draws exactly two unlabelled rows below a divider. Coordinator
+// default: delete the third row's markup; the Account row becomes the trigger for the same menu
+// component, anchored to the row, so no function is lost.
+
+test("nav footer has no third row: the old UserMenu component is gone, not merely unmounted", () => {
+  // Deleted, not hidden (CLAUDE.md rule 13) — the file itself no longer exists.
+  assert.throws(() => readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenu.tsx"),
+    "utf8",
+  ));
+  assert.doesNotMatch(SOURCE, /UserMenuLazy/);
+  assert.doesNotMatch(SOURCE, /from "@\/components\/auth\/UserMenu"/);
+});
+
+test("footer renders at most two rows in the card variant: the Account trigger + the role-gated Admin link, nothing beneath them", () => {
+  // The card branch closes right after the Admin `Link` — no third sibling element (a stray
+  // `<div>`/component) between it and the footer's own closing `</div>`.
+  const footerBlock = SOURCE.slice(SOURCE.indexOf("const footer = (variant"), SOURCE.indexOf("return (\n    <>"));
+  const afterAdminClose = footerBlock.slice(footerBlock.lastIndexOf("</Link>"));
+  assert.match(afterAdminClose, /^<\/Link>\s*\)\}\s*<\/div>\s*\);\s*};/);
+});
+
+test("the Account row is the menu trigger: a <button> (not a <Link>) opening UserMenuDropdown, anchored to the row, when a user is present", () => {
+  assert.match(SOURCE, /import UserMenuDropdown from "@\/components\/auth\/UserMenuDropdown"|import\("@\/components\/auth\/UserMenuDropdown"\)/);
+  assert.match(SOURCE, /const UserMenuDropdownLazy = dynamic\(\(\) => import\("@\/components\/auth\/UserMenuDropdown"\)/);
+  assert.match(SOURCE, /\{!drawer && user \? \(/);
+  assert.match(SOURCE, /<button[\s\S]{0,400}?onClick=\{\(\) => setAccountMenuOpen/);
+  assert.match(SOURCE, /aria-haspopup="menu"/);
+  assert.match(SOURCE, /aria-expanded=\{accountMenuOpen\}/);
+});
+
+test("the Account trigger's menu contains Sign out (via UserMenuDropdown's onSignOut wiring)", () => {
+  assert.match(SOURCE, /<UserMenuDropdownLazy[\s\S]{0,400}?onSignOut=\{signOut\}/);
+  const dropdownSource = readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenuDropdown.tsx"),
+    "utf8",
+  );
+  assert.match(dropdownSource, /onClick=\{onSignOut\}/);
+  assert.match(dropdownSource, /Sign out/);
+});
+
+test("the Account row keeps a 44px hit target in both the card trigger and the drawer link", () => {
+  assert.match(SOURCE, /minHeight: 44,\s*\n\s*padding: "12px 14px 6px",\s*\n\s*color: "var\(--ink\)",\s*\n\s*background: accountMenuOpen/);
+  assert.match(SOURCE, /\? \{ minHeight: 44, padding: "0 10px", color: "var\(--ink\)" \}\s*\n\s*: \{ minHeight: 44, padding: "12px 14px 6px", color: "var\(--ink\)" \}/);
+});
