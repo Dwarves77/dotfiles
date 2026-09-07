@@ -1,0 +1,81 @@
+{
+  "part": "AuthFrame identity panel + AuthTabs",
+  "mount": "auth-frame",
+  "viewport": 1440,
+  "artboards": ["16-auth"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p16\" (char 620462); README.md screen 16 note 'same inputs and buttons as Settings'",
+  "notes": [
+    "dc.html p16: identity panel is `padding:48px 56px`, top rule `height:3px;width:160px;background:#5A5552;border-radius:2px;margin-bottom:22px`, wordmark `font-family:'Anton';font-size:30px;letter-spacing:.04em;text-transform:uppercase;line-height:1`, tagline `font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:#7A6E6C;font-weight:600;margin-top:6px`.",
+    "This top rule is neither the masthead 3px cap (ruling 5.2, scoped to the 252px nav card) nor a section-card header (ruling 5.1) — it is the auth/onboarding identity mark, solid #5A5552 at a fixed 160px width, unrelated to either ruling. Recorded here as its own value rather than folded into either.",
+    "AuthTabs: dc.html p16 tab strip is `display:flex;gap:2px;border-bottom:1px solid rgba(0,0,0,.12)`; active tab `padding:9px 12px;font-size:12.5px;font-weight:700;border-bottom:2px solid #5A5552;margin-bottom:-1px`; inactive tab `font-weight:600;color:#5A6B67`."
+  ],
+  "selector": "[data-audit=\"auth-frame\"] > div > div > div > div > div:first-child",
+  "expect": {
+    "height": "3px",
+    "width": "160px",
+    "background-color": "#5A5552",
+    "border-radius": "2px",
+    "margin-bottom": "22px"
+  },
+  "children": [
+    {
+      "name": "wordmark",
+      "selector": "[data-audit=\"auth-frame\"] > div > div > div > div > div:nth-child(2)",
+      "note": "dc.html p16: Anton 30px, letter-spacing .04em, uppercase, line-height 1.",
+      "expect": {
+        "text": "Caro's Ledge",
+        "font-family": "contains:Anton",
+        "font-size": "30px",
+        "letter-spacing": "0.04em",
+        "text-transform": "uppercase",
+        "line-height": "30px"
+      }
+    },
+    {
+      "name": "identity panel padding",
+      "selector": "[data-audit=\"auth-frame\"] > div > div > div:first-child",
+      "note": "dc.html p16: `padding:48px 56px`.",
+      "expect": {
+        "padding-top": "48px",
+        "padding-left": "56px"
+      }
+    },
+    {
+      "name": "AuthTabs — Sign in (active)",
+      "selector": "[data-audit=\"auth-frame\"] a[href^=\"/login\"]",
+      "note": "dc.html p16: active tab 12.5px/700, 2px solid #5A5552 underline, -1px margin-bottom.",
+      "expect": {
+        "text": "Sign in",
+        "font-size": "12.5px",
+        "font-weight": "700",
+        "border-bottom-width": "2px",
+        "border-bottom-color": "#5A5552",
+        "padding-top": "9px",
+        "padding-left": "12px"
+      }
+    },
+    {
+      "name": "AuthTabs — Create account (inactive)",
+      "selector": "[data-audit=\"auth-frame\"] a[href^=\"/signup\"]",
+      "note": "dc.html p16: inactive tab 12.5px/600, muted colour, transparent 2px underline.",
+      "expect": {
+        "text": "Create account",
+        "font-weight": "600",
+        "border-bottom-color": "rgba(0,0,0,0)"
+      }
+    },
+    {
+      "name": "field input",
+      "selector": "[data-audit=\"input\"]",
+      "note": "dc.html p16: `border:1px solid rgba(0,0,0,.25);border-radius:6px;height:36px;padding:0 10px;font-size:13px`.",
+      "expect": {
+        "height": "36px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.25)",
+        "border-radius": "6px",
+        "font-size": "13px"
+      }
+    }
+  ],
+  "forbid": []
+}

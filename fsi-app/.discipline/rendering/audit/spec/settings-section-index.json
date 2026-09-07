@@ -1,0 +1,42 @@
+{
+  "part": "Settings — SectionIndex (S1 · S2 · … sticky row)",
+  "mount": "settings-section-index",
+  "viewport": 1440,
+  "artboards": ["15-settings"],
+  "source": "src/components/pages/SettingsPage.tsx SETTINGS_SECTIONS constant (six entries: General, Notifications, Saved searches, Data & supersessions, Archive, Help); src/components/detail/DetailShell.tsx SectionIndex; README.md screen 15 note 'sticky S1 . S2 . S3 SectionIndex ... reusing ... the detail architecture'",
+  "notes": [
+    "The design package's numbered artboards (p13-p17) do not draw Settings' own sticky S1..S6 row explicitly — SettingsPage.tsx's own header comment states the design intent directly ('items become anchored SECTIONS in one scrolling page, reusing the sticky S1 . S2 . S3 SectionIndex from the detail architecture'), so this spec measures the real shared SectionIndex component against ITS OWN stated geometry (src/components/detail/DetailShell.tsx), not a page-artboard pixel reading — there is no p15 SectionIndex block to grep. Flagged rather than silently substituted, per the harness's own instruction to record the divergence.",
+    "SectionIndex itself: `position:sticky;top:0;padding:10px 0;border-bottom:1px solid var(--line-2);display:flex;justify-content:space-between`. Each link: `S{n} · {label}`, `font-size:var(--fs-105)` (10.5px), `font-weight:700`, `min-height:44px` (the law-2 hit-target floor), separated by a middot `·` in var(--ink-3).",
+    "This is the settings-specific instance named by this lane's PARTS list ('the SectionIndex on settings') of an otherwise generic part — the same component also serves detail surfaces, out of this lane's scope."
+  ],
+  "selector": "[data-audit=\"index\"] nav",
+  "expect": {
+    "position": "sticky",
+    "top": "0px",
+    "border-bottom-width": "1px",
+    "padding-top": "10px",
+    "padding-bottom": "10px"
+  },
+  "children": [
+    {
+      "name": "first link (S1 · General)",
+      "selector": "[data-audit=\"index\"] a.cl-section-index-link",
+      "note": "DetailShell.tsx: `S{i+1} · {label}`, 10.5px/700, min-height 44px.",
+      "expect": {
+        "text": "S1 · General",
+        "font-size": "10.5px",
+        "font-weight": "700",
+        "min-height": "44px"
+      }
+    },
+    {
+      "name": "count of entries",
+      "selector": "[data-audit=\"index\"] a.cl-section-index-link",
+      "note": "SETTINGS_SECTIONS has six entries.",
+      "expect": {
+        "count": "6"
+      }
+    }
+  ],
+  "forbid": []
+}
