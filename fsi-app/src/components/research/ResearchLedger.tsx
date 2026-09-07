@@ -132,7 +132,10 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
           const baseHref = itemDetailHref(r);
           return {
             key: r.id,
-            href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length),
+            href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length, {
+              prev: bandRows[i - 1]?.id,
+              next: bandRows[i + 1]?.id,
+            }),
             band,
             jurisdiction: jurisdictionCode(r),
             title: r.title,

@@ -18,8 +18,9 @@
  */
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
+import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { BandChip, TierChip } from "@/components/ui/Chips";
 import { CommandBar } from "@/components/ui/CommandBar";
 import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/MilestoneTimeline";
@@ -722,6 +723,23 @@ function InThisListBridge({
   return null;
 }
 
+// FOLD-56 (F7): reads the same `prev`/`next` slugs `withListPosition`'s row href now carries
+// (list-surface-helpers.ts), alongside pos/of/list. A second bridge rather than widening
+// InThisListBridge above — InThisListBridge's existing callers (BreadcrumbListPosition) have no
+// use for neighbour slugs, so this keeps that read minimal and additive.
+function InThisListNeighborsBridge({
+  onParams,
+}: {
+  onParams: (prev: string | null, next: string | null) => void;
+}) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    onParams(searchParams.get("prev"), searchParams.get("next"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+  return null;
+}
+
 // ── Header: breadcrumb's last segment ("1 of 9 in Action") ──────────────
 //
 // Lane uidetails2 (2026-09-07, README §0.5 + 05/07/09 artboards, each
@@ -766,10 +784,27 @@ export function InThisListStat({
   band?: UrgencyBand;
 }) {
   const [params, setParams] = useState<{ pos: string | null; of: string | null; list: string | null } | null>(null);
+  const [neighbors, setNeighbors] = useState<{ prev: string | null; next: string | null } | null>(null);
+  const pathname = usePathname();
 
   const pos = params?.pos ? Number(params.pos) : null;
   const of = params?.of ? Number(params.of) : null;
   const known = pos != null && of != null && Number.isFinite(pos) && Number.isFinite(of);
+
+  // FOLD-56 (F7): reconstruct each neighbour's own detail href from what this page already knows
+  // (its own `list`/`of`, pos-1/pos+1) plus the neighbour's slug — the row href only ever carried
+  // the bare slug (bounded, no second list/pos/of per neighbour; see list-surface-helpers.ts). The
+  // neighbour's own path is this page's own pathname with its last segment (the current slug)
+  // swapped for the neighbour's.
+  const basePath = pathname ? pathname.replace(/\/[^/]*$/, "") : null;
+  const prevHref =
+    known && basePath && neighbors?.prev
+      ? withListPosition(`${basePath}/${encodeURIComponent(neighbors.prev)}`, params?.list ?? "", (pos as number) - 1, of as number)
+      : null;
+  const nextHref =
+    known && basePath && neighbors?.next
+      ? withListPosition(`${basePath}/${encodeURIComponent(neighbors.next)}`, params?.list ?? "", (pos as number) + 1, of as number)
+      : null;
 
   return (
     <div
@@ -784,28 +819,49 @@ export function InThisListStat({
       <Suspense fallback={null}>
         <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
+      <Suspense fallback={null}>
+        <InThisListNeighborsBridge onParams={(p, n) => setNeighbors({ prev: p, next: n })} />
+      </Suspense>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 8px" }}>
         In this list{params?.list ? ` · ${params.list}` : ""}
       </p>
       <p style={{ fontSize: "var(--fs-13)", color: "var(--ink)", margin: "0 0 8px" }}>
         {known ? `${pos} of ${of}${band ? ` in ${band.label}` : ""}` : <Absence reason="not in primary source" />}
       </p>
-      <Link
-        href={backHref}
-        prefetch={false}
-        style={{
-          fontSize: "var(--fs-11)",
-          fontWeight: 700,
-          color: "var(--ink)",
-          textDecoration: "underline",
-          textDecorationColor: "var(--link-line)",
-          minHeight: 24,
-          display: "inline-flex",
-          alignItems: "center",
-        }}
-      >
-        {backLabel}
-      </Link>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <Link
+          href={backHref}
+          prefetch={false}
+          style={{
+            fontSize: "var(--fs-11)",
+            fontWeight: 700,
+            color: "var(--ink)",
+            textDecoration: "underline",
+            textDecorationColor: "var(--link-line)",
+            minHeight: 24,
+            display: "inline-flex",
+            alignItems: "center",
+          }}
+        >
+          {backLabel}
+        </Link>
+        {/* Mobile 390 spec "SECTION INDEX AND RAIL": prev/next links, 12px/600. Omitted (not
+            rendered) when there is no such neighbour — first row has no prev, last has no next. */}
+        {(prevHref || nextHref) && (
+          <span style={{ display: "inline-flex", alignItems: "center", gap: 10, marginLeft: "auto" }}>
+            {prevHref && (
+              <Link href={prevHref} prefetch={false} style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", minHeight: 24, display: "inline-flex", alignItems: "center" }}>
+                {"‹ prev"}
+              </Link>
+            )}
+            {nextHref && (
+              <Link href={nextHref} prefetch={false} style={{ fontSize: 12, fontWeight: 600, color: "var(--ink-2)", minHeight: 24, display: "inline-flex", alignItems: "center" }}>
+                {"next ›"}
+              </Link>
+            )}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
