@@ -28,6 +28,27 @@ path resolves against the real tree, so this table cannot drift silently.
 | `dispatch/start.mjs` | `node fsi-app/.discipline/dispatch/start.mjs <slug>` | Operator, at the start of a dispatch — mints a `Dispatch-UUID` recorded in every commit body during that dispatch | `.discipline/dispatch/README.md` |
 | `dispatch/audit.mjs` | `node fsi-app/.discipline/dispatch/audit.mjs <uuid>\|--list-recent\|--aggregate-by-skill` | Operator, any time after a dispatch — reports its commits, claimed skills, and outcomes | `.discipline/dispatch/README.md` |
 
+**The `_reground/` promotion-lane drain toolkit** (registered lane F25-WAVE52, 2026-09-07 —
+`docs/audits/f25-wave52-dispositions-2026-09-07.md`; operator ruling / amendment 2026-07-16). Six
+hand-run, per-item CLI tools serving the still-ACTIVE Unit-3 quarantine drain (`docs/PROGRAM-BOARD.md`
+§2, "62-quarantine → recover-or-delete", deferred to 2026-10-31). Each takes item-specific positional
+args (an item id, a lease holder, a proposed identifier) that do not fit a scheduled or CI-fanned-out
+shape, so — like `install-hooks.mjs`/`dispatch/*.mjs` above — the registry row itself is the
+reachability evidence, not a workflow line.
+
+| Operator CLI | Usage (its own header) | Who runs it, and when | Documented at |
+|---|---|---|---|
+| `_reground/executor-ground.mjs` | `node scripts/_reground/executor-ground.mjs <itemId> <ledger.json>` | Operator (Claude Code executor), per item — the $0 hand-supplied-ledger grounding path (bypasses fetch/Sonnet; the system's own mint gates still run) | `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+| `_reground/free-pass-run.mjs` | `node scripts/_reground/free-pass-run.mjs [--apply] [--limit=N] [--only=key,key]` | Operator, per drain batch — $0 re-attribution of failing FACT claims to already-held floor-qualifying captures | `docs/dispatches/free-chrome-acquisition-brief-2026-07-16.md`, `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+| `_reground/id-stamp.mjs` | `node scripts/_reground/id-stamp.mjs <itemKey> <proposedId> <holder> [--apply]` | Operator, per item, under an already-held mutation lease — verify-before-write promotion to id-confirmed | `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+| `_reground/lease.mjs` | `node scripts/_reground/lease.mjs <itemKey> <acquire\|heartbeat\|release> <holder> [lane]` | Operator, around an `id-stamp.mjs`/`tombstone-delete.mjs` call — acquires/releases the per-item mutation lease those tools require | `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+| `_reground/target-match-probe.mjs` | `node scripts/_reground/target-match-probe.mjs` | Operator, ad hoc — read-only `verifyTargetMatch` report over the current drain worklist, no writes | `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+| `_reground/tombstone-delete.mjs` | `node scripts/_reground/tombstone-delete.mjs <itemId\|key>... --disposition=<reason> [--merged-into=<id>] [--holder=] [--apply]` | Operator, per archive-endgame bucket or duplicate merge — tombstone-then-delete, fail-closed ordering | `docs/audits/full-read-2026-08-31/L14-scripts-B.md` |
+
+`scripts/_reground/restore-overclear.mjs` is NOT listed here: DELETED lane F25-WAVE52 (2026-09-07) —
+DEAD-HISTORICAL, scoped precisely to a single named 2026-07-16 drain-clear incident already resolved,
+not reusable machinery (`docs/audits/full-read-2026-08-31/L14-scripts-B.md`).
+
 `.discipline/consistency/runner.mjs` is NOT listed here: it is spawned as a real child process by
 `consistency/override-check.mjs` (`const RUNNER = resolve(HERE, 'runner.mjs'); spawnSync(process.execPath,
 [RUNNER], ...)`), and override-check.mjs's own path is a literal dispatch-root match in

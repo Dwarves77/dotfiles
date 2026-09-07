@@ -5113,6 +5113,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/scripts/maintenance/remediate-orphan-sources.test.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/scripts/maintenance/reopen-validation-holds.test.mjs",
       "kinds": [
         "PROOF"
@@ -6097,18 +6106,6 @@
       ],
       "skills": [],
       "proofWired": true,
-      "status": "COVERED"
-    },
-    {
-      "path": "fsi-app/scripts/verify/stale-verified-audit.mjs",
-      "kinds": [
-        "WRITES"
-      ],
-      "skills": [
-        "environmental-policy-and-innovation",
-        "remediation-discipline"
-      ],
-      "proofWired": null,
       "status": "COVERED"
     },
     {

@@ -186,16 +186,23 @@ export function findDispatchRoots(
   }
 
   // Source 7 (lane W71-A, 2026-09-05, docs/plans/complete-system-build-plan-2026-09-04.md §W7 /
-  // docs/audits/wiring-audit-2026-09-04/B1-modules.md): OUT-OF-REPO-BOUNDARY.md is itself the in-repo
+  // docs/audits/wiring-audit-2026-09-04/B1-modules.md; widened lane F25-WAVE52, 2026-09-07, per
+  // docs/audits/f25-wave52-dispositions-2026-09-07.md): OUT-OF-REPO-BOUNDARY.md is itself the in-repo
   // registry of tools invoked from OUTSIDE any workflow, package.json script, or import graph — a git
   // hook's shared settings.json, or a human at a terminal. Its two markdown tables (the boundary-
   // dependency table and the "Operator-CLI register" beneath it) name every such tool in backticked
   // `governance/*.mjs` / `dispatch/*.mjs` / `install-hooks.mjs` paths; the registry row IS the
   // reachability evidence, the same "a documented indirection is itself dispatch-root evidence" shape
   // Source 4 and Source 6 already use for run-data-audit-lane.mjs's AUDITS table and the tracked hook
-  // sources, respectively. parseBoundaryRegistryPaths() is factored out (not inlined) so
-  // F25-module-liveness.test.mjs can assert every parsed path resolves against the REAL file, which is
-  // what keeps this registry from rotting silently the way a plain doc reference could.
+  // sources, respectively. WIDENED (lane F25-WAVE52) to also recognize backticked `_reground/*.mjs`
+  // rows: the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) is the exact
+  // same shape — hand-run, per-item, no schedule, no workflow line — serving the still-ACTIVE Unit-3
+  // quarantine drain (docs/PROGRAM-BOARD.md §2, deferred to 2026-10-31, not closed), not a discharged
+  // one-shot. Registering it in the SAME table as install-hooks.mjs/dispatch/*.mjs rather than inventing
+  // a parallel mechanism keeps "operator-invoked, out-of-workflow" as ONE recognized shape, not two.
+  // parseBoundaryRegistryPaths() is factored out (not inlined) so F25-module-liveness.test.mjs can
+  // assert every parsed path resolves against the REAL file, which is what keeps this registry from
+  // rotting silently the way a plain doc reference could.
   try {
     const text = readFileFn('fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md');
     for (const p of parseBoundaryRegistryPaths(text)) roots.add(p);
@@ -233,17 +240,22 @@ export function findDispatchRoots(
 }
 
 // Every backticked path under governance/, dispatch/, or consistency/, or the bare `install-hooks.mjs`
-// literal, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's markdown tables — factored out of
-// findDispatchRoots's Source 7 so its own unit test can assert every parsed path resolves against the
-// real tree (a row naming a deleted or renamed file would otherwise rot silently).
+// literal, or (lane F25-WAVE52) under _reground/, appearing anywhere in OUT-OF-REPO-BOUNDARY.md's
+// markdown tables — factored out of findDispatchRoots's Source 7 so its own unit test can assert every
+// parsed path resolves against the real tree (a row naming a deleted or renamed file would otherwise rot
+// silently). _reground/*.mjs rows resolve under fsi-app/scripts/ (their real tree location), every other
+// matched prefix under fsi-app/.discipline/ as before.
 export function parseBoundaryRegistryPaths(text) {
   // Opening backtick required (a real inline-code span, not prose), but NOT a closing one immediately
   // after `.mjs` — the boundary-dependency table's own applier cell is `` `governance/
   // wire-pretooluse-settings.mjs --apply` `` (a CLI invocation with flags inside the same code span), so
   // anchoring to the closing backtick would miss it.
-  const RE = /`((?:governance|dispatch|consistency)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
+  const RE = /`((?:governance|dispatch|consistency|_reground)\/[\w.-]+\.mjs|install-hooks\.mjs)\b/g;
   const found = new Set();
-  for (const m of text.matchAll(RE)) found.add(`fsi-app/.discipline/${m[1]}`);
+  for (const m of text.matchAll(RE)) {
+    const p = m[1];
+    found.add(p.startsWith('_reground/') ? `fsi-app/scripts/${p}` : `fsi-app/.discipline/${p}`);
+  }
   return [...found];
 }
 
@@ -724,10 +736,24 @@ export const LEGACY_ALLOWLIST = [
       // 'scripts/_diag/_pdf-probe.mjs' entry REMOVED (lane W71-C, 2026-09-05): DELETED — a scratch probe
       // ("PROBE (scratch)") that already answered its question (unpdf extracts text) before the transport
       // was wired; no importer, no dispatch, nothing downstream depends on it.
-      ...['executor-ground', 'free-pass-run', 'id-stamp', 'lease', 'restore-overclear', 'target-match-probe', 'tombstone-delete'].map((n) =>
-        o(`scripts/_reground/${n}.mjs`,
-          'part of the 2026-07-16 "_reground" CLI toolkit (operator ruling / amendment 2026-07-16) for the promotion-lane drain — a dated, hand-run, per-item toolkit, not a scheduled or imported runtime.', 52,
-          'Zero non-test importers, no workflow/package.json dispatch. Predates B1\'s window; _reground one-shot toolkit.')),
+      // Lane F25-WAVE52 (2026-09-07) disposition of the seven `_reground/*.mjs` entries this block used
+      // to generate (docs/audits/f25-wave52-dispositions-2026-09-07.md): each carried expiry:52 with zero
+      // dispatch root anywhere. Per-file:
+      //  - 'scripts/_reground/restore-overclear.mjs' DELETED: DEAD-HISTORICAL per
+      //    docs/audits/full-read-2026-08-31/L14-scripts-B.md — a one-shot restoration scoped precisely to
+      //    a single named 2026-07-16 drain-clear incident, not reusable machinery. The ruling it served is
+      //    closed and its remediation already applied; nothing else in the tree references it.
+      //  - The other six ('executor-ground', 'free-pass-run', 'id-stamp', 'lease', 'target-match-probe',
+      //    'tombstone-delete') are WIRED, not deleted — L14-scripts-B.md classifies every one of them
+      //    OPERATOR-TOOL (not DEAD), and they serve the still-ACTIVE Unit-3 quarantine drain
+      //    (docs/PROGRAM-BOARD.md §2 — "62-quarantine → recover-or-delete", deferred to 2026-10-31, NOT
+      //    closed): tombstone-delete.mjs alone shows 236 live disposition_ledger rows as running evidence.
+      //    Each takes item-specific positional args (an itemId, a lease holder, a proposed identifier) that
+      //    do not fit a scheduled or CI-fanned-out shape, so they are registered as Operator-CLI-register
+      //    rows in OUT-OF-REPO-BOUNDARY.md instead of a maintenance.yml step — findDispatchRoots' Source 7
+      //    is widened (above) to recognize a backticked `_reground/*.mjs` row the same way it already
+      //    recognizes `governance/*.mjs`/`dispatch/*.mjs`/`install-hooks.mjs`, so the registry row itself is
+      //    the reachability evidence, same idiom as every other row in that table.
       {
         file: 'fsi-app/scripts/_ruling/null-tier-host-ruling.mjs',
         reason:
@@ -871,10 +897,30 @@ export const LEGACY_ALLOWLIST = [
       // as the honest practical proxy for a wave boundary; self-skips (exit 2) without creds.
       // 'mint-gate-calibration' entry REMOVED (lane W71-A, 2026-09-05): the script itself was deleted
       // (no live caller — see F38-unbounded-supabase-read.mjs's own removed-entry note for the evidence).
-      ...['admin-phrase-scan', 'cleanup-dup-sources', 'defect-signature-scan', 'remediate-orphan-sources', 'remediate-reclassify-proposal', 'stale-verified-audit', 'surface-visibility-audit'].map((n) =>
-        o(`scripts/verify/${n}.mjs`,
-          'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 52,
-          'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
+      // Lane F25-WAVE52 (2026-09-07) disposition of the seven `scripts/verify/*.mjs` entries this block
+      // used to generate (docs/audits/f25-wave52-dispositions-2026-09-07.md): each carried expiry:52 with
+      // zero dispatch root anywhere. Per-file:
+      //  - 'cleanup-dup-sources.mjs' DELETED: the specific duplicate-source cluster it targeted was a
+      //    named, dated incident already resolved; no recurring class remains for it to catch.
+      //  - 'remediate-reclassify-proposal.mjs' DELETED: the proposal-reclassification ruling it applied
+      //    was a one-time batch already executed against the live corpus; re-running it against an
+      //    already-corrected corpus is a no-op, not a standing check.
+      //  - 'stale-verified-audit.mjs' DELETED: superseded — its detection surface is now covered by the
+      //    already-wired `defect-signature-scan` (S-CONFLATE/S-NUMERIC triage) and `surface-visibility`
+      //    audits below; keeping a third, unwired, overlapping detector was the "shadow capability" class
+      //    CLAUDE.md's "one module every caller imports" ruling forbids in the other direction.
+      //  - 'admin-phrase-scan.mjs', 'defect-signature-scan.mjs', 'remediate-orphan-sources.mjs' and
+      //    'surface-visibility-audit.mjs' are WIRED, not deleted — each is a live-corpus check or
+      //    remediation that a freshly-minted or freshly-classified item can trip AT ANY TIME (RD-20
+      //    admin-gate framing, FACT-claim S-CONFLATE/S-NUMERIC triage, orphan-source registration, and the
+      //    "verified item hidden from its surface" PPWR-incident invariant, respectively) — a recurring
+      //    class, not a closed one-shot. Wired below: admin-phrase-scan/defect-signature-scan/
+      //    surface-visibility-audit as SOFT run-data-audit-lane.mjs AUDITS entries (this file's own Source
+      //    4), remediate-orphan-sources.mjs via a scripts/maintenance/ subprocess wrapper dispatched as a
+      //    new `.github/workflows/maintenance.yml` step (Source 1) — see that workflow's own step comment
+      //    and docs/runbooks/MAINTENANCE-RUNBOOK.md §39 for the wiring detail. Each entry now reads
+      //    STALE ALLOWLIST ("now HAS a production importer") the moment the wiring lands, which is this
+      //    same commit — so the four entries are removed here rather than left to red on their own gate.
     ];
   })(),
 

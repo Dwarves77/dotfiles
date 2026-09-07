@@ -130,6 +130,12 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // (distinct from category 38's response-truncation shape). No citingFiles change, same posture as the
 // category 36/37/38 re-pins above (the files below cite the skill as a whole, not this section
 // specifically).
+// 2026-09-07 (Lane F25-WAVE52, F25 module-liveness expiry-52 disposition —
+// docs/audits/f25-wave52-dispositions-2026-09-07.md): 'fsi-app/scripts/verify/stale-verified-audit.mjs'
+// REMOVED from remediation-discipline's citingFiles — the file itself was deleted this lane (superseded:
+// its detection surface is now covered by the already-wired defect-signature-scan and surface-visibility
+// audits). No contentHash change; removing a deleted file's citation is the drift this gate exists to
+// catch, not a re-pin.
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
@@ -154,7 +160,6 @@ export const PINNED_MANIFEST = {
       'fsi-app/scripts/verify/source-link-audit.mjs',
       'fsi-app/scripts/verify/spec09-org-rls-adversarial-audit.mjs',
       'fsi-app/scripts/verify/staged-transit-audit.mjs',
-      'fsi-app/scripts/verify/stale-verified-audit.mjs',
       'fsi-app/scripts/verify/substrate-agreement-audit.mjs',
       'fsi-app/scripts/verify/surface-visibility-audit.mjs',
       'fsi-app/scripts/verify/unregistered-span-host-audit.mjs',
