@@ -4,6 +4,7 @@ import { INTEL_ITEMS_TAG, itemTag } from "./cache/revalidate-item";
 import type { Resource, ChangeLogEntry, Dispute, Supersession, ItemConnection } from "@/types/resource";
 import type { Source, ProvisionalSource, TrustMetrics, TrustScore } from "@/types/source";
 import { computeBaselineTrustScore, createDefaultTrustMetrics } from "@/lib/trust";
+import { scoreResource } from "@/lib/scoring";
 import type { SeedFallbackTrigger } from "@/lib/notifications/seed-fallback-flag";
 import { WATCHLIST_LIST_KEY, watchlistOrderKey } from "@/lib/watchlist-order";
 import { compareRanks } from "@/lib/list-order";
@@ -3694,6 +3695,20 @@ export interface WatchlistItem {
   note?: string;
   /** Team scope only: display name of the member who added it, when resolvable. */
   addedBy?: string;
+  /** UILISTS lane (2026-09-06, UI system handoff artboard 11: "same row anatomy, one block, plus
+   *  a re-check column"): the intelligence_items fields ListRow needs (priority for the urgency
+   *  band, impact_scores, timeline, source_tier), present ONLY for ITEM_BACKED_TYPES rows (reg /
+   *  research / operations — the same set resolveWatchlistTypeFields already special-cases).
+   *  source/market_series rows carry none of this (they are not intelligence_items rows), so these
+   *  stay undefined for them and the watchlist surface renders the Absence convention, never a
+   *  fabricated band. Not a new read: additive columns on the SAME bounded (≤ WATCHLIST_PAGE_LIMIT
+   *  per scope) intelligence_items lookup fetchWatchlist already runs (see the `columns` constant
+   *  below), never a second query. */
+  priority?: "CRITICAL" | "HIGH" | "MODERATE" | "LOW" | null;
+  impactScores?: { cost: number; compliance: number; client: number; operational: number } | null;
+  timeline?: Array<{ date: string | null; status?: "past" | "current" | "future" | "ahead" }> | null;
+  sourceTier?: number | null;
+  complianceDeadline?: string | null;
 }
 
 export interface CoverageGap {
@@ -3988,7 +4003,17 @@ export async function fetchWatchlist(
         rows.filter((r) => ITEM_BACKED_TYPES.has(r.item_type)).map((r) => r.item_id)
       )
     );
-    const itemMeta = new Map<string, { title: string; jurisdiction: string | null }>();
+    const itemMeta = new Map<
+      string,
+      {
+        title: string;
+        jurisdiction: string | null;
+        priority: "CRITICAL" | "HIGH" | "MODERATE" | "LOW" | null;
+        impactScores: { cost: number; compliance: number; client: number; operational: number } | null;
+        sourceId: string | null;
+        complianceDeadline: string | null;
+      }
+    >();
     if (itemIds.length > 0) {
       // Two encoded .in() lookups rather than one interpolated .or(). The
       // previous form spliced caller-supplied item_id text straight into a
@@ -3998,7 +4023,17 @@ export async function fetchWatchlist(
       // would otherwise raise 22P02.
       const uuidIds = itemIds.filter((id) => WATCHLIST_UUID_RE.test(id));
       const legacyIds = itemIds.filter((id) => !WATCHLIST_UUID_RE.test(id));
-      const columns = "id, legacy_id, title, jurisdictions";
+      // UILISTS lane (2026-09-06): priority/item_type/tags/transport_modes/source_id/
+      // compliance_deadline added to this SAME bounded lookup (not a new query) so /watchlist can
+      // render the shared ListRow anatomy (band/impact/tier) — see WatchlistItem's own header.
+      // There is no stored `impact_scores` column anywhere in this schema (every other list surface
+      // computes it client-side via scoreResource(), src/lib/scoring.ts); item_type/tags/
+      // transport_modes are the inputs that function reads, so they are selected here instead.
+      // source_tier is not a plain column (it lives on the joined `sources` row via source_id), so
+      // it is resolved in a second, equally-bounded pass below rather than a nested select here.
+      // There is no live timeline join in this lookup either (a `WatchlistSurface` row shows the
+      // Absence convention for the timeline cell, same as any item with no milestones).
+      const columns = "id, legacy_id, title, jurisdictions, priority, item_type, tags, transport_modes, source_id, compliance_deadline";
       // PostgrestFilterBuilder is thenable but not a Promise, so PromiseLike.
       const lookups: Array<PromiseLike<{ data: unknown }>> = [];
       if (legacyIds.length > 0) {
@@ -4028,14 +4063,52 @@ export async function fetchWatchlist(
           legacy_id: string | null;
           title: string;
           jurisdictions: string[] | null;
+          priority: "CRITICAL" | "HIGH" | "MODERATE" | "LOW" | null;
+          item_type: string | null;
+          tags: string[] | null;
+          transport_modes: string[] | null;
+          source_id: string | null;
+          compliance_deadline: string | null;
         }>)) {
+          // UILISTS lane (2026-09-06): scoreResource() needs a Resource-shaped input; only the
+          // fields it actually reads (type/priority/tags/cat) are populated here — see
+          // src/lib/scoring.ts. Not a fabricated score: same pure, deterministic function every
+          // other list surface calls as its own `r.impactScores ?? scoreResource(r)` fallback.
+          const impactScores = scoreResource({
+            type: it.item_type || "uncertain",
+            priority: it.priority || "MODERATE",
+            tags: it.tags || [],
+            cat: it.transport_modes?.[0] || "global",
+          } as Resource);
           const meta = {
             title: it.title,
             jurisdiction: it.jurisdictions?.[0] || null,
+            priority: it.priority,
+            impactScores,
+            sourceId: it.source_id,
+            complianceDeadline: it.compliance_deadline,
           };
           // Register under BOTH keys: a row may have been watched by either id.
           if (it.legacy_id) itemMeta.set(it.legacy_id, meta);
           itemMeta.set(it.id, meta);
+        }
+      }
+    }
+
+    // Source tier for the ITEM_BACKED_TYPES rows above, resolved by the SAME batched-by-sourceId
+    // pattern enrichCategoryRows already uses for every other surface's tier chip (see that
+    // function's own header) — a second bounded lookup, not per-row fan-out.
+    const itemSourceTierById = new Map<string, number | null>();
+    {
+      const itemSourceIds = Array.from(new Set(Array.from(itemMeta.values()).map((m) => m.sourceId).filter((id): id is string => !!id)));
+      if (itemSourceIds.length > 0) {
+        const { data: tierRows } = await supabase
+          .from("sources")
+          .select("id, base_tier, effective_tier")
+          // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
+          .in("id", itemSourceIds);
+        for (const s of (tierRows || []) as Array<{ id: string; base_tier: number | null; effective_tier: number | null }>) {
+          itemSourceTierById.set(s.id, s.effective_tier ?? s.base_tier ?? null);
         }
       }
     }
@@ -4115,6 +4188,8 @@ export async function fetchWatchlist(
           : {}),
       };
 
+      const richMeta = ITEM_BACKED_TYPES.has(r.item_type) ? itemMeta.get(r.item_id) : undefined;
+
       return {
         ...common,
         ...resolveWatchlistTypeFields(r.item_type, r.item_id, {
@@ -4122,6 +4197,17 @@ export async function fetchWatchlist(
           sourceLabels,
           marketSeriesLabels,
         }),
+        // UILISTS lane (2026-09-06): only present for reg/research/operations rows (see
+        // WatchlistItem's own header) — source/market_series rows leave these undefined and the
+        // watchlist surface renders the Absence convention.
+        ...(richMeta
+          ? {
+              priority: richMeta.priority,
+              impactScores: richMeta.impactScores,
+              sourceTier: richMeta.sourceId ? itemSourceTierById.get(richMeta.sourceId) ?? null : null,
+              complianceDeadline: richMeta.complianceDeadline,
+            }
+          : {}),
       };
     });
   } catch (e) {

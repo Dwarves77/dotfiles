@@ -15,6 +15,19 @@
  * competing click affordances (a row Link plus a separate button/icon
  * target); this is the only one. Title truncates with ellipsis; meta
  * line is 11px muted.
+ *
+ * RESPONSIVE COLLAPSE, added additively this lane (UILISTS, 2026-09-06,
+ * RD-60/F35 — the rendering guard's own phone-width pass, ux-smoke-specs.mjs):
+ * the desktop grid's fixed columns alone (3+56+88+84+76+40+44 = 391px) plus
+ * 7×14px gaps (98px) need ~489px before the 1fr title column gets anything,
+ * so below 640px the row overflowed its card, titles measured near-zero
+ * width, and several targets lost their neighbour clearance — none of that
+ * is in the artboards (drawn at 1440px) or the README grid spec, which
+ * names only the desktop shape. Below 640px this collapses to a 2-row grid
+ * (spine+jurisdiction+title+⋯ on row 1; impact/due/timeline/tier as one
+ * wrapped flex strip on row 2) via `.cl-row-*` classes — the same
+ * shape every pre-existing row component in this app (`.cl-row`/
+ * `.cl-row__aside`, globals.css) already uses for this exact problem.
  */
 
 import Link from "next/link";
@@ -136,13 +149,28 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
     >
       <style>{RESPONSIVE_CSS}</style>
       <span className="cl-row-spine" aria-hidden="true" style={{ background: band.cssVar }} />
+      {/* Column span excludes the spine (col 1) AND the ⋯ overflow cell (last column) in both the
+          desktop 8-column grid and the mobile collapse — the row Link never shares a box with the
+          Watch/⋯ button. */}
       <Link
         href={href}
         prefetch={false}
         style={{
           position: "absolute",
-          inset: 0,
-          gridColumn: `2 / span 6`,
+          top: 0,
+          left: 0,
+          bottom: 0,
+          // 12px short of the grid line, not exactly 0: the "2 / -2" column boundary and the ⋯
+          // cell's own Watch button can land within a few px of each other after grid layout
+          // rounding (measured: a 0.77px overlap at the boundary, growing to a few more once the
+          // ⋯ cell's actual control — WatchButton, a pre-existing shared part with its own
+          // internal padding this lane does not own — is accounted for), which the law-2
+          // clearance check (≥8px between two targets under the 44px floor) treats as touching or
+          // too close. This margin is sized to the measured worst case across all five surfaces'
+          // fixtures, not the theoretical grid-line gap alone.
+          right: 12,
+          gridColumn: "2 / -2",
+          gridRow: "1 / -1",
           textDecoration: "none",
         }}
         aria-label={title}
@@ -162,6 +190,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
       </span>
       <span className="cl-row-title" style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0, padding: "8px 0" }}>
         <span
+          data-guard-title
           style={{
             fontSize: "var(--fs-14)",
             fontWeight: 600,

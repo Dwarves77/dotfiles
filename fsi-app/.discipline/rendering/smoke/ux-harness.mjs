@@ -43,12 +43,20 @@ export async function runUxSpec(browser, spec) {
       try {
         await page.setViewportSize({ width: vp.width, height: vp.height });
         await mountBundle(page, bundleJs, '__mount', state.props);
-        // one animation frame so layout settles after the React commit
-        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+        // UILISTS lane (2026-09-06): a single rAF occasionally fired before a heavier row set
+        // (10 ListRow rows, each with an ImpactMeter/MilestoneTimeline/TierChip) finished its
+        // layout pass at the narrow 375px viewport — reproduced as a flaky `[data-guard-title]`
+        // undercount (a title measured with a still-zero-width box gets dropped by `visible()` in
+        // measureUx's collector) that did not reproduce in an isolated, unhurried repro of the same
+        // mount. Two consecutive rAFs (the standard "wait for a full paint" idiom — the first is
+        // often still mid-frame) plus a short fixed settle make the measurement wait on layout
+        // rather than on luck.
+        await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+        await page.waitForTimeout(50);
         const guard = await measureGuard(page);
         const ux = await measureUx(page);
         checks += 1;
-        failures.push(...assertGuardClean(label, guard));
+        failures.push(...assertGuardClean(label, guard, spec.knownSafePlaceholders || []));
         failures.push(...assertUxClean(label, ux));
         if (state.expectTitles && ux.titles.length < state.expectTitles) {
           failures.push(`${label}: expected ≥${state.expectTitles} [data-guard-title] element(s), found ${ux.titles.length} (spec cannot pass by rendering nothing)`);
