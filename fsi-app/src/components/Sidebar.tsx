@@ -11,18 +11,32 @@
  * ASSESSMENT.md's "two nav widths" finding — the OTHER width lived in
  * CommunitySidebar.tsx's own layout, unaffected by this file, since that
  * component renders a distinct in-page rail, not the primary nav).
+ *
+ * MOBILE 390 (lane mobframe, 2026-09-07, docs/design/handoff-2026-09-06's
+ * mobile-390 spec, DRAWER): below 768 the 252px desktop nav card is
+ * replaced by a 288px drawer, opened from AppShell's <TopBar/> hamburger
+ * (not this component's own trigger any more — control is lifted to
+ * AppShell so ONE open/close state drives both the hamburger icon and the
+ * drawer, per the mobile spec's TOP BAR + DRAWER sections). Same nav
+ * structure (SECTIONS, counts, footer rows) as the desktop card — additive
+ * `variant` rendering inside the ONE navRows() builder below, never a
+ * second nav-item component (no new component; mobile is the desktop part
+ * at a smaller measure, per the mobile spec's own framing).
  */
 
 import { usePathname } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
-import { Menu, X } from "lucide-react";
-import { useState } from "react";
-import { UserMenu } from "@/components/auth/UserMenu";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 import { BandGradientRule } from "@/components/ui/BandGradientRule";
 import { formatNumber } from "@/lib/format";
+
+// Deferred so the drawer/mobile bundle (no sign-out UI on the drawer per
+// the mobile spec's two-row footer) doesn't pay for UserMenuDropdown's
+// chunk; only the desktop card mounts it.
+const UserMenuLazy = dynamic(() => import("@/components/auth/UserMenu").then((m) => m.UserMenu), { ssr: false });
 
 interface NavItem {
   href: string;
@@ -39,7 +53,8 @@ interface NavSection {
 // README §0.3: "sections Brief / Intelligence / Network / Operator, counts
 // right-aligned in each row." Brief = Dashboard + Watchlist (the reader's
 // own view of the ledger); Intelligence = the four surfaces + Map;
-// Network = Community; Operator = Account (+ Admin, role-gated).
+// Network = Community; Operator = Account (+ Admin, role-gated). Same
+// sections, same counts, on the drawer (mobile spec, DRAWER section).
 const SECTIONS: NavSection[] = [
   {
     label: "Brief",
@@ -64,9 +79,33 @@ const SECTIONS: NavSection[] = [
   },
 ];
 
-export function Sidebar() {
+// Flat [href, label] list, longest-href-first, so a detail route
+// ("/regulations/xyz") resolves to its section's label ("Regulations")
+// via prefix match without a second route table. Exported for <TopBar/>'s
+// centred page title (mobile spec, TOP BAR: "centre: page title") — the
+// ONE place nav-route → label lives, never duplicated per CLAUDE.md rule 13.
+const FLAT_NAV_ITEMS: NavItem[] = [
+  ...SECTIONS.flatMap((s) => s.items),
+  { href: "/profile", label: "Account" },
+  { href: "/admin", label: "Admin" },
+].sort((a, b) => b.href.length - a.href.length);
+
+export function navTitleForPath(pathname: string): string {
+  if (pathname === "/") return "Dashboard";
+  const match = FLAT_NAV_ITEMS.find((item) => item.href !== "/" && pathname.startsWith(item.href));
+  return match?.label ?? APP_NAME;
+}
+
+export interface SidebarProps {
+  /** Mobile drawer open state — controlled by AppShell (raised so the
+   *  <TopBar/> hamburger and this drawer share one state, mobile spec
+   *  TOP BAR + DRAWER). Ignored above 768 (desktop nav card always shows). */
+  drawerOpen?: boolean;
+  onDrawerClose?: () => void;
+}
+
+export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   const pathname = usePathname();
-  const [mobileOpen, setMobileOpen] = useState(false);
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
   const isAdmin = userRole === "owner" || userRole === "admin";
@@ -91,28 +130,47 @@ export function Sidebar() {
     awareness: counts?.byPriority.LOW ?? 0,
   };
 
-  const renderNavItem = ({ href, label, countKey }: NavItem) => {
+  // ── One nav-item renderer, two size variants (mobile spec DRAWER:
+  //    "min-height 44px, padding 0 10px, radius 6px, 14px text" vs the
+  //    desktop card's own smaller row) — additive, not a second component. ──
+  const renderNavItem = (variant: "card" | "drawer") => ({ href, label, countKey }: NavItem) => {
     const active = isActive(href);
     const count = countKey && counts ? counts[countKey] : undefined;
+    const drawer = variant === "drawer";
     return (
       <Link
         key={href}
         href={href}
-        onClick={() => setMobileOpen(false)}
+        onClick={drawer ? onDrawerClose : undefined}
         aria-current={active ? "page" : undefined}
-        className="flex items-center justify-between gap-2 px-3 py-2.5 rounded-md text-[13px] transition-colors"
-        style={{
-          color: active ? "var(--ink)" : "var(--ink-2)",
-          backgroundColor: active ? "var(--tag)" : undefined,
-          borderLeft: `2px solid ${active ? "var(--brand)" : "transparent"}`,
-          fontWeight: active ? 800 : 600,
-        }}
+        className="flex items-center justify-between gap-2 transition-colors"
+        style={
+          drawer
+            ? {
+                minHeight: 44,
+                padding: "0 10px",
+                borderRadius: 6,
+                fontSize: 14,
+                color: "var(--ink)",
+                backgroundColor: active ? "var(--tag)" : undefined,
+                fontWeight: active ? 700 : 500,
+              }
+            : {
+                padding: "10px 12px",
+                borderRadius: 6,
+                fontSize: "var(--fs-13)",
+                color: active ? "var(--ink)" : "var(--ink-2)",
+                backgroundColor: active ? "var(--tag)" : undefined,
+                borderLeft: `2px solid ${active ? "var(--brand)" : "transparent"}`,
+                fontWeight: active ? 800 : 600,
+              }
+        }
       >
         <span>{label}</span>
         {count != null && (
           <span
             style={{
-              fontSize: "var(--fs-11)",
+              fontSize: drawer ? 11 : "var(--fs-11)",
               fontWeight: 700,
               color: "var(--ink-3)",
               fontVariantNumeric: "tabular-nums",
@@ -125,70 +183,67 @@ export function Sidebar() {
     );
   };
 
-  const navDivider = (
-    <div className="my-2.5 mx-3 h-px" style={{ backgroundColor: "var(--line-3)" }} aria-hidden="true" />
-  );
-
-  const navContent = (
-    <>
-      <BandGradientRule counts={gradientCounts} />
-      <div className="px-4 py-5 border-b" style={{ borderColor: "var(--line-1)" }}>
-        <Link href="/" prefetch={false} className="block">
-          <h1
-            className="text-xl uppercase"
-            style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em" }}
-          >
-            {APP_NAME}
-          </h1>
-          <p className="text-[10px] font-bold tracking-[0.15em] uppercase mt-0.5" style={{ color: "var(--ink-3)" }}>
-            {APP_TAGLINE}
-          </p>
-        </Link>
+  const navSections = (variant: "card" | "drawer") => {
+    const drawer = variant === "drawer";
+    return SECTIONS.map((section, i) => (
+      <div
+        key={section.label}
+        style={
+          drawer && i > 0
+            ? { borderTop: "1px solid var(--line-2)", marginTop: 6 }
+            : undefined
+        }
+      >
+        {!drawer && i > 0 && (
+          <div className="my-2.5 mx-3 h-px" style={{ backgroundColor: "var(--line-3)" }} aria-hidden="true" />
+        )}
+        <p
+          style={{
+            fontSize: "var(--fs-95)",
+            fontWeight: drawer ? 700 : 800,
+            letterSpacing: drawer ? "0.14em" : "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            margin: drawer ? 0 : "4px 12px 4px",
+            padding: drawer ? "10px 8px 4px" : undefined,
+          }}
+        >
+          {section.label}
+        </p>
+        <div className="flex flex-col" style={{ gap: drawer ? 2 : 2 }}>
+          {section.items.map(renderNavItem(variant))}
+        </div>
       </div>
+    ));
+  };
 
-      <nav className="py-3 px-2.5 flex flex-col gap-2.5 overflow-y-auto min-h-0">
-        {SECTIONS.map((section, i) => (
-          <div key={section.label}>
-            {i > 0 && navDivider}
-            <p
-              style={{
-                fontSize: "var(--fs-95)",
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--ink-3)",
-                margin: "4px 12px 4px",
-              }}
-            >
-              {section.label}
-            </p>
-            <div className="flex flex-col gap-0.5">{section.items.map(renderNavItem)}</div>
-          </div>
-        ))}
-      </nav>
-
-      <div className="flex-1" />
-
-      {/* Footer (README §0.3 nav card: "sections Brief / Intelligence /
-          Network / Operator" — the artboard (01-dashboard.png) supersedes
-          that prose with two plain rows, no section label: Account (right
-          = workspace name) and Admin (right = role badge). The interactive
-          sign-out menu (UserMenuDropdown) has no artboard placement of its
-          own, so it stays as a compact utility row beneath — logged in
-          DEVIATION-LOG.md. */}
-      <div className="flex flex-col" style={{ borderTop: "1px solid var(--line-3)" }}>
+  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer): two plain
+  //    rows, no section label — Account (right = workspace name) and Admin
+  //    (right = role badge, "OWNER" per R2). The interactive sign-out menu
+  //    (UserMenuDropdown) has no artboard placement of its own on the card;
+  //    the drawer footer is the two rows only (mobile spec: "two unlabelled
+  //    44px rows"), UserMenu stays a desktop-card-only utility row beneath
+  //    (logged in DEVIATION-LOG.md). ──
+  const footer = (variant: "card" | "drawer") => {
+    const drawer = variant === "drawer";
+    return (
+      <div className="flex flex-col" style={{ borderTop: `1px solid ${drawer ? "var(--line-2)" : "var(--line-3)"}` }}>
         <Link
           href="/profile"
           prefetch={false}
-          onClick={() => setMobileOpen(false)}
+          onClick={drawer ? onDrawerClose : undefined}
           aria-current={isActive("/profile") ? "page" : undefined}
-          className="flex items-center justify-between gap-2 px-3.5 pt-3 pb-1.5"
-          style={{ color: "var(--ink)" }}
+          className="flex items-center justify-between gap-2"
+          style={
+            drawer
+              ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
+              : { padding: "12px 14px 6px", color: "var(--ink)" }
+          }
         >
-          <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Account</span>
+          <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Account</span>
           <span
             className="truncate"
-            style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+            style={{ fontSize: drawer ? "10.5px" : "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
           >
             {orgName || "—"}
           </span>
@@ -197,30 +252,44 @@ export function Sidebar() {
           <Link
             href="/admin"
             prefetch={false}
-            onClick={() => setMobileOpen(false)}
+            onClick={drawer ? onDrawerClose : undefined}
             aria-current={isActive("/admin") ? "page" : undefined}
-            className="flex items-center justify-between gap-2 px-3.5 pb-2"
-            style={{ color: "var(--ink)" }}
+            className="flex items-center justify-between gap-2"
+            style={
+              drawer
+                ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
+                : { padding: "6px 14px 8px", color: "var(--ink)" }
+            }
           >
-            <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Admin</span>
+            <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Admin</span>
             <span
-              className="shrink-0 text-[10px] font-extrabold tracking-[0.08em] uppercase rounded-md px-2 py-0.5"
-              style={{ color: "var(--brand)", border: "1px solid var(--brand)" }}
+              className="shrink-0 uppercase"
+              style={{
+                fontSize: drawer ? "9.5px" : "10px",
+                fontWeight: 800,
+                letterSpacing: drawer ? "0.08em" : "0.08em",
+                color: drawer ? "var(--ink)" : "var(--brand)",
+                border: `1px solid ${drawer ? "rgba(0,0,0,.2)" : "var(--brand)"}`,
+                borderRadius: 4,
+                padding: "2px 8px",
+              }}
             >
-              {userRole}
+              {drawer ? "OWNER" : userRole}
             </span>
           </Link>
         )}
-        <div className="px-3.5 pb-3.5">
-          <UserMenu />
-        </div>
+        {!drawer && (
+          <div className="px-3.5 pb-3.5 pt-1">
+            <UserMenuLazy />
+          </div>
+        )}
       </div>
-    </>
-  );
+    );
+  };
 
   return (
     <>
-      {/* Desktop nav card — 252px, always. */}
+      {/* Desktop nav card — 252px, always, at md (768px) and up. */}
       <aside
         className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
@@ -233,34 +302,66 @@ export function Sidebar() {
           boxShadow: "var(--shadow-card)",
         }}
       >
-        {navContent}
+        <BandGradientRule counts={gradientCounts} />
+        <div className="px-4 py-5 border-b" style={{ borderColor: "var(--line-1)" }}>
+          <Link href="/" prefetch={false} className="block">
+            <h1
+              className="text-xl uppercase"
+              style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em" }}
+            >
+              {APP_NAME}
+            </h1>
+            <p className="text-[10px] font-bold tracking-[0.15em] uppercase mt-0.5" style={{ color: "var(--ink-3)" }}>
+              {APP_TAGLINE}
+            </p>
+          </Link>
+        </div>
+        <nav className="py-3 px-2.5 flex flex-col gap-2.5 overflow-y-auto min-h-0">
+          {navSections("card")}
+        </nav>
+        <div className="flex-1" />
+        {footer("card")}
       </aside>
 
-      {/* Mobile hamburger button */}
-      <button
-        onClick={() => setMobileOpen(!mobileOpen)}
-        className="md:hidden fixed top-3 left-3 z-50 p-2 rounded-lg"
-        style={{ backgroundColor: "var(--card)", border: "1px solid var(--line-1)", color: "var(--ink)" }}
-        aria-label="Toggle navigation"
-      >
-        {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <>
+      {/* Mobile drawer — below 768, controlled by AppShell/TopBar. Width
+          288px (mobile spec DRAWER: "NOT 208: after 18px padding, 208
+          leaves 14px of text room"). Scrim rgba(26,26,26,.3) — the app's
+          existing value per the spec. */}
+      {drawerOpen && (
+        <div className="md:hidden fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label="Navigation">
           <div
-            className="md:hidden fixed inset-0 z-40"
-            style={{ backgroundColor: "rgba(0,0,0,0.3)" }}
-            onClick={() => setMobileOpen(false)}
+            className="fixed inset-0"
+            style={{ backgroundColor: "rgba(26,26,26,.3)" }}
+            onClick={onDrawerClose}
           />
           <aside
-            className="md:hidden fixed top-0 left-0 z-50 flex flex-col h-screen overflow-y-auto"
-            style={{ width: 252, backgroundColor: "var(--card)", borderRight: "1px solid var(--line-1)" }}
+            className="fixed top-0 left-0 flex flex-col h-screen overflow-y-auto"
+            style={{ width: 288, background: "var(--card)", borderRight: "1px solid var(--line-1)" }}
           >
-            {navContent}
+            <BandGradientRule counts={gradientCounts} />
+            <div style={{ padding: "16px 18px 12px", borderBottom: "1px solid var(--line-2)" }}>
+              <Link href="/" prefetch={false} onClick={onDrawerClose} className="block">
+                <h1
+                  className="uppercase"
+                  style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em", fontSize: 19 }}
+                >
+                  {APP_NAME}
+                </h1>
+                <p
+                  className="uppercase"
+                  style={{ fontSize: "8.5px", fontWeight: 700, letterSpacing: "0.14em", color: "var(--ink-3)", margin: "3px 0 0" }}
+                >
+                  {APP_TAGLINE}
+                </p>
+              </Link>
+            </div>
+            <nav className="flex flex-col overflow-y-auto min-h-0" style={{ padding: "8px 10px", gap: 2 }}>
+              {navSections("drawer")}
+            </nav>
+            <div className="flex-1" />
+            {footer("drawer")}
           </aside>
-        </>
+        </div>
       )}
     </>
   );

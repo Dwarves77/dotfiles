@@ -72,6 +72,22 @@
   --link-line:       rgba(0, 0, 0, .3);
   --selection:       #DCE7FB;
 
+  /* ── breakpoints (mobile-390 handoff, lane mobframe, 2026-09-07) ──
+     Documented here as the single source of the two pixel values every
+     shared part's own `@media` query uses (AppShell/Sidebar/TopBar,
+     Masthead, CommandBar, BandTile, the dashboard band-tile grid, and the
+     detail lane's rail-fold). CSS custom properties cannot be read inside
+     a `@media` condition, so this is documentation, not a live value —
+     every media query in the components above is written as the literal
+     pixel width shown here; keep them in sync with this comment if either
+     number ever changes.
+       --bp-mobile: 768px — below this, one column; nav becomes the drawer.
+       --bp-tablet: 1280px — below this, the rail folds under the content.
+       Tablet (1024px) keeps the desktop row + the 252px nav card, unchanged
+       (operator ruling 2026-09-07: "not yet drawn, leave tablet as is"). */
+  --bp-mobile: 768px;
+  --bp-tablet: 1280px;
+
   /* ═══════════════════════════════════════════════════════════
      LEGACY ALIASES — every name below resolves to a canonical
      token above. No independent value is defined past this line;
