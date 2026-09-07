@@ -7,7 +7,9 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useResourceStore } from "@/stores/resourceStore";
 import { ALL_SECTORS } from "@/lib/constants";
-import { AccountMasthead } from "@/components/account/AccountMasthead";
+import { Masthead } from "@/components/ui/Masthead";
+import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
+import { formatLocaleDate } from "@/lib/format";
 import {
   SubTabBar,
   type SubTab,
@@ -134,10 +136,51 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
     if (typeof window !== "undefined") history.replaceState(null, "", `#${key}`);
   };
 
+  const dateLabel = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Merged Account tab row (README screen 15: "a sub-tab of Account, same
+  // frame" — the same eight-entry row UserProfilePage renders, "Settings"
+  // active here). The first seven are real links back to /profile,
+  // carrying the tab to restore via `?tab=`; see that component's own
+  // header for the shared contract. This page's pre-existing five-tab
+  // General/Saved searches/Data & supersessions/Archive/Help nav (not
+  // depicted on the artboard, which shows only General's content) stays as
+  // a second-level SubTabBar below — logged in DEVIATION-LOG.md.
+  const accountTabs: TabRowItem[] = [
+    { key: "personal", label: "Personal", href: "/profile?tab=personal" },
+    { key: "organization", label: "Organization", href: "/profile?tab=organization" },
+    { key: "members", label: "Members & roles", href: "/profile?tab=members" },
+    { key: "sectors", label: "Sector profile", href: "/profile?tab=sectors" },
+    { key: "jurisdictions", label: "Jurisdictions", href: "/profile?tab=jurisdictions" },
+    { key: "verifier", label: "Verifier badge", href: "/profile?tab=verifier" },
+    { key: "activity", label: "Activity", href: "/profile?tab=activity" },
+    { key: "settings", label: "Settings", active: true },
+  ];
+
   return (
     <div>
-      <AccountMasthead active="settings" userEmail={userEmail} />
-      <div style={{ padding: "26px 36px 80px" }}>
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Settings"
+          dateLabel={dateLabel}
+          eyebrowSuffix="Personal"
+          dek="Dashboard defaults, freight sectors, notifications, briefing schedule."
+          commandBar={{
+            itemCount: 0,
+            scope: "settings",
+            placeholder: 'Search settings — or ask "how do I change my briefing…"',
+          }}
+        />
+      </div>
+      <div style={{ padding: "16px 40px 0" }}>
+        <TabRow tabs={accountTabs} ariaLabel="Account sections" />
+      </div>
+      <div style={{ padding: "16px 40px 80px" }}>
         <SubTabBar tabs={TABS} active={tab} onSelect={onTabClick} ariaLabel="Settings sections" />
 
         {tab === "general" && (
@@ -267,7 +310,7 @@ function DashboardSettingsCard() {
             <Chip label="Light" on onClick={() => {}} />
           </div>
           <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "6px 0 0" }}>
-            Dark mode is retired.
+            Light only. There is one theme; the product reads like a printed ledger and stays that way.
           </p>
         </div>
         <div>
@@ -317,7 +360,8 @@ function DashboardSettingsCard() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     gap: 10,
-                    padding: "7px 0",
+                    minHeight: 44,
+                    padding: "0 2px",
                     borderBottom: "1px solid var(--color-border-subtle)",
                   }}
                 >
