@@ -33,8 +33,19 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 // severity classification and why they render as one block, not two.
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { bandFromSearchParam } from "@/components/list-surface/list-surface-helpers";
 
-export default async function RegulationsPage() {
+export default async function RegulationsPage({
+  searchParams,
+}: {
+  // `?band=immediate|action|monitor|awareness` pre-selects the band facet tile — the same
+  // server-`searchParams` pattern `/map`'s `?region=` already uses (never client-side
+  // `useSearchParams()`, which would opt this page out of static rendering with no Suspense
+  // boundary). Audit item 1.1 (2026-09-07): this is the contract the Dashboard's "All N
+  // immediate" control now links through (`/regulations?band=immediate`) — verified against this
+  // base that no such param existed before this fix (`filter.band` was local `useState` only).
+  searchParams: Promise<{ band?: string }>;
+}) {
   // First-paint page only (LIST_FIRST_PAGE_SIZE = 60 rows, newest-priority-
   // first) — RegulationsLedger fetches the rest after paint via
   // /api/listings/rest?surface=regulations (extended this lane) and appends
@@ -42,7 +53,8 @@ export default async function RegulationsPage() {
   // (get_surface_counts, or its scoped-aggregates fallback) — a real RPC,
   // independent of how many rows are loaded — so the header count stays
   // honest at 60, at 1,316, and everywhere in between.
-  const [data, aggregates, obligationRegisterFirstPage] = await Promise.all([
+  const [{ band: bandParam }, data, aggregates, obligationRegisterFirstPage] = await Promise.all([
+    searchParams,
     getPublicListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getPublicSurfaceCounts("regulations"),
     getPublicObligationRegisterFirstPage(),
@@ -59,6 +71,7 @@ export default async function RegulationsPage() {
         initialArchived={data.archived}
         aggregates={aggregates}
         hasMore={hasMore}
+        initialBand={bandFromSearchParam(bandParam ?? null)}
       />
       {/* Lane SURF (2026-09-01): customer-facing top strip for item_forward_events ("what is due,
           when") — see UpcomingObligationsStrip.tsx's own header. Self-contained server component. */}

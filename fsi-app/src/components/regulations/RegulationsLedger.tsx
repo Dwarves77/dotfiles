@@ -98,11 +98,15 @@ export interface RegulationsLedgerProps {
   /** Whether the corpus is larger than the first-paint page, so the
    *  after-paint remainder fetch should run at all. */
   hasMore: boolean;
+  /** Band facet to pre-select from the page's own `?band=` search param (audit item 1.1,
+   *  2026-09-07) — see regulations/page.tsx's own header. Null when the URL carries no valid
+   *  band, which is the pre-existing default (no facet applied). */
+  initialBand?: UrgencyBandKey | null;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
-  const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
+  const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
   // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
