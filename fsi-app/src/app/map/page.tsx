@@ -1,27 +1,37 @@
+/**
+ * Map (`/map`) — server component.
+ *
+ * UI system handoff 2026-09-06 (docs/design/handoff-2026-09-06, README
+ * screen 10 / artboard "Map"; lane uimapcomm): Masthead + command bar
+ * (the frame convention, README §0.3), body from <MapPageView/> — see
+ * that component's header for what it's assembled from.
+ */
+
 import { getListingsMapData } from "@/lib/data";
 import { getCoverageGaps } from "@/lib/coverage-gaps";
 import { MapPageView } from "@/components/map/MapPageView";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
+import { Masthead } from "@/components/ui/Masthead";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { bandFromPriority } from "@/lib/urgency/bands";
+import { formatLocaleDate } from "@/lib/format";
 import type { CommunityActivityRow } from "@/components/map/MapView";
 
 export default async function MapRoute({
   searchParams,
 }: {
-  // PR-N (Wave 5): `?region=us-ca` accepts any Tier 1 ISO sub-national or
-  // national code (case-insensitive) and pre-filters the map + side rail
-  // to items whose `jurisdictionIso[]` array contains that code. The
-  // existing `?region-filter=<region.id>` link from the Coverage gaps
-  // card remains untouched — they target different scopes (ISO vs region
-  // group). This new param matches the /regulations URL schema for
-  // consistency across surfaces.
+  // `?region=us-ca` accepts any Tier 1 ISO sub-national or national code
+  // (case-insensitive) and pre-filters the map + register to items whose
+  // `jurisdictionIso[]` array contains that code. The `?region-filter=<id>`
+  // link from the Coverage gaps card targets a different scope (region
+  // group id, resolved client-side in MapPageView) and is untouched.
   searchParams: Promise<{ region?: string }>;
 }) {
   const t0 = Date.now();
-  // Phase 6 (2026-05-25): added community activity by region fetch
-  // alongside the existing two. Aggregates top-level community_posts
-  // by community_groups.region; powers the community-activity dot
-  // overlay on the map.
+  // Phase 6 (2026-05-25): community activity by region, aggregated
+  // top-level community_posts by community_groups.region; powers the
+  // community-activity dot overlay on the map.
   const supabase = await createSupabaseServerClient();
   const [{ region: regionParam }, data, coverageGaps, communityActivity] = await Promise.all([
     searchParams,
@@ -31,9 +41,37 @@ export default async function MapRoute({
   ]);
   console.log(`[perf] /map data ${Date.now() - t0}ms`);
 
+  const regs = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
+  const jurisdictions = new Set(regs.map((r) => (r.jurisdiction || "global").toLowerCase()));
+  const immediateJurisdictions = new Set(
+    regs.filter((r) => bandFromPriority(r.priority).key === "immediate").map((r) => (r.jurisdiction || "global").toLowerCase())
+  );
+
+  const dateStr = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
     <>
       <SystemErrorBanner message={data._error} />
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Regulatory map"
+          dateLabel={dateStr}
+          dek={
+            <>
+              {jurisdictions.size} jurisdiction{jurisdictions.size === 1 ? "" : "s"} live ·{" "}
+              {regs.length} active item{regs.length === 1 ? "" : "s"} ·{" "}
+              {immediateJurisdictions.size} jurisdiction{immediateJurisdictions.size === 1 ? "" : "s"} with
+              immediate items · marker size = item count · colour = highest band present
+            </>
+          }
+          commandBar={{ itemCount: data.resources.length, scope: "map" }}
+        />
+      </div>
       <MapPageView
         resources={data.resources}
         coverageGaps={coverageGaps}
