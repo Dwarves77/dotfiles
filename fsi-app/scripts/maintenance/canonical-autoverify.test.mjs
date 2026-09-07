@@ -383,13 +383,13 @@ test("decideRow: a WALLED CANDIDATE defers on its first attempt — never an imm
   const row = { ...ROW_BASE, reviewer_notes: null };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
-  assert.match(v.reviewer_notes, /auto: deferred — candidate behind an access wall from this network \(attempt 1\), retry next run/);
+  assert.match(v.reviewer_notes, /auto: deferred, candidate behind an access wall from this network \(attempt 1\), retry next run/);
   assert.equal(v.proof.stage, "reachability");
   assert.equal(v.proof.wallAttempt, 1);
 });
 
 test("decideRow: a WALLED CANDIDATE defers again on its second attempt, reading the prior count back from reviewer_notes", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred, candidate behind an access wall from this network (attempt 1), retry next run" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
   assert.match(v.reviewer_notes, /\(attempt 2\)/);
@@ -397,15 +397,15 @@ test("decideRow: a WALLED CANDIDATE defers again on its second attempt, reading 
 });
 
 test("decideRow: a WALLED CANDIDATE finally rejects on its 3rd attempt — the only terminal outcome a candidate-side wall ever produces", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred, candidate behind an access wall from this network (attempt 2), retry next run" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "rejected");
-  assert.match(v.reviewer_notes, /auto: reject — candidate unverifiable behind an access wall after 3 attempts/);
+  assert.match(v.reviewer_notes, /auto: reject, candidate unverifiable behind an access wall after 3 attempts/);
   assert.equal(v.proof.wallAttempt, 3);
 });
 
 test("decideRow: a candidate wall never leaves the row 'pending' forever unaccounted — a reviewer_notes value from an unrelated stage reads as attempt 0, same as a fresh row", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: reject — dead (HTTP 404)" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: reject, dead (HTTP 404)" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
   assert.match(v.reviewer_notes, /\(attempt 1\)/);
@@ -414,9 +414,9 @@ test("decideRow: a candidate wall never leaves the row 'pending' forever unaccou
 test("previousWallAttempts: parses the exact phrase this module writes; anything else (or nothing) reads as 0", () => {
   assert.equal(previousWallAttempts(null), 0);
   assert.equal(previousWallAttempts(undefined), 0);
-  assert.equal(previousWallAttempts("auto: reject — dead (HTTP 404)"), 0);
-  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run"), 1);
-  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run"), 2);
+  assert.equal(previousWallAttempts("auto: reject, dead (HTTP 404)"), 0);
+  assert.equal(previousWallAttempts("auto: deferred, candidate behind an access wall from this network (attempt 1), retry next run"), 1);
+  assert.equal(previousWallAttempts("auto: deferred, candidate behind an access wall from this network (attempt 2), retry next run"), 2);
 });
 
 test("decideRow: the CURRENT source's own wall handling is UNCHANGED by this fix — 'downgrade_walled' still rejects outright with no attempt count at all (regression against the walled-current test above)", () => {
