@@ -1,0 +1,42 @@
+{
+  "part": "SummaryDepthSwitch",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "src/components/detail/DetailShell.tsx (\"the ONLY summary depth control in this architecture — two states, not the old three-state summary-depth toggle README §0.5 names as removed\"); README.md §0.5",
+  "notes": [
+    "No dc.html artboard shows this exact control in isolation (the p3/p5/p7/p9 artboards show the sticky index row without an explicit depth-switch example); the two rows below are read from the built component itself as a regression baseline (its own two-state contract, replacing the removed three-state toggle) rather than an artboard pixel value."
+  ],
+  "selector": "[data-audit=\"depthswitch\"] > div",
+  "expect": {
+    "display": "inline-flex",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.12)"
+  },
+  "children": [
+    {
+      "name": "Summary option (selected by default)",
+      "selector": "[data-audit=\"depthswitch\"] button:first-of-type",
+      "expect": {
+        "text": "Summary",
+        "min-height": "44px"
+      }
+    },
+    {
+      "name": "Full brief option",
+      "selector": "[data-audit=\"depthswitch\"] button:last-of-type",
+      "expect": {
+        "text": "Full brief",
+        "min-height": "44px"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a third depth state",
+      "selector": "[data-audit=\"depthswitch\"] button",
+      "textMatch": "Complete brief",
+      "reason": "README §0.5: the old three-state summary-depth toggle (including a 'Complete brief' state) is removed; only Summary | Full brief remain."
+    }
+  ]
+}

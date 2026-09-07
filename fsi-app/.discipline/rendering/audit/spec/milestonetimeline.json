@@ -1,0 +1,78 @@
+{
+  "part": "MilestoneTimeline (row variant)",
+  "mount": "milestonetimeline",
+  "viewport": 1440,
+  "artboards": [
+    "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+    "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+  "notes": [
+    "The fixture (2 past, 1 current, 2 future entries) reproduces the artboard row example's own dot pattern (2 passed, 1 next, 2 ahead) so the artboard's own numbers are the comparison.",
+    "FIXED (fix58-lists, 2026-09-07, B-row 'the track green-to-next-dot finding'): dc.html #sys line 202 states the list-row track literally as `height:2px;background:linear-gradient(90deg,#16A34A 0,#16A34A 58%,rgba(0,0,0,.12) 58%)` — corrected from this spec's prior expect (height 1px, flat rgba(0,0,0,.12), no green) which had underscored a real, confirmed product gap instead of asserting the design's own stated value. MilestoneTimeline.tsx now renders the track as a single gradient with a hard colour stop at the 'next' dot's own position (green before it, rgba(0,0,0,.12) after), matching the artboard's technique exactly.",
+    "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell, so its gradient stop (58%) is measured against THOSE offsets; the built component uses `justify-content:space-between` across a `width:100%` row (an accepted, pre-existing layout-strategy difference — dot POSITION is not asserted below for the same reason). The gradient stop below is therefore this fixture's own space-between position for the 'next' dot (index 2 of 5, i.e. 50%), not the artboard's literal 58% — the CONVENTION (green-to-next, hard stop, rgba(0,0,0,.12) beyond) is what's asserted, computed consistently with the dots' own real positions rather than a borrowed fixed-px number.",
+    "Selectors reach dots by DOM order: MilestoneTimeline.tsx has no per-dot marker class, so nth-of-type addresses the classifier's output directly (dot 1/2 = passed, dot 3 = next, dot 4/5 = ahead, per milestone-timeline-classify.ts, proven independently by its own npmtest.mjs)."
+  ],
+  "selector": "[data-audit=\"row-populated\"] [role=\"img\"]",
+  "expect": {
+    "width": "76px"
+  },
+  "children": [
+    {
+      "name": "track line",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
+      "note": "dc.html #sys line 202: height 2px, linear-gradient green 0-58% (artboard's own fixed-px 'next' position) then rgba(0,0,0,.12) beyond. This fixture's 'next' dot sits at 50% under the built component's own space-between spacing (index 2 of 5) — see the spec's own notes above for why 50% and not 58%.",
+      "expect": {
+        "height": "2px",
+        "background-image": "linear-gradient(90deg, #16A34A, #16A34A 50%, rgba(0,0,0,.12) 50%)"
+      }
+    },
+    {
+      "name": "dot 1 — passed",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+      "note": "dc.html #sys: 6x6px filled green (#16A34A) circle.",
+      "expect": {
+        "width": "6px",
+        "height": "6px",
+        "border-radius": "50%",
+        "background-color": "#16A34A"
+      }
+    },
+    {
+      "name": "dot 3 — next (band colour, ring)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+      "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px.",
+      "expect": {
+        "width": "9px",
+        "height": "9px",
+        "border-radius": "50%",
+        "background-color": "#F97316"
+      }
+    },
+    {
+      "name": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff.",
+      "expect": {
+        "width": "6px",
+        "height": "6px",
+        "border-radius": "50%",
+        "border-width": "1px",
+        "border-style": "solid",
+        "border-color": "rgba(0,0,0,.28)",
+        "background-color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "row empty — flat line, no dots",
+      "selector": "[data-audit=\"row-empty\"] > span",
+      "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value.",
+      "expect": {
+        "width": "76px",
+        "height": "1px",
+        "background-color": "rgba(0,0,0,.12)"
+      }
+    }
+  ],
+  "forbid": []
+}

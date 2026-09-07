@@ -79,8 +79,8 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         gap: 10,
         height: 40,
         background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-control)",
+        border: "1px solid rgba(0,0,0,.25)",
+        borderRadius: 8,
         padding: "0 6px 0 12px",
       }}
     >
@@ -123,7 +123,8 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         className="cl-cmdk-hint"
         style={{
           flexShrink: 0,
-          fontSize: "var(--fs-105)",
+          fontSize: "var(--fs-10)",
+          fontFamily: "ui-monospace, SFMono-Regular, Menlo, monospace",
           fontWeight: 700,
           color: "var(--ink-3)",
           border: "1px solid var(--line-1)",
@@ -138,8 +139,8 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         onClick={ask}
         style={{
           flexShrink: 0,
-          height: 30,
-          padding: "0 16px",
+          height: 40,
+          padding: "0 14px",
           fontFamily: "inherit",
           fontSize: "var(--fs-125)",
           fontWeight: 700,

@@ -1,0 +1,52 @@
+{
+  "part": "Sidebar (nav card, inline-style-driven properties only)",
+  "mount": "page-frame-1440",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.3 'The frame'", "01-dashboard"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
+  "notes": [
+    "Sidebar.tsx's desktop nav card mixes inline style with Tailwind utility classes (`text-xl uppercase`, `text-[10px] font-bold tracking-[0.15em] uppercase`, etc. on the title/tagline). This harness injects `globals.css`/`theme.css` as RAW text without running Tailwind's build step (no PostCSS/Vite plugin — see mounts.mjs's STYLE_INJECT), so Tailwind's `@import \"tailwindcss\"` and its generated utility classes never resolve in this measured tree: a Tailwind-only property (e.g. the title's `text-xl` font-size) reads back as the browser's un-styled default, which is a HARNESS LIMITATION, not a product value — confirmed empirically (probed `aside.hidden > div:nth-child(2) h1` font-size: read 32px, the UA default h1 size, and text-transform: none, neither of which Sidebar.tsx's own inline style sets). This spec therefore asserts ONLY properties Sidebar.tsx sets via inline `style={}`, which bypass Tailwind entirely and are real regardless of this harness's raw-injection limitation. Title/tagline font-size, weight and text-transform (all Tailwind-class-driven in the desktop card) are NOT asserted here for that reason, not because they are known-correct.",
+    "The aside's own box model (width 252, margin, background, border, radius, band-gradient cap) is already covered by spec/page-frame.json's own top-level target on this same mount/selector; this spec adds the nav card's INTERNAL typography and active-state treatment, which page-frame.json does not touch.",
+    "dc.html p1 nav card section label ('Brief'): font-size 9.5px, letter-spacing .14em, text-transform uppercase, color #7A6E6C, font-weight 700, padding 8px 8px 4px (the FIRST section only omits the divider/border-top the later two sections carry).",
+    "dc.html p1 nav card active row ('Dashboard'): background #F5F2EE, `box-shadow: inset 3px 0 0 #5A5552` (an inset spine, not a border), font-weight 700. FIXED by fix58-tokens (2026-09-07, B96-B98): Sidebar.tsx's active row now uses that box-shadow spine (not `border-left`) and fontWeight 700 (not 800). Section-label letter-spacing (0.14em) and font-weight (700) were also unified across the card/drawer variants — the drawer variant already carried the correct values, only the desktop card diverged.",
+    "The mount's `next/navigation` stub (../smoke/stub-next-navigation.mjs, shared guard code, reused as-is per its own header) fixes `usePathname()` to `/community/smoke-test` — so `Sidebar.isActive()` marks COMMUNITY active (prefix match), not Dashboard, in this measured tree. The active-row targets below therefore select the Network section's Community row, not Brief's Dashboard row; this is a mount artefact of which item ends up `aria-current`, not of the STYLING those properties measure (the active-row style rule itself is identical regardless of which row it lands on)."
+  ],
+  "selector": "aside.hidden nav > div:nth-child(1) > p",
+  "expect": {
+    "font-size": "9.5px",
+    "letter-spacing": "0.14em",
+    "text-transform": "uppercase",
+    "color": "#7A6E6C",
+    "font-weight": "700"
+  },
+  "children": [
+    {
+      "name": "section label text",
+      "selector": "aside.hidden nav > div:nth-child(1) > p",
+      "expect": { "text": "Brief" }
+    },
+    {
+      "name": "active nav row (Community, per the stub-path note above) — background",
+      "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
+      "note": "dc.html p1's active-row markup (shown on 'Dashboard' there): background #F5F2EE.",
+      "expect": { "background-color": "#F5F2EE" }
+    },
+    {
+      "name": "active nav row — font-weight",
+      "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
+      "note": "dc.html p1: font-weight 700 on the active row.",
+      "expect": { "font-weight": "700" }
+    },
+    {
+      "name": "active nav row — spine technique",
+      "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
+      "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). FIXED by fix58-tokens (2026-09-07, B98): Sidebar.tsx's active row now sets this box-shadow instead of `border-left`. SPEC CORRECTED in the same commit: `expect` is written in CSSOM's own canonical serialisation order (colour first, then offsets/blur/spread, then the `inset` keyword last), matching this file's own list-surface.json convention for box-shadow — the source-order string in this note is the design statement, not the literal getComputedStyle form.",
+      "expect": { "box-shadow": "rgb(90, 85, 82) 3px 0px 0px 0px inset" }
+    },
+    {
+      "name": "resting nav row link text (Dashboard, the section's first item)",
+      "selector": "aside.hidden nav > div:nth-child(1) a:not([aria-current]):first-of-type",
+      "expect": { "text": "Dashboard" }
+    }
+  ]
+}

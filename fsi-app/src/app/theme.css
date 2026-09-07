@@ -33,12 +33,16 @@
   /* ── bands — the one urgency vocabulary (see src/lib/urgency) ── */
   --immediate:      #DC2626;
   --immediate-tint: #FEF2F2;
+  --immediate-border: #FECACA;
   --action:         #F97316;
   --action-tint:    #FFF7ED;
+  --action-border:  #FED7AA;
   --monitor:        #2563EB;
   --monitor-tint:   #EFF6FF;
+  --monitor-border: #BFDBFE;
   --awareness:      #16A34A;
   --awareness-tint: #F0FDF4;
+  --awareness-border: #BBF7D0;
 
   /* ── lines ── */
   --line-1: rgba(0, 0, 0, .12);  /* card border */
@@ -198,7 +202,16 @@
 
   --radius-sm: var(--radius-control);
   --radius-md: var(--radius-card);
-  --radius-pill: var(--radius-pill);
+  /* --radius-pill intentionally not re-aliased here: the canonical
+     declaration above (999px) is the only definition. A prior
+     self-referential redeclaration at this line (`--radius-pill:
+     var(--radius-pill);`) was a cyclic custom-property reference, which
+     CSS defines as invalid, so every consumer (BandChip/WorkspaceTagPill/
+     TagChip/FilterChip pill state) silently fell back to border-radius's
+     initial value, 0, breaking every pill-radius chip sitewide
+     (chips.json / filterchipgroup.json, audit 2026-09-07, B1). Two lanes
+     (fix58-tokens and fix58-lists) independently deleted this same line;
+     folded to the single deletion here. */
 
   --transition-base: 0.18s ease;
 

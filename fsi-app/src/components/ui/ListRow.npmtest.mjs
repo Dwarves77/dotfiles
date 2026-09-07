@@ -86,3 +86,45 @@ test("tags render a SECOND time for the mobile line-2 position, hidden >=768px, 
   assert.match(SOURCE, /\.cl-row-meta-tags\s*\{\s*display:\s*none\s*!important/, "desktop meta+tags line hides at mobile");
   assert.match(SOURCE, /\.cl-row-tags-mobile\s*\{\s*display:\s*inline-flex\s*!important/, "mobile tags render shows only at mobile");
 });
+
+// ── Design audit B47-B61 (docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md, listrow.json,
+// artboard #sys the list-row block): the 3px transparent left border misaligned every desktop
+// cell against its own column header by 3px; the row's padding-right, jurisdiction-code type,
+// title line-height, meta-line colour, due-date font-size, tier-cell alignment and overflow-cell
+// divider colour were all off the artboard's stated values. ListRowColumnHeader's own height was
+// 22px measured against 30px stated.
+test("B47: the row root carries no left border (the 3px transparent border that misaligned every cell from its column header is gone)", () => {
+  assert.doesNotMatch(SOURCE, /borderLeft:\s*"3px solid transparent"/);
+});
+
+test("B48: the row root has padding-right:12px", () => {
+  assert.match(SOURCE, /className="cl-list-row"[\s\S]{0,400}paddingRight: 12,/);
+});
+
+test("B49: ListRowColumnHeader is 30px tall", () => {
+  assert.match(SOURCE, /className="cl-list-row-header"[\s\S]{0,120}height: 30,/);
+});
+
+test("B50-B53: jurisdiction-code cell is fs-11/700/0.06em on --ink-2 (#5A6B67), not --ink-3", () => {
+  assert.match(SOURCE, /className="cl-row-juris"[\s\S]{0,220}fontSize: "var\(--fs-11\)",\s*\n\s*fontWeight: 700,\s*\n\s*color: "var\(--ink-2\)",\s*\n\s*letterSpacing: "0\.06em",/);
+});
+
+test("B54: title cell line-height is 18.2px", () => {
+  assert.match(SOURCE, /className="cl-row-title-text"[\s\S]{0,220}lineHeight: "18\.2px",/);
+});
+
+test("B55: the desktop meta line is --ink-3 (#7A6E6C), not --ink-2", () => {
+  assert.match(SOURCE, /fontSize: "var\(--fs-11\)",\s*\n\s*color: "var\(--ink-3\)",\s*\n\s*overflow: "hidden",\s*\n\s*textOverflow: "ellipsis",\s*\n\s*whiteSpace: "nowrap",\s*\n\s*flexShrink: 1,/);
+});
+
+test("B56: the due-date label is fs-125 (12.5px)", () => {
+  assert.match(SOURCE, /className="cl-row-due-label" style=\{\{ fontSize: "var\(--fs-125\)",/);
+});
+
+test("B60: the tier cell is text-align:center", () => {
+  assert.match(SOURCE, /className="cl-row-tier" style=\{\{ display: "flex", alignItems: "center", textAlign: "center" \}\}/);
+});
+
+test("B61: the desktop overflow-cell divider is --line-2 (rgba(0,0,0,.08)), not --line-3", () => {
+  assert.match(SOURCE, /className="cl-row-overflow"[\s\S]{0,300}borderLeft: "1px solid var\(--line-2\)",/);
+});

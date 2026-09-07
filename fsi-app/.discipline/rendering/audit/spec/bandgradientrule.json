@@ -1,0 +1,17 @@
+{
+  "part": "BandGradientRule",
+  "mount": "bandgradientrule",
+  "viewport": 1440,
+  "artboards": ["01-dashboard (nav cap)", "19-masthead-line-options (ruling 5.2, the option turn)"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.2 'the four-band gradient rule (3px, segment widths proportional to the live band counts) is the brand mark'; 'Caros Ledge UI System.dc.html' p1's nav-card cap: `linear-gradient(90deg,#DC2626,#F97316 34%,#2563EB 67%,#16A34A)`; ruling 5.2 (this rule stays in exactly one place sitewide, the nav card cap)",
+  "notes": [
+    "BandGradientRule.tsx is pure inline style; every property here is a real product value.",
+    "Fixture counts (immediate 14, action 31, monitor 1135, awareness 254, total 1434) are the SAME live counts dc.html p1's own nav card cap uses. The design source states the MECHANISM ('segment widths proportional to the live band counts'), not a fixed percentage constant, so the expected `background-image` value below is the correctly-computed proportional gradient for those counts (14/1434=0.976%, 45/1434=3.138%, 1180/1434=82.287%) — this spec verifies BandGradientRule.tsx computes that proportion correctly and in band (hot-to-cool) order, band-accurate hues, at 3px height, rather than asserting a design-stated constant. page-frame.json's own nav-cap check covers the structural claim (height + exactly one instance sitewide); this spec adds the proportional-math and colour-order proof.",
+    "This is the ONE place ruling 5.2 keeps this coloured rule; every other 3px rule sitewide must use the dark-grey gradation from ruling 5.1 instead (checked by page-frame.json's own forbid list)."
+  ],
+  "selector": "[data-audit=\"rule\"] > div",
+  "expect": {
+    "height": "3px",
+    "background-image": "linear-gradient(90deg, rgb(220, 38, 38) 0%, rgb(220, 38, 38) 0.97629%, rgb(249, 115, 22) 0.97629%, rgb(249, 115, 22) 3.13808%, rgb(37, 99, 235) 3.13808%, rgb(37, 99, 235) 82.2873%, rgb(22, 163, 74) 82.2873%, rgb(22, 163, 74) 100%)"
+  }
+}

@@ -92,7 +92,7 @@ export function AccountCard({
       style={{
         background: "var(--surface)",
         border: "1px solid var(--color-border)",
-        borderRadius: 8,
+        borderRadius: "var(--radius-card)",
         overflow: "hidden",
         maxWidth,
       }}
@@ -103,7 +103,8 @@ export function AccountCard({
       <SectionRule />
       <div
         style={{
-          padding: "12px 20px",
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid rgba(0,0,0,.08)",
           background: "var(--color-surface-raised)",
           display: "flex",
           justifyContent: "space-between",
@@ -114,9 +115,10 @@ export function AccountCard({
       >
         <span
           style={{
-            fontSize: "12.5px",
-            fontWeight: 800,
-            letterSpacing: "0.05em",
+            fontFamily: "var(--font-display)",
+            fontSize: "20px",
+            fontWeight: 400,
+            letterSpacing: "0.04em",
             textTransform: "uppercase",
             color: "var(--color-text-primary)",
           }}
@@ -127,7 +129,7 @@ export function AccountCard({
           <span
             style={{
               fontSize: "10.5px",
-              fontWeight: 700,
+              fontWeight: 600,
               color: "var(--color-text-muted)",
             }}
           >
@@ -258,8 +260,8 @@ export function ToggleSwitch({
       disabled={locked}
       onClick={locked ? undefined : onFlip}
       style={{
-        width: 36,
-        height: 20,
+        width: 32,
+        height: 18,
         borderRadius: 999,
         border: "none",
         padding: 2,
@@ -274,8 +276,8 @@ export function ToggleSwitch({
     >
       <span
         style={{
-          width: 16,
-          height: 16,
+          width: 14,
+          height: 14,
           borderRadius: "50%",
           background: "#FFFFFF",
           display: "block",

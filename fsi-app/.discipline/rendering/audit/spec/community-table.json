@@ -1,0 +1,47 @@
+{
+  "part": "Community — peer-org directory table",
+  "mount": "peer-org-table",
+  "viewport": 1440,
+  "artboards": [],
+  "source": "src/components/community/PeerOrgDirectoryTable.tsx's own header comment ('spec 05 §5 component 3: peer-org directory, aggregate, pseudonymous') and CONFIRMED ABSENCE from the design source: `grep -i 'directory'` and `grep -i 'peer.org'` against README.md return nothing, and p12 (#p12, the Community artboard, docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html') contains no directory/table markup — its content is the room/thread surface, not this aggregate table.",
+  "notes": [
+    "This part is NOT one of the 17 UI-system artboards. Per CLAUDE.md rule 2 ('never fabricate') this spec does not invent a per-pixel design value to compare against — there is no design source stating one. What it checks instead: the general sitewide rules every part must follow regardless of artboard coverage (no literal UNSCORED anywhere; the component's own legacy `--color-*` tokens resolve to the SAME canonical values theme.css defines, so the legacy naming is migration debt, not a visual defect) — confirmed live, not asserted from reading theme.css alone.",
+    "Token resolution confirmed (theme.css): --color-bg-surface: var(--card) [#FFFFFF]; --color-border: var(--line-1) [rgba(0,0,0,.12)]; --color-text-muted: var(--ink-3) [#7A6E6C]; --color-text-primary: var(--ink) [#1A1A1A]. PeerOrgDirectoryTable.tsx reads the legacy names exclusively (never the canonical ones directly), which is exactly the migration-scaffolding pattern theme.css's own header describes ('legacy names are migration scaffolding for components later lanes still have to touch') — logged here, not fixed (this lane writes no product code)."
+  ],
+  "selector": "[data-audit=\"peer-org-table\"] table:first-of-type",
+  "expect": {
+    "border-collapse": "collapse"
+  },
+  "children": [
+    {
+      "name": "table wrapper — resolves to the canonical card surface (background)",
+      "selector": "[data-audit=\"peer-org-table\"] > div > div:first-child",
+      "note": "--color-bg-surface resolves to var(--card)=#FFFFFF; --color-border resolves to var(--line-1)=rgba(0,0,0,.12). Checked as the resolved values, confirming the legacy alias is not a colour defect even though it is not the canonical token name.",
+      "expect": {
+        "background-color": "#FFFFFF",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.12)"
+      }
+    },
+    {
+      "name": "column header typography",
+      "selector": "[data-audit=\"peer-org-table\"] table:first-of-type th:first-child",
+      "note": "Th component: font-size 10px, weight 800, letter-spacing .06em, uppercase, colour var(--color-text-muted)=var(--ink-3)=#7A6E6C. No artboard states this table's header type, so this asserts the component's OWN stated values (self-consistency), not a design-source comparison.",
+      "expect": {
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.06em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "the literal word UNSCORED anywhere in the table",
+      "selector": "[data-audit=\"peer-org-table\"] td, [data-audit=\"peer-org-table\"] th",
+      "textMatch": "UNSCORED",
+      "reason": "General rule (operator 2.1): the literal token never appears anywhere in the product, artboard-covered or not."
+    }
+  ]
+}

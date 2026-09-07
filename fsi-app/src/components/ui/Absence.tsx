@@ -13,9 +13,9 @@ export function Absence({ reason }: { reason: AbsenceReason }) {
     <span
       style={{
         fontSize: "var(--fs-105)",
-        fontVariant: "small-caps",
+        textTransform: "uppercase",
         fontWeight: 600,
-        letterSpacing: "0.02em",
+        letterSpacing: "0.08em",
         color: "var(--ink-3)",
       }}
     >

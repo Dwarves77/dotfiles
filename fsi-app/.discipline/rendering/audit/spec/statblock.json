@@ -1,0 +1,57 @@
+{
+  "part": "StatBlock",
+  "mount": "statblock",
+  "viewport": 1440,
+  "artboards": ["14-account (stat-block grid)", "01-dashboard rail ('Across the platform')", "00-system-sheet §0.4 (inline example)"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 'Buttons / stat blocks'; 'Caros Ledge UI System.dc.html' p14's stat-block grid ('Companies'/'Individuals'/'Newest join'/'Active this month', the definitive `stack` usage) and p1's dashboard rail 'Across the platform' rows (the definitive `row` usage README §0.4 names explicitly)",
+  "notes": [
+    "StatBlock.tsx is pure inline style; every property here is a real product value.",
+    "The system-sheet's own inline example (dc.html #sys, 'Actions · stat block' row, 22px numeral) is a THIRD size not represented by either the `stack` or `row` prop, and is not asserted here — p14's grid is the definitive stack-layout usage the README names ('profile and admin counters')."
+  ],
+  "selector": "[data-audit=\"stack\"] > div",
+  "expect": { "display": "block" },
+  "children": [
+    {
+      "name": "stack — label",
+      "selector": "[data-audit=\"stack\"] span:nth-child(1)",
+      "note": "dc.html p14: font-size 10px, letter-spacing .12em, text-transform uppercase, color #7A6E6C, font-weight 700.",
+      "expect": {
+        "font-size": "10px",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "stack — numeral",
+      "selector": "[data-audit=\"stack\"] div > div span",
+      "note": "dc.html p14: font-family Anton, font-size 26px, line-height 1.",
+      "expect": { "font-family": "contains:Anton", "font-size": "26px", "line-height": "26px" }
+    },
+    {
+      "name": "stack — note",
+      "selector": "[data-audit=\"stack\"] span:nth-child(3)",
+      "note": "dc.html p14: font-size 10.5px, color #7A6E6C.",
+      "expect": { "font-size": "10.5px", "color": "#7A6E6C" }
+    },
+    {
+      "name": "row — label (bold, ink)",
+      "selector": "[data-audit=\"row\"] > div > span:nth-child(1) > span:nth-child(1)",
+      "note": "dc.html p1: `<b>Regulations</b>` — bold label at the row's own 12.5px context font-size, default ink colour.",
+      "expect": { "font-weight": "700", "font-size": "12.5px", "color": "#1A1A1A" }
+    },
+    {
+      "name": "row — note (muted, under the label)",
+      "selector": "[data-audit=\"row\"] > div > span:nth-child(1) > span:nth-child(2)",
+      "note": "dc.html p1: `display:block;font-size:10.5px;color:#7A6E6C` under the bold label.",
+      "expect": { "display": "block", "font-size": "10.5px", "color": "#7A6E6C" }
+    },
+    {
+      "name": "row — numeral",
+      "selector": "[data-audit=\"row\"] > div > span:nth-child(2) > span",
+      "note": "dc.html p1: font-family Anton, font-size 18px, right-aligned.",
+      "expect": { "font-family": "contains:Anton", "font-size": "18px" }
+    }
+  ]
+}

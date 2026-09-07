@@ -1,0 +1,45 @@
+{
+  "part": "DetailHeader",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "src/components/detail/DetailShell.tsx (the ONE header shared by all four detail surfaces, per its own docstring); README.md §0.4 'Type' (Anton titles 28px, letter-spacing .04em) + §0.5; operator rulings 1.2 (detail title must be Anton uppercase) and 2.3 (no second ask bar between the tags row and the action row)",
+  "notes": [
+    "Ruling 1.2 named the PPWR page specifically as bypassing the shared title component; this spec measures the shared component itself (DetailHeader), which every one of the four detail surfaces now imports, so a MATCH here is evidence the shared part is correct — it does not by itself prove every page calls it (that is a page-frame / route-level check, out of this spec's selector reach).",
+    "This mount omits `askPlaceholder` (ruling 2.3: the CommandBar in the Masthead is the only ask surface, DetailHeader must not render a second one when a caller omits it) — the forbid check below confirms no CommandBar renders even though `actions` is populated.",
+    "Structural note, train 58 (2026-09-07): DetailHeader.tsx's own doc comment now reads 'title now lives in DetailMasthead below' — train 57 moved the title and meta/breadcrumb line out of this component into the shared `ui/Masthead` (via `DetailMasthead`), confirmed by direct source read this session (`src/components/detail/DetailShell.tsx` ~line 56). DetailHeader itself renders only chips, the tag row, and actions. The title and meta children checks this spec used to carry are therefore removed here, not left as phantom NOT BUILT rows against a part this component no longer owns: the title is checked against its real location by `page-frame.json`'s 'detail title type' row (`.cl-masthead-title`). The former 11px meta/breadcrumb line has no like-for-like replacement to check yet — DetailMasthead's breadcrumb now renders inside Masthead's `.cl-masthead-eyebrow` line (800 weight, .14em, `--fs-105`, a different typographic convention from the old 11px meta line), which no spec measures yet. Logged as a B-list gap (Masthead+CommandBar) for the fix lane rather than asserted against an invented 11px value here.",
+    "SPEC CORRECTION, fix58-detail (2026-09-07): the padding-top/right/left/bottom values this spec previously carried (18/24/24/20) do not match the artboard. Direct re-read of 'Caros Ledge UI System.dc.html' #p3, char 201809 — the actual band-pill/action-row card (the 'Action · <= 6 months' chip through the Export brief/Share/Watch buttons, i.e. this component) reads `padding:16px 20px 18px` (top 16, right/left 20, bottom 18). The 18/24/24/20 figures belonged to a different card in the same artboard (the DetailMasthead title+ask-bar card just above this one, `padding:20px 28px 22px`) and were misattributed when this spec was first written. Corrected here per rule 1 of the fix lane's dispatch (correct the spec, never bend the product to a wrong expectation) — the product was moved to match the corrected 16/20/20/18 values, not the other way round."
+  ],
+  "selector": "[data-audit=\"header\"] > header",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-top-left-radius": "10px",
+    "padding-top": "16px",
+    "padding-right": "20px",
+    "padding-left": "20px",
+    "padding-bottom": "18px"
+  },
+  "children": [
+    {
+      "name": "tag row sits directly under the title (no gap for a second bar)",
+      "selector": "[data-audit=\"header\"] [data-audit=\"tagrow\"]",
+      "note": "Operator 2.3: 'The action row follows directly below the workspace tags row' — this checks the tag row itself renders inside the header's title column, not that spacing is exact (DetailHeader's own `marginTop:10` on the tagRow wrapper is the only declared gap).",
+      "expect": {
+        "count": "1"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a CommandBar inside DetailHeader when askPlaceholder is omitted",
+      "selector": "[data-audit=\"header\"] header .cl-command-bar",
+      "reason": "Operator 2.3: 'Remove the inline Ask about this [regulation…] bar from every detail masthead.' DetailHeader renders a CommandBar only when a caller passes `askPlaceholder`; this mount does not, so any match here would mean the component renders one unconditionally."
+    },
+    {
+      "name": "the retired three-state 'Complete brief' toggle",
+      "selector": "[data-audit=\"header\"] span",
+      "textMatch": "Complete brief",
+      "reason": "README §0.5: 'No tabs, no per-tab ask bar, and no \"Complete brief\" toggle — that control is an unwired <span> today and is removed.'"
+    }
+  ]
+}

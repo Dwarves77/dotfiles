@@ -11866,3 +11866,131 @@ F25 fitness-wiring fix, G1/detail-and-masthead, G1/rest-and-G3, G4, the npmtest-
 STEP 3 docs commit — that commit's own hash is necessarily unknown to itself; see the bundle file
 for the actual tip), well under the 9 MB split threshold, so **one** bundle was made instead of the
 two-part split; `git bundle verify` PASS.
+
+## Addendum 86, postscript 12: train 58, the measured design audit closed to 0 MISMATCH across 43 specs, admin stat tiles, four fix lanes folded (2026-09-07, coordinator, lane ASSEMBLE-58)
+
+Train 57 landed as PR #606. Between trains 57 and 58, lane uxaudit-harness (train 56's own work,
+already on the branch this train started from) built the real measured design-audit harness this
+handoff had lacked: `run-audit.mjs` mounts the REAL `src/components/**` module (esbuild + the
+rendering guard's own Playwright machinery, never a reproduction), reads `getComputedStyle` for
+every property a spec names, and regenerates `AUDIT-2026-09-07.md` + `results.json` in full —
+replacing the earlier source-level "read the code and guess" pass with an actual measurement.
+That harness's first full sweep produced 40+ spec files and a B-list of **173** measured findings
+(MISMATCH/NOT BUILT/NOT IN SPEC rows) across the shared parts and page frame.
+
+Four fix lanes were dispatched against disjoint write sets to close the B-list — **fix58-tokens**
+(theme.css tokens, Chips/TabRow/Absence/StatBlock/StateNote/CommandBar/Sidebar padding),
+**fix58-lists** (ListRow/ImpactMeter/MilestoneTimeline, map register, the ResearchLedger theme
+tag, rail-card SectionRule), **fix58-detail** (DetailShell padding, the SectionIndex pill-group
+redesign, AtAGlance grid, FactCard/FactBlocks, the operations-matrix mount), **fix58-account**
+(AccountCard/Notifications/ToggleSwitch, admin-issues-rail + onboarding-stepper) — each returning
+its own B-list rows to 0 or logging a named residue. This train folded all four onto train 57 in
+order, `--no-ff`.
+
+**The `--radius-pill` root cause.** `theme.css` declared `--radius-pill: 999px` once (canonical)
+and then REDECLARED it inside the same `:root{}` rule as `--radius-pill: var(--radius-pill);` — a
+self-referential custom property, guaranteed-invalid per the CSS spec, so the invalid later
+declaration won and every pill-radius consumer (BandChip, WorkspaceTagPill, TagChip) rendered
+square corners sitewide, not just in the harness. **Two lanes found and fixed this independently**
+— fix58-tokens (from `chips.json`'s own B1 finding) and fix58-lists (from `market-research-rows.json`'s
+own B135 finding) both deleted the identical redeclared line on their own branches. The fold
+converged both deletions to the single line now in `theme.css`, with a comment noting the
+duplicate discovery rather than picking one lane's finding over the other's.
+
+**Two harness bugs, each found by more than one lane.** (1) `run-audit.mjs`'s `targetsOf`/
+`readTarget`/the `probe()` call-site mapping all silently dropped a target's own `textMatch` field
+for ordinary (non-`forbid`) selectors — carried through only for `forbid` entries — so a spec
+narrowing a selector by substring (e.g. `page-frame.json`'s "exactly one '+ Tag' trigger", meant to
+filter five action-row buttons down to one) instead measured the unfiltered count. fix58-tokens
+and fix58-detail both diagnosed and fixed this identically (all three sites now carry `textMatch`
+through); the fold kept fix58-detail's more complete three-site comment and confirmed
+fix58-tokens's own tests still pass unchanged against it. (2) `normalise.mjs`'s gradient
+comparison did not recognise that a CSS gradient's first/last stop defaults to 0%/100% when the
+author omits them, so two textually-different but visually-identical gradient strings (one with
+explicit `0%`/`100%` stops, one without) read as a false MISMATCH; fixed by stripping the two
+default stops (and normalising comma spacing) before comparing — proven by a dedicated test,
+"a gradient with explicit 0%/100% stops matches CSSOM omitting the defaults."
+
+**Step 2 of this train's own dispatch** (the two items fix58-account could not finish, with full
+write access this train): (a) `StatBlock` gained an additive `size="tile"` variant per dc.html
+id="p13" (11px label / 16px Anton numeral / 11.5px note), and `AdminDashboard.tsx`'s 8 summary
+tiles (Workspaces through Emission factors) now render through it inside a new
+`.cl-admin-stat-tile` wrapper class carrying the artboard's own card geometry (`padding: 0 14px
+12px 14px`, `border: 1px solid rgba(0,0,0,.12)`, the two-layer card shadow `0 1px 2px
+rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06)`) — no SectionRule on these tiles, since none of
+the 8 carries its own title line, matching the artboard's own markup. New `admin-stat-tiles.json`
+spec + `admin-stat-tiles` mount (the real `AdminDashboard`, reusing `admin-issues-rail`'s own
+auth-stub technique). (b) `OrganizationsTable` has no artboard in this handoff — left exactly as
+is per the dispatch's own instruction not to invent a spec, logged as an open item in `HANDOFF.md`
+for Claude Design to supply an artboard for.
+
+**Step 3, the gate that mattered.** `npm run audit:design` on the folded-plus-step-2 tree first
+measured 3 MISMATCH + 1 MISMATCH-group (actually 5 rows) + 3 NOT BUILT across two specs that had
+gone stale relative to fixes their own sibling lanes had already made:
+
+- `market-research-rows.json` asserted TagChip as a 999px pill (`#F5F2EE`/`border-radius:999px`)
+  — that value belongs to WorkspaceTagPill, not TagChip, and was wrong from the start, unrelated
+  to the `--radius-pill` token fix. TagChip's real shape (already 0 MISMATCH in `chips.json`) is a
+  literal 4px square radius; once fix58-tokens corrected TagChip.tsx's own radius from the pill
+  token to a literal `4`, the spec's stale `span[style*="radius-pill"]` selector stopped matching
+  anything at all — NOT BUILT on all three targets, including the market row that was rendering
+  correctly. Separately, the spec still framed the ResearchLedger theme tag as an open gap
+  ("NOT BUILT is expected") that fix58-lists had already closed live (ResearchLedger.tsx now
+  renders its fixture's theme, "Emissions accounting", through the same TagChip). Corrected the
+  selector to match what TagChip actually renders and updated both target descriptions to measure
+  the closed state, not the historical gap.
+- `settings-section-index.json` described SectionIndex's PRE-fix58-detail shape (a bare
+  middot-separated flex row, 10.5px/700, a `border-bottom`, `padding:10px 0`). fix58-detail
+  restructured the shared SectionIndex into a bordered pill group with a scroll-spy filled active
+  pill (`sectionindex.json`, already 0 MISMATCH against dc.html #p3's own markup); this settings
+  mount uses the same component and inherited the redesign automatically, so the stale expect
+  block stopped matching. Corrected to the real geometry (`padding:6px 0`, no border, "S1 General"
+  with a space not a middot, 12.5px, active-pill styling on the first link).
+
+Full audit rerun after both fixes: **43 specs, 786 checks, 786 MATCH, 0 MISMATCH, 0 NOT BUILT,
+0 NOT IN SPEC.** Per-spec table: every one of the 43 spec files (absence, account-members,
+actionrow, admin-issues-rail, admin-stat-tiles, auth-frame, bandgradientrule, bandtile, chips,
+community-table, detailheader, detailsection, detailtagrow, detailtimeline, factblocks, factcard,
+filterchipgroup, highrelevance, impactmeter, inthisliststat, list-surface-virtualized,
+list-surface, listrow, map-register, market-research-rows, masthead, milestonetimeline,
+onboarding-stepper, operations-matrix, page-frame, railcards, section-card-lists, sectionindex,
+settings-notifications, settings-section-index, sidebar, skeleton, statblock, statenote,
+summarydepthswitch, tabrow, tagpopover, watchbutton) is 100% MATCH, 0 MISMATCH, 0 NOT BUILT, 0 NOT
+IN SPEC. **The residue named by this train's own dispatch (`OrganizationsTable`, no artboard) is
+the only row not settled** — it cannot be, without a design artboard; logged in `HANDOFF.md`, not
+worked around with an invented spec.
+
+`coverage-report.json` regenerated: 888 governed files, 850 COVERED, 38 EXEMPT, 0 GAPS.
+
+**UX compliance**: this train touched `.tsx` under `fsi-app/src` (`StatBlock.tsx`,
+`AdminDashboard.tsx`) plus four folded lanes' own extensive `.tsx` changes across the shared `ui/`
+parts, `ListSurfaceShell`, `DetailShell`, `AccountPrimitives`, `AdminIssuesRail` and others — every
+value applied is the artboard's/ruling's own literal number/hex/format (dc.html id="p13"'s tile
+geometry, the `--radius-pill`/TagChip/SectionIndex corrections above), never invented or
+improvised; the rendering guard (below) confirms 0 unaccounted failures.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): `tsc --noEmit` clean; fitness runner 33/33 PASS, 0
+violations (also under `--mode=ci --range=origin/master..HEAD`, exit 0); rendering guard PASS (11
+fixtures, 392 checks, 6 SM smoke specs + 11 UX smoke specs, 78 + 182 checks); closure-gate
+`--report` PASS on all four checks (NEVER-RUN/STALE-NEXT/WRITER-READER 0 write-orphans/
+LANE-CONTRACT); `.discipline/rendering/audit/*.test.mjs` (15/15) + `.discipline/rules/*.test.mjs`
++ closure-gate/invariant-coverage/override-check `.test.mjs` (142/142): 157/157 PASS;
+`run-test-suite.sh` 5899/5894 pass, 0 fail, 5 skipped (the pre-existing `audit-finding-status`
+informational report; the previously-known "kill switch ON but no DB creds" failure this dispatch
+flagged as expected did not reproduce this run — nothing else failed), exit 0; override-check
+`--range=origin/master..HEAD` fails only C4 (this container's own sibling `/root/work/lanes/*`
+worktrees, not listed in `docs/inventories/worktrees.md`, the same pre-existing artefact every
+prior train recorded — no C3 findings); all 18 `.github/workflows`/`.github/actions` YAML files
+parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119 invariants + 63 doctrines all
+wired); `next build --webpack` clean (full route manifest emitted, only the expected
+`SUPABASE_SERVICE_ROLE_KEY is not configured` fail-closed warnings, no `.env.local` present); the
+CI npmtest glob + the 7 named npm-dependent proofs (748/748 PASS); `bug-class-guard.yml`'s 8 named
+`*.selftest.mjs` tests (45/45 PASS).
+
+6 commits this session (4 `--no-ff` fold merges + the StatBlock `size="tile"` feature + the
+two-spec audit-repair commit), on top of 47 commits already on `train/wave58-2026-09-07` from
+train 56's own uxaudit-harness lane and its four uxaudit-a/b/c/d spec lanes — 53 commits total
+ahead of `origin/master`. Bundle: `git bundle create /tmp/train58.bundle
+origin/master..train/wave58-2026-09-07` at this container's own tip, 421 KB (well under the 9 MB
+split threshold, so one bundle), `git bundle verify` PASS.

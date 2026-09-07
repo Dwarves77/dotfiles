@@ -332,6 +332,18 @@ export function AdminDashboard({
           .admin-t08-grid { grid-template-columns: 1fr; }
         }
         .admin-t08-sections { grid-template-columns: repeat(4, 1fr); }
+        .cl-admin-stat-tile {
+          font-family: inherit;
+          cursor: pointer;
+          text-align: left;
+          width: 100%;
+          background: #FFFFFF;
+          border-radius: var(--radius-card);
+          border: 1px solid rgba(0, 0, 0, .12);
+          box-shadow: 0 1px 2px rgba(26, 26, 26, .04), 0 4px 14px rgba(26, 26, 26, .06);
+          padding: 0 14px 12px 14px;
+          overflow: hidden;
+        }
         @media (max-width: 1180px) {
           .admin-t08-sections { grid-template-columns: repeat(2, 1fr); }
         }
@@ -379,18 +391,11 @@ export function AdminDashboard({
                     type="button"
                     onClick={() => pickSection(s.name)}
                     aria-pressed={on}
-                    style={{
-                      fontFamily: "inherit",
-                      cursor: "pointer",
-                      textAlign: "left",
-                      background: "var(--card)",
-                      borderRadius: "var(--radius-card)",
-                      padding: "14px 16px",
-                      width: "100%",
-                      border: on ? "2px solid var(--brand)" : "1px solid var(--line-1)",
-                    }}
+                    className="cl-admin-stat-tile"
+                    style={on ? { borderColor: "var(--brand)" } : undefined}
                   >
                     <StatBlock
+                      size="tile"
                       label={s.name}
                       value={formatNumber(tileCount(s.name))}
                       tone={badge !== null ? "critical" : "default"}
@@ -399,22 +404,9 @@ export function AdminDashboard({
                   </button>
                 );
               })}
-              <Link
-                href="/admin/factors"
-                prefetch={false}
-                style={{
-                  fontFamily: "inherit",
-                  textAlign: "left",
-                  textDecoration: "none",
-                  background: "var(--card)",
-                  borderRadius: "var(--radius-card)",
-                  padding: "14px 16px",
-                  width: "100%",
-                  border: "1px solid var(--line-1)",
-                  display: "block",
-                }}
-              >
+              <Link href="/admin/factors" prefetch={false} className="cl-admin-stat-tile" style={{ textDecoration: "none", display: "block" }}>
                 <StatBlock
+                  size="tile"
                   label="Emission factors"
                   value={formatNumber(initialEmissionFactorsLiveCount)}
                   note={`${formatNumber(initialEmissionFactorsLiveCount)} live rows · read-only (WO-18)`}

@@ -1,0 +1,132 @@
+{
+  "part": "Page frame (1440)",
+  "mount": "page-frame-1440",
+  "viewport": 1440,
+  "artboards": [
+    "00-system-sheet §0.3 'The frame'",
+    "01-dashboard",
+    "03-regulation-detail",
+    "18-section-treatments (ruling 5.1)",
+    "19-masthead-line-options (ruling 5.2)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+  "notes": [
+    "The mount is the REAL AppShell wrapping DashboardBrief and RegulationDetailSurface, so the nav card, the content column, the dashboard section cards, the detail header and the detail action row are all in ONE measured tree. Composing the two surfaces together is an audit fixture, not a claim the product renders them together.",
+    "Nav card top margin is expected at 20px per operator ruling 4.2 ('margin: 20px 0 16px 16px so it aligns with the content column's 20px top padding. Fix it in the frame, once'). The artboard markup still shows 16px; the ruling supersedes it.",
+    "Ruling 5.1 requires a 3px graduated rule ABOVE each section title (full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))) and NO line below the title. Selector repair, train 58 (2026-09-07): the earlier `[data-section-rule]` selector never matched anything; the dashboard's Card DOES render the shared `SectionRule` component (`src/components/ui/SectionRule.tsx`, marker class `.cl-section-rule`, confirmed by direct source read this session, `src/components/dashboard/DashboardBrief.tsx` line ~121) — the check below now measures the real element.",
+    "Ruling 5.2's sitewide count ('one coloured rule per screen') cannot be counted reliably today: BandGradientRule renders an unmarked `div[aria-hidden=\"true\"]`, and the four-band gradient is not distinguishable by computed style alone from the ImpactMeter ramp or the full MilestoneTimeline track, which are also green-to-red gradients at similar heights. This spec therefore checks the ONE permitted instance exactly (the nav card cap) and forbids a band-proportion rule inside a page masthead. Adding `data-band-rule` to BandGradientRule would make the sitewide count a one-line check; that is a recommendation for the fix lane, not a deviation.",
+    "Operator report 2026-09-07 ('the side navigation bar does not reach the length of the page'), CONFIRMED against every page artboard: the nav card is `align-self:stretch` inside the frame's `grid-template-columns:252px 1fr` and spans the full page height, footer rows at its foot. The build's `aside` previously carried `maxHeight: calc(100vh - 36px)` with no `align-self` of its own and ended at its content height instead. Fixed at the root in `Sidebar.tsx` (`align-self:stretch`, `height:auto`, no `maxHeight`) and in `AppShell.tsx` (the frame row's `display:flex`/height made inline, not Tailwind-class-only, so this harness — which injects only globals.css/theme.css, no compiled Tailwind CSS — has a real box to stretch against). The two rows below assert it: `align-self` reads back `stretch`, and `height` on this fixture (frame row's inline `height:100vh` at the harness's fixed 1400px page height) resolves to the frame height (1400px) minus the card's own vertical margins (20px top + 16px bottom = 36px) minus its own 1px top+bottom border (`box-sizing:content-box`, so the CSS `height` property excludes it) = 1362px — i.e. the card's rendered (border) box is exactly 1364px, equal to the frame's box, not its own content's height; the 1362px this row asserts is that same box read back through `getComputedStyle`'s content-box `height`, confirmed against `getBoundingClientRect().height === 1364` directly in the fixture."
+  ],
+  "selector": "aside.hidden",
+  "expect": {
+    "width": "252px",
+    "margin-top": "20px",
+    "margin-right": "0px",
+    "margin-bottom": "16px",
+    "margin-left": "16px",
+    "background-color": "#FFFFFF",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.12)",
+    "border-top-left-radius": "10px",
+    "border-bottom-left-radius": "10px",
+    "align-self": "stretch",
+    "height": "1362px"
+  },
+  "children": [
+    {
+      "name": "nav card — band-proportion gradient cap (the ONE coloured rule, ruling 5.2)",
+      "selector": "aside.hidden > div[aria-hidden=\"true\"]",
+      "note": "README §0.2: 'The four-band gradient rule (3px, segment widths proportional to the live band counts) is the brand mark'. Ruling 5.2 keeps it in this one place sitewide.",
+      "expect": {
+        "height": "3px",
+        "count": "1"
+      }
+    },
+    {
+      "name": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration.",
+      "expect": {
+        "padding-top": "20px",
+        "padding-right": "40px",
+        "padding-bottom": "40px",
+        "padding-left": "40px",
+        "column-gap": "28px",
+        "align-items": "start",
+        "grid-template-columns": "* 300px"
+      }
+    },
+    {
+      "name": "section card — no line BELOW the title (ruling 5.1)",
+      "selector": "[data-audit=\"dashboard\"] div:has(> h2[data-guard-title])",
+      "note": "Ruling 5.1: 'Live 18a (border-bottom 2px solid #5A5552 under the text) is wrong: remove it... Section title itself: Anton uppercase, no divider, no underline.'",
+      "expect": {
+        "border-bottom-width": "0px"
+      }
+    },
+    {
+      "name": "section card — the 3px graduated rule ABOVE the title (ruling 5.1)",
+      "selector": "[data-audit=\"dashboard\"] .cl-section-rule",
+      "note": "Ruling 5.1: 3px, full width of the card, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)). Applies to every panel/section card on every page.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18) 100%)",
+        "border-top-left-radius": "0px"
+      }
+    },
+    {
+      "name": "section title type (ruling 5.1: Anton uppercase)",
+      "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+      "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.04em",
+        "font-size": "20px"
+      }
+    },
+    {
+      "name": "detail title type",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-masthead-title",
+      "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element. Selector repair, train 58 (2026-09-07): the earlier `.cl-detail-title` class does not exist in the product; train 57 moved the detail title into the shared `ui/Masthead` component (via `DetailMasthead`, size=\"detail\"), whose own title element carries `.cl-masthead-title` (`src/components/ui/Masthead.tsx`, confirmed by direct source read this session) — the selector below now measures the real element.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.04em",
+        "font-size": "28px"
+      }
+    },
+    {
+      "name": "exactly one '+ Tag' trigger in the detail header (operator 3.2, mechanism repair train 58 2026-09-07)",
+      "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
+      "textMatch": "Tag",
+      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' RESOLVED (found and fixed independently by two fix lanes, fix58-tokens and fix58-detail, 2026-09-07): the count-5 finding was a HARNESS bug, not a product defect. A standalone debug mount (`page.evaluate` against this exact selector, no `textMatch` filter applied) confirmed `header:not(.cl-masthead) button` matches all 5 ActionRow buttons (the row-overflow '⋯' menu, Export brief, Share, ☆ Watch, + Tag) — `textMatch: \"Tag\"` above was meant to narrow that down to the one button whose text contains 'Tag', exactly the way `forbid` entries already use `textMatch` (readForbid, run-audit.mjs). But `targetsOf()`/`readTarget()` (the non-forbid path) silently dropped the `textMatch` field for `children`/top-level `expect` targets — it was read into the target object nowhere, so the filter never ran and the raw 5-button count leaked through. Fixed at the root, once, in run-audit.mjs (`targetsOf` now carries `textMatch` through, `readTarget` applies the same filter `readForbid` already does) rather than reshaping this selector around the bug. RegulationDetailSurface.tsx (line ~193, ~209) already wires exactly one '+ Tag' trigger (ActionRow's own, via `onTag`) and DetailTagRow renders no trigger of its own (TagPopover's `open`/`onOpenChange` controlled mode) — the product was already correct; only the measurement was wrong.",
+      "expect": { "count": "1" }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "floating Ask AI button (bottom-right, every page)",
+      "selector": ".fixed.bottom-6.right-6",
+      "textMatch": "Ask AI",
+      "reason": "Operator 2.2: 'Remove the floating Ask AI button on every page (bottom-right). The masthead command bar is the ask. No floating control.' The text filter is needed because BackToTop.tsx carries the IDENTICAL `fixed bottom-6 right-6 z-40` class set, so the bare selector matches two controls stacked at the same coordinates. BackToTop is outside every ruling in the operator's list and is left exactly as it is; it is logged here as an observation, not a finding."
+    },
+    {
+      "name": "a second CommandBar inside the detail header",
+      "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) .cl-command-bar",
+      "reason": "Operator 2.3: 'Remove the inline Ask about this [regulation…] bar from every detail masthead. The action row follows directly below the workspace tags row.' Selector repair, train 58 (2026-09-07): the bare `header .cl-command-bar` selector caught the ONE legitimate CommandBar too, because train 57's DetailMasthead (component doc: 'the shared ui/Masthead is mounted once at the top of every detail page, carrying... ONE scoped CommandBar') renders that command bar inside its own `<header class=\"cl-masthead\">`, which is itself inside `[data-audit=\"regulation-detail\"]`. `:not(.cl-masthead)` excludes that legitimate header so this forbid targets only a SECOND, different header carrying a command bar — which is what ruling 2.3 actually forbids."
+    },
+    {
+      "name": "HeroPriorityDropdown in the detail action row",
+      "selector": "[data-audit=\"regulation-detail\"] header button",
+      "textMatch": "▾",
+      "reason": "Operator 3.1: 'Remove the Immediate ▾ dropdown from the regulation detail action row… Action row is exactly Export brief (primary) · Share · ☆ Watch · + Tag.'"
+    },
+    {
+      "name": "a band-proportion (coloured) rule inside a page masthead",
+      "selector": "[data-audit=\"dashboard\"] header div[aria-hidden=\"true\"]",
+      "matchStyle": { "height": "3px", "background-image": "contains:rgb(22, 163, 74)" },
+      "reason": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
+    }
+  ]
+}

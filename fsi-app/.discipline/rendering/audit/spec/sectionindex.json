@@ -1,0 +1,31 @@
+{
+  "part": "SectionIndex",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "'Caros Ledge UI System.dc.html' p3 (#p3, Regulation detail), 'sticky index' comment block: outer `position:sticky;top:0;background:#FAFAF8;padding:6px 0` wrapping an inner pill-group `display:flex;align-items:center;gap:4px;background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:8px;padding:4px;font-size:12.5px`, whose current-section item is a FILLED pill (`padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700`, text \"S1 Summary\", no separator dot) and whose other items are plain links (`padding:6px 12px;border-radius:6px;font-weight:600;color:#5A6B67`, e.g. \"S2 Obligations\"). README §0.5 says only 'sticky section index (S1 · S2 · S3 …)', which is README's own shorthand notation for the artboard's numbered links, not a literal middot-separated instruction.",
+  "notes": [
+    "REAL STRUCTURAL DIVERGENCE, not a harness artefact: the artboard's index is a bordered PILL GROUP (white background, 1px border, 8px radius, 4px padding) with the current section rendered as a filled dark pill and the others as plain 6px-radius links inside that group — SectionIndex.tsx instead renders a bare flex row of underline-free links separated by a literal '·' character, with no pill container and no current-section highlight at all (no scroll-spy / active-link logic exists in the component). Per the operator's framing, the artboard wins over README's own shorthand notation.",
+    "The label text itself differs too: the artboard's links read \"S1 Summary\" / \"S2 Obligations\" (numeral and label separated by a space only); the built component renders \"S1 · Summary\" (DetailShell.tsx: `S${i + 1} · ${s.label}`)."
+  ],
+  "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index",
+  "expect": {
+    "position": "sticky",
+    "top": "0px"
+  },
+  "children": [
+    {
+      "name": "first index link (artboard: a filled current-section pill reading \"S1 Summary\")",
+      "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index a.cl-section-index-link:first-of-type",
+      "note": "Artboard: padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700, text \"S1 Summary\".",
+      "expect": {
+        "text": "S1 Summary",
+        "background-color": "#5A5552",
+        "color": "#FFFFFF",
+        "border-radius": "6px",
+        "font-weight": "700"
+      }
+    }
+  ],
+  "forbid": []
+}

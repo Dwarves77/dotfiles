@@ -12,6 +12,7 @@
 // src/components/regulations/band-empty-state.npmtest.mjs's own header for the precedent).
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 import { createJiti } from "jiti";
@@ -69,3 +70,20 @@ test("sanity: the OLD `!!user && !orgId` predicate DOES show the banner in the u
   assert.equal(newPredicate, false); // the fix
   assert.notEqual(oldPredicate, newPredicate);
 });
+
+// Frame fix, operator report 2026-09-07 ("the side navigation bar does not reach the length of
+// the page"). Source-text regression (same convention as Sidebar.npmtest.mjs — no JSX render
+// harness in this repo): the frame row's height/display must be inline, not Tailwind-class-only,
+// so the nav card's own `align-self:stretch` (Sidebar.tsx) has a definite box to stretch against
+// in every rendering context this repo has, including the design-audit harness
+// (fsi-app/.discipline/rendering/audit), which injects only globals.css/theme.css — no compiled
+// Tailwind utility CSS — so a Tailwind-only frame silently has no definite height there.
+{
+  const SOURCE = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "AppShell.tsx"), "utf8");
+  test("frame outer row: height 100vh and display flex are inline, not Tailwind-class-only", () => {
+    assert.match(SOURCE, /style=\{\{ backgroundColor: "var\(--desk\)", display: "flex", height: "100vh" \}\}/);
+  });
+  test("frame content column: flex: '1 1 0%' is inline (grid/flex sizing must not depend on a compiled-Tailwind-only class)", () => {
+    assert.match(SOURCE, /flex: "1 1 0%"/);
+  });
+}

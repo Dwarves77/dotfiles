@@ -1,0 +1,61 @@
+{
+  "part": "Admin stat tiles (8-tile summary grid)",
+  "mount": "admin-stat-tiles",
+  "viewport": 1440,
+  "artboards": ["13-platform-admin"],
+  "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
+  "notes": [
+    "Train 58, step 2: StatBlock gained an additive `size=\"tile\"` variant (11px label / 16px Anton numeral / 11.5px note) for exactly this grid; AdminDashboard.tsx's 8 tiles (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors) now use it with the artboard's wrapper geometry, a new `.cl-admin-stat-tile` class.",
+    "None of the 8 tiles in this grid carries a separate title line above the label/numeral row (unlike some other admin cards) — no SectionRule is mounted on these tiles, per the artboard's own markup, which shows no top rule inside any tile.",
+    "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. `AdminDashboard`'s default `section` state is 'Workspaces' (tile 1), so this spec measures tile 2 ('Sources', inactive on mount) for base border/shadow/padding, confirmed by a direct debug read this session."
+  ],
+  "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.12)",
+    "border-radius": "10px",
+    "box-shadow": "rgba(26,26,26,.04) 0px 1px 2px 0px, rgba(26,26,26,.06) 0px 4px 14px 0px",
+    "padding-top": "0px",
+    "padding-right": "14px",
+    "padding-bottom": "12px",
+    "padding-left": "14px"
+  },
+  "children": [
+    {
+      "name": "tile count (8 tiles: 7 sections + Emission factors)",
+      "selector": ".cl-admin-stat-tile",
+      "note": "SECTIONS (7) + the Emission factors Link = 8, dc.html p13's own count.",
+      "expect": { "count": "8" }
+    },
+    {
+      "name": "tile — label",
+      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "expect": {
+        "font-size": "11px",
+        "letter-spacing": "0.1em",
+        "text-transform": "uppercase",
+        "font-weight": "800"
+      }
+    },
+    {
+      "name": "tile — numeral",
+      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(2)",
+      "expect": {
+        "font-family": "contains:Anton",
+        "font-size": "16px"
+      }
+    },
+    {
+      "name": "tile — note",
+      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "note": "The note span is a direct sibling of the label/numeral row div, not nested inside it — the row div is the only other child, so `> span` (not `:nth-of-type(2)`, which counts among span siblings only and there is exactly one) reaches it. line-height 1.45 resolves to 16.675px at 11.5px font-size (getComputedStyle always reports a resolved px value, per this audit's own convention — see factcard.json/listrow.json).",
+      "expect": {
+        "font-size": "11.5px",
+        "color": "#5A6B67",
+        "margin-top": "4px",
+        "line-height": "16.675px"
+      }
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "part": "Map — jurisdiction register (ListRow's endStat extension)",
+  "mount": "listrow-1440",
+  "viewport": 1440,
+  "artboards": ["10-map (\"Jurisdiction register\" card)"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p10 (#p10, Map): the 'Jurisdiction register' card's column header row and its example rows (grid-template-columns:3px 1fr 1fr 110px 80px 40px; min-height:44px); src/components/ui/ListRow.tsx's own `endStat` prop (an additive extension the map lane built onto the shared ListRow, per its header comment: 'ListRow's new optional endStat prop (additive extension, see ListRow.tsx) replaces those four cells with a single band-coloured highest-band + item-count stat, matching the artboard's own HIGHEST BAND / ITEMS columns without forking a second row component'); src/components/map/MapPageView.tsx (real usage: `endStat={{ label: row.band.label, value: formatNumber(row.count), band: row.band }}`)",
+  "notes": [
+    "This spec extends the SHARED listrow-1440 mount (mounts.mjs) with one additional wrapped instance (`[data-audit=\"row-endstat\"]`) that reproduces MapPageView.tsx's own ListRow call exactly (title=jurisdiction label, meta=activeThemes, endStat={label,value,band}, minHeight=44, no impact/due/timeline/tier/overflow) — the values below are read from the SAME real ListRow.tsx component, not a page-local fork.",
+    "FIXED (fix58-lists, 2026-09-07, B130): ListRow.tsx's `minHeight` is now an optional prop (default 56, the general row's own value, unchanged for every other caller) — MapPageView.tsx passes `minHeight={44}` for register rows per p10's own stated value, an additive extension, not a fork.",
+    "FIXED (fix58-lists, 2026-09-07, B131-B134): endStat's label span now colours only the leading dot with the band colour; the label TEXT stays `var(--ink)` (#1A1A1A), at `var(--fs-10)` (10px) and letter-spacing 0.06em, matching p10's 'HIGHEST BAND' column exactly. The value numeral is font-size 16 (from 18); its band colour was already correct.",
+    "The 6-column register-specific grid (3px 1fr 1fr 110px 80px 40px) is NOT reproduced by ListRow: the endStat branch keeps the generic 8-column ListRow grid (3px 56px 1fr 88px 84px 76px 40px 44px, per listrow.json) and merges 4 of those columns (`gridColumn:'4 / span 4'`) into the endStat area. This is a genuine layout-strategy difference (a purpose-built 6-column grid vs a reused 8-column grid with a merged region) that the harness does not reduce to a single property mismatch below — logged here as the header comment's own claim ('matching the artboard's own HIGHEST BAND / ITEMS columns') is only true for the two coloured values (band colour, band dot), not the surrounding geometry."
+  ],
+  "selector": "[data-audit=\"row-endstat\"] .cl-list-row",
+  "expect": {
+    "min-height": "44px"
+  },
+  "children": [
+    {
+      "name": "endStat — label text colour",
+      "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured.",
+      "expect": {
+        "color": "#1A1A1A",
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.06em"
+      }
+    },
+    {
+      "name": "endStat — value numeral",
+      "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:last-child",
+      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band).",
+      "expect": {
+        "font-family": "contains:Anton",
+        "font-size": "16px",
+        "color": "#DC2626"
+      }
+    }
+  ],
+  "forbid": []
+}

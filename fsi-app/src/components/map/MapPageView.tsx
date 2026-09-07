@@ -393,6 +393,7 @@ export function MapPageView(props: MapPageViewProps) {
                     title={row.label}
                     meta={row.activeThemes || "—"}
                     endStat={{ label: row.band.label, value: formatNumber(row.count), band: row.band }}
+                    minHeight={44}
                   />
                 </div>
               ))}

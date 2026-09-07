@@ -10,6 +10,19 @@
  * labels and the callout is always the next obligation — full variant is
  * later-lane (detail-architecture) scope; this lane ships the row variant
  * the dashboard's lists use.
+ *
+ * Track (design audit B-row "the track green-to-next-dot finding",
+ * docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md milestonetimeline.json,
+ * dc.html #sys list-row example, line-anchored `height:2px;background:
+ * linear-gradient(90deg,#16A34A 0,#16A34A 58%,rgba(0,0,0,.12) 58%)`): 2px
+ * tall, green from the left edge up to the "next" dot's own position,
+ * rgba(0,0,0,.12) beyond it — an all-passed row (no "next") is green its
+ * full width, an all-ahead row (no "passed" or "next" reached yet — not
+ * reachable from the real classifier, kept as a safe fallback) stays
+ * fully rgba(0,0,0,.12). Position is computed against the SAME
+ * `justify-content: space-between` spacing the dots themselves use (this
+ * component's own layout choice, not the artboard's fixed pixel offsets —
+ * the audit's own notes log that as a legitimate, non-numeric divergence).
  */
 
 import type { TimelineEntry } from "@/types/resource";
@@ -39,6 +52,10 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
   }
 
   const classified = classifyTimelineEntries(list);
+  const nextIndex = classified.findIndex((c) => c.state === "next");
+  const allPassed = classified.every((c) => c.state === "passed");
+  const greenPercent =
+    nextIndex >= 0 ? (list.length > 1 ? (nextIndex / (list.length - 1)) * 100 : 0) : allPassed ? 100 : 0;
 
   return (
     <span
@@ -58,8 +75,8 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
           left: 4,
           right: 4,
           top: "50%",
-          height: 1,
-          background: "rgba(0,0,0,.12)",
+          height: 2,
+          background: `linear-gradient(90deg, var(--awareness) 0%, var(--awareness) ${greenPercent}%, rgba(0,0,0,.12) ${greenPercent}%)`,
           transform: "translateY(-50%)",
         }}
       />

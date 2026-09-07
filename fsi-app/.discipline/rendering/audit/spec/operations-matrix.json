@@ -1,0 +1,35 @@
+{
+  "part": "Operations region x dimension matrix (D1-D6)",
+  "mount": "ops-matrix",
+  "viewport": 1440,
+  "artboards": ["08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+  "notes": [
+    "FIXED, fix lane fix58-detail (2026-09-07): OperationsLedger.tsx's `MATRIX_DIMENSIONS` (feeding RegionDimensionMatrix's `dimensions` prop, ~line 356) was `= DIMENSIONS` already at the time this lane read the file — the retired `SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` derivation this note used to describe is gone from the product; the file's own DEFECT-FIX comment above `MATRIX_DIMENSIONS` (2026-09-07) records the same change. The MISMATCH this spec measured was the audit mount (`mounts.mjs`'s `ops-matrix` entry) still hardcoding the retired 5-item `SOURCED_DIMENSIONS` shape — a stale harness fixture, not a live product defect. The mount now reproduces the real `MATRIX_DIMENSIONS = DIMENSIONS` (all 6, unfiltered).",
+    "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) shows only 5 rows in its example markup, no Regulatory feasibility row — a self-contradiction against its own 'six dimensions' dek text. Operator ruling 3.3 is the binding, later statement over the artboard's own example: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — built against, per this dispatch's framing of the closed rulings.",
+    "`buildRegionGrid` (region-grid.mjs) computes `state: 'absent'` for every regulatory_feasibility cell (0 rows in regional_data_facts, always) and RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any `state === 'absent'` cell — the D1 row therefore renders with the Absence convention in every cell, never a fabricated count, never blank."
+  ],
+  "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+  "expect": {
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
+      "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row.",
+      "expect": {
+        "count": "6"
+      }
+    },
+    {
+      "name": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
+      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered.",
+      "expect": {
+        "text": "Regulatory feasibility"
+      }
+    }
+  ],
+  "forbid": []
+}
