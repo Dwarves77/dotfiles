@@ -34,6 +34,9 @@ import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-sm
 import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
 import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-section-index-smoke.mjs";
+// lane uiauth, 2026-09-06: mounts the real AuthFrame/AuthTabs/OnboardingStepper
+// shared chrome /login, /signup, /workspace/new and /onboarding all render.
+import { runSmoke as runAuthOnboardingSmoke } from "./smoke/auth-onboarding-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -76,7 +79,18 @@ async function measureUxOn(browser, html, width) {
 
 async function main() {
   const fixtures = buildFixtures();
-  const browser = await chromium.launch();
+  // PLAYWRIGHT_CHROMIUM_EXECUTABLE (optional): a container whose cached
+  // /opt/pw-browsers revision doesn't match the installed playwright
+  // package's expected chrome-headless-shell build (observed lane uiauth,
+  // 2026-09-06 — playwright 1.61.1 wants chromium_headless_shell-1228, the
+  // container only caches -1194) can point this at the full chromium binary
+  // instead. Unset in CI, which installs the matching revision itself —
+  // this branch is a no-op there.
+  const browser = await chromium.launch(
+    process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE
+      ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE }
+      : {}
+  );
   const failures = [];
   const newMobileFindings = [];
   let checks = 0;
@@ -134,6 +148,7 @@ async function main() {
     // lane UIADMIN2, 2026-09-07, ruling R9: mounts the real SettingsPage and proves the sticky
     // SectionIndex (S1..S5) it now uses in place of the retired second-level tab row.
     { name: "settings-section-index", run: runSettingsSectionIndexSmoke },
+    { name: "auth-onboarding", run: runAuthOnboardingSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

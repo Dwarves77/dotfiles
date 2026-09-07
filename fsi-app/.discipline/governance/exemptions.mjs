@@ -114,6 +114,21 @@ export const EXEMPTIONS = [
     by: 'wiring census 2026-08-11',
   },
   {
+    match: 'fsi-app/src/components/onboarding/',
+    kinds: ['writes'],
+    reason:
+      'Onboarding wizard writes to profiles.transport_mode_overrides/jurisdiction_overrides, ' +
+      'workspace_settings.sector_profile, and notification_preferences — the same per-user/per-workspace ' +
+      'preference rows the profile/settings exemptions above cover, not the intelligence corpus. ' +
+      'Newly gapped by lane uiauth 2026-09-06: the pre-existing OnboardingWizard.tsx was accidentally ' +
+      'COVERED under remediation-discipline only because searchParams.delete("linkedin") matched that ' +
+      'skill ops regex /\\.delete\\s*\\(/ — a false-positive URLSearchParams call, not an archive/delete ' +
+      'row mutation. Rewriting the wizard for the UI system handoff removed that call, exposing the file ' +
+      'as genuinely ungoverned rather than falsely governed. This entry is the honest fix (exempt, not ' +
+      'reintroduce a coincidental regex match).',
+    by: 'lane uiauth 2026-09-06',
+  },
+  {
     match: 'fsi-app/src/lib/telemetry/',
     kinds: ['writes'],
     reason: 'Error-capture telemetry — deliberately fail-open (capture-error.ts header contract); rows are diagnostics, never corpus data.',

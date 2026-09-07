@@ -5,17 +5,23 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Mail, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { formatLocaleDate } from "@/lib/format";
+import { AuthFrame } from "@/components/auth/AuthFrame";
+import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 
 // NoWorkspaceLanding — the "you have no workspace yet" page that renders
-// when an authenticated user has no org_memberships row.
+// when an authenticated user has no org_memberships row. UI system handoff
+// 2026-09-06 (README screen 17 "Onboarding"): this is step 1 ("Workspace")
+// of the 4-step onboarding stepper shared with /onboarding — no separate
+// artboard exists for this step's own panel content, so AuthFrame +
+// OnboardingStepper (both artboard-specified) wrap the pre-existing
+// three-CTA content, whose functionality is unchanged.
 //
 // Three CTAs:
 //   1. "Pending invitations" panel (renders if /api/invitations/mine returns rows)
 //   2. "Accept by token" — paste an invitation URL or token
 //   3. "Create your own workspace" — POST /api/orgs and redirect to /
 //
-// Chrome is intentionally minimal per dispatch decision I.3 — operator-functional,
-// not visually polished. Workstream B (Multi-Tenant Foundation) — 2026-05-15.
+// Workstream B (Multi-Tenant Foundation) — 2026-05-15.
 
 interface PendingInvitation {
   id: string;
@@ -127,26 +133,25 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
   };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-12">
-        <p
-          className="text-xs uppercase tracking-wide mb-2"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          Caro&apos;s Ledge · Setup
-        </p>
+    <AuthFrame>
+      <div style={{ width: 480, display: "flex", flexDirection: "column", gap: 18 }}>
+        <OnboardingStepper current={1} />
         <h1
-          className="text-2xl font-bold"
-          style={{ color: "var(--color-text-primary)" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 24,
+            lineHeight: 1.1,
+            color: "var(--ink)",
+            margin: 0,
+          }}
         >
-          You don&apos;t have a workspace yet
+          Set up your workspace
         </h1>
         <p
-          className="text-sm mt-2"
-          style={{ color: "var(--color-text-secondary)" }}
+          className="text-sm"
+          style={{ color: "var(--color-text-secondary)", marginTop: -8 }}
         >
           Signed in as {userEmail}. Either accept an invitation from your team,
           or create your own workspace.
@@ -275,7 +280,7 @@ export function NoWorkspaceLanding({ userEmail }: Props) {
           </form>
         </Section>
       </div>
-    </div>
+    </AuthFrame>
   );
 }
 

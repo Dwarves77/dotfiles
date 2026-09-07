@@ -1,37 +1,48 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
-import { ALL_SECTORS } from "@/lib/constants";
+import { ALL_SECTORS, MODES, JURISDICTIONS } from "@/lib/constants";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Button } from "@/components/ui/Button";
-import { NotificationPreferences, DEFAULT_NOTIFICATION_PREFS } from "@/components/profile/NotificationPreferences";
+import { BandTile } from "@/components/ui/BandTile";
+import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
+import type { WorkspaceAggregates } from "@/lib/supabase-server";
+import { AuthFrame } from "@/components/auth/AuthFrame";
+import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
 import {
-  ArrowRight,
-  ArrowLeft,
-  Check,
-  Linkedin,
-  Sparkles,
-  AlertCircle,
-  Star,
-} from "lucide-react";
+  NotificationPreferences,
+  DEFAULT_NOTIFICATION_PREFS,
+} from "@/components/profile/NotificationPreferences";
+import { Check, AlertCircle, Star } from "lucide-react";
 
 // ───────────────────────────────────────────────────────────────────────────
-// OnboardingWizard
-// 4-step full-page wizard. Lives at /onboarding (NOT a modal) so users can
-// return to re-run setup any time.
+// OnboardingWizard — UI system handoff 2026-09-06, README screen 17
+// "Onboarding": three steps that produce the three things every page is
+// scoped by — workspace (done before this component mounts, at
+// /workspace/new), modes + jurisdictions, sectors — plus a fourth
+// "Briefing" step (the artboard's own stepper shows four pills: Workspace
+// checked, Modes & jurisdictions active, Sectors, Briefing). Assembled from
+// AuthFrame + OnboardingStepper + BandTile (the band scale "taught here,
+// once", per the artboard note) + the pre-existing NotificationPreferences.
 //
-// Step 1 — Choose path
-// Step 2 — Identity (fresh path only)
-// Step 3 — Sector profile (SectorSelector reused, highlighted niches up top)
-// Step 4 — Notifications (NotificationPreferences reused)
-// Done   — confirmation + "Browse the community" CTA → /community
+// This REPLACES the pre-existing 5-step wizard (choose path: LinkedIn vs
+// fresh -> identity form -> sectors -> notifications -> done). Neither
+// "choose path" nor "identity" exist in the artboard's 4-step design, and
+// the artboard wins over the prior implementation (dispatch instruction).
+// Full-name capture already lives on /profile (Personal tab); dropping it
+// here does not remove the only place a user can set it.
+//
+// DORMANCY FLAG (CLAUDE.md rule 13 — decision-ready, not silently dropped):
+// the LinkedIn import path this replaces (src/app/api/auth/linkedin/start
+// and /callback) has no other UI entry point in the app as of this lane.
+// Those two API routes are now unreferenced from any page. They are OUTSIDE
+// this lane's write set (src/app/api/auth/linkedin/**), so this lane cannot
+// delete them; logged in DEVIATION-LOG.md as a decision-ready follow-up
+// (exact files named) rather than left as an unflagged dormant control.
 // ───────────────────────────────────────────────────────────────────────────
 
-// The 6 highlighted niches (per design preview & project context). These are
-// the specialized high-value cargo sectors that ride at the top of the sector
-// picker. The IDs match the entries in ALL_SECTORS.
 const HIGHLIGHTED_SECTOR_IDS = [
   "fine-art",
   "live-events",
@@ -41,245 +52,143 @@ const HIGHLIGHTED_SECTOR_IDS = [
   "humanitarian",
 ];
 
-const REGION_OPTIONS: Array<{ id: string; label: string }> = [
-  { id: "americas", label: "Americas" },
-  { id: "europe", label: "Europe" },
-  { id: "asia-pacific", label: "Asia-Pacific" },
-  { id: "middle-east", label: "Middle East" },
-  { id: "africa", label: "Africa" },
-  { id: "global", label: "Global / multi-region" },
-];
-
-type Step = 1 | 2 | 3 | 4 | 5;
+type Step = 2 | 3 | 4 | 5;
 
 interface Props {
   userId: string;
   userEmail: string;
   orgId: string;
-  // True when LINKEDIN_CLIENT_ID is provisioned for the current deployment.
-  // When false, the wizard renders the LinkedIn card disabled with a
-  // "not configured for this deployment" affordance rather than wiring the
-  // start endpoint (which would itself short-circuit to ?linkedin=error).
-  linkedinEnabled?: boolean;
+  /** Workspace-wide band counts (migration 068, same accessor the
+   *  dashboard reads) — the step-2 preview panel shows these real counts
+   *  rather than a live recompute against the in-progress mode/jurisdiction
+   *  selection: no accessor exists to filter aggregates by an unsaved
+   *  selection, and fabricating numbers is forbidden (CLAUDE.md rule 2).
+   *  Logged in DEVIATION-LOG.md. */
+  aggregates: WorkspaceAggregates;
 }
 
-// Maps the failure-reason keys emitted by /api/auth/linkedin/callback to
-// user-facing toast copy. Unknown reasons fall through to a generic message.
-const LINKEDIN_ERROR_COPY: Record<string, string> = {
-  "not-configured": "LinkedIn import is not configured for this deployment.",
-  "not-authenticated": "Sign in first, then try LinkedIn import again.",
-  "state-mismatch": "LinkedIn import expired or the link was tampered with. Please try again.",
-  "missing-code": "LinkedIn didn't return an authorization code. Please try again.",
-  "provider-denied": "LinkedIn declined the request, or you cancelled the prompt.",
-  "token-exchange-failed": "Couldn't complete the LinkedIn handshake. Please try again.",
-  "profile-fetch-failed": "Couldn't read your LinkedIn profile. Please try again.",
-  "profile-upsert-failed": "We imported the LinkedIn data but couldn't save it. Please try again.",
-};
-
-function linkedinErrorMessage(reason: string | null): string {
-  if (!reason) return "LinkedIn import failed. Please try again.";
-  return LINKEDIN_ERROR_COPY[reason] ?? "LinkedIn import failed. Please try again.";
-}
-
-export function OnboardingWizard({ userId, userEmail, orgId, linkedinEnabled = false }: Props) {
+export function OnboardingWizard({ userId, userEmail, orgId, aggregates }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const supabase = createSupabaseBrowserClient();
   const setSectorProfile = useWorkspaceStore((s) => s.setSectorProfile);
 
-  const [step, setStep] = useState<Step>(1);
-  const [path, setPath] = useState<"fresh" | "linkedin" | null>(null);
+  const [step, setStep] = useState<Step>(2);
+  const [loadingProfile, setLoadingProfile] = useState(true);
 
-  // Step 2 — Identity
-  const [name, setName] = useState("");
-  const [pronouns, setPronouns] = useState("");
-  const [role, setRole] = useState("");
-  const [employer, setEmployer] = useState("");
-  const [region, setRegion] = useState("global");
-  const [identityError, setIdentityError] = useState<string | null>(null);
-  const [savingIdentity, setSavingIdentity] = useState(false);
-
-  // LinkedIn round-trip toast (non-modal). Set by the ?linkedin=error&reason=
-  // detector below and dismissed automatically after a short window.
-  const [linkedinToast, setLinkedinToast] = useState<{
-    tone: "success" | "error";
-    message: string;
-  } | null>(null);
+  // Step 2 — Modes & jurisdictions
+  const [modes, setModes] = useState<string[]>([]);
+  const [jurisdictions, setJurisdictions] = useState<string[]>([]);
+  const [showAllJurisdictions, setShowAllJurisdictions] = useState(false);
+  const [savingScope, setSavingScope] = useState(false);
+  const [scopeError, setScopeError] = useState<string | null>(null);
 
   // Step 3 — Sectors
   const [sectors, setSectors] = useState<string[]>([]);
   const [savingSectors, setSavingSectors] = useState(false);
   const [sectorError, setSectorError] = useState<string | null>(null);
 
-  // Sort sector list with highlighted up top, in the order specified.
+  // Prefill from the existing profile row (mirrors the pattern the prior
+  // wizard used for its own identity prefill — a single-row read by primary
+  // key, not a bulk/unbounded query).
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase
+        .from("profiles")
+        .select("jurisdiction_overrides, transport_mode_overrides")
+        .eq("id", userId)
+        .maybeSingle();
+      if (cancelled || !data) {
+        setLoadingProfile(false);
+        return;
+      }
+      if (Array.isArray(data.transport_mode_overrides) && data.transport_mode_overrides.length > 0) {
+        setModes(data.transport_mode_overrides);
+      }
+      if (Array.isArray(data.jurisdiction_overrides) && data.jurisdiction_overrides.length > 0) {
+        setJurisdictions(data.jurisdiction_overrides);
+      }
+      setLoadingProfile(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [supabase, userId]);
+
   const orderedSectors = useMemo(() => {
     const highlighted = HIGHLIGHTED_SECTOR_IDS.map((id) =>
       ALL_SECTORS.find((s) => s.id === id)
     ).filter(Boolean) as typeof ALL_SECTORS;
-    const rest = ALL_SECTORS.filter(
-      (s) => !HIGHLIGHTED_SECTOR_IDS.includes(s.id)
-    );
+    const rest = ALL_SECTORS.filter((s) => !HIGHLIGHTED_SECTOR_IDS.includes(s.id));
     return { highlighted, rest };
   }, []);
 
+  const toggleMode = (id: string) =>
+    setModes((prev) => (prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]));
+
+  const toggleJurisdiction = (id: string) =>
+    setJurisdictions((prev) => (prev.includes(id) ? prev.filter((j) => j !== id) : [...prev, id]));
+
   const toggleSector = (id: string) =>
-    setSectors((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
-    );
+    setSectors((prev) => (prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]));
 
-  // LinkedIn round-trip handler. The callback route redirects back here with
-  // either ?linkedin=imported (success) or ?linkedin=error&reason=... On
-  // success we read the now-updated profile row and prefill the identity
-  // step so the user can review and continue. On failure we raise a non-
-  // modal toast and stay on step 1 so the user can retry or fall back to
-  // "Start fresh".
-  useEffect(() => {
-    const status = searchParams.get("linkedin");
-    if (!status) return;
-
-    // Strip the query params so a refresh does not re-fire the effect.
-    const cleaned = new URL(window.location.href);
-    cleaned.searchParams.delete("linkedin");
-    cleaned.searchParams.delete("reason");
-    window.history.replaceState(null, "", cleaned.toString());
-
-    if (status === "imported") {
-      setLinkedinToast({ tone: "success", message: "LinkedIn profile imported. Review your details and continue." });
-      setPath("linkedin");
-      (async () => {
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("full_name, headline, linkedin_url")
-          .eq("id", userId)
-          .maybeSingle();
-        if (error || !data) return;
-        if (typeof data.full_name === "string" && data.full_name.length > 0) {
-          setName(data.full_name);
-        }
-        if (typeof data.headline === "string" && data.headline.length > 0) {
-          setRole(data.headline);
-        }
-        setStep(2);
-      })();
-      return;
-    }
-
-    if (status === "error") {
-      const reason = searchParams.get("reason");
-      setLinkedinToast({ tone: "error", message: linkedinErrorMessage(reason) });
-    }
-  }, [searchParams, supabase, userId]);
-
-  // Auto-dismiss the LinkedIn toast after 6 seconds so it does not linger
-  // through subsequent wizard interaction.
-  useEffect(() => {
-    if (!linkedinToast) return;
-    const t = setTimeout(() => setLinkedinToast(null), 6000);
-    return () => clearTimeout(t);
-  }, [linkedinToast]);
-
-  // ── Persistence helpers ───────────────────────────────────────────────
-
-  // Migrated 2026-05-15 (migration 075 Phase 2): writes to `profiles`
-  // instead of `user_profiles`. Column renames applied. Phantom columns
-  // (pronouns, role, employer, work_email) the prior wizard wrote did
-  // not exist on user_profiles either; they are dropped from the writer.
-  // Region remains a wizard input but is not persisted (no destination
-  // column on profiles; collected for future use).
-  const persistIdentity = async () => {
-    setIdentityError(null);
-    if (!name.trim()) {
-      setIdentityError("Please add your name so teammates can find you.");
-      return false;
-    }
-    setSavingIdentity(true);
+  // ── Persistence — writes to `profiles` (jurisdiction_overrides,
+  // transport_mode_overrides). No existing writer touches these two
+  // columns as of this lane (only UserProfilePage.tsx reads them, as a
+  // read-only summary that points at Settings) — this is the first write
+  // path for them, using the same simple update-by-id pattern the prior
+  // wizard already used for `profiles.full_name`. ──────────────────────
+  const persistScope = async () => {
+    setScopeError(null);
+    setSavingScope(true);
     const { error } = await supabase
       .from("profiles")
-      .update(
-        {
-          full_name: name.trim(),
-          updated_at: new Date().toISOString(),
-        }
-      )
+      .update({
+        transport_mode_overrides: modes,
+        jurisdiction_overrides: jurisdictions,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", userId);
-    setSavingIdentity(false);
+    setSavingScope(false);
     if (error) {
-      setIdentityError(error.message);
+      setScopeError(error.message);
       return false;
     }
     return true;
   };
 
-  // Writes the sector selection to `workspace_settings.sector_profile` for the
-  // current workspace. This is the workspace-anchored destination the dashboard
-  // (resolveServerBootstrap → getAppData) actually reads to filter intelligence.
-  //
-  // Prior to 2026-05-18 this writer targeted `profiles.sector_overrides`
-  // (per-user override layer). That destination was wrong: the per-user → per-
-  // workspace composition layer described at lib/api/server-bootstrap.ts:42-46
-  // is not wired into the dashboard query path, so per-user writes were
-  // functionally inert. Founder-of-fresh-org would pick sectors, see no error,
-  // and the dashboard would render against an empty workspace_settings.
-  // sector_profile. Fix per docs/sprint-1/onboarding-audit-2026-05-18.md
-  // Section D (REC-OBS-O-2). The wizard now writes the workspace-anchored
-  // destination directly; the orphaned components/onboarding/SectorOnboarding.tsx
-  // was retired in the same change.
-  //
-  // /onboarding's server gate (app/onboarding/page.tsx) bounces users with no
-  // workspace to /workspace/new, so orgId is always present here.
+  // Unchanged from the prior wizard — writes the workspace-anchored
+  // destination the dashboard actually reads (see original comment, kept).
   const persistSectors = async () => {
     setSectorError(null);
     setSavingSectors(true);
     const { error } = await supabase
       .from("workspace_settings")
-      .update(
-        {
-          sector_profile: sectors,
-        }
-      )
+      .update({ sector_profile: sectors })
       .eq("org_id", orgId);
     setSavingSectors(false);
     if (error) {
       setSectorError(error.message);
       return false;
     }
-    // Sync the client-side workspace store so any same-session UI reading
-    // sectorProfile (FilterBar, SectorSelector defaults, scoring) reflects the
-    // new selection without a full reload.
     setSectorProfile(sectors);
     return true;
   };
 
-  // First-time write of notification_preferences with the conservative
-  // defaults. NotificationPreferences component itself will manage subsequent
-  // edits via upsert; we seed the row up front so any pre-Phase-D triggers
-  // (e.g. invite emails) have something to read.
   const seedNotificationDefaults = async () => {
-    const { error } = await supabase
-      .from("notification_preferences")
-      .upsert(
-        {
-          user_id: userId,
-          ...DEFAULT_NOTIFICATION_PREFS,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id", ignoreDuplicates: true }
-      );
-    return !error;
+    await supabase.from("notification_preferences").upsert(
+      {
+        user_id: userId,
+        ...DEFAULT_NOTIFICATION_PREFS,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id", ignoreDuplicates: true }
+    );
   };
 
-  // ── Step transitions ─────────────────────────────────────────────────
-
   const goNext = async () => {
-    if (step === 1) {
-      // Both the "fresh" and "linkedin" (post-import) paths advance to the
-      // identity step. The linkedin path arrives here with prefilled state
-      // courtesy of the ?linkedin=imported effect above.
-      if (path === "fresh" || path === "linkedin") setStep(2);
-      return;
-    }
     if (step === 2) {
-      const ok = await persistIdentity();
+      const ok = await persistScope();
       if (ok) setStep(3);
       return;
     }
@@ -293,439 +202,215 @@ export function OnboardingWizard({ userId, userEmail, orgId, linkedinEnabled = f
     }
     if (step === 4) {
       setStep(5);
-      return;
     }
   };
 
   const goBack = () => {
-    if (step === 1) return;
+    if (step === 2) return;
     setStep((s) => (s - 1) as Step);
   };
 
-  // ── Render ────────────────────────────────────────────────────────────
+  const skip = () => router.push("/");
+
+  const stepperCurrent = step === 5 ? 4 : (step as 2 | 3 | 4);
+
+  if (step === 5) {
+    return <StepDone router={router} />;
+  }
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="mx-auto max-w-2xl px-4 sm:px-6 py-10">
-        {linkedinToast && (
-          <div
-            role="status"
-            aria-live="polite"
-            className="mb-4 flex items-start gap-2 rounded-md border px-3 py-2 text-xs"
-            style={{
-              borderColor:
-                linkedinToast.tone === "success"
-                  ? "var(--color-success-border, var(--color-border))"
-                  : "var(--color-danger-border, var(--color-border))",
-              backgroundColor: "var(--color-surface)",
-              color: "var(--color-text-primary)",
-            }}
-          >
-            {linkedinToast.tone === "success" ? (
-              <Check size={14} style={{ marginTop: 1 }} />
-            ) : (
-              <AlertCircle size={14} style={{ marginTop: 1 }} />
-            )}
-            <span style={{ flex: 1 }}>{linkedinToast.message}</span>
-            <button
-              type="button"
-              onClick={() => setLinkedinToast(null)}
-              aria-label="Dismiss"
-              className="text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Dismiss
-            </button>
-          </div>
+    <AuthFrame>
+      <div style={{ width: 520, display: "flex", flexDirection: "column", gap: 18 }}>
+        <OnboardingStepper current={stepperCurrent} />
+
+        {step === 2 && (
+          <StepModesJurisdictions
+            modes={modes}
+            jurisdictions={jurisdictions}
+            showAll={showAllJurisdictions}
+            onToggleMode={toggleMode}
+            onToggleJurisdiction={toggleJurisdiction}
+            onShowAll={() => setShowAllJurisdictions(true)}
+            aggregates={aggregates}
+            loading={loadingProfile}
+            error={scopeError}
+          />
         )}
 
-        <Header step={step} />
+        {step === 3 && (
+          <StepSectors
+            highlighted={orderedSectors.highlighted}
+            rest={orderedSectors.rest}
+            selected={sectors}
+            onToggle={toggleSector}
+            error={sectorError}
+          />
+        )}
 
-        <div className="mt-8">
-          {step === 1 && (
-            <StepChoosePath
-              path={path}
-              setPath={setPath}
-              linkedinEnabled={linkedinEnabled}
-            />
-          )}
+        {step === 4 && <StepBriefing userId={userId} />}
 
-          {step === 2 && (
-            <StepIdentity
-              userEmail={userEmail}
-              name={name}
-              pronouns={pronouns}
-              role={role}
-              employer={employer}
-              region={region}
-              setName={setName}
-              setPronouns={setPronouns}
-              setRole={setRole}
-              setEmployer={setEmployer}
-              setRegion={setRegion}
-              error={identityError}
-            />
-          )}
-
-          {step === 3 && (
-            <StepSectors
-              highlighted={orderedSectors.highlighted}
-              rest={orderedSectors.rest}
-              selected={sectors}
-              onToggle={toggleSector}
-              error={sectorError}
-            />
-          )}
-
-          {step === 4 && (
-            <StepNotifications userId={userId} />
-          )}
-
-          {step === 5 && <StepDone router={router} />}
-        </div>
-
-        {step < 5 && (
-          <div className="mt-8 flex items-center justify-between gap-3">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {step > 2 ? (
             <button
               type="button"
               onClick={goBack}
-              disabled={step === 1}
-              className="inline-flex items-center gap-1 text-sm disabled:opacity-30"
-              style={{ color: "var(--color-text-secondary)" }}
+              style={{ fontSize: "var(--fs-125)", fontWeight: 600, color: "var(--ink)", background: "none", border: "none", cursor: "pointer" }}
             >
-              <ArrowLeft size={12} /> Back
+              ← Back
             </button>
-
-            <div className="flex items-center gap-3">
-              {step === 4 && (
-                <p
-                  className="text-xs"
-                  style={{ color: "var(--color-text-muted)" }}
-                >
-                  You can change these any time from Settings.
-                </p>
-              )}
-              <Button
-                variant="primary"
-                onClick={goNext}
-                disabled={
-                  (step === 1 && path !== "fresh" && path !== "linkedin") ||
-                  (step === 2 && savingIdentity) ||
-                  (step === 3 && (savingSectors || sectors.length === 0))
-                }
-              >
-                {step === 4 ? "Finish" : "Continue"}
-                <ArrowRight size={14} />
-              </Button>
-            </div>
+          ) : (
+            <span />
+          )}
+          <div style={{ display: "flex", gap: 8 }}>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={skip}
+              style={{ padding: "8px 14px", fontSize: "var(--fs-125)", fontWeight: 600, whiteSpace: "nowrap" }}
+            >
+              Skip for now
+            </Button>
+            <Button
+              type="button"
+              variant="primary"
+              onClick={goNext}
+              disabled={
+                (step === 2 && (savingScope || modes.length === 0 || jurisdictions.length === 0)) ||
+                (step === 3 && (savingSectors || sectors.length === 0))
+              }
+              style={{ padding: "8px 14px", fontSize: "var(--fs-125)", fontWeight: 700, whiteSpace: "nowrap" }}
+            >
+              {step === 2 && "Continue → Sectors"}
+              {step === 3 && "Continue → Briefing"}
+              {step === 4 && "Finish"}
+            </Button>
           </div>
-        )}
+        </div>
       </div>
-    </div>
+    </AuthFrame>
   );
 }
 
-// ── Header / progress ─────────────────────────────────────────────────────
+// ── Step 2 — Modes & jurisdictions ─────────────────────────────────────────
 
-function Header({ step }: { step: Step }) {
-  const total = 4;
-  const current = Math.min(step, total);
-  return (
-    <div>
-      <p
-        className="text-xs uppercase tracking-wide mb-2"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        Welcome to Caro&apos;s Ledge · Step {current} of {total}
-      </p>
-      <h1
-        className="text-2xl font-bold"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        {step === 1 && "Let's get you set up"}
-        {step === 2 && "Tell us who you are"}
-        {step === 3 && "Which sectors do you operate in?"}
-        {step === 4 && "How should we notify you?"}
-        {step === 5 && "You're set"}
-      </h1>
-      <div
-        className="mt-4 grid grid-cols-4 gap-1.5"
-        aria-hidden="true"
-      >
-        {[1, 2, 3, 4].map((n) => (
-          <div
-            key={n}
-            className="h-1 rounded-full"
-            style={{
-              backgroundColor:
-                n <= current
-                  ? "var(--color-primary)"
-                  : "var(--color-border-subtle)",
-            }}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ── Step 1 — Choose path ──────────────────────────────────────────────────
-
-function StepChoosePath({
-  path,
-  setPath,
-  linkedinEnabled,
+function StepModesJurisdictions({
+  modes,
+  jurisdictions,
+  showAll,
+  onToggleMode,
+  onToggleJurisdiction,
+  onShowAll,
+  aggregates,
+  loading,
+  error,
 }: {
-  path: "fresh" | "linkedin" | null;
-  setPath: (p: "fresh" | "linkedin" | null) => void;
-  linkedinEnabled: boolean;
-}) {
-  const startLinkedin = () => {
-    // Navigate via full document load so the server-issued state cookie is
-    // applied before the 302 hop to LinkedIn. router.push would not work
-    // here because the start endpoint Set-Cookie + redirect chain must be
-    // followed by the browser, not by the Next router.
-    window.location.href = "/api/auth/linkedin/start";
-  };
-
-  return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      {/* LinkedIn — live when LINKEDIN_CLIENT_ID is provisioned, disabled
-          with explanatory copy when the deployment is unconfigured. */}
-      <button
-        type="button"
-        onClick={linkedinEnabled ? startLinkedin : undefined}
-        disabled={!linkedinEnabled}
-        aria-disabled={!linkedinEnabled}
-        className={
-          "rounded-lg border p-5 text-left transition-colors " +
-          (linkedinEnabled
-            ? "cursor-pointer"
-            : "cursor-not-allowed")
-        }
-        style={{
-          borderColor:
-            linkedinEnabled && path === "linkedin"
-              ? "var(--color-active-border)"
-              : "var(--color-border)",
-          backgroundColor:
-            linkedinEnabled && path === "linkedin"
-              ? "var(--color-active-bg)"
-              : "var(--color-surface)",
-          opacity: linkedinEnabled ? 1 : 0.7,
-        }}
-      >
-        <Linkedin
-          size={22}
-          style={{
-            color: linkedinEnabled
-              ? "var(--color-primary)"
-              : "var(--color-text-secondary)",
-          }}
-        />
-        <h3
-          className="text-base font-semibold mt-3"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Import from LinkedIn
-        </h3>
-        <p
-          className="text-xs mt-1"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          {linkedinEnabled
-            ? "Pre-fill your name, role, and employer from your LinkedIn profile."
-            : "LinkedIn import not configured for this deployment."}
-        </p>
-        <span
-          className="inline-flex items-center gap-1 text-xs font-medium mt-4"
-          style={{
-            color: linkedinEnabled
-              ? "var(--color-primary)"
-              : "var(--color-text-muted)",
-          }}
-        >
-          {linkedinEnabled ? (
-            <>
-              Continue with LinkedIn <ArrowRight size={12} />
-            </>
-          ) : (
-            <>Unavailable</>
-          )}
-        </span>
-      </button>
-
-      {/* Start fresh */}
-      <button
-        type="button"
-        onClick={() => setPath("fresh")}
-        className="rounded-lg border p-5 text-left cursor-pointer transition-colors"
-        style={{
-          borderColor:
-            path === "fresh"
-              ? "var(--color-active-border)"
-              : "var(--color-border)",
-          backgroundColor:
-            path === "fresh"
-              ? "var(--color-active-bg)"
-              : "var(--color-surface)",
-        }}
-      >
-        <Sparkles
-          size={22}
-          style={{ color: "var(--color-primary)" }}
-        />
-        <h3
-          className="text-base font-semibold mt-3"
-          style={{ color: "var(--color-text-primary)" }}
-        >
-          Start fresh
-        </h3>
-        <p
-          className="text-xs mt-1"
-          style={{ color: "var(--color-text-secondary)" }}
-        >
-          Fill in a few details, pick the sectors you watch, and we&apos;ll
-          tailor your dashboard from day one.
-        </p>
-        <span
-          className="inline-flex items-center gap-1 text-xs font-medium mt-4"
-          style={{
-            color:
-              path === "fresh"
-                ? "var(--color-primary)"
-                : "var(--color-text-secondary)",
-          }}
-        >
-          {path === "fresh" ? (
-            <>
-              <Check size={12} /> Selected
-            </>
-          ) : (
-            <>
-              Use this path <ArrowRight size={12} />
-            </>
-          )}
-        </span>
-      </button>
-    </div>
-  );
-}
-
-// ── Step 2 — Identity ─────────────────────────────────────────────────────
-
-function StepIdentity(props: {
-  userEmail: string;
-  name: string;
-  pronouns: string;
-  role: string;
-  employer: string;
-  region: string;
-  setName: (v: string) => void;
-  setPronouns: (v: string) => void;
-  setRole: (v: string) => void;
-  setEmployer: (v: string) => void;
-  setRegion: (v: string) => void;
+  modes: string[];
+  jurisdictions: string[];
+  showAll: boolean;
+  onToggleMode: (id: string) => void;
+  onToggleJurisdiction: (id: string) => void;
+  onShowAll: () => void;
+  aggregates: WorkspaceAggregates;
+  loading: boolean;
   error: string | null;
 }) {
-  const {
-    userEmail,
-    name,
-    pronouns,
-    role,
-    employer,
-    region,
-    setName,
-    setPronouns,
-    setRole,
-    setEmployer,
-    setRegion,
-    error,
-  } = props;
+  const shown = showAll ? JURISDICTIONS : JURISDICTIONS.slice(0, 6);
+  const remaining = JURISDICTIONS.length - shown.length;
 
   return (
-    <div className="space-y-4">
-      <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        Visible to your workspace. You can edit any of this later from your
-        Profile.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 24,
+            lineHeight: 1.1,
+            color: "var(--ink)",
+            margin: 0,
+          }}
+        >
+          Where do you move freight?
+        </h1>
+        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5, maxWidth: "62ch" }}>
+          This scopes every count, tile and row you will see. Change it any
+          time in Account → Jurisdictions.
+        </p>
+      </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Field label="Full name *">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-            style={fieldStyle}
-            placeholder="Your name"
-            required
-          />
-        </Field>
-        <Field label="Pronouns">
-          <input
-            type="text"
-            value={pronouns}
-            onChange={(e) => setPronouns(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-            style={fieldStyle}
-            placeholder="she / her"
-          />
-        </Field>
-        <Field label="Role / title">
-          <input
-            type="text"
-            value={role}
-            onChange={(e) => setRole(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-            style={fieldStyle}
-            placeholder="Head of Sustainability"
-          />
-        </Field>
-        <Field label="Employer">
-          <input
-            type="text"
-            value={employer}
-            onChange={(e) => setEmployer(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-            style={fieldStyle}
-            placeholder="Company or organization"
-          />
-        </Field>
-        <Field label="Primary region">
-          <select
-            value={region}
-            onChange={(e) => setRegion(e.target.value)}
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none"
-            style={fieldStyle}
-          >
-            {REGION_OPTIONS.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.label}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Work email">
-          <input
-            type="email"
-            value={userEmail}
-            readOnly
-            disabled
-            className="w-full px-3 py-2 text-sm rounded-md border outline-none cursor-not-allowed"
+      <div>
+        <SectionHeader>Modes</SectionHeader>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+          {MODES.map((m) => (
+            <ChoiceChip key={m.id} label={m.label} selected={modes.includes(m.id)} onToggle={() => onToggleMode(m.id)} />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <SectionHeader>Home jurisdictions · {jurisdictions.length} selected</SectionHeader>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
+          {shown.map((j) => (
+            <ChoiceChip
+              key={j.id}
+              label={j.label}
+              selected={jurisdictions.includes(j.id)}
+              onToggle={() => onToggleJurisdiction(j.id)}
+            />
+          ))}
+        </div>
+        {!showAll && remaining > 0 && (
+          <button
+            type="button"
+            onClick={onShowAll}
             style={{
-              ...fieldStyle,
-              backgroundColor: "var(--color-surface-overlay)",
-              color: "var(--color-text-muted)",
+              fontSize: "var(--fs-12)",
+              fontWeight: 600,
+              color: "var(--ink)",
+              background: "none",
+              border: "none",
+              textDecoration: "underline",
+              cursor: "pointer",
+              marginTop: 8,
+              padding: 0,
             }}
-          />
-        </Field>
+          >
+            + {remaining} more jurisdictions
+          </button>
+        )}
+      </div>
+
+      <div
+        style={{
+          background: "var(--page)",
+          border: "1px solid var(--line-1)",
+          borderRadius: 8,
+          padding: "12px 14px",
+        }}
+      >
+        <div
+          style={{
+            fontSize: 10,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 700,
+            marginBottom: 8,
+          }}
+        >
+          Preview · your workspace today
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+          {BAND_ORDER.map((band) => (
+            <BandTile
+              key={band.key}
+              band={band}
+              count={aggregates.byPriority[band.priority]}
+              loading={loading}
+            />
+          ))}
+        </div>
       </div>
 
       {error && <ErrorBanner message={error} />}
@@ -733,7 +418,45 @@ function StepIdentity(props: {
   );
 }
 
-// ── Step 3 — Sectors ──────────────────────────────────────────────────────
+function ChoiceChip({ label, selected, onToggle }: { label: string; selected: boolean; onToggle: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-pressed={selected}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: "8px 10px",
+        minHeight: 44,
+        border: `1px solid ${selected ? "var(--brand)" : "rgba(0,0,0,.15)"}`,
+        borderRadius: "var(--radius-control)",
+        fontSize: "var(--fs-125)",
+        background: selected ? "var(--tag)" : "var(--card)",
+        cursor: "pointer",
+        textAlign: "left",
+        color: "var(--ink)",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          flex: "none",
+          width: 13,
+          height: 13,
+          border: `1.5px solid ${selected ? "var(--brand)" : "rgba(0,0,0,.3)"}`,
+          borderRadius: 3,
+          background: selected ? "var(--brand)" : "var(--card)",
+          boxSizing: "border-box",
+        }}
+      />
+      {label}
+    </button>
+  );
+}
+
+// ── Step 3 — Sectors ────────────────────────────────────────────────────────
 
 function StepSectors({
   highlighted,
@@ -749,51 +472,50 @@ function StepSectors({
   error: string | null;
 }) {
   return (
-    <div className="space-y-4">
-      <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        Pick all that apply. We use these to weight regulatory urgency, filter
-        feeds, and translate intelligence into your context. You can change
-        them any time.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 24,
+            lineHeight: 1.1,
+            color: "var(--ink)",
+            margin: 0,
+          }}
+        >
+          Which sectors do you watch?
+        </h1>
+        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5 }}>
+          Pick all that apply. We use these to weight regulatory urgency,
+          filter feeds, and translate intelligence into your context. You
+          can change them any time.
+        </p>
+      </div>
 
       <div>
         <SectionHeader>
-          <Star size={11} className="inline-block mr-1" />
+          <Star size={11} style={{ display: "inline-block", marginRight: 4 }} />
           Highlighted niches
         </SectionHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
           {highlighted.map((s) => (
-            <SectorPill
-              key={s.id}
-              id={s.id}
-              label={s.label}
-              selected={selected.includes(s.id)}
-              onToggle={() => onToggle(s.id)}
-              highlighted
-            />
+            <SectorPill key={s.id} label={s.label} selected={selected.includes(s.id)} onToggle={() => onToggle(s.id)} highlighted />
           ))}
         </div>
       </div>
 
-      <div>
+      <div style={{ maxHeight: 220, overflowY: "auto" }}>
         <SectionHeader>All sectors</SectionHeader>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 8 }}>
           {rest.map((s) => (
-            <SectorPill
-              key={s.id}
-              id={s.id}
-              label={s.label}
-              selected={selected.includes(s.id)}
-              onToggle={() => onToggle(s.id)}
-            />
+            <SectorPill key={s.id} label={s.label} selected={selected.includes(s.id)} onToggle={() => onToggle(s.id)} />
           ))}
         </div>
       </div>
 
-      <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+      <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-3)" }}>
         {selected.length === 0
           ? "Pick at least one sector to continue."
           : `${selected.length} sector${selected.length !== 1 ? "s" : ""} selected.`}
@@ -810,7 +532,6 @@ function SectorPill({
   onToggle,
   highlighted,
 }: {
-  id: string;
   label: string;
   selected: boolean;
   onToggle: () => void;
@@ -821,141 +542,137 @@ function SectorPill({
       type="button"
       onClick={onToggle}
       aria-pressed={selected}
-      className="flex items-center gap-2.5 px-3 py-2 rounded-md border text-left text-sm cursor-pointer transition-colors"
       style={{
-        borderColor: selected
-          ? "var(--color-active-border)"
-          : "var(--color-border)",
-        backgroundColor: selected
-          ? "var(--color-active-bg)"
-          : "var(--color-surface)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        padding: "8px 10px",
+        minHeight: 44,
+        borderRadius: "var(--radius-control)",
+        border: `1px solid ${selected ? "var(--brand)" : "rgba(0,0,0,.15)"}`,
+        background: selected ? "var(--tag)" : "var(--card)",
+        textAlign: "left",
+        fontSize: "var(--fs-125)",
+        cursor: "pointer",
         fontWeight: selected ? 600 : 400,
+        color: "var(--ink)",
       }}
     >
       <span
-        className="shrink-0 w-4 h-4 rounded border flex items-center justify-center"
+        aria-hidden="true"
         style={{
-          borderColor: selected
-            ? "var(--color-primary)"
-            : "var(--color-border-strong, var(--color-border))",
-          backgroundColor: selected ? "var(--color-primary)" : "transparent",
+          flex: "none",
+          width: 16,
+          height: 16,
+          borderRadius: 4,
+          border: `1px solid ${selected ? "var(--brand)" : "rgba(0,0,0,.25)"}`,
+          background: selected ? "var(--brand)" : "transparent",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
         }}
       >
         {selected && <Check size={10} color="white" />}
       </span>
-      <span style={{ color: "var(--color-text-primary)" }}>
-        {highlighted && (
-          <Star
-            size={9}
-            className="inline-block mr-1"
-            style={{ color: "var(--color-primary)" }}
-          />
-        )}
-        {label}
-      </span>
+      {highlighted && <Star size={9} style={{ color: "var(--brand)" }} />}
+      {label}
     </button>
   );
 }
 
-// ── Step 4 — Notifications ────────────────────────────────────────────────
+// ── Step 4 — Briefing ────────────────────────────────────────────────────────
 
-function StepNotifications({ userId }: { userId: string }) {
+function StepBriefing({ userId }: { userId: string }) {
   return (
-    <div className="space-y-4">
-      <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        We&apos;ve started you off with a conservative set of defaults. Higher-
-        volume notifications are off until you opt in.
-      </p>
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      <div>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 24,
+            lineHeight: 1.1,
+            color: "var(--ink)",
+            margin: 0,
+          }}
+        >
+          How should we brief you?
+        </h1>
+        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.5 }}>
+          We&apos;ve started you off with a conservative set of defaults.
+          Higher-volume notifications are off until you opt in. You can
+          change these any time from Settings.
+        </p>
+      </div>
       <NotificationPreferences userId={userId} compact />
     </div>
   );
 }
 
-// ── Step 5 — Done ─────────────────────────────────────────────────────────
+// ── Step 5 — Done ────────────────────────────────────────────────────────────
 
-function StepDone({
-  router,
-}: {
-  router: ReturnType<typeof useRouter>;
-}) {
+function StepDone({ router }: { router: ReturnType<typeof useRouter> }) {
   return (
-    <div className="space-y-5 text-center">
-      <div
-        className="mx-auto w-12 h-12 rounded-full flex items-center justify-center"
-        style={{
-          backgroundColor: "var(--color-active-bg)",
-          color: "var(--color-primary)",
-        }}
-      >
-        <Check size={22} />
+    <AuthFrame>
+      <div style={{ width: 420, display: "flex", flexDirection: "column", alignItems: "center", gap: 14, textAlign: "center" }}>
+        <div
+          style={{
+            width: 44,
+            height: 44,
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "var(--accent-bg)",
+            color: "var(--brand)",
+          }}
+        >
+          <Check size={22} />
+        </div>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 24,
+            color: "var(--ink)",
+            margin: 0,
+          }}
+        >
+          You&apos;re set up
+        </h1>
+        <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", lineHeight: 1.5 }}>
+          Your dashboard is filtered against your modes, jurisdictions and
+          sector profile, and your briefing is conservative by default. You
+          can revisit any of this from Account or Settings any time.
+        </p>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center" }}>
+          <Button variant="primary" onClick={() => router.push("/")} style={{ padding: "10px 16px", fontSize: "var(--fs-125)", fontWeight: 700 }}>
+            Go to dashboard
+          </Button>
+          <Button variant="secondary" onClick={() => router.push("/community")} style={{ padding: "10px 16px", fontSize: "var(--fs-125)", fontWeight: 600 }}>
+            Browse the community
+          </Button>
+        </div>
       </div>
-      <h2
-        className="text-xl font-semibold"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        You&apos;re set up.
-      </h2>
-      <p
-        className="text-sm max-w-md mx-auto"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        Your dashboard is filtered against your sector profile and your
-        notifications are conservative by default. You can revisit any of this
-        from your Profile or Settings any time.
-      </p>
-      <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
-        <Button variant="primary" onClick={() => router.push("/community")}>
-          Browse the community <ArrowRight size={14} />
-        </Button>
-        <Button variant="secondary" onClick={() => router.push("/")}>
-          Go to dashboard
-        </Button>
-      </div>
-    </div>
+    </AuthFrame>
   );
 }
 
 // ── Shared bits ────────────────────────────────────────────────────────────
 
-const fieldStyle: React.CSSProperties = {
-  borderColor: "var(--color-border)",
-  backgroundColor: "var(--color-surface)",
-  color: "var(--color-text-primary)",
-};
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block">
-      <span
-        className="block text-[10px] font-semibold uppercase mb-1.5"
-        style={{
-          letterSpacing: "0.12em",
-          color: "var(--color-text-muted)",
-        }}
-      >
-        {label}
-      </span>
-      {children}
-    </label>
-  );
-}
-
 function SectionHeader({ children }: { children: React.ReactNode }) {
   return (
     <h3
-      className="text-[10px] font-semibold uppercase mt-4 mb-2"
       style={{
-        letterSpacing: "0.14em",
-        color: "var(--color-text-muted)",
+        fontSize: 10,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        color: "var(--ink-3)",
+        fontWeight: 700,
+        marginBottom: 6,
+        marginTop: 0,
       }}
     >
       {children}
@@ -966,11 +683,16 @@ function SectionHeader({ children }: { children: React.ReactNode }) {
 function ErrorBanner({ message }: { message: string }) {
   return (
     <div
-      className="flex items-center gap-2 p-3 rounded-md text-sm"
       style={{
-        backgroundColor: "rgba(220, 38, 38, 0.06)",
-        border: "1px solid rgba(220, 38, 38, 0.15)",
-        color: "var(--color-error)",
+        display: "flex",
+        alignItems: "center",
+        gap: 8,
+        padding: 10,
+        borderRadius: "var(--radius-control)",
+        background: "var(--immediate-tint)",
+        border: "1px solid rgba(220,38,38,.2)",
+        color: "var(--immediate)",
+        fontSize: "var(--fs-125)",
       }}
     >
       <AlertCircle size={14} />
@@ -978,6 +700,3 @@ function ErrorBanner({ message }: { message: string }) {
     </div>
   );
 }
-
-// Note: jurisdiction chip-toggle lives on /profile (UserProfilePage). The
-// wizard collects only a single primary region to keep the flow short.

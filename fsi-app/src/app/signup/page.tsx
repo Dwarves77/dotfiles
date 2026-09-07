@@ -1,29 +1,31 @@
 "use client";
 
+/**
+ * /signup — UI system handoff 2026-09-06, README screen 16. Same AuthFrame
+ * + tab strip as /login; the mock's single-column email/password form is
+ * kept as password + confirm-password since the app has no passwordless-
+ * only signup path and the mock's own inputs ("Work email" / "Password")
+ * are ambiguous about confirmation — the pre-existing page already asked
+ * for both and this preserves that validation rather than weakening it.
+ *
+ * Functionality unchanged from the pre-existing page: Supabase signUp,
+ * emailRedirectTo -> /auth/callback?next=<redirect || /onboarding>,
+ * same-origin-only redirect, already-signed-in guard, "check your email"
+ * state after submit.
+ */
+
 import { useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useRouter, useSearchParams } from "next/navigation";
-import { APP_NAME } from "@/lib/constants";
-import { UserPlus, AlertCircle, MailCheck, ArrowRight } from "lucide-react";
-
-// ───────────────────────────────────────────────────────────────────────────
-// /signup
-// Email + password signup. Phase C scope.
-// - No Google OAuth, no LinkedIn OAuth.
-// - LinkedIn import shown as a "Coming soon" stub on the onboarding wizard,
-//   not here.
-// - On submit, calls Supabase auth.signUp with emailRedirectTo pointing at
-//   /auth/callback?next=<redirect || /onboarding> so the verified user lands
-//   where the flow started. The `redirect` search param (threaded from /login,
-//   which the proxy stamps with the originally-requested path) makes the
-//   invited-user flow work end-to-end: /invitations/[token] → login → signup
-//   → verification email → /auth/callback → back to /invitations/[token]
-//   (Wave-α Track D d3). Only same-origin path-style values are honored —
-//   anything not starting with a single "/" falls back to /onboarding.
-// - "Check your email" state replaces the form after a successful signUp.
-// - Mid-session: if user is already authenticated, redirect to /login (which
-//   in turn will redirect signed-in users on through to /).
-// ───────────────────────────────────────────────────────────────────────────
+import { Button } from "@/components/ui/Button";
+import { AuthFrame } from "@/components/auth/AuthFrame";
+import {
+  AuthTabs,
+  AuthField,
+  AuthErrorBanner,
+  CheckEmailPanel,
+  AUTH_INPUT_STYLE,
+} from "@/components/auth/AuthPanel";
 
 /** Internal app paths only: must start with "/" and not "//" (protocol-relative). */
 function safeInternalPath(value: string | null): string | null {
@@ -104,75 +106,40 @@ export default function SignupPage() {
 
   if (checkingSession) {
     return (
-      <div
-        className="min-h-screen flex items-center justify-center"
-        style={{ backgroundColor: "var(--color-background)" }}
-      >
-        <p
-          className="text-sm"
-          style={{ color: "var(--color-text-muted)" }}
-        >
-          Loading…
-        </p>
-      </div>
+      <AuthFrame>
+        <p style={{ fontSize: "var(--fs-13)", color: "var(--ink-3)" }}>Loading…</p>
+      </AuthFrame>
     );
   }
 
   return (
-    <div
-      className="min-h-screen flex items-center justify-center px-4"
-      style={{ backgroundColor: "var(--color-background)" }}
-    >
-      <div className="w-full max-w-sm space-y-6">
-        {/* Header */}
-        <div className="text-center">
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "var(--color-text-primary)" }}
-          >
-            {APP_NAME}
-          </h1>
-          <p
-            className="text-sm mt-1"
-            style={{ color: "var(--color-text-secondary)" }}
-          >
-            Create your account
-          </p>
-        </div>
+    <AuthFrame>
+      <div style={{ width: 380, display: "flex", flexDirection: "column", gap: 14 }}>
+        <AuthTabs active="signup" redirect={redirect} />
 
         {submitted ? (
-          <CheckYourEmail email={email} />
+          <CheckEmailPanel
+            email={email}
+            note="We sent a confirmation link to"
+          />
         ) : (
           <>
-            {error && (
-              <div
-                className="flex items-center gap-2 p-3 rounded-lg text-sm"
-                style={{
-                  backgroundColor: "rgba(220, 38, 38, 0.06)",
-                  border: "1px solid rgba(220, 38, 38, 0.15)",
-                  color: "var(--color-error)",
-                }}
-              >
-                <AlertCircle size={14} />
-                {error}
-              </div>
-            )}
+            {error && <AuthErrorBanner message={error} />}
 
-            <form onSubmit={handleSignup} className="space-y-4">
-              <Field label="Email">
+            <form onSubmit={handleSignup} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+              <AuthField label="Work email">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
                   autoComplete="email"
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors"
-                  style={inputStyle}
-                  placeholder="you@company.com"
+                  style={AUTH_INPUT_STYLE}
+                  placeholder="name@company.com"
                 />
-              </Field>
+              </AuthField>
 
-              <Field label="Password">
+              <AuthField label="Password">
                 <input
                   type="password"
                   value={password}
@@ -180,13 +147,12 @@ export default function SignupPage() {
                   required
                   autoComplete="new-password"
                   minLength={8}
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors"
-                  style={inputStyle}
+                  style={AUTH_INPUT_STYLE}
                   placeholder="At least 8 characters"
                 />
-              </Field>
+              </AuthField>
 
-              <Field label="Confirm password">
+              <AuthField label="Confirm password">
                 <input
                   type="password"
                   value={confirmPassword}
@@ -194,117 +160,29 @@ export default function SignupPage() {
                   required
                   autoComplete="new-password"
                   minLength={8}
-                  className="w-full px-3 py-2.5 text-sm rounded-lg border outline-none transition-colors"
-                  style={inputStyle}
+                  style={AUTH_INPUT_STYLE}
                   placeholder="Re-enter password"
                 />
-              </Field>
+              </AuthField>
 
-              <button
+              <Button
                 type="submit"
+                variant="primary"
                 disabled={loading}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
-                style={{
-                  backgroundColor: "var(--color-invert-bg)",
-                  color: "var(--color-invert-text)",
-                }}
+                className="w-full justify-center"
+                style={{ padding: "11px 14px", fontSize: "var(--fs-13)", fontWeight: 700 }}
               >
-                <UserPlus size={14} />
                 {loading ? "Creating account…" : "Create account"}
-              </button>
+              </Button>
             </form>
 
-            <p
-              className="text-center text-xs"
-              style={{ color: "var(--color-text-muted)" }}
-            >
-              Already have an account?{" "}
-              <a
-                href="/login"
-                className="underline"
-                style={{ color: "var(--color-text-secondary)" }}
-              >
-                Sign in
-              </a>
+            <p style={{ fontSize: "var(--fs-115)", color: "var(--ink-3)", lineHeight: 1.5, marginTop: 6 }}>
+              Invited to a workspace? Open the invitation link in your email —
+              it signs you in and joins the workspace in one step.
             </p>
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-// ── Sub-components ─────────────────────────────────────────────────────────
-
-const inputStyle: React.CSSProperties = {
-  borderColor: "var(--color-border)",
-  backgroundColor: "var(--color-surface)",
-  color: "var(--color-text-primary)",
-};
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label
-        className="block text-sm font-medium mb-1.5"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
-
-function CheckYourEmail({ email }: { email: string }) {
-  return (
-    <div
-      className="rounded-lg border p-5 text-center space-y-3"
-      style={{
-        borderColor: "var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <div
-        className="mx-auto w-10 h-10 rounded-full flex items-center justify-center"
-        style={{
-          backgroundColor: "var(--color-active-bg)",
-          color: "var(--color-primary)",
-        }}
-      >
-        <MailCheck size={18} />
-      </div>
-      <h2
-        className="text-base font-semibold"
-        style={{ color: "var(--color-text-primary)" }}
-      >
-        Check your email
-      </h2>
-      <p
-        className="text-sm"
-        style={{ color: "var(--color-text-secondary)" }}
-      >
-        We sent a confirmation link to{" "}
-        <span style={{ color: "var(--color-text-primary)", fontWeight: 600 }}>
-          {email}
-        </span>
-        . Click the link to verify your account and finish setting up your
-        profile.
-      </p>
-      <p
-        className="text-xs"
-        style={{ color: "var(--color-text-muted)" }}
-      >
-        Didn&apos;t get it? Check your spam folder, or sign in below if you
-        already confirmed in another tab.
-      </p>
-      <a
-        href="/login"
-        className="inline-flex items-center gap-1 text-sm font-medium"
-        style={{ color: "var(--color-primary)" }}
-      >
-        Go to sign in <ArrowRight size={12} />
-      </a>
-    </div>
+    </AuthFrame>
   );
 }
