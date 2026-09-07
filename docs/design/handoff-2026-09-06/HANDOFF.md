@@ -60,3 +60,27 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   any `[slug]` artboard comparison can be performed.
 - **`ResearchFindingDetailSurface.tsx`'s `knownSections`-present branch has no attach point for the
   "Full brief" depth switch's revealed content** (lane uiactions, 2026-09-07) — see `DEVIATION-LOG.md`.
+- **Mobile 390 and tablet 1024 artboards: not designed, and the files have not reached the repo or
+  any connected folder yet.** Ruling R10's own queue is overlays, then mobile 390, then the
+  community thread page, then the settings section index artboards. The operator has stated the
+  mobile 390 artboards exist (`20-mobile-390.png` plus an updated HANDOFF/README) but they have not
+  arrived in this repo or any connected folder as of this train. No responsive rules are invented in
+  the meantime (R10); the rendering guard's six dated 375px exemptions above stand in until real
+  artboards land. Mobile is deferred to train 56.
+- **Community thread page: not designed** (R10's queue, third item, after overlays and mobile 390).
+  No artboard exists yet; nothing has been built or removed for it.
+- **Overlays: not designed** (R10's queue, first item). "Open decisions" above already names two of
+  the underspecified pieces (masthead line, section treatment); overlays as a class (sign-out's
+  home, popovers, modals) remain unspecified pending R10's own queue.
+- **Onboarding's 4th "Briefing" step: no ruling yet** (addendum item 10, 2026-09-07). Left exactly
+  as-is by lane uisettings2; not built, not removed. Stays open on the operator's own open-questions
+  list (R7).
+- **Settings section index (R9) was built ahead of R10's queue.** R9 (2026-09-07) ruled the five/six
+  second-level Settings items become one `SectionIndex` row (built by lane uiadmin2, extended by
+  lane uisettings2 for Notifications, addendum item 7), landed and live. R10, recorded the same
+  date, separately lists "the settings section index artboards" as the LAST item in the
+  not-yet-designed queue (after overlays, mobile 390, community thread). The two rulings are not
+  contradictory on outcome (R9 specifies the shape in prose; R10 is about artboards not yet
+  existing for it), but the section index is now built without ever having had its own artboard,
+  flagged here for the operator to confirm the built shape matches what the eventual artboard will
+  show, rather than silently trusting prose-only R9 forever.
