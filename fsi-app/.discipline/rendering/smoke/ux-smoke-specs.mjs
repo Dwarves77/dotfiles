@@ -10,7 +10,7 @@ import { runSmoke as runMarketRowsSmoke } from './market-rows-smoke.mjs';
 import { runSmoke as runOperationsRowsSmoke } from './operations-rows-smoke.mjs';
 import { runSmoke as runResearchRowsSmoke } from './research-rows-smoke.mjs';
 import { runSmoke as runRegulationsRowsSmoke } from './regulations-rows-smoke.mjs';
-import { runSmoke as runHomeSectionsSmoke } from './home-sections-smoke.mjs';
+import { runSmoke as runDashboardBriefSmoke } from './dashboard-brief-smoke.mjs';
 import { runSmoke as runCommunitySmoke } from './community-smoke.mjs';
 import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
 import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
@@ -22,7 +22,7 @@ export const UX_SMOKE_SPECS = [
   { name: "operations-rows", run: runOperationsRowsSmoke }, // lane MOBILE
   { name: "research-rows", run: runResearchRowsSmoke }, // lane MOBILE
   { name: "regulations-rows", run: runRegulationsRowsSmoke }, // lane MOBILE
-  { name: "home-sections", run: runHomeSectionsSmoke }, // lane MOBILE
+  { name: "dashboard-brief", run: runDashboardBriefSmoke }, // lane UIFIX, 2026-09-06 (supersedes home-sections/HomeSurface, deleted)
   { name: "community-surface", run: runCommunitySmoke }, // lane COMMUNITY-B
   { name: "spec09-panels", run: runSpec09Smoke }, // lane SPEC-09
   { name: "detail-surfaces", run: runDetailSurfacesSmoke }, // lane MOBILE-2 (the four detail surfaces)

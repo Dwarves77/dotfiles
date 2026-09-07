@@ -100,7 +100,6 @@ export const PRE_EXISTING_ALLOWLIST = Object.freeze({
   'fsi-app/src/components/profile/MembersPanel.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
   'fsi-app/src/components/resource/IntelligenceMetadataStrip.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
   'fsi-app/src/components/settings/SavedSearchesSection.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
-  'fsi-app/src/components/home/HomeSurface.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
   'fsi-app/src/components/sources/SourceHealthDashboard.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
   'fsi-app/src/components/AskAssistant.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',
   'fsi-app/src/components/onboarding/NoWorkspaceLanding.tsx': 'Pre-existing at F36 introduction (2026-09-04), not audited this lane.',

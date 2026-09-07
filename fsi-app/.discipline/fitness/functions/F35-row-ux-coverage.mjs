@@ -44,7 +44,7 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/regulations/RegulationsLedger.tsx': 'same row shape as MarketIntelLedger (read)',
   'src/components/regulations/UpcomingObligationsStripView.tsx': 'screenshot 05-regulations-upcoming (narrow title column, icon-only control); the View half of the async server component (lane MOBILE split)',
   'src/components/regulations/ObligationRegister.tsx': 'table rows; must scroll inside its own container',
-  'src/components/home/HomeSurface.tsx': 'screenshots 06/07-home (section header title beside a subtitle that runs off page)',
+  'src/components/dashboard/DashboardBrief.tsx': 'UI system handoff 2026-09-06 dashboard (README screen 1) — supersedes HomeSurface.tsx (deleted, no route rendered it); Due next / What changed SectionHeadings carry data-guard-title.',
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.

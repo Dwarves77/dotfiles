@@ -16,10 +16,10 @@ import { Suspense, useMemo } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
-import { ListRow } from "@/components/ui/ListRow";
+import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { formatNumber } from "@/lib/format";
+import { formatNumber, formatLocaleDate } from "@/lib/format";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import { jurisdictionCode, dueInfo, metaLine } from "@/lib/dashboard/row-fields";
@@ -42,7 +42,7 @@ function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
         alignItems: "baseline",
         justifyContent: "space-between",
         borderBottom: "2px solid var(--ink)",
-        padding: "0 0 8px",
+        padding: "14px 16px 8px",
         gap: 12,
       }}
     >
@@ -75,6 +75,29 @@ function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
   );
 }
 
+/** The foot line inside a Due next / What changed card (artboard: "All 14
+ *  immediate ... then 31 action · 1,135 monitor" / "All 500 changes ...
+ *  old band → new band · NEW = first seen this pass"). */
+function CardFoot({ left, right }: { left: ReactNode; right: ReactNode }) {
+  return (
+    <div
+      style={{
+        display: "flex",
+        alignItems: "baseline",
+        justifyContent: "space-between",
+        gap: 12,
+        padding: "10px 16px",
+        borderTop: "1px solid var(--line-3)",
+        fontSize: "var(--fs-105)",
+        color: "var(--ink-3)",
+      }}
+    >
+      <span>{left}</span>
+      <span>{right}</span>
+    </div>
+  );
+}
+
 function Card({ children }: { children: ReactNode }) {
   return (
     <div
@@ -99,6 +122,13 @@ export interface DashboardBriefProps {
   surfaceCoverage: SurfaceCoverageSnapshot;
   watchlistPromise: Promise<WatchlistItem[]>;
   loadingCounts?: boolean;
+  /** lib/data.ts's fail-soft sentinel (data._error). Rendered as a neutral
+   *  StateNote at the foot of the primary card (README §0.4: "sits at the
+   *  foot of the primary card on every page that has a state worth
+   *  declaring") rather than a page-wide banner — the artboard carries no
+   *  such banner (per-page RULES OF THE BUILD: no page-local ask/alert
+   *  panel outside the shared parts). */
+  fetchError?: string;
 }
 
 export function DashboardBrief({
@@ -109,6 +139,7 @@ export function DashboardBrief({
   surfaceCoverage,
   watchlistPromise,
   loadingCounts,
+  fetchError,
 }: DashboardBriefProps) {
   const dueNext = useMemo(() => {
     const withDue = resources
@@ -136,16 +167,27 @@ export function DashboardBrief({
     return rows;
   }, [recentChanges]);
 
+  const weekOfLabel = useMemo(
+    () => formatLocaleDate(new Date(), { month: "short", day: "numeric" }),
+    [],
+  );
+  const immediateTotal = aggregates.byPriority.CRITICAL ?? 0;
+  const actionTotal = aggregates.byPriority.HIGH ?? 0;
+  const monitorTotal = aggregates.byPriority.MODERATE ?? 0;
+
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "16px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
       <style>{`
         @media (max-width: 1280px) {
-          .cl-brief-grid { grid-template-columns: 1fr !important; }
+          .cl-brief-outer { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 640px) {
+          .cl-band-tiles { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }} className="cl-brief-grid">
         {/* Band tiles */}
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
           {BAND_ORDER.map((band) =>
             loadingCounts ? (
               <SkeletonBandTile key={band.key} />
@@ -157,8 +199,11 @@ export function DashboardBrief({
 
         {/* Due next */}
         <section>
-          <SectionHeading title={`Due next · ${dueNext.length} items`} aside="By next binding date" />
           <Card>
+            <SectionHeading
+              title={`Due next · ${dueNext.length} items`}
+              aside={`By next binding date · week of ${weekOfLabel}`}
+            />
             {dueNext.length === 0 ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
@@ -166,31 +211,43 @@ export function DashboardBrief({
                 </StateNote>
               </div>
             ) : (
-              dueNext.map(({ r, due }) => (
-                <ListRow
-                  key={r.id}
-                  href={itemDetailHref(r)}
-                  band={bandFromPriority(r.priority)}
-                  jurisdiction={jurisdictionCode(r)}
-                  title={r.title}
-                  meta={metaLine(r)}
-                  impact={r.impactScores}
-                  due={{ label: due.label, days: `${due.days}` }}
-                  timeline={r.timeline}
-                  tier={r.sourceTier ?? null}
+              <>
+                <ListRowColumnHeader dueLabel="Due" />
+                {dueNext.map(({ r, due }) => (
+                  <ListRow
+                    key={r.id}
+                    href={itemDetailHref(r)}
+                    band={bandFromPriority(r.priority)}
+                    jurisdiction={jurisdictionCode(r)}
+                    title={r.title}
+                    meta={metaLine(r)}
+                    impact={r.impactScores}
+                    due={{ label: due.label, days: `${due.days}` }}
+                    timeline={r.timeline}
+                    tier={r.sourceTier ?? null}
+                  />
+                ))}
+                <CardFoot
+                  left={<>All {formatNumber(immediateTotal)} immediate</>}
+                  right={<>then {formatNumber(actionTotal)} action · {formatNumber(monitorTotal)} monitor</>}
                 />
-              ))
+              </>
+            )}
+            {fetchError && (
+              <div style={{ padding: 12 }}>
+                <StateNote>{fetchError}</StateNote>
+              </div>
             )}
           </Card>
         </section>
 
         {/* What changed */}
         <section>
-          <SectionHeading
-            title="What changed"
-            aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
-          />
           <Card>
+            <SectionHeading
+              title="What changed"
+              aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
+            />
             {changed.length === 0 ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
@@ -198,20 +255,27 @@ export function DashboardBrief({
                 </StateNote>
               </div>
             ) : (
-              changed.map((c) => (
-                <ListRow
-                  key={c.id}
-                  href={c.href}
-                  band={c.band}
-                  jurisdiction=""
-                  title={c.title}
-                  meta={c.isNew ? "NEW · first seen this pass" : undefined}
-                  impact={null}
-                  due={null}
-                  timeline={null}
-                  tier={null}
+              <>
+                <ListRowColumnHeader dueLabel="Due" />
+                {changed.map((c) => (
+                  <ListRow
+                    key={c.id}
+                    href={c.href}
+                    band={c.band}
+                    jurisdiction=""
+                    title={c.title}
+                    meta={c.isNew ? "NEW · first seen this pass" : undefined}
+                    impact={null}
+                    due={null}
+                    timeline={null}
+                    tier={null}
+                  />
+                ))}
+                <CardFoot
+                  left={<>All {formatNumber(recentChanges.length)} changes in the last 7 days</>}
+                  right="old band → new band · NEW = first seen this pass"
                 />
-              ))
+              </>
             )}
           </Card>
         </section>

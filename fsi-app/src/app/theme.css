@@ -75,39 +75,43 @@
   /* ═══════════════════════════════════════════════════════════
      LEGACY ALIASES — every name below resolves to a canonical
      token above. No independent value is defined past this line;
-     this block exists so the ~190 pre-existing call sites across
-     the app keep rendering identically while later lanes migrate
-     each surface onto the canonical names directly (0.3/0.4 work
-     in this lane touches the frame + dashboard + the shared
+     this block exists so pre-existing call sites across the app
+     keep rendering identically while later lanes migrate each
+     surface onto the canonical names directly (0.3/0.4 work in
+     this lane touches the frame + dashboard + the shared
      components in src/components/ui/, which reference canonical
      names only — see that code, not this file, for the current
      values).
+
+     Audited lane UIFIX, 2026-09-06 (grep of every `var(--name)`
+     across src/, alias-to-alias chains resolved transitively):
+     222 alias declarations existed, 75 had zero live reference
+     anywhere in the app (not used directly, not depended on by a
+     used alias) and were deleted here in the same commit — see
+     docs/design/handoff-2026-09-06/DEVIATION-LOG.md for the full
+     before/after list and which page lanes still reference the
+     remaining ~147 (those lanes remove their own references as
+     they migrate onto canonical names; this file is not the
+     place to force that early).
      ═══════════════════════════════════════════════════════════ */
 
   /* Semantic surface tokens */
   --color-background: var(--page);
   --color-surface: var(--card);
   --color-surface-raised: var(--tag);
-  --color-surface-raised-hover: #EFEBE5;
   --color-surface-overlay: rgba(0, 0, 0, 0.03);
-  --color-surface-input: rgba(0, 0, 0, 0.04);
 
   /* Text */
   --color-text-primary: var(--ink);
   --color-text-secondary: var(--ink-2);
   --color-text-muted: var(--ink-3);
-  --color-text-disabled: #9CA3AF;
 
   /* Primary action — brand ink (README: "One primary per view, in ink #5A5552") */
   --color-primary: var(--brand);
-  --color-primary-hover: #4A4644;
 
   /* Secondary accent — monitor blue, reused from the band scale */
   --color-secondary: var(--monitor);
-  --color-secondary-hover: #1D4ED8;
 
-  --gradient-start: var(--brand);
-  --gradient-end: var(--monitor);
 
   /* Borders */
   --color-border: var(--line-1);
@@ -122,8 +126,6 @@
 
   --color-active-bg: rgba(90, 85, 82, 0.08);
   --color-active-border: rgba(90, 85, 82, 0.25);
-  --color-active-solid: var(--brand);
-  --color-active-solid-hover: #4A4644;
 
   --color-invert-bg: var(--ink);
   --color-invert-text: #FFFFFF;
@@ -153,7 +155,6 @@
   --color-bg-base: var(--page);
   --color-bg-surface: var(--card);
   --color-bg-raised: var(--tag);
-  --color-bg-sunken: rgba(0, 0, 0, 0.03);
   --color-bg-ai-strip: var(--tag);
 
   --color-border-medium: rgba(0, 0, 0, 0.16);
@@ -173,7 +174,6 @@
   --color-low-bg: var(--awareness-tint);
   --color-low-border: #BBF7D0;
 
-  --color-text-link: var(--monitor);
   --color-text-inverse: #FFFFFF;
   --color-text-accent: var(--brand);
 
@@ -182,59 +182,19 @@
 
   --radius-sm: var(--radius-control);
   --radius-md: var(--radius-card);
-  --radius-lg: 14px;
   --radius-pill: var(--radius-pill);
 
-  --transition-fast: 0.12s ease;
   --transition-base: 0.18s ease;
 
-  --surface-card: var(--card);
-  --surface-card-hover: #F9F7F4;
 
   --scrollbar-thumb: rgba(0, 0, 0, 0.12);
   --scrollbar-thumb-hover: rgba(0, 0, 0, 0.20);
 
   --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
 
-  /* Very old legacy compat names (predate the editorial rename) */
-  --navy: var(--color-background);
-  --sage: var(--color-text-secondary);
-  --white: var(--color-text-primary);
-  --taupe: var(--color-text-muted);
-  --beige: var(--color-text-muted);
-  --cyan: var(--color-primary);
-  --soft-blue: var(--color-primary-hover);
-  --charcoal: var(--color-surface);
-  --charcoal-light: var(--color-surface-raised);
 
-  --text-primary: var(--color-text-primary);
-  --text-secondary: var(--color-text-secondary);
-  --text-muted: var(--color-text-muted);
-  --text-accent: var(--color-primary);
 
-  --surface-base: var(--color-background);
-  --surface-raised: var(--color-surface-raised);
-  --surface-raised-hover: var(--color-surface-raised-hover);
-  --surface-subtle: rgba(0, 0, 0, 0.02);
-  --surface-subtle-hover: rgba(0, 0, 0, 0.04);
-  --surface-overlay: var(--color-surface-overlay);
-  --surface-input: var(--color-surface-input);
-
-  --border-subtle: var(--color-border-subtle);
-  --border-light: var(--color-border);
-  --border-medium: rgba(0, 0, 0, 0.16);
-  --border-strong: var(--color-border-strong);
-
-  --active-bg: var(--color-active-bg);
-  --active-border: var(--color-active-border);
-
-  --invert-bg: var(--color-invert-bg);
-  --invert-text: var(--color-invert-text);
-
-  --background: var(--color-background);
-  --foreground: var(--color-text-primary);
   --muted: var(--color-text-secondary);
-  --muted-foreground: var(--color-text-muted);
   --card-hover: var(--color-surface-raised);
 
   /* Editorial token set (T02+ redesign waves) */
@@ -250,21 +210,17 @@
   --accent-bg: rgba(90, 85, 82, 0.08);
   --accent-bd: rgba(90, 85, 82, 0.25);
   --accent-strip: var(--tag);
-  --accent-strip-bd: var(--line-1);
 
-  --oxblood: #6E1F1A;
 
   --critical-bg: var(--immediate-tint);
   --critical-bd: #FECACA;
   --high-bg: var(--action-tint);
   --high-bd: #FED7AA;
   --moderate-bg: var(--monitor-tint);
-  --moderate-bd: #BFDBFE;
   --low-bg: var(--awareness-tint);
   --low-bd: #BBF7D0;
 
   --shadow: var(--shadow-card);
-  --shadow-popover: 0 10px 30px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.06);
   --r-sm: var(--radius-control);
   --r-md: var(--radius-card);
   --r-lg: 14px;
@@ -274,7 +230,6 @@
      CSS gradient; this alias is kept only for any legacy call site that
      still paints a static two-stop rule and is on the migration list. */
   --gradient-masthead: linear-gradient(90deg, var(--immediate), var(--action), var(--monitor), var(--awareness));
-  --gradient-brand: var(--gradient-masthead);
 
   --accent-blue: var(--monitor);
   --epistemic-signal: #B45309;
@@ -300,26 +255,6 @@
   --reg-band-awareness-strip: var(--awareness);
   --reg-tile-low-fig: var(--ink-2);
 
-  --cl-bg-page: var(--page);
-  --cl-bg-card: var(--card);
-  --cl-bg-plate: var(--tag);
-  --cl-bg-accent-tint: var(--tag);
-  --cl-ink: var(--ink);
-  --cl-ink-secondary: var(--ink-2);
-  --cl-ink-muted: var(--ink-3);
-  --cl-accent: var(--brand);
-  --cl-accent-hover: #4A4644;
-  --cl-accent-blue: var(--monitor);
-  --cl-sev-critical: var(--immediate);
-  --cl-sev-high: var(--action);
-  --cl-sev-moderate: var(--monitor);
-  --cl-sev-low: var(--awareness);
-  --cl-epistemic-signal: #B45309;
-  --cl-destructive-quiet: #9A3412;
-  --cl-brass: #8A6A2A;
-  --cl-hairline: var(--line-1);
-  --cl-hairline-soft: var(--line-3);
-  --cl-detail-grad: var(--gradient-masthead);
 
   --res-sev-action: var(--immediate);
   --res-sev-action-bd: #FECACA;
@@ -343,19 +278,15 @@
   --mi-action-strip: var(--gradient-masthead);
   --mi-cost: var(--action);
   --mi-cost-bg: var(--action-tint);
-  --mi-cost-bd: rgba(217, 119, 6, 0.4);
   --mi-cost-strip: var(--gradient-masthead);
   --mi-window: var(--monitor);
   --mi-window-bg: var(--monitor-tint);
-  --mi-window-bd: rgba(37, 99, 235, 0.4);
   --mi-window-strip: var(--gradient-masthead);
   --mi-edge: var(--awareness);
   --mi-edge-tile: var(--monitor);
   --mi-edge-bg: var(--awareness-tint);
-  --mi-edge-bd: rgba(22, 163, 74, 0.4);
   --mi-monitor: var(--ink-2);
   --mi-monitor-bg: var(--card);
-  --mi-monitor-bd: rgba(0, 0, 0, 0.2);
   --mi-monitor-strip: var(--awareness);
   --mi-fig-empty: var(--ink-3);
 
