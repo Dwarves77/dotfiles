@@ -17,7 +17,8 @@
     "capture:uxfix-lists-live": "node .discipline/rendering/capture-uxfix-lists-screenshots.mjs",
     "capture:uxfix-lists-fixture": "node .discipline/rendering/capture-uxfix-lists-fixture-screenshots.mjs",
     "capture:defect-fix-screenshots": "node .discipline/rendering/capture-defect-fix-screenshots.mjs",
-    "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs"
+    "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs",
+    "audit:design": "node .discipline/rendering/audit/run-audit.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
