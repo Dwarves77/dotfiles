@@ -97,7 +97,11 @@ export function FilterChipGroup({ label, children }: FilterChipGroupProps) {
       >
         {label}
       </span>
-      <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>{children}</div>
+      {/* UILISTS lane (2026-09-06, RD-60/F35 law-2): 6px left two adjacent pills 6px apart — under
+          the law-2 24px-alternative floor's 8px clearance requirement once these five surfaces put
+          many chips in one wrapped row. Bumped to 8px, additive (no other FilterChipGroup consumer
+          depends on the old 6px). */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>
     </div>
   );
 }
