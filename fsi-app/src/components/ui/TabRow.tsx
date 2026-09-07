@@ -17,9 +17,12 @@
  * Each tab is a real link (`href`) so /profile and /settings stay two
  * routes with working deep-links and back-navigation; a tab with no href
  * is an in-page state switch (`onClick`) on the surface currently
- * mounted. Active = bold ink; resting = ink-2. One hairline under the
- * whole row (`--line-2`), no per-tab underline — matches the artboards,
- * which show only weight/colour distinguishing the active tab.
+ * mounted. Active = bold ink; resting = ink-2. One hairline under the whole
+ * row (`--line-1`). Per the design audit (2026-09-07, tabrow.json), the
+ * artboard also underlines the active tab: a solid 2px brand rule, with
+ * every resting tab carrying the same 2px TRANSPARENT rule so no tab shifts
+ * width when its state changes, and `margin-bottom: -1px` pulls that rule
+ * onto the row's own hairline.
  */
 
 import Link from "next/link";
@@ -46,17 +49,19 @@ export function TabRow({ tabs, ariaLabel }: TabRowProps) {
         display: "flex",
         gap: 4,
         flexWrap: "wrap",
-        borderBottom: "1px solid var(--line-2)",
+        borderBottom: "1px solid var(--line-1)",
       }}
     >
       {tabs.map((t) => {
         const style: React.CSSProperties = {
           fontFamily: "inherit",
-          fontSize: "var(--fs-13)",
-          fontWeight: t.active ? 800 : 600,
-          padding: "12px 14px",
+          fontSize: "var(--fs-125)",
+          fontWeight: t.active ? 700 : 600,
+          padding: "9px 12px",
           whiteSpace: "nowrap",
           border: "none",
+          borderBottom: t.active ? "2px solid var(--brand)" : "2px solid transparent",
+          marginBottom: -1,
           background: "transparent",
           color: t.active ? "var(--ink)" : "var(--ink-2)",
           textDecoration: "none",
