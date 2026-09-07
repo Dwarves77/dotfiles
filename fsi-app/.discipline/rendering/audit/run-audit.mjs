@@ -56,10 +56,10 @@ function loadSpecs(only) {
 function targetsOf(spec) {
   const targets = [];
   if (spec.expect && Object.keys(spec.expect).length > 0) {
-    targets.push({ name: spec.part, selector: spec.selector, expect: spec.expect, matchStyle: spec.matchStyle });
+    targets.push({ name: spec.part, selector: spec.selector, expect: spec.expect, matchStyle: spec.matchStyle, textMatch: spec.textMatch });
   }
   for (const child of spec.children || []) {
-    targets.push({ name: child.name, selector: child.selector, expect: child.expect, note: child.note, matchStyle: child.matchStyle });
+    targets.push({ name: child.name, selector: child.selector, expect: child.expect, note: child.note, matchStyle: child.matchStyle, textMatch: child.textMatch });
   }
   return targets;
 }
@@ -88,7 +88,14 @@ async function probe(page, targets, forbids) {
         });
       };
       const readTarget = (t) => {
-        const nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
+        let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
+        // HARNESS FIX, fix lane fix58-detail (2026-09-07): `textMatch` narrows a selector to
+        // elements whose OWN text contains a substring — already honored for `forbid` entries
+        // (see readForbid below) but silently dropped here for ordinary targets, so a spec like
+        // page-frame.json's "+ Tag" trigger count (`header:not(.cl-masthead) button` +
+        // `textMatch: "Tag"`) measured every button under the selector (5: the overflow menu,
+        // Export brief, Share, Watch, + Tag) instead of the one it named. Same filter, same rule.
+        if (t.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(t.textMatch));
         if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null, placeholder: null };
         const el = nodes[0];
         const cs = getComputedStyle(el);
@@ -338,7 +345,7 @@ async function main() {
         const forbids = spec.forbid || [];
         const measured = await probe(
           page,
-          targets.map((t) => ({ selector: t.selector, expect: t.expect, matchStyle: t.matchStyle ?? null })),
+          targets.map((t) => ({ selector: t.selector, expect: t.expect, matchStyle: t.matchStyle ?? null, textMatch: t.textMatch ?? null })),
           forbids.map((f) => ({ selector: f.selector, textMatch: f.textMatch ?? null, matchStyle: f.matchStyle ?? null })),
         );
         rows.push(...rowsFor(spec, targets, measured.targets, forbids, measured.forbids));

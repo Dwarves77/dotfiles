@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T19:42:22.718Z",
+  "runAt": "2026-09-07T20:46:26.718Z",
   "specs": [
     {
       "part": "Absence",
@@ -557,16 +557,17 @@
       "notes": [
         "Ruling 1.2 named the PPWR page specifically as bypassing the shared title component; this spec measures the shared component itself (DetailHeader), which every one of the four detail surfaces now imports, so a MATCH here is evidence the shared part is correct — it does not by itself prove every page calls it (that is a page-frame / route-level check, out of this spec's selector reach).",
         "This mount omits `askPlaceholder` (ruling 2.3: the CommandBar in the Masthead is the only ask surface, DetailHeader must not render a second one when a caller omits it) — the forbid check below confirms no CommandBar renders even though `actions` is populated.",
-        "Structural note, train 58 (2026-09-07): DetailHeader.tsx's own doc comment now reads 'title now lives in DetailMasthead below' — train 57 moved the title and meta/breadcrumb line out of this component into the shared `ui/Masthead` (via `DetailMasthead`), confirmed by direct source read this session (`src/components/detail/DetailShell.tsx` ~line 56). DetailHeader itself renders only chips, the tag row, and actions. The title and meta children checks this spec used to carry are therefore removed here, not left as phantom NOT BUILT rows against a part this component no longer owns: the title is checked against its real location by `page-frame.json`'s 'detail title type' row (`.cl-masthead-title`). The former 11px meta/breadcrumb line has no like-for-like replacement to check yet — DetailMasthead's breadcrumb now renders inside Masthead's `.cl-masthead-eyebrow` line (800 weight, .14em, `--fs-105`, a different typographic convention from the old 11px meta line), which no spec measures yet. Logged as a B-list gap (Masthead+CommandBar) for the fix lane rather than asserted against an invented 11px value here."
+        "Structural note, train 58 (2026-09-07): DetailHeader.tsx's own doc comment now reads 'title now lives in DetailMasthead below' — train 57 moved the title and meta/breadcrumb line out of this component into the shared `ui/Masthead` (via `DetailMasthead`), confirmed by direct source read this session (`src/components/detail/DetailShell.tsx` ~line 56). DetailHeader itself renders only chips, the tag row, and actions. The title and meta children checks this spec used to carry are therefore removed here, not left as phantom NOT BUILT rows against a part this component no longer owns: the title is checked against its real location by `page-frame.json`'s 'detail title type' row (`.cl-masthead-title`). The former 11px meta/breadcrumb line has no like-for-like replacement to check yet — DetailMasthead's breadcrumb now renders inside Masthead's `.cl-masthead-eyebrow` line (800 weight, .14em, `--fs-105`, a different typographic convention from the old 11px meta line), which no spec measures yet. Logged as a B-list gap (Masthead+CommandBar) for the fix lane rather than asserted against an invented 11px value here.",
+        "SPEC CORRECTION, fix58-detail (2026-09-07): the padding-top/right/left/bottom values this spec previously carried (18/24/24/20) do not match the artboard. Direct re-read of 'Caros Ledge UI System.dc.html' #p3, char 201809 — the actual band-pill/action-row card (the 'Action · <= 6 months' chip through the Export brief/Share/Watch buttons, i.e. this component) reads `padding:16px 20px 18px` (top 16, right/left 20, bottom 18). The 18/24/24/20 figures belonged to a different card in the same artboard (the DetailMasthead title+ask-bar card just above this one, `padding:20px 28px 22px`) and were misattributed when this spec was first written. Corrected here per rule 1 of the fix lane's dispatch (correct the spec, never bend the product to a wrong expectation) — the product was moved to match the corrected 16/20/20/18 values, not the other way round."
       ],
       "selector": "[data-audit=\"header\"] > header",
       "expect": {
         "background-color": "#FFFFFF",
         "border-top-left-radius": "10px",
-        "padding-top": "18px",
-        "padding-right": "24px",
-        "padding-left": "24px",
-        "padding-bottom": "20px"
+        "padding-top": "16px",
+        "padding-right": "20px",
+        "padding-left": "20px",
+        "padding-bottom": "18px"
       },
       "children": [
         {
@@ -1846,10 +1847,9 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
       "notes": [
-        "CONFIRMED, not a harness artefact: OperationsLedger.tsx defines all 6 dimensions in its own DIMENSIONS constant (D1 Regulatory feasibility through D6 Operational cost data, in that exact order and naming, matching the artboard's rail-card breakdown token for token) at line 84, then immediately derives `const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` at line 93 — a 5-item list with the comment 'the ones with rows in regional_data_facts'. Line 346 passes ONLY `SOURCED_DIMENSIONS` to `RegionDimensionMatrix`'s `dimensions` prop, so the matrix table renders 5 rows, never the D1 row, no matter what data exists.",
-        "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) ALSO shows only 5 rows in its example markup (Regional resource, Labor markets, Materials sourcing, Infrastructure, and — off the fold in this extract — Operational cost; no Regulatory feasibility row) — so the built component's exclusion mirrors the artboard's own example, not a build-time regression from it. The dek text on both the artboard and the built dashboard nonetheless states 'six dimensions', a self-contradiction inside the artboard itself.",
-        "Operator ruling 3.3 is the binding, later statement over both: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — build against it, ask nothing, per this dispatch's framing of the closed rulings. This spec therefore asserts the matrix's dimension-row COUNT at 6, which reads MISMATCH against the current 5, and states the exact fix point (OperationsLedger.tsx:93's filter) rather than proposing a fix in the audit tooling itself (this lane writes no product code).",
-        "The mount reproduces OperationsLedger.tsx's DIMENSIONS/SOURCED_DIMENSIONS constants VERBATIM (copied into mounts.mjs, not re-derived), so the row count measured here is the same 5 a real page render produces, not a mount-only approximation."
+        "FIXED, fix lane fix58-detail (2026-09-07): OperationsLedger.tsx's `MATRIX_DIMENSIONS` (feeding RegionDimensionMatrix's `dimensions` prop, ~line 356) was `= DIMENSIONS` already at the time this lane read the file — the retired `SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` derivation this note used to describe is gone from the product; the file's own DEFECT-FIX comment above `MATRIX_DIMENSIONS` (2026-09-07) records the same change. The MISMATCH this spec measured was the audit mount (`mounts.mjs`'s `ops-matrix` entry) still hardcoding the retired 5-item `SOURCED_DIMENSIONS` shape — a stale harness fixture, not a live product defect. The mount now reproduces the real `MATRIX_DIMENSIONS = DIMENSIONS` (all 6, unfiltered).",
+        "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) shows only 5 rows in its example markup, no Regulatory feasibility row — a self-contradiction against its own 'six dimensions' dek text. Operator ruling 3.3 is the binding, later statement over the artboard's own example: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — built against, per this dispatch's framing of the closed rulings.",
+        "`buildRegionGrid` (region-grid.mjs) computes `state: 'absent'` for every regulatory_feasibility cell (0 rows in regional_data_facts, always) and RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any `state === 'absent'` cell — the D1 row therefore renders with the Absence convention in every cell, never a fabricated count, never blank."
       ],
       "selector": "[data-audit=\"ops-matrix\"] table > tbody",
       "expect": {
@@ -1859,7 +1859,7 @@
         {
           "name": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
           "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
-          "note": "Operator 3.3: six dimensions, D1-D6. The matrix currently renders one td:first-child per SOURCED_DIMENSIONS entry (5), never a D1 Regulatory feasibility row.",
+          "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row.",
           "expect": {
             "count": "6"
           }
@@ -1867,7 +1867,7 @@
         {
           "name": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
           "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
-          "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row today is 'Regional resource availability' (D2), since D1 is filtered out before this component ever sees it — a MISMATCH here is the same defect as the row-count check above, from a different angle (order, not just count).",
+          "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered.",
           "expect": {
             "text": "Regulatory feasibility"
           }
@@ -1976,7 +1976,7 @@
           "name": "exactly one '+ Tag' trigger in the detail header (operator 3.2, mechanism repair train 58 2026-09-07)",
           "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
           "textMatch": "Tag",
-          "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). Investigation, train 58 (2026-09-07): measured count is 5, not 1 or 2 — higher than either the passing or the single-known-defect state predicts. `:not(.cl-masthead)` (added this session) already excludes the masthead's own header, and this mount's fixture (PAGE_FRAME_FIXTURES) passes no workspace tags with 'Tag' in their name, so the extra matches are NOT the Masthead CommandBar and NOT a tag pill's own label. Not resolved this session — this lane found the count wrong but did not trace which five elements match; the fix lane should inspect the live DOM (`page.locator(...).allTextContents()` against this exact selector) before assuming which control is the duplicate, rather than trust this note's earlier guess of 'the legitimate trigger plus one duplicate'.",
+          "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' RESOLVED, fix lane fix58-detail (2026-09-07): the count-5 finding was a HARNESS bug, not a product defect. A standalone debug mount (`page.evaluate` against this exact selector, no `textMatch` filter applied) confirmed `header:not(.cl-masthead) button` matches all 5 ActionRow buttons (the row-overflow '⋯' menu, Export brief, Share, ☆ Watch, + Tag) — `textMatch: \"Tag\"` above was meant to narrow that down to the one button whose text contains 'Tag', exactly the way `forbid` entries already use `textMatch` (readForbid, run-audit.mjs). But `targetsOf()`/`readTarget()` (the non-forbid path) silently dropped the `textMatch` field for `children`/top-level `expect` targets — it was read into the target object nowhere, so the filter never ran and the raw 5-button count leaked through. Fixed at the root, once, in run-audit.mjs (`targetsOf` now carries `textMatch` through, `readTarget` applies the same filter `readForbid` already does) rather than reshaping this selector around the bug. RegulationDetailSurface.tsx (line ~193, ~209) already wires exactly one '+ Tag' trigger (ActionRow's own, via `onTag`) and DetailTagRow renders no trigger of its own (TagPopover's `open`/`onOpenChange` controlled mode) — the product was already correct; only the measurement was wrong.",
           "expect": {
             "count": "1"
           }
@@ -2047,9 +2047,9 @@
         {
           "name": "At a glance — grid",
           "selector": "[data-audit=\"atglance\"] > div > div > div",
-          "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658).",
+          "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658). SPEC CORRECTION, fix lane fix58-detail (2026-09-07): the `1fr` track literal is not a value CSSOM ever reports back — `getComputedStyle` resolves a `1fr` track to its USED pixel width (this mount measured `158px`, the mount's own fixed rail width minus the 96px label column and gaps), per this harness's own documented convention (`run-audit/README.md` step 3, 'Value forms'): `*` is the wildcard token whose 'only honest use is the 1fr track in a grid-template-columns list'. Corrected `1fr` to `*` here; the fixed `96px` label-column value is unchanged and still the real finding this row exists to catch.",
           "expect": {
-            "grid-template-columns": "96px 1fr",
+            "grid-template-columns": "96px *",
             "column-gap": "12px",
             "row-gap": "7px"
           }
@@ -5458,9 +5458,9 @@
       "target": "DetailHeader",
       "selector": "[data-audit=\"header\"] > header",
       "property": "padding-top",
-      "expected": "18px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5477,9 +5477,9 @@
       "target": "DetailHeader",
       "selector": "[data-audit=\"header\"] > header",
       "property": "padding-right",
-      "expected": "24px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5496,9 +5496,9 @@
       "target": "DetailHeader",
       "selector": "[data-audit=\"header\"] > header",
       "property": "padding-left",
-      "expected": "24px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5515,9 +5515,9 @@
       "target": "DetailHeader",
       "selector": "[data-audit=\"header\"] > header",
       "property": "padding-bottom",
-      "expected": "20px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5613,8 +5613,8 @@
       "selector": "[data-audit=\"section\"] section",
       "property": "padding-top",
       "expected": "16px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "16px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5633,8 +5633,8 @@
       "selector": "[data-audit=\"section\"] section",
       "property": "padding-right",
       "expected": "20px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5653,8 +5653,8 @@
       "selector": "[data-audit=\"section\"] section",
       "property": "padding-left",
       "expected": "20px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5752,8 +5752,8 @@
       "target": "section title",
       "selector": "[data-audit=\"section\"] section h2",
       "property": "letter-spacing",
-      "expected": "0.04em (= 0.64px at 16px)",
-      "actual": "0.64px",
+      "expected": "0.04em (= 0.8px at 20px)",
+      "actual": "0.8px",
       "status": "MATCH",
       "note": "Artboard p3: Anton, uppercase, .04em, 20px. DetailSection.tsx: fontSize 16."
     },
@@ -5773,8 +5773,8 @@
       "selector": "[data-audit=\"section\"] section h2",
       "property": "font-size",
       "expected": "20px",
-      "actual": "16px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": "Artboard p3: Anton, uppercase, .04em, 20px. DetailSection.tsx: fontSize 16."
     },
     {
@@ -5906,8 +5906,8 @@
       "selector": "[data-audit=\"timeline\"] > div",
       "property": "padding-top",
       "expected": "16px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "16px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5925,8 +5925,8 @@
       "selector": "[data-audit=\"timeline\"] > div",
       "property": "padding-right",
       "expected": "20px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -5944,8 +5944,8 @@
       "selector": "[data-audit=\"timeline\"] > div",
       "property": "padding-left",
       "expected": "20px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -6419,8 +6419,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "padding-top",
       "expected": "8px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6438,8 +6438,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "padding-left",
       "expected": "12px",
-      "actual": "10px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6457,8 +6457,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "font-size",
       "expected": "10px",
-      "actual": "13px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6475,9 +6475,9 @@
       "target": "concession table — header cell",
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "letter-spacing",
-      "expected": "0.1em (= 1.3px at 13px)",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "expected": "0.1em (= 1px at 10px)",
+      "actual": "1px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6495,8 +6495,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "text-transform",
       "expected": "uppercase",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "uppercase",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6514,8 +6514,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "color",
       "expected": "#7A6E6C",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MISMATCH",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6533,8 +6533,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
       "property": "font-weight",
       "expected": "700",
-      "actual": "600",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C."
     },
     {
@@ -6552,8 +6552,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table thead",
       "property": "background-color",
       "expected": "#FAFAF8",
-      "actual": "rgb(245, 242, 238)",
-      "status": "MISMATCH",
+      "actual": "rgb(250, 250, 248)",
+      "status": "MATCH",
       "note": "Artboard p9: background:#FAFAF8. GfmSection.tsx: var(--color-surface-raised)."
     },
     {
@@ -6571,8 +6571,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table td",
       "property": "padding-top",
       "expected": "8px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; border-bottom:1px solid rgba(0,0,0,.06). GfmSection.tsx: padding 6px 10px, border 1px solid on all sides (not border-bottom only)."
     },
     {
@@ -6590,8 +6590,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table td",
       "property": "padding-left",
       "expected": "12px",
-      "actual": "10px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; border-bottom:1px solid rgba(0,0,0,.06). GfmSection.tsx: padding 6px 10px, border 1px solid on all sides (not border-bottom only)."
     },
     {
@@ -6628,8 +6628,8 @@
       "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table td",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.06)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
       "note": "Artboard p9: padding:8px 12px; border-bottom:1px solid rgba(0,0,0,.06). GfmSection.tsx: padding 6px 10px, border 1px solid on all sides (not border-bottom only)."
     },
     {
@@ -6987,8 +6987,8 @@
       "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
       "property": "font-size",
       "expected": "9.5px",
-      "actual": "10px",
-      "status": "MISMATCH",
+      "actual": "9.5px",
+      "status": "MATCH",
       "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
     },
     {
@@ -7026,9 +7026,9 @@
       "target": "sourced — eyebrow label",
       "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
       "property": "letter-spacing",
-      "expected": "0.12em (= 1.2px at 10px)",
-      "actual": "1px",
-      "status": "MISMATCH",
+      "expected": "0.12em (= 1.14px at 9.5px)",
+      "actual": "1.14px",
+      "status": "MATCH",
       "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
     },
     {
@@ -7087,8 +7087,8 @@
       "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
       "property": "line-height",
       "expected": "20.15px",
-      "actual": "20.8px",
-      "status": "MISMATCH",
+      "actual": "20.15px",
+      "status": "MATCH",
       "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic)."
     },
     {
@@ -7347,8 +7347,8 @@
       "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
       "property": "font-size",
       "expected": "9.5px",
-      "actual": "10px",
-      "status": "MISMATCH",
+      "actual": "9.5px",
+      "status": "MATCH",
       "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
     },
     {
@@ -7386,9 +7386,9 @@
       "target": "inference — eyebrow label",
       "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
       "property": "letter-spacing",
-      "expected": "0.12em (= 1.2px at 10px)",
-      "actual": "1px",
-      "status": "MISMATCH",
+      "expected": "0.12em (= 1.14px at 9.5px)",
+      "actual": "1.14px",
+      "status": "MATCH",
       "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
     },
     {
@@ -7647,8 +7647,8 @@
       "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
       "property": "font-size",
       "expected": "9.5px",
-      "actual": "10px",
-      "status": "MISMATCH",
+      "actual": "9.5px",
+      "status": "MATCH",
       "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
     },
     {
@@ -7687,8 +7687,8 @@
       "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
       "property": "color",
       "expected": "#1A1A1A",
-      "actual": "rgb(249, 115, 22)",
-      "status": "MISMATCH",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
       "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
     },
     {
@@ -8778,8 +8778,8 @@
       "selector": "[data-audit=\"inthislist\"] > div",
       "property": "padding-top",
       "expected": "14px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "14px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8797,8 +8797,8 @@
       "selector": "[data-audit=\"inthislist\"] > div",
       "property": "padding-right",
       "expected": "16px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "16px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8816,8 +8816,8 @@
       "selector": "[data-audit=\"inthislist\"] > div",
       "property": "padding-left",
       "expected": "16px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "16px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -11686,9 +11686,9 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
       "property": "count",
       "expected": "6",
-      "actual": "5",
-      "status": "MISMATCH",
-      "note": "Operator 3.3: six dimensions, D1-D6. The matrix currently renders one td:first-child per SOURCED_DIMENSIONS entry (5), never a D1 Regulatory feasibility row."
+      "actual": "6",
+      "status": "MATCH",
+      "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row."
     },
     {
       "spec": "operations-matrix",
@@ -11702,9 +11702,9 @@
       "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
       "property": "text",
       "expected": "Regulatory feasibility",
-      "actual": "Regional resource availability",
-      "status": "MISMATCH",
-      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row today is 'Regional resource availability' (D2), since D1 is filtered out before this component ever sees it — a MISMATCH here is the same defect as the row-count check above, from a different angle (order, not just count)."
+      "actual": "Regulatory feasibility",
+      "status": "MATCH",
+      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered."
     },
     {
       "spec": "page-frame",
@@ -12342,9 +12342,9 @@
       "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) button",
       "property": "count",
       "expected": "1",
-      "actual": "5",
-      "status": "MISMATCH",
-      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' Moved out of `forbid` (train 58, 2026-09-07): a `forbid` entry can only assert absence (count 0), but the legitimate action-row trigger itself matches this selector, so a `forbid` here always read NOT IN SPEC at the correct count of 1 — a false positive on the passing state, not a real finding. Expressed instead as a `count: 1` target, which is what ruling 3.2 actually requires (a second trigger would measure count 2, a real MISMATCH). Investigation, train 58 (2026-09-07): measured count is 5, not 1 or 2 — higher than either the passing or the single-known-defect state predicts. `:not(.cl-masthead)` (added this session) already excludes the masthead's own header, and this mount's fixture (PAGE_FRAME_FIXTURES) passes no workspace tags with 'Tag' in their name, so the extra matches are NOT the Masthead CommandBar and NOT a tag pill's own label. Not resolved this session — this lane found the count wrong but did not trace which five elements match; the fix lane should inspect the live DOM (`page.locator(...).allTextContents()` against this exact selector) before assuming which control is the duplicate, rather than trust this note's earlier guess of 'the legitimate trigger plus one duplicate'."
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' RESOLVED, fix lane fix58-detail (2026-09-07): the count-5 finding was a HARNESS bug, not a product defect. A standalone debug mount (`page.evaluate` against this exact selector, no `textMatch` filter applied) confirmed `header:not(.cl-masthead) button` matches all 5 ActionRow buttons (the row-overflow '⋯' menu, Export brief, Share, ☆ Watch, + Tag) — `textMatch: \"Tag\"` above was meant to narrow that down to the one button whose text contains 'Tag', exactly the way `forbid` entries already use `textMatch` (readForbid, run-audit.mjs). But `targetsOf()`/`readTarget()` (the non-forbid path) silently dropped the `textMatch` field for `children`/top-level `expect` targets — it was read into the target object nowhere, so the filter never ran and the raw 5-button count leaked through. Fixed at the root, once, in run-audit.mjs (`targetsOf` now carries `textMatch` through, `readTarget` applies the same filter `readForbid` already does) rather than reshaping this selector around the bug. RegulationDetailSurface.tsx (line ~193, ~209) already wires exactly one '+ Tag' trigger (ActionRow's own, via `onTag`) and DetailTagRow renders no trigger of its own (TagPopover's `open`/`onOpenChange` controlled mode) — the product was already correct; only the measurement was wrong."
     },
     {
       "spec": "page-frame",
@@ -12516,10 +12516,10 @@
       "target": "At a glance — grid",
       "selector": "[data-audit=\"atglance\"] > div > div > div",
       "property": "grid-template-columns",
-      "expected": "96px 1fr",
-      "actual": "34.3906px 217.609px",
-      "status": "MISMATCH",
-      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658)."
+      "expected": "96px *",
+      "actual": "96px 158px",
+      "status": "MATCH",
+      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658). SPEC CORRECTION, fix lane fix58-detail (2026-09-07): the `1fr` track literal is not a value CSSOM ever reports back — `getComputedStyle` resolves a `1fr` track to its USED pixel width (this mount measured `158px`, the mount's own fixed rail width minus the 96px label column and gaps), per this harness's own documented convention (`run-audit/README.md` step 3, 'Value forms'): `*` is the wildcard token whose 'only honest use is the 1fr track in a grid-template-columns list'. Corrected `1fr` to `*` here; the fixed `96px` label-column value is unchanged and still the real finding this row exists to catch."
     },
     {
       "spec": "railcards",
@@ -12536,9 +12536,9 @@
       "selector": "[data-audit=\"atglance\"] > div > div > div",
       "property": "column-gap",
       "expected": "12px",
-      "actual": "14px",
-      "status": "MISMATCH",
-      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658)."
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658). SPEC CORRECTION, fix lane fix58-detail (2026-09-07): the `1fr` track literal is not a value CSSOM ever reports back — `getComputedStyle` resolves a `1fr` track to its USED pixel width (this mount measured `158px`, the mount's own fixed rail width minus the 96px label column and gaps), per this harness's own documented convention (`run-audit/README.md` step 3, 'Value forms'): `*` is the wildcard token whose 'only honest use is the 1fr track in a grid-template-columns list'. Corrected `1fr` to `*` here; the fixed `96px` label-column value is unchanged and still the real finding this row exists to catch."
     },
     {
       "spec": "railcards",
@@ -12555,9 +12555,9 @@
       "selector": "[data-audit=\"atglance\"] > div > div > div",
       "property": "row-gap",
       "expected": "7px",
-      "actual": "6px",
-      "status": "MISMATCH",
-      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658)."
+      "actual": "7px",
+      "status": "MATCH",
+      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658). SPEC CORRECTION, fix lane fix58-detail (2026-09-07): the `1fr` track literal is not a value CSSOM ever reports back — `getComputedStyle` resolves a `1fr` track to its USED pixel width (this mount measured `158px`, the mount's own fixed rail width minus the 96px label column and gaps), per this harness's own documented convention (`run-audit/README.md` step 3, 'Value forms'): `*` is the wildcard token whose 'only honest use is the 1fr track in a grid-template-columns list'. Corrected `1fr` to `*` here; the fixed `96px` label-column value is unchanged and still the real finding this row exists to catch."
     },
     {
       "spec": "railcards",
@@ -12574,8 +12574,8 @@
       "selector": "[data-audit=\"atglance\"] > div > div > div > span:nth-child(2)",
       "property": "font-weight",
       "expected": "600",
-      "actual": "700",
-      "status": "MISMATCH",
+      "actual": "600",
+      "status": "MATCH",
       "note": "Artboard: font-weight:600. Selector repair, train 58 (2026-09-07): same one-level DOM-depth fix as the grid row above."
     },
     {
@@ -13039,8 +13039,8 @@
       "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index a.cl-section-index-link:first-of-type",
       "property": "text",
       "expected": "S1 Summary",
-      "actual": "S1 · Summary",
-      "status": "MISMATCH",
+      "actual": "S1 Summary",
+      "status": "MATCH",
       "note": "Artboard: padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700, text \"S1 Summary\"."
     },
     {
@@ -13058,8 +13058,8 @@
       "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index a.cl-section-index-link:first-of-type",
       "property": "background-color",
       "expected": "#5A5552",
-      "actual": "rgba(0, 0, 0, 0)",
-      "status": "MISMATCH",
+      "actual": "rgb(90, 85, 82)",
+      "status": "MATCH",
       "note": "Artboard: padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700, text \"S1 Summary\"."
     },
     {
@@ -13077,8 +13077,8 @@
       "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index a.cl-section-index-link:first-of-type",
       "property": "color",
       "expected": "#FFFFFF",
-      "actual": "rgb(90, 107, 103)",
-      "status": "MISMATCH",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
       "note": "Artboard: padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700, text \"S1 Summary\"."
     },
     {
@@ -13096,8 +13096,8 @@
       "selector": "[data-audit=\"sectionindex\"] nav.cl-section-index a.cl-section-index-link:first-of-type",
       "property": "border-radius",
       "expected": "6px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "6px",
+      "status": "MATCH",
       "note": "Artboard: padding:6px 12px;border-radius:6px;background:#5A5552;color:#fff;font-weight:700, text \"S1 Summary\"."
     },
     {
@@ -13595,8 +13595,8 @@
       "selector": "[data-audit=\"index\"] nav",
       "property": "border-bottom-width",
       "expected": "1px",
-      "actual": "1px",
-      "status": "MATCH",
+      "actual": "0px",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -13611,8 +13611,8 @@
       "selector": "[data-audit=\"index\"] nav",
       "property": "padding-top",
       "expected": "10px",
-      "actual": "10px",
-      "status": "MATCH",
+      "actual": "6px",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -13627,8 +13627,8 @@
       "selector": "[data-audit=\"index\"] nav",
       "property": "padding-bottom",
       "expected": "10px",
-      "actual": "10px",
-      "status": "MATCH",
+      "actual": "6px",
+      "status": "MISMATCH",
       "note": null
     },
     {
@@ -13643,8 +13643,8 @@
       "selector": "[data-audit=\"index\"] a.cl-section-index-link",
       "property": "text",
       "expected": "S1 · General",
-      "actual": "S1 · General",
-      "status": "MATCH",
+      "actual": "S1 General",
+      "status": "MISMATCH",
       "note": "DetailShell.tsx: `S{i+1} · {label}`, 10.5px/700, min-height 44px."
     },
     {
@@ -13659,8 +13659,8 @@
       "selector": "[data-audit=\"index\"] a.cl-section-index-link",
       "property": "font-size",
       "expected": "10.5px",
-      "actual": "10.5px",
-      "status": "MATCH",
+      "actual": "12.5px",
+      "status": "MISMATCH",
       "note": "DetailShell.tsx: `S{i+1} · {label}`, 10.5px/700, min-height 44px."
     },
     {
