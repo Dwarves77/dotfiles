@@ -38,6 +38,10 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
 - Artboard 19 — the masthead line: four candidates, currently rendering the band-proportion
   gradient rule. Confirm before build.
 - Artboard 18 — section treatment on the page: four candidates, one to be applied everywhere.
+  **CLOSED by Claude Design rulings 5.1/5.2 (operator, 2026-09-07):** SectionRule (3px, full card
+  width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`) is
+  the answer everywhere except the three BandGradientRule homes (sidebar nav cap, mobile drawer,
+  TopBar mobile bar). Sitewide rollout is IN PROGRESS, not complete — see GAP G1 below.
 
 ## Open items (NOT YET DONE)
 
@@ -84,6 +88,39 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   existing for it), but the section index is now built without ever having had its own artboard,
   flagged here for the operator to confirm the built shape matches what the eventual artboard will
   show, rather than silently trusting prose-only R9 forever.
+
+- **GAP G1 (TRAIN-57, 2026-09-07): SectionRule sitewide rollout is PARTIAL, not complete.** Mounted
+  this train: `DetailShell.tsx` (all 8 card sites: DetailHeader, DetailExposure, DetailTimeline,
+  DetailSection, AtAGlanceCard, RailLegend, ImpactRailCard, InThisListStat), `Masthead.tsx` (closes
+  ruling 5.2's explicit "masthead" mention, which the uxfix-system lane's own 5.2 audit had not
+  caught), `ListSurfaceShell.tsx`'s `Card` (covers all four ledgers, with a `noRule` opt-out for the
+  per-band card whose `BandSectionHeader` already carries a band-colour top accent), `AccountCard`
+  (`AccountPrimitives.tsx`), `MapPageView.tsx`'s `Card`/`CardHead`, `WatchlistSurface.tsx`'s card.
+  **NOT reached, still carrying a plain border-bottom or no rule at all:** admin cards
+  (`admin/redesign/*`), the community table card (`CommunityRooms.tsx` and siblings), auth/onboarding
+  panels. Locked by `fsi-app/src/components/ui/SectionRule.coverage.npmtest.mjs` (a positive
+  allowlist of what this train touched, explicitly not a full repo walk). Full detail in
+  `DEVIATION-LOG.md`'s "GAP G1 (TRAIN-57 dispatch)" entry. Needs a follow-up lane to finish the
+  remaining surfaces.
+- **GAP G2 (TRAIN-57, 2026-09-07): detail-page command bar restored, CLOSED.** uxfix-detail's
+  deletion of the second ask box had left all four detail surfaces (regulations, market, research,
+  operations) with no command bar at all. Fixed by mounting the shared `Masthead` (via a new
+  `DetailMasthead` wrapper in `DetailShell.tsx`, carrying CommandBar + VOL line + breadcrumb) on all
+  four `*DetailSurface.tsx` components, per artboard 03 and ruling R4; `DetailHeader` now renders
+  only chips/tags/actions (title moved fully into the Masthead mount, confirmed against the artboard
+  showing the title exactly once). Verified against `detail-surfaces-smoke.mjs` at 1440.
+- **GAP G3 (TRAIN-57, 2026-09-07): Anton title letter-spacing unified to 0.04em, CLOSED.** Was
+  0.04em only on `Masthead.tsx`; `DetailSection`, `DetailHeader`(pre-move), and dashboard's
+  `SectionHeading` were at 0.02em. Also fixed `PageMasthead.tsx`, `WatchlistSurface.tsx`, and
+  `MapPageView.tsx`'s `CardHead` to the same token. Locked by
+  `fsi-app/src/components/ui/AntonTitleLetterSpacing.npmtest.mjs`.
+- **GAP G4 (TRAIN-57, 2026-09-07): PPWR title (audit item 1.2) re-verified live, CONFIRMED.** A new
+  Playwright script (`fsi-app/.discipline/rendering/verify-ppwr-title-style.mjs`, wired as
+  `npm run verify:ppwr-title-style`) mounted the exact production title
+  `EU Packaging and Packaging Waste Regulation (PPWR)` / slug `eu-ppwr-2025-40` and read
+  `getComputedStyle` directly: `fontFamily: "Anton, system-ui, sans-serif"`,
+  `textTransform: "uppercase"`, `letterSpacing: "1.12px"` at `fontSize: "28px"` (= 0.04em). PASS.
+  See `DEVIATION-LOG.md`'s "GAP G4" entry for the full computed-style record.
 
 ## Regenerating the built screenshots
 
