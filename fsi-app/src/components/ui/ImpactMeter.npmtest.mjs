@@ -33,6 +33,7 @@ test("full variant is untouched — still the bare em-dash unscored render, no A
   assert.match(SOURCE, /: <span style=\{\{ fontSize: "var\(--fs-11\)", color: "var\(--ink-3\)" \}\}>—<\/span>/);
 });
 
-test("unscored baseline narrows 40px -> 30px below 768px (row variant only)", () => {
-  assert.match(SOURCE, /\.cl-impact-baseline\s*\{\s*width:\s*30px/);
+test("operator audit item 2.1 (2026-09-07): unscored row-variant baseline is 30px at every viewport, desktop and mobile", () => {
+  assert.match(SOURCE, /width: variant === "full" \? 96 : 30/);
+  assert.doesNotMatch(SOURCE, /variant === "full" \? 96 : 40/);
 });
