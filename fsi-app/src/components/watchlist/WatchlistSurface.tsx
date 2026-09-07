@@ -1,407 +1,240 @@
 "use client";
 
 /**
- * WatchlistSurface — the full /watchlist page. The dashboard rail shows three
- * rows; this shows every row the reader returned, in the same order, with the
- * filters a long list needs.
+ * WatchlistSurface — /watchlist (UI system handoff 2026-09-06, artboard 11
+ * "Watchlist": the SAME row anatomy, but ONE flat block sorted by next
+ * date — no band tiles, no band grouping. This is the one place this
+ * lane's dispatch's "all five use BandTile x4" instruction conflicts with
+ * the artboard; the artboard wins per README's own rule ("where README
+ * prose and a page artboard disagree, the artboard wins") and the
+ * operator's "just as the page renderings look" ruling — logged in
+ * DEVIATION-LOG.md.
  *
- * ORDER IS THE SERVER'S. fetchWatchlist returns rows already sorted: the
- * caller's stored drag order first, then recency for anything unplaced. This
- * component MUST NOT re-sort. Filtering preserves relative order (Array.filter
- * is order-preserving), so a filtered view is a subsequence of the canonical
- * one and the rail and the page can never disagree about precedence.
+ * REWRITTEN this lane (UILISTS, 2026-09-06). Assembled from
+ * src/components/ui/ parts directly (Masthead+CommandBar, ListRow,
+ * StateNote) rather than ListSurfaceShell, since the layout genuinely
+ * differs (flat list, no tiles/facets) — see list-surface-helpers.ts's
+ * `withListPosition` reused here for the same detail-return contract the
+ * other four surfaces use.
  *
- * NO DRAG HERE, deliberately. The standing ruling is to put drag on the main
- * surfaces (Regulations / Market / Research / Operations). The watchlist rail
- * already consumes the stored `watchlist` order on the read side, so a row
- * dragged on its home surface is reflected here without this page owning a
- * second write path for the same order.
+ * DATA: unchanged read path (fetchWatchlist via getWatchlistFull). The
+ * band/impact/timeline/tier fields on each row are additive columns this
+ * lane added to that SAME bounded lookup — see WatchlistItem's own header
+ * in src/lib/supabase-server.ts — never a second query. source/
+ * market_series rows carry none of them and render the Absence convention.
  *
- * LABELS AND HREFS COME FROM watchlist-links.ts, not from a table typed into
- * this file. A component-local map is how the dashboard rail ended up pointing
- * `signal` rows at a fragment that matches nothing and `source` rows at a route
- * that does not exist: nothing ties a hand-typed table to the real route tree.
- * One module, two consumers.
- *
- * HONEST STATES (§4). Three distinct empty conditions, three distinct messages:
- * nothing watched at all (with a recovery CTA to somewhere watchable), nothing
- * matching the current filters (with a clear-filters recovery), and a list
- * standing at the read cap (stated out loud rather than presented as complete).
+ * NO DRAG HERE, unchanged from the previous version (see its own note,
+ * preserved below).
  */
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { Masthead } from "@/components/ui/Masthead";
+import { ListRow } from "@/components/ui/ListRow";
+import { StateNote } from "@/components/ui/StateNote";
+import { Absence } from "@/components/ui/Absence";
+import { WatchButton } from "@/components/ui/WatchButton";
+import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { withListPosition } from "@/components/list-surface/list-surface-helpers";
+import { bandFromPriority } from "@/lib/urgency/bands";
+import { scoreResource } from "@/lib/scoring";
+import { formatLocaleDate } from "@/lib/format";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
+import type { Resource } from "@/types/resource";
 
 type ScopeFilterValue = "all" | WatchlistScope;
 type TypeFilterValue = "all" | WatchlistItemType;
 
+const LIST_KEY = "watchlist";
+
 export interface WatchlistSurfaceProps {
   items: WatchlistItem[];
-  /** The per-scope bound the server read with, so the surface can say so when
-   *  the list is standing at it rather than implying the list is complete. */
   limit: number;
 }
 
-function ScopeBadge({ scope }: { scope: WatchlistScope }) {
-  const isTeam = scope === "team";
-  return (
-    <span
-      title={
-        isTeam
-          ? "On the workspace watchlist — every member of your organization sees this row."
-          : "On your personal watchlist — only you see this row."
-      }
-      style={{
-        display: "inline-block",
-        marginLeft: 6,
-        padding: "1px 5px",
-        borderRadius: 3,
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: 0.3,
-        textTransform: "uppercase",
-        color: isTeam ? "var(--color-primary)" : "var(--color-text-muted)",
-        background: "var(--color-bg-raised)",
-        border: "1px solid var(--color-border)",
-        verticalAlign: "middle",
-      }}
-    >
-      {isTeam ? "Team" : "Personal"}
-    </span>
-  );
+/** Days until an item's compliance deadline, or null when it carries none —
+ *  same UTC day math as src/lib/dashboard/row-fields.ts's dueInfo, kept
+ *  local since WatchlistItem is not a Resource (no timeline array to also
+ *  scan). */
+function dueInfo(deadline: string | null | undefined): { label: string; days: string } | null {
+  if (!deadline) return null;
+  const today = Date.now();
+  const d = new Date(deadline + (deadline.length === 10 ? "T00:00:00Z" : ""));
+  const ms = d.getTime();
+  if (Number.isNaN(ms) || ms < today) return null;
+  const diff = Math.round((ms - today) / 86400000);
+  const label = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(ms);
+  return { label, days: `${diff} day${diff === 1 ? "" : "s"}` };
 }
-
-/** The row body. Rendered inside a Link when the type has a detail surface, and
- *  bare when it does not — see watchlistHref: null is a real answer there, and
- *  an unlinked row is more honest than a click that dead-ends. */
-function RowBody({ item }: { item: WatchlistItem }) {
-  return (
-    <>
-      <p
-        style={{
-          fontSize: 10.5,
-          fontWeight: 700,
-          color: "var(--color-text-muted)",
-          margin: 0,
-        }}
-      >
-        {item.source}
-        <ScopeBadge scope={item.scope} />
-      </p>
-      <p
-        style={{
-          fontSize: 14,
-          fontWeight: 700,
-          color: "var(--color-text-primary)",
-          margin: "3px 0 0",
-          lineHeight: 1.35,
-        }}
-      >
-        {item.title}
-      </p>
-      <p
-        style={{
-          fontSize: 11,
-          color: "var(--color-text-muted)",
-          margin: "4px 0 0",
-        }}
-      >
-        <RelativeTime iso={item.lastChangedAt} /> · {WATCHLIST_TYPE_LABEL[item.type]}
-        {item.jurisdiction ? ` · ${item.jurisdiction}` : ""}
-        {item.scope === "team" && item.addedBy ? ` · added by ${item.addedBy}` : ""}
-      </p>
-      {item.scope === "team" && item.note ? (
-        <p
-          style={{
-            fontSize: 11.5,
-            color: "var(--color-text-secondary)",
-            margin: "4px 0 0",
-            lineHeight: 1.4,
-          }}
-        >
-          {item.note}
-        </p>
-      ) : null}
-    </>
-  );
-}
-
-const SELECT_STYLE: React.CSSProperties = {
-  fontSize: 12,
-  fontWeight: 600,
-  color: "var(--color-text-primary)",
-  background: "var(--color-bg-surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 6,
-  padding: "6px 10px",
-  minHeight: 34,
-};
-
-const LABEL_STYLE: React.CSSProperties = {
-  fontSize: 10,
-  fontWeight: 800,
-  letterSpacing: "0.13em",
-  textTransform: "uppercase",
-  color: "var(--color-text-muted)",
-  display: "block",
-  margin: "0 0 4px",
-};
 
 export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
   const [scope, setScope] = useState<ScopeFilterValue>("all");
   const [type, setType] = useState<TypeFilterValue>("all");
+  const [query, setQuery] = useState("");
 
-  // Only offer type options the user actually has rows for. A select listing
-  // five types when the list holds two is a filter that mostly produces empty
-  // states. Derived from the loaded corpus, in first-appearance order so the
-  // option list inherits the same precedence as the rows.
   const presentTypes = useMemo(() => {
     const seen: WatchlistItemType[] = [];
-    for (const item of items) {
-      if (!seen.includes(item.type)) seen.push(item.type);
-    }
+    for (const item of items) if (!seen.includes(item.type)) seen.push(item.type);
     return seen;
   }, [items]);
 
-  const hasTeamRows = useMemo(
-    () => items.some((i) => i.scope === "team"),
-    [items]
-  );
+  const hasTeamRows = useMemo(() => items.some((i) => i.scope === "team"), [items]);
 
-  const visible = useMemo(
-    () =>
-      items.filter(
-        (i) =>
-          (scope === "all" || i.scope === scope) &&
-          (type === "all" || i.type === type)
-      ),
-    [items, scope, type]
-  );
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return items.filter(
+      (i) =>
+        (scope === "all" || i.scope === scope) &&
+        (type === "all" || i.type === type) &&
+        (!q || i.title.toLowerCase().includes(q) || (i.jurisdiction ?? "").toLowerCase().includes(q)),
+    );
+  }, [items, scope, type, query]);
 
-  const filtered = scope !== "all" || type !== "all";
+  const filtered = scope !== "all" || type !== "all" || query.trim().length > 0;
   const atCap = items.length >= limit;
-
-  const mastheadMeta = filtered
-    ? `${visible.length} of ${items.length} watched`
-    : `${items.length} watched`;
 
   return (
     <>
-      <EditorialMasthead title="Watchlist" meta={mastheadMeta} />
-
-      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 80px" }}>
-        {atCap ? (
-          <p
-            role="status"
-            style={{
-              fontSize: 11.5,
-              color: "var(--color-text-secondary)",
-              background: "var(--color-bg-raised)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 6,
-              padding: "8px 12px",
-              margin: "0 0 16px",
-              lineHeight: 1.5,
-            }}
-          >
-            Showing the most recent {limit} watched items per scope. Older
-            watches exist but are not listed here.
-          </p>
-        ) : null}
-
-        {items.length > 0 ? (
-          <div
-            style={{
-              display: "flex",
-              flexWrap: "wrap",
-              alignItems: "flex-end",
-              gap: 14,
-              margin: "0 0 18px",
-            }}
-          >
-            {hasTeamRows ? (
-              <div>
-                <label htmlFor="watchlist-scope" style={LABEL_STYLE}>
-                  Scope
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Watchlist"
+          dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+          commandBar={{ itemCount: items.length, onSearch: setQuery, scope: "watchlist" }}
+        />
+      </div>
+      <div
+        style={{ padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
+        className="cl-list-surface-grid"
+      >
+        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          {items.length > 0 && (
+            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14 }}>
+              {hasTeamRows && (
+                <label style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
+                  Scope{" "}
+                  <select id="watchlist-scope" value={scope} onChange={(e) => setScope(e.target.value as ScopeFilterValue)} style={{ fontFamily: "inherit" }}>
+                    <option value="all">All</option>
+                    <option value="personal">Personal</option>
+                    <option value="team">Team</option>
+                  </select>
                 </label>
-                <select
-                  id="watchlist-scope"
-                  value={scope}
-                  onChange={(e) => setScope(e.target.value as ScopeFilterValue)}
-                  style={SELECT_STYLE}
-                >
-                  <option value="all">All scopes</option>
-                  <option value="personal">Personal</option>
-                  <option value="team">Team</option>
-                </select>
-              </div>
-            ) : null}
-
-            {presentTypes.length > 1 ? (
-              <div>
-                <label htmlFor="watchlist-type" style={LABEL_STYLE}>
-                  Type
+              )}
+              {presentTypes.length > 1 && (
+                <label style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
+                  Type{" "}
+                  <select id="watchlist-type" value={type} onChange={(e) => setType(e.target.value as TypeFilterValue)} style={{ fontFamily: "inherit" }}>
+                    <option value="all">All</option>
+                    {presentTypes.map((t) => (
+                      <option key={t} value={t}>
+                        {WATCHLIST_TYPE_LABEL[t]}
+                      </option>
+                    ))}
+                  </select>
                 </label>
-                <select
-                  id="watchlist-type"
-                  value={type}
-                  onChange={(e) => setType(e.target.value as TypeFilterValue)}
-                  style={SELECT_STYLE}
-                >
-                  <option value="all">All types</option>
-                  {presentTypes.map((t) => (
-                    <option key={t} value={t}>
-                      {WATCHLIST_TYPE_LABEL[t]}
-                    </option>
-                  ))}
-                </select>
+              )}
+            </div>
+          )}
+
+          <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", overflow: "hidden" }}>
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid var(--line-2)" }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: "0.02em", textTransform: "uppercase", color: "var(--ink)" }}>
+                Watched · {items.length}
+              </span>
+              <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Sorted by next date</span>
+            </div>
+
+            {atCap && (
+              <div style={{ padding: "10px 16px" }}>
+                <StateNote>Showing the most recent {limit} watched items per scope. Older watches exist but are not listed here.</StateNote>
               </div>
-            ) : null}
+            )}
 
-            {filtered ? (
-              <button
-                type="button"
-                onClick={() => {
-                  setScope("all");
-                  setType("all");
-                }}
-                style={{
-                  fontSize: 11.5,
-                  fontWeight: 800,
-                  color: "var(--color-primary)",
-                  background: "transparent",
-                  border: "none",
-                  cursor: "pointer",
-                  padding: "8px 0",
-                  minHeight: 34,
-                }}
-              >
-                Clear filters
-              </button>
-            ) : null}
-          </div>
-        ) : null}
-
-        {items.length === 0 ? (
-          <div
-            style={{
-              border: "1px dashed rgba(0,0,0,0.25)",
-              borderRadius: 6,
-              background: "var(--color-bg-base)",
-              padding: "18px 20px",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--color-text-secondary)",
-                lineHeight: 1.55,
-                margin: "0 0 10px",
-              }}
-            >
-              Nothing watched yet. Watch any regulation, market signal, research
-              finding, or operations profile to follow its updates here, and use
-              the team scope to flag one for the whole workspace.
-            </p>
-            <Link
-              href="/regulations"
-              prefetch={false}
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: "var(--color-primary)",
-                textDecoration: "none",
-              }}
-            >
-              Browse what to watch →
-            </Link>
-          </div>
-        ) : visible.length === 0 ? (
-          <div
-            style={{
-              border: "1px dashed rgba(0,0,0,0.25)",
-              borderRadius: 6,
-              background: "var(--color-bg-base)",
-              padding: "18px 20px",
-            }}
-          >
-            <p
-              style={{
-                fontSize: 13,
-                color: "var(--color-text-secondary)",
-                lineHeight: 1.55,
-                margin: "0 0 10px",
-              }}
-            >
-              No watched items match these filters. You have {items.length} in
-              total.
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setScope("all");
-                setType("all");
-              }}
-              style={{
-                fontSize: 12,
-                fontWeight: 800,
-                color: "var(--color-primary)",
-                background: "transparent",
-                border: "none",
-                cursor: "pointer",
-                padding: 0,
-              }}
-            >
-              Clear filters →
-            </button>
-          </div>
-        ) : (
-          <ul
-            style={{
-              listStyle: "none",
-              margin: 0,
-              padding: 0,
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
-            }}
-          >
-            {visible.map((item) => {
-              const href = watchlistHref(item);
-              return (
-                <li
-                  key={`${item.scope}:${item.type}:${item.id}`}
-                  style={{
-                    background: "var(--color-bg-surface)",
-                    border: "1px solid var(--color-border)",
-                    borderRadius: 8,
-                    padding: "14px 16px",
+            {items.length === 0 ? (
+              <div style={{ padding: 16 }}>
+                <StateNote action={{ label: "Browse what to watch →", href: "/regulations" }}>
+                  Nothing watched yet. Watch any row&apos;s ⋯ menu, or a Watch button on a detail page, to follow it here.
+                </StateNote>
+              </div>
+            ) : visible.length === 0 ? (
+              <div style={{ padding: 16 }}>
+                <StateNote
+                  action={{
+                    label: "Clear filters",
+                    onClick: () => {
+                      setScope("all");
+                      setType("all");
+                      setQuery("");
+                    },
                   }}
                 >
-                  {href ? (
-                    <Link
-                      href={href}
-                      prefetch={false}
-                      style={{
-                        display: "block",
-                        textDecoration: "none",
-                        color: "inherit",
-                      }}
-                    >
-                      <RowBody item={item} />
-                    </Link>
+                  No watched items match these filters. You have {items.length} in total.
+                </StateNote>
+              </div>
+            ) : (
+              visible
+                .map((item) => {
+                  const href = watchlistHref(item);
+                  const band = item.priority ? bandFromPriority(item.priority) : null;
+                  const due = dueInfo(item.complianceDeadline);
+                  const impact =
+                    item.impactScores ??
+                    (item.priority ? scoreResource({ type: item.type, priority: item.priority, tags: [], cat: "global" } as unknown as Resource) : null);
+                  const metaParts = [WATCHLIST_TYPE_LABEL[item.type]];
+                  if (item.scope === "team" && item.addedBy) metaParts.push(`added by ${item.addedBy}`);
+                  return { item, href, band, due, impact, metaParts };
+                })
+                .map(({ item, href, band, due, impact, metaParts }, i) =>
+                  href && band ? (
+                    <ListRow
+                      key={`${item.scope}:${item.type}:${item.id}`}
+                      href={withListPosition(href, LIST_KEY, i + 1, visible.length)}
+                      band={band}
+                      jurisdiction={(item.jurisdiction || "global").slice(0, 6).toUpperCase()}
+                      title={item.title}
+                      meta={
+                        <span>
+                          {metaParts.join(" · ")} · watched <RelativeTime iso={item.lastChangedAt} />
+                        </span>
+                      }
+                      impact={impact}
+                      due={due}
+                      timeline={null}
+                      tier={item.sourceTier ?? null}
+                      overflow={<WatchButton itemType={item.type} itemId={item.id} />}
+                    />
                   ) : (
-                    <RowBody item={item} />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
-        )}
+                    <div
+                      key={`${item.scope}:${item.type}:${item.id}`}
+                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line-3)" }}
+                    >
+                      <span style={{ minWidth: 0 }}>
+                        <span data-guard-title style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink)" }}>{item.title}</span>
+                        <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
+                          {WATCHLIST_TYPE_LABEL[item.type]} · watched <RelativeTime iso={item.lastChangedAt} />
+                        </span>
+                      </span>
+                      <Absence reason="not in primary source" />
+                    </div>
+                  ),
+                )
+            )}
+
+            <div style={{ padding: "10px 16px" }}>
+              <StateNote>Watch from any row&apos;s ⋯ menu or the Watch button on a detail page.</StateNote>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <RailCard title="Share with workspace">
+            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>
+              A shared watchlist puts the same rows on every member&apos;s dashboard. Team-watch any row to add it.
+            </p>
+          </RailCard>
+          <LegendRailCard />
+        </div>
       </div>
     </>
   );
