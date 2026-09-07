@@ -34,7 +34,12 @@ import { StateNote } from "@/components/ui/StateNote";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
 import { SkeletonListRow, SkeletonBandTile } from "@/components/ui/Skeleton";
 import { BAND_ORDER, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
+import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 import type { FacetOption } from "./list-surface-helpers";
+
+// PERF-12: only worth windowing once a band's expanded row count clears the perBandCap-collapsed
+// case by a wide margin. 30 rows unwindowed is cheap; a band expanded to hundreds is not.
+const VIRTUALIZE_THRESHOLD = 30;
 
 export interface ListSurfaceFacetGroup {
   key: string;
@@ -88,6 +93,13 @@ export interface ListSurfaceShellProps {
 
   emptyState?: ReactNode;
   stateNote?: ReactNode;
+
+  /** Extra content rendered at the FOOT of the primary card column, below
+   *  stateNote — restored this lane (UILISTS2, 2026-09-07) for Regulations'
+   *  DismissedStash disclosure (an app feature not shown in the 17
+   *  artboards, restored exactly per operator ruling, not redesigned).
+   *  Optional: the other four surfaces this shell serves pass nothing. */
+  belowRows?: ReactNode;
 
   rail: ReactNode;
 }
@@ -157,6 +169,7 @@ export function ListSurfaceShell({
   loadingMoreRows,
   emptyState,
   stateNote,
+  belowRows,
   rail,
 }: ListSurfaceShellProps) {
   const anyRows = rowsByBand.some((b) => b.rows.length > 0);
@@ -273,10 +286,29 @@ export function ListSurfaceShell({
                 return (
                   <Card key={section.band.key}>
                     <BandSectionHeader band={section.band} total={section.total} showing={visible.length} />
-                    {visible.map((row) => {
-                      const { key, ...rowProps } = row;
-                      return <ListRow key={key} {...rowProps} />;
-                    })}
+                    {visible.length > VIRTUALIZE_THRESHOLD ? (
+                      // PERF-12 (restored UILISTS2 lane, 2026-09-07): a band expanded to its full
+                      // count can seat hundreds of rows (regulations' ~1,316-row corpus is not
+                      // evenly split across 4 bands) — windowed so an expanded band never mounts
+                      // more DOM rows than the viewport needs. Below the threshold, plain rows: the
+                      // common case (collapsed, perBandCap-capped) never pays a virtualizer's setup
+                      // cost for 5 rows. Row anatomy is identical either way — this only decides
+                      // which rows mount, per ListRow.tsx's own contract.
+                      <VirtualizedRowList
+                        rows={visible}
+                        rowHeight={56}
+                        getRowId={(row) => row.key}
+                        renderRow={(row) => {
+                          const { key, ...rowProps } = row;
+                          return <ListRow {...rowProps} />;
+                        }}
+                      />
+                    ) : (
+                      visible.map((row) => {
+                        const { key, ...rowProps } = row;
+                        return <ListRow key={key} {...rowProps} />;
+                      })
+                    )}
                     {loadingMoreRows && <SkeletonListRow />}
                     {section.total > visible.length && onExpandBand && (
                       <div style={{ padding: "10px 16px" }}>
@@ -313,6 +345,7 @@ export function ListSurfaceShell({
           )}
 
           {stateNote && anyRows && <div>{stateNote}</div>}
+          {belowRows}
         </div>
 
         {/* Rail */}

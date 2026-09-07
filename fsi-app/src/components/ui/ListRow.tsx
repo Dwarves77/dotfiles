@@ -16,18 +16,14 @@
  * target); this is the only one. Title truncates with ellipsis; meta
  * line is 11px muted.
  *
- * RESPONSIVE COLLAPSE, added additively this lane (UILISTS, 2026-09-06,
- * RD-60/F35 — the rendering guard's own phone-width pass, ux-smoke-specs.mjs):
- * the desktop grid's fixed columns alone (3+56+88+84+76+40+44 = 391px) plus
- * 7×14px gaps (98px) need ~489px before the 1fr title column gets anything,
- * so below 640px the row overflowed its card, titles measured near-zero
- * width, and several targets lost their neighbour clearance — none of that
- * is in the artboards (drawn at 1440px) or the README grid spec, which
- * names only the desktop shape. Below 640px this collapses to a 2-row grid
- * (spine+jurisdiction+title+⋯ on row 1; impact/due/timeline/tier as one
- * wrapped flex strip on row 2) via `.cl-row-*` classes — the same
- * shape every pre-existing row component in this app (`.cl-row`/
- * `.cl-row__aside`, globals.css) already uses for this exact problem.
+ * Desktop-only (README: 1440px desktop only, Claude Design is producing 390px
+ * mobile artboards separately). This lane's own <640px responsive collapse
+ * (UILISTS, 2026-09-06) is removed per operator ruling 2026-09-07: mobile is
+ * not designed in this bundle, so no page in it gets an ad hoc collapse ahead
+ * of the real mobile artboards. Logged in DEVIATION-LOG.md. The
+ * `data-guard-title` attribute and the row-Link's `right: 12` inset (so the
+ * Link's box never overlaps the ⋯ cell's own control) are kept — neither is
+ * mobile-specific.
  */
 
 import Link from "next/link";
@@ -100,35 +96,14 @@ export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string })
   );
 }
 
-// Responsive collapse (<=640px), NOT part of the artboard (README §"Open decisions": mobile 390 is
-// "not yet designed, captures needed" — desktop 1440 is the only fidelity target). Every list page
-// this row anatomy serves is currently desktop-only, so this is a provisional, disclosed concession
-// to keep the shared part usable rather than overflowing the viewport, logged in DEVIATION-LOG.md
-// as follow-up for whichever lane runs the mobile design pass. It hides the impact meter and
-// timeline (both remain on the detail page) and stacks jurisdiction/title/due/tier into two lines,
-// trading the spine COLUMN for a border-left in the row's own band colour (`--row-band`).
+// Desktop-only (README: 1440px desktop only; mobile artboards are a separate, not-yet-landed
+// track). No <=640px collapse here — operator ruling 2026-09-07: no page gets an ad hoc mobile
+// treatment ahead of the real mobile artboards. Logged in DEVIATION-LOG.md. Known consequence:
+// the rendering guard's 375px UX smoke checks for the five list rows fail (rows clip past the
+// viewport at that width) — expected, not a regression, until the operator picks a desktop-only
+// guard exemption or a temporary stacking rule.
 const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
-  @media (max-width: 640px) {
-    .cl-list-row-header { display: none !important; }
-    .cl-list-row {
-      display: flex !important;
-      flex-wrap: wrap !important;
-      align-items: center !important;
-      min-height: 0 !important;
-      padding: 10px 44px 10px 12px !important;
-      gap: 4px 10px !important;
-      border-left-color: var(--row-band) !important;
-    }
-    .cl-list-row .cl-row-spine,
-    .cl-list-row .cl-row-impact,
-    .cl-list-row .cl-row-timeline { display: none !important; }
-    .cl-list-row .cl-row-juris { order: 1; flex: 0 0 auto; }
-    .cl-list-row .cl-row-title { order: 2; flex: 1 1 100%; min-width: 0; padding: 0 !important; }
-    .cl-list-row .cl-row-due { order: 3; flex: 0 0 auto; align-items: flex-start !important; }
-    .cl-list-row .cl-row-tier { order: 4; flex: 0 0 auto; margin-left: auto; }
-    .cl-list-row .cl-row-overflow { position: absolute !important; right: 0; top: 0; bottom: 0; }
-  }
 `;
 
 export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow }: ListRowProps) {
@@ -149,9 +124,8 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
     >
       <style>{RESPONSIVE_CSS}</style>
       <span className="cl-row-spine" aria-hidden="true" style={{ background: band.cssVar }} />
-      {/* Column span excludes the spine (col 1) AND the ⋯ overflow cell (last column) in both the
-          desktop 8-column grid and the mobile collapse — the row Link never shares a box with the
-          Watch/⋯ button. */}
+      {/* Column span excludes the spine (col 1) AND the ⋯ overflow cell (last column) — the row
+          Link never shares a box with the Watch/⋯ button. */}
       <Link
         href={href}
         prefetch={false}

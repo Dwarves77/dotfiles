@@ -36,7 +36,7 @@
  * priority dots are inline-block <span> with CSS background.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   PRIORITY_DISPLAY_LABEL_SHORT,
   type PriorityKey,
@@ -67,6 +67,14 @@ interface PriorityDropdownProps {
   onArchive?: () => void;
   /** Layout variant. "card" = ⋯ glyph button; "hero" = pill button. */
   variant?: "card" | "hero";
+  /** Extra content rendered at the TOP of the popover, above the priority
+   *  items, with its own bottom divider (UILISTS2 lane, 2026-09-07). Used
+   *  by RegulationsLedger's list rows to fold the row's Watch toggle into
+   *  the same 44px `⋯` control the artboard's list-row anatomy allots for
+   *  "rare and destructive" row actions, since the row grid has no second
+   *  44px cell to give it. OPTIONAL: omitted, existing mounts (the detail
+   *  page's hero pill) render exactly the menu they always have. */
+  menuTopContent?: ReactNode;
 }
 
 // Priority color tokens — mapped to the existing semantic --color-*
@@ -114,6 +122,7 @@ export function PriorityDropdown({
   onDismiss,
   onArchive,
   variant = "card",
+  menuTopContent,
 }: PriorityDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -271,6 +280,18 @@ export function PriorityDropdown({
             fontFamily: "inherit",
           }}
         >
+          {menuTopContent && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                padding: "6px 10px 10px",
+                marginBottom: 4,
+                borderBottom: "1px solid var(--color-border-subtle)",
+              }}
+            >
+              {menuTopContent}
+            </div>
+          )}
           {PRIORITY_ORDER.map((p) => {
             const t = PRIORITY_TOKENS[p];
             const isCurrent = !isDismissed && currentPriority === p;

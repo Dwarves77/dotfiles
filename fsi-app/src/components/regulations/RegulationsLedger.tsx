@@ -18,9 +18,24 @@
  * ImpactMeter (inside ListRow), MilestoneTimeline (inside ListRow), Chips
  * (TierChip inside ListRow; FilterChip/FilterChipGroup for facets),
  * StateNote, Masthead+CommandBar. The per-page ask bar and old row
- * components (RegRow/SortableRegRow/CardPriorityDropdown/DismissedStash)
- * are deleted, not left dormant (CLAUDE.md rule 13) — see this lane's
- * REPORT for the full list.
+ * components (RegRow/SortableRegRow, the drag-reorder Kanban shell) are
+ * deleted, not left dormant (CLAUDE.md rule 13) — see this lane's REPORT
+ * for the full list.
+ *
+ * RESTORED (UILISTS2 lane, 2026-09-07, operator ruling: an app feature not
+ * shown in the 17 artboards is restored exactly, never removed or
+ * restyled): the per-row manual priority retag + Dismiss action
+ * (PriorityDropdown.tsx, "card" variant) and the DismissedStash recovery
+ * disclosure the UILISTS lane's rebuild dropped. Both live in the
+ * artboard's own `⋯` row control (README §0.4: "the ⋯ control is a 28px
+ * glyph inside a 44px cell" — exactly where rare/destructive row actions
+ * belong), wired to the same `useResourceStore` workspace-override APIs
+ * (updatePriority/dismissResource/restoreDismissed) the pre-rebuild
+ * component used. The row's Watch toggle is folded into the SAME `⋯`
+ * popover via `PriorityDropdown`'s new `menuTopContent` slot — the 8-column
+ * row grid has only one 44px action cell, so a second full-size control
+ * cannot sit beside it without widening the shared grid (logged in
+ * DEVIATION-LOG.md).
  *
  * DATA: unchanged read paths. `initialResources` is regulations/page.tsx's
  * own LIST_FIRST_PAGE_SIZE (60) server-rendered page (toLedgerRowPayload-
@@ -44,6 +59,11 @@ import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { StateNote } from "@/components/ui/StateNote";
+import { useResourceStore, mergeWithOverrides } from "@/stores/resourceStore";
+import { usePersonalStateHydration } from "@/lib/hooks/usePersonalState";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { DismissedStash } from "@/components/regulations/DismissedStash";
+import type { PriorityKey } from "@/lib/constants";
 import {
   ListSurfaceShell,
   useRemainderFetch,
@@ -80,9 +100,22 @@ export interface RegulationsLedgerProps {
 }
 
 export function RegulationsLedger({ initialResources, aggregates, hasMore }: RegulationsLedgerProps) {
-  const { rows: allRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
+  const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
+
+  // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
+  // (UILISTS2, 2026-09-07). Overrides arrive via useWorkspaceOverridesHydration, mounted globally
+  // in AppShell.tsx; personalState is per-user, fetched here (same call the old component made).
+  const { overrides, updatePriority, dismissResource, restoreDismissed } = useResourceStore();
+  const personalState = useResourceStore((s) => s.personalState);
+  usePersonalStateHydration();
+
+  const { active, dismissed } = useMemo(
+    () => mergeWithOverrides(fetchedRows, overrides, personalState),
+    [fetchedRows, overrides, personalState]
+  );
+  const allRows = active;
 
   const filtered = useMemo(() => filterRows(allRows, filter), [allRows, filter]);
 
@@ -125,12 +158,20 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
-            overflow: <WatchButton itemType="reg" itemId={r.id} />,
+            overflow: (
+              <PriorityDropdown
+                variant="card"
+                currentPriority={(overrides.get(r.id)?.priorityOverride as PriorityKey | undefined) ?? (r.priority as PriorityKey)}
+                onSetPriority={(p) => updatePriority(r.id, p)}
+                onDismiss={() => dismissResource(r.id)}
+                menuTopContent={<WatchButton itemType="reg" itemId={r.id} />}
+              />
+            ),
           };
         }),
       };
     });
-  }, [filtered, filter.band]);
+  }, [filtered, filter.band, overrides, updatePriority, dismissResource]);
 
   const total = aggregates.totalItems || allRows.length;
 
@@ -160,6 +201,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
           </StateNote>
         )
       }
+      belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
       rail={
         <>
           <RailCard title="Filters">
