@@ -2925,6 +2925,44 @@ freshly-registered provisional source its class-table opinion.
 
 ---
 
+## 39. `remediate-orphan-sources`
+
+**New this runbook, lane F25-WAVE52, 2026-09-07** (F25 module-liveness expiry-52 disposition —
+`docs/audits/f25-wave52-dispositions-2026-09-07.md`). Written from
+`scripts/verify/remediate-orphan-sources.mjs`'s own header.
+
+**Purpose**: the REMEDIATION half of invariant SC-2-source-registration
+(`.discipline/governance/invariants.mjs`): a source-not-item item is registered as a scannable source,
+never archived-without-registration. `rule:019` (commit-time) and `migration:135` (DB guard) stop NEW
+orphans; `scripts/verify/orphan-source-audit.mjs` (wired into the data-audit lane, `.github/workflows/
+data-audit-lane.yml` — a different workflow from this one) DETECTS pre-existing orphans; this step FIXES
+them: (A) registers the host of a source-y archived item whose host is not yet an active registered
+source (`base_tier` by institutional type, operator-overridable, honest T4 default for an ambiguous
+host), (B) `reclassifyToSource` for the mis-labeled `source_not_item` portals whose host is already
+registered. Both through the guarded `db.mjs` path (snapshotted, cited).
+
+**What it does NOT do**: never guesses an institutional tier outside its own `classify()` table's
+patterns (falls back to the honest T4 default); halts a batch on the first write failure rather than
+continuing past an unverified registration (per-step verification).
+
+**Ruling**: none by token — a standing remediation pass over whatever the live orphan population is each
+time it runs, per the invariant's own residual note ("orphan-source-audit ... must reach 0 to clear
+pre-existing orphans").
+
+**Dispatch**: `mode=dry` reports the orphan population and the tier/role each would get, writes nothing.
+`mode=apply` registers/reclassifies each orphan through the guarded path with a read-back verify.
+`arg=<N>` bounds a batch via the target script's own `--limit=N` (omit for the full unbounded
+population).
+
+**Artifact / read back**: `summary.json` under `$OUT_ROOT/remediate-orphan-sources/` (`orphans_found`,
+and — apply only — `registered`/`failed`). Confirm against `scripts/verify/orphan-source-audit.mjs`'s own
+next run (the detector this step feeds) trending toward 0.
+
+**First dispatch** (coordinator): `mode=dry`, `step=remediate-orphan-sources`, no `arg` — the full
+population report (no write) to see the real orphan count and proposed tiers before any apply.
+
+---
+
 ## Appendix: `holdings-audit` — wired via the data-audit lane, not this runtime
 
 **New this runbook, lane ONESHOTS, 2026-09-06** (F25 expiry-52 disposition). `scripts/holdings-audit.mjs`
@@ -2943,3 +2981,30 @@ it needs a live `SELECT count(*) FROM holdings_quality`, not a dispatch root.
 **First dispatch** (coordinator): none needed to add — `data-audit-lane.yml`'s next scheduled/manual run
 picks up the new `holdings-audit` entry automatically; confirm the run's own printed summary shows a
 `holdings-audit` line (PASS/FAIL/ERROR, `[soft]`).
+
+---
+
+## Appendix: three more scripts/verify/ checks wired via the data-audit lane (lane F25-WAVE52, 2026-09-07)
+
+Same shape as `holdings-audit` above — none of these three are `.github/workflows/maintenance.yml`
+steps; all three are `run-data-audit-lane.mjs` `AUDITS` entries (SOFT/informational), dispatched via
+`.github/workflows/data-audit-lane.yml`'s existing nightly/CI-with-secrets run. See
+`docs/audits/f25-wave52-dispositions-2026-09-07.md` for why each was wired rather than deleted.
+
+- **`admin-phrase-scan`** (`scripts/verify/admin-phrase-scan.mjs`) — Unit 0c Part 4 (operator ruling
+  2026-07-13): scans `src/components/admin` + `src/components/profile` JSX for human-gate framing that
+  contradicts RD-20 (the machine gates ARE the approval). Filesystem-only, no DB creds, always exits 0.
+- **`defect-signature-scan`** (`scripts/verify/defect-signature-scan.mjs`) — ground-truth verification
+  unit (2026-07-15, ADR-014): S-CONFLATE/S-NUMERIC heuristic triage over FACT claims. Lane F25-WAVE52
+  gave the bare (no-flag) invocation this lane's own `AUDITS` entry now uses a default `--since 24h ago`
+  frame (previously it required an explicit `--ids`/`--since`/`--all` flag and exited 2 with none given
+  — the same "since 24h ago" wave-boundary proxy `wave-acceptance-audit.mjs` already uses). A hit HOLDS
+  for live verification; never promotes or demotes anything itself.
+- **`surface-visibility`** (`scripts/verify/surface-visibility-audit.mjs`) — the "verified item hidden
+  from its surface" invariant (PPWR incident, 2026-07-08): opens `integrity_flags` rows (idempotent,
+  guarded) for a live verified item whose domain routes to no surface (`no_surface`) or the wrong one
+  (`cross_surface`).
+
+**First dispatch** (coordinator): none needed to add — `data-audit-lane.yml`'s next scheduled/manual run
+picks up all three automatically; confirm the run's own printed summary shows `admin-phrase-scan`,
+`defect-signature-scan`, and `surface-visibility` lines (PASS/FAIL/ERROR, `[soft]`).

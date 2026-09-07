@@ -35,7 +35,7 @@ on:
         required: true
         default: 'all'
         type: choice
-        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify]
+        options: [all, tier-opinions, w1-dispositions, origin-class-backfill, source-type-backfill, derive-obligations, seed-corridors, census-off-vertical, review-digests, review-apply-provisional-sources, review-apply-canonical-candidates, review-apply-portal-links, review-apply-coverage-gaps, tag-proposals, tag-ratification, apply-classifications, seed-benchmark-instruments, spec09-reroute, spec09-grid-queue, spec09-oem-roadmap, provenance-heal, migration-299-precheck, attach-found-sources, institution-canonicalize, reopen-validation-holds, record-hollow-sweep, canonical-key-dedup, forward-events-retext, propose-classifications, generate-theme-brief, ratify-flag-to-census, assumption-register-seed, backfill-lineage-edges, screen-worklist, verification-audit-report, spec09-surcharge-audit-csv, spec09-dqi-csv, spec09-auxiliary-energy-csv, spec09-indexation-csv, regen-quarantined, acquire-primaries, refetch-capped, source-role-cleanup, canonical-autoverify, remediate-orphan-sources]
       arg:
         description: 'Optional per-step argument (a ruling-acceptance token, an archive/park choice, a comma-separated proposal-id list, a --rows-file path checked into the repo for spec09-reroute/spec09-grid-queue/spec09-oem-roadmap, or "<csv-path>,<org-id>" for the four spec09-*-csv steps; see the runbook for which steps require one and what value they need).'
         required: false
@@ -790,6 +790,21 @@ jobs:
         run: |
           mkdir -p "$OUT_ROOT/canonical-autoverify"
           node scripts/maintenance/canonical-autoverify.mjs --mode "$RUN_MODE" --out "$OUT_ROOT/canonical-autoverify"
+
+      - name: remediate-orphan-sources
+        # scripts/verify/remediate-orphan-sources.mjs — lane F25-WAVE52, 2026-09-07, F25 module-liveness
+        # expiry-52 disposition (docs/audits/f25-wave52-dispositions-2026-09-07.md). The REMEDIATION half
+        # of invariant SC-2-source-registration (.discipline/governance/invariants.mjs): rule 019 +
+        # migration 135 stop NEW orphans; scripts/verify/orphan-source-audit.mjs (already wired, above in
+        # the data-audit lane, not this workflow) DETECTS pre-existing ones; this step FIXES them
+        # (registers the orphaned host, or reclassifies the 5 mis-labeled source_not_item portals). Had NO
+        # dispatch root anywhere (hand-run only) — this is that first runtime. Dry is read-only (no
+        # writes, safe in the 'all' dry fan-out); `arg=<N>` bounds an apply batch via the target's own
+        # `--limit=N` (omit for the full unbounded population).
+        if: env.RUN_STEP == 'remediate-orphan-sources' || (env.RUN_MODE == 'dry' && env.RUN_STEP == 'all')
+        run: |
+          mkdir -p "$OUT_ROOT/remediate-orphan-sources"
+          node scripts/maintenance/remediate-orphan-sources.mjs --mode "$RUN_MODE" --arg "$RUN_ARG" --out "$OUT_ROOT/remediate-orphan-sources"
 
       # Runs even when a step failed, so the log always ends with the true state of the tables rather
       # than only the exception that got there first (mirrors producers.yml's own Population AFTER).

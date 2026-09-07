@@ -43,7 +43,11 @@ function arg(flag) { const i = process.argv.indexOf(flag); return i >= 0 ? proce
 
 async function resolveFrame(db) {
   const ids = arg('--ids');
-  const since = arg('--since');
+  // No flag given defaults to `--since 24h ago` (lane F25-WAVE52, 2026-09-07, wiring this into
+  // run-data-audit-lane.mjs's nightly AUDITS table) — the same "since 24h ago" honest practical
+  // wave-boundary proxy wave-acceptance-audit.mjs already uses for its own identical bare-invocation
+  // shape. Explicit --ids/--since/--all invocations (this script's own documented usage) are unaffected.
+  const since = arg('--since') ?? (ids || process.argv.includes('--all') ? null : new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString());
   const all = process.argv.includes('--all');
   // Paginated (case-file 9): the frame + the agent_runs wave reads feed the defect-triage verdict; a month of
   // runs / the full non-archived corpus exceed PostgREST's 1000-row cap. All reads order by the unique id.

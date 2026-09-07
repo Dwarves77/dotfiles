@@ -331,9 +331,14 @@ test('auditLiveness: an expiry without a valid disposition is RED regardless of 
   assert.ok(problems.some((p) => /WITH EXPIRY BUT NO DISPOSITION/.test(p)));
 });
 
-test('every W7.1-widened allowlist entry (one carrying an expiry) has a valid disposition', () => {
+// Lane F25-WAVE52 (2026-09-07, docs/audits/f25-wave52-dispositions-2026-09-07.md) disposed of every
+// wave52-expiring entry — the whole point of that lane was to leave NONE carrying an expiry ("wire or
+// delete, an expiry is a deferred violation"). This test now asserts the post-disposition invariant
+// directly, and stays a real regression check on any FUTURE expiry entry (a later W7.1-style ratchet
+// wave), not only the ones this lane closed.
+test('no LEGACY_ALLOWLIST entry carries an expiry (2026-09-07 wave52 disposition closed every prior one), and any future one is valid', () => {
   const withExpiry = LEGACY_ALLOWLIST.filter((e) => e.expiry !== undefined);
-  assert.ok(withExpiry.length > 0, 'the widened scope actually produced expiry-bearing entries');
+  assert.equal(withExpiry.length, 0, 'every wave52-expiring entry was wired or deleted this lane');
   for (const e of withExpiry) {
     assert.ok(['wire', 'delete', 'one-shot'].includes(e.disposition && e.disposition.kind), `${e.file} disposition`);
     assert.ok(e.disposition.detail, `${e.file} disposition detail`);
@@ -342,13 +347,13 @@ test('every W7.1-widened allowlist entry (one carrying an expiry) has a valid di
 });
 
 // The widened scope's own shape: scripts/** in full (not just scripts/lib/**) and .discipline/** are now
-// covered — asserted against the SHIPPED fitnessFunction.check() logic indirectly via a scope-shaped
-// allowlist entry that only makes sense once the scope actually reaches those directories (e.g. a
-// scripts/verify/ entry existing at all proves the scope reaches there, since an entry for a file OUTSIDE
-// scope would trip nothing and be pointless to carry).
-test('the widened allowlist reaches scripts/** beyond scripts/lib/', () => {
-  const files = LEGACY_ALLOWLIST.map((e) => e.file);
-  assert.ok(files.some((f) => f.startsWith('fsi-app/scripts/verify/')), 'scripts/verify/ entries present');
+// covered. Asserted DIRECTLY against inWidenedScope (lane F25-WAVE52, 2026-09-07) rather than via a
+// still-allowlisted scripts/verify/ entry — every entry that lived there is now wired instead (the four
+// scripts/verify/ audits + the one scripts/maintenance/ remediation, per the 2026-09-07 disposition),
+// which is the scope working as designed, not evidence it stopped reaching scripts/verify/. Same idiom as
+// the inWidenedScope test for .discipline/governance/ and scripts/spec09/ below.
+test('the widened scope reaches scripts/verify/ beyond scripts/lib/', () => {
+  assert.ok(inWidenedScope('fsi-app/scripts/verify/some-new-audit.mjs', NO_MANIFEST));
 });
 
 // The widened scope's own reach into .discipline/governance/ and scripts/spec09/ is asserted DIRECTLY
@@ -384,13 +389,22 @@ test('parseBoundaryRegistryPaths: an unrelated backticked path outside governanc
   assert.deepEqual(parseBoundaryRegistryPaths(text), []);
 });
 
+// Lane F25-WAVE52 (2026-09-07): _reground/*.mjs rows resolve under fsi-app/scripts/, not fsi-app/.discipline/.
+test('parseBoundaryRegistryPaths: a backticked _reground/*.mjs path resolves under fsi-app/scripts/', () => {
+  const text = '| `_reground/lease.mjs` | usage | operator | doc |\n';
+  const found = parseBoundaryRegistryPaths(text);
+  assert.ok(found.includes('fsi-app/scripts/_reground/lease.mjs'));
+  assert.ok(!found.some((p) => p.startsWith('fsi-app/.discipline/_reground')));
+});
+
 test('findDispatchRoots Source 7: OUT-OF-REPO-BOUNDARY.md rows become dispatch roots', () => {
   const files = {
     '.github/workflows/example.yml': 'jobs: {}\n',
     'fsi-app/.discipline/governance/OUT-OF-REPO-BOUNDARY.md':
       '| x | `governance/pretooluse-skill-gate.mjs` | `governance/wire-pretooluse-settings.mjs` | check | here |\n' +
       '| `dispatch/start.mjs` | usage | operator | doc |\n' +
-      '| `install-hooks.mjs` | usage | operator | doc |\n',
+      '| `install-hooks.mjs` | usage | operator | doc |\n' +
+      '| `_reground/lease.mjs` | usage | operator | doc |\n',
   };
   const list = listOnly({ '.github/workflows/*.yml': ['.github/workflows/example.yml'] });
   const roots = findDispatchRoots('/repo', (f) => files[f], list);
@@ -398,6 +412,7 @@ test('findDispatchRoots Source 7: OUT-OF-REPO-BOUNDARY.md rows become dispatch r
   assert.ok(roots.has('fsi-app/.discipline/governance/wire-pretooluse-settings.mjs'));
   assert.ok(roots.has('fsi-app/.discipline/dispatch/start.mjs'));
   assert.ok(roots.has('fsi-app/.discipline/install-hooks.mjs'));
+  assert.ok(roots.has('fsi-app/scripts/_reground/lease.mjs'));
 });
 
 // The registry cannot rot silently: every path OUT-OF-REPO-BOUNDARY.md's tables actually name in THIS

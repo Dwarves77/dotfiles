@@ -118,6 +118,29 @@ const AUDITS = [
   // SOFT — a human editorial backlog (no deterministic classifier exists to auto-tag these; see
   // that file's header), never a build-blocking verdict. Self-skips (exit 2) without creds.
   ["mode-tag-coverage", "scripts/verify/mode-tag-coverage-audit.mjs", false],
+  // Lane F25-WAVE52 (2026-09-07): three scripts/verify/ files carried an F25 module-liveness expiry
+  // (wave52) with zero dispatch root anywhere. Disposition per docs/audits/f25-wave52-dispositions-2026-09-07.md
+  // — all three are recurring live-corpus checks (a fresh item can trip any of them at any time), not
+  // closed one-shots, so they are WIRED here rather than deleted.
+  //
+  // admin-phrase-scan.mjs — SOFT review signal (Unit 0c Part 4, operator ruling 2026-07-13): admin/
+  // profile JSX can re-introduce human-gate framing (RD-20) any time a new component is added. Always
+  // exits 0 (own header: "SOFT — never fails the build"), no DB creds needed — filesystem only.
+  ["admin-phrase-scan", "scripts/verify/admin-phrase-scan.mjs", false],
+  // defect-signature-scan.mjs — heuristic S-CONFLATE/S-NUMERIC triage (ground-truth verification unit,
+  // 2026-07-15/ADR-014) over FACT claims. Bare invocation now defaults its frame to `--since 24h ago`
+  // (this lane's own fix, resolveFrame()'s new default branch) — the same practical wave-boundary proxy
+  // wave-acceptance-audit.mjs already uses two lines above. SOFT: a hit means "hold for live
+  // verification", never a build-blocking verdict on its own (own header). Self-skips (exit 2) without
+  // SUPABASE_URL/SERVICE_ROLE_KEY.
+  ["defect-signature-scan", "scripts/verify/defect-signature-scan.mjs", false],
+  // surface-visibility-audit.mjs — the "verified item hidden from its surface" invariant (PPWR
+  // incident, 2026-07-08): a live item can be minted with a null/mis-set domain at any time, so this is
+  // a standing net, not a discharged one-shot (full-read-2026-08-31/L13-scripts-A.md finding #5 flagged
+  // it as the one write-capable audit in scripts/verify/ with no automated caller). SOFT — opens
+  // integrity_flags rows for operator review, never fails the lane on its own. Self-skips (exit 2)
+  // without NEXT_PUBLIC_SUPABASE_URL/SUPABASE_SERVICE_ROLE_KEY.
+  ["surface-visibility", "scripts/verify/surface-visibility-audit.mjs", false],
 ];
 
 const results = [];
