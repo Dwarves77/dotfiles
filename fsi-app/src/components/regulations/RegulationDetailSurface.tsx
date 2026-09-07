@@ -40,6 +40,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { FactCard } from "@/components/ui/FactCard";
 import { Absence } from "@/components/ui/Absence";
 import { StateNote } from "@/components/ui/StateNote";
+import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
   DetailTimeline,
@@ -175,6 +176,7 @@ export function RegulationDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          tagRow={<DetailTagRow itemId={String(r.id)} />}
           actions={
             <>
               <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />

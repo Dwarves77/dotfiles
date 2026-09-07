@@ -43,6 +43,7 @@ import { TagChip } from "@/components/ui/Chips";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { FactCard } from "@/components/ui/FactCard";
+import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
   DetailExposure,
@@ -178,6 +179,7 @@ export function ResearchFindingDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          tagRow={<DetailTagRow itemId={String(r.id)} />}
           extraChips={
             <>
               <TagChip>Finding</TagChip>

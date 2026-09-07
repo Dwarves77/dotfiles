@@ -33,7 +33,7 @@ import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
-import { TierChip } from "@/components/ui/Chips";
+import { TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
 import { Absence } from "@/components/ui/Absence";
 
 export interface ListRowProps {
@@ -64,6 +64,13 @@ export interface ListRowProps {
    * Watchlist, Dashboard) is unaffected.
    */
   endStat?: { label: string; value: string | number; band: UrgencyBand } | null;
+  /**
+   * Additive extension (lane uitags, 2026-09-07, README "Workspace tags" /
+   * ruling R6): the item's applied workspace tags, rendered on the second
+   * line beside `meta`. Undefined/empty renders nothing extra — every
+   * existing caller is unaffected.
+   */
+  tags?: { id: string; name: string }[] | null;
 }
 
 const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
@@ -119,7 +126,7 @@ const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags }: ListRowProps) {
   return (
     <div
       className="cl-list-row"
@@ -189,18 +196,37 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         >
           {title}
         </span>
-        {meta && (
+        {(meta || (tags && tags.length > 0)) && (
           <span
             style={{
-              fontSize: "var(--fs-11)",
-              color: "var(--ink-2)",
+              display: "flex",
+              alignItems: "center",
+              gap: 6,
               overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
               marginTop: 2,
             }}
           >
-            {meta}
+            {meta && (
+              <span
+                style={{
+                  fontSize: "var(--fs-11)",
+                  color: "var(--ink-2)",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  flexShrink: 1,
+                }}
+              >
+                {meta}
+              </span>
+            )}
+            {tags && tags.length > 0 && (
+              <span style={{ display: "flex", gap: 4, flexShrink: 0, position: "relative", zIndex: 1 }}>
+                {tags.map((t) => (
+                  <WorkspaceTagPill key={t.id} name={t.name} />
+                ))}
+              </span>
+            )}
           </span>
         )}
       </span>

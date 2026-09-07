@@ -45,6 +45,7 @@ import { Absence } from "@/components/ui/Absence";
 import { TagChip } from "@/components/ui/Chips";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
+import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
   DetailExposure,
@@ -174,6 +175,7 @@ export function OperationsDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          tagRow={<DetailTagRow itemId={String(r.id)} />}
           extraChips={
             <>
               <TagChip>Regional profile</TagChip>

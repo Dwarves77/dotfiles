@@ -31,15 +31,26 @@ test("endStat replaces columns 4-7 as one merged band-coloured stat, never a fif
   assert.match(SOURCE, /gridColumn:\s*"4 \/ span 4"/);
 });
 
-test("the row reflows (does not scroll) at phone width, per this codebase's established policy", () => {
-  assert.match(SOURCE, /@media \(max-width: 640px\)/);
-  assert.match(SOURCE, /display:\s*flex\s*!important;\s*flex-wrap:\s*wrap\s*!important/);
-  // A bare overflow-x:auto exemption is explicitly NOT the sanctioned fix (globals.css's
-  // .cl-row-grid comment) — this row must not reach for it as its mobile strategy.
-  assert.doesNotMatch(SOURCE, /overflowX:\s*["']auto["']/);
+// UPDATED (lane uitags, 2026-09-07): the fold assembling train/wave55 carried the operator's
+// 2026-09-07 ruling forward — no page gets an ad hoc mobile treatment ahead of the real mobile
+// artboards (see this file's own header comment and DEVIATION-LOG.md) — and removed the @media
+// mobile-reflow rule this test used to require. The row is desktop-only by design now; a phone-width
+// check belongs to the rendering guard's dated per-page exemption entries, not to this file.
+test("desktop-only by design: no phone-width @media reflow rule (removed per operator ruling 2026-09-07)", () => {
+  assert.doesNotMatch(SOURCE, /@media \(max-width: 640px\)/);
+  assert.match(SOURCE, /Desktop-only/);
 });
 
 test("the whole row stays the one click target — no second nested Link/button wraps the row", () => {
   const linkMatches = SOURCE.match(/<Link\b/g) || [];
   assert.equal(linkMatches.length, 1, "exactly one <Link> (the full-row overlay) — never a second competing click target");
+});
+
+// ── tags (lane uitags, 2026-09-07, README "Workspace tags" / ruling R6) ──
+test("tags is an optional prop, additive — every pre-existing caller (no tags passed) is unaffected", () => {
+  assert.match(SOURCE, /tags\?:\s*\{\s*id:\s*string;\s*name:\s*string\s*\}\[\]\s*\|\s*null;/);
+});
+test("tags render on the second line, beside meta — not a fifth grid column", () => {
+  assert.match(SOURCE, /tags && tags\.length > 0 && \(/);
+  assert.match(SOURCE, /WorkspaceTagPill/);
 });
