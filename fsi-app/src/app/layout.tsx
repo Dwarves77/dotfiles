@@ -15,7 +15,6 @@ import "@fontsource/plus-jakarta-sans/600.css";
 import "@fontsource/plus-jakarta-sans/700.css";
 import "@fontsource/plus-jakarta-sans/800.css";
 import "@fontsource/anton/400.css";
-import { ThemeInitializer } from "@/components/ThemeInitializer";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { AppShell } from "@/components/AppShell";
 import { GlobalErrorReporter } from "@/components/telemetry/GlobalErrorReporter";
@@ -60,19 +59,12 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="light"
-      suppressHydrationWarning
     >
       <head>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `try{document.documentElement.setAttribute('data-theme',localStorage.getItem('fsi-theme')||'light');document.documentElement.style.backgroundColor='#fafaf8'}catch(e){}`,
-          }}
-        />
       </head>
       <body className="antialiased">
         <AuthProvider>
-          <ThemeInitializer />
           {/* R0.2 first-party error tracking: window.onerror + unhandled-
               rejection reporter (renders nothing; per-session rate-limited). */}
           <GlobalErrorReporter />

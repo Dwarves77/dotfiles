@@ -12,8 +12,11 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variantStyles: Record<ButtonVariant, string> = {
+  // UI system handoff 2026-09-06 (README §0.4): "one primary per view, in
+  // ink #5A5552" — the --brand token (theme.css), not the pure-black
+  // --color-invert-bg this used to alias.
   primary:
-    "bg-[var(--color-invert-bg)] text-[var(--color-invert-text)] border-transparent hover:opacity-90 active:opacity-80",
+    "bg-[var(--brand)] text-white border-transparent hover:opacity-90 active:opacity-80",
   secondary:
     "border-[var(--color-border)] text-[var(--color-text-primary)] bg-transparent hover:bg-[var(--color-surface-raised)]",
   ghost:

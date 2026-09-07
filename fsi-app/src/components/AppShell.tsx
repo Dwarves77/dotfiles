@@ -87,22 +87,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // ever render past its initial visible+overscan window, and what makes a scroll gesture actually
   // move the infinite-scroll sentinel through the viewport instead of leaving it (and `<main>`'s
   // `scrollTop`) pinned wherever they started.
+  // UI system handoff 2026-09-06 (README §0.3): "Frame width 1440, page
+  // background #FAFAF8, canvas/desk #E9E6E0" — the desk sits BEHIND the
+  // 1440-wide frame; on a viewport wider than 1440 the desk shows as a
+  // margin either side, exactly like the mock's canvas artboards. The old
+  // 4px orange→blue top rule is retired: the frame's brand mark is now the
+  // nav card's own band-gradient cap (Sidebar.tsx's <BandGradientRule/>),
+  // not a second bar duplicating it at the page edge.
   return (
-    <div className="flex h-screen" style={{ backgroundColor: "var(--color-bg-base)" }}>
-      <Sidebar />
-      <div className="flex-1 min-w-0 flex flex-col">
-        {/* Masthead chrome — 4px orange → blue brand rule on every page
-            (redesign T02, HANDOFF §5). Identical on every surface. Shell
-            chrome, not part of the per-screen urgency budget. */}
-        <div
-          aria-hidden="true"
-          style={{
-            height: "4px",
-            background: "var(--gradient-brand)",
-            flexShrink: 0,
-          }}
-        />
-        {showNoWorkspaceBanner && (
+    <div className="flex h-screen justify-center" style={{ backgroundColor: "var(--desk)" }}>
+      <div className="flex w-full" style={{ maxWidth: 1440 }}>
+        <Sidebar />
+        <div className="flex-1 min-w-0 flex flex-col" style={{ background: "var(--page)" }}>
+          {showNoWorkspaceBanner && (
           <div
             role="status"
             style={{
@@ -133,12 +130,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
         )}
-        <main className="flex-1 overflow-y-auto w-full max-w-[1280px] mx-auto">
-          {children}
-        </main>
-        <footer className="px-6 py-3 text-center" style={{ borderTop: "1px solid var(--color-border)", color: "var(--color-text-muted)" }}>
-          <p className="text-[10px]">For informational purposes only. Not legal advice. Regulations move fast, always verify with official sources before acting.</p>
-        </footer>
+          <main className="flex-1 overflow-y-auto w-full">
+            {children}
+          </main>
+          <footer className="px-6 py-3 text-center" style={{ borderTop: "1px solid var(--line-3)", color: "var(--ink-3)" }}>
+            <p className="text-[10px]">For informational purposes only. Not legal advice. Regulations move fast, always verify with official sources before acting.</p>
+          </footer>
+        </div>
       </div>
       {user && <AskAssistant />}
       {/* PR-D F8: jump-to-top FAB. Component already existed; PR-D
