@@ -1,8 +1,11 @@
-// Structural regression test for src/components/ui/FactCard.tsx (lane uidetails, 2026-09-06).
-// No JSX render harness exists in this repo (see WatchButton.npmtest.mjs's own header) — this reads
-// the component's source text to guard the three-variant contract README §0.4 binds: "told apart by
-// form, not just colour" — sourced = solid ink edge + quote + link; inference = dashed border, italic,
-// NO link ("not citable"); counsel = orange edge.
+// Structural regression test for src/components/ui/FactCard.tsx (lane uidetails, 2026-09-06;
+// reshaped per operator audit item 2.4, lane uxfix-system, 2026-09-07). No JSX render harness exists
+// in this repo (see WatchButton.npmtest.mjs's own header) — this reads the component's source text
+// to guard the three-variant FORM contract the 2.4 ruling binds: sourced = 2px solid #1A1A1A LEFT
+// edge + 1px rgba(0,0,0,.12) the other three sides + radius 0 8px 8px 0 + white + quote + link;
+// inference = 1px DASHED rgba(0,0,0,.25) all round + #FAFAF8 + italic, NO link ("not citable");
+// counsel = 2px solid #F97316 LEFT edge, otherwise shaped exactly like sourced. A uniform grey
+// perimeter on all three (the pre-2.4 bug) is exactly what these tests would catch again.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -26,21 +29,29 @@ test("three variants are exported/typed: sourced, inference, counsel", () => {
   assert.match(SOURCE, /FactCardVariant = "sourced" \| "inference" \| "counsel"/);
 });
 
-test("the inference branch uses a dashed border and italic text, and never renders a link (not citable)", () => {
+test("the inference branch uses a 1px dashed rgba(0,0,0,.25) border, #FAFAF8 (--page), italic text, and never renders a link (not citable)", () => {
   const body = bodyOf('if (variant === "inference")');
-  assert.match(body, /border: "1px dashed var\(--line-1\)"/);
+  assert.match(body, /border: "1px dashed rgba\(0,0,0,\.25\)"/);
+  assert.match(body, /background: "var\(--page\)"/);
   assert.match(body, /fontStyle: "italic"/);
   assert.doesNotMatch(body, /<a\b/);
 });
 
-test("the counsel branch uses an orange (--action) edge", () => {
+test("the counsel branch uses a 2px solid orange (--action) LEFT edge and the shared sourced shape", () => {
   const body = bodyOf('if (variant === "counsel")');
-  assert.match(body, /var\(--action\)/);
+  assert.match(body, /SOURCED_SHAPE, borderLeft: "2px solid var\(--action\)"/);
 });
 
-test("the sourced (FACT) branch uses a solid ink border and can render a source link + tier chip", () => {
+test("SOURCED_SHAPE (shared by sourced + counsel) is 1px rgba(0,0,0,.12), white, radius 0 8px 8px 0", () => {
+  const shape = SOURCE.slice(SOURCE.indexOf("const SOURCED_SHAPE"), SOURCE.indexOf("export function FactCard"));
+  assert.match(shape, /background: "var\(--card\)"/);
+  assert.match(shape, /border: "1px solid var\(--line-1\)"/);
+  assert.match(shape, /borderRadius: "0 8px 8px 0"/);
+});
+
+test("the sourced (FACT) branch uses a 2px solid ink LEFT edge and can render a source link + tier chip", () => {
   const body = SOURCE.slice(SOURCE.indexOf("// sourced (FACT)"));
-  assert.match(body, /border: "1px solid var\(--ink\)"/);
+  assert.match(body, /SOURCED_SHAPE, borderLeft: "2px solid var\(--ink\)"/);
   assert.match(body, /Open source/);
   assert.match(body, /source\.tier/);
 });
