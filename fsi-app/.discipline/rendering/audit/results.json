@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T19:42:22.718Z",
+  "runAt": "2026-09-07T20:13:35.135Z",
   "specs": [
     {
       "part": "Absence",
@@ -1312,8 +1312,8 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "notes": [
-        "The facets card (labelled 'Filters' on the artboard, rendered by ListSurfaceShell's inline facets block, class `.cl-facets-desktop`) and the Legend rail card (LegendRailCard in ListSurfaceRailCards.tsx) both sit under ruling 5.1: every panel/section card carries the 3px graduated rule ABOVE its content, full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)) — exactly what p2's own Filters and Legend cards show (`height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))` immediately inside each card's outer div). Neither built card renders this rule at all: `.cl-facets-desktop` and `RailCard` in ListSurfaceRailCards.tsx both go straight from the card's outer border to the padded content with no rule element. This is checked as a NOT BUILT below (no `.cl-section-rule` marker exists on either card), which is the correct status and also states the selector contract a fix lane should build to (same contract page-frame.json already established for the dashboard's own section cards).",
-        "Facets card padding: p2 states `padding:12px 16px 14px` on the card's content wrapper (after the 3px rule). ListSurfaceShell's inline facets block uses `padding:'12px 16px'` (missing the differential bottom 14px — CSS shorthand normalises this to 12px all round) — checked below.",
+        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170): both cards now mount `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use. `.cl-facets-desktop` stays the OUTER (unpadded) div's class; its content padding now lives on an inner `<div>` (selector below updated to `.cl-facets-desktop > div`).",
+        "FIXED (fix58-lists, 2026-09-07, B164): the facets card's inner content wrapper is now `padding:'12px 16px 14px'`, matching p2's own stated value exactly.",
         "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
       ],
       "selector": "[data-audit=\"legend-rail\"] > div",
@@ -1328,7 +1328,7 @@
         {
           "name": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
           "selector": "[data-audit=\"legend-rail\"] .cl-section-rule",
-          "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. LegendRailCard/RailCard give no such element — expected status is NOT BUILT, stating the selector contract.",
+          "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. FIXED (B163): RailCard.tsx now mounts SectionRule as its first child.",
           "expect": {
             "height": "3px"
           }
@@ -1346,8 +1346,8 @@
         },
         {
           "name": "facets card — padding",
-          "selector": ".cl-facets-desktop",
-          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px).",
+          "selector": ".cl-facets-desktop > div:last-child",
+          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more.",
           "expect": {
             "padding-top": "12px",
             "padding-right": "16px",
@@ -1358,7 +1358,7 @@
         {
           "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
           "selector": ".cl-facets-desktop .cl-section-rule",
-          "note": "Same ruling as the Legend rail card above; ListSurfaceShell's inline facets block gives no such element either.",
+          "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child.",
           "expect": {
             "height": "3px"
           }
@@ -1569,10 +1569,9 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p10 (#p10, Map): the 'Jurisdiction register' card's column header row and its example rows (grid-template-columns:3px 1fr 1fr 110px 80px 40px; min-height:44px); src/components/ui/ListRow.tsx's own `endStat` prop (an additive extension the map lane built onto the shared ListRow, per its header comment: 'ListRow's new optional endStat prop (additive extension, see ListRow.tsx) replaces those four cells with a single band-coloured highest-band + item-count stat, matching the artboard's own HIGHEST BAND / ITEMS columns without forking a second row component'); src/components/map/MapPageView.tsx (real usage: `endStat={{ label: row.band.label, value: formatNumber(row.count), band: row.band }}`)",
       "notes": [
-        "This spec extends the SHARED listrow-1440 mount (mounts.mjs) with one additional wrapped instance (`[data-audit=\"row-endstat\"]`) that reproduces MapPageView.tsx's own ListRow call exactly (title=jurisdiction label, meta=activeThemes, endStat={label,value,band}, no impact/due/timeline/tier/overflow) — the values below are read from the SAME real ListRow.tsx component, not a page-local fork.",
-        "Register row height: the artboard states min-height:44px for register rows specifically (smaller than the general list row's 56px, since a jurisdiction register row carries less content — no impact meter, no timeline). ListRow.tsx's own `minHeight: 56` in its root style is unconditional; endStat does not change it. Checked below against the artboard's own p10 value, not the generic listrow.json's 56px (that spec is about the GENERAL row anatomy across every other list surface, correctly 56px there).",
-        "endStat label: p10's 'HIGHEST BAND' column example ('IMMEDIATE', 'MONITOR', 'ACTION') is font-size 10px, weight 800, letter-spacing .06em, colour #1A1A1A (ink — the LABEL TEXT stays ink; only its leading dot is band-coloured). ListRow.tsx's endStat label span sets `color: endStat.band.cssVar` on the WHOLE label (text included), at font-size var(--fs-105)=10.5px and letter-spacing .08em — three separate divergences from the artboard's own register row.",
-        "endStat value: p10's numeral ('392', '549', '28'...) is font-family Anton, font-size 16px, colour = band colour (this part DOES match the artboard — only the numeral is band-coloured, not the label). ListRow.tsx sets font-size 18 for the same numeral.",
+        "This spec extends the SHARED listrow-1440 mount (mounts.mjs) with one additional wrapped instance (`[data-audit=\"row-endstat\"]`) that reproduces MapPageView.tsx's own ListRow call exactly (title=jurisdiction label, meta=activeThemes, endStat={label,value,band}, minHeight=44, no impact/due/timeline/tier/overflow) — the values below are read from the SAME real ListRow.tsx component, not a page-local fork.",
+        "FIXED (fix58-lists, 2026-09-07, B130): ListRow.tsx's `minHeight` is now an optional prop (default 56, the general row's own value, unchanged for every other caller) — MapPageView.tsx passes `minHeight={44}` for register rows per p10's own stated value, an additive extension, not a fork.",
+        "FIXED (fix58-lists, 2026-09-07, B131-B134): endStat's label span now colours only the leading dot with the band colour; the label TEXT stays `var(--ink)` (#1A1A1A), at `var(--fs-10)` (10px) and letter-spacing 0.06em, matching p10's 'HIGHEST BAND' column exactly. The value numeral is font-size 16 (from 18); its band colour was already correct.",
         "The 6-column register-specific grid (3px 1fr 1fr 110px 80px 40px) is NOT reproduced by ListRow: the endStat branch keeps the generic 8-column ListRow grid (3px 56px 1fr 88px 84px 76px 40px 44px, per listrow.json) and merges 4 of those columns (`gridColumn:'4 / span 4'`) into the endStat area. This is a genuine layout-strategy difference (a purpose-built 6-column grid vs a reused 8-column grid with a merged region) that the harness does not reduce to a single property mismatch below — logged here as the header comment's own claim ('matching the artboard's own HIGHEST BAND / ITEMS columns') is only true for the two coloured values (band colour, band dot), not the surrounding geometry."
       ],
       "selector": "[data-audit=\"row-endstat\"] .cl-list-row",
@@ -1583,7 +1582,7 @@
         {
           "name": "endStat — label text colour",
           "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
-          "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`.",
+          "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured.",
           "expect": {
             "color": "#1A1A1A",
             "font-size": "10px",
@@ -1594,7 +1593,7 @@
         {
           "name": "endStat — value numeral",
           "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:last-child",
-          "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band). Colour matches the artboard; size does not.",
+          "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band).",
           "expect": {
             "font-family": "contains:Anton",
             "font-size": "16px",
@@ -1768,8 +1767,8 @@
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
       "notes": [
         "The fixture (2 past, 1 current, 2 future entries) reproduces the artboard row example's own dot pattern (2 passed, 1 next, 2 ahead) so the artboard's own numbers are the comparison.",
-        "The artboard's track is 2px tall, green from 0 to the 'next' dot's position (58%) then rgba(0,0,0,.12) beyond. The built component renders a single 1px rgba(0,0,0,.12) line with no green portion at all — read this as a real geometry/colour gap, not a harness artefact: MilestoneTimeline.tsx's own track span has one style object, no conditional green segment.",
-        "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell; the built component uses `justify-content:space-between` across a `width:100%` row, which auto-spaces n dots evenly rather than at those exact offsets. Position is not asserted below (space-between vs fixed-px is a layout-strategy difference the harness cannot fairly reduce to one number for n dots); the dot SIZES and COLOURS are asserted, which is where the fixed vocabulary lives.",
+        "FIXED (fix58-lists, 2026-09-07, B-row 'the track green-to-next-dot finding'): dc.html #sys line 202 states the list-row track literally as `height:2px;background:linear-gradient(90deg,#16A34A 0,#16A34A 58%,rgba(0,0,0,.12) 58%)` — corrected from this spec's prior expect (height 1px, flat rgba(0,0,0,.12), no green) which had underscored a real, confirmed product gap instead of asserting the design's own stated value. MilestoneTimeline.tsx now renders the track as a single gradient with a hard colour stop at the 'next' dot's own position (green before it, rgba(0,0,0,.12) after), matching the artboard's technique exactly.",
+        "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell, so its gradient stop (58%) is measured against THOSE offsets; the built component uses `justify-content:space-between` across a `width:100%` row (an accepted, pre-existing layout-strategy difference — dot POSITION is not asserted below for the same reason). The gradient stop below is therefore this fixture's own space-between position for the 'next' dot (index 2 of 5, i.e. 50%), not the artboard's literal 58% — the CONVENTION (green-to-next, hard stop, rgba(0,0,0,.12) beyond) is what's asserted, computed consistently with the dots' own real positions rather than a borrowed fixed-px number.",
         "Selectors reach dots by DOM order: MilestoneTimeline.tsx has no per-dot marker class, so nth-of-type addresses the classifier's output directly (dot 1/2 = passed, dot 3 = next, dot 4/5 = ahead, per milestone-timeline-classify.ts, proven independently by its own npmtest.mjs)."
       ],
       "selector": "[data-audit=\"row-populated\"] [role=\"img\"]",
@@ -1780,10 +1779,10 @@
         {
           "name": "track line",
           "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
-          "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent.",
+          "note": "dc.html #sys line 202: height 2px, linear-gradient green 0-58% (artboard's own fixed-px 'next' position) then rgba(0,0,0,.12) beyond. This fixture's 'next' dot sits at 50% under the built component's own space-between spacing (index 2 of 5) — see the spec's own notes above for why 50% and not 58%.",
           "expect": {
-            "height": "1px",
-            "background-color": "rgba(0,0,0,.12)"
+            "height": "2px",
+            "background-image": "linear-gradient(90deg, #16A34A, #16A34A 50%, rgba(0,0,0,.12) 50%)"
           }
         },
         {
@@ -2101,8 +2100,8 @@
       "notes": [
         "ListSurfaceRailCards.tsx (RailCard, used by LegendRailCard and every other rail card the five list surfaces render) is pure inline style; every property here is a real product value.",
         "This is the ONE panel/section card shape shared by all five list surfaces (Regulations/Market/Research/Operations/Watchlist) that carries a visible title — the OTHER card on those pages (ListSurfaceShell's per-band grouping, `BandSectionHeader`) uses its own distinct convention (a coloured 3px TOP-BORDER per band, `borderTop:'3px solid '+band.cssVar`, README §0.2's band scale, not ruling 5.1's dark-grey gradation) and is NOT this ruling's target — a band subsection is not a titled panel in the ruling's sense, it is the list's own per-band grouping, unchanged by this ruling.",
-        "Ruling 5.1: 'the graduated rule ABOVE the section title wins. 3px, full width of the card, top edge, no radius on it, and NO line below the title... Applies to every panel/section card on every page.' RailCard.tsx renders NO rule above its title at all — no `<div>` of any height/background before the `<p>` title — which is why the target below reports NOT BUILT rather than a coloured/positioned MISMATCH: there is no element to measure a colour on.",
-        "The title itself ('Legend') is styled 10.5px/800/.12em uppercase — README §0.4's RAIL LABEL convention, not the Anton section-title convention ruling 5.1 also states ('Section title itself: Anton uppercase, no divider, no underline'). Whether a rail card's meta-style label counts as ruling 5.1's 'section title' (requiring Anton) is not resolved by the ruling's own wording — it names the DASHBOARD's own primary section titles ('Due Next', 'By Urgency') as its worked example, and a rail card's compact label is a documented, PRE-EXISTING distinct convention (README type scale: 'rail labels 10.5px uppercase .12em/700'), so this is logged as an open question for the fix lane rather than asserted as a MISMATCH against a scale the ruling did not clearly extend to this element."
+        "FIXED (fix58-lists, 2026-09-07, B170): RailCard.tsx now mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx) as the first child inside the card's outer border/radius/shadow div, matching `DashboardBrief.tsx`'s own `Card` convention (page-frame.json) exactly — the rule sits full-width at the true top edge, so the outer div itself can carry no padding any more; content padding (14px 16px, unchanged) moved to a new inner wrapper div, checked separately below.",
+        "The title itself ('Legend') is styled 10.5px/800/.12em uppercase — README §0.4's RAIL LABEL convention, not the Anton section-title convention ruling 5.1 also states ('Section title itself: Anton uppercase, no divider, no underline'). Whether a rail card's meta-style label counts as ruling 5.1's 'section title' (requiring Anton) is not resolved by the ruling's own wording — it names the DASHBOARD's own primary section titles ('Due Next', 'By Urgency') as its worked example, and a rail card's compact label is a documented, PRE-EXISTING distinct convention (README type scale: 'rail labels 10.5px uppercase .12em/700'), so this is logged as an open question for a future lane rather than asserted as a MISMATCH against a scale the ruling did not clearly extend to this element."
       ],
       "selector": "[data-audit=\"legend\"] > div",
       "expect": {
@@ -2110,20 +2109,27 @@
         "border-width": "1px",
         "border-color": "rgba(0,0,0,.12)",
         "border-radius": "10px",
-        "padding-top": "14px",
-        "padding-right": "16px",
-        "padding-bottom": "14px",
-        "padding-left": "16px",
         "border-top-width": "1px"
       },
       "children": [
         {
           "name": "ruling 5.1 rule ABOVE the title",
           "selector": "[data-audit=\"legend\"] .cl-section-rule",
-          "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. No element carries this marker in RailCard.tsx today.",
+          "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. FIXED (B170): RailCard.tsx now mounts this as its first child.",
           "expect": {
             "height": "3px",
             "count": "1"
+          }
+        },
+        {
+          "name": "content wrapper — padding (moved off the outer card div so the rule can sit at the true top edge)",
+          "selector": "[data-audit=\"legend\"] > div > div:last-child",
+          "note": "Same 14px 16px content padding as before B170, now on the inner wrapper below SectionRule (SectionRule is itself a <div>, the wrapper's first child — `:last-child` reaches the content wrapper, not the rule).",
+          "expect": {
+            "padding-top": "14px",
+            "padding-right": "16px",
+            "padding-bottom": "14px",
+            "padding-left": "16px"
           }
         },
         {
@@ -4478,8 +4484,8 @@
       "selector": "[data-audit=\"band\"] span",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -4942,7 +4948,7 @@
       "selector": "[data-audit=\"tag\"] span",
       "property": "border-radius",
       "expected": "4px",
-      "actual": "0px",
+      "actual": "999px",
       "status": "MISMATCH",
       "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase."
     },
@@ -5118,8 +5124,8 @@
       "selector": "[data-audit=\"workspace-tag\"] span",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "README §0.4 'Workspace tags': 'Pill with a 6px square ink dot, #F5F2EE fill, rgba(0,0,0,.14) border, 11.5px/600 label, removable ×.'"
     },
     {
@@ -7851,8 +7857,8 @@
       "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
     },
     {
@@ -7963,8 +7969,8 @@
       "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
     },
     {
@@ -8125,8 +8131,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
       "property": "height",
       "expected": "18px",
-      "actual": "9px",
-      "status": "MISMATCH",
+      "actual": "18px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8161,8 +8167,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
       "property": "border-bottom-width",
       "expected": "1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "1px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8179,8 +8185,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
       "property": "border-bottom-style",
       "expected": "solid",
-      "actual": "none",
-      "status": "MISMATCH",
+      "actual": "solid",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8197,8 +8203,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.25)",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -8215,8 +8221,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
       "property": "width",
       "expected": "9px",
-      "actual": "4px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
     },
     {
@@ -8233,8 +8239,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
       "property": "height",
       "expected": "6px",
-      "actual": "5px",
-      "status": "MISMATCH",
+      "actual": "6px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
     },
     {
@@ -8287,8 +8293,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
       "property": "border-bottom-left-radius",
       "expected": "0px",
-      "actual": "1px",
-      "status": "MISMATCH",
+      "actual": "0px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
     },
     {
@@ -8323,8 +8329,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
       "property": "width",
       "expected": "9px",
-      "actual": "4px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2)."
     },
     {
@@ -8341,8 +8347,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
       "property": "height",
       "expected": "12px",
-      "actual": "7px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2)."
     },
     {
@@ -8377,8 +8383,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
       "property": "width",
       "expected": "9px",
-      "actual": "4px",
-      "status": "MISMATCH",
+      "actual": "9px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3)."
     },
     {
@@ -8395,8 +8401,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
       "property": "height",
       "expected": "18px",
-      "actual": "9px",
-      "status": "MISMATCH",
+      "actual": "18px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3)."
     },
     {
@@ -8467,8 +8473,8 @@
       "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
       "property": "margin-left",
       "expected": "7px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "7px",
+      "status": "MATCH",
       "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C."
     },
     {
@@ -8557,8 +8563,8 @@
       "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.3)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.3)",
+      "status": "MATCH",
       "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3)."
     },
     {
@@ -8593,8 +8599,8 @@
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
       "property": "height",
       "expected": "8px",
-      "actual": "6px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
     },
     {
@@ -8611,8 +8617,8 @@
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
       "property": "border-radius",
       "expected": "8px",
-      "actual": "3px",
-      "status": "MISMATCH",
+      "actual": "8px",
+      "status": "MATCH",
       "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
     },
     {
@@ -8629,8 +8635,8 @@
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
       "property": "background-image",
       "expected": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 55%, rgb(220, 38, 38))",
-      "actual": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 50%, rgb(220, 38, 38))",
-      "status": "MISMATCH",
+      "actual": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 55%, rgb(220, 38, 38))",
+      "status": "MATCH",
       "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
     },
     {
@@ -8647,8 +8653,8 @@
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
       "property": "width",
       "expected": "116px",
-      "actual": "84px",
-      "status": "MISMATCH",
+      "actual": "116px",
+      "status": "MATCH",
       "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value."
     },
     {
@@ -8665,8 +8671,8 @@
       "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
       "property": "font-size",
       "expected": "12.5px",
-      "actual": "11px",
-      "status": "MISMATCH",
+      "actual": "12.5px",
+      "status": "MATCH",
       "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value."
     },
     {
@@ -9113,11 +9119,11 @@
       "viewport": 1440,
       "target": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
       "selector": "[data-audit=\"legend-rail\"] .cl-section-rule",
-      "property": "(element)",
-      "expected": "present",
-      "actual": "no element matched this selector",
-      "status": "NOT BUILT",
-      "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. LegendRailCard/RailCard give no such element — expected status is NOT BUILT, stating the selector contract."
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. FIXED (B163): RailCard.tsx now mounts SectionRule as its first child."
     },
     {
       "spec": "list-surface",
@@ -9197,12 +9203,12 @@
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
       "target": "facets card — padding",
-      "selector": ".cl-facets-desktop",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-top",
       "expected": "12px",
       "actual": "12px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -9214,12 +9220,12 @@
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
       "target": "facets card — padding",
-      "selector": ".cl-facets-desktop",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -9231,12 +9237,12 @@
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
       "target": "facets card — padding",
-      "selector": ".cl-facets-desktop",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-bottom",
       "expected": "14px",
-      "actual": "12px",
-      "status": "MISMATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -9248,12 +9254,12 @@
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
       "target": "facets card — padding",
-      "selector": ".cl-facets-desktop",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -9266,11 +9272,11 @@
       "viewport": 1440,
       "target": "facets card — the 3px graduated rule above the card (ruling 5.1)",
       "selector": ".cl-facets-desktop .cl-section-rule",
-      "property": "(element)",
-      "expected": "present",
-      "actual": "no element matched this selector",
-      "status": "NOT BUILT",
-      "note": "Same ruling as the Legend rail card above; ListSurfaceShell's inline facets block gives no such element either."
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child."
     },
     {
       "spec": "list-surface",
@@ -9324,7 +9330,7 @@
       "selector": ".cl-list-row",
       "property": "grid-template-columns",
       "expected": "3px 56px * 88px 84px 76px 40px 44px",
-      "actual": "3px 56px 286px 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 277px 88px 84px 76px 40px 44px",
       "status": "MATCH",
       "note": null
     },
@@ -9478,8 +9484,8 @@
       "selector": ".cl-list-row",
       "property": "border-left-width",
       "expected": "0px",
-      "actual": "3px",
-      "status": "MISMATCH",
+      "actual": "0px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -9522,8 +9528,8 @@
       "selector": ".cl-list-row",
       "property": "padding-right",
       "expected": "12px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "12px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -9566,8 +9572,8 @@
       "selector": ".cl-list-row-header",
       "property": "height",
       "expected": "30px",
-      "actual": "22px",
-      "status": "MISMATCH",
+      "actual": "30px",
+      "status": "MATCH",
       "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
     },
     {
@@ -9808,8 +9814,8 @@
       "selector": ".cl-row-juris",
       "property": "font-size",
       "expected": "11px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
+      "actual": "11px",
+      "status": "MATCH",
       "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
     },
     {
@@ -9830,8 +9836,8 @@
       "selector": ".cl-row-juris",
       "property": "font-weight",
       "expected": "700",
-      "actual": "800",
-      "status": "MISMATCH",
+      "actual": "700",
+      "status": "MATCH",
       "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
     },
     {
@@ -9851,9 +9857,9 @@
       "target": "cell 2 — jurisdiction code",
       "selector": ".cl-row-juris",
       "property": "letter-spacing",
-      "expected": "0.06em (= 0.63px at 10.5px)",
-      "actual": "0.42px",
-      "status": "MISMATCH",
+      "expected": "0.06em (= 0.66px at 11px)",
+      "actual": "0.66px",
+      "status": "MATCH",
       "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
     },
     {
@@ -9874,8 +9880,8 @@
       "selector": ".cl-row-juris",
       "property": "color",
       "expected": "#5A6B67",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MISMATCH",
+      "actual": "rgb(90, 107, 103)",
+      "status": "MATCH",
       "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
     },
     {
@@ -9962,8 +9968,8 @@
       "selector": ".cl-row-title-text",
       "property": "line-height",
       "expected": "18.2px",
-      "actual": "normal",
-      "status": "MISMATCH",
+      "actual": "18.2px",
+      "status": "MATCH",
       "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
     },
     {
@@ -10094,8 +10100,8 @@
       "selector": ".cl-row-meta-tags > span:first-child",
       "property": "color",
       "expected": "#7A6E6C",
-      "actual": "rgb(90, 107, 103)",
-      "status": "MISMATCH",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
       "note": "dc.html #sys: 11px, colour #7A6E6C, margin-top 2px. README §0.4: 'meta line is 11px muted'."
     },
     {
@@ -10138,8 +10144,8 @@
       "selector": ".cl-row-due-label",
       "property": "font-size",
       "expected": "12.5px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "12.5px",
+      "status": "MATCH",
       "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals."
     },
     {
@@ -10402,8 +10408,8 @@
       "selector": ".cl-tier-chip",
       "property": "text-align",
       "expected": "center",
-      "actual": "start",
-      "status": "MISMATCH",
+      "actual": "center",
+      "status": "MATCH",
       "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
     },
     {
@@ -10468,8 +10474,8 @@
       "selector": ".cl-row-overflow",
       "property": "border-left-color",
       "expected": "rgba(0,0,0,.08)",
-      "actual": "rgba(0, 0, 0, 0.06)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
       "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here."
     },
     {
@@ -10528,8 +10534,8 @@
       "selector": "[data-audit=\"row-endstat\"] .cl-list-row",
       "property": "min-height",
       "expected": "44px",
-      "actual": "56px",
-      "status": "MISMATCH",
+      "actual": "44px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -10544,9 +10550,9 @@
       "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
       "property": "color",
       "expected": "#1A1A1A",
-      "actual": "rgb(220, 38, 38)",
-      "status": "MISMATCH",
-      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`."
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured."
     },
     {
       "spec": "map-register",
@@ -10560,9 +10566,9 @@
       "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
       "property": "font-size",
       "expected": "10px",
-      "actual": "10.5px",
-      "status": "MISMATCH",
-      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`."
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured."
     },
     {
       "spec": "map-register",
@@ -10578,7 +10584,7 @@
       "expected": "800",
       "actual": "800",
       "status": "MATCH",
-      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`."
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured."
     },
     {
       "spec": "map-register",
@@ -10591,10 +10597,10 @@
       "target": "endStat — label text colour",
       "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
       "property": "letter-spacing",
-      "expected": "0.06em (= 0.63px at 10.5px)",
-      "actual": "0.84px",
-      "status": "MISMATCH",
-      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`."
+      "expected": "0.06em (= 0.6px at 10px)",
+      "actual": "0.6px",
+      "status": "MATCH",
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured."
     },
     {
       "spec": "map-register",
@@ -10610,7 +10616,7 @@
       "expected": "contains:Anton",
       "actual": "Anton, system-ui, sans-serif",
       "status": "MATCH",
-      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band). Colour matches the artboard; size does not."
+      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band)."
     },
     {
       "spec": "map-register",
@@ -10624,9 +10630,9 @@
       "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:last-child",
       "property": "font-size",
       "expected": "16px",
-      "actual": "18px",
-      "status": "MISMATCH",
-      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band). Colour matches the artboard; size does not."
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band)."
     },
     {
       "spec": "map-register",
@@ -10642,7 +10648,7 @@
       "expected": "#DC2626",
       "actual": "rgb(220, 38, 38)",
       "status": "MATCH",
-      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band). Colour matches the artboard; size does not."
+      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band)."
     },
     {
       "spec": "market-research-rows",
@@ -10674,8 +10680,8 @@
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
       "property": "border-radius",
       "expected": "999px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "999px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -10706,10 +10712,10 @@
       "viewport": 1440,
       "target": "research row — theme/kind TagChip (README §0.4 names Research alongside Market; ResearchLedger.tsx has none)",
       "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
-      "property": "(element)",
-      "expected": "present",
-      "actual": "no element matched this selector",
-      "status": "NOT BUILT",
+      "property": "background-color",
+      "expected": "#F5F2EE",
+      "actual": "rgb(245, 242, 238)",
+      "status": "MATCH",
       "note": "No such element exists in the built row today — ResearchLedger.tsx's `meta` is a plain string (type only), and the file imports no TagChip. Expected status: NOT BUILT, stating the selector contract a fix lane should satisfy (a TagChip carrying the row's theme, inserted the same way MarketIntelLedger's SignalRow already does)."
     },
     {
@@ -11330,10 +11336,10 @@
       "target": "track line",
       "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
       "property": "height",
-      "expected": "1px",
-      "actual": "1px",
+      "expected": "2px",
+      "actual": "2px",
       "status": "MATCH",
-      "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent."
+      "note": "dc.html #sys line 202: height 2px, linear-gradient green 0-58% (artboard's own fixed-px 'next' position) then rgba(0,0,0,.12) beyond. This fixture's 'next' dot sits at 50% under the built component's own space-between spacing (index 2 of 5) — see the spec's own notes above for why 50% and not 58%."
     },
     {
       "spec": "milestonetimeline",
@@ -11346,11 +11352,11 @@
       "viewport": 1440,
       "target": "track line",
       "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
-      "property": "background-color",
-      "expected": "rgba(0,0,0,.12)",
-      "actual": "rgba(0, 0, 0, 0.12)",
+      "property": "background-image",
+      "expected": "linear-gradient(90deg, #16A34A, #16A34A 50%, rgba(0,0,0,.12) 50%)",
+      "actual": "linear-gradient(90deg, rgb(22, 163, 74) 0%, rgb(22, 163, 74) 50%, rgba(0, 0, 0, 0.12) 50%)",
       "status": "MATCH",
-      "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent."
+      "note": "dc.html #sys line 202: height 2px, linear-gradient green 0-58% (artboard's own fixed-px 'next' position) then rgba(0,0,0,.12) beyond. This fixture's 'next' dot sits at 50% under the built component's own space-between spacing (index 2 of 5) — see the spec's own notes above for why 50% and not 58%."
     },
     {
       "spec": "milestonetimeline",
@@ -12791,90 +12797,6 @@
       "viewport": 1440,
       "target": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
       "selector": "[data-audit=\"legend\"] > div",
-      "property": "padding-top",
-      "expected": "14px",
-      "actual": "14px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "section-card-lists",
-      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "artboards": [
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "18-section-treatments (ruling 5.1)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
-      "viewport": 1440,
-      "target": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "selector": "[data-audit=\"legend\"] > div",
-      "property": "padding-right",
-      "expected": "16px",
-      "actual": "16px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "section-card-lists",
-      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "artboards": [
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "18-section-treatments (ruling 5.1)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
-      "viewport": 1440,
-      "target": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "selector": "[data-audit=\"legend\"] > div",
-      "property": "padding-bottom",
-      "expected": "14px",
-      "actual": "14px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "section-card-lists",
-      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "artboards": [
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "18-section-treatments (ruling 5.1)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
-      "viewport": 1440,
-      "target": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "selector": "[data-audit=\"legend\"] > div",
-      "property": "padding-left",
-      "expected": "16px",
-      "actual": "16px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "section-card-lists",
-      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "artboards": [
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "18-section-treatments (ruling 5.1)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
-      "viewport": 1440,
-      "target": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
-      "selector": "[data-audit=\"legend\"] > div",
       "property": "border-top-width",
       "expected": "1px",
       "actual": "1px",
@@ -12896,11 +12818,116 @@
       "viewport": 1440,
       "target": "ruling 5.1 rule ABOVE the title",
       "selector": "[data-audit=\"legend\"] .cl-section-rule",
-      "property": "(element)",
-      "expected": "present",
-      "actual": "no element matched this selector",
-      "status": "NOT BUILT",
-      "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. No element carries this marker in RailCard.tsx today."
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. FIXED (B170): RailCard.tsx now mounts this as its first child."
+    },
+    {
+      "spec": "section-card-lists",
+      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+      "artboards": [
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+      "viewport": 1440,
+      "target": "ruling 5.1 rule ABOVE the title",
+      "selector": "[data-audit=\"legend\"] .cl-section-rule",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. FIXED (B170): RailCard.tsx now mounts this as its first child."
+    },
+    {
+      "spec": "section-card-lists",
+      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+      "artboards": [
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+      "viewport": 1440,
+      "target": "content wrapper — padding (moved off the outer card div so the rule can sit at the true top edge)",
+      "selector": "[data-audit=\"legend\"] > div > div:last-child",
+      "property": "padding-top",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "Same 14px 16px content padding as before B170, now on the inner wrapper below SectionRule (SectionRule is itself a <div>, the wrapper's first child — `:last-child` reaches the content wrapper, not the rule)."
+    },
+    {
+      "spec": "section-card-lists",
+      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+      "artboards": [
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+      "viewport": 1440,
+      "target": "content wrapper — padding (moved off the outer card div so the rule can sit at the true top edge)",
+      "selector": "[data-audit=\"legend\"] > div > div:last-child",
+      "property": "padding-right",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "Same 14px 16px content padding as before B170, now on the inner wrapper below SectionRule (SectionRule is itself a <div>, the wrapper's first child — `:last-child` reaches the content wrapper, not the rule)."
+    },
+    {
+      "spec": "section-card-lists",
+      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+      "artboards": [
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+      "viewport": 1440,
+      "target": "content wrapper — padding (moved off the outer card div so the rule can sit at the true top edge)",
+      "selector": "[data-audit=\"legend\"] > div > div:last-child",
+      "property": "padding-bottom",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "Same 14px 16px content padding as before B170, now on the inner wrapper below SectionRule (SectionRule is itself a <div>, the wrapper's first child — `:last-child` reaches the content wrapper, not the rule)."
+    },
+    {
+      "spec": "section-card-lists",
+      "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+      "artboards": [
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+      "viewport": 1440,
+      "target": "content wrapper — padding (moved off the outer card div so the rule can sit at the true top edge)",
+      "selector": "[data-audit=\"legend\"] > div > div:last-child",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "Same 14px 16px content padding as before B170, now on the inner wrapper below SectionRule (SectionRule is itself a <div>, the wrapper's first child — `:last-child` reaches the content wrapper, not the rule)."
     },
     {
       "spec": "section-card-lists",
