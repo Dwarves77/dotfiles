@@ -771,8 +771,10 @@ jobs:
         # CONFIRMED same day (lane CANONICAL-AUTOVERIFY-2): verification of a replacement source location
         # is automatic, never a human process — there is NO `needs_individual_review` outcome. Every
         # pending row resolves to `approved` or `rejected`, plus `deferred` (not a human outcome — a
-        # transient Browserless/network fetch error, retried next run) — reachability (the canonical
-        # Browserless fetch), page-class (login/about/directory/press/aggregator-datacard rejects), content
+        # transient network fetch error, retried next run) — reachability (lane CANONICAL-AUTOVERIFY-3,
+        # 2026-09-07: the $0 polite-fetch + captureDocument path provenance-heal.mjs already uses, NEVER
+        # Browserless — this step's earlier Browserless wiring had no key anywhere in this workflow by
+        # design and deferred all 16 pending rows in run 34069709848), page-class (login/about/directory/press/aggregator-datacard rejects), content
         # proof (locateSpanInText / word-overlap against the item's own subject and institution — no LLM
         # call), and authority (host-authority.mjs's codified tiers + defaultTierForHost + the live sources
         # registry; an ambiguous candidate host ACCEPTS provisional at the deterministic default tier

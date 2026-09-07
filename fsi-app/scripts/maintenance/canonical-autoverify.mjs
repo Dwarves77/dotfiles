@@ -31,9 +31,22 @@
 // $0 — no LLM call anywhere in this module. Every check below is a deterministic string/regex/host-class
 // test, reusing modules that already exist rather than re-implementing them (CLAUDE.md "one module every
 // caller imports"):
-//   - REACHABILITY: the ONE canonical fetch (src/lib/sources/canonical-fetch.mjs's browserlessFetch) via
-//     deps.fetchCandidate (test/CI-injectable — see buildDeps below); dead codes and Browserless failures
-//     are treated as REACHABILITY rejects (never as a page-class or content-proof failure).
+//   - REACHABILITY: the SAME $0 polite-fetch + captureDocument path provenance-heal.mjs's buildHealDeps
+//     wires for scripts/mint/heal-provenance.mjs (makePoliteFetch({fetchImpl:fetch}) at 1 req/s ->
+//     followUpgradingRedirects -> captureDocument, both from scripts/mint/export-census-rows.mjs), via
+//     deps.fetchCandidate (test/CI-injectable — see buildDeps and politeCaptureFetch below). LANE
+//     CANONICAL-AUTOVERIFY-3 (2026-09-07): this step previously wired deps.fetchCandidate to
+//     src/lib/sources/canonical-fetch.mjs's browserlessFetch, a PAID rendering service whose key
+//     (BROWSERLESS_API_KEY) is deliberately absent from .github/workflows/maintenance.yml — CLAUDE.md's
+//     $0 rule forbids any paid service in any runtime, and there is no key to configure even if wanted
+//     (a "render with Browserless when a key is present" fallback is explicitly NOT wanted here: this
+//     step must never reference Browserless at all). Maintenance run 34069709848 (mode=dry) confirmed
+//     the defect live: all 16 pending rows came back `deferred: fetch failed: BrowserlessError:
+//     BROWSERLESS_API_KEY not configured` — every row stuck, nothing verified. politeCaptureFetch below
+//     is the adapter: it holds the exact { status, text, error, host, path } shape decideRow and this
+//     file's 52 tests already depend on, backed by plain fetch instead of a rendering service. Dead
+//     codes and fetch/network failures are treated as REACHABILITY rejects/defers exactly as before
+//     (never as a page-class or content-proof failure) — only the transport underneath changed.
 //   - ACCESS WALL: src/lib/sources/access-wall.mjs's detectAccessWall — the ONE content-based bot-wall/
 //     login-wall/soft-404 detector, reused verbatim (never a second wall detector).
 //   - PAGE CLASS: a small pure classifier below (classifyPageClass), each rule citing the pending-row
@@ -71,7 +84,7 @@
 // DECISION OUTCOMES (only two human-relevant ones, no third): 'approved' (auto-accepted — either at a
 // codified/existing tier, or PROVISIONAL at the sub-floor default for an ambiguous host) and 'rejected'
 // (auto-rejected, reviewer_notes names the exact stage and reason). 'deferred' exists ONLY for a transient
-// fetch error (Browserless hard-error/DNS timeout/network blip that never completed the request) — the row
+// fetch error (network timeout/DNS failure/connection reset that never completed the request) — the row
 // is left 'pending' and retried the next dispatch; it is not a verdict on the candidate and never a human
 // wait.
 //
@@ -84,8 +97,65 @@ import { runCli } from "./lib/cli.mjs";
 import { detectAccessWall } from "../../src/lib/sources/access-wall.mjs";
 import { locateSpanInText } from "../mint/heal-provenance.mjs";
 import { hostOf, institutionKey } from "../lib/institution-key.mjs";
+import { captureDocument, followUpgradingRedirects, makePoliteFetch } from "../mint/export-census-rows.mjs";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
+
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+// $0 FETCH ADAPTER — lane CANONICAL-AUTOVERIFY-3, 2026-09-07. See the header's REACHABILITY section for
+// why: the paid Browserless path this step was wired to has no key anywhere in this repo's CI (by
+// design — CLAUDE.md's $0 rule) and every one of the 16 pending rows deferred on
+// `BROWSERLESS_API_KEY not configured` (run 34069709848). This module builds the SAME shape
+// deps.fetchCandidate has always returned — { status, text, error, host, path } — from the identical
+// $0 path scripts/maintenance/provenance-heal.mjs's buildHealDeps already wires for heal-provenance.mjs:
+// makePoliteFetch({fetchImpl: fetch}) (1 req/s, no burst) -> followUpgradingRedirects (redirects hand-
+// followed, an http Location upgraded to https before the next hop) -> captureDocument (charset/HTML-to-
+// text decoding, PDF capture, timeout — all already inside export-census-rows.mjs, imported here, never
+// copied). Nothing below re-implements a fetch; it only reshapes captureDocument's own
+// { ok, status, html, text, error } envelope into the shape this file's decideRow/classifyReachability/
+// detectAccessWall already expect.
+// ═══════════════════════════════════════════════════════════════════════════════════════════════════
+
+/**
+ * Build a `fetchCandidate`-shaped function (test/CI-injectable — buildDeps below is the only production
+ * caller) backed by the polite fetch + captureDocument path, never a rendering service. One politeness
+ * instance
+ * is shared across every call this function makes (module-level `politeFetch` created once per call to
+ * this builder), so every candidate/current-source fetch in one dispatch run pays the same 1 req/s gate —
+ * matching buildHealDeps's own per-run politeFetch instance, never a per-call fresh one that would let
+ * concurrent rows burst.
+ * @param {{ fetchImpl?: typeof fetch, timeoutMs?: number, gapMs?: number }} [opts] `gapMs` defaults to
+ *   makePoliteFetch's own POPULATION_FETCH_GAP_MS-or-1000ms default; tests pass 0 so the fixture suite
+ *   does not pay the real politeness gap.
+ * @returns {(url: string) => Promise<{status:number|null,text:string,error?:any,host?:string,path?:string}>}
+ */
+export function makeCanonicalFetchCandidate({ fetchImpl = fetch, timeoutMs = 20000, gapMs } = {}) {
+  const politeFetch = makePoliteFetch(gapMs == null ? { fetchImpl } : { fetchImpl, gapMs }); // 1 req/s, $0 — same politeness gap heal-provenance uses
+  return async function fetchCandidate(url) {
+    const host = hostOf(url);
+    let path = "";
+    try { path = new URL(url).pathname; } catch { path = ""; }
+    let res;
+    try {
+      res = await captureDocument(url, { fetchImpl: followUpgradingRedirects(politeFetch), timeoutMs });
+    } catch (e) {
+      // captureDocument itself never throws (it catches internally and returns { error }), but a stub
+      // fetchImpl in a test might; treated identically to a captureDocument-reported transient error.
+      return { status: null, text: "", error: e, host, path };
+    }
+    if (res.error && res.status == null) {
+      // captureDocument's own catch branch: the request itself never completed (network error, DNS
+      // failure, timeout, abort) — status is null, never a page was read. Routes to classifyReachability's
+      // transient branch ('deferred'), never a page-class/content/authority verdict on nothing fetched.
+      return { status: null, text: "", error: res.error, host, path };
+    }
+    // A completed request, 2xx or not (captureDocument's `error` field on a non-ok status is just
+    // `HTTP <code>` restating res.status — classifyReachability already derives dead/wall/unreachable
+    // from `status`+`text` alone, so that redundant error string is dropped here rather than carried
+    // through as if it were a transient fetch failure).
+    return { status: res.status, text: res.text ?? "", host, path };
+  };
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // REACHABILITY
@@ -98,7 +168,7 @@ export function isDeadStatus(status) {
 
 /**
  * Classify one fetch result. `fetchResult` = { status, text, error } — `error` set when the fetch itself
- * threw (Browserless hard-error, DNS failure, timeout — the request never completed, so nothing was
+ * threw (network error, DNS failure, timeout — the request never completed, so nothing was
  * actually learned about the page). Pure.
  * @returns {{ ok: boolean, reason?: string, wall?: {kind:string, evidence:string}, transient?: boolean }}
  */
@@ -437,7 +507,7 @@ export function decideRow(row, item, fetchResult, deps) {
   if (!reach.ok) {
     if (reach.transient) {
       // Not a human outcome, not a verdict on the candidate — the fetch itself never completed (network
-      // blip, Browserless hard-error, timeout). Left 'pending' by the caller; retried next dispatch.
+      // blip, DNS failure, timeout). Left 'pending' by the caller; retried next dispatch.
       return {
         id: row.id, decision: "deferred",
         reviewer_notes: `auto: deferred — ${reach.reason}, retry next run`,
@@ -692,19 +762,10 @@ if (IS_MAIN) {
     needsDb: true,
     buildDeps: async () => {
       const { readAll, readAllByIds, guardedUpdateByIds, registerSource } = await import("../lib/db.mjs");
-      const { browserlessFetch } = await import("../../src/lib/sources/canonical-fetch.mjs");
       const hostAuthority = await import("../../src/lib/sources/host-authority.ts");
-      const fetchCandidate = async (url) => {
-        try {
-          const r = await browserlessFetch(url, { caller: "canonical-autoverify" });
-          const host = hostOf(url);
-          let path = "";
-          try { path = new URL(url).pathname; } catch { path = ""; }
-          return { status: r.status, text: r.text, host, path };
-        } catch (e) {
-          return { status: e?.status ?? null, text: "", error: e, host: hostOf(url) };
-        }
-      };
+      // $0 — polite fetch + captureDocument (see this file's header REACHABILITY section and
+      // makeCanonicalFetchCandidate's own header). Browserless is not referenced anywhere in this step.
+      const fetchCandidate = makeCanonicalFetchCandidate();
       return { readAll, readAllByIds, guardedUpdateByIds, registerSource, fetchCandidate, hostAuthority };
     },
   });
