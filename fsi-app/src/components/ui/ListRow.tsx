@@ -16,18 +16,14 @@
  * target); this is the only one. Title truncates with ellipsis; meta
  * line is 11px muted.
  *
- * RESPONSIVE COLLAPSE, added additively this lane (UILISTS, 2026-09-06,
- * RD-60/F35 — the rendering guard's own phone-width pass, ux-smoke-specs.mjs):
- * the desktop grid's fixed columns alone (3+56+88+84+76+40+44 = 391px) plus
- * 7×14px gaps (98px) need ~489px before the 1fr title column gets anything,
- * so below 640px the row overflowed its card, titles measured near-zero
- * width, and several targets lost their neighbour clearance — none of that
- * is in the artboards (drawn at 1440px) or the README grid spec, which
- * names only the desktop shape. Below 640px this collapses to a 2-row grid
- * (spine+jurisdiction+title+⋯ on row 1; impact/due/timeline/tier as one
- * wrapped flex strip on row 2) via `.cl-row-*` classes — the same
- * shape every pre-existing row component in this app (`.cl-row`/
- * `.cl-row__aside`, globals.css) already uses for this exact problem.
+ * Desktop-only (README: 1440px desktop only, Claude Design is producing 390px
+ * mobile artboards separately). This lane's own <640px responsive collapse
+ * (UILISTS, 2026-09-06) is removed per operator ruling 2026-09-07: mobile is
+ * not designed in this bundle, so no page in it gets an ad hoc collapse ahead
+ * of the real mobile artboards. Logged in DEVIATION-LOG.md. The
+ * `data-guard-title` attribute and the row-Link's `right: 12` inset (so the
+ * Link's box never overlaps the ⋯ cell's own control) are kept — neither is
+ * mobile-specific.
  */
 
 import Link from "next/link";
@@ -75,27 +71,6 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
     >
       <style>{`
         .cl-list-row:hover { background: var(--row-hover); }
-        @media (max-width: 640px) {
-          .cl-list-row {
-            grid-template-columns: 3px 40px 1fr 44px !important;
-            grid-template-rows: auto auto !important;
-            row-gap: 4px !important;
-            padding-bottom: 8px !important;
-          }
-          .cl-row-spine { grid-column: 1 !important; grid-row: 1 / span 2 !important; }
-          .cl-row-jur { grid-column: 2 !important; grid-row: 1 !important; }
-          .cl-row-main { grid-column: 3 !important; grid-row: 1 !important; }
-          .cl-row-overflow { grid-column: 4 !important; grid-row: 1 !important; }
-          .cl-row-secondary {
-            display: flex !important;
-            grid-column: 2 / span 2 !important;
-            grid-row: 2 !important;
-            flex-wrap: wrap !important;
-            align-items: center !important;
-            gap: 8px 16px !important;
-            padding: 2px 0 4px !important;
-          }
-        }
       `}</style>
       <span aria-hidden="true" className="cl-row-spine" style={{ background: band.cssVar }} />
       {/* Column span excludes the spine (col 1) AND the ⋯ overflow cell (last column) in BOTH the
