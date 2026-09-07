@@ -95,13 +95,24 @@ const EXTREME_STATE = {
   seriesBoard: undefined,
 };
 
+// UILISTS lane (2026-09-06): "Action" is BAND_ORDER's real, static band-tile label
+// (src/lib/urgency/bands.ts), rendered by every one of this lane's five surfaces via the
+// shared ListSurfaceShell/BandTile — a disclosed, confirmed-safe match against
+// source-entry-filter.mjs's HEADER_LITERALS vocabulary (built for an unrelated table-header
+// case), same carve-out regulations-rows-smoke.mjs established per-spec.
+const KNOWN_SAFE_PLACEHOLDERS = ['Action'];
+
 const SPEC = {
+  knownSafePlaceholders: KNOWN_SAFE_PLACEHOLDERS,
   name: 'market-rows',
   entry: ENTRY,
   states: [
     { label: 'empty', props: EMPTY_STATE },
     { label: 'one-row', props: ONE_ROW_STATE, expectTitles: 1 },
-    { label: 'extreme', props: EXTREME_STATE, expectTitles: 10 },
+    // UILISTS lane (2026-09-06): MarketIntelLedger (via ListSurfaceShell) now collapses each band
+    // to PER_BAND_CAP (5) shown by default — all 10 extreme fixture rows share one priority band
+    // (HIGH -> "Action"), so 5 render (correct, pre-existing collapse behaviour), not 10.
+    { label: 'extreme', props: EXTREME_STATE, expectTitles: 5 },
   ],
 };
 
