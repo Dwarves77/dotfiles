@@ -306,6 +306,38 @@ window.__mount = () => {
 };
 `;
 
+// ── Community peer-org directory table ─────────────────────────────────────────────────────────
+// Not one of the 17 UI-system artboards (the component's own header comment: "spec 05 §5 component
+// 3" — a different spec doc; confirmed absent from both README.md and every dc.html page artboard,
+// including p12/Community, by grep). Mounted so the audit can at least check it against the GENERAL
+// sitewide rules (no literal UNSCORED, hit targets), never an invented per-pixel design value.
+const PEERORGTABLE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { PeerOrgDirectoryTable } from '@/components/community/PeerOrgDirectoryTable';
+
+const byOrgTypeAndRegion = [
+  { orgType: 'Forwarder', region: 'EU', members: 12, verified: 4 },
+  { orgType: 'Carrier', region: 'US', members: 7, verified: 2 },
+];
+const bySector = [
+  { sector: 'Ocean freight', members: 9 },
+  { sector: 'Air freight', members: 5 },
+];
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 700, padding: 20, background: 'var(--page)' }, 'data-audit': 'peer-org-table' },
+      React.createElement(PeerOrgDirectoryTable, { byOrgTypeAndRegion, bySector, totalMembers: 19 }),
+    ),
+  );
+};
+`;
+
 // ── Page frame at 1440 ──────────────────────────────────────────────────────────────────────────
 // The real AppShell (nav card, content column, footer, the floating assistant) wrapping the two page
 // surfaces whose own chrome the frame rulings govern: the dashboard (the worked example page, its
@@ -471,6 +503,12 @@ export const AUDIT_MOUNTS = {
     description: 'FilterChipGroup + FilterChip, one active + one inactive chip.',
     viewport: 1440,
     entry: FILTERCHIP_ENTRY,
+  },
+  'peer-org-table': {
+    id: 'peer-org-table',
+    description: 'PeerOrgDirectoryTable (community), not in the 17 artboards — general-rule checks only.',
+    viewport: 1440,
+    entry: PEERORGTABLE_ENTRY,
   },
   'ops-matrix': {
     id: 'ops-matrix',
