@@ -22,11 +22,11 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BandChip, TierChip } from "@/components/ui/Chips";
 import { CommandBar } from "@/components/ui/CommandBar";
-import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
+import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/MilestoneTimeline";
 import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
-import type { UrgencyBand } from "@/lib/urgency/bands";
+import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 
 // ── Header ──────────────────────────────────────────────────────────────
@@ -83,10 +83,19 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips, tag
         marginBottom: 16,
       }}
     >
+      {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "DETAIL HEADER"): title drops from
+          28px to the spec's 22px and meta to 11.5px/ink-3 below 768 — the same DetailHeader part,
+          expressed at a smaller measure via a media query, never a second component. */}
+      <style>{`
+        @media (max-width: 768px) {
+          .cl-detail-title { font-size: 22px !important; line-height: 1.1 !important; }
+          .cl-detail-meta { font-size: var(--fs-115) !important; color: var(--ink-3) !important; }
+        }
+      `}</style>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
           {meta && (
-            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "0 0 8px", overflowWrap: "anywhere" }}>
+            <p className="cl-detail-meta" style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "0 0 8px", overflowWrap: "anywhere" }}>
               {meta}
               <BreadcrumbListPosition band={band} />
             </p>
@@ -98,6 +107,7 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips, tag
           </div>
           <h1
             data-guard-title
+            className="cl-detail-title"
             style={{
               fontFamily: "var(--font-display)",
               fontWeight: 400,
@@ -219,31 +229,154 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
         <Absence reason="pending" />
       ) : (
         <>
-          <MilestoneTimeline entries={list} bandHex={band.cssVar} variant="full" />
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              marginTop: 8,
-              gap: 8,
-              flexWrap: "wrap",
-            }}
-          >
-            {list.slice(0, 5).map((e, i) => (
-              <span key={i} style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere" }}>
-                {e.date}
-              </span>
-            ))}
+          {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "TIMELINE (vertical)"): below 768
+              the desktop horizontal dot row + date strip is replaced by a 62/14/1fr vertical grid
+              carrying the date, dot and label per row, with the next-obligation callout inline on
+              the next row. Both blocks render; CSS decides which is visible — no client media-query
+              JS, so this stays correct on first paint (same pattern as this file's own
+              `.cl-detail-layout` / `.cl-exposure-grid` breakpoints). */}
+          <style>{`
+            @media (max-width: 768px) { .cl-timeline-desktop { display: none; } }
+            @media (min-width: 769px) { .cl-timeline-mobile, .cl-timeline-next-note-mobile-hide { display: none; } }
+          `}</style>
+          <div className="cl-timeline-desktop">
+            <MilestoneTimeline entries={list} bandHex={band.cssVar} variant="full" />
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                marginTop: 8,
+                gap: 8,
+                flexWrap: "wrap",
+              }}
+            >
+              {list.slice(0, 5).map((e, i) => (
+                <span key={i} style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", flex: "1 1 0", minWidth: 0, overflowWrap: "anywhere" }}>
+                  {e.date}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="cl-timeline-mobile">
+            <VerticalMilestoneStack list={list} band={band} />
           </div>
         </>
       )}
       {next && (
-        <div style={{ marginTop: 14 }}>
+        <div className="cl-timeline-next-note-mobile-hide" style={{ marginTop: 14 }}>
           <StateNote band={band}>
             Next: {next.label} · {next.date}
           </StateNote>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Mobile vertical timeline stack (below 768) ──────────────────────────
+//
+// Mobile 390 build, lane mobdetail (2026-09-07, spec "TIMELINE (vertical)"):
+// grid 62px date gutter / 14px dot column / 1fr label column. Dot state
+// (passed/next/ahead) reuses MilestoneTimeline's own `classifyTimelineEntries`
+// (CLAUDE.md rule 13 — one classifier, not a second one derived here). The
+// track is a single vertical bar behind the dots, green from the top down
+// to the "next" row and rgba(0,0,0,.12) beyond, per spec. The next row's
+// day count reuses the SAME "Next: <label> · <date>" wording the desktop
+// StateNote callout already renders (README + coordinator note: the design
+// artboard's literal "Next obligation - N days" is not copy this build
+// invents from scratch; keep the desktop phrasing, add the day count),
+// logged in DEVIATION-LOG.md.
+
+function VerticalMilestoneStack({ list, band }: { list: TimelineEntry[]; band: UrgencyBand }) {
+  const rows = classifyTimelineEntries(list.slice(0, 5));
+  const todayIndex = rows.findIndex((r) => r.state === "next");
+  const trackTodayPct = rows.length <= 1 ? 100 : todayIndex < 0 ? 100 : (todayIndex / (rows.length - 1)) * 100;
+
+  return (
+    <div style={{ position: "relative" }}>
+      <span
+        aria-hidden="true"
+        style={{
+          position: "absolute",
+          left: 69,
+          top: 10,
+          bottom: 10,
+          width: 2,
+          background: `linear-gradient(to bottom, var(--awareness) 0%, var(--awareness) ${trackTodayPct}%, rgba(0,0,0,.12) ${trackTodayPct}%, rgba(0,0,0,.12) 100%)`,
+        }}
+      />
+      {rows.map(({ entry, state }, i) => {
+        const isNext = state === "next";
+        const days = isNext ? daysUntil(entry.date) : null;
+        return (
+          <div
+            key={i}
+            style={{
+              display: "grid",
+              gridTemplateColumns: "62px 14px 1fr",
+              alignItems: "start",
+              paddingBottom: 14,
+            }}
+          >
+            <span
+              style={{
+                textAlign: "right",
+                paddingRight: 8,
+                fontSize: "var(--fs-11)",
+                fontWeight: isNext ? 800 : 600,
+                color: "var(--ink-3)",
+              }}
+            >
+              {entry.date}
+            </span>
+            <span style={{ display: "flex", justifyContent: "center" }}>
+              {state === "passed" && (
+                <span
+                  aria-hidden="true"
+                  style={{ position: "relative", zIndex: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--awareness)" }}
+                />
+              )}
+              {state === "next" && (
+                <span
+                  aria-hidden="true"
+                  style={{
+                    position: "relative",
+                    zIndex: 1,
+                    width: 14,
+                    height: 14,
+                    borderRadius: "50%",
+                    background: band.cssVar,
+                    boxShadow: `0 0 0 3px color-mix(in srgb, ${band.cssVar} 25%, transparent)`,
+                  }}
+                />
+              )}
+              {state === "ahead" && (
+                <span
+                  aria-hidden="true"
+                  style={{ position: "relative", zIndex: 1, width: 10, height: 10, borderRadius: "50%", background: "var(--card)", border: "2px solid var(--ink-3)" }}
+                />
+              )}
+            </span>
+            <span
+              style={{
+                paddingLeft: 8,
+                minWidth: 0,
+                fontSize: "var(--fs-12)",
+                fontWeight: isNext ? 700 : 400,
+                color: "var(--ink)",
+                overflowWrap: "anywhere",
+              }}
+            >
+              {entry.label}
+              {isNext && days !== null && (
+                <span style={{ display: "block", marginTop: 2, fontSize: "var(--fs-11)", fontWeight: 400, color: "var(--ink-3)" }}>
+                  Next: {entry.date} · {days} day{days === 1 ? "" : "s"}
+                </span>
+              )}
+            </span>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -273,6 +406,7 @@ export function SectionIndex({
   return (
     <nav
       aria-label="Section index"
+      className="cl-section-index"
       style={{
         position: "sticky",
         top: 0,
@@ -289,12 +423,22 @@ export function SectionIndex({
         maxWidth: "100%",
       }}
     >
+      {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "SECTION INDEX": "sticky at the top of
+          main.overflow-y-auto, scrolls sideways, chips min-height 36") — the index already sticks
+          and scrolls sideways at every width; below 768 the link's hit target drops from the 44px
+          floor to the spec's explicit 36px. */}
+      <style>{`
+        @media (max-width: 768px) {
+          .cl-section-index-link { min-height: 36px !important; }
+        }
+      `}</style>
       <div data-guard-strip style={{ display: "flex", alignItems: "center", gap: 10, overflowX: "auto", whiteSpace: "nowrap", minWidth: 0, maxWidth: "100%" }}>
         {sections.map((s, i) => (
           <span key={s.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
             {i > 0 && <span style={{ color: "var(--ink-3)" }} aria-hidden="true">·</span>}
             <a
               href={`#${s.id}`}
+              className="cl-section-index-link"
               style={{
                 fontSize: "var(--fs-105)",
                 fontWeight: 700,
@@ -606,7 +750,21 @@ function BreadcrumbListPosition({ band }: { band: UrgencyBand }) {
   );
 }
 
-export function InThisListStat({ backHref, backLabel }: { backHref: string; backLabel: string }) {
+export function InThisListStat({
+  backHref,
+  backLabel,
+  band,
+}: {
+  backHref: string;
+  backLabel: string;
+  /**
+   * Mobile 390 build, lane mobdetail (2026-09-07, spec "RAIL": place-keeping
+   * card reads "In this list, 4 of 13 in Action"). Optional so a caller
+   * that has not passed a band keeps this card's pre-existing wording
+   * (Absence-by-omission, same convention the rest of this file uses).
+   */
+  band?: UrgencyBand;
+}) {
   const [params, setParams] = useState<{ pos: string | null; of: string | null; list: string | null } | null>(null);
 
   const pos = params?.pos ? Number(params.pos) : null;
@@ -630,7 +788,7 @@ export function InThisListStat({ backHref, backLabel }: { backHref: string; back
         In this list{params?.list ? ` · ${params.list}` : ""}
       </p>
       <p style={{ fontSize: "var(--fs-13)", color: "var(--ink)", margin: "0 0 8px" }}>
-        {known ? `${pos} of ${of}` : <Absence reason="not in primary source" />}
+        {known ? `${pos} of ${of}${band ? ` in ${band.label}` : ""}` : <Absence reason="not in primary source" />}
       </p>
       <Link
         href={backHref}

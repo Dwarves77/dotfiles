@@ -397,6 +397,7 @@ export function MarketSignalDetailSurface({
         <DetailLayout
           rail={
             <>
+              <InThisListStat backHref="/market" backLabel="Back to list" band={band} />
               <AtAGlanceCard
                 rows={[
                   { label: "Band", value: `${band.label} · ${band.window}` },
@@ -412,7 +413,6 @@ export function MarketSignalDetailSurface({
               <ImpactRailCard scores={impact} />
               <RelevanceBadgeClient itemId={r.id} />
               <NotesField itemId={r.id} initialNote={initialNote} />
-              <InThisListStat backHref="/market" backLabel="Back to list" />
               <RailLegend />
               <AffectedLanesCard resource={r} />
               <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />

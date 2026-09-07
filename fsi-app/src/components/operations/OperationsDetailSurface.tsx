@@ -236,6 +236,7 @@ export function OperationsDetailSurface({
         <DetailLayout
           rail={
             <>
+              <InThisListStat backHref="/operations" backLabel="Back to list" band={band} />
               <AtAGlanceCard
                 rows={[
                   { label: "Band", value: `${band.label} · ${band.window}` },
@@ -258,7 +259,6 @@ export function OperationsDetailSurface({
               <ImpactRailCard scores={impact} />
               <RelevanceBadgeClient itemId={r.id} />
               <RelatedRegionCard related={related} reason={relatedReason} jurisdiction={jurisdiction} />
-              <InThisListStat backHref="/operations" backLabel="Back to list" />
               <RailLegend />
               <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
             </>

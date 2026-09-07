@@ -239,6 +239,7 @@ export function ResearchFindingDetailSurface({
         <DetailLayout
           rail={
             <>
+              <InThisListStat backHref="/research" backLabel="Back to list" band={band} />
               <AtAGlanceCard
                 rows={[
                   { label: "Band", value: `${band.label} · ${band.window}` },
@@ -253,7 +254,6 @@ export function ResearchFindingDetailSurface({
               <RelevanceBadgeClient itemId={r.id} />
               <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
               {themeBrief && <ThemeBriefCard brief={themeBrief} />}
-              <InThisListStat backHref="/research" backLabel="Back to list" />
               <RailLegend />
             </>
           }

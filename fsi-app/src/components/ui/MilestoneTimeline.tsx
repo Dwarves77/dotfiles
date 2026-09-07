@@ -28,6 +28,28 @@ function dotState(status: TimelineEntry["status"] | undefined, hasNext: boolean,
   return "ahead" as const;
 }
 
+export type TimelineDotState = "passed" | "next" | "ahead";
+
+/**
+ * classifyTimelineEntries — the one place that turns raw TimelineEntry
+ * status into a passed/next/ahead dot state (mobile 390 build, lane
+ * mobdetail, 2026-09-07). Factored out of this file's own row/full dot
+ * render loop below so DetailTimeline's mobile vertical stack
+ * (DetailShell.tsx) can classify the SAME entries the same way rather than
+ * re-deriving the hasExplicitCurrent/firstFutureSeen bookkeeping a second
+ * time (CLAUDE.md rule 13, no duplication).
+ */
+export function classifyTimelineEntries(entries: TimelineEntry[]): Array<{ entry: TimelineEntry; state: TimelineDotState }> {
+  const hasExplicitCurrent = entries.some((e) => e.status === "current");
+  let firstFutureSeen = false;
+  return entries.map((e) => {
+    const isFirstFuture = !hasExplicitCurrent && e.status !== "past" && !firstFutureSeen;
+    if (isFirstFuture) firstFutureSeen = true;
+    const state = dotState(e.status, hasExplicitCurrent, isFirstFuture);
+    return { entry: e, state };
+  });
+}
+
 export function MilestoneTimeline({ entries, bandHex, variant = "row" }: MilestoneTimelineProps) {
   const list = (entries ?? []).slice(0, 5);
   if (list.length === 0) {
@@ -36,8 +58,7 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
     );
   }
 
-  const hasExplicitCurrent = list.some((e) => e.status === "current");
-  let firstFutureSeen = false;
+  const classified = classifyTimelineEntries(list);
 
   return (
     <span
@@ -63,10 +84,7 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
         }}
       />
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", position: "relative" }}>
-        {list.map((e, i) => {
-          const isFirstFuture = !hasExplicitCurrent && e.status !== "past" && !firstFutureSeen;
-          if (isFirstFuture) firstFutureSeen = true;
-          const state = dotState(e.status, hasExplicitCurrent, isFirstFuture);
+        {classified.map(({ state }, i) => {
           if (state === "passed") {
             return (
               <span
