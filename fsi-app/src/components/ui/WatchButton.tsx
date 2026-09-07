@@ -202,6 +202,69 @@ export function WatchButton({
   );
 }
 
+/**
+ * PersonalWatchButton — the personal-scope toggle's label/icon logic, extracted (audit item 3.5,
+ * 2026-09-07) so the rule lives in exactly one place: a watched item shows a FILLED star in ink
+ * and reads "Watching" at rest; on hover/focus (the moment the control is the thing being acted
+ * on) the text becomes "Unwatch" — the action, not the status — while the star stays filled ink.
+ * An unwatched item always reads "Watch" with a hollow star; a watched item never reads bare
+ * "Watch". Used by DefaultWatchButton's personal pill; RowWatchButton (the ActionRow star) applies
+ * the same rule inline against ActionButton's own chrome.
+ */
+function PersonalWatchButton({
+  watched,
+  loaded,
+  failed,
+  palette,
+  onToggle,
+}: {
+  watched: boolean;
+  loaded: boolean;
+  failed: boolean;
+  palette: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
+  onToggle: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
+  const showUnwatch = watched && hovered;
+  return (
+    <button
+      type="button"
+      aria-pressed={watched}
+      disabled={!loaded}
+      onClick={onToggle}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      title={
+        failed
+          ? "Save failed — click to retry"
+          : watched
+            ? "Watching — click to unwatch"
+            : "Watch this item on your dashboard watchlist"
+      }
+      style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: 11.5,
+        fontWeight: 700,
+        padding: "8px 16px",
+        borderRadius: 6,
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 6,
+        border: `1px solid ${watched ? palette.accent : palette.hairStrong}`,
+        background: watched ? palette.tint : palette.card,
+        color: palette.ink,
+        cursor: loaded ? "pointer" : "default",
+        opacity: loaded ? 1 : 0.6,
+      }}
+    >
+      <span aria-hidden="true">{watched ? "★" : "☆"}</span>
+      {watched ? (showUnwatch ? "Unwatch" : "Watching") : "Watch"}
+    </button>
+  );
+}
+
 function DefaultWatchButton({
   itemType,
   itemId,
@@ -234,33 +297,13 @@ function DefaultWatchButton({
   );
 
   const personalButton = (
-    <button
-      type="button"
-      aria-pressed={watched}
-      disabled={!loaded}
-      onClick={() => toggle("personal")}
-      title={
-        failed
-          ? "Save failed — click to retry"
-          : watched
-            ? "Watching — updates surface on your dashboard watchlist"
-            : "Watch this item on your dashboard watchlist"
-      }
-      style={{
-        fontFamily: "var(--font-sans)",
-        fontSize: 11.5,
-        fontWeight: 700,
-        padding: "8px 16px",
-        borderRadius: 6,
-        border: `1px solid ${watched ? palette.accent : palette.hairStrong}`,
-        background: watched ? palette.tint : palette.card,
-        color: watched ? palette.accent : palette.ink,
-        cursor: loaded ? "pointer" : "default",
-        opacity: loaded ? 1 : 0.6,
-      }}
-    >
-      {watched ? "Watching" : "Watch"}
-    </button>
+    <PersonalWatchButton
+      watched={watched}
+      loaded={loaded}
+      failed={failed}
+      palette={palette}
+      onToggle={() => toggle("personal")}
+    />
   );
 
   // `soleControl` is true when this is a team-only itemType (Defect 3): there
@@ -357,22 +400,30 @@ function RowWatchButton({
   initialWatched?: boolean;
 }) {
   const { watched, loaded, failed, toggle } = useWatchMembership(itemType, itemId, initialWatched);
+  const [hovered, setHovered] = useState(false);
+  const showUnwatch = watched && hovered;
   return (
     <ActionButton
       variant="secondary"
       ariaPressed={watched}
       disabled={!loaded}
       onClick={() => toggle("personal")}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
       title={
         failed
           ? "Save failed — click to retry"
           : watched
-            ? "Watching — updates surface on your dashboard watchlist"
+            ? "Watching — click to unwatch"
             : "Watch this item on your dashboard watchlist"
       }
     >
+      {/* Filled ink star at rest and on hover — only the text swaps to the action verb
+          "Unwatch" (audit item 3.5): a watched row never reads bare "Watch". */}
       <span aria-hidden="true">{watched ? "★" : "☆"}</span>
-      {watched ? "Watching" : "Watch"}
+      {watched ? (showUnwatch ? "Unwatch" : "Watching") : "Watch"}
     </ActionButton>
   );
 }
