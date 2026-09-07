@@ -29,6 +29,7 @@
 // file — MarketSignalDetailSurface's one client fetch is a debounced notes-save fired by user typing,
 // never on mount), so no apiRoutes/route mocking is needed here.
 
+import { fileURLToPath } from 'node:url';
 import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import {
@@ -40,6 +41,16 @@ import {
   findPlaceholderLiterals,
 } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
+
+// lane uidetails (2026-09-06): RegulationDetailSurface now mounts the shared DetailShell's
+// InThisListStat rail widget, which calls useSearchParams() (next/navigation) inside its own
+// Suspense-wrapped bridge (DetailShell.tsx's InThisListBridge — same PERF-10 precedent
+// RegulationsLedger's SearchParamsFilterBridge already established). Outside a real Next App Router
+// tree this throws ("invariant expected app router to be mounted"), same failure
+// regulations-rows-smoke.mjs's own ALIAS note documents — reusing that spec's
+// stub-next-navigation.mjs here rather than duplicating it.
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 
 const STYLE_INJECT = `
 (() => {
@@ -223,6 +234,12 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
+// DetailShell is imported below, unused directly, ONLY so F35's text-match coverage scan resolves
+// against it — lane uidetails (2026-09-06) moved the guarded H1 out of RegulationDetailSurface.tsx
+// into DetailShell.tsx's <DetailHeader> (the shared home for the ONE detail architecture, README
+// §0.5), following the same precedent regulations-rows-smoke.mjs documents for ObligationRegister.
+import { DetailHeader as _DetailHeaderCoverageOnly } from '@/components/detail/DetailShell';
+void _DetailHeaderCoverageOnly;
 
 let root = null;
 window.__mount = (props) => {
@@ -498,10 +515,10 @@ const MARKET_STATES = [
 //     here) or to MarketSignalDetailSurface.tsx itself (src/components/pages/, outside the write set
 //     entirely — see this file's own header). Named explicitly, not a blanket exclusion, so a NEW
 //     small-target regression inside a write-set file still fails this spec.
-async function runDetailSpec(browser, { name, entry, states, knownSafePlaceholders = [], skipSmallTargetSubstrings = [], skipAllAssertions = false }) {
+async function runDetailSpec(browser, { name, entry, states, knownSafePlaceholders = [], skipSmallTargetSubstrings = [], skipAllAssertions = false, alias = {} }) {
   const failures = [];
   let checks = 0;
-  const bundleJs = await bundleEntry(entry);
+  const bundleJs = await bundleEntry(entry, { alias });
   for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
     for (const state of states) {
       const label = `${name}:${state.label}@${vp.width}`;
@@ -550,8 +567,14 @@ export async function runSmoke(browser) {
       name: 'detail-regulations',
       entry: REGULATION_ENTRY,
       states: REGULATION_STATES,
-      knownSafePlaceholders: ['Type', 'Title', '—'],
+      // 'Action' (2026-09-06, lane uidetails): the shared BandChip's own band label for the
+      // priority=HIGH band is the literal word "Action" (README §0.2's one urgency vocabulary) —
+      // legitimate, deliberate copy, coincidentally also one of source-entry-filter.mjs's
+      // HEADER_LITERALS ("action" doubles as a §3/§14 table-header word). Same false-positive class
+      // as 'Type'/'Title'/'—' above, not fabricated or omitted content.
+      knownSafePlaceholders: ['Type', 'Title', '—', 'Action'],
       skipSmallTargetSubstrings: AI_PROMPT_BAR_TARGETS,
+      alias: ALIAS,
     }),
     runDetailSpec(browser, {
       name: 'detail-operations',

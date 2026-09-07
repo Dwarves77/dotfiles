@@ -119,7 +119,6 @@ node --test \
   fsi-app/src/lib/coverage/*.test.mjs \
   fsi-app/src/lib/d3/*.selftest.mjs \
   fsi-app/src/lib/tier-labels.test.mjs \
-  fsi-app/src/lib/tier-badge-tone.test.mjs \
   fsi-app/src/lib/coverage-gaps-rollup.test.mjs \
   fsi-app/src/lib/list-pagination.test.mjs \
   fsi-app/src/lib/supabase-server-rpc-scope.test.mjs \

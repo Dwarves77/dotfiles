@@ -1,0 +1,186 @@
+"use client";
+
+/**
+ * FactCard — the one fact card (UI system handoff 2026-09-06, README §0.4
+ * + §0.5). Replaces every "FACT: … *Source: …*" paragraph the pipeline
+ * writes into `intelligence_item_sections.content_md` (system-prompt.ts
+ * §"Claim-level provenance": FACT / ANALYSIS / LEGAL). Three variants told
+ * apart by FORM, not just colour, so a reader can tell them apart even in
+ * grayscale:
+ *
+ *   sourced   — solid ink edge on white. A verbatim quote, an operative
+ *               date when known, a tier chip, and a link to the source.
+ *               This is a FACT claim (system-prompt.ts §1): checkable,
+ *               span-grounded, citable.
+ *   inference — dashed border on raised paper (--tag), italic body, NO
+ *               link ("not citable" — README §0.4). This is an ANALYSIS
+ *               claim: the pipeline's own reasoning, opened with one of
+ *               "Analytical inference:" / "Industry interpretation:" /
+ *               "Operational implication:" (system-prompt.ts §1).
+ *   counsel   — orange edge. This is a LEGAL claim: a question the
+ *               pipeline explicitly declined to answer ("Legal
+ *               Confirmation Required:" — the agent does not make legal
+ *               determinations, system-prompt.ts §1).
+ *
+ * Built once here (lane uidetails, 2026-09-06) because all four detail
+ * surfaces (regulations, market, research, operations) need it and no
+ * other lane owns a shared part. Parsing content_md into these three
+ * kinds happens at render time in src/lib/detail/fact-paragraphs.ts — this
+ * component only renders an already-classified fact; it does not parse.
+ */
+
+export type FactCardVariant = "sourced" | "inference" | "counsel";
+
+export interface FactCardSource {
+  /** Document/page title, when the citation names one. */
+  title?: string | null;
+  /** Issuing body / publisher, when the citation names one. */
+  issuer?: string | null;
+  /** The date printed in the citation (not necessarily an ISO date — the
+   *  pipeline emits "[Date]" freeform per system-prompt.ts §"Markdown
+   *  storage convention"). */
+  date?: string | null;
+  url?: string | null;
+  /** Source credibility tier (T1 binding law … T6 commentary), when known.
+   *  Absent (not `0`) renders no chip — never a fabricated tier. */
+  tier?: number | null;
+}
+
+export interface FactCardProps {
+  variant: FactCardVariant;
+  /** sourced: the verbatim FACT claim text. inference: the analysis prose
+   *  with its label token already stripped. counsel: the open legal
+   *  question/provisional reading. */
+  text: string;
+  /** sourced variant only — citable provenance. */
+  source?: FactCardSource | null;
+  /** inference variant only — which of the three label tokens introduced
+   *  this claim (shown as the card's eyebrow, humanized). */
+  label?: string | null;
+}
+
+const EYEBROW: React.CSSProperties = {
+  fontSize: "var(--fs-10)",
+  fontWeight: 800,
+  letterSpacing: "0.1em",
+  textTransform: "uppercase",
+  margin: "0 0 6px",
+};
+
+const BODY: React.CSSProperties = {
+  fontSize: "var(--fs-13)",
+  lineHeight: 1.6,
+  margin: 0,
+  maxWidth: "72ch",
+  overflowWrap: "anywhere",
+};
+
+export function FactCard({ variant, text, source, label }: FactCardProps) {
+  if (variant === "inference") {
+    return (
+      <div
+        style={{
+          background: "var(--tag)",
+          border: "1px dashed var(--line-1)",
+          borderRadius: "var(--radius-control)",
+          padding: "12px 14px",
+          margin: "0 0 10px",
+        }}
+      >
+        <p style={{ ...EYEBROW, color: "var(--ink-3)" }}>{label || "Analytical inference"}</p>
+        <p style={{ ...BODY, color: "var(--ink-2)", fontStyle: "italic" }}>{text}</p>
+      </div>
+    );
+  }
+
+  if (variant === "counsel") {
+    return (
+      <div
+        style={{
+          background: "var(--card)",
+          borderLeft: "3px solid var(--action)",
+          border: "1px solid var(--line-1)",
+          borderLeftWidth: 3,
+          borderRadius: "0 var(--radius-control) var(--radius-control) 0",
+          padding: "12px 14px",
+          margin: "0 0 10px",
+        }}
+      >
+        <p style={{ ...EYEBROW, color: "var(--action)" }}>Legal confirmation required</p>
+        <p style={{ ...BODY, color: "var(--ink)" }}>{text}</p>
+      </div>
+    );
+  }
+
+  // sourced (FACT)
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--ink)",
+        borderRadius: "var(--radius-control)",
+        padding: "12px 14px",
+        margin: "0 0 10px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 8,
+      }}
+    >
+      <p style={{ ...EYEBROW, color: "var(--ink-3)" }}>Fact</p>
+      <p style={{ ...BODY, color: "var(--ink)" }}>&ldquo;{text}&rdquo;</p>
+      {(source?.date || source?.issuer || source?.title || source?.tier != null || source?.url) && (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            flexWrap: "wrap",
+            borderTop: "1px solid var(--line-3)",
+            paddingTop: 8,
+          }}
+        >
+          <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", minWidth: 0, overflowWrap: "anywhere" }}>
+            {[source?.title, source?.issuer, source?.date].filter(Boolean).join(" · ")}
+          </span>
+          <span style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+            {typeof source?.tier === "number" && (
+              <span
+                title={`Tier ${source.tier} — provenance, never urgency`}
+                style={{
+                  fontSize: "var(--fs-10)",
+                  fontWeight: 800,
+                  padding: "3px 7px",
+                  borderRadius: 4,
+                  border: "1px solid var(--line-1)",
+                  color: "var(--ink-2)",
+                }}
+              >
+                T{Math.max(1, Math.min(7, Math.round(source.tier)))}
+              </span>
+            )}
+            {source?.url && (
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                style={{
+                  fontSize: "var(--fs-11)",
+                  fontWeight: 700,
+                  color: "var(--ink)",
+                  textDecoration: "underline",
+                  textDecorationColor: "var(--link-line)",
+                  minHeight: 24,
+                  display: "inline-flex",
+                  alignItems: "center",
+                }}
+              >
+                Open source
+              </a>
+            )}
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}

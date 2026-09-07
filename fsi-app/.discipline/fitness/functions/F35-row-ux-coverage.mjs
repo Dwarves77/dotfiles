@@ -56,7 +56,12 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
   // Detail surfaces (lane MOBILE-2, second phone round): screenshot 09, breadcrumb off page and doubling the H1.
-  'src/components/regulations/RegulationDetailSurface.tsx': 'screenshot 09-regulation-detail-breadcrumb (crumb clipped, title doubled)',
+  // lane uidetails (2026-09-06): RegulationDetailSurface.tsx was rebuilt onto the shared ONE detail
+  // architecture (DetailShell.tsx, README §0.5) — the H1/data-guard-title element it used to carry
+  // directly now lives in DetailShell.tsx's <DetailHeader>, the real shared home for the title on
+  // every detail surface that adopts it. Tracking moved to that file rather than left pointing at a
+  // component that no longer carries the attribute itself.
+  'src/components/detail/DetailShell.tsx': 'the ONE detail architecture header (README §0.5) — home of the shared data-guard-title element, lane uidetails 2026-09-06',
   'src/components/operations/OperationsDetailSurface.tsx': 'same header shape as the regulation detail (read)',
   'src/components/research/ResearchFindingDetailSurface.tsx': 'same header shape as the regulation detail (read)',
   'src/components/pages/MarketSignalDetailSurface.tsx': 'the market detail surface; same header shape (read)',
