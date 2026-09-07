@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T20:18:24.868Z",
+  "runAt": "2026-09-07T20:26:27.633Z",
   "specs": [
     {
       "part": "Absence",
@@ -157,6 +157,127 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/actionrow.json",
       "__id": "actionrow"
+    },
+    {
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "mount": "admin-issues-rail",
+      "viewport": 1440,
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "notes": [
+        "dc.html p13 rail card shell: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);overflow:hidden`, topped by the ruling 5.1 gradient rule, then `padding:12px 16px 14px`.",
+        "dc.html p13 header: title 'Issues queue' `font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700`; total `font-family:Anton;font-size:18px;color:#DC2626` (only when > 0).",
+        "dc.html p13 row: `padding:4px 0;border-bottom:1px solid rgba(0,0,0,.06)`; non-zero row label `font-weight:700;color:#1A1A1A`, value `font-family:Anton;font-size:16px;color:#DC2626`; zero row label `font-weight:500;color:#5A6B67`, value `font-family:Anton;font-size:16px;color:#1A1A1A`.",
+        "No sub-description line exists per row in the artboard (just label + numeral) — the built component's row.sub field was builder-added content beyond the artboard and has been removed as dormant once unrendered (CLAUDE.md rule: no dormant code), per 'the artboard wins' (README vs artboard) and the harness's own preference for the exact-artboard reading.",
+        "The prior build had NO card wrapper, NO SectionRule, and a wrong-direction `border-bottom:2px solid var(--text)` under a 26px title — exactly the divider ruling 4.1/5.1 removes. Rewritten this session to the section-card shell + SectionRule + dc.html's own header/row geometry.",
+        "Fixture counts (mounts.mjs ADMIN_ISSUES_RAIL_FIXTURE) match dc.html p13's own example numbers exactly: 489 / 4576 / 6 / 3 non-zero, rest zero, total 5,074 — so this spec measures both the zero-row and non-zero-row colour rules against real numbers, not sample data invented for the harness."
+      ],
+      "selector": "[data-audit=\"rail-card\"]",
+      "expect": {
+        "background-color": "#FFFFFF",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      },
+      "children": [
+        {
+          "name": "gradient rule (ruling 5.1)",
+          "selector": "[data-audit=\"rail-card\"] > div",
+          "matchStyle": {
+            "height": "3px"
+          },
+          "expect": {
+            "height": "3px",
+            "background-image": "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))"
+          }
+        },
+        {
+          "name": "title",
+          "selector": "[data-audit=\"rail-card\"] h2",
+          "expect": {
+            "text": "Issues queue",
+            "font-size": "10.5px",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase",
+            "font-weight": "700",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "total",
+          "selector": "[data-audit=\"rail-card\"] h2 + span",
+          "note": "5,074 in this spec's fixture (matches dc.html's own example number).",
+          "expect": {
+            "text": "5,074",
+            "font-family": "contains:Anton",
+            "font-size": "18px",
+            "color": "#DC2626"
+          }
+        },
+        {
+          "name": "first row (non-zero: provisional sources pending, 489)",
+          "selector": "[data-audit=\"rail-card\"] button:first-of-type",
+          "expect": {
+            "padding-top": "4px",
+            "padding-bottom": "4px",
+            "border-bottom-width": "1px",
+            "border-bottom-color": "rgba(0,0,0,.06)"
+          }
+        },
+        {
+          "name": "first row label",
+          "selector": "[data-audit=\"rail-card\"] button:first-of-type span:first-child",
+          "expect": {
+            "text": "Provisional sources pending review",
+            "font-weight": "700",
+            "color": "#1A1A1A"
+          }
+        },
+        {
+          "name": "first row value",
+          "selector": "[data-audit=\"rail-card\"] button:first-of-type span:nth-child(2)",
+          "expect": {
+            "text": "489",
+            "font-family": "contains:Anton",
+            "font-size": "16px",
+            "color": "#DC2626"
+          }
+        },
+        {
+          "name": "a zero row (staged updates pending, 0)",
+          "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type",
+          "expect": {
+            "padding-top": "4px",
+            "padding-bottom": "4px",
+            "border-bottom-width": "1px",
+            "border-bottom-color": "rgba(0,0,0,.06)"
+          }
+        },
+        {
+          "name": "zero row label",
+          "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:first-child",
+          "expect": {
+            "text": "Staged updates pending",
+            "font-weight": "500",
+            "color": "#5A6B67"
+          }
+        },
+        {
+          "name": "zero row value",
+          "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:nth-child(2)",
+          "expect": {
+            "text": "0",
+            "font-family": "contains:Anton",
+            "font-size": "16px",
+            "color": "#1A1A1A"
+          }
+        }
+      ],
+      "forbid": [],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/admin-issues-rail.json",
+      "__id": "admin-issues-rail"
     },
     {
       "part": "AuthFrame identity panel + AuthTabs",
@@ -1838,6 +1959,94 @@
       "__id": "milestonetimeline"
     },
     {
+      "part": "OnboardingStepper (4-pill progress row)",
+      "mount": "onboarding-stepper",
+      "viewport": 1440,
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "notes": [
+        "dc.html p17 stepper row: `display:flex;gap:18px;flex-wrap:wrap`; each entry `display:flex;align-items:center;gap:8px;font-size:12px`, weight/colour by state (done 600/#1A1A1A, active 700/#1A1A1A, todo 600/#7A6E6C).",
+        "Circle: `width:20px;height:20px;border-radius:50%` — done `background:#16A34A;color:#fff` with a check glyph; active `background:#5A5552;color:#fff` with the step number; todo `border:1.5px solid rgba(0,0,0,.3)` no fill.",
+        "Mounted at step 2 ('current: 2') so this spec exercises all three states (done/active/todo) in one render, matching the artboard's own step-2 render exactly."
+      ],
+      "selector": "[data-audit=\"stepper\"] > div",
+      "expect": {
+        "display": "flex",
+        "column-gap": "18px",
+        "row-gap": "18px"
+      },
+      "children": [
+        {
+          "name": "done step (Workspace)",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1)",
+          "expect": {
+            "font-size": "12px",
+            "font-weight": "600",
+            "color": "#1A1A1A"
+          }
+        },
+        {
+          "name": "done step circle",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+          "expect": {
+            "width": "20px",
+            "height": "20px",
+            "border-radius": "50%",
+            "background-color": "#16A34A",
+            "color": "#FFFFFF"
+          }
+        },
+        {
+          "name": "active step (Modes & jurisdictions)",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2)",
+          "note": "No 'text' check: the step label is a bare text node after the circle <span>, so textContent also carries the circle's own '2' — a selector artifact, not a design statement to measure.",
+          "expect": {
+            "font-size": "12px",
+            "font-weight": "700",
+            "color": "#1A1A1A"
+          }
+        },
+        {
+          "name": "active step circle",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+          "expect": {
+            "width": "20px",
+            "height": "20px",
+            "border-radius": "50%",
+            "background-color": "#5A5552",
+            "color": "#FFFFFF"
+          }
+        },
+        {
+          "name": "todo step (Sectors)",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3)",
+          "note": "No 'text' check: same selector-artifact reason as the active step above ('3Sectors').",
+          "expect": {
+            "font-size": "12px",
+            "font-weight": "600",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "todo step circle",
+          "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+          "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session).",
+          "expect": {
+            "width": "20px",
+            "height": "20px",
+            "border-radius": "50%",
+            "border-width": "1px",
+            "border-color": "rgba(0,0,0,.3)"
+          }
+        }
+      ],
+      "forbid": [],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/onboarding-stepper.json",
+      "__id": "onboarding-stepper"
+    },
+    {
       "part": "Operations region x dimension matrix (D1-D6)",
       "mount": "ops-matrix",
       "viewport": 1440,
@@ -3415,6 +3624,614 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator 3.1: 'Remove the Immediate ▾ dropdown from the regulation detail action row... Action row is exactly Export brief (primary) · Share · ☆ Watch · + Tag.' ActionRow.tsx itself never renders this control (it lived in HeroPriorityDropdown, a separate component some detail surfaces compose alongside ActionRow) — a MATCH here confirms the shared part is clean; the forbid check on the composed page (page-frame.json) is what catches a surface that still renders HeroPriorityDropdown next to it."
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "AdminIssuesRail (Admin surface right rail)",
+      "selector": "[data-audit=\"rail-card\"]",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "AdminIssuesRail (Admin surface right rail)",
+      "selector": "[data-audit=\"rail-card\"]",
+      "property": "border-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "AdminIssuesRail (Admin surface right rail)",
+      "selector": "[data-audit=\"rail-card\"]",
+      "property": "border-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "AdminIssuesRail (Admin surface right rail)",
+      "selector": "[data-audit=\"rail-card\"]",
+      "property": "border-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "gradient rule (ruling 5.1)",
+      "selector": "[data-audit=\"rail-card\"] > div",
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "gradient rule (ruling 5.1)",
+      "selector": "[data-audit=\"rail-card\"] > div",
+      "property": "background-image",
+      "expected": "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))",
+      "actual": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "text",
+      "expected": "Issues queue",
+      "actual": "Issues queue",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.26px at 10.5px)",
+      "actual": "1.26px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "title",
+      "selector": "[data-audit=\"rail-card\"] h2",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "total",
+      "selector": "[data-audit=\"rail-card\"] h2 + span",
+      "property": "text",
+      "expected": "5,074",
+      "actual": "5,074",
+      "status": "MATCH",
+      "note": "5,074 in this spec's fixture (matches dc.html's own example number)."
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "total",
+      "selector": "[data-audit=\"rail-card\"] h2 + span",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": "5,074 in this spec's fixture (matches dc.html's own example number)."
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "total",
+      "selector": "[data-audit=\"rail-card\"] h2 + span",
+      "property": "font-size",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
+      "note": "5,074 in this spec's fixture (matches dc.html's own example number)."
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "total",
+      "selector": "[data-audit=\"rail-card\"] h2 + span",
+      "property": "color",
+      "expected": "#DC2626",
+      "actual": "rgb(220, 38, 38)",
+      "status": "MATCH",
+      "note": "5,074 in this spec's fixture (matches dc.html's own example number)."
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row (non-zero: provisional sources pending, 489)",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type",
+      "property": "padding-top",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row (non-zero: provisional sources pending, 489)",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type",
+      "property": "padding-bottom",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row (non-zero: provisional sources pending, 489)",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row (non-zero: provisional sources pending, 489)",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.06)",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row label",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:first-child",
+      "property": "text",
+      "expected": "Provisional sources pending review",
+      "actual": "Provisional sources pending review",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row label",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:first-child",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row label",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:first-child",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row value",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:nth-child(2)",
+      "property": "text",
+      "expected": "489",
+      "actual": "489",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row value",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:nth-child(2)",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row value",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:nth-child(2)",
+      "property": "font-size",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "first row value",
+      "selector": "[data-audit=\"rail-card\"] button:first-of-type span:nth-child(2)",
+      "property": "color",
+      "expected": "#DC2626",
+      "actual": "rgb(220, 38, 38)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "a zero row (staged updates pending, 0)",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type",
+      "property": "padding-top",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "a zero row (staged updates pending, 0)",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type",
+      "property": "padding-bottom",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "a zero row (staged updates pending, 0)",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "a zero row (staged updates pending, 0)",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.06)",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row label",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:first-child",
+      "property": "text",
+      "expected": "Staged updates pending",
+      "actual": "Staged updates pending",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row label",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:first-child",
+      "property": "font-weight",
+      "expected": "500",
+      "actual": "500",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row label",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:first-child",
+      "property": "color",
+      "expected": "#5A6B67",
+      "actual": "rgb(90, 107, 103)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row value",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:nth-child(2)",
+      "property": "text",
+      "expected": "0",
+      "actual": "0",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row value",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:nth-child(2)",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row value",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:nth-child(2)",
+      "property": "font-size",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "admin-issues-rail",
+      "part": "AdminIssuesRail (Admin surface right rail)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p13\", the 'Issues queue' rail card; operator ruling 5.1 (2026-09-07)",
+      "viewport": 1440,
+      "target": "zero row value",
+      "selector": "[data-audit=\"rail-card\"] div[aria-disabled=\"true\"]:first-of-type span:nth-child(2)",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": null
     },
     {
       "spec": "auth-frame",
@@ -11657,6 +12474,438 @@
       "actual": "rgba(0, 0, 0, 0.12)",
       "status": "MATCH",
       "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "OnboardingStepper (4-pill progress row)",
+      "selector": "[data-audit=\"stepper\"] > div",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "OnboardingStepper (4-pill progress row)",
+      "selector": "[data-audit=\"stepper\"] > div",
+      "property": "column-gap",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "OnboardingStepper (4-pill progress row)",
+      "selector": "[data-audit=\"stepper\"] > div",
+      "property": "row-gap",
+      "expected": "18px",
+      "actual": "18px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step (Workspace)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1)",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step (Workspace)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1)",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step (Workspace)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1)",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "property": "width",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "property": "height",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "property": "background-color",
+      "expected": "#16A34A",
+      "actual": "rgb(22, 163, 74)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "property": "color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step (Modes & jurisdictions)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2)",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "No 'text' check: the step label is a bare text node after the circle <span>, so textContent also carries the circle's own '2' — a selector artifact, not a design statement to measure."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step (Modes & jurisdictions)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2)",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "No 'text' check: the step label is a bare text node after the circle <span>, so textContent also carries the circle's own '2' — a selector artifact, not a design statement to measure."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step (Modes & jurisdictions)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2)",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": "No 'text' check: the step label is a bare text node after the circle <span>, so textContent also carries the circle's own '2' — a selector artifact, not a design statement to measure."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "property": "width",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "property": "height",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "property": "background-color",
+      "expected": "#5A5552",
+      "actual": "rgb(90, 85, 82)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "property": "color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step (Sectors)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3)",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "No 'text' check: same selector-artifact reason as the active step above ('3Sectors')."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step (Sectors)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3)",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": "No 'text' check: same selector-artifact reason as the active step above ('3Sectors')."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step (Sectors)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3)",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "No 'text' check: same selector-artifact reason as the active step above ('3Sectors')."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "property": "width",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "property": "height",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "property": "border-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
+    },
+    {
+      "spec": "onboarding-stepper",
+      "part": "OnboardingStepper (4-pill progress row)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+      "viewport": 1440,
+      "target": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "property": "border-color",
+      "expected": "rgba(0,0,0,.3)",
+      "actual": "rgba(0, 0, 0, 0.3)",
+      "status": "MATCH",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session)."
     },
     {
       "spec": "operations-matrix",
