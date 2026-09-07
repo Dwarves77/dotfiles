@@ -111,6 +111,15 @@ window.__mount = () => {
           tier: 1,
           overflow: React.createElement('button', { type: 'button', 'aria-label': 'Row actions', style: { width: 28, height: 28 } }, '\\u22ef'),
         })),
+      React.createElement('div', { 'data-audit': 'row-endstat' },
+        React.createElement(ListRow, {
+          href: '/regulations?jurisdiction=EU',
+          band: BAND_ORDER.find((b) => b.key === 'immediate'),
+          jurisdiction: 'EU',
+          title: 'EU',
+          meta: 'Emissions \\u00b7 Reporting \\u00b7 Packaging',
+          endStat: { label: 'Immediate', value: 392, band: BAND_ORDER.find((b) => b.key === 'immediate') },
+        })),
     ),
   );
 };
