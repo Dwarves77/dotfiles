@@ -113,11 +113,29 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // 4px orange→blue top rule is retired: the frame's brand mark is now the
   // nav card's own band-gradient cap (Sidebar.tsx's <BandGradientRule/>),
   // not a second bar duplicating it at the page edge.
+  // Frame fix, operator report 2026-09-07 ("the side navigation bar does not reach the length of
+  // the page"), CONFIRMED against every page artboard (dc.html: `display:grid;grid-template-
+  // columns:252px 1fr;overflow:hidden`, the nav card `align-self:stretch`). The artboard's own grid
+  // has NO explicit width on the nav card — its width is the 252px column minus its own left
+  // margin, via grid's default `justify-self:stretch`. This app's frame row instead gives the nav
+  // card an explicit 252px width (Sidebar.tsx) and lets the row (flex, not grid) size the content
+  // column around it — the same effective box, without the grid track/margin arithmetic a literal
+  // `grid-template-columns:252px 1fr` would force onto a fixed-width item that also carries a
+  // margin. Kept as flex; fixed here by making the height/display that the nav card's own
+  // `align-self:stretch` (Sidebar.tsx) needs to resolve against INLINE, not Tailwind-class-only —
+  // correct already in the built app (compiled Tailwind makes `h-screen`/`flex` real), but the
+  // design-audit harness (fsi-app/.discipline/rendering/audit) mounts this tree with only
+  // globals.css/theme.css injected, no compiled Tailwind utility output, so a Tailwind-only frame
+  // has no definite height there and the nav card's stretch is unverifiable. Inline style holds in
+  // both.
   return (
-    <div className="flex h-screen justify-center" style={{ backgroundColor: "var(--desk)" }}>
-      <div className="flex w-full" style={{ maxWidth: 1440 }}>
+    <div
+      className="justify-center"
+      style={{ backgroundColor: "var(--desk)", display: "flex", height: "100vh" }}
+    >
+      <div className="w-full" style={{ maxWidth: 1440, display: "flex" }}>
         <Sidebar drawerOpen={drawerOpen} onDrawerClose={() => setDrawerOpen(false)} />
-        <div className="flex-1 min-w-0 flex flex-col" style={{ background: "var(--page)" }}>
+        <div className="min-w-0 flex flex-col" style={{ background: "var(--page)", flex: "1 1 0%", minHeight: 0 }}>
           {/* Mobile top bar (mobile-390 spec, TOP BAR): replaces the
               desktop nav card below 768, sibling of <main/> (not inside
               it) so it never scrolls away. */}

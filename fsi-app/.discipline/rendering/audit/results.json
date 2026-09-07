@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T21:06:27.777Z",
+  "runAt": "2026-09-07T21:37:06.175Z",
   "specs": [
     {
       "part": "Absence",
@@ -2172,7 +2172,8 @@
         "The mount is the REAL AppShell wrapping DashboardBrief and RegulationDetailSurface, so the nav card, the content column, the dashboard section cards, the detail header and the detail action row are all in ONE measured tree. Composing the two surfaces together is an audit fixture, not a claim the product renders them together.",
         "Nav card top margin is expected at 20px per operator ruling 4.2 ('margin: 20px 0 16px 16px so it aligns with the content column's 20px top padding. Fix it in the frame, once'). The artboard markup still shows 16px; the ruling supersedes it.",
         "Ruling 5.1 requires a 3px graduated rule ABOVE each section title (full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))) and NO line below the title. Selector repair, train 58 (2026-09-07): the earlier `[data-section-rule]` selector never matched anything; the dashboard's Card DOES render the shared `SectionRule` component (`src/components/ui/SectionRule.tsx`, marker class `.cl-section-rule`, confirmed by direct source read this session, `src/components/dashboard/DashboardBrief.tsx` line ~121) — the check below now measures the real element.",
-        "Ruling 5.2's sitewide count ('one coloured rule per screen') cannot be counted reliably today: BandGradientRule renders an unmarked `div[aria-hidden=\"true\"]`, and the four-band gradient is not distinguishable by computed style alone from the ImpactMeter ramp or the full MilestoneTimeline track, which are also green-to-red gradients at similar heights. This spec therefore checks the ONE permitted instance exactly (the nav card cap) and forbids a band-proportion rule inside a page masthead. Adding `data-band-rule` to BandGradientRule would make the sitewide count a one-line check; that is a recommendation for the fix lane, not a deviation."
+        "Ruling 5.2's sitewide count ('one coloured rule per screen') cannot be counted reliably today: BandGradientRule renders an unmarked `div[aria-hidden=\"true\"]`, and the four-band gradient is not distinguishable by computed style alone from the ImpactMeter ramp or the full MilestoneTimeline track, which are also green-to-red gradients at similar heights. This spec therefore checks the ONE permitted instance exactly (the nav card cap) and forbids a band-proportion rule inside a page masthead. Adding `data-band-rule` to BandGradientRule would make the sitewide count a one-line check; that is a recommendation for the fix lane, not a deviation.",
+        "Operator report 2026-09-07 ('the side navigation bar does not reach the length of the page'), CONFIRMED against every page artboard: the nav card is `align-self:stretch` inside the frame's `grid-template-columns:252px 1fr` and spans the full page height, footer rows at its foot. The build's `aside` previously carried `maxHeight: calc(100vh - 36px)` with no `align-self` of its own and ended at its content height instead. Fixed at the root in `Sidebar.tsx` (`align-self:stretch`, `height:auto`, no `maxHeight`) and in `AppShell.tsx` (the frame row's `display:flex`/height made inline, not Tailwind-class-only, so this harness — which injects only globals.css/theme.css, no compiled Tailwind CSS — has a real box to stretch against). The two rows below assert it: `align-self` reads back `stretch`, and `height` on this fixture (frame row's inline `height:100vh` at the harness's fixed 1400px page height) resolves to the frame height (1400px) minus the card's own vertical margins (20px top + 16px bottom = 36px) minus its own 1px top+bottom border (`box-sizing:content-box`, so the CSS `height` property excludes it) = 1362px — i.e. the card's rendered (border) box is exactly 1364px, equal to the frame's box, not its own content's height; the 1362px this row asserts is that same box read back through `getComputedStyle`'s content-box `height`, confirmed against `getBoundingClientRect().height === 1364` directly in the fixture."
       ],
       "selector": "aside.hidden",
       "expect": {
@@ -2185,7 +2186,9 @@
         "border-top-width": "1px",
         "border-top-color": "rgba(0,0,0,.12)",
         "border-top-left-radius": "10px",
-        "border-bottom-left-radius": "10px"
+        "border-bottom-left-radius": "10px",
+        "align-self": "stretch",
+        "height": "1362px"
       },
       "children": [
         {
@@ -13582,6 +13585,46 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
       "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "align-self",
+      "expected": "stretch",
+      "actual": "stretch",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "height",
+      "expected": "1362px",
+      "actual": "1362px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
       "target": "nav card — band-proportion gradient cap (the ONE coloured rule, ruling 5.2)",
       "selector": "aside.hidden > div[aria-hidden=\"true\"]",
       "property": "height",
@@ -13746,7 +13789,7 @@
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "property": "grid-template-columns",
       "expected": "* 300px",
-      "actual": "1032px 300px",
+      "actual": "730px 300px",
       "status": "MATCH",
       "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
     },

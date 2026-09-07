@@ -18,8 +18,21 @@ test("desktop nav card margin is 20px 0 16px 16px (item 4.2)", () => {
   assert.doesNotMatch(SOURCE, /margin: "16px 0 16px 16px"/);
 });
 
-test("maxHeight accounts for the new 36px total vertical margin (20 + 16), not the old 32px", () => {
-  assert.match(SOURCE, /maxHeight: "calc\(100vh - 36px\)"/);
+test("frame fix (2026-09-07, operator report 'the side navigation bar does not reach the length of the page'): desktop nav card stretches to the frame's own height, not a viewport-derived maxHeight", () => {
+  // The prior fix (`maxHeight: calc(100vh - 36px)`, no align-self) tracked the raw viewport
+  // instead of the frame row's actual box, so the card ended at its own content height whenever
+  // those two differed. The card is now `align-self: stretch` with `height: auto` and carries no
+  // `maxHeight` at all — it always equals the frame row's real box, the same way the content
+  // column (AppShell's other flex item in the same row) already does.
+  assert.match(SOURCE, /alignSelf: "stretch"/);
+  assert.match(SOURCE, /height: "auto"/);
+  // `maxHeight:` (the JS object property) must be gone from the aside's own style object; the
+  // word can still appear in prose comments explaining what the OLD, defective code used to do.
+  assert.doesNotMatch(SOURCE, /maxHeight:\s*"/);
+});
+
+test("nav body is flex:1 so the footer (Account / Admin) sits at the card's foot on a stretched, long page", () => {
+  assert.match(SOURCE, /<nav className="py-3 px-2\.5 flex-1 flex flex-col/);
 });
 
 test("fix58-tokens (2026-09-07, design audit B95-B98): desktop card section label is 700/.14em (dc.html p1), not 800/.12em", () => {

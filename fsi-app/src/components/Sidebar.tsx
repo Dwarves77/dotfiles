@@ -294,14 +294,40 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
 
   return (
     <>
-      {/* Desktop nav card — 252px, always, at md (768px) and up. */}
+      {/* Desktop nav card — 252px, always, at md (768px) and up.
+          Operator report 2026-09-07 ("the side navigation bar does not
+          reach the length of the page"), CONFIRMED against the artboard
+          (dc.html, artboard id="p2" and every page artboard): the page
+          frame's row (AppShell's `.flex w-full` frame div) stretches the
+          content column to full height, but this card's own box was
+          capped by `maxHeight: calc(100vh - 36px)` with no `align-self`
+          of its own — a height that tracks the viewport, not the frame
+          row's actual (post-stretch) box, so on any layout where the
+          frame row's height differs from a bare `100vh` read (a page
+          zoom, a fractional-pixel viewport, a future banner above the
+          frame) the card's cap and the row's real height drift apart and
+          the card stops at its OWN content height instead of the frame's.
+          Root-fixed once, here, per the artboard's own box model: the
+          card is `align-self: stretch` (the artboard nav card is
+          `align-self:stretch` inside the frame's `grid-template-columns:
+          252px 1fr`) with `height: auto` and no `maxHeight` at all — it
+          now always equals the frame row's real box, however that box is
+          produced, the same way the content column already does one flex
+          item over. */}
       <aside
         className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
           width: 252,
+          height: "auto",
+          // Inline, not a `self-stretch` Tailwind class: the design-audit harness
+          // (fsi-app/.discipline/rendering/audit) mounts this component with only
+          // globals.css/theme.css injected, no compiled Tailwind utility CSS, so a
+          // class-only `align-self` would be silently inert there (and unverifiable)
+          // even though it works in the real, fully-built app. Inline style is the
+          // one form that is true in both.
+          alignSelf: "stretch",
           // Operator audit item 4.2 (2026-09-07, CLOSED ruling): "Nav card top margin becomes 20px
           // (margin: 20px 0 16px 16px) so it aligns with the content column's 20px top padding."
-          maxHeight: "calc(100vh - 36px)",
           margin: "20px 0 16px 16px",
           background: "var(--card)",
           border: "1px solid var(--line-1)",
@@ -323,10 +349,14 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
             </p>
           </Link>
         </div>
-        <nav className="py-3 px-2.5 flex flex-col gap-2.5 overflow-y-auto min-h-0">
+        {/* `flex: 1` here (the artboard's own section-list wrapper carries
+            it) is what makes the footer land at the card's foot instead of
+            immediately under the last nav row — a plain spacer div only
+            worked when the card's own height matched its content, which is
+            exactly the defect above. */}
+        <nav className="py-3 px-2.5 flex-1 flex flex-col gap-2.5 overflow-y-auto min-h-0">
           {navSections("card")}
         </nav>
-        <div className="flex-1" />
         {footer("card")}
       </aside>
 
