@@ -26,3 +26,38 @@ test("note is 10.5px / --ink-3 (#7A6E6C) in both layouts (dc.html p1/p14)", () =
   assert.match(noteBlock, /fontSize:\s*"var\(--fs-105\)"/);
   assert.match(noteBlock, /color:\s*"var\(--ink-3\)"/);
 });
+
+// ── size="tile" (train 58, 2026-09-07, dc.html id="p13" Platform admin's 8-tile grid) ──────────────
+
+function tileBlock() {
+  return SOURCE.slice(SOURCE.indexOf('if (size === "tile")'), SOURCE.indexOf('const numeral = loading'));
+}
+
+test('size="tile" is an accepted prop value', () => {
+  assert.match(SOURCE, /size\?:\s*"default"\s*\|\s*"tile"/);
+});
+
+test("tile numeral is 16px Anton (dc.html p13)", () => {
+  const block = tileBlock();
+  assert.match(block, /fontSize:\s*16/);
+  assert.match(block, /fontFamily:\s*"var\(--font-display\)"/);
+});
+
+test("tile label is 11px / .1em / 800 / uppercase (dc.html p13)", () => {
+  const block = tileBlock();
+  assert.match(block, /fontSize:\s*"var\(--fs-11\)"/);
+  assert.match(block, /letterSpacing:\s*"0\.1em"/);
+  assert.match(block, /fontWeight:\s*800/);
+  assert.match(block, /textTransform:\s*"uppercase"/);
+});
+
+test("tile note is 11.5px / --ink-2 (#5A6B67), 4px margin-top (dc.html p13)", () => {
+  const block = tileBlock();
+  assert.match(block, /fontSize:\s*"var\(--fs-115\)"/);
+  assert.match(block, /color:\s*"var\(--ink-2\)"/);
+  assert.match(block, /marginTop:\s*4/);
+});
+
+test('tile size ignores layout — no "layout ===" branch inside the tile block', () => {
+  assert.doesNotMatch(tileBlock(), /layout ===/);
+});

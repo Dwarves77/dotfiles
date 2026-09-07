@@ -17,6 +17,14 @@
  * DEVIATION-LOG.md) paints the numeral in the immediate band colour
  * instead of ink. Never used to invent a fifth urgency vocabulary: it is
  * one on/off tone, not a band.
+ *
+ * `size="tile"` (additive extension, train 58 2026-09-07, dc.html id="p13"
+ * — Platform admin's 8-tile summary grid) is a compact variant sized for a
+ * 4-up grid cell: 11px uppercase label / 16px Anton numeral on one baseline
+ * row, 11.5px note below. The tile's own card chrome (border, radius,
+ * shadow, padding) is the CALLER's — AdminDashboard.tsx's `AdminStatTile`
+ * wrapper, per the artboard — StatBlock itself only sets type. `size="tile"`
+ * ignores `layout`.
  */
 
 export interface StatBlockProps {
@@ -26,9 +34,58 @@ export interface StatBlockProps {
   loading?: boolean;
   layout?: "stack" | "row";
   tone?: "default" | "critical";
+  size?: "default" | "tile";
 }
 
-export function StatBlock({ label, value, note, loading, layout = "stack", tone = "default" }: StatBlockProps) {
+export function StatBlock({ label, value, note, loading, layout = "stack", tone = "default", size = "default" }: StatBlockProps) {
+  if (size === "tile") {
+    const numeral_ = loading ? (
+      <span
+        aria-hidden="true"
+        style={{ display: "block", width: 28, height: 16, borderRadius: 4, background: "var(--tag)" }}
+      />
+    ) : (
+      <span
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 16,
+          lineHeight: 1,
+          color: tone === "critical" ? "var(--immediate)" : "var(--ink)",
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {value}
+      </span>
+    );
+    const label_tile = (
+      <span
+        style={{
+          fontSize: "var(--fs-11)",
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          fontWeight: 800,
+          color: "var(--ink)",
+        }}
+      >
+        {label}
+      </span>
+    );
+    const note_tile = note != null && (
+      <span style={{ display: "block", fontSize: "var(--fs-115)", color: "var(--ink-2)", marginTop: 4, lineHeight: 1.45 }}>
+        {note}
+      </span>
+    );
+    return (
+      <div>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8 }}>
+          {label_tile}
+          {numeral_}
+        </div>
+        {note_tile}
+      </div>
+    );
+  }
+
   const numeral = loading ? (
     <span
       aria-hidden="true"

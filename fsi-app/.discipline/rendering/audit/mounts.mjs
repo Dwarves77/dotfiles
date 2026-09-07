@@ -1193,6 +1193,35 @@ window.__mount = () => {
 };
 `;
 
+// ── Admin stat tiles (README screen 13 / dc.html p13, the 8-tile summary grid) ────────────────────
+// Real AdminDashboard, same auth-stub + fixture technique as AdminIssuesRail above (they share one
+// page, one useAdminAttention fetch) — mounts the actual `.cl-admin-stat-tile` wrapper + `StatBlock
+// size="tile"` the product renders, not a copy.
+const ADMIN_STAT_TILES_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setUserRole('owner');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AdminDashboard, {
+      userId: 'smoke-user',
+      userEmail: 'smoke@example.com',
+      dateLabel: 'Vol IV · No. 36 · Sunday 6 September 2026',
+      initialOrgs: [{ id: 'org-1', name: 'Rockit', slug: 'rockit', plan: 'team', created_at: '2026-01-01' }],
+      initialEmissionFactorsLiveCount: 13,
+    }),
+  );
+};
+`;
+
 // ── OnboardingStepper (README screen 17 / dc.html p17) ─────────────────────────────────────────────
 const ONBOARDING_STEPPER_ENTRY = `
 ${STYLE_INJECT}
@@ -1402,6 +1431,16 @@ export const AUDIT_MOUNTS = {
     description: 'The real AdminIssuesRail (Admin surface right rail), README screen 13 / dc.html p13.',
     viewport: 1440,
     entry: ADMIN_ISSUES_RAIL_ENTRY,
+    alias: {
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'admin-stat-tiles': {
+    id: 'admin-stat-tiles',
+    description: 'The real AdminDashboard 8-tile summary grid (.cl-admin-stat-tile + StatBlock size="tile"), README screen 13 / dc.html p13.',
+    viewport: 1440,
+    entry: ADMIN_STAT_TILES_ENTRY,
     alias: {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
     },

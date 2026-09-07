@@ -122,6 +122,13 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   `textTransform: "uppercase"`, `letterSpacing: "1.12px"` at `fontSize: "28px"` (= 0.04em). PASS.
   See `DEVIATION-LOG.md`'s "GAP G4" entry for the full computed-style record.
 
+- **`OrganizationsTable` has no artboard, train 58 (2026-09-07).** Mounted inside
+  `AdminDashboard.tsx`'s Workspaces section (`src/components/admin/OrganizationsTable.tsx`); no
+  artboard in this handoff shows the Workspaces section's expanded body, so per this train's own
+  dispatch (step 2b: "no artboard shows it; leave it exactly as is... do not invent a spec") it was
+  left untouched — no spec written, no geometry changed. Needs a Claude Design artboard for the
+  Workspaces/Organizations table before any audit spec or fix lane can be dispatched against it.
+
 ## Regenerating the built screenshots
 
 `docs/design/handoff-2026-09-06/built/*.png` are Playwright captures of the live surfaces, taken
