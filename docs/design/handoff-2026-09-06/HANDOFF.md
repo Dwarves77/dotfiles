@@ -84,3 +84,26 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   existing for it), but the section index is now built without ever having had its own artboard,
   flagged here for the operator to confirm the built shape matches what the eventual artboard will
   show, rather than silently trusting prose-only R9 forever.
+
+## Regenerating the built screenshots
+
+`docs/design/handoff-2026-09-06/built/*.png` are Playwright captures of the live surfaces, taken
+for comparison against the design package. When one goes missing or stale (a page's own capture
+lane could not produce it, or a component it mounts changed), regenerate it with:
+
+```
+NO_PROXY="$NO_PROXY,smoke-guard.internal" node fsi-app/.discipline/rendering/capture-detail-mobile-screenshots.mjs
+```
+
+(also wired as `npm run capture:detail-mobile-screenshots` from `fsi-app/`). It reuses the same
+`RegulationDetailSurface` fixture mounts `detail-surfaces-smoke.mjs` exports for its own smoke run
+(`REGULATION_ENTRY`/`REGULATION_STATES`/`ALIAS`) and the same Playwright chromium page every other
+guard file uses, so a regenerated capture reflects the real component, not a hand-built stand-in.
+It currently produces `built/m-detail-390.png` and `built/m-detail-375.png` (mobile 390/375
+widths) and is the documented way to regenerate those two files; extend it with more `[width,
+state]` pairs rather than writing a parallel one-off capture script. `NO_PROXY` must include
+`smoke-guard.internal` or the page's in-process API stubbing cannot reach the guard harness (see
+the `DEVIATION-LOG.md` entry directly above the F10 row). The script is reachable via
+`fsi-app/package.json`'s `scripts` section, which F25 (module-liveness) reads as a dispatch root
+(`findDispatchRoots` Source 2) — it needs no `LEGACY_ALLOWLIST` entry and carries none; confirmed
+by a clean `node .discipline/fitness/runner.mjs` run (0 violations, F25 green) this train.
