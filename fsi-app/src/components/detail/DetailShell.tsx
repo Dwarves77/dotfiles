@@ -21,6 +21,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { BandChip, TierChip } from "@/components/ui/Chips";
+import { CommandBar } from "@/components/ui/CommandBar";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
 import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
@@ -46,9 +47,21 @@ export interface DetailHeaderProps {
    * regulation detail's band+tier alone).
    */
   extraChips?: React.ReactNode;
+  /**
+   * Scoped ask placeholder (lane uiactions, 2026-09-07, README §0.3 "no
+   * per-page ask panel — the CommandBar in the Masthead is the only
+   * search/ask surface" + design ruling R4): e.g. "Ask about this
+   * regulation". Rendering it mounts the SAME shared `CommandBar` part
+   * every list/dashboard masthead uses (never a bespoke per-page ask box)
+   * scoped to this item via `askScope`. Optional — a detail surface that
+   * omits it renders exactly the header it had before.
+   */
+  askPlaceholder?: string;
+  /** Assistant scope tag passed through to CommandBar, e.g. "regulation-detail". */
+  askScope?: string;
 }
 
-export function DetailHeader({ band, tier, title, meta, actions, extraChips }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, meta, actions, extraChips, askPlaceholder, askScope }: DetailHeaderProps) {
   return (
     <header
       style={{
@@ -90,7 +103,16 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips }: D
             {title}
           </h1>
         </div>
-        {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>{actions}</div>}
+        {(askPlaceholder || actions) && (
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, maxWidth: "100%" }}>
+            {askPlaceholder && (
+              <div style={{ width: 320, maxWidth: "100%" }}>
+                <CommandBar itemCount={0} placeholder={askPlaceholder} scope={askScope} />
+              </div>
+            )}
+            {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>}
+          </div>
+        )}
       </div>
     </header>
   );
@@ -222,12 +244,24 @@ export interface SectionIndexEntry {
   label: string;
 }
 
-export function SectionIndex({ sections }: { sections: SectionIndexEntry[] }) {
+export function SectionIndex({
+  sections,
+  trailing,
+}: {
+  sections: SectionIndexEntry[];
+  /**
+   * Right-aligned control rendered in the same sticky row as the S1 · S2 ·
+   * S3 … links — additive slot (lane uiactions, 2026-09-07) for the
+   * detail architecture's Summary | Full brief depth switch (see
+   * `SummaryDepthSwitch` below). Optional: omitted, the row renders exactly
+   * as before (index links only).
+   */
+  trailing?: React.ReactNode;
+}) {
   if (sections.length === 0) return null;
   return (
     <nav
       aria-label="Section index"
-      data-guard-strip
       style={{
         position: "sticky",
         top: 0,
@@ -238,33 +272,93 @@ export function SectionIndex({ sections }: { sections: SectionIndexEntry[] }) {
         marginBottom: 16,
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         gap: 10,
-        overflowX: "auto",
-        whiteSpace: "nowrap",
+        flexWrap: "wrap",
         maxWidth: "100%",
       }}
     >
-      {sections.map((s, i) => (
-        <span key={s.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          {i > 0 && <span style={{ color: "var(--ink-3)" }} aria-hidden="true">·</span>}
-          <a
-            href={`#${s.id}`}
-            style={{
-              fontSize: "var(--fs-105)",
-              fontWeight: 700,
-              color: "var(--ink-2)",
-              textDecoration: "none",
-              display: "inline-flex",
-              alignItems: "center",
-              minHeight: 44,
-              padding: "0 2px",
-            }}
-          >
-            S{i + 1} · {s.label}
-          </a>
-        </span>
-      ))}
+      <div data-guard-strip style={{ display: "flex", alignItems: "center", gap: 10, overflowX: "auto", whiteSpace: "nowrap", minWidth: 0, maxWidth: "100%" }}>
+        {sections.map((s, i) => (
+          <span key={s.id} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            {i > 0 && <span style={{ color: "var(--ink-3)" }} aria-hidden="true">·</span>}
+            <a
+              href={`#${s.id}`}
+              style={{
+                fontSize: "var(--fs-105)",
+                fontWeight: 700,
+                color: "var(--ink-2)",
+                textDecoration: "none",
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 44,
+                padding: "0 2px",
+              }}
+            >
+              S{i + 1} · {s.label}
+            </a>
+          </span>
+        ))}
+      </div>
+      {trailing && <div style={{ flexShrink: 0 }}>{trailing}</div>}
     </nav>
+  );
+}
+
+// ── Summary depth switch: "Summary | Full brief" ────────────────────────
+//
+// Lane uiactions (2026-09-07, README §0.5 + design ruling R3): the ONLY
+// summary depth control in this architecture — two states, not the old
+// three-state "Complete brief" toggle (removed pre-existing, confirmed by
+// DetailShell.npmtest.mjs's "no 'Complete brief' toggle vocabulary"
+// assertion). Wired, not decorative: a detail surface passes `depth` +
+// `onChange` from its own useState and reads `depth` when deciding whether
+// to also render the item's full brief markdown in the Summary section.
+export type SummaryDepth = "summary" | "full";
+
+export function SummaryDepthSwitch({ depth, onChange }: { depth: SummaryDepth; onChange: (d: SummaryDepth) => void }) {
+  const opt = (value: SummaryDepth, label: string) => (
+    <button
+      key={value}
+      type="button"
+      role="tab"
+      aria-selected={depth === value}
+      onClick={() => onChange(value)}
+      style={{
+        fontFamily: "var(--font-sans)",
+        fontSize: "var(--fs-105)",
+        fontWeight: 700,
+        padding: "6px 14px",
+        minHeight: 44,
+        display: "inline-flex",
+        alignItems: "center",
+        border: "none",
+        borderRadius: 5,
+        background: depth === value ? "var(--brand)" : "transparent",
+        color: depth === value ? "#fff" : "var(--ink-2)",
+        cursor: "pointer",
+      }}
+    >
+      {label}
+    </button>
+  );
+  return (
+    <div
+      role="tablist"
+      aria-label="Summary depth"
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 2,
+        padding: 2,
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-control)",
+        background: "var(--card)",
+      }}
+    >
+      {opt("summary", "Summary")}
+      {opt("full", "Full brief")}
+    </div>
   );
 }
 

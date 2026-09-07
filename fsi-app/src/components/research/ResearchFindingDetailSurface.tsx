@@ -29,7 +29,7 @@
  * shared RailLegend + the Sources section's own tier chips).
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -49,6 +49,8 @@ import {
   DetailExposure,
   DetailTimeline,
   SectionIndex,
+  SummaryDepthSwitch,
+  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -162,6 +164,7 @@ export function ResearchFindingDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
+  const [depth, setDepth] = useState<SummaryDepth>("summary");
 
   const indexEntries: SectionIndexEntry[] = isRecord
     ? [{ id: "summary", label: "Summary" }, { id: "sources", label: "Sources" }]
@@ -179,6 +182,8 @@ export function ResearchFindingDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          askPlaceholder="Ask about this finding"
+          askScope="research-finding-detail"
           extraChips={
             <>
               <TagChip>Finding</TagChip>
@@ -225,7 +230,7 @@ export function ResearchFindingDetailSurface({
 
         <DetailTimeline entries={r.timeline} band={band} />
 
-        <SectionIndex sections={indexEntries} />
+        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
 
         <DetailLayout
           rail={
@@ -252,6 +257,11 @@ export function ResearchFindingDetailSurface({
           {isRecord ? (
             <DetailSection id="summary" title="Summary">
               <ResearchRecordFacts sections={sections} tags={r.tags} claimTiers={claimTiers} />
+              {depth === "full" && r.fullBrief && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                  <GfmSection markdown={r.fullBrief} />
+                </div>
+              )}
             </DetailSection>
           ) : knownSections.length > 0 ? (
             knownSections.map((s) => (
@@ -267,6 +277,11 @@ export function ResearchFindingDetailSurface({
                 </p>
               ) : (
                 <StateNote>Detailed sections pending for this finding; brief generation in progress.</StateNote>
+              )}
+              {depth === "full" && r.fullBrief && (
+                <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                  <GfmSection markdown={r.fullBrief} />
+                </div>
               )}
             </DetailSection>
           )}

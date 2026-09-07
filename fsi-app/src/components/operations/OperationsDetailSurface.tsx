@@ -32,7 +32,7 @@
  * RelevanceBadgeClient, WatchButton/Export/Share actions.
  */
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -51,6 +51,8 @@ import {
   DetailExposure,
   DetailTimeline,
   SectionIndex,
+  SummaryDepthSwitch,
+  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -61,6 +63,7 @@ import {
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
@@ -157,6 +160,7 @@ export function OperationsDetailSurface({
     [sections]
   );
   const sourceRows = useMemo(() => sourceEntriesOf(r), [r]);
+  const [depth, setDepth] = useState<SummaryDepth>("summary");
 
   const indexEntries: SectionIndexEntry[] = knownSections.length > 0
     ? [
@@ -175,6 +179,8 @@ export function OperationsDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          askPlaceholder="Ask about this profile"
+          askScope="operations-profile-detail"
           extraChips={
             <>
               <TagChip>Regional profile</TagChip>
@@ -221,7 +227,7 @@ export function OperationsDetailSurface({
 
         <DetailTimeline entries={r.timeline} band={band} />
 
-        <SectionIndex sections={indexEntries} />
+        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
 
         <DetailLayout
           rail={
@@ -289,6 +295,11 @@ export function OperationsDetailSurface({
                   </p>
                 ) : (
                   <StateNote>Detailed sections pending for this regional profile; brief generation in progress.</StateNote>
+                )}
+                {depth === "full" && r.fullBrief && (
+                  <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                    <GfmSection markdown={r.fullBrief} />
+                  </div>
                 )}
               </DetailSection>
             )}

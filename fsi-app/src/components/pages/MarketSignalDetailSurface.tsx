@@ -70,6 +70,8 @@ import {
   DetailExposure,
   DetailTimeline,
   SectionIndex,
+  SummaryDepthSwitch,
+  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -79,6 +81,7 @@ import {
   InThisListStat,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import {
@@ -310,6 +313,7 @@ export function MarketSignalDetailSurface({
 
   const hasDrivers = !!(sectionMap["2"] || sectionMap["3"] || sectionMap["5"] || hasTrajectory || hasCarbonOverlay || r.conversionTrigger);
   const actions = [...(r.recommendedActions || [])].sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99));
+  const [depth, setDepth] = useState<SummaryDepth>("summary");
 
   const indexEntries: SectionIndexEntry[] = [
     { id: "summary", label: "Summary" },
@@ -328,6 +332,8 @@ export function MarketSignalDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          askPlaceholder="Ask about this signal"
+          askScope="market-signal-detail"
           extraChips={
             <>
               <TagChip>Signal</TagChip>
@@ -382,7 +388,7 @@ export function MarketSignalDetailSurface({
 
         <DetailTimeline entries={r.timeline} band={band} />
 
-        <SectionIndex sections={indexEntries} />
+        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
 
         <DetailLayout
           rail={
@@ -421,6 +427,11 @@ export function MarketSignalDetailSurface({
                   <StateNote>Movement analysis pending — the signal brief for {r.title} has not been generated yet.</StateNote>
                 )}
               </>
+            )}
+            {depth === "full" && r.fullBrief && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                <GfmSection markdown={r.fullBrief} />
+              </div>
             )}
           </DetailSection>
 

@@ -45,6 +45,8 @@ import {
   DetailHeader,
   DetailTimeline,
   SectionIndex,
+  SummaryDepthSwitch,
+  type SummaryDepth,
   DetailSection,
   DetailLayout,
   DetailPageWrapper,
@@ -52,6 +54,7 @@ import {
   InThisListStat,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
+import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { OwnerTeamCard } from "@/components/regulations/OwnerTeamCard";
@@ -154,6 +157,7 @@ export function RegulationDetailSurface({
   const meta = [groupLabel || jurisLabel, deck].filter(Boolean).join(" · ");
 
   const isRecord = r.itemGrade === "record";
+  const [depth, setDepth] = useState<SummaryDepth>("summary");
 
   const dynamicSections = useMemo(
     () => sections.filter((s) => s.section_key in CANONICAL_HEADINGS && (s.content_md || "").trim()),
@@ -175,6 +179,8 @@ export function RegulationDetailSurface({
           band={band}
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
+          askPlaceholder="Ask about this regulation"
+          askScope="regulation-detail"
           meta={meta}
           actions={
             <>
@@ -214,7 +220,7 @@ export function RegulationDetailSurface({
 
         {upcomingObligations && <div style={{ marginBottom: 16 }}>{upcomingObligations}</div>}
 
-        <SectionIndex sections={indexEntries} />
+        <SectionIndex sections={indexEntries} trailing={<SummaryDepthSwitch depth={depth} onChange={setDepth} />} />
 
         <DetailLayout
           rail={
@@ -233,6 +239,11 @@ export function RegulationDetailSurface({
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (
               <BriefSummary r={r} changelog={changelog} dispute={dispute} />
+            )}
+            {depth === "full" && r.fullBrief && (
+              <div style={{ marginTop: 16, paddingTop: 14, borderTop: "1px solid var(--line-3)" }}>
+                <GfmSection markdown={r.fullBrief} />
+              </div>
             )}
           </DetailSection>
 
