@@ -17,13 +17,14 @@
  * line is 11px muted.
  *
  * Desktop-only (README: 1440px desktop only, Claude Design is producing 390px
- * mobile artboards separately). This lane's own <640px responsive collapse
- * (UILISTS, 2026-09-06) is removed per operator ruling 2026-09-07: mobile is
- * not designed in this bundle, so no page in it gets an ad hoc collapse ahead
- * of the real mobile artboards. Logged in DEVIATION-LOG.md. The
- * `data-guard-title` attribute and the row-Link's `right: 12` inset (so the
- * Link's box never overlaps the ⋯ cell's own control) are kept — neither is
- * mobile-specific.
+ * mobile artboards separately). No <=640px collapse or reflow of any kind —
+ * operator ruling 2026-09-07: mobile is not designed in this bundle, so no
+ * page in it gets an ad hoc mobile treatment ahead of the real mobile
+ * artboards (this retires both UILISTS' own collapse and uimapcomm's
+ * flex-wrap reflow). Logged in DEVIATION-LOG.md. The `data-guard-title`
+ * attribute, the row-Link's `right: 12` inset, and the additive `endStat`
+ * prop (for rows with no impact/due/timeline/tier dimensions of their own,
+ * e.g. the map's jurisdiction register) are kept — none is mobile-specific.
  */
 
 import Link from "next/link";
@@ -51,6 +52,18 @@ export interface ListRowProps {
    *  competing with the row Link (the ⋯ button stops propagation only for
    *  its own click, it does not wrap a nested navigable link). */
   overflow?: ReactNode;
+  /**
+   * Additive extension (lane uimapcomm, 2026-09-06): when a row's subject
+   * has no impact/due/timeline/tier dimensions of its own — the map's
+   * jurisdiction register is a row per JURISDICTION, not per item — this
+   * replaces those four cells (grid columns 4-7) with one merged stat
+   * block: a band-coloured label left, a band-coloured tabular numeral
+   * right. `impact`/`due`/`timeline`/`tier` are ignored when this is set.
+   * Undefined preserves the original four-cell anatomy exactly — every
+   * existing caller (Regulations, Market, Research, Operations,
+   * Watchlist, Dashboard) is unaffected.
+   */
+  endStat?: { label: string; value: string | number; band: UrgencyBand } | null;
 }
 
 const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
@@ -106,7 +119,7 @@ const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat }: ListRowProps) {
   return (
     <div
       className="cl-list-row"
@@ -191,26 +204,69 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           </span>
         )}
       </span>
-      <span className="cl-row-impact" style={{ display: "flex", alignItems: "center" }}>
-        <ImpactMeter scores={impact} />
-      </span>
-      <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
-        {due ? (
-          <>
-            <span style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-              {due.label}
-            </span>
-            <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
-          </>
-        ) : (
-          <Absence reason="pending" />
-        )}
-      </span>
-      <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
-        <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
-      </span>
-      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center" }}>
-        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
+      <span className="cl-row-tail" style={{ display: "contents" }}>
+      {endStat ? (
+        <span
+          style={{
+            gridColumn: "4 / span 4",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 10,
+            paddingRight: 4,
+          }}
+        >
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 5,
+              fontSize: "var(--fs-105)",
+              fontWeight: 800,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase",
+              color: endStat.band.cssVar,
+            }}
+          >
+            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar }} />
+            {endStat.label}
+          </span>
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              color: endStat.band.cssVar,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            {endStat.value}
+          </span>
+        </span>
+      ) : (
+        <>
+          <span className="cl-row-impact" style={{ display: "flex", alignItems: "center" }}>
+            <ImpactMeter scores={impact} />
+          </span>
+          <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
+            {due ? (
+              <>
+                <span style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+                  {due.label}
+                </span>
+                <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
+              </>
+            ) : (
+              <Absence reason="pending" />
+            )}
+          </span>
+          <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
+            <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
+          </span>
+          <span className="cl-row-tier" style={{ display: "flex", alignItems: "center" }}>
+            {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
+          </span>
+        </>
+      )}
       </span>
       <span
         className="cl-row-overflow"

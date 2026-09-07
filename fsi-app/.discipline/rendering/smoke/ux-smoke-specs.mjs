@@ -16,6 +16,7 @@ import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
 import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
 import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
 import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
+import { runSmoke as runMapSmoke } from './map-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -35,4 +36,8 @@ export const UX_SMOKE_SPECS = [
   // and the new CorridorsAppliedStripView (regulation-detail "Corridors this applies on" block) — the
   // reader's two customer-facing surfaces.
   { name: "corridor-scope", run: runCorridorScopeSmoke },
+  // lane uimapcomm, 2026-09-06: map-smoke.mjs mounts the real MapView (marker legend) and the real
+  // ListRow (jurisdiction register rows, endStat prop) — the gap the perf audit named ("no smoke
+  // spec mounts the map register or the marker legend").
+  { name: "map-page", run: runMapSmoke },
 ];

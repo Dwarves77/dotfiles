@@ -51,6 +51,11 @@ export interface ThreadVM {
   body: string;
   replyCount: number;
   createdAt: string;
+  /** Most recent reply time, or createdAt when there are no replies yet — a
+   *  discussion board's threads carry replies and LAST ACTIVITY (UI system
+   *  handoff 2026-09-06, README screen 12), not the item dimensions
+   *  (impact/timeline/tier) a scored ledger row carries. */
+  lastActivityAt: string;
   referencedItemIds: string[];
   authorName: string;
   isYou: boolean;
@@ -257,6 +262,7 @@ export function CommunityRooms({
         body: post.body ?? text,
         replyCount: 0,
         createdAt: post.created_at ?? new Date().toISOString(),
+        lastActivityAt: post.created_at ?? new Date().toISOString(),
         referencedItemIds: [],
         authorName: currentUserName,
         isYou: true,
@@ -955,8 +961,13 @@ export function CommunityRooms({
                           </span>
                           {t.signedOff ? <SignedOffChip /> : <UnverifiedChip />}
                           <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-                            {formatRelativeCompact(t.createdAt)}
+                            Opened {formatRelativeCompact(t.createdAt)}
                           </span>
+                          {t.lastActivityAt !== t.createdAt && (
+                            <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
+                              · Last activity {formatRelativeCompact(t.lastActivityAt)}
+                            </span>
+                          )}
                         </div>
                         <p
                           style={{
