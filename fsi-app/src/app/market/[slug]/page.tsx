@@ -58,6 +58,7 @@ import {
   type EmissionFactorRow,
 } from "@/components/pages/MarketSignalDetailSurface";
 import { PeersDiscussingStrip } from "@/components/shared/PeersDiscussingStrip";
+import { NoticesRail } from "@/components/figures/NoticesRail";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -284,6 +285,7 @@ export default async function MarketSignalDetailPage({
         convergence={convergence}
         priceBoard={priceBoard}
         carbonFactors={carbonFactors}
+        groupLabel={`Market / ${publisher || jurisLabel(r)}`}
         deck={deck}
         supersessions={supersessions}
         connections={connections}
@@ -291,6 +293,15 @@ export default async function MarketSignalDetailPage({
         resourceLookup={resourceLookup}
       />
       <PeersDiscussingStrip entityId={peersEntityId} />
+      {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
+          NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). */}
+      <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 var(--cl-detail-pad-x) 28px" }}>
+        <NoticesRail />
+      </div>
     </>
   );
+}
+
+function jurisLabel(r: { jurisdiction?: string | null }): string {
+  return r.jurisdiction || "Global";
 }
