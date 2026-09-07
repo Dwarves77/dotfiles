@@ -11,10 +11,8 @@ import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import type { WorkspaceAggregates } from "@/lib/supabase-server";
 import { AuthFrame } from "@/components/auth/AuthFrame";
 import { OnboardingStepper } from "@/components/onboarding/OnboardingStepper";
-import {
-  NotificationPreferences,
-  DEFAULT_NOTIFICATION_PREFS,
-} from "@/components/profile/NotificationPreferences";
+import { DEFAULT_NOTIFICATION_PREFS } from "@/components/profile/NotificationPreferences";
+import { BriefingScheduleSection } from "@/components/settings/BriefingScheduleSection";
 import { Check, AlertCircle, Star } from "lucide-react";
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -247,7 +245,7 @@ export function OnboardingWizard({ userId, userEmail, orgId, aggregates }: Props
           />
         )}
 
-        {step === 4 && <StepBriefing userId={userId} />}
+        {step === 4 && <StepBriefing />}
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           {step > 2 ? (
@@ -581,8 +579,16 @@ function SectorPill({
 }
 
 // ── Step 4 — Briefing ────────────────────────────────────────────────────────
-
-function StepBriefing({ userId }: { userId: string }) {
+//
+// FOLD-56 (F9, operator ruling 3, 2026-09-07): "keep it. Build from the Settings
+// Briefing schedule card in the step frame." Renders the SAME BriefingScheduleSection
+// (src/components/settings/BriefingScheduleSection.tsx) Settings mounts — same
+// cadence/day/time/jurisdiction-weight fields, same workspace_settings.alert_config
+// read-modify-write API — inside this step's own frame, so there is ONE
+// briefing-schedule implementation, not a second onboarding-local form. Replaces
+// the step's prior NotificationPreferences mount (a different concern — in-app
+// notification-channel toggles, not the briefing cadence/schedule).
+function StepBriefing() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       <div>
@@ -605,7 +611,7 @@ function StepBriefing({ userId }: { userId: string }) {
           change these any time from Settings.
         </p>
       </div>
-      <NotificationPreferences userId={userId} compact />
+      <BriefingScheduleSection />
     </div>
   );
 }
