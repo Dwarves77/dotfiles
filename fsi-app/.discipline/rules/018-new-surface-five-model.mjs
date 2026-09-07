@@ -21,6 +21,8 @@ const ALLOWED_SEGMENTS = new Set([
   'admin',         // internal, role-gated (not a customer content surface)
   'onboarding', 'signup', 'login', 'profile', 'invitations', 'workspace', 'auth', // plumbing
   'settings', // pre-existing account plumbing (PR #15, b02a415b), same class as profile, not a customer content surface
+  'watchlist', // operator ruling 2026-09-07: authorized surface (Brief group, in the nav, predates the rule, one of the five list surfaces in the 390 spec)
+  'privacy', // operator ruling 2026-09-07: plumbing (LinkedIn API submission page)
 ]);
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }
