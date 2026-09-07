@@ -1,6 +1,8 @@
-// Structural regression test for src/components/ui/Chips.tsx's mobile-390 addition (lane moblist,
-// 2026-09-07): FilterChipGroup/FilterChip mobile measures ONLY (this lane's write set names
-// exactly those two; BandChip/TierChip/TagChip/WorkspaceTagPill are untouched and unguarded here).
+// Structural regression test for src/components/ui/Chips.tsx's mobile-390 additions:
+// FilterChipGroup/FilterChip mobile measures (lane moblist, 2026-09-07), and TierChip's mobile
+// media block (FOLD-56 fix F4, 2026-09-07, mobile-390 spec: 9.5px/800 letter-spacing .06em text
+// in a 1px rgba(0,0,0,.2) radius-4 box below 768px). BandChip/TagChip/WorkspaceTagPill remain
+// untouched and unguarded here.
 // Text-level, same convention as ListRow.npmtest.mjs's own header explains.
 import { test } from "node:test";
 import assert from "node:assert/strict";
@@ -31,9 +33,21 @@ test("FilterChip carries data-active so the mobile CSS can select on it, without
   assert.match(SOURCE, /background: active \? "var\(--brand\)" : "var\(--tag\)"/, "desktop active/inactive colors unchanged");
 });
 
-test("TierChip/BandChip/TagChip/WorkspaceTagPill carry no mobile media query — out of this lane's write set", () => {
-  const bandChip = SOURCE.slice(SOURCE.indexOf("export function BandChip"), SOURCE.indexOf("export function TierChip"));
-  const tierChip = SOURCE.slice(SOURCE.indexOf("export function TierChip"), SOURCE.indexOf("export function TagChip"));
+test("BandChip/TagChip/WorkspaceTagPill carry no mobile media query — out of scope for both mobile-390 lanes", () => {
+  const bandChip = SOURCE.slice(SOURCE.indexOf("export function BandChip"), SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"));
+  const tagChip = SOURCE.slice(SOURCE.indexOf("export function TagChip"), SOURCE.indexOf("export function WorkspaceTagPill"));
+  const workspaceTagPill = SOURCE.slice(SOURCE.indexOf("export function WorkspaceTagPill"), SOURCE.indexOf("export interface FilterChipGroupProps"));
   assert.doesNotMatch(bandChip, /@media/);
-  assert.doesNotMatch(tierChip, /@media/);
+  assert.doesNotMatch(tagChip, /@media/);
+  assert.doesNotMatch(workspaceTagPill, /@media/);
+});
+
+test("TierChip carries the 767px mobile block (FOLD-56 F4): 9.5px/800 letter-spacing .06em text in a 1px rgba(0,0,0,.2) radius-4 box", () => {
+  const tierChip = SOURCE.slice(SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"), SOURCE.indexOf("export function TagChip"));
+  assert.match(tierChip, /@media \(max-width: 767px\)/);
+  assert.match(tierChip, /\.cl-tier-chip\s*\{[^}]*font-size:\s*9\.5px\s*!important/);
+  assert.match(tierChip, /\.cl-tier-chip\s*\{[^}]*font-weight:\s*800\s*!important/);
+  assert.match(tierChip, /\.cl-tier-chip\s*\{[^}]*letter-spacing:\s*0\.06em\s*!important/);
+  assert.match(tierChip, /\.cl-tier-chip\s*\{[^}]*border:\s*1px solid rgba\(0,0,0,\.2\)\s*!important/);
+  assert.match(tierChip, /\.cl-tier-chip\s*\{[^}]*border-radius:\s*4px\s*!important/);
 });
