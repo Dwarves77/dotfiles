@@ -4,6 +4,7 @@
 // with a fixture of the 16 real pending rows this lane read from Supabase 2026-09-06.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   isDeadStatus,
   classifyReachability,
@@ -713,4 +714,19 @@ test("makeCanonicalFetchCandidate: does not import or call anything named Browse
   const codeLines = src.split("\n").filter((line) => !/^\s*\/\//.test(line) && !/^\s*\*/.test(line));
   const offenders = codeLines.filter((line) => /browserless/i.test(line));
   assert.deepEqual(offenders, [], `found non-comment reference(s) to Browserless: ${JSON.stringify(offenders)}`);
+});
+
+// Addendum item 11 (2026-09-07): no em dash survives in the reviewer_notes templates this module
+// writes to canonical_source_candidates — the no-em-dash rule covers generated prose, not just
+// hand-written copy. Source-text check (regression guard for the specific 7 template literals fixed
+// this lane), not a behavioral test — decideRow's own tests above already prove the parser and the
+// terminal outcomes are unaffected by the character swap.
+test("no reviewer_notes template literal in canonical-autoverify.mjs contains an em dash", () => {
+  const src = readFileSync(new URL("./canonical-autoverify.mjs", import.meta.url), "utf8");
+  const templateLines = src
+    .split("\n")
+    .filter((line) => /reviewer_notes:\s*`auto:/.test(line));
+  assert.ok(templateLines.length >= 7, `expected at least 7 reviewer_notes template lines, found ${templateLines.length}`);
+  const offenders = templateLines.filter((line) => line.includes("—"));
+  assert.deepEqual(offenders, [], `em dash found in reviewer_notes template(s): ${JSON.stringify(offenders)}`);
 });
