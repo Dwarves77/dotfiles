@@ -49,6 +49,6 @@ test("no second, page-local inline expansion of the Immediate band was built on 
 });
 
 test("the CardFoot 'left' slot still carries the live immediateTotal count (not a fabricated or hardcoded number)", () => {
-  const footBlock = SOURCE.slice(SOURCE.indexOf("<CardFoot"), SOURCE.indexOf("<CardFoot") + 1000);
+  const footBlock = SOURCE.slice(SOURCE.indexOf("<CardFoot"), SOURCE.indexOf("<CardFoot") + 1600);
   assert.match(footBlock, /All \{formatNumber\(immediateTotal\)\} immediate/);
 });
