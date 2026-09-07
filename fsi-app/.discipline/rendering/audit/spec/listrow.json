@@ -1,0 +1,175 @@
+{
+  "part": "ListRow (1440, every cell)",
+  "mount": "listrow-1440",
+  "viewport": 1440,
+  "artboards": [
+    "00-system-sheet (the row is defined once here, two example rows)",
+    "02-regulations-list",
+    "04-market-list",
+    "06-research-list",
+    "08-operations-list",
+    "11-watchlist",
+    "01-dashboard (Due next / What changed)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+  "notes": [
+    "Values are read from the artboard markup, which the handoff makes the authority ('where README prose and a page artboard disagree, the artboard wins').",
+    "`grid-template-columns` is compared with one `*` token: getComputedStyle resolves the track list to USED pixel widths, so the `1fr` title track reports the container's leftover width and cannot be a design constant. Every fixed track is compared exactly. The mount places the row in a 778px box — the content column the frame produces at 1440 (README §0.3).",
+    "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it."
+  ],
+  "selector": ".cl-list-row",
+  "expect": {
+    "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+    "row-gap": "0px",
+    "column-gap": "14px",
+    "min-height": "56px",
+    "border-bottom-width": "1px",
+    "border-bottom-style": "solid",
+    "border-bottom-color": "rgba(0,0,0,.06)",
+    "border-left-width": "0px",
+    "padding-left": "0px",
+    "padding-right": "12px"
+  },
+  "children": [
+    {
+      "name": "column header row",
+      "selector": ".cl-list-row-header",
+      "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row.",
+      "expect": {
+        "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+        "height": "30px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.08)"
+      }
+    },
+    {
+      "name": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C.",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "cell 1 — band spine",
+      "selector": ".cl-row-spine",
+      "note": "dc.html #sys: a full-bleed 56px block in the band colour; the fixture row's band is Action (#F97316).",
+      "expect": {
+        "background-color": "#F97316",
+        "width": "3px",
+        "height": "56px"
+      }
+    },
+    {
+      "name": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67.",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "700",
+        "letter-spacing": "0.06em",
+        "color": "#5A6B67",
+        "width": "56px"
+      }
+    },
+    {
+      "name": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'.",
+      "expect": {
+        "font-size": "14px",
+        "font-weight": "600",
+        "line-height": "18.2px",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis",
+        "overflow-x": "hidden",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "cell 3 — meta line",
+      "selector": ".cl-row-meta-tags > span:first-child",
+      "note": "dc.html #sys: 11px, colour #7A6E6C, margin-top 2px. README §0.4: 'meta line is 11px muted'.",
+      "expect": {
+        "font-size": "11px",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "cell 4 — impact meter cell",
+      "selector": ".cl-row-impact",
+      "note": "dc.html #sys track: 88px. Four 9px bars on a 1px baseline plus the N/12 sum.",
+      "expect": {
+        "width": "88px"
+      }
+    },
+    {
+      "name": "cell 5 — due date",
+      "selector": ".cl-row-due-label",
+      "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals.",
+      "expect": {
+        "font-size": "12.5px",
+        "font-weight": "700",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "cell 5 — days-until line",
+      "selector": ".cl-row-due-days",
+      "note": "README type scale: the muted second line under the date. dc.html #sys renders the date cell at 84px.",
+      "expect": {
+        "font-size": "10.5px",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "cell 6 — timeline cell",
+      "selector": ".cl-row-timeline",
+      "note": "README §0.4: 'Row variant is 76px wide'. dc.html #sys track: 76px, cell height 14px.",
+      "expect": {
+        "width": "76px"
+      }
+    },
+    {
+      "name": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred.",
+      "expect": {
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.06em",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.2)",
+        "border-top-left-radius": "4px",
+        "text-align": "center"
+      }
+    },
+    {
+      "name": "cell 8 — overflow cell",
+      "selector": ".cl-row-overflow",
+      "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here.",
+      "expect": {
+        "border-left-width": "1px",
+        "border-left-style": "solid",
+        "border-left-color": "rgba(0,0,0,.08)"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "the literal word UNSCORED anywhere in the row",
+      "selector": ".cl-list-row span",
+      "textMatch": "UNSCORED",
+      "reason": "Operator 2.1 and README §0.4: unscored renders the dashed baseline plus the small-caps absence reason, never the literal token and never a second row."
+    },
+    {
+      "name": "a second click target competing with the row link",
+      "selector": ".cl-row-title a",
+      "reason": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+    }
+  ]
+}

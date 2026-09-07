@@ -1,0 +1,132 @@
+{
+  "part": "FactCard",
+  "mount": "factcard",
+  "viewport": 1440,
+  "artboards": [
+    "00-system-sheet (the part is defined once here)",
+    "03-regulation-detail",
+    "05-market-detail",
+    "07-research-detail",
+    "09-operations-profile"
+  ],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+  "notes": [
+    "The expected values below are operator ruling 2.4 (2026-09-07), which is the latest binding statement on this part and states exact numbers: sourced = 2px solid #1A1A1A LEFT edge, 1px rgba(0,0,0,.12) on the other three sides, radius 0 8px 8px 0, white; inference = 1px DASHED rgba(0,0,0,.25) all round, background #FAFAF8, italic body; needs counsel = 2px solid #F97316 left edge, otherwise as sourced.",
+    "The artboard 00 markup differs from that ruling and is recorded here so the divergence is visible rather than silently resolved: sourced there is `background:#fff; border:1px solid rgba(0,0,0,.12); border-radius:8px; border-left:3px solid #5A5552; padding:12px 14px 12px 16px`; inference is `background:#F5F2EE; border:1px dashed rgba(0,0,0,.3); border-radius:8px`; counsel is the sourced box with `border-left:3px solid #F97316`. Where the two disagree the operator's ruling is used, per the ruling's own framing ('build against them, ask nothing').",
+    "The variants are addressed through the mount's `[data-audit]` wrappers, which carry no styling of their own; `> div` inside each is the FactCard's own root element."
+  ],
+  "selector": "[data-audit=\"sourced\"] > div",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-left-width": "2px",
+    "border-left-style": "solid",
+    "border-left-color": "#1A1A1A",
+    "border-top-width": "1px",
+    "border-top-style": "solid",
+    "border-top-color": "rgba(0,0,0,.12)",
+    "border-right-width": "1px",
+    "border-right-color": "rgba(0,0,0,.12)",
+    "border-bottom-width": "1px",
+    "border-bottom-color": "rgba(0,0,0,.12)",
+    "border-top-left-radius": "0",
+    "border-top-right-radius": "8px",
+    "border-bottom-right-radius": "8px",
+    "border-bottom-left-radius": "0"
+  },
+  "children": [
+    {
+      "name": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase.",
+      "expect": {
+        "text": "Fact",
+        "font-size": "9.5px",
+        "font-weight": "800",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "sourced — body",
+      "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
+      "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic).",
+      "expect": {
+        "font-size": "13px",
+        "line-height": "20.15px",
+        "font-style": "normal"
+      }
+    },
+    {
+      "name": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8.",
+      "expect": {
+        "background-color": "#FAFAF8",
+        "border-top-width": "1px",
+        "border-top-style": "dashed",
+        "border-top-color": "rgba(0,0,0,.25)",
+        "border-left-width": "1px",
+        "border-left-style": "dashed",
+        "border-left-color": "rgba(0,0,0,.25)",
+        "border-right-color": "rgba(0,0,0,.25)",
+        "border-bottom-color": "rgba(0,0,0,.25)"
+      }
+    },
+    {
+      "name": "inference — body is italic",
+      "selector": "[data-audit=\"inference\"] > div > p:nth-of-type(2)",
+      "note": "README §0.4 and operator 2.4 both: the inference body is italic — the grayscale-readable half of 'told apart by form'.",
+      "expect": {
+        "font-style": "italic",
+        "font-size": "13px"
+      }
+    },
+    {
+      "name": "inference — eyebrow label",
+      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only.",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "800",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0).",
+      "expect": {
+        "background-color": "#FFFFFF",
+        "border-left-width": "2px",
+        "border-left-style": "solid",
+        "border-left-color": "#F97316",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.12)",
+        "border-top-left-radius": "0",
+        "border-top-right-radius": "8px",
+        "border-bottom-right-radius": "8px",
+        "border-bottom-left-radius": "0"
+      }
+    },
+    {
+      "name": "counsel — eyebrow label",
+      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label.",
+      "expect": {
+        "text": "Legal confirmation required",
+        "font-size": "9.5px",
+        "font-weight": "800",
+        "color": "#1A1A1A"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a raw URL in the card's running text",
+      "selector": "[data-audit=\"sourced\"] > div > p",
+      "textMatch": "https://",
+      "reason": "README §0.4: 'Raw URLs never appear in running text.' The link belongs in the source column, as a labelled anchor."
+    }
+  ]
+}
