@@ -31,6 +31,7 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { User } from "lucide-react";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -39,10 +40,9 @@ import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { BandGradientRule } from "@/components/ui/BandGradientRule";
 import { formatNumber } from "@/lib/format";
 
-// Deferred so the drawer/mobile bundle (no sign-out UI on the drawer per
-// the mobile spec's two-row footer) doesn't pay for UserMenuDropdown's
-// chunk; only the desktop card's Account row (its menu trigger, coordinator
-// default 2026-09-07) mounts it, and only once opened.
+// Deferred so the drawer/mobile bundle doesn't pay for UserMenuDropdown's
+// chunk on first paint; the footer's single user row (both variants,
+// operator ruling 2026-09-07) mounts it only once opened.
 const UserMenuDropdownLazy = dynamic(() => import("@/components/auth/UserMenuDropdown"), { ssr: false });
 
 interface NavItem {
@@ -234,22 +234,25 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
     ));
   };
 
-  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer): exactly
-  //    two unlabelled rows below a divider — Account (right = workspace
-  //    name) and Admin (right = role badge, "OWNER" per R2). No third row
-  //    (coordinator default, 2026-09-07, resolving the operator-confirmed
-  //    defect against artboard 02 / R2): the desktop card's Account row IS
-  //    the trigger for the same UserMenuDropdown the deleted third row
-  //    ("jasonlosh ▾") used to open — sign-out, workspace profile, admin
-  //    panel and settings all move there, anchored to the row, so no
-  //    function is lost. The drawer's Account row stays a plain link
-  //    (mobile spec: "two unlabelled 44px rows", no menu placement there —
-  //    logged in DEVIATION-LOG.md). ──
+  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer). Operator
+  //    ruling 2026-09-07, superseding R2's two-row footer: "signout lives
+  //    in account, keep it there" / "we don't need separate Account and
+  //    Admin buttons visible if they pop up as options when you click the
+  //    logged-in person's name" / "too tight". ONE row now, on both the
+  //    desktop card and the mobile drawer (one implementation) — the
+  //    logged-in person's name (avatar glyph + name) with the workspace
+  //    name right-aligned, muted, in the old Account row's own style. It
+  //    opens the same UserMenuDropdown (Workspace profile, Admin panel —
+  //    role-gated, with its attention count — Settings, Sign out),
+  //    anchored above the row (it opens upward at the foot, per
+  //    production). Falls back to a plain link to /profile when there is
+  //    no signed-in user (nothing to open a menu about). ──
   const footer = (variant: "card" | "drawer") => {
     const drawer = variant === "drawer";
+    const displayName = user?.email?.split("@")[0] || "User";
     return (
       <div className="flex flex-col" style={{ borderTop: `1px solid ${drawer ? "var(--line-2)" : "var(--line-3)"}` }}>
-        {!drawer && user ? (
+        {user ? (
           <div className="relative">
             <button
               type="button"
@@ -261,20 +264,26 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
                   ? `Open account menu (${adminAttentionTotal} admin item${adminAttentionTotal === 1 ? "" : "s"} need attention)`
                   : "Open account menu"
               }
-              className="w-full flex items-center justify-between gap-2 cursor-pointer"
+              className="w-full flex items-center justify-between cursor-pointer"
               style={{
                 minHeight: 44,
-                padding: "12px 14px 6px",
+                padding: "0 10px",
+                gap: 8,
                 color: "var(--ink)",
                 background: accountMenuOpen ? "var(--tag)" : "transparent",
                 border: "none",
                 textAlign: "left",
               }}
             >
-              <span style={{ fontSize: "var(--fs-13)", fontWeight: 700 }}>Account</span>
+              <span className="flex items-center min-w-0" style={{ gap: 8 }}>
+                <User size={16} className="shrink-0" aria-hidden="true" />
+                <span className="truncate" style={{ fontSize: 14, fontWeight: 700 }}>
+                  {displayName}
+                </span>
+              </span>
               <span
-                className="truncate"
-                style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+                className="truncate shrink-0"
+                style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 100, fontWeight: 600 }}
               >
                 {orgName || "—"}
               </span>
@@ -297,49 +306,15 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
             prefetch={false}
             onClick={drawer ? onDrawerClose : undefined}
             aria-current={isActive("/profile") ? "page" : undefined}
-            className="flex items-center justify-between gap-2"
-            style={
-              drawer
-                ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
-                : { minHeight: 44, padding: "12px 14px 6px", color: "var(--ink)" }
-            }
+            className="flex items-center justify-between"
+            style={{ minHeight: 44, padding: "0 10px", gap: 8, color: "var(--ink)" }}
           >
-            <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Account</span>
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Account</span>
             <span
               className="truncate"
-              style={{ fontSize: drawer ? "10.5px" : "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
+              style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
             >
               {orgName || "—"}
-            </span>
-          </Link>
-        )}
-        {isAdmin && (
-          <Link
-            href="/admin"
-            prefetch={false}
-            onClick={drawer ? onDrawerClose : undefined}
-            aria-current={isActive("/admin") ? "page" : undefined}
-            className="flex items-center justify-between gap-2"
-            style={
-              drawer
-                ? { minHeight: 44, padding: "0 10px", color: "var(--ink)" }
-                : { minHeight: 44, padding: "6px 14px 8px", color: "var(--ink)" }
-            }
-          >
-            <span style={{ fontSize: drawer ? 14 : "var(--fs-13)", fontWeight: 700 }}>Admin</span>
-            <span
-              className="shrink-0 uppercase"
-              style={{
-                fontSize: drawer ? "9.5px" : "10px",
-                fontWeight: 800,
-                letterSpacing: drawer ? "0.08em" : "0.08em",
-                color: drawer ? "var(--ink)" : "var(--brand)",
-                border: `1px solid ${drawer ? "rgba(0,0,0,.2)" : "var(--brand)"}`,
-                borderRadius: 4,
-                padding: "2px 8px",
-              }}
-            >
-              {drawer ? "OWNER" : userRole}
             </span>
           </Link>
         )}

@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T23:03:13.448Z",
+  "runAt": "2026-09-07T23:10:23.813Z",
   "specs": [
     {
       "part": "Absence",
@@ -2675,40 +2675,51 @@
           }
         },
         {
-          "name": "nav card footer — row count (R2: exactly two unlabelled rows below a divider, no third)",
+          "name": "nav card footer — row count (operator ruling 2026-09-07, superseding R2: ONE row, the logged-in person's name, opening Account/Admin/Settings/Sign out as menu options)",
           "selector": "aside.hidden > div:last-child > *",
-          "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so both role-gated rows are present: the Account row (now the trigger for the menu the deleted third ('jasonlosh ▾') row used to open — coordinator default 2026-09-07, resolving the operator-confirmed defect against artboard 02/R2) and the Admin row. Exactly 2, never 3.",
+          "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so the menu's role-gated Admin panel item is present to assert on in the dropdown spec below; the footer's own row count does not depend on role any more — it is always exactly 1.",
           "expect": {
-            "count": "2"
+            "count": "1"
           }
         },
         {
-          "name": "nav card footer — first row is Account (trigger)",
+          "name": "nav card footer — the one row is the logged-in person's name (avatar glyph + name), workspace name right-aligned muted",
           "selector": "aside.hidden > div:last-child > *:nth-child(1)",
+          "note": "Stub auth user is audit@smoke-guard.internal (../smoke/stub-auth-provider.mjs) — displayName is the email's local part, 'audit'. orgName is unset in this mount, so the Absence dash renders on the right.",
           "expect": {
-            "text": "Account—"
-          },
-          "note": "orgName is unset in this mount, so the Absence dash renders; `text` here asserts the row's own label plus whatever right-hand value is present, not the workspace name specifically."
+            "text": "audit—"
+          }
         },
         {
-          "name": "nav card footer — second row is Admin",
-          "selector": "aside.hidden > div:last-child > *:nth-child(2)",
-          "note": "Card variant's role text is the raw `userRole` string ('owner') visually uppercased by a Tailwind `uppercase` class (`text-transform`), not literal 'OWNER' text — this harness injects raw CSS with no Tailwind build step (see this spec's own top note), so the measured textContent is lowercase even though the real, fully-built app renders it visually as OWNER. Asserting the raw textContent here, per that same harness limitation.",
+          "name": "nav card footer row — button role (aria-haspopup menu trigger, not a Link)",
+          "selector": "aside.hidden > div:last-child button[aria-haspopup=\"menu\"]",
           "expect": {
-            "text": "Adminowner"
+            "text": "audit—"
           }
         }
       ],
       "forbid": [
         {
-          "name": "a third footer row (the deleted 'jasonlosh ▾' UserMenu utility row)",
-          "selector": "aside.hidden > div:last-child > *:nth-child(3)",
-          "reason": "R2: 'two unlabelled rows below a divider' — no third. Coordinator default (2026-09-07): the third row's functions (sign-out, workspace profile, admin panel, settings) moved into the menu the Account row itself now opens; the row markup was deleted, not hidden."
+          "name": "a separate Account row/link",
+          "selector": "aside.hidden > div:last-child a",
+          "textMatch": "Account",
+          "reason": "Operator ruling 2026-09-07, superseding R2 and the coordinator default that preceded it: 'we don't need separate Account and Admin buttons visible if they pop up as options when you click the logged-in person's name.' Account is now a menu item inside UserMenuDropdown (Workspace profile), not its own footer row."
         },
         {
-          "name": "the old UserMenu trigger button (aria-label 'Open user menu')",
+          "name": "a separate Admin row/link or OWNER badge in the footer",
+          "selector": "aside.hidden > div:last-child a, aside.hidden > div:last-child *",
+          "textMatch": "OWNER",
+          "reason": "Same ruling: Admin (and its role badge) moves into the menu (Admin panel, role-gated, with its attention count) instead of its own footer row."
+        },
+        {
+          "name": "a third footer row of any kind",
+          "selector": "aside.hidden > div:last-child > *:nth-child(2)",
+          "reason": "Exactly one row now — the name row. Nothing else is a direct child of the footer container."
+        },
+        {
+          "name": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",
           "selector": "aside.hidden button[aria-label=\"Open user menu\"]",
-          "reason": "UserMenu.tsx (the old third-row trigger component) was deleted; the Account row (aria-label 'Open account menu') is the only menu trigger in the footer now."
+          "reason": "UserMenu.tsx was deleted in the coordinator-default lane; the single name row (aria-label 'Open account menu') is the only menu trigger in the footer."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/sidebar.json",
@@ -15686,13 +15697,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
       "viewport": 1440,
-      "target": "nav card footer — row count (R2: exactly two unlabelled rows below a divider, no third)",
+      "target": "nav card footer — row count (operator ruling 2026-09-07, superseding R2: ONE row, the logged-in person's name, opening Account/Admin/Settings/Sign out as menu options)",
       "selector": "aside.hidden > div:last-child > *",
       "property": "count",
-      "expected": "2",
-      "actual": "2",
+      "expected": "1",
+      "actual": "1",
       "status": "MATCH",
-      "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so both role-gated rows are present: the Account row (now the trigger for the menu the deleted third ('jasonlosh ▾') row used to open — coordinator default 2026-09-07, resolving the operator-confirmed defect against artboard 02/R2) and the Admin row. Exactly 2, never 3."
+      "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so the menu's role-gated Admin panel item is present to assert on in the dropdown spec below; the footer's own row count does not depend on role any more — it is always exactly 1."
     },
     {
       "spec": "sidebar",
@@ -15703,13 +15714,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
       "viewport": 1440,
-      "target": "nav card footer — first row is Account (trigger)",
+      "target": "nav card footer — the one row is the logged-in person's name (avatar glyph + name), workspace name right-aligned muted",
       "selector": "aside.hidden > div:last-child > *:nth-child(1)",
       "property": "text",
-      "expected": "Account—",
-      "actual": "Account—",
+      "expected": "audit—",
+      "actual": "audit—",
       "status": "MATCH",
-      "note": "orgName is unset in this mount, so the Absence dash renders; `text` here asserts the row's own label plus whatever right-hand value is present, not the workspace name specifically."
+      "note": "Stub auth user is audit@smoke-guard.internal (../smoke/stub-auth-provider.mjs) — displayName is the email's local part, 'audit'. orgName is unset in this mount, so the Absence dash renders on the right."
     },
     {
       "spec": "sidebar",
@@ -15720,13 +15731,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
       "viewport": 1440,
-      "target": "nav card footer — second row is Admin",
-      "selector": "aside.hidden > div:last-child > *:nth-child(2)",
+      "target": "nav card footer row — button role (aria-haspopup menu trigger, not a Link)",
+      "selector": "aside.hidden > div:last-child button[aria-haspopup=\"menu\"]",
       "property": "text",
-      "expected": "Adminowner",
-      "actual": "Adminowner",
+      "expected": "audit—",
+      "actual": "audit—",
       "status": "MATCH",
-      "note": "Card variant's role text is the raw `userRole` string ('owner') visually uppercased by a Tailwind `uppercase` class (`text-transform`), not literal 'OWNER' text — this harness injects raw CSS with no Tailwind build step (see this spec's own top note), so the measured textContent is lowercase even though the real, fully-built app renders it visually as OWNER. Asserting the raw textContent here, per that same harness limitation."
+      "note": null
     },
     {
       "spec": "sidebar",
@@ -15737,13 +15748,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
       "viewport": 1440,
-      "target": "a third footer row (the deleted 'jasonlosh ▾' UserMenu utility row)",
-      "selector": "aside.hidden > div:last-child > *:nth-child(3)",
+      "target": "a separate Account row/link",
+      "selector": "aside.hidden > div:last-child a [text contains \"Account\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "R2: 'two unlabelled rows below a divider' — no third. Coordinator default (2026-09-07): the third row's functions (sign-out, workspace profile, admin panel, settings) moved into the menu the Account row itself now opens; the row markup was deleted, not hidden."
+      "note": "Operator ruling 2026-09-07, superseding R2 and the coordinator default that preceded it: 'we don't need separate Account and Admin buttons visible if they pop up as options when you click the logged-in person's name.' Account is now a menu item inside UserMenuDropdown (Workspace profile), not its own footer row."
     },
     {
       "spec": "sidebar",
@@ -15754,13 +15765,47 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
       "viewport": 1440,
-      "target": "the old UserMenu trigger button (aria-label 'Open user menu')",
+      "target": "a separate Admin row/link or OWNER badge in the footer",
+      "selector": "aside.hidden > div:last-child a, aside.hidden > div:last-child * [text contains \"OWNER\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Same ruling: Admin (and its role badge) moves into the menu (Admin panel, role-gated, with its attention count) instead of its own footer row."
+    },
+    {
+      "spec": "sidebar",
+      "part": "Sidebar (nav card, inline-style-driven properties only)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
+      "viewport": 1440,
+      "target": "a third footer row of any kind",
+      "selector": "aside.hidden > div:last-child > *:nth-child(2)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Exactly one row now — the name row. Nothing else is a direct child of the footer container."
+    },
+    {
+      "spec": "sidebar",
+      "part": "Sidebar (nav card, inline-style-driven properties only)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
+      "viewport": 1440,
+      "target": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",
       "selector": "aside.hidden button[aria-label=\"Open user menu\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "UserMenu.tsx (the old third-row trigger component) was deleted; the Account row (aria-label 'Open account menu') is the only menu trigger in the footer now."
+      "note": "UserMenu.tsx was deleted in the coordinator-default lane; the single name row (aria-label 'Open account menu') is the only menu trigger in the footer."
     },
     {
       "spec": "skeleton",

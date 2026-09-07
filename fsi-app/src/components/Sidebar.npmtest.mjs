@@ -31,7 +31,7 @@ test("frame fix (2026-09-07, operator report 'the side navigation bar does not r
   assert.doesNotMatch(SOURCE, /maxHeight:\s*"/);
 });
 
-test("nav body is flex:1 so the footer (Account / Admin) sits at the card's foot on a stretched, long page", () => {
+test("nav body is flex:1 so the footer (the single user row) sits at the card's foot on a stretched, long page", () => {
   assert.match(SOURCE, /<nav className="py-3 px-2\.5 flex-1 flex flex-col/);
 });
 
@@ -46,14 +46,15 @@ test("fix58-tokens: active nav row (card variant) uses the inset 3px spine box-s
   assert.doesNotMatch(SOURCE, /borderLeft:\s*`2px solid \$\{active/);
 });
 
-// Nav footer third-row defect (operator-confirmed, artboard 02 / R2, 2026-09-07): production
-// rendered THREE footer rows (Account, Admin, a third "jasonlosh ▾" UserMenu utility row holding
-// sign-out and its other items). R2 draws exactly two unlabelled rows below a divider. Coordinator
-// default: delete the third row's markup; the Account row becomes the trigger for the same menu
-// component, anchored to the row, so no function is lost.
+// Nav footer history: production first shipped THREE footer rows (Account, Admin, a third
+// "jasonlosh ▾" UserMenu utility row) against R2's two unlabelled rows — a coordinator default
+// collapsed that to two (Account as the menu trigger, Admin alongside it). Operator ruling
+// 2026-09-07 then superseded R2 itself: "signout lives in account, keep it there" / "we don't need
+// separate Account and Admin buttons visible if they pop up as options when you click the
+// logged-in person's name" / "too tight". The footer is now ONE row (both variants, one
+// implementation) — the logged-in person's name — opening the same UserMenuDropdown.
 
-test("nav footer has no third row: the old UserMenu component is gone, not merely unmounted", () => {
-  // Deleted, not hidden (CLAUDE.md rule 13) — the file itself no longer exists.
+test("the old UserMenu component (the coordinator-default lane's deleted third row) stays gone, not merely unmounted", () => {
   assert.throws(() => readFileSync(
     resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenu.tsx"),
     "utf8",
@@ -62,24 +63,41 @@ test("nav footer has no third row: the old UserMenu component is gone, not merel
   assert.doesNotMatch(SOURCE, /from "@\/components\/auth\/UserMenu"/);
 });
 
-test("footer renders at most two rows in the card variant: the Account trigger + the role-gated Admin link, nothing beneath them", () => {
-  // The card branch closes right after the Admin `Link` — no third sibling element (a stray
-  // `<div>`/component) between it and the footer's own closing `</div>`.
+test("footer renders exactly one row: no separate Account link, no separate Admin link/OWNER badge, in EITHER variant", () => {
   const footerBlock = SOURCE.slice(SOURCE.indexOf("const footer = (variant"), SOURCE.indexOf("return (\n    <>"));
-  const afterAdminClose = footerBlock.slice(footerBlock.lastIndexOf("</Link>"));
-  assert.match(afterAdminClose, /^<\/Link>\s*\)\}\s*<\/div>\s*\);\s*};/);
+  // No role-gated Admin row left at all — `isAdmin &&` no longer gates any footer markup.
+  assert.doesNotMatch(footerBlock, /isAdmin &&/);
+  assert.doesNotMatch(footerBlock, />Admin</);
+  assert.doesNotMatch(footerBlock, /OWNER/);
+  // The two branches (signed-in trigger vs. signed-out fallback link) are the ONLY footer content —
+  // the block closes right after the ternary's fallback `</Link>`, no sibling row after it.
+  const afterFallbackClose = footerBlock.slice(footerBlock.lastIndexOf("</Link>"));
+  assert.match(afterFallbackClose, /^<\/Link>\s*\)\}\s*<\/div>\s*\);\s*};/);
 });
 
-test("the Account row is the menu trigger: a <button> (not a <Link>) opening UserMenuDropdown, anchored to the row, when a user is present", () => {
-  assert.match(SOURCE, /import UserMenuDropdown from "@\/components\/auth\/UserMenuDropdown"|import\("@\/components\/auth\/UserMenuDropdown"\)/);
+test("the footer row applies to BOTH variants (one implementation): the signed-in branch is not desktop-only", () => {
+  // Was `{!drawer && user ? (` (coordinator-default lane, desktop-only trigger) — operator ruling
+  // extends the single-row trigger to the drawer too.
+  assert.doesNotMatch(SOURCE, /\{!drawer && user \? \(/);
+  assert.match(SOURCE, /\{user \? \(/);
+});
+
+test("the footer row is the menu trigger: a <button> (not a <Link>) opening UserMenuDropdown, anchored to the row, when a user is present", () => {
   assert.match(SOURCE, /const UserMenuDropdownLazy = dynamic\(\(\) => import\("@\/components\/auth\/UserMenuDropdown"\)/);
-  assert.match(SOURCE, /\{!drawer && user \? \(/);
   assert.match(SOURCE, /<button[\s\S]{0,400}?onClick=\{\(\) => setAccountMenuOpen/);
   assert.match(SOURCE, /aria-haspopup="menu"/);
   assert.match(SOURCE, /aria-expanded=\{accountMenuOpen\}/);
 });
 
-test("the Account trigger's menu contains Sign out (via UserMenuDropdown's onSignOut wiring)", () => {
+test("the row shows the logged-in person's name (avatar glyph + name) with the workspace name right-aligned, muted", () => {
+  assert.match(SOURCE, /import \{ User \} from "lucide-react"/);
+  assert.match(SOURCE, /<User size=\{16\}/);
+  assert.match(SOURCE, /const displayName = user\?\.email\?\.split\("@"\)\[0\] \|\| "User"/);
+  assert.match(SOURCE, /\{displayName\}/);
+  assert.match(SOURCE, /\{orgName \|\| "—"\}/);
+});
+
+test("the trigger's menu contains Sign out plus Workspace profile / Admin panel / Settings (via UserMenuDropdown's own props)", () => {
   assert.match(SOURCE, /<UserMenuDropdownLazy[\s\S]{0,400}?onSignOut=\{signOut\}/);
   const dropdownSource = readFileSync(
     resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenuDropdown.tsx"),
@@ -87,9 +105,17 @@ test("the Account trigger's menu contains Sign out (via UserMenuDropdown's onSig
   );
   assert.match(dropdownSource, /onClick=\{onSignOut\}/);
   assert.match(dropdownSource, /Sign out/);
+  assert.match(dropdownSource, /Workspace profile/);
+  assert.match(dropdownSource, /Admin panel/);
+  assert.match(dropdownSource, /Settings/);
+  // Menu anchored ABOVE the row ("opens upward at the foot, as production does").
+  assert.match(dropdownSource, /bottom-full/);
+  // Items are 44px min-height / 12px padding, not the old cramped px-4 py-2 rows.
+  assert.match(dropdownSource, /minHeight: 44, padding: 12,/);
 });
 
-test("the Account row keeps a 44px hit target in both the card trigger and the drawer link", () => {
-  assert.match(SOURCE, /minHeight: 44,\s*\n\s*padding: "12px 14px 6px",\s*\n\s*color: "var\(--ink\)",\s*\n\s*background: accountMenuOpen/);
-  assert.match(SOURCE, /\? \{ minHeight: 44, padding: "0 10px", color: "var\(--ink\)" \}\s*\n\s*: \{ minHeight: 44, padding: "12px 14px 6px", color: "var\(--ink\)" \}/);
+test("the footer row keeps a 44px hit target, the nav card's 10px horizontal padding, 8px gaps, 14px text", () => {
+  assert.match(SOURCE, /minHeight: 44,\s*\n\s*padding: "0 10px",\s*\n\s*gap: 8,\s*\n\s*color: "var\(--ink\)",\s*\n\s*background: accountMenuOpen/);
+  assert.match(SOURCE, /style=\{\{ fontSize: 14, fontWeight: 700 \}\}/);
+  assert.match(SOURCE, /style=\{\{ minHeight: 44, padding: "0 10px", gap: 8, color: "var\(--ink\)" \}\}/);
 });

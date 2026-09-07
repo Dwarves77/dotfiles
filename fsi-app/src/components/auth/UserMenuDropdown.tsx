@@ -18,6 +18,13 @@
  * markup that previously lived in UserMenu.tsx — same Zustand stores,
  * same icons, same hover styling, same a11y labels. Only the open-state
  * lives in the parent now (the parent decides when to mount this).
+ *
+ * Trigger, 2026-09-07 (operator ruling, superseding R2's two-row footer):
+ * Sidebar.tsx's ONE nav-card footer row (the logged-in person's name) is
+ * now this component's only trigger, on both the desktop card and the
+ * mobile drawer — the separate Account/Admin rows are gone. Item rows
+ * below are 44px min-height / 12px padding per that same ruling ("too
+ * tight" against the old px-4 py-2 rows).
  */
 
 import type { User } from "@supabase/supabase-js";
@@ -84,12 +91,13 @@ export default function UserMenuDropdown({
           )}
         </div>
 
-        {/* Actions */}
+        {/* Actions — 44px min-height, 12px padding (operator ruling
+            2026-09-07: "too tight"), not the old px-4 py-2 (~34px) rows. */}
         <div className="py-1">
           <a
             href="/profile"
-            className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="flex items-center gap-2 text-sm transition-colors"
+            style={{ minHeight: 44, padding: 12, color: "var(--color-text-secondary)" }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
@@ -99,8 +107,8 @@ export default function UserMenuDropdown({
           {isAdmin && (
             <a
               href="/admin"
-              className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-              style={{ color: "var(--color-text-secondary)" }}
+              className="flex items-center gap-2 text-sm transition-colors"
+              style={{ minHeight: 44, padding: 12, color: "var(--color-text-secondary)" }}
               onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
               onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
               aria-label={
@@ -130,8 +138,8 @@ export default function UserMenuDropdown({
           )}
           <a
             href="/settings"
-            className="flex items-center gap-2 px-4 py-2 text-sm transition-colors"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="flex items-center gap-2 text-sm transition-colors"
+            style={{ minHeight: 44, padding: 12, color: "var(--color-text-secondary)" }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
@@ -140,8 +148,8 @@ export default function UserMenuDropdown({
           </a>
           <button
             onClick={onSignOut}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm transition-colors cursor-pointer"
-            style={{ color: "var(--color-text-secondary)" }}
+            className="w-full flex items-center gap-2 text-sm transition-colors cursor-pointer"
+            style={{ minHeight: 44, padding: 12, color: "var(--color-text-secondary)" }}
             onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
             onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
