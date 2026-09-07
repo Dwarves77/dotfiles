@@ -193,6 +193,35 @@ export function classifyReachability(fetchResult) {
   return { ok: true };
 }
 
+// A wall on the CANDIDATE is not evidence the candidate is unfit — it means this network could not
+// verify it (lane CANONICAL-AUTOVERIFY-4, 2026-09-07, ruling-confirmed the same day after Maintenance run
+// 34078398318, dry on master c25922f8: two of 16 rows rejected 'access wall (bot_challenge)' on candidate
+// pages that had already passed content proof from the container — bsr.org/SAFA and napa.fi/Blue Visby.
+// Rejecting a wall discards a valid replacement PERMANENTLY, since idempotency only re-reads
+// decision='pending' rows — a rejected row is never looked at again. The fix: a WALLED CANDIDATE defers
+// (decision stays 'pending', reviewer_notes carries the attempt count) so the next dispatch — maybe from a
+// different network, maybe the wall itself lifts — gets to try again, capped at 3 attempts before finally
+// giving up. This is deliberately asymmetric with the CURRENT source's own wall handling
+// (checkAuthority's `downgrade_walled`, unchanged): a wall on the CURRENT source means "still alive, keep
+// it" (never a dead link); a wall on the CANDIDATE means "not yet verified", which is a wait, not a
+// verdict.
+//
+// The attempt count has nowhere to live but the row's own free-text `reviewer_notes` (no new column —
+// CLAUDE.md's migration-DDL discipline, and a defer/retry counter is not schema-worthy). Encoded and
+// parsed back verbatim against the exact phrase this module writes; a `reviewer_notes` value from any
+// other stage (page-class, content-proof, a prior accept/reject) simply does not match and reads as
+// attempt 0, same as a row that has never been walled before.
+const WALL_MAX_ATTEMPTS = 3;
+const WALL_ATTEMPT_RE = /access wall from this network \(attempt (\d+)\)/i;
+
+/** How many prior CANDIDATE-wall defers this row has already recorded, read back from its own
+ *  `reviewer_notes` (0 when absent/unmatched — a fresh row, or one deferred/rejected for any other
+ *  reason). Pure. */
+export function previousWallAttempts(reviewerNotes) {
+  const m = WALL_ATTEMPT_RE.exec(String(reviewerNotes ?? ""));
+  return m ? parseInt(m[1], 10) : 0;
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════════════════════════
 // PAGE CLASS — pages that cannot be a source regardless of authority or content match. Each rule cites
 // the live pending row (2026-09-06 SQL read) that motivated it.
@@ -516,6 +545,29 @@ export function decideRow(row, item, fetchResult, deps) {
         proof: { stage: "reachability", ...reach },
       };
     }
+    if (reach.wall) {
+      // A wall on the CANDIDATE is "could not verify from this network", never "the page is unfit" (see
+      // this file's WALL_MAX_ATTEMPTS header). Capped retry, not an immediate reject: attempt 1-2 defers
+      // (decision stays 'pending'), attempt 3 finally rejects — the ONLY case a candidate-side wall ever
+      // produces a terminal 'rejected'.
+      const attempt = previousWallAttempts(row.reviewer_notes) + 1;
+      if (attempt >= WALL_MAX_ATTEMPTS) {
+        return {
+          id: row.id, decision: "rejected",
+          reviewer_notes: `auto: reject — candidate unverifiable behind an access wall after ${WALL_MAX_ATTEMPTS} attempts`,
+          verified_status_code: fetchResult?.status ?? null,
+          verified_content_excerpt: null,
+          proof: { stage: "reachability", ...reach, wallAttempt: attempt },
+        };
+      }
+      return {
+        id: row.id, decision: "deferred",
+        reviewer_notes: `auto: deferred — candidate behind an access wall from this network (attempt ${attempt}), retry next run`,
+        verified_status_code: fetchResult?.status ?? null,
+        verified_content_excerpt: null,
+        proof: { stage: "reachability", ...reach, wallAttempt: attempt },
+      };
+    }
     return {
       id: row.id, decision: "rejected",
       reviewer_notes: `auto: reject — ${reach.reason}`,
@@ -627,7 +679,7 @@ export function decideRow(row, item, fetchResult, deps) {
 const TABLE = "canonical_source_candidates";
 const SELECT_COLUMNS =
   "id,intelligence_item_id,current_source_id,current_source_url,issue_classification,candidate_url," +
-  "candidate_title,candidate_publisher,confidence,decision";
+  "candidate_title,candidate_publisher,confidence,decision,reviewer_notes";
 
 export const CITE = Object.freeze({
   skill: "canonical-autoverify",
@@ -706,7 +758,20 @@ export async function main({ mode = "dry" } = {}, deps) {
   let approvedApplied = 0, rejectedApplied = 0;
   const deferred = [];
   for (const v of verdicts) {
-    if (v.decision === "deferred") { deferred.push({ id: v.id, reason: v.reviewer_notes }); continue; }
+    if (v.decision === "deferred") {
+      deferred.push({ id: v.id, reason: v.reviewer_notes });
+      if (v.proof?.wall) {
+        // Candidate-wall defer: the attempt count has to survive to the NEXT dispatch, and this row's
+        // decision stays 'pending' (never touched by matchQueue on any other row), so the ONLY place it
+        // can live is this row's own reviewer_notes — write that one field, nothing else (previousWallAttempts
+        // reads it back next run). A transient-fetch defer writes nothing, same as before this fix: there is
+        // no attempt cap for a plain network blip, only for a confirmed wall.
+        await deps.guardedUpdateByIds(TABLE, [v.id], {
+          reviewer_notes: v.reviewer_notes,
+        }, { cite: CITE, select: "id", applyMatch: matchQueue });
+      }
+      continue;
+    }
     if (v.decision === "rejected") {
       await deps.guardedUpdateByIds(TABLE, [v.id], {
         decision: "rejected", reviewed: true, reviewer_notes: v.reviewer_notes,

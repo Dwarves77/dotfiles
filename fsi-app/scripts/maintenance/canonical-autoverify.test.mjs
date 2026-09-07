@@ -20,6 +20,7 @@ import {
   decideRow,
   main,
   makeCanonicalFetchCandidate,
+  previousWallAttempts,
 } from "./canonical-autoverify.mjs";
 
 // ── REACHABILITY ──────────────────────────────────────────────────────────────────────────────────────
@@ -369,6 +370,65 @@ test("decideRow: a stale_url row's WALLED (not dead) current source rejects the 
   assert.match(v.reviewer_notes, /access wall/);
 });
 
+// ── decideRow: a walled CANDIDATE defers with a 3-attempt cap, never rejects on a wall (lane
+// CANONICAL-AUTOVERIFY-4, 2026-09-07 — Maintenance run 34078398318 dry on master c25922f8 rejected two
+// live rows, bsr.org/SAFA and napa.fi/Blue Visby, on a candidate-side 'access wall (bot_challenge)' that
+// the SAME pages passed content proof on from the container — a wall on the candidate is "could not
+// verify from this network", not "the page is unfit", and the old behavior discarded a valid replacement
+// PERMANENTLY, since idempotency only re-reads decision='pending' rows.) ──────────────────────────────────
+
+const WALL_TEXT = "Please sign in to continue to access your account."; // trips LOGIN_WALL_RE, proven at line 47 above
+
+test("decideRow: a WALLED CANDIDATE defers on its first attempt — never an immediate reject", () => {
+  const row = { ...ROW_BASE, reviewer_notes: null };
+  const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
+  assert.equal(v.decision, "deferred");
+  assert.match(v.reviewer_notes, /auto: deferred — candidate behind an access wall from this network \(attempt 1\), retry next run/);
+  assert.equal(v.proof.stage, "reachability");
+  assert.equal(v.proof.wallAttempt, 1);
+});
+
+test("decideRow: a WALLED CANDIDATE defers again on its second attempt, reading the prior count back from reviewer_notes", () => {
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run" };
+  const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
+  assert.equal(v.decision, "deferred");
+  assert.match(v.reviewer_notes, /\(attempt 2\)/);
+  assert.equal(v.proof.wallAttempt, 2);
+});
+
+test("decideRow: a WALLED CANDIDATE finally rejects on its 3rd attempt — the only terminal outcome a candidate-side wall ever produces", () => {
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run" };
+  const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
+  assert.equal(v.decision, "rejected");
+  assert.match(v.reviewer_notes, /auto: reject — candidate unverifiable behind an access wall after 3 attempts/);
+  assert.equal(v.proof.wallAttempt, 3);
+});
+
+test("decideRow: a candidate wall never leaves the row 'pending' forever unaccounted — a reviewer_notes value from an unrelated stage reads as attempt 0, same as a fresh row", () => {
+  const row = { ...ROW_BASE, reviewer_notes: "auto: reject — dead (HTTP 404)" };
+  const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
+  assert.equal(v.decision, "deferred");
+  assert.match(v.reviewer_notes, /\(attempt 1\)/);
+});
+
+test("previousWallAttempts: parses the exact phrase this module writes; anything else (or nothing) reads as 0", () => {
+  assert.equal(previousWallAttempts(null), 0);
+  assert.equal(previousWallAttempts(undefined), 0);
+  assert.equal(previousWallAttempts("auto: reject — dead (HTTP 404)"), 0);
+  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run"), 1);
+  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run"), 2);
+});
+
+test("decideRow: the CURRENT source's own wall handling is UNCHANGED by this fix — 'downgrade_walled' still rejects outright with no attempt count at all (regression against the walled-current test above)", () => {
+  const row = { ...ROW_BASE, current_source_id: "src-irena", current_source_url: "https://www.irena.org/Energy-Transition/Technology/Maritime-transport", issue_classification: "stale_url", candidate_url: "https://www.dnv.com/services/alternative-fuels-insights-afi--128171/", candidate_title: "Alternative Fuels Insight (AFI) – DNV", candidate_publisher: "DNV" };
+  const deps = { ...BASE_DEPS, currentIsWalled: true, classTierForHost: classTierForHostFixture };
+  const v = decideRow(row, { title: "Alternative Fuels Insight (IRENA/IMO)" }, { status: 200, text: "Alternative Fuels Insight (AFI) is DNV's open platform for evaluating the uptake of alternative fuels and technologies." }, deps);
+  assert.equal(v.decision, "rejected");
+  assert.equal(v.proof.stage, "authority");
+  assert.equal(v.proof.kind, "downgrade_walled");
+  assert.equal("wallAttempt" in v.proof, false);
+});
+
 // ── main(): the whole dry/apply loop against a small fixture ────────────────────────────────────────────
 
 function buildMainDeps({ rows, items, sources, fetchResults, hostAuthority }) {
@@ -516,6 +576,74 @@ test("main: a downgrade-walled row (IRENA -> DNV/AFI) rejects, never approves, w
   assert.equal(s.counts.approved, 0);
   assert.equal(deps.writes.intelligence_items.length, 0);
   assert.match(deps.writes.canonical_source_candidates[0].patch.reviewer_notes, /access wall/);
+});
+
+// ── main(): a WALLED CANDIDATE defers with a persisted attempt count, never rejects on a wall until the
+// 3rd try (lane CANONICAL-AUTOVERIFY-4, 2026-09-07 — see the decideRow section above for the full ruling
+// this fixes) ────────────────────────────────────────────────────────────────────────────────────────────
+
+test("main: a WALLED CANDIDATE defers on apply — reviewer_notes IS written (attempt count persisted) even though decision stays 'pending' and the row is not counted as applied", async () => {
+  const rows = [{ ...ROW_BASE, id: "row-6", decision: "pending", reviewer_notes: null }];
+  const items = [{ id: "item-1", title: "H2 Accelerate" }];
+  const deps = buildMainDeps({
+    rows, items, sources: SOURCES_FIXTURE,
+    fetchResults: { "https://h2accelerate.eu/trucks/": { status: 200, text: "Please sign in to continue to access your account." } },
+    hostAuthority: { classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: () => 5 },
+  });
+  const s = await main({ mode: "apply" }, deps);
+  assert.equal(s.counts.deferred, 1);
+  assert.equal(s.counts.rejected, 0);
+  assert.equal(s.applied, 0);
+  assert.equal(deps.writes.canonical_source_candidates.length, 1, "the attempt count must be written even though decision does not change");
+  assert.equal(deps.writes.canonical_source_candidates[0].patch.decision, undefined, "decision is never in the patch — the row stays 'pending'");
+  assert.match(deps.writes.canonical_source_candidates[0].patch.reviewer_notes, /\(attempt 1\)/);
+  assert.equal(s.read_back.still_pending, 1);
+});
+
+test("main: three consecutive apply runs against the SAME still-walled candidate defer, defer, then finally reject — the attempt count survives because reviewer_notes round-trips through the mock 'DB'", async () => {
+  const rows = [{ ...ROW_BASE, id: "row-7", decision: "pending", reviewer_notes: null }];
+  const items = [{ id: "item-1", title: "H2 Accelerate" }];
+  const deps = buildMainDeps({
+    rows, items, sources: SOURCES_FIXTURE,
+    fetchResults: { "https://h2accelerate.eu/trucks/": { status: 200, text: "Please sign in to continue to access your account." } },
+    hostAuthority: { classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: () => 5 },
+  });
+
+  const s1 = await main({ mode: "apply" }, deps);
+  assert.equal(s1.counts.deferred, 1);
+  assert.equal(s1.read_back.still_pending, 1);
+
+  const s2 = await main({ mode: "apply" }, deps);
+  assert.equal(s2.counts.deferred, 1);
+  assert.match(deps.writes.canonical_source_candidates[1].patch.reviewer_notes, /\(attempt 2\)/);
+  assert.equal(s2.read_back.still_pending, 1);
+
+  const s3 = await main({ mode: "apply" }, deps);
+  assert.equal(s3.counts.rejected, 1);
+  assert.equal(s3.counts.deferred, 0);
+  assert.equal(s3.applied, 1);
+  assert.match(s3.verdicts[0].reviewer_notes, /unverifiable behind an access wall after 3 attempts/);
+  assert.equal(s3.read_back.rejected_now, 1);
+  assert.equal(s3.read_back.still_pending, 0);
+
+  // idempotency: a 4th run reads zero pending rows (the row is now terminal) — never re-walls a dead row.
+  const s4 = await main({ mode: "apply" }, deps);
+  assert.equal(s4.counts.pending_read, 0);
+});
+
+test("main: summary.verdicts already carries the per-row reason next to the id (id + decision + reviewer_notes), for every row and every mode — the coordinator's ledger note reads this, not a second field", async () => {
+  const rows = [{ ...ROW_BASE, id: "row-8", decision: "pending", reviewer_notes: null }];
+  const items = [{ id: "item-1", title: "H2 Accelerate" }];
+  const deps = buildMainDeps({
+    rows, items, sources: SOURCES_FIXTURE,
+    fetchResults: { "https://h2accelerate.eu/trucks/": { status: 200, text: "Please sign in to continue to access your account." } },
+    hostAuthority: { classTierForHost: classTierForHostFixture, permanentlyUnregisteredClass: permanentlyUnregisteredClassFixture, defaultTierForHost: () => 5 },
+  });
+  const s = await main({ mode: "dry" }, deps);
+  assert.equal(s.verdicts.length, 1);
+  assert.equal(s.verdicts[0].id, "row-8");
+  assert.equal(s.verdicts[0].decision, "deferred");
+  assert.match(s.verdicts[0].reviewer_notes, /access wall from this network \(attempt 1\)/);
 });
 
 // ── $0 FETCH ADAPTER (lane CANONICAL-AUTOVERIFY-3, 2026-09-07: replaces the Browserless wiring that made
