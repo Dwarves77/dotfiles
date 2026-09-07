@@ -1,16 +1,18 @@
 // Unit test for exemptions-375.mjs (lane uiactions, 2026-09-07, addendum item 8; entries narrowed
-// 2026-09-07 by lane moblist once the mobile-390 build landed — see that file's own header). Pure
-// functions only — run-rendering-guard.mjs's own integration behavior (the exemption actually
-// suppressing a real Playwright failure) is proven live by that guard's own run; this file proves
-// the two pure helpers it calls in isolation.
+// 2026-09-07 by lane moblist once the mobile-390 build landed; market-list/research-list/
+// operations-list removed 2026-09-07 by FOLD-56 once the three ledgers got PriorityDropdown's
+// kebab wrapper and the rendering guard came back PASS with no exemptions firing — see
+// exemptions-375.mjs's own header). Pure functions only — run-rendering-guard.mjs's own
+// integration behavior (the exemption actually suppressing a real Playwright failure) is proven
+// live by that guard's own run; this file proves the two pure helpers it calls in isolation.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RENDERING_375_EXEMPTIONS, isExempt375, activeExemptions } from "./exemptions-375.mjs";
 
-test("exactly four entries: regulations-list and watchlist clear at 375 (mobile-390 build implemented, lane moblist 2026-09-07) leaving market/research/operations (a narrower law-2 cause, not this lane's write set) plus /map (coordinator-extended)", () => {
-  assert.equal(RENDERING_375_EXEMPTIONS.length, 4);
+test("exactly one entry remains: /map (the five list pages are all clear at 375, FOLD-56)", () => {
+  assert.equal(RENDERING_375_EXEMPTIONS.length, 1);
   const pages = RENDERING_375_EXEMPTIONS.map((e) => e.page).sort();
-  assert.deepEqual(pages, ["map", "market-list", "operations-list", "research-list"]);
+  assert.deepEqual(pages, ["map"]);
 });
 
 test("every entry is dated and carries the same expiry (train wave 58)", () => {
@@ -21,21 +23,22 @@ test("every entry is dated and carries the same expiry (train wave 58)", () => {
   }
 });
 
-test("the map entry's reason names it as coordinator-extended, operator confirmation pending (the ruling itself names only the five list pages)", () => {
+test("the map entry's reason is the operator's confirmed ruling, not a pending coordinator extension", () => {
   const map = RENDERING_375_EXEMPTIONS.find((e) => e.page === "map");
-  assert.match(map.reason, /coordinator-extended/);
-  assert.match(map.reason, /operator confirmation pending/);
+  assert.match(map.reason, /operator ruling/);
+  assert.match(map.reason, /confirmed/);
+  assert.doesNotMatch(map.reason, /confirmation pending/);
 });
 
 test("isExempt375 only matches a failure line carrying '@375' from an active entry's exact fixturePrefix", () => {
   const active = RENDERING_375_EXEMPTIONS;
-  assert.equal(isExempt375("market-rows:one-row@375: 7 element(s) clipped...", active), true);
+  assert.equal(isExempt375("map-page:populated@375: 2 element(s) clipped...", active), true);
   // Same page, different (non-375) viewport must NOT be exempt — this is not a global relaxation.
-  assert.equal(isExempt375("market-rows:one-row@768: 7 element(s) clipped...", active), false);
-  // A page with no matching entry must not be exempt.
-  assert.equal(isExempt375("dashboard-brief:empty@375: something", active), false);
+  assert.equal(isExempt375("map-page:populated@768: 2 element(s) clipped...", active), false);
+  // A page with no matching entry must not be exempt (market/research/operations are clear now).
+  assert.equal(isExempt375("market-rows:one-row@375: something", active), false);
   // A prefix that is merely a SUBSTRING (not the label's own prefix) must not false-positive.
-  assert.equal(isExempt375("not-market-rows:one-row@375: x", active), false);
+  assert.equal(isExempt375("not-map-page:populated@375: x", active), false);
 });
 
 test("activeExemptions drops an entry once the landed wave reaches its expiryWave (the guard fails again)", () => {
