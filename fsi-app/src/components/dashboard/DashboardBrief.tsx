@@ -30,6 +30,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
+import { BAND_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
 
 const DUE_NEXT_CAP = 5;
 const CHANGED_CAP = 6;
@@ -232,7 +233,30 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
-                  left={<>All {formatNumber(immediateTotal)} immediate</>}
+                  left={
+                    // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
+                    // nothing). Navigates to /regulations with the Immediate band facet applied,
+                    // via the same `?band=` contract RegulationsLedger now reads (see
+                    // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
+                    // inline expansion of the Immediate band built here on the dashboard.
+                    <Link
+                      href={`/regulations?${BAND_FACET_PARAM}=immediate`}
+                      style={{
+                        color: "inherit",
+                        textDecoration: "underline",
+                        textUnderlineOffset: 2,
+                        display: "inline-block",
+                        // Law-2's 24px-with-8px-clearance floor: the surrounding Card clips
+                        // overflow, so a negative-margin hit-area trick would be clipped along
+                        // with it — real padding instead, which grows the footer row itself by a
+                        // few px (not specified either way by the artboard; logged in
+                        // DEVIATION-LOG.md).
+                        padding: "8px 0",
+                      }}
+                    >
+                      All {formatNumber(immediateTotal)} immediate
+                    </Link>
+                  }
                   right={<>then {formatNumber(actionTotal)} action · {formatNumber(monitorTotal)} monitor</>}
                 />
               </>
