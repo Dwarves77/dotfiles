@@ -251,6 +251,235 @@ const EMPTY_API = [
   { urlGlob: '**/api/**', handler: (route) => route.fulfill({ contentType: 'application/json', body: '{}' }) },
 ];
 
+// ── Masthead + CommandBar ───────────────────────────────────────────────────────────────────────
+// The real Masthead (list-size title, dek, command bar) in the 778px content column.
+const MASTHEAD_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Masthead } from '@/components/ui/Masthead';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)' } },
+      React.createElement(Masthead, {
+        title: "Jason's brief",
+        dateLabel: 'Sunday 6 September 2026',
+        volNumber: 36,
+        commandBar: { itemCount: 1434, scope: 'dashboard' },
+      }),
+    ),
+  );
+};
+`;
+
+// ── BandTile, four bands ────────────────────────────────────────────────────────────────────────
+const BANDTILE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { BandTile } from '@/components/ui/BandTile';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, width: 778, padding: 20, background: 'var(--page)' } },
+      BAND_ORDER.map((band, i) => React.createElement('div', { key: band.key, 'data-audit': band.key },
+        React.createElement(BandTile, { band, count: 14 + i, selected: i === 0 }))),
+    ),
+  );
+};
+`;
+
+// ── StatBlock, stack + row layouts ──────────────────────────────────────────────────────────────
+const STATBLOCK_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { StatBlock } from '@/components/ui/StatBlock';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 400, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 20 } },
+      React.createElement('div', { 'data-audit': 'stack' },
+        React.createElement(StatBlock, { label: 'Sources', value: '212', note: 'Across the platform' })),
+      React.createElement('div', { 'data-audit': 'row' },
+        React.createElement(StatBlock, { layout: 'row', label: 'Jurisdictions', value: '61', note: 'Scoped to workspace' })),
+    ),
+  );
+};
+`;
+
+// ── Skeleton, all three shapes ──────────────────────────────────────────────────────────────────
+const SKELETON_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from '@/components/ui/Skeleton';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 16 } },
+      React.createElement('div', { 'data-audit': 'row' }, React.createElement(SkeletonListRow, null)),
+      React.createElement('div', { 'data-audit': 'tile', style: { width: 180 } }, React.createElement(SkeletonBandTile, null)),
+      React.createElement('div', { 'data-audit': 'stat' }, React.createElement(SkeletonStatBlock, null)),
+    ),
+  );
+};
+`;
+
+// ── TabRow ──────────────────────────────────────────────────────────────────────────────────────
+const TABROW_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { TabRow } from '@/components/ui/TabRow';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)' } },
+      React.createElement(TabRow, {
+        ariaLabel: 'Account',
+        tabs: [
+          { key: 'personal', label: 'Personal', href: '/profile' },
+          { key: 'members', label: 'Members & roles · 2', href: '/profile?tab=members', active: true },
+          { key: 'settings', label: 'Settings', href: '/settings' },
+        ],
+      }),
+    ),
+  );
+};
+`;
+
+// ── Absence ─────────────────────────────────────────────────────────────────────────────────────
+const ABSENCE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { Absence } from '@/components/ui/Absence';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { padding: 20, background: 'var(--page)' } },
+      React.createElement('div', { 'data-audit': 'reason' },
+        React.createElement(Absence, { reason: 'not in primary source' })),
+    ),
+  );
+};
+`;
+
+// ── StateNote, band + neutral ───────────────────────────────────────────────────────────────────
+const STATENOTE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { StateNote } from '@/components/ui/StateNote';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const action = BAND_ORDER.find((b) => b.key === 'action');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 12 } },
+      React.createElement('div', { 'data-audit': 'band' },
+        React.createElement(StateNote, { band: action, action: { label: 'See history', href: '#' } }, 'Reclassified from Monitor on 2 Sep.')),
+      React.createElement('div', { 'data-audit': 'neutral' },
+        React.createElement(StateNote, { action: { label: 'See audit log', href: '#' } }, 'Applies workspace-wide.')),
+    ),
+  );
+};
+`;
+
+// ── Chips, all four families ────────────────────────────────────────────────────────────────────
+const CHIPS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { BandChip, TierChip, TagChip, WorkspaceTagPill, FilterChipGroup, FilterChip } from '@/components/ui/Chips';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const action = BAND_ORDER.find((b) => b.key === 'action');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { padding: 20, background: 'var(--page)', display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' } },
+      React.createElement('div', { 'data-audit': 'band' }, React.createElement(BandChip, { band: action })),
+      React.createElement('div', { 'data-audit': 'tier' }, React.createElement(TierChip, { tier: 1 })),
+      React.createElement('div', { 'data-audit': 'tag' }, React.createElement(TagChip, null, 'Ocean')),
+      React.createElement('div', { 'data-audit': 'workspace-tag' }, React.createElement(WorkspaceTagPill, { name: 'Cost alert', onRemove: () => {} })),
+      React.createElement('div', { 'data-audit': 'filter-group' },
+        React.createElement(FilterChipGroup, { label: 'Mode' },
+          React.createElement(FilterChip, { active: true }, 'Ocean'),
+          React.createElement(FilterChip, { active: false }, 'Air'),
+        )),
+    ),
+  );
+};
+`;
+
+// ── BandGradientRule, deterministic even counts ─────────────────────────────────────────────────
+const BANDGRADIENTRULE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { BandGradientRule } from '@/components/ui/BandGradientRule';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 252, background: 'var(--page)' } },
+      React.createElement('div', { 'data-audit': 'rule' },
+        React.createElement(BandGradientRule, { counts: { immediate: 14, action: 31, monitor: 1135, awareness: 254 } })),
+    ),
+  );
+};
+`;
+
+// ── RailCard / LegendRailCard — the list surfaces' panel card (ruling 5.1 applies to it too) ─────
+const RAILCARD_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RailCard, LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 300, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 16 } },
+      React.createElement('div', { 'data-audit': 'legend' }, React.createElement(LegendRailCard, null)),
+    ),
+  );
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -263,6 +492,66 @@ export const AUDIT_MOUNTS = {
     description: 'ListRow + ListRowColumnHeader in the 778px content column the 1440 frame produces.',
     viewport: 1440,
     entry: LISTROW_ENTRY,
+  },
+  masthead: {
+    id: 'masthead',
+    description: 'Masthead (list size) + its real CommandBar, in the 778px content column.',
+    viewport: 1440,
+    entry: MASTHEAD_ENTRY,
+  },
+  bandtile: {
+    id: 'bandtile',
+    description: 'BandTile, all four bands, in a 4-column row.',
+    viewport: 1440,
+    entry: BANDTILE_ENTRY,
+  },
+  statblock: {
+    id: 'statblock',
+    description: 'StatBlock, stack and row layouts.',
+    viewport: 1440,
+    entry: STATBLOCK_ENTRY,
+  },
+  skeleton: {
+    id: 'skeleton',
+    description: 'SkeletonListRow, SkeletonBandTile, SkeletonStatBlock — final geometry, README §0.6.',
+    viewport: 1440,
+    entry: SKELETON_ENTRY,
+  },
+  tabrow: {
+    id: 'tabrow',
+    description: 'TabRow, account/settings tab row.',
+    viewport: 1440,
+    entry: TABROW_ENTRY,
+  },
+  absence: {
+    id: 'absence',
+    description: 'Absence, the one absence convention.',
+    viewport: 1440,
+    entry: ABSENCE_ENTRY,
+  },
+  statenote: {
+    id: 'statenote',
+    description: 'StateNote, band-coloured and neutral variants.',
+    viewport: 1440,
+    entry: STATENOTE_ENTRY,
+  },
+  chips: {
+    id: 'chips',
+    description: 'BandChip, TierChip, TagChip, WorkspaceTagPill, FilterChipGroup/FilterChip.',
+    viewport: 1440,
+    entry: CHIPS_ENTRY,
+  },
+  bandgradientrule: {
+    id: 'bandgradientrule',
+    description: 'BandGradientRule with deterministic even-split counts, in a 252px box (nav card width).',
+    viewport: 1440,
+    entry: BANDGRADIENTRULE_ENTRY,
+  },
+  railcard: {
+    id: 'railcard',
+    description: 'RailCard/LegendRailCard, the panel card shared by the four list surfaces’ rail.',
+    viewport: 1440,
+    entry: RAILCARD_ENTRY,
   },
   'page-frame-1440': {
     id: 'page-frame-1440',

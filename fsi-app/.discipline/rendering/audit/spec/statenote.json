@@ -1,0 +1,42 @@
+{
+  "part": "StateNote",
+  "mount": "statenote",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.4 'State note strip'", "15-settings (neutral variant, 'Applies workspace-wide')"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 'State note strip'; ruling 2.6 (exact geometry, restated verbatim from the README); 'Caros Ledge UI System.dc.html' p15's neutral state note ('Applies workspace-wide')",
+  "notes": [
+    "StateNote.tsx is pure inline style; every property here is a real product value.",
+    "Ruling 2.6: 'border-left 3px solid <band>; background <band tint>; border-radius 0 6px 6px 0; padding 9px 12px. Left side straight. Neutral variant #5A5552 on #F5F2EE.' '#5A5552' is the `--brand` token, NOT `--ink-2` (#5A6B67) — StateNote.tsx's neutral variant uses `band ? ... : 'var(--ink-2)'`, i.e. the wrong token for the neutral border-left colour (background is correct, `--tag` = #F5F2EE)."
+  ],
+  "selector": "[data-audit=\"band\"] > div",
+  "expect": {
+    "border-left-width": "3px",
+    "border-left-style": "solid",
+    "border-left-color": "#F97316",
+    "background-color": "#FFF7ED",
+    "border-radius": "0px 6px 6px 0px",
+    "padding-top": "9px",
+    "padding-bottom": "9px",
+    "padding-left": "12px",
+    "padding-right": "12px"
+  },
+  "children": [
+    {
+      "name": "neutral variant — border-left colour",
+      "selector": "[data-audit=\"neutral\"] > div",
+      "note": "Ruling 2.6: 'Neutral variant #5A5552 on #F5F2EE.'",
+      "expect": { "border-left-color": "#5A5552" }
+    },
+    {
+      "name": "neutral variant — background",
+      "selector": "[data-audit=\"neutral\"] > div",
+      "expect": { "background-color": "#F5F2EE" }
+    },
+    {
+      "name": "action link",
+      "selector": "[data-audit=\"band\"] a",
+      "note": "README §0.4: 'text left, one action link right.' dc.html p15 action link ('See audit log →'): font-size 11px, font-weight 600. StateNote.tsx's action link is inline-styled at font-weight 700.",
+      "expect": { "font-size": "11px", "font-weight": "600" }
+    }
+  ]
+}

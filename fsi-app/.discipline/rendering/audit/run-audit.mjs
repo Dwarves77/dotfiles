@@ -89,18 +89,22 @@ async function probe(page, targets, forbids) {
       };
       const readTarget = (t) => {
         const nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
-        if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null };
+        if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null, placeholder: null };
         const el = nodes[0];
         const cs = getComputedStyle(el);
         const styles = {};
         for (const prop of Object.keys(t.expect)) {
-          if (prop === 'text' || prop === 'count') continue;
+          if (prop === 'text' || prop === 'count' || prop === 'placeholder') continue;
           styles[prop] = cs.getPropertyValue(prop);
         }
         return {
           found: true,
           count: nodes.length,
           fontSize: parseFloat(cs.fontSize),
+          // `<input>`/`<textarea>` placeholder text lives in the `placeholder` DOM property, not
+          // textContent — an input's `text` key would always read empty. A spec that wants to assert
+          // a placeholder string uses the `placeholder` key instead.
+          placeholder: 'placeholder' in el ? el.placeholder : null,
           styles,
           text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
         };
@@ -158,10 +162,11 @@ function rowsFor(spec, targets, measuredTargets, forbids, measuredForbids) {
     for (const [prop, expected] of Object.entries(t.expect)) {
       let actual;
       if (prop === 'text') actual = m.text;
+      else if (prop === 'placeholder') actual = m.placeholder;
       else if (prop === 'count') actual = String(m.count);
       else actual = m.styles[prop];
       const cmp =
-        prop === 'text'
+        prop === 'text' || prop === 'placeholder'
           ? { ok: collapse(String(expected)) === collapse(String(actual ?? '')), expected: String(expected), actual: String(actual ?? '') }
           : compareValue(String(expected), String(actual ?? ''), { fontSizePx: m.fontSize });
       // An `em` expectation is compared in px against the element's OWN computed font-size; show

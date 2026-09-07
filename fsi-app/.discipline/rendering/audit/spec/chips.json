@@ -1,0 +1,109 @@
+{
+  "part": "Chips — band, tier, neutral tag, workspace tag, filter",
+  "mount": "chips",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.4 'Chips'"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 'Chips' and 'Workspace tags'; 'Caros Ledge UI System.dc.html' #sys 'Chips — three kinds, three shapes' block; operator ruling 2.5",
+  "notes": [
+    "Chips.tsx is pure inline style (media queries only affect <768px, not this 1440 mount); every property here is a real product value.",
+    "Ruling 2.5 restates the family rules (band = tinted pill + round dot; workspace tag = square dot, removable; kind/mode/topic = neutral, no dot, no border; tier = the only bordered chip) without new numbers for band/tier/tag beyond what the artboard states, so the artboard markup is the numeric source for those three.",
+    "TagChip has no `border` set at all (correct per ruling 2.5's 'no dot, NO border'); the artboard's neutral tag also has no border rule. Both sides agree, not asserted as a property since 'unset' has no single canonical getComputedStyle form worth comparing.",
+    "CONFIRMED, verified not a harness artefact: `--radius-pill` computes to nothing (CSSOM initial value, 0) in the real product, not just this harness. src/app/theme.css declares it TWICE inside the SAME plain `:root{}` rule (no `@theme` involved, no Tailwind step in play): line 55 `--radius-pill: 999px;`, then line 201 `--radius-pill: var(--radius-pill);` — a property declared in terms of itself, which CSS defines as invalid, and the invalid LATER declaration wins over the valid earlier one within one rule (there is no 'fall back to the earlier declaration' in CSS custom properties). Every chip that reads `var(--radius-pill)` — BandChip, WorkspaceTagPill, and TagChip (see next note) — renders SQUARE corners everywhere in the shipped product, not just in this measurement. Confirmed by probing `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` directly against theme.css alone (empty string) before writing this spec.",
+    "TagChip's radius is a second, separate issue on top of the broken token: even if `--radius-pill` were fixed to 999px, the artboard's neutral tag uses `border-radius:4px` (a squared tag, matching the tier chip's own 4px-square convention), not a pill — TagChip.tsx reaches for the pill token where the design wants the square one."
+  ],
+  "selector": "[data-audit=\"band\"] span",
+  "expect": {
+    "padding-top": "3px",
+    "padding-right": "9px",
+    "padding-bottom": "3px",
+    "padding-left": "7px",
+    "border-radius": "999px",
+    "background-color": "#FFF7ED",
+    "color": "#F97316",
+    "font-weight": "800",
+    "letter-spacing": "0.06em",
+    "text-transform": "uppercase",
+    "font-size": "10.5px",
+    "border-width": "1px",
+    "border-style": "solid",
+    "border-color": "#FED7AA"
+  },
+  "children": [
+    {
+      "name": "band chip — dot size",
+      "selector": "[data-audit=\"band\"] span span",
+      "note": "dc.html #sys: dot 7x7px, round, background = band hex. BandChip.tsx builds a 6x6px dot.",
+      "expect": { "width": "7px", "height": "7px", "border-radius": "50%", "background-color": "#F97316" }
+    },
+    {
+      "name": "tier chip",
+      "selector": "[data-audit=\"tier\"] span",
+      "note": "dc.html #sys: padding 3px 7px (no fixed width/height), border 1px solid rgba(0,0,0,.2), border-radius 4px, font-weight 800, letter-spacing .06em, font-size 10px.",
+      "expect": {
+        "padding-top": "3px",
+        "padding-bottom": "3px",
+        "padding-left": "7px",
+        "padding-right": "7px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.2)",
+        "border-radius": "4px",
+        "font-weight": "800",
+        "letter-spacing": "0.06em",
+        "font-size": "10px"
+      }
+    },
+    {
+      "name": "tier chip text",
+      "selector": "[data-audit=\"tier\"] span",
+      "expect": { "text": "T1" }
+    },
+    {
+      "name": "neutral tag chip (kind/mode/topic)",
+      "selector": "[data-audit=\"tag\"] span",
+      "note": "dc.html #sys: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px, letter-spacing .04em, text-transform uppercase.",
+      "expect": {
+        "padding-top": "3px",
+        "padding-bottom": "3px",
+        "padding-left": "8px",
+        "padding-right": "8px",
+        "border-radius": "4px",
+        "background-color": "#F5F2EE",
+        "font-weight": "600",
+        "font-size": "10.5px",
+        "letter-spacing": "0.04em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "workspace tag pill",
+      "selector": "[data-audit=\"workspace-tag\"] span",
+      "note": "README §0.4 'Workspace tags': 'Pill with a 6px square ink dot, #F5F2EE fill, rgba(0,0,0,.14) border, 11.5px/600 label, removable ×.'",
+      "expect": {
+        "background-color": "#F5F2EE",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.14)",
+        "font-size": "11.5px",
+        "font-weight": "600",
+        "border-radius": "999px"
+      }
+    },
+    {
+      "name": "workspace tag pill — square dot",
+      "selector": "[data-audit=\"workspace-tag\"] span > span:first-child",
+      "note": "README: '6px SQUARE ink dot' — never round (that is BandChip's mark).",
+      "expect": { "width": "6px", "height": "6px", "background-color": "#1A1A1A" }
+    },
+    {
+      "name": "filter chip group label",
+      "selector": "[data-audit=\"filter-group\"] .cl-filter-group-label",
+      "note": "README type scale: 'rail labels 10.5px uppercase .12em/700'; Chips.tsx's FilterChipGroup label uses --fs-95 (9.5px) and .1em, its own documented choice, not this scale's rail-label value.",
+      "expect": { "font-size": "10.5px", "letter-spacing": "0.12em", "font-weight": "700", "text-transform": "uppercase" }
+    },
+    {
+      "name": "active filter chip",
+      "selector": "[data-audit=\"filter-group\"] button[data-active=\"true\"]",
+      "note": "README/ruling 2.5: filter chips are neutral except the active one, which recolours to brand. Checked against Chips.tsx's own inline values (no independent artboard filter-chip block exists at 1440 outside the mobile spec's shell) — this target records the built value rather than asserting a design number the source does not separately state for the desktop chip.",
+      "expect": { "background-color": "#5A5552", "color": "#FFFFFF" }
+    }
+  ]
+}
