@@ -11707,7 +11707,9 @@ train, no `.env.local` present). `coverage-report.json` already regenerated at t
 tip (`cd84e015`): 867 governed files, 830 COVERED, 37 EXEMPT, 0 GAPS — re-ran the scan after
 this postscript's own doc edits (PROGRAM-BOARD.md, HANDOFF.md, this file — none governed
 surfaces) and confirmed no drift, `git diff --stat` empty.
-Bundles: the full `origin/master..train/wave56-2026-09-07` range was split at
-`tmp-mid56` (commit 12 of 20 in `--first-parent --reverse` order, `2150d0c9`) into
-`/tmp/train56a.bundle` (`origin/master..tmp-mid56`) and `/tmp/train56b.bundle`
-(`tmp-mid56..train/wave56-2026-09-07`), both `git bundle verify` PASS, both under 9 MB.
+Bundle: the full `origin/master..train/wave56-2026-09-07` range (21 commits, tip `8ce029ab`)
+is 1,067,172 bytes, well under the 9 MB split threshold, so **one** bundle was made instead of
+the two-part split: `git bundle create /tmp/train56.bundle origin/master..train/wave56-2026-09-07`,
+`git bundle verify` PASS. `tmp-mid56` (`2150d0c9`, the 12th commit in `--first-parent --reverse`
+order) is still tagged on the branch per the procedure, just not used as a bundle split point
+this train.
