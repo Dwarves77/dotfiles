@@ -1,0 +1,30 @@
+{
+  "part": "TagPopover",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["none — no dc.html artboard carries this element (confirmed by grep across every extracted page section this session); README.md §0.4 'Workspace tags' names it only as \"needed as an overlay artboard\""],
+  "source": "src/components/ui/TagPopover.tsx's own docstring, which states it is built against \"Claude Design's provisional spec\" under the operator ruling quoted there: \"build it; a restyle later is cheap\"",
+  "notes": [
+    "UNDESIGNED BY RULING, recorded not judged: the closing rulings list this under DO NOT TOUCH / 'Unchanged and undesigned, do not invent: overlays (Export, Share, row overflow, notifications, tag popover styling)'. There is no dc.html value or README number to compare against, so every row below is a MEASUREMENT of the component's OWN stated values (from its own docstring), establishing a baseline for when Claude Design sends the real overlay spec — a MATCH here means the code matches its own documented intent, not that the intent is correct or final.",
+    "This mount forces the popover open (`open: true` on DetailTagRow, forwarded to TagPopover) since the runner does not click; the trigger button itself is covered by DetailTagRow's own row."
+  ],
+  "selector": "[data-audit=\"tagrow\"] [role=\"listbox\"]",
+  "expect": {
+    "width": "280px",
+    "background-color": "#FFFFFF",
+    "border-top-left-radius": "10px",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.12)"
+  },
+  "children": [
+    {
+      "name": "search input row",
+      "selector": "[data-audit=\"tagrow\"] [role=\"listbox\"] input",
+      "note": "TagPopover.tsx docstring: '40px search input row... 13px text'.",
+      "expect": {
+        "font-size": "13px"
+      }
+    }
+  ],
+  "forbid": []
+}

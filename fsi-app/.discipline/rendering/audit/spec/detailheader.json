@@ -1,0 +1,62 @@
+{
+  "part": "DetailHeader",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "src/components/detail/DetailShell.tsx (the ONE header shared by all four detail surfaces, per its own docstring); README.md §0.4 'Type' (Anton titles 28px, letter-spacing .04em) + §0.5; operator rulings 1.2 (detail title must be Anton uppercase) and 2.3 (no second ask bar between the tags row and the action row)",
+  "notes": [
+    "Ruling 1.2 named the PPWR page specifically as bypassing the shared title component; this spec measures the shared component itself (DetailHeader), which every one of the four detail surfaces now imports, so a MATCH here is evidence the shared part is correct — it does not by itself prove every page calls it (that is a page-frame / route-level check, out of this spec's selector reach).",
+    "This mount omits `askPlaceholder` (ruling 2.3: the CommandBar in the Masthead is the only ask surface, DetailHeader must not render a second one when a caller omits it) — the forbid check below confirms no CommandBar renders even though `actions` is populated."
+  ],
+  "selector": "[data-audit=\"header\"] > header",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-top-left-radius": "10px",
+    "padding-top": "18px",
+    "padding-right": "24px",
+    "padding-left": "24px",
+    "padding-bottom": "20px"
+  },
+  "children": [
+    {
+      "name": "title",
+      "selector": "[data-audit=\"header\"] h1[data-guard-title]",
+      "note": "README type scale: Display Anton, uppercase, letter-spacing .04em, page/detail titles 28px. Operator 1.2.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "text-transform": "uppercase",
+        "font-size": "28px",
+        "letter-spacing": "0.04em"
+      }
+    },
+    {
+      "name": "meta line",
+      "selector": "[data-audit=\"header\"] .cl-detail-meta",
+      "note": "README type scale: row meta / breadcrumb 11px.",
+      "expect": {
+        "font-size": "11px"
+      }
+    },
+    {
+      "name": "tag row sits directly under the title (no gap for a second bar)",
+      "selector": "[data-audit=\"header\"] [data-audit=\"tagrow\"]",
+      "note": "Operator 2.3: 'The action row follows directly below the workspace tags row' — this checks the tag row itself renders inside the header's title column, not that spacing is exact (DetailHeader's own `marginTop:10` on the tagRow wrapper is the only declared gap).",
+      "expect": {
+        "count": "1"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a CommandBar inside DetailHeader when askPlaceholder is omitted",
+      "selector": "[data-audit=\"header\"] header .cl-command-bar",
+      "reason": "Operator 2.3: 'Remove the inline Ask about this [regulation…] bar from every detail masthead.' DetailHeader renders a CommandBar only when a caller passes `askPlaceholder`; this mount does not, so any match here would mean the component renders one unconditionally."
+    },
+    {
+      "name": "the retired three-state 'Complete brief' toggle",
+      "selector": "[data-audit=\"header\"] span",
+      "textMatch": "Complete brief",
+      "reason": "README §0.5: 'No tabs, no per-tab ask bar, and no \"Complete brief\" toggle — that control is an unwired <span> today and is removed.'"
+    }
+  ]
+}

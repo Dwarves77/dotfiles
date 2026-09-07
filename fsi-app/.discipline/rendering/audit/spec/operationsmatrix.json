@@ -1,0 +1,36 @@
+{
+  "part": "Operations region x dimension matrix (D1-D6)",
+  "mount": "ops-matrix",
+  "viewport": 1440,
+  "artboards": ["08-operations-list (matrix header + Dimension filter facet, D1-D6)"],
+  "source": "src/components/operations/OperationsLedger.tsx (DIMENSIONS constant, all 6, D1 Regulatory feasibility through D6 Operational cost data, ~line 84; SOURCED_DIMENSIONS = DIMENSIONS.filter(d => d.key !== 'regulatory') at line 93; passed to RegionDimensionMatrix's `dimensions` prop at line 346) and its own `dek` prop text ('Six dimensions per region · every fact carries a source and date'); 'Caros Ledge UI System.dc.html' p8 (#p8) Dimension filter facet, which lists all six (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.')",
+  "notes": [
+    "CONFIRMED this session by reading OperationsLedger.tsx directly, independent of the ruling: DIMENSIONS defines all 6 in the exact order the p8 filter facet uses; SOURCED_DIMENSIONS immediately filters out the 'regulatory' entry with the comment 'the ones with rows in regional_data_facts', and only SOURCED_DIMENSIONS reaches RegionDimensionMatrix. This is a hardcoded exclusion in OperationsLedger.tsx, not a data-driven gap — the matrix component itself (RegionDimensionMatrix.tsx) takes whatever `dimensions` array it is given and has no 6-vs-5 logic of its own, confirmed by this mount successfully rendering 5 rows for the 5-item array it is fed.",
+    "OperationsLedger.tsx's own `dek` prop passed to ListSurfaceShell literally reads 'Six dimensions per region' while the matrix beneath it renders five — a self-contradiction inside the product's own copy, independent of any design-source comparison.",
+    "This mount reproduces OperationsLedger.tsx's DIMENSIONS/SOURCED_DIMENSIONS constants verbatim (copied into mounts.mjs, not re-derived), so the row count measured here is the same 5 a real page render produces.",
+    "This spec's fix point is named for the record only — this lane writes no product code (audit harness lane, uxaudit-c): OperationsLedger.tsx:93's filter is the single line ruling 3.3 requires a fix lane to remove."
+  ],
+  "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+  "expect": {
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "dimension rows (top-level tr only)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
+      "note": "Operator 3.3: six dimensions, D1-D6. The matrix currently renders one row per SOURCED_DIMENSIONS entry (5), never a Regulatory feasibility row.",
+      "expect": {
+        "count": "6"
+      }
+    },
+    {
+      "name": "first dimension row's name (order check: Regulatory feasibility should lead)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child",
+      "note": "p8's own D1-D6 order starts with D1 Regulatory feasibility. The matrix's first rendered row today is 'Regional resource availability' (D2) — the same defect as the row-count check, from the ordering angle.",
+      "expect": {
+        "text": "contains:Regulatory feasibility"
+      }
+    }
+  ],
+  "forbid": []
+}

@@ -1,0 +1,51 @@
+{
+  "part": "DetailTimeline",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "'Caros Ledge UI System.dc.html' p3 (#p3) timeline card + next-obligation callout block (`border-left:3px solid #F97316;background:#FFF7ED;border-radius:0 6px 6px 0;padding:9px 12px`); README.md §0.4 'State note strip'; operator ruling 2.6 (exact state-note numbers, matched here to confirm the built StateNote this component composes is used correctly in the timeline's own next-obligation slot)",
+  "notes": [
+    "The card chrome (background/border/radius/padding) is DetailShell.tsx's own inline style, shared with every other card in this file (DetailSection, ImpactRailCard, etc.) — not a separate design value, so this spec checks it once here rather than repeating the same four properties on every sibling spec.",
+    "The mount's fixture band is 'action' (theme.css: --action:#F97316, --action-tint:#FFF7ED), matching the artboard's own orange next-obligation callout exactly — a MATCH on the StateNote colours below is a real confirmation, not a coincidence of the fixture."
+  ],
+  "selector": "[data-audit=\"timeline\"] > div",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-radius": "10px",
+    "padding-top": "16px",
+    "padding-right": "20px",
+    "padding-left": "20px"
+  },
+  "children": [
+    {
+      "name": "'Timeline' eyebrow label",
+      "selector": "[data-audit=\"timeline\"] p:first-of-type",
+      "note": "DetailShell.tsx rail/section eyebrow convention: 800 weight, .1em, uppercase.",
+      "expect": {
+        "text": "Timeline",
+        "font-weight": "800",
+        "letter-spacing": "0.1em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "next-obligation StateNote callout",
+      "selector": "[data-audit=\"timeline\"] .cl-timeline-next-note-mobile-hide > div",
+      "note": "Operator 2.6 + artboard p3: border-left 3px solid <band>, background <band tint>, radius 0 6px 6px 0, padding 9px 12px.",
+      "expect": {
+        "border-left-width": "3px",
+        "border-left-style": "solid",
+        "border-left-color": "#F97316",
+        "background-color": "#FFF7ED",
+        "border-top-left-radius": "0",
+        "border-top-right-radius": "6px",
+        "border-bottom-right-radius": "6px",
+        "border-bottom-left-radius": "0",
+        "padding-top": "9px",
+        "padding-right": "12px",
+        "padding-left": "12px"
+      }
+    }
+  ],
+  "forbid": []
+}

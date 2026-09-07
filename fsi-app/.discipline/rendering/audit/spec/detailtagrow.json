@@ -1,0 +1,28 @@
+{
+  "part": "DetailTagRow",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "README.md §0.4 'Workspace tags': 'They appear under the detail title... ＋ Tag is a dashed-outline pill that opens a popover'; operator ruling 3.2 ('The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.')",
+  "notes": [
+    "Ruling 3.2 changes what this row is FOR: it should display applied tags (and the small 'workspace tags' caption), and its own trigger should no longer be the primary one once the action row's + Tag opens the same popover (DetailTagRow.tsx's `open`/`onOpenChange` props exist specifically for that lifted-state wiring). This mount passes `open`/`onOpenChange` (the lifted-state form), matching that wiring; a page still using the row's own uncontrolled trigger as a SECOND independent popover is the defect 3.2 describes, checked at the page-frame level (two distinct popovers open at once), not measurable from this single-mount spec.",
+    "This item has no applied tags in the fixture (itemId 'demo-item' resolves to an empty EMPTY_API response), so the row renders its trigger + caption only — the WorkspaceTagPill styling itself (6px square dot, #F5F2EE fill) is audited by the Chips spec, not duplicated here."
+  ],
+  "selector": "[data-audit=\"tagrow\"] > div",
+  "expect": {
+    "display": "flex",
+    "column-gap": "8px"
+  },
+  "children": [
+    {
+      "name": "'workspace tags' caption",
+      "selector": "[data-audit=\"tagrow\"] > div > span:last-of-type",
+      "note": "DetailTagRow.tsx: fontSize var(--fs-95), color var(--ink-3), letter-spacing .04em. No dc.html example carries this literal caption; recorded as a baseline read, not compared to an artboard number.",
+      "expect": {
+        "text": "workspace tags",
+        "letter-spacing": "0.04em"
+      }
+    }
+  ],
+  "forbid": []
+}
