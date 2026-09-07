@@ -1,0 +1,90 @@
+{
+  "part": "Settings — Notifications section (AccountCard + NotificationPreferences)",
+  "mount": "settings-notifications",
+  "viewport": 1440,
+  "artboards": ["15-settings"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p15\" (char 594212), the 'Notifications' section card; operator ruling 5.1 (2026-09-07)",
+  "notes": [
+    "dc.html p15 section-card shell (used by every section card on this page, including Notifications): `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);overflow:hidden`, topped by the ruling 5.1 gradient rule `height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. Artboard and ruling agree here exactly, nothing to reconcile.",
+    "dc.html p15 header row: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`, title 'Notifications' `font-family:'Anton';text-transform:uppercase;letter-spacing:.04em;font-size:20px`, meta 'In-app now · email and push coming' `font-size:10.5px;color:#7A6E6C;font-weight:600` (two font-weight declarations on the same rule in the source; the later one, 600, is what a browser applies and what this spec measures against).",
+    "dc.html p15 toggle row: `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06)`, label bold, sublabel `font-size:11px;color:#7A6E6C`; pill `width:32px;height:18px;border-radius:999px`, knob `width:14px;height:14px` inset 2px.",
+    "The real built shell, `src/components/account/AccountPrimitives.tsx`'s `AccountCard`, has NO gradient-rule element at all (its section renders straight into a header div, no 3px bar first-child) — the 'gradient rule' child target below is deliberately a broad `section > div` narrowed by `matchStyle` (README's own recommended technique for 'an element the product gives no marker attribute to'), so a genuinely absent rule reports NOT BUILT rather than a false MISMATCH against the header div sitting in that position.",
+    "The real `AccountCard` wrapper is the shared shell for this section AND the Account 'Members & roles' section (see account-members.json) — one spec file per section per this lane's PARTS list ('account/settings ... including ... the Notifications section'), same underlying component."
+  ],
+  "selector": "[data-audit=\"card\"] > section",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-width": "1px",
+    "border-color": "rgba(0,0,0,.12)",
+    "border-radius": "10px"
+  },
+  "children": [
+    {
+      "name": "gradient rule (ruling 5.1)",
+      "selector": "[data-audit=\"card\"] > section > div",
+      "matchStyle": { "height": "3px" },
+      "note": "Ruling 5.1's exact string. Absent in the built AccountCard shell (see notes) — expected to report NOT BUILT, not MATCH.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))"
+      }
+    },
+    {
+      "name": "header row",
+      "selector": "[data-audit=\"card\"] > section > div:first-child",
+      "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`.",
+      "expect": {
+        "padding-top": "14px",
+        "padding-right": "16px",
+        "padding-bottom": "10px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.08)"
+      }
+    },
+    {
+      "name": "title",
+      "selector": "[data-audit=\"card\"] > section > div:first-child span:first-child",
+      "note": "dc.html p15: Anton uppercase 20px, letter-spacing .04em — ruling 5.1: 'Section title itself: Anton uppercase, no divider, no underline.'",
+      "expect": {
+        "text": "Notifications",
+        "font-family": "contains:Anton",
+        "font-size": "20px",
+        "letter-spacing": "0.04em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "meta",
+      "selector": "[data-audit=\"card\"] > section > div:first-child span:nth-child(2)",
+      "note": "dc.html p15: exact copy 'In-app now · email and push coming', 10.5px/600, #7A6E6C.",
+      "expect": {
+        "text": "In-app now · email and push coming",
+        "font-size": "10.5px",
+        "font-weight": "600",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "first toggle row",
+      "selector": "[data-audit=\"card\"] > section > div:nth-child(2) > div > div:first-child",
+      "note": "dc.html p15: `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06)`.",
+      "expect": {
+        "min-height": "48px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.06)"
+      }
+    },
+    {
+      "name": "first toggle pill",
+      "selector": "[data-audit=\"card\"] > section > div:nth-child(2) > div > div:first-child button[role=\"switch\"]",
+      "note": "dc.html p15: pill `width:32px;height:18px;border-radius:999px`, on-state background #5A5552.",
+      "expect": {
+        "width": "32px",
+        "height": "18px",
+        "border-radius": "999px",
+        "background-color": "#5A5552"
+      }
+    }
+  ],
+  "forbid": []
+}

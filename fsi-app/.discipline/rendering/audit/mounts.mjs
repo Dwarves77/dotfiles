@@ -635,6 +635,133 @@ const EMPTY_API = [
 ];
 
 
+// ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
+// The real logged-out identity frame plus the Sign in / Create account tab strip both /login and
+// /signup share. `next/link` and `@/lib/supabase-browser` use harness.mjs's DEFAULT_ALIAS; AuthFrame
+// and AuthTabs take no data props (AuthFrame reads Date.now() itself, matching the artboard's own
+// "never captured, designed from the system" note — no fixture invented here).
+const AUTH_FRAME_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AuthFrame } from '@/components/auth/AuthFrame';
+import { AuthTabs, AuthField, AUTH_INPUT_STYLE } from '@/components/auth/AuthPanel';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'auth-frame' },
+      React.createElement(AuthFrame, null,
+        React.createElement('div', { style: { width: 380, display: 'flex', flexDirection: 'column', gap: 14 } },
+          React.createElement(AuthTabs, { active: 'signin' }),
+          React.createElement(AuthField, { label: 'Work email' },
+            React.createElement('div', { 'data-audit': 'input', style: AUTH_INPUT_STYLE }, 'name@company.com')),
+        ),
+      ),
+    ),
+  );
+};
+`;
+
+// ── AccountCard, two real page sections (lane uxaudit-d, 2026-09-07, README screens 14/15) ─────────
+// The 5.1 section-card treatment as it actually renders on Account/Settings, via the same shared
+// `AccountCard` wrapper both pages import from `@/components/account/AccountPrimitives` — not a
+// reproduction, the real wrapper. Two real bodies inside it: NotificationPreferences (Settings'
+// "Notifications" section, in the compact/full layout SettingsPage.tsx itself uses) and MembersPanel
+// (Account's "Members & roles" section) — both fetch through `fetch()`/the supabase-browser stub, so
+// each gets its own `apiRoutes` fixture below rather than sharing EMPTY_API's `{}` body, which would
+// leave both stuck in their own loading state and nothing to measure.
+const NOTIFICATIONS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AccountCard } from '@/components/account/AccountPrimitives';
+import { NotificationPreferences } from '@/components/profile/NotificationPreferences';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 620, padding: 20, background: 'var(--page)' } },
+      React.createElement('div', { 'data-audit': 'card' },
+        React.createElement(AccountCard, { title: 'Notifications', meta: 'In-app now \u00b7 email and push coming' },
+          React.createElement(NotificationPreferences, { userId: 'u1' }),
+        ),
+      ),
+    ),
+  );
+};
+`;
+
+const MEMBERS_FIXTURE = {
+  members: [
+    { id: 'm1', user_id: 'u1', role: 'owner', joined_at: '2026-04-04T00:00:00Z', display_name: 'Jason', avatar_url: null },
+    { id: 'm2', user_id: 'u2', role: 'owner', joined_at: '2026-05-28T00:00:00Z', display_name: 'jasonlosh@gmail.com', avatar_url: null },
+  ],
+  caller_role: 'owner',
+  caller_membership_id: 'm1',
+};
+
+const MEMBERS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MembersPanel } from '@/components/profile/MembersPanel';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 620, padding: 20, background: 'var(--page)' } },
+      React.createElement('div', { 'data-audit': 'card' },
+        React.createElement(MembersPanel, { orgId: 'org1', callerUserId: 'u1' }),
+      ),
+    ),
+  );
+};
+`;
+
+const MEMBERS_API = [
+  { urlGlob: '**/api/orgs/*/members', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(MEMBERS_FIXTURE) }) },
+  { urlGlob: '**/api/orgs/*/invitations', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ invitations: [] }) }) },
+];
+
+// ── SectionIndex on Settings (lane uxaudit-d, 2026-09-07) ──────────────────────────────────────────
+// The real shared `SectionIndex` (`@/components/detail/DetailShell`), given the exact six-entry list
+// `SettingsPage.tsx`'s own `SETTINGS_SECTIONS` constant defines — the settings-specific instance
+// named in this lane's PARTS list, of a part that is otherwise generic (detail surfaces reuse it too,
+// out of this lane's scope).
+const SETTINGS_SECTION_INDEX_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { SectionIndex } from '@/components/detail/DetailShell';
+
+const SECTIONS = [
+  { id: 'general', label: 'General' },
+  { id: 'notifications', label: 'Notifications' },
+  { id: 'saved', label: 'Saved searches' },
+  { id: 'data', label: 'Data \u0026 supersessions' },
+  { id: 'archive', label: 'Archive' },
+  { id: 'help', label: 'Help' },
+];
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 1060 }, 'data-audit': 'index' },
+      React.createElement(SectionIndex, { sections: SECTIONS }),
+    ),
+  );
+};
+`;
+
 // ── Detail shell (lane uxaudit-c, 2026-09-07) ──────────────────────────────────────────────────
 // DetailHeader, ActionRow, DetailTagRow (+TagPopover, forced open so its geometry is measurable
 // without a click), SectionIndex + SummaryDepthSwitch, DetailTimeline, DetailSection, and every
@@ -1180,5 +1307,30 @@ export const AUDIT_MOUNTS = {
     description: 'RelevanceBadge ("HIGH RELEVANCE" chip) — presence-only per operator ruling 3.4 (DO NOT TOUCH).',
     viewport: 1440,
     entry: RELEVANCEBADGE_ENTRY,
+  },
+  'auth-frame': {
+    id: 'auth-frame',
+    description: 'AuthFrame identity panel + AuthTabs (Sign in / Create account), README screen 16.',
+    viewport: 1440,
+    entry: AUTH_FRAME_ENTRY,
+  },
+  'settings-notifications': {
+    id: 'settings-notifications',
+    description: 'AccountCard("Notifications") wrapping the real NotificationPreferences, README screen 15.',
+    viewport: 1440,
+    entry: NOTIFICATIONS_ENTRY,
+  },
+  'account-members': {
+    id: 'account-members',
+    description: 'The real MembersPanel (AccountCard("Members & roles") + table), README screen 14.',
+    viewport: 1440,
+    entry: MEMBERS_ENTRY,
+    apiRoutes: MEMBERS_API,
+  },
+  'settings-section-index': {
+    id: 'settings-section-index',
+    description: "The real SectionIndex with Settings's own six-entry SETTINGS_SECTIONS list.",
+    viewport: 1440,
+    entry: SETTINGS_SECTION_INDEX_ENTRY,
   },
 };

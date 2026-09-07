@@ -1,0 +1,46 @@
+{
+  "part": "Account — Members & roles section (AccountCard + MembersPanel)",
+  "mount": "account-members",
+  "viewport": 1440,
+  "artboards": ["14-account"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p14\" (char 577450), the 'Members & roles' section card; operator ruling 5.1 (2026-09-07)",
+  "notes": [
+    "dc.html p14 section-card shell is identical to p15's (see settings-notifications.json note 1): ruling 5.1 gradient rule `height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`, then a header row `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)` with an Anton 20px title and a 10.5px/600/#7A6E6C meta line.",
+    "The real `AccountCard` shell has no gradient-rule element (see settings-notifications.json note 4) — same finding, reused here rather than restated as a new discovery.",
+    "dc.html p14 table header row: `grid-template-columns:1fr 120px 150px 44px;height:30px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;border-bottom:1px solid rgba(0,0,0,.08)`.",
+    "dc.html p14 member row: same grid, `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06);font-size:12.5px`.",
+    "dc.html p14 role pill: `border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:5px 8px;font-weight:600`."
+  ],
+  "selector": "[data-audit=\"card\"] > section",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-width": "1px",
+    "border-color": "rgba(0,0,0,.12)",
+    "border-radius": "10px"
+  },
+  "children": [
+    {
+      "name": "gradient rule (ruling 5.1)",
+      "selector": "[data-audit=\"card\"] > section > div",
+      "matchStyle": { "height": "3px" },
+      "note": "Ruling 5.1's exact string. Expected NOT BUILT (see notes) — the real AccountCard shell has no such element.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))"
+      }
+    },
+    {
+      "name": "title",
+      "selector": "[data-audit=\"card\"] > section > div:first-child span:first-child",
+      "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em.",
+      "expect": {
+        "text": "Members & roles",
+        "font-family": "contains:Anton",
+        "font-size": "20px",
+        "letter-spacing": "0.04em",
+        "text-transform": "uppercase"
+      }
+    }
+  ],
+  "forbid": []
+}
