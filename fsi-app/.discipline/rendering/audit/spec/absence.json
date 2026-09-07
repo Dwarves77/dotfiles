@@ -1,0 +1,27 @@
+{
+  "part": "Absence",
+  "mount": "absence",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.4 'Absence'", "03-regulation-detail (Penalty rate row)"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 'Absence'; 'Caros Ledge UI System.dc.html' the 'Penalty rate' fact-table row (dc.html line ~301: 'not in primary source'); operator ruling 2.1 which OVERRIDES the artboard's font-weight",
+  "notes": [
+    "Absence.tsx is pure inline style; every property here is a real product value.",
+    "Ruling 2.1: 'Unscored = a 30px dashed baseline in place of the bars plus the small-caps absence reason from the fixed vocabulary (not in primary source / pending / unscored / connect data) at 10.5px uppercase/600 #7A6E6C.' The artboard's own markup states font-weight:700 for this element; the ruling states 600 and wins per the handoff's own precedence rule ('where a ruling states a number, the ruling wins'). font-weight below is therefore the RULING's value (600), not the artboard's (700) — Absence.tsx's 600 is checked as a MATCH against the ruling.",
+    "'small-caps' in both README prose and the ruling means the READER'S IMPRESSION (short, quiet, cap-like text), not the CSS `font-variant: small-caps` keyword specifically — the artboard's own markup achieves it with plain `text-transform:uppercase`, not font-variant. Absence.tsx uses `fontVariant: 'small-caps'` (a real CSS property distinct from text-transform), which computed-style reports under `font-variant` / `font-variant-caps`, not `text-transform` — checked below as a genuine divergence from the artboard's own technique, not a harness artefact."
+  ],
+  "selector": "[data-audit=\"reason\"] span",
+  "expect": {
+    "font-size": "10.5px",
+    "font-weight": "600",
+    "color": "#7A6E6C",
+    "text-transform": "uppercase",
+    "letter-spacing": "0.08em"
+  },
+  "children": [
+    {
+      "name": "reason text",
+      "selector": "[data-audit=\"reason\"] span",
+      "expect": { "text": "not in primary source" }
+    }
+  ]
+}

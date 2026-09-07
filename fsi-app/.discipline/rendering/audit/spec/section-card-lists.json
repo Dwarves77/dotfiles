@@ -1,0 +1,39 @@
+{
+  "part": "Section/panel card — the list surfaces' rail card (ruling 5.1)",
+  "mount": "railcard",
+  "viewport": 1440,
+  "artboards": ["02-regulations-list", "04-market-list", "06-research-list", "08-operations-list", "11-watchlist", "18-section-treatments (ruling 5.1)"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 (rail labels convention); 'Caros Ledge UI System.dc.html' the Legend rail card shared by artboards 02/04/06/08/11; operator ruling 5.1 ('the graduated rule ABOVE the section title wins... Applies to every panel/section card on every page')",
+  "notes": [
+    "ListSurfaceRailCards.tsx (RailCard, used by LegendRailCard and every other rail card the five list surfaces render) is pure inline style; every property here is a real product value.",
+    "This is the ONE panel/section card shape shared by all five list surfaces (Regulations/Market/Research/Operations/Watchlist) that carries a visible title — the OTHER card on those pages (ListSurfaceShell's per-band grouping, `BandSectionHeader`) uses its own distinct convention (a coloured 3px TOP-BORDER per band, `borderTop:'3px solid '+band.cssVar`, README §0.2's band scale, not ruling 5.1's dark-grey gradation) and is NOT this ruling's target — a band subsection is not a titled panel in the ruling's sense, it is the list's own per-band grouping, unchanged by this ruling.",
+    "Ruling 5.1: 'the graduated rule ABOVE the section title wins. 3px, full width of the card, top edge, no radius on it, and NO line below the title... Applies to every panel/section card on every page.' RailCard.tsx renders NO rule above its title at all — no `<div>` of any height/background before the `<p>` title — which is why the target below reports NOT BUILT rather than a coloured/positioned MISMATCH: there is no element to measure a colour on.",
+    "The title itself ('Legend') is styled 10.5px/800/.12em uppercase — README §0.4's RAIL LABEL convention, not the Anton section-title convention ruling 5.1 also states ('Section title itself: Anton uppercase, no divider, no underline'). Whether a rail card's meta-style label counts as ruling 5.1's 'section title' (requiring Anton) is not resolved by the ruling's own wording — it names the DASHBOARD's own primary section titles ('Due Next', 'By Urgency') as its worked example, and a rail card's compact label is a documented, PRE-EXISTING distinct convention (README type scale: 'rail labels 10.5px uppercase .12em/700'), so this is logged as an open question for the fix lane rather than asserted as a MISMATCH against a scale the ruling did not clearly extend to this element."
+  ],
+  "selector": "[data-audit=\"legend\"] > div",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-width": "1px",
+    "border-color": "rgba(0,0,0,.12)",
+    "border-radius": "10px",
+    "padding-top": "14px",
+    "padding-right": "16px",
+    "padding-bottom": "14px",
+    "padding-left": "16px",
+    "border-top-width": "1px"
+  },
+  "children": [
+    {
+      "name": "ruling 5.1 rule ABOVE the title",
+      "selector": "[data-audit=\"legend\"] [data-section-rule]",
+      "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. No element carries this marker in RailCard.tsx today.",
+      "expect": { "height": "3px", "count": "1" }
+    },
+    {
+      "name": "title (rail-label convention, not asserted as a MISMATCH against Anton per the note above)",
+      "selector": "[data-audit=\"legend\"] p",
+      "note": "README §0.4 rail label convention: 10.5px/800/.12em uppercase.",
+      "expect": { "font-size": "10.5px", "font-weight": "800", "letter-spacing": "0.12em", "text-transform": "uppercase" }
+    }
+  ]
+}

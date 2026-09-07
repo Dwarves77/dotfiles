@@ -1,0 +1,39 @@
+{
+  "part": "Skeletons (loading state, README §0.6)",
+  "mount": "skeleton",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.6 'Loading'"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.6: 'Nav and masthead render immediately; tiles and rows arrive as skeletons in their final geometry so nothing jumps. A count still loading shows a skeleton, never 0 — a zero is a fact, not a placeholder.'",
+  "notes": [
+    "The design source states a BEHAVIOUR (final-geometry skeletons, never a bare 0) rather than a pixel spec of its own — Skeleton.tsx is checked here for internal consistency against the real components it stands in for: SkeletonListRow's grid must equal ListRow's own grid (spec/listrow.json), SkeletonBandTile's box model must equal BandTile's own (spec/bandtile.json). A skeleton whose geometry drifts from its real component is exactly the 'jumps on load' defect §0.6 rules out.",
+    "Skeleton.tsx is pure inline style; every property here is a real product value."
+  ],
+  "selector": "[data-audit=\"row\"] > div",
+  "expect": {
+    "display": "grid",
+    "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+    "row-gap": "0px",
+    "column-gap": "14px",
+    "min-height": "56px"
+  },
+  "children": [
+    {
+      "name": "band-tile skeleton — card box model",
+      "selector": "[data-audit=\"tile\"] > div",
+      "note": "Must equal BandTile's own live box model (spec/bandtile.json): padding 14px 16px 0, radius 10px, min-height 112px.",
+      "expect": {
+        "padding-top": "14px",
+        "padding-right": "16px",
+        "padding-bottom": "0px",
+        "padding-left": "16px",
+        "border-radius": "10px",
+        "min-height": "112px"
+      }
+    },
+    {
+      "name": "stat-block skeleton — structural",
+      "selector": "[data-audit=\"stat\"] > div",
+      "expect": { "display": "flex", "flex-direction": "column" }
+    }
+  ]
+}

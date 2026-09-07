@@ -1,0 +1,52 @@
+{
+  "part": "TabRow",
+  "mount": "tabrow",
+  "viewport": 1440,
+  "artboards": ["14-account", "15-settings"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.3 'Tab rows (account, settings) span the frame above the two-column grid'; 'Caros Ledge UI System.dc.html' p14/p15's tab-row block (identical on both, only the active tab differs)",
+  "notes": [
+    "TabRow.tsx is pure inline style (no Tailwind classes); every property here is a real product value.",
+    "The artboard gives the ACTIVE tab a solid 2px underline in the brand colour (`border-bottom:2px solid #5A5552`) and every RESTING tab a 2px TRANSPARENT underline of the same weight (so no tab shifts when its state changes) — margin-bottom -1px pulls that underline onto the container's own 1px hairline. TabRow.tsx renders no per-tab border at all (only weight/colour distinguish active vs resting) — its own header comment states this is deliberate ('matches the artboards, which show only weight/colour distinguishing the active tab'), which this measurement shows is incorrect: the artboard underlines the active tab."
+  ],
+  "selector": "nav",
+  "expect": {
+    "display": "flex",
+    "gap": "4px",
+    "border-bottom-width": "1px",
+    "border-bottom-color": "rgba(0,0,0,.12)"
+  },
+  "children": [
+    {
+      "name": "active tab",
+      "selector": "nav [aria-current=\"page\"]",
+      "note": "dc.html p14/p15 active tab ('Members & roles · 2' / 'Settings'): padding 9px 12px, font-size 12.5px, font-weight 700, color #1A1A1A, border-bottom 2px solid #5A5552, margin-bottom -1px.",
+      "expect": {
+        "padding-top": "9px",
+        "padding-bottom": "9px",
+        "padding-left": "12px",
+        "padding-right": "12px",
+        "font-size": "12.5px",
+        "font-weight": "700",
+        "color": "#1A1A1A",
+        "border-bottom-width": "2px",
+        "border-bottom-color": "#5A5552",
+        "margin-bottom": "-1px"
+      }
+    },
+    {
+      "name": "resting tab",
+      "selector": "nav a:not([aria-current])",
+      "note": "dc.html p14/p15 resting tab ('Personal'): same padding/font-size, font-weight 600, color #5A6B67, border-bottom 2px solid transparent, margin-bottom -1px.",
+      "expect": {
+        "padding-top": "9px",
+        "padding-bottom": "9px",
+        "font-size": "12.5px",
+        "font-weight": "600",
+        "color": "#5A6B67",
+        "border-bottom-width": "2px",
+        "border-bottom-color": "transparent",
+        "margin-bottom": "-1px"
+      }
+    }
+  ]
+}

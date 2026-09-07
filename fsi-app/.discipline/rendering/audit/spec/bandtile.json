@@ -1,0 +1,82 @@
+{
+  "part": "BandTile",
+  "mount": "bandtile",
+  "viewport": 1440,
+  "artboards": ["00-system-sheet §0.4 'Band tiles'", "01-dashboard", "02-regulations-list"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4 'Band tiles'; 'Caros Ledge UI System.dc.html' #sys band-tile block",
+  "notes": [
+    "BandTile.tsx is pure inline style (the `.cl-band-tile` class only carries the mobile-only media query, no desktop-affecting rule), so every property here is a real product value at 1440.",
+    "Checked once on the Immediate tile (band colour #DC2626); the same component renders all four bands from the one BAND_ORDER table, so a colour finding here would apply to all four."
+  ],
+  "selector": "[data-audit=\"immediate\"] button",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-radius": "10px",
+    "padding-top": "14px",
+    "padding-right": "16px",
+    "padding-bottom": "0px",
+    "padding-left": "16px",
+    "display": "flex",
+    "flex-direction": "column"
+  },
+  "children": [
+    {
+      "name": "label (stacked, band colour)",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-label",
+      "note": "README §0.4: 'stacked label (10.5px/800/.08em uppercase in band colour)'.",
+      "expect": {
+        "font-size": "10.5px",
+        "font-weight": "800",
+        "letter-spacing": "0.08em",
+        "text-transform": "uppercase",
+        "color": "#DC2626"
+      }
+    },
+    {
+      "name": "label text",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-label",
+      "expect": { "text": "Immediate" }
+    },
+    {
+      "name": "window (muted)",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-window",
+      "note": "README §0.4: 'window (10.5px muted)'.",
+      "expect": { "font-size": "10.5px", "color": "#7A6E6C" }
+    },
+    {
+      "name": "window text",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-window",
+      "expect": { "text": "≤ 90 days" }
+    },
+    {
+      "name": "numeral (Anton, band colour)",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-numeral",
+      "note": "README §0.4: 'Anton numeral 34px in band colour'; type scale: numerals use tabular-nums.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "font-size": "34px",
+        "letter-spacing": "0.04em",
+        "color": "#DC2626",
+        "font-variant-numeric": "tabular-nums"
+      }
+    },
+    {
+      "name": "band rule (pinned to bottom edge, full-bleed)",
+      "selector": "[data-audit=\"immediate\"] .cl-band-tile-rule",
+      "note": "README §0.4: 'the 4px band rule is pinned to the card's bottom edge (margin:auto -16px 0) so all four rules align regardless of label length'.",
+      "expect": {
+        "height": "4px",
+        "background-color": "#DC2626",
+        "margin-right": "-16px",
+        "margin-left": "-16px",
+        "margin-bottom": "0px"
+      }
+    },
+    {
+      "name": "card minimum hit area",
+      "selector": "[data-audit=\"immediate\"] button",
+      "note": "README §0.4 'Hit targets': 44px minimum on every toggle row and control. A band tile is a filter toggle; BandTile.tsx states `minHeight: 112` which already clears the floor, checked here as the record of that value.",
+      "expect": { "min-height": "112px" }
+    }
+  ]
+}
