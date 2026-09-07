@@ -11286,3 +11286,78 @@ folded into any train through this one).
 
 **UX compliance**: no `.tsx` or `.css` file was touched this train — the fold is entirely
 `.mjs`/`.test.mjs`/`.yml`/`.md`. No UX compliance block is required.
+
+## Addendum 86, postscript 7: train 53, master went RED at #601, the 14 F25 expiries disposed for real (2026-09-07, coordinator, lane ASSEMBLE-53)
+
+I am writing this as the coordinator. Train 52 landed on `origin/master` as PR #601 (`2671cea2`,
+canonical-autoverify's $0 fetch path fix). Master's tip going into this train was `2671cea2`.
+
+**Master went RED at landing.** The instant PR #601 merged, F25 (`module-liveness`)'s
+`latestTrainWave()` oracle read `wave52` off `origin/master`'s own git log, and all 14 allowlist
+entries the ASSEMBLE-47 coordinator lane re-granted to `expiry:52` on 2026-09-05 (train 47, "a
+~5-train buffer, not indefinite," per the module's own ASSEMBLE-47 ratchet note) expired at once.
+This is not a new defect introduced by train 52's content — it is the ratchet doing exactly what
+it was built to do, on schedule, and it was this coordinator's job to see it coming and dispose
+the 14 for real rather than re-grant a fifteenth deferral.
+
+**The fix, lane F25-WAVE52 (train 53)**: `de0eeffe`, cherry-picked onto train 52 with zero
+conflicts. Per the binding operator ruling this lane executes (never re-grant an F25 expiry),
+each of the 14 got a real disposition:
+
+**WIRED (10)**: `admin-phrase-scan.mjs`, `defect-signature-scan.mjs`, `surface-visibility-audit.mjs`
+registered as `run-data-audit-lane.mjs` `AUDITS` entries (SOFT, nightly) —
+`defect-signature-scan.mjs`'s bare invocation now defaults to `--since 24h ago` so the AUDITS
+dispatch shape works unattended. `remediate-orphan-sources.mjs` wired into a new `maintenance.yml`
+step (`remediate-orphan-sources`) via a `scripts/maintenance/` subprocess wrapper, same shape as
+`acquire-primaries.mjs`/`refetch-capped.mjs`; runbook §39. Six `scripts/_reground/*.mjs` operator
+tools (`executor-ground`, `free-pass-run`, `id-stamp`, `lease`, `target-match-probe`,
+`tombstone-delete`) registered as new rows in `OUT-OF-REPO-BOUNDARY.md`'s Operator-CLI register —
+F25's own `findDispatchRoots` Source 7 (and `parseBoundaryRegistryPaths`) widened to recognize a
+backticked `_reground/*.mjs` row the same way it already recognizes `governance/*.mjs`,
+`dispatch/*.mjs`, and `install-hooks.mjs`; these are genuine hand-run, per-item tools serving the
+still-ACTIVE Unit-3 quarantine drain (`PROGRAM-BOARD.md` §2, deferred to 2026-10-31), not
+discharged one-shots, and their positional args don't fit a scheduled `maintenance.yml` step.
+
+**DELETED (4)**: `scripts/_reground/restore-overclear.mjs` (DEAD-HISTORICAL, a single named
+2026-07-16 incident already closed), `scripts/verify/cleanup-dup-sources.mjs` and
+`remediate-reclassify-proposal.mjs` (each a one-time batch already executed against the live
+corpus), `scripts/verify/stale-verified-audit.mjs` (superseded by the now-wired
+`defect-signature-scan` and `surface-visibility` audits). `skill-contract-map.mjs`'s
+`citingFiles` updated to drop the deleted `stale-verified-audit.mjs` reference.
+
+Full per-file table and reasoning: `docs/audits/f25-wave52-dispositions-2026-09-07.md`.
+`coverage-report.json` regenerated (file adds/deletes from the fold): 849 governed files, 814
+COVERED, 35 EXEMPT, 0 GAPS — no drift.
+
+**Zero expiry-carrying entries remain.** Read directly from the live allowlist object in
+`F25-module-liveness.mjs` after the fold, not inferred from the fitness runner going green: the
+F25 allowlist no longer contains any entry with an `expiry:` field. The fitness runner's gate line
+below prints the allowlist entries and confirms this.
+
+**Correction to earlier trains' "zero expiries" claims (trains 50/51/52).** Those claims were
+accurate readings at the time — the allowlist genuinely showed zero *currently expired* entries —
+but each still carried entries re-granted with `expiry:52`, a wave that had not yet arrived on
+`origin/master`. "Zero entries expired today" and "zero entries that will ever expire" are
+different claims, and the board conflated them. The wave counter caught up the moment PR #601
+landed, which is exactly what surfaced this train's RED. This train's fold is the first to leave
+the F25 allowlist with no `expiry:` field pointing at any wave, past or future, at all — the
+"zero expiries" claim is now true in the stronger sense too.
+
+`assemble-train --fold --propose --ledger`: folded 0 (26 already folded from train 52, 0
+conflicts), 0 new proposer briefs, 0 derived ledger rows.
+
+**Next**: `canonical-autoverify` dry then apply (re-run against the fixed $0 fetch path from
+train 52); `tier-opinions` dry then apply once those rows have moved; UI train 54 (the six UI page
+lanes + UI-DELTA queued behind train 51, still not folded into any train through this one).
+
+**UX compliance**: no `.tsx` or `.css` file was touched this train — the fold is entirely
+`.mjs`/`.test.mjs`/`.md`. No UX compliance block is required.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): fitness runner, `node --test` (governance + fitness +
+discipline suites), closure-gate `--report`, `run-test-suite.sh`, override-check
+`--range=origin/master..HEAD`, `tsc --noEmit`, YAML parse of all workflow files,
+`invariant-coverage`, `next build --webpack` — see this train's own PROGRAM-BOARD row and the
+lane's own tool output for exact pass/fail lines. Bundle: `git bundle create` of
+`origin/master..HEAD` at this container's own `train/wave53-2026-09-07` tip, verified with
+`git bundle verify`.
