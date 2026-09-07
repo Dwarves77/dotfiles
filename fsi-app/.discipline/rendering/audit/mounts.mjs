@@ -119,6 +119,7 @@ window.__mount = () => {
           title: 'EU',
           meta: 'Emissions \\u00b7 Reporting \\u00b7 Packaging',
           endStat: { label: 'Immediate', value: 392, band: BAND_ORDER.find((b) => b.key === 'immediate') },
+          minHeight: 44,
         })),
     ),
   );
