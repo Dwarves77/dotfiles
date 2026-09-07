@@ -19,6 +19,7 @@ import {
   checkAuthority,
   decideRow,
   main,
+  makeCanonicalFetchCandidate,
 } from "./canonical-autoverify.mjs";
 
 // ── REACHABILITY ──────────────────────────────────────────────────────────────────────────────────────
@@ -515,4 +516,73 @@ test("main: a downgrade-walled row (IRENA -> DNV/AFI) rejects, never approves, w
   assert.equal(s.counts.approved, 0);
   assert.equal(deps.writes.intelligence_items.length, 0);
   assert.match(deps.writes.canonical_source_candidates[0].patch.reviewer_notes, /access wall/);
+});
+
+// ── $0 FETCH ADAPTER (lane CANONICAL-AUTOVERIFY-3, 2026-09-07: replaces the Browserless wiring that made
+// every one of the 16 pending rows in run 34069709848 come back "deferred: fetch failed: BrowserlessError:
+// BROWSERLESS_API_KEY not configured") ──────────────────────────────────────────────────────────────────
+
+test("makeCanonicalFetchCandidate: a 200 response reduces to {status,text,host,path}, no error, no Browserless import needed", async () => {
+  const fetchImpl = async (url) => ({
+    ok: true, status: 200, redirected: false,
+    text: async () => "<html><body><h1>Alternative Fuels Insight</h1></body></html>",
+  });
+  const fetchCandidate = makeCanonicalFetchCandidate({ fetchImpl });
+  const r = await fetchCandidate("https://www.dnv.com/services/afi/");
+  assert.equal(r.status, 200);
+  assert.match(r.text, /Alternative Fuels Insight/);
+  assert.equal(r.host, "dnv.com"); // hostOf strips a leading "www." (institution-key.mjs convention)
+  assert.equal(r.path, "/services/afi/");
+  assert.equal(r.error, undefined);
+});
+
+test("makeCanonicalFetchCandidate: a non-2xx status is reported as a status, not routed through classifyReachability as transient (dead codes still reject, never defer)", async () => {
+  const fetchImpl = async () => ({ ok: false, status: 404, redirected: false, text: async () => "Not Found" });
+  const fetchCandidate = makeCanonicalFetchCandidate({ fetchImpl });
+  const r = await fetchCandidate("https://example.org/gone");
+  assert.equal(r.status, 404);
+  assert.equal(r.error, undefined); // no `error` set -> classifyReachability reads isDeadStatus(404), never 'transient'
+  assert.equal(classifyReachability(r).ok, false);
+  assert.equal(classifyReachability(r).transient, undefined);
+});
+
+test("makeCanonicalFetchCandidate: a network failure (fetchImpl throws / captureDocument's own catch) reports status:null + error — routes to 'deferred', never 'rejected'", async () => {
+  const fetchImpl = async () => { throw new Error("getaddrinfo ENOTFOUND example-dead-host.invalid"); };
+  const fetchCandidate = makeCanonicalFetchCandidate({ fetchImpl });
+  const r = await fetchCandidate("https://example-dead-host.invalid/page");
+  assert.equal(r.status, null);
+  assert.match(String(r.error), /ENOTFOUND/);
+  const reach = classifyReachability(r);
+  assert.equal(reach.ok, false);
+  assert.equal(reach.transient, true);
+});
+
+test("makeCanonicalFetchCandidate: follows a redirect by hand via followUpgradingRedirects (an http Location upgraded to https)", async () => {
+  const calls = [];
+  const fetchImpl = async (url, opts) => {
+    calls.push(url);
+    if (url === "https://example.org/old") {
+      return {
+        ok: false, status: 301, redirected: false,
+        headers: { get: (h) => (h === "location" ? "http://example.org/new" : null) },
+        text: async () => "",
+      };
+    }
+    assert.equal(url, "https://example.org/new"); // http Location upgraded to https before the next hop
+    return { ok: true, status: 200, redirected: false, headers: { get: () => null }, text: async () => "landed" };
+  };
+  const fetchCandidate = makeCanonicalFetchCandidate({ fetchImpl, gapMs: 0 });
+  const r = await fetchCandidate("https://example.org/old");
+  assert.equal(r.status, 200);
+  assert.equal(r.text, "landed");
+  assert.deepEqual(calls, ["https://example.org/old", "https://example.org/new"]);
+});
+
+test("makeCanonicalFetchCandidate: does not import or call anything named Browserless (source-text check on the adapter's own module)", async () => {
+  const src = await import("node:fs/promises").then((fs) => fs.readFile(new URL("./canonical-autoverify.mjs", import.meta.url), "utf8"));
+  // Only prose lines (comment `//`) may mention it, explaining what this lane removed — never an import,
+  // a call, or an identifier reference. No line outside a `//` comment may contain the word at all.
+  const codeLines = src.split("\n").filter((line) => !/^\s*\/\//.test(line) && !/^\s*\*/.test(line));
+  const offenders = codeLines.filter((line) => /browserless/i.test(line));
+  assert.deepEqual(offenders, [], `found non-comment reference(s) to Browserless: ${JSON.stringify(offenders)}`);
 });

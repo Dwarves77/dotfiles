@@ -2816,9 +2816,19 @@ confirmed the same day specifically to close both.
 (`review-apply-canonical-candidates`) can only ever auto-resolve when the candidate URL already matches a
 registered source; every genuinely NEW replacement source location the web crawl found used to be routed to
 a human. This step performs the same verification a human reviewer would and rules the row itself, all the
-way to a terminal outcome: **reachability** (the canonical Browserless fetch,
-`src/lib/sources/canonical-fetch.mjs`; dead codes 404/410/5xx reject, a Browserless hard-error/timeout
-**defers** instead — see Outcomes below) → **page class** (a small pure classifier rejecting login/sign-in
+way to a terminal outcome: **reachability** (the SAME $0 polite-fetch + `captureDocument` path
+`scripts/maintenance/provenance-heal.mjs`'s `buildHealDeps` already wires for `heal-provenance.mjs` —
+`makePoliteFetch({fetchImpl:fetch})` at 1 req/s through `followUpgradingRedirects` into
+`scripts/mint/export-census-rows.mjs`'s `captureDocument`, reshaped by this step's own
+`makeCanonicalFetchCandidate` adapter into the `{status,text,error,host,path}` shape `decideRow` expects;
+**lane CANONICAL-AUTOVERIFY-3, 2026-09-07** — the step originally wired `deps.fetchCandidate` to
+`src/lib/sources/canonical-fetch.mjs`'s `browserlessFetch`, a paid rendering service with no key anywhere
+in `.github/workflows/maintenance.yml` by design (CLAUDE.md's $0 rule); maintenance run 34069709848
+(`mode=dry`) confirmed the defect live — all 16 pending rows came back `deferred: fetch failed:
+BrowserlessError: BROWSERLESS_API_KEY not configured`, nothing verified. Browserless is not referenced by
+this step at all, and a "render with Browserless if a key is present" fallback is explicitly not wanted;
+dead codes 404/410/5xx reject, a network error/DNS timeout/connection reset that never completed the
+request **defers** instead — see Outcomes below) → **page class** (a small pure classifier rejecting login/sign-in
 gateways, `/about` pages, directory/index listings, press releases on a substantive missing-link item, and
 aggregator/tracker/directory datacards when the item's own subject IS the institution the datacard merely
 lists — every rule cites the live pending row that motivated it, see the module's own header) → **content
@@ -2839,8 +2849,12 @@ asked) unless that current source is CONFIRMED dead, 404/410/5xx/DNS or a fetch 
 explicitly NOT "dead" and **rejects the candidate outright** instead of licensing the downgrade: the
 current citation stands, a wall is not a dead link).
 
-**Upstream, reused (never re-implemented)**: `src/lib/sources/canonical-fetch.mjs` (fetch),
-`src/lib/sources/access-wall.mjs`'s `detectAccessWall` (wall detection, folded into reachability),
+**Upstream, reused (never re-implemented)**: `scripts/mint/export-census-rows.mjs`'s `captureDocument` +
+`followUpgradingRedirects` + `makePoliteFetch` (the $0 polite-fetch path, the SAME one
+`provenance-heal.mjs`'s `buildHealDeps` wires for `heal-provenance.mjs` — never
+`src/lib/sources/canonical-fetch.mjs`'s paid `browserlessFetch`, retired from this step lane
+CANONICAL-AUTOVERIFY-3, 2026-09-07), `src/lib/sources/access-wall.mjs`'s `detectAccessWall` (wall
+detection, folded into reachability),
 `scripts/mint/heal-provenance.mjs`'s `locateSpanInText` (content proof), `src/lib/sources/
 host-authority.mjs`'s `codifiedTierForHost`/`classTierForHost`/`permanentlyUnregisteredClass`/
 `defaultTierForHost` (authority), `scripts/lib/db.mjs`'s `registerSource` (the ONE source-registration
@@ -2856,8 +2870,8 @@ provisional accept, a freshly-registered row at `defaultTierForHost`, `status: '
 repointed to the candidate either way. **Reject path**: `canonical_source_candidates.decision='rejected'`
 + `reviewer_notes` naming the exact stage and reason (`auto: reject — <reason>`; a walled-current-source
 downgrade names it verbatim: "current source reachable behind an access wall; candidate is a different
-publisher"); `intelligence_items` is never touched. **Deferred** (transient fetch error only — Browserless
-hard-error, DNS timeout, network blip that never completed the request): the row is left `decision='pending'`
+publisher"); `intelligence_items` is never touched. **Deferred** (transient fetch error only — network
+error, DNS timeout, connection reset that never completed the request): the row is left `decision='pending'`
 untouched, `reviewer_notes` names the fetch error, and it is retried automatically the next dispatch — not
 a verdict on the candidate, not a human outcome. **Reviewer identity**: `reviewer_id` is left `null` (never
 set) — the same convention `scripts/review/lib/canonical-candidates.mjs`'s own `patchForDecision` already
