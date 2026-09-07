@@ -28,14 +28,12 @@
 //     market-rows-smoke.mjs's header describes for `priceStat: null`. None of these are a row's own
 //     fabricated or omitted DATA; confirmed by reading the components that emit them.
 //
-//   - MOBILE (375px) skipped entirely for horizontal-overflow / clipped / squeezed-title: README
-//     "Open decisions" states outright that mobile 390 is "Not yet designed, captures needed" —
-//     desktop 1440 is the only fidelity target this handoff defines. ListRow's `grid-template-
-//     columns: 3px 56px 1fr 88px 84px 76px 40px 44px` (README §0.4, shared by every list page this
-//     anatomy will serve) is a fixed-width desktop anatomy with no mobile artboard to reflow against;
-//     this lane already ships a provisional collapse (ListRow.tsx's `RESPONSIVE_CSS`, disclosed
-//     there and in DEVIATION-LOG.md) rather than leaving it fully broken, but inventing a pixel-exact
-//     mobile design here would risk conflicting with whatever the eventual mobile-design lane ships.
+//   - MOBILE (375px) now runs every check (lane mobframe, 2026-09-07): the mobile-390 spec
+//     (docs/design/handoff-2026-09-06, delivered 2026-09-07) defines the dashboard's band tiles,
+//     masthead and frame at mobile measures, so the prior "not yet designed" skip for this fixture
+//     no longer applies. DashboardBrief itself contains no ListRow (the dashboard's Due-next/What-
+//     changed rows use ListRow too — see below); overflow/clipped/squeezed-title are asserted at
+//     375 the same as at 1280.
 //     DESKTOP (1280) keeps every check — that IS this handoff's fidelity target, and runs full here.
 //     Small-target (law-2) and BandTile counts are asserted at BOTH viewports; a live regression
 //     there fails this spec.
