@@ -251,6 +251,52 @@ window.__mount = () => {
 };
 `;
 
+// ── Operations region x dimension matrix (real component, real prop shape) ────────────────────
+// Reproduces the EXACT dimensions list OperationsLedger.tsx passes in production
+// (SOURCED_DIMENSIONS: DIMENSIONS filtered to exclude "regulatory") so the matrix's rendered row
+// count is measured against the same 6-dimension DIMENSIONS array the operator's ruling 3.3 names,
+// not an audit-invented list.
+const OPSMATRIX_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RegionDimensionMatrix } from '@/components/operations/RegionDimensionMatrix';
+
+const regions = [
+  { key: 'EU', label: 'European Union' },
+  { key: 'US', label: 'United States' },
+];
+
+// Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) and its
+// SOURCED_DIMENSIONS derivation (filters out "regulatory") -- the audit reproduces the production
+// data shape exactly rather than asserting an invented one.
+const DIMENSIONS = [
+  { num: 1, key: 'regulatory', db: 'regulatory_feasibility', name: 'Regulatory feasibility' },
+  { num: 2, key: 'resources', db: 'regional_resources', name: 'Regional resource availability' },
+  { num: 3, key: 'labor', db: 'labor_markets', name: 'Labor markets' },
+  { num: 4, key: 'materials', db: 'materials_sourcing', name: 'Materials sourcing' },
+  { num: 5, key: 'infrastructure', db: 'infrastructure', name: 'Infrastructure capacity' },
+  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost data' },
+];
+const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== 'regulatory');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 900 }, 'data-audit': 'ops-matrix' },
+      React.createElement(RegionDimensionMatrix, {
+        regions,
+        dimensions: SOURCED_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name })),
+        facts: [],
+        coverageRows: [],
+      }),
+    ),
+  );
+};
+`;
+
 // ── Page frame at 1440 ──────────────────────────────────────────────────────────────────────────
 // The real AppShell (nav card, content column, footer, the floating assistant) wrapping the two page
 // surfaces whose own chrome the frame rulings govern: the dashboard (the worked example page, its
@@ -416,6 +462,12 @@ export const AUDIT_MOUNTS = {
     description: 'FilterChipGroup + FilterChip, one active + one inactive chip.',
     viewport: 1440,
     entry: FILTERCHIP_ENTRY,
+  },
+  'ops-matrix': {
+    id: 'ops-matrix',
+    description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own SOURCED_DIMENSIONS (5 of the real 6 DIMENSIONS).',
+    viewport: 1440,
+    entry: OPSMATRIX_ENTRY,
   },
   'list-surface-1440': {
     id: 'list-surface-1440',
