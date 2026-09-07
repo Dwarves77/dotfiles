@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T18:21:20.139Z",
+  "runAt": "2026-09-07T18:23:14.633Z",
   "specs": [
     {
       "part": "Account — Members & roles section (AccountCard + MembersPanel)",
@@ -137,6 +137,450 @@
       "forbid": [],
       "__file": "fsi-app/.discipline/rendering/audit/spec/auth-frame.json",
       "__id": "auth-frame"
+    },
+    {
+      "part": "FactCard",
+      "mount": "factcard",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "notes": [
+        "The expected values below are operator ruling 2.4 (2026-09-07), which is the latest binding statement on this part and states exact numbers: sourced = 2px solid #1A1A1A LEFT edge, 1px rgba(0,0,0,.12) on the other three sides, radius 0 8px 8px 0, white; inference = 1px DASHED rgba(0,0,0,.25) all round, background #FAFAF8, italic body; needs counsel = 2px solid #F97316 left edge, otherwise as sourced.",
+        "The artboard 00 markup differs from that ruling and is recorded here so the divergence is visible rather than silently resolved: sourced there is `background:#fff; border:1px solid rgba(0,0,0,.12); border-radius:8px; border-left:3px solid #5A5552; padding:12px 14px 12px 16px`; inference is `background:#F5F2EE; border:1px dashed rgba(0,0,0,.3); border-radius:8px`; counsel is the sourced box with `border-left:3px solid #F97316`. Where the two disagree the operator's ruling is used, per the ruling's own framing ('build against them, ask nothing').",
+        "The variants are addressed through the mount's `[data-audit]` wrappers, which carry no styling of their own; `> div` inside each is the FactCard's own root element."
+      ],
+      "selector": "[data-audit=\"sourced\"] > div",
+      "expect": {
+        "background-color": "#FFFFFF",
+        "border-left-width": "2px",
+        "border-left-style": "solid",
+        "border-left-color": "#1A1A1A",
+        "border-top-width": "1px",
+        "border-top-style": "solid",
+        "border-top-color": "rgba(0,0,0,.12)",
+        "border-right-width": "1px",
+        "border-right-color": "rgba(0,0,0,.12)",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.12)",
+        "border-top-left-radius": "0",
+        "border-top-right-radius": "8px",
+        "border-bottom-right-radius": "8px",
+        "border-bottom-left-radius": "0"
+      },
+      "children": [
+        {
+          "name": "sourced — eyebrow label",
+          "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+          "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase.",
+          "expect": {
+            "text": "Fact",
+            "font-size": "9.5px",
+            "font-weight": "800",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "sourced — body",
+          "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
+          "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic).",
+          "expect": {
+            "font-size": "13px",
+            "line-height": "20.15px",
+            "font-style": "normal"
+          }
+        },
+        {
+          "name": "inference — card",
+          "selector": "[data-audit=\"inference\"] > div",
+          "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8.",
+          "expect": {
+            "background-color": "#FAFAF8",
+            "border-top-width": "1px",
+            "border-top-style": "dashed",
+            "border-top-color": "rgba(0,0,0,.25)",
+            "border-left-width": "1px",
+            "border-left-style": "dashed",
+            "border-left-color": "rgba(0,0,0,.25)",
+            "border-right-color": "rgba(0,0,0,.25)",
+            "border-bottom-color": "rgba(0,0,0,.25)"
+          }
+        },
+        {
+          "name": "inference — body is italic",
+          "selector": "[data-audit=\"inference\"] > div > p:nth-of-type(2)",
+          "note": "README §0.4 and operator 2.4 both: the inference body is italic — the grayscale-readable half of 'told apart by form'.",
+          "expect": {
+            "font-style": "italic",
+            "font-size": "13px"
+          }
+        },
+        {
+          "name": "inference — eyebrow label",
+          "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+          "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only.",
+          "expect": {
+            "font-size": "9.5px",
+            "font-weight": "800",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "counsel — card",
+          "selector": "[data-audit=\"counsel\"] > div",
+          "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0).",
+          "expect": {
+            "background-color": "#FFFFFF",
+            "border-left-width": "2px",
+            "border-left-style": "solid",
+            "border-left-color": "#F97316",
+            "border-top-width": "1px",
+            "border-top-color": "rgba(0,0,0,.12)",
+            "border-top-left-radius": "0",
+            "border-top-right-radius": "8px",
+            "border-bottom-right-radius": "8px",
+            "border-bottom-left-radius": "0"
+          }
+        },
+        {
+          "name": "counsel — eyebrow label",
+          "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+          "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label.",
+          "expect": {
+            "text": "Legal confirmation required",
+            "font-size": "9.5px",
+            "font-weight": "800",
+            "color": "#1A1A1A"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "a raw URL in the card's running text",
+          "selector": "[data-audit=\"sourced\"] > div > p",
+          "textMatch": "https://",
+          "reason": "README §0.4: 'Raw URLs never appear in running text.' The link belongs in the source column, as a labelled anchor."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/factcard.json",
+      "__id": "factcard"
+    },
+    {
+      "part": "ListRow (1440, every cell)",
+      "mount": "listrow-1440",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "notes": [
+        "Values are read from the artboard markup, which the handoff makes the authority ('where README prose and a page artboard disagree, the artboard wins').",
+        "`grid-template-columns` is compared with one `*` token: getComputedStyle resolves the track list to USED pixel widths, so the `1fr` title track reports the container's leftover width and cannot be a design constant. Every fixed track is compared exactly. The mount places the row in a 778px box — the content column the frame produces at 1440 (README §0.3).",
+        "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it."
+      ],
+      "selector": ".cl-list-row",
+      "expect": {
+        "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+        "row-gap": "0px",
+        "column-gap": "14px",
+        "min-height": "56px",
+        "border-bottom-width": "1px",
+        "border-bottom-style": "solid",
+        "border-bottom-color": "rgba(0,0,0,.06)",
+        "border-left-width": "0px",
+        "padding-left": "0px",
+        "padding-right": "12px"
+      },
+      "children": [
+        {
+          "name": "column header row",
+          "selector": ".cl-list-row-header",
+          "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row.",
+          "expect": {
+            "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+            "height": "30px",
+            "border-bottom-width": "1px",
+            "border-bottom-color": "rgba(0,0,0,.08)"
+          }
+        },
+        {
+          "name": "column header cell type",
+          "selector": ".cl-list-row-header span:nth-of-type(2)",
+          "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C.",
+          "expect": {
+            "font-size": "9.5px",
+            "font-weight": "700",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "cell 1 — band spine",
+          "selector": ".cl-row-spine",
+          "note": "dc.html #sys: a full-bleed 56px block in the band colour; the fixture row's band is Action (#F97316).",
+          "expect": {
+            "background-color": "#F97316",
+            "width": "3px",
+            "height": "56px"
+          }
+        },
+        {
+          "name": "cell 2 — jurisdiction code",
+          "selector": ".cl-row-juris",
+          "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67.",
+          "expect": {
+            "font-size": "11px",
+            "font-weight": "700",
+            "letter-spacing": "0.06em",
+            "color": "#5A6B67",
+            "width": "56px"
+          }
+        },
+        {
+          "name": "cell 3 — title",
+          "selector": ".cl-row-title-text",
+          "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'.",
+          "expect": {
+            "font-size": "14px",
+            "font-weight": "600",
+            "line-height": "18.2px",
+            "white-space": "nowrap",
+            "text-overflow": "ellipsis",
+            "overflow-x": "hidden",
+            "color": "#1A1A1A"
+          }
+        },
+        {
+          "name": "cell 3 — meta line",
+          "selector": ".cl-row-meta-tags > span:first-child",
+          "note": "dc.html #sys: 11px, colour #7A6E6C, margin-top 2px. README §0.4: 'meta line is 11px muted'.",
+          "expect": {
+            "font-size": "11px",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "cell 4 — impact meter cell",
+          "selector": ".cl-row-impact",
+          "note": "dc.html #sys track: 88px. Four 9px bars on a 1px baseline plus the N/12 sum.",
+          "expect": {
+            "width": "88px"
+          }
+        },
+        {
+          "name": "cell 5 — due date",
+          "selector": ".cl-row-due-label",
+          "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals.",
+          "expect": {
+            "font-size": "12.5px",
+            "font-weight": "700",
+            "color": "#1A1A1A"
+          }
+        },
+        {
+          "name": "cell 5 — days-until line",
+          "selector": ".cl-row-due-days",
+          "note": "README type scale: the muted second line under the date. dc.html #sys renders the date cell at 84px.",
+          "expect": {
+            "font-size": "10.5px",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "cell 6 — timeline cell",
+          "selector": ".cl-row-timeline",
+          "note": "README §0.4: 'Row variant is 76px wide'. dc.html #sys track: 76px, cell height 14px.",
+          "expect": {
+            "width": "76px"
+          }
+        },
+        {
+          "name": "cell 7 — tier chip",
+          "selector": ".cl-tier-chip",
+          "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred.",
+          "expect": {
+            "font-size": "10px",
+            "font-weight": "800",
+            "letter-spacing": "0.06em",
+            "border-top-width": "1px",
+            "border-top-color": "rgba(0,0,0,.2)",
+            "border-top-left-radius": "4px",
+            "text-align": "center"
+          }
+        },
+        {
+          "name": "cell 8 — overflow cell",
+          "selector": ".cl-row-overflow",
+          "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here.",
+          "expect": {
+            "border-left-width": "1px",
+            "border-left-style": "solid",
+            "border-left-color": "rgba(0,0,0,.08)"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "the literal word UNSCORED anywhere in the row",
+          "selector": ".cl-list-row span",
+          "textMatch": "UNSCORED",
+          "reason": "Operator 2.1 and README §0.4: unscored renders the dashed baseline plus the small-caps absence reason, never the literal token and never a second row."
+        },
+        {
+          "name": "a second click target competing with the row link",
+          "selector": ".cl-row-title a",
+          "reason": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/listrow.json",
+      "__id": "listrow"
+    },
+    {
+      "part": "Page frame (1440)",
+      "mount": "page-frame-1440",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "notes": [
+        "The mount is the REAL AppShell wrapping DashboardBrief and RegulationDetailSurface, so the nav card, the content column, the dashboard section cards, the detail header and the detail action row are all in ONE measured tree. Composing the two surfaces together is an audit fixture, not a claim the product renders them together.",
+        "Nav card top margin is expected at 20px per operator ruling 4.2 ('margin: 20px 0 16px 16px so it aligns with the content column's 20px top padding. Fix it in the frame, once'). The artboard markup still shows 16px; the ruling supersedes it.",
+        "Ruling 5.1 requires a 3px graduated rule ABOVE each section title (full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))) and NO line below the title. The rule is checked through the selector `[data-section-rule]`: the product gives that element no marker today, so the check reports NOT BUILT, which is the correct status and also states the selector contract a fix lane should build to.",
+        "Ruling 5.2's sitewide count ('one coloured rule per screen') cannot be counted reliably today: BandGradientRule renders an unmarked `div[aria-hidden=\"true\"]`, and the four-band gradient is not distinguishable by computed style alone from the ImpactMeter ramp or the full MilestoneTimeline track, which are also green-to-red gradients at similar heights. This spec therefore checks the ONE permitted instance exactly (the nav card cap) and forbids a band-proportion rule inside a page masthead. Adding `data-band-rule` to BandGradientRule would make the sitewide count a one-line check; that is a recommendation for the fix lane, not a deviation."
+      ],
+      "selector": "aside.hidden",
+      "expect": {
+        "width": "252px",
+        "margin-top": "20px",
+        "margin-right": "0px",
+        "margin-bottom": "16px",
+        "margin-left": "16px",
+        "background-color": "#FFFFFF",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.12)",
+        "border-top-left-radius": "10px",
+        "border-bottom-left-radius": "10px"
+      },
+      "children": [
+        {
+          "name": "nav card — band-proportion gradient cap (the ONE coloured rule, ruling 5.2)",
+          "selector": "aside.hidden > div[aria-hidden=\"true\"]",
+          "note": "README §0.2: 'The four-band gradient rule (3px, segment widths proportional to the live band counts) is the brand mark'. Ruling 5.2 keeps it in this one place sitewide.",
+          "expect": {
+            "height": "3px",
+            "count": "1"
+          }
+        },
+        {
+          "name": "content column — grid and padding (dashboard)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+          "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration.",
+          "expect": {
+            "padding-top": "20px",
+            "padding-right": "40px",
+            "padding-bottom": "40px",
+            "padding-left": "40px",
+            "column-gap": "28px",
+            "align-items": "start",
+            "grid-template-columns": "* 300px"
+          }
+        },
+        {
+          "name": "section card — no line BELOW the title (ruling 5.1)",
+          "selector": "[data-audit=\"dashboard\"] div:has(> h2[data-guard-title])",
+          "note": "Ruling 5.1: 'Live 18a (border-bottom 2px solid #5A5552 under the text) is wrong: remove it... Section title itself: Anton uppercase, no divider, no underline.'",
+          "expect": {
+            "border-bottom-width": "0px"
+          }
+        },
+        {
+          "name": "section card — the 3px graduated rule ABOVE the title (ruling 5.1)",
+          "selector": "[data-audit=\"dashboard\"] [data-section-rule]",
+          "note": "Ruling 5.1: 3px, full width of the card, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)). Applies to every panel/section card on every page.",
+          "expect": {
+            "height": "3px",
+            "background-image": "linear-gradient(90deg, rgb(90, 85, 82) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18) 100%)",
+            "border-top-left-radius": "0px"
+          }
+        },
+        {
+          "name": "section title type (ruling 5.1: Anton uppercase)",
+          "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+          "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated.",
+          "expect": {
+            "font-family": "contains:Anton",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.04em",
+            "font-size": "20px"
+          }
+        },
+        {
+          "name": "detail title type",
+          "selector": "[data-audit=\"regulation-detail\"] .cl-detail-title",
+          "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element.",
+          "expect": {
+            "font-family": "contains:Anton",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.04em",
+            "font-size": "28px"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "floating Ask AI button (bottom-right, every page)",
+          "selector": ".fixed.bottom-6.right-6",
+          "textMatch": "Ask AI",
+          "reason": "Operator 2.2: 'Remove the floating Ask AI button on every page (bottom-right). The masthead command bar is the ask. No floating control.' The text filter is needed because BackToTop.tsx carries the IDENTICAL `fixed bottom-6 right-6 z-40` class set, so the bare selector matches two controls stacked at the same coordinates. BackToTop is outside every ruling in the operator's list and is left exactly as it is; it is logged here as an observation, not a finding."
+        },
+        {
+          "name": "a second CommandBar inside the detail header",
+          "selector": "[data-audit=\"regulation-detail\"] header .cl-command-bar",
+          "reason": "Operator 2.3: 'Remove the inline Ask about this [regulation…] bar from every detail masthead. The action row follows directly below the workspace tags row.'"
+        },
+        {
+          "name": "HeroPriorityDropdown in the detail action row",
+          "selector": "[data-audit=\"regulation-detail\"] header button",
+          "textMatch": "▾",
+          "reason": "Operator 3.1: 'Remove the Immediate ▾ dropdown from the regulation detail action row… Action row is exactly Export brief (primary) · Share · ☆ Watch · + Tag.'"
+        },
+        {
+          "name": "a second '+ Tag' trigger in the under-title tag row",
+          "selector": "[data-audit=\"regulation-detail\"] header button",
+          "textMatch": "Tag",
+          "reason": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' NOTE: this selector matches the legitimate action-row trigger too, so a count of 1 is the target state and a count above 1 is the defect; read the count in the Measured column."
+        },
+        {
+          "name": "a band-proportion (coloured) rule inside a page masthead",
+          "selector": "[data-audit=\"dashboard\"] header div[aria-hidden=\"true\"]",
+          "matchStyle": {
+            "height": "3px",
+            "background-image": "contains:rgb(22, 163, 74)"
+          },
+          "reason": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/page-frame.json",
+      "__id": "page-frame"
     },
     {
       "part": "Settings — Notifications section (AccountCard + NotificationPreferences)",
@@ -889,6 +1333,2956 @@
       "actual": "13px",
       "status": "MATCH",
       "note": "dc.html p16: `border:1px solid rgba(0,0,0,.25);border-radius:6px;height:36px;padding:0 10px;font-size:13px`."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-left-width",
+      "expected": "2px",
+      "actual": "1px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-left-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-left-color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-top-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-right-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-right-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-top-left-radius",
+      "expected": "0",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-top-right-radius",
+      "expected": "8px",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-bottom-right-radius",
+      "expected": "8px",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "FactCard",
+      "selector": "[data-audit=\"sourced\"] > div",
+      "property": "border-bottom-left-radius",
+      "expected": "0",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "property": "text",
+      "expected": "Fact",
+      "actual": "Fact",
+      "status": "MATCH",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "property": "font-size",
+      "expected": "9.5px",
+      "actual": "10px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "property": "font-weight",
+      "expected": "800",
+      "actual": "800",
+      "status": "MATCH",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — eyebrow label",
+      "selector": "[data-audit=\"sourced\"] > div > p:first-of-type",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "dc.html #sys: 9.5px / 800 / .12em / uppercase."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — body",
+      "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
+      "property": "font-size",
+      "expected": "13px",
+      "actual": "13px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — body",
+      "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
+      "property": "line-height",
+      "expected": "20.15px",
+      "actual": "20.8px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "sourced — body",
+      "selector": "[data-audit=\"sourced\"] > div > p:nth-of-type(2)",
+      "property": "font-style",
+      "expected": "normal",
+      "actual": "normal",
+      "status": "MATCH",
+      "note": "dc.html #sys: 13px / line-height 1.55, upright (only the inference variant is italic)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "background-color",
+      "expected": "#FAFAF8",
+      "actual": "rgb(245, 242, 238)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-top-style",
+      "expected": "dashed",
+      "actual": "dashed",
+      "status": "MATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-left-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-left-style",
+      "expected": "dashed",
+      "actual": "dashed",
+      "status": "MATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-left-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-right-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — card",
+      "selector": "[data-audit=\"inference\"] > div",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 1px dashed rgba(0,0,0,.25) all round, background #FAFAF8."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — body is italic",
+      "selector": "[data-audit=\"inference\"] > div > p:nth-of-type(2)",
+      "property": "font-style",
+      "expected": "italic",
+      "actual": "italic",
+      "status": "MATCH",
+      "note": "README §0.4 and operator 2.4 both: the inference body is italic — the grayscale-readable half of 'told apart by form'."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — body is italic",
+      "selector": "[data-audit=\"inference\"] > div > p:nth-of-type(2)",
+      "property": "font-size",
+      "expected": "13px",
+      "actual": "13px",
+      "status": "MATCH",
+      "note": "README §0.4 and operator 2.4 both: the inference body is italic — the grayscale-readable half of 'told apart by form'."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — eyebrow label",
+      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+      "property": "font-size",
+      "expected": "9.5px",
+      "actual": "10px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — eyebrow label",
+      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+      "property": "font-weight",
+      "expected": "800",
+      "actual": "800",
+      "status": "MATCH",
+      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — eyebrow label",
+      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "inference — eyebrow label",
+      "selector": "[data-audit=\"inference\"] > div > p:first-of-type",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "dc.html #sys renders the eyebrow as '◌ Analytical inference'; the built component renders the label prop text only."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-left-width",
+      "expected": "2px",
+      "actual": "3px",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-left-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-left-color",
+      "expected": "#F97316",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-top-left-radius",
+      "expected": "0",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-top-right-radius",
+      "expected": "8px",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-bottom-right-radius",
+      "expected": "8px",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — card",
+      "selector": "[data-audit=\"counsel\"] > div",
+      "property": "border-bottom-left-radius",
+      "expected": "0",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": "Operator 2.4: 2px solid #F97316 left edge, otherwise as sourced (1px rgba(0,0,0,.12), white, radius 0 8px 8px 0)."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — eyebrow label",
+      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+      "property": "text",
+      "expected": "Legal confirmation required",
+      "actual": "Legal confirmation required",
+      "status": "MATCH",
+      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — eyebrow label",
+      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+      "property": "font-size",
+      "expected": "9.5px",
+      "actual": "10px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — eyebrow label",
+      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+      "property": "font-weight",
+      "expected": "800",
+      "actual": "800",
+      "status": "MATCH",
+      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "counsel — eyebrow label",
+      "selector": "[data-audit=\"counsel\"] > div > p:first-of-type",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(249, 115, 22)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 'Legal confirmation required', 9.5px / 800 / .12em / uppercase, ink (#1A1A1A) not orange — the FORM carries the variant, colour does not repeat it in the label."
+    },
+    {
+      "spec": "factcard",
+      "part": "FactCard",
+      "artboards": [
+        "00-system-sheet (the part is defined once here)",
+        "03-regulation-detail",
+        "05-market-detail",
+        "07-research-detail",
+        "09-operations-profile"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the 'Fact card — replaces every \"FACT: … *Source: …\" paragraph' block; README.md §0.4 'Fact card'; operator ruling 2.4 (2026-09-07, UI discrepancy report)",
+      "viewport": 1440,
+      "target": "a raw URL in the card's running text",
+      "selector": "[data-audit=\"sourced\"] > div > p [text contains \"https://\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "README §0.4: 'Raw URLs never appear in running text.' The link belongs in the source column, as a labelled anchor."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "grid-template-columns",
+      "expected": "3px 56px * 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 286px 88px 84px 76px 40px 44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "row-gap",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "column-gap",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "min-height",
+      "expected": "56px",
+      "actual": "56px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "border-bottom-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.06)",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "border-left-width",
+      "expected": "0px",
+      "actual": "3px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "padding-left",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "ListRow (1440, every cell)",
+      "selector": ".cl-list-row",
+      "property": "padding-right",
+      "expected": "12px",
+      "actual": "0px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header row",
+      "selector": ".cl-list-row-header",
+      "property": "grid-template-columns",
+      "expected": "3px 56px * 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 289px 88px 84px 76px 40px 44px",
+      "status": "MATCH",
+      "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header row",
+      "selector": ".cl-list-row-header",
+      "property": "height",
+      "expected": "30px",
+      "actual": "22px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header row",
+      "selector": ".cl-list-row-header",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header row",
+      "selector": ".cl-list-row-header",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.08)",
+      "actual": "rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
+      "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "property": "font-size",
+      "expected": "9.5px",
+      "actual": "9.5px",
+      "status": "MATCH",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.14px at 9.5px)",
+      "actual": "1.14px",
+      "status": "MATCH",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "column header cell type",
+      "selector": ".cl-list-row-header span:nth-of-type(2)",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "README type scale: 'column headers 9.5 uppercase .12em/700'. dc.html #sys colour #7A6E6C."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 1 — band spine",
+      "selector": ".cl-row-spine",
+      "property": "background-color",
+      "expected": "#F97316",
+      "actual": "rgb(249, 115, 22)",
+      "status": "MATCH",
+      "note": "dc.html #sys: a full-bleed 56px block in the band colour; the fixture row's band is Action (#F97316)."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 1 — band spine",
+      "selector": ".cl-row-spine",
+      "property": "width",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "dc.html #sys: a full-bleed 56px block in the band colour; the fixture row's band is Action (#F97316)."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 1 — band spine",
+      "selector": ".cl-row-spine",
+      "property": "height",
+      "expected": "56px",
+      "actual": "56px",
+      "status": "MATCH",
+      "note": "dc.html #sys: a full-bleed 56px block in the band colour; the fixture row's band is Action (#F97316)."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "10.5px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "800",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "property": "letter-spacing",
+      "expected": "0.06em (= 0.63px at 10.5px)",
+      "actual": "0.42px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "property": "color",
+      "expected": "#5A6B67",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 2 — jurisdiction code",
+      "selector": ".cl-row-juris",
+      "property": "width",
+      "expected": "56px",
+      "actual": "56px",
+      "status": "MATCH",
+      "note": "dc.html #sys: font-size 11px, weight 700, letter-spacing .06em, colour #5A6B67."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "font-size",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "line-height",
+      "expected": "18.2px",
+      "actual": "normal",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "white-space",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "text-overflow",
+      "expected": "ellipsis",
+      "actual": "ellipsis",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "overflow-x",
+      "expected": "hidden",
+      "actual": "hidden",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — title",
+      "selector": ".cl-row-title-text",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 14px / 600 / line-height 1.3, nowrap + ellipsis. README: 'Row title 14/600'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — meta line",
+      "selector": ".cl-row-meta-tags > span:first-child",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 11px, colour #7A6E6C, margin-top 2px. README §0.4: 'meta line is 11px muted'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 3 — meta line",
+      "selector": ".cl-row-meta-tags > span:first-child",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(90, 107, 103)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 11px, colour #7A6E6C, margin-top 2px. README §0.4: 'meta line is 11px muted'."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 4 — impact meter cell",
+      "selector": ".cl-row-impact",
+      "property": "width",
+      "expected": "88px",
+      "actual": "88px",
+      "status": "MATCH",
+      "note": "dc.html #sys track: 88px. Four 9px bars on a 1px baseline plus the N/12 sum."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 5 — due date",
+      "selector": ".cl-row-due-label",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 5 — due date",
+      "selector": ".cl-row-due-label",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 5 — due date",
+      "selector": ".cl-row-due-label",
+      "property": "color",
+      "expected": "#1A1A1A",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 12.5px, weight 700, colour #1A1A1A, right-aligned, tabular numerals."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 5 — days-until line",
+      "selector": ".cl-row-due-days",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": "README type scale: the muted second line under the date. dc.html #sys renders the date cell at 84px."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 5 — days-until line",
+      "selector": ".cl-row-due-days",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "README type scale: the muted second line under the date. dc.html #sys renders the date cell at 84px."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 6 — timeline cell",
+      "selector": ".cl-row-timeline",
+      "property": "width",
+      "expected": "76px",
+      "actual": "76px",
+      "status": "MATCH",
+      "note": "README §0.4: 'Row variant is 76px wide'. dc.html #sys track: 76px, cell height 14px."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "font-size",
+      "expected": "10px",
+      "actual": "10.5px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "font-weight",
+      "expected": "800",
+      "actual": "800",
+      "status": "MATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "letter-spacing",
+      "expected": "0.06em (= 0.63px at 10.5px)",
+      "actual": "normal",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.2)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "border-top-left-radius",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 7 — tier chip",
+      "selector": ".cl-tier-chip",
+      "property": "text-align",
+      "expected": "center",
+      "actual": "start",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: 10px / 800 / .06em, 1px solid rgba(0,0,0,.2), radius 4px, width 26px, centred."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 8 — overflow cell",
+      "selector": ".cl-row-overflow",
+      "property": "border-left-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 8 — overflow cell",
+      "selector": ".cl-row-overflow",
+      "property": "border-left-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "cell 8 — overflow cell",
+      "selector": ".cl-row-overflow",
+      "property": "border-left-color",
+      "expected": "rgba(0,0,0,.08)",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: the 44px end cell carries a 1px left divider at rgba(0,0,0,.08). README §0.4 'Hit targets': 'the ⋯ control is a 28px glyph inside a 44px cell with a 1px left divider.' The 44px CELL width is asserted on the row's own grid-template-columns above; this element's computed `width` is its content box, which excludes the 1px divider, so it is not restated here."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED anywhere in the row",
+      "selector": ".cl-list-row span [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator 2.1 and README §0.4: unscored renders the dashed baseline plus the small-caps absence reason, never the literal token and never a second row."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "a second click target competing with the row link",
+      "selector": ".cl-row-title a",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "width",
+      "expected": "252px",
+      "actual": "252px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "margin-top",
+      "expected": "20px",
+      "actual": "16px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "margin-right",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "margin-bottom",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "margin-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "border-top-left-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Page frame (1440)",
+      "selector": "aside.hidden",
+      "property": "border-bottom-left-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "nav card — band-proportion gradient cap (the ONE coloured rule, ruling 5.2)",
+      "selector": "aside.hidden > div[aria-hidden=\"true\"]",
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "README §0.2: 'The four-band gradient rule (3px, segment widths proportional to the live band counts) is the brand mark'. Ruling 5.2 keeps it in this one place sitewide."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "nav card — band-proportion gradient cap (the ONE coloured rule, ruling 5.2)",
+      "selector": "aside.hidden > div[aria-hidden=\"true\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": "README §0.2: 'The four-band gradient rule (3px, segment widths proportional to the live band counts) is the brand mark'. Ruling 5.2 keeps it in this one place sitewide."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-top",
+      "expected": "20px",
+      "actual": "16px",
+      "status": "MISMATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-right",
+      "expected": "40px",
+      "actual": "40px",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-bottom",
+      "expected": "40px",
+      "actual": "40px",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-left",
+      "expected": "40px",
+      "actual": "40px",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "column-gap",
+      "expected": "28px",
+      "actual": "28px",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "align-items",
+      "expected": "start",
+      "actual": "start",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "content column — grid and padding (dashboard)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "grid-template-columns",
+      "expected": "* 300px",
+      "actual": "1032px 300px",
+      "status": "MATCH",
+      "note": "README §0.3: 'padding: 20px 40px 40px; grid-template-columns: minmax(0,1fr) 300px; gap: 28px; align-items: start'. The dc.html page artboards carry the identical declaration."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section card — no line BELOW the title (ruling 5.1)",
+      "selector": "[data-audit=\"dashboard\"] div:has(> h2[data-guard-title])",
+      "property": "border-bottom-width",
+      "expected": "0px",
+      "actual": "2px",
+      "status": "MISMATCH",
+      "note": "Ruling 5.1: 'Live 18a (border-bottom 2px solid #5A5552 under the text) is wrong: remove it... Section title itself: Anton uppercase, no divider, no underline.'"
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section card — the 3px graduated rule ABOVE the title (ruling 5.1)",
+      "selector": "[data-audit=\"dashboard\"] [data-section-rule]",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
+      "note": "Ruling 5.1: 3px, full width of the card, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)). Applies to every panel/section card on every page."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section title type (ruling 5.1: Anton uppercase)",
+      "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section title type (ruling 5.1: Anton uppercase)",
+      "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section title type (ruling 5.1: Anton uppercase)",
+      "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+      "property": "letter-spacing",
+      "expected": "0.04em (= 0.8px at 20px)",
+      "actual": "0.4px",
+      "status": "MISMATCH",
+      "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "section title type (ruling 5.1: Anton uppercase)",
+      "selector": "[data-audit=\"dashboard\"] h2[data-guard-title]",
+      "property": "font-size",
+      "expected": "20px",
+      "actual": "20px",
+      "status": "MATCH",
+      "note": "README type scale: 'Display: Anton, uppercase, letter-spacing:.04em — page titles (34/28), card titles (20)'. No per-context exception is stated."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "detail title type",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-title",
+      "property": "font-family",
+      "expected": "contains:Anton",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
+      "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "detail title type",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-title",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "detail title type",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-title",
+      "property": "letter-spacing",
+      "expected": "0.04em (= 1.12px at 28px)",
+      "actual": "0.56px",
+      "status": "MISMATCH",
+      "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "detail title type",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-title",
+      "property": "font-size",
+      "expected": "28px",
+      "actual": "28px",
+      "status": "MATCH",
+      "note": "README §0.3 and the type scale: Anton uppercase, 28px on detail, letter-spacing .04em. Operator 1.2 named this element."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "floating Ask AI button (bottom-right, every page)",
+      "selector": ".fixed.bottom-6.right-6 [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "1 present — \"Ask AI\"",
+      "status": "NOT IN SPEC",
+      "note": "Operator 2.2: 'Remove the floating Ask AI button on every page (bottom-right). The masthead command bar is the ask. No floating control.' The text filter is needed because BackToTop.tsx carries the IDENTICAL `fixed bottom-6 right-6 z-40` class set, so the bare selector matches two controls stacked at the same coordinates. BackToTop is outside every ruling in the operator's list and is left exactly as it is; it is logged here as an observation, not a finding."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "a second CommandBar inside the detail header",
+      "selector": "[data-audit=\"regulation-detail\"] header .cl-command-bar",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "1 present — \"⌕⌘KAsk\"",
+      "status": "NOT IN SPEC",
+      "note": "Operator 2.3: 'Remove the inline Ask about this [regulation…] bar from every detail masthead. The action row follows directly below the workspace tags row.'"
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "HeroPriorityDropdown in the detail action row",
+      "selector": "[data-audit=\"regulation-detail\"] header button [text contains \"▾\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "1 present — \"Immediate▾\"",
+      "status": "NOT IN SPEC",
+      "note": "Operator 3.1: 'Remove the Immediate ▾ dropdown from the regulation detail action row… Action row is exactly Export brief (primary) · Share · ☆ Watch · + Tag.'"
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "a second '+ Tag' trigger in the under-title tag row",
+      "selector": "[data-audit=\"regulation-detail\"] header button [text contains \"Tag\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "2 present — \"+ Tag\"",
+      "status": "NOT IN SPEC",
+      "note": "Operator 3.2: 'The action-row + Tag is the only trigger. Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger.' NOTE: this selector matches the legitimate action-row trigger too, so a count of 1 is the target state and a count above 1 is the defect; read the count in the Measured column."
+    },
+    {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "a band-proportion (coloured) rule inside a page masthead",
+      "selector": "[data-audit=\"dashboard\"] header div[aria-hidden=\"true\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
     },
     {
       "spec": "settings-notifications",
