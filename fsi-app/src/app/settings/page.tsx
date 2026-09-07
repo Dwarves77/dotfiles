@@ -30,6 +30,7 @@ export default async function Settings() {
         initialArchived={data.archived}
         supersessions={data.supersessions}
         userId={user.id}
+        userEmail={user.email || ""}
       />
     </>
   );

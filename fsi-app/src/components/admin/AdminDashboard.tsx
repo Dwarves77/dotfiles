@@ -28,9 +28,12 @@ import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import type { Source, ProvisionalSource } from "@/types/source";
+import Link from "next/link";
 import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { PageMasthead } from "@/components/shell/PageMasthead";
+import { Masthead } from "@/components/ui/Masthead";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { StateNote } from "@/components/ui/StateNote";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
@@ -55,6 +58,10 @@ import { CorpusTurnPanel } from "@/components/admin/CorpusTurnPanel";
 interface AdminDashboardProps {
   userId: string;
   userEmail: string;
+  /** Masthead "VOL IV · No. N · <date>" line — computed server-side (same
+   *  pattern as the dashboard's Home page.tsx) so client/server render
+   *  identically. */
+  dateLabel: string;
   initialSources?: Source[];
   initialProvisionalSources?: ProvisionalSource[];
   initialOrgs?: any[];
@@ -65,6 +72,9 @@ interface AdminDashboardProps {
   initialErrorGroups?: ErrorGroupRow[];
   initialMtdErrors?: number;
   initialAssumptionRegister?: AssumptionRegisterRow[];
+  initialResearchPipelineCount?: number;
+  initialCommunityPickupsCount?: number;
+  initialEmissionFactorsLiveCount?: number;
 }
 
 // ─── Section model (mock §6.8 sectionDefs) ──────────────────────────────────
@@ -132,6 +142,7 @@ const SECTIONS: SectionDef[] = [
 
 export function AdminDashboard({
   userEmail: _userEmail,
+  dateLabel,
   initialSources = [],
   initialProvisionalSources = [],
   initialOrgs = [],
@@ -142,6 +153,9 @@ export function AdminDashboard({
   initialMtdErrors = 0,
   initialErrorGroups = [],
   initialAssumptionRegister = [],
+  initialResearchPipelineCount = 0,
+  initialCommunityPickupsCount = 0,
+  initialEmissionFactorsLiveCount = 0,
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
@@ -271,6 +285,33 @@ export function AdminDashboard({
     return null;
   };
 
+  // Counter-tile values (README screen 13: eight stat blocks — Workspaces,
+  // Sources, Ingest, Coverage, Research pipeline, Community pickups, Runtime,
+  // Emission factors). Every number here is a real read already available to
+  // this component (useAdminAttention's polled counts, the server-hydrated
+  // props, or a state array's own length) — never a fabricated figure. Ingest
+  // sums the same three attention counts Sources' sibling Ingest section
+  // triages (staged pending + both integrity-flag pools), so the tile can
+  // never disagree with what the Flags & rejections queue shows.
+  const ingestTotal =
+    (counts?.staged_updates_pending ?? 0) +
+    (counts?.integrity_flags_unresolved ?? 0) +
+    (counts?.platform_integrity_flags_open ?? 0);
+  const coverageGapsCount = counts?.coverage_gaps_critical ?? 0;
+
+  const tileCount = (name: SectionName): number => {
+    if (name === "Workspaces") return orgs.length;
+    if (name === "Sources") return provisionalCount;
+    if (name === "Ingest") return ingestTotal;
+    if (name === "Coverage") return coverageGapsCount;
+    if (name === "Research pipeline") return initialResearchPipelineCount;
+    if (name === "Community pickups") return initialCommunityPickupsCount;
+    if (name === "Runtime") return initialErrorGroups.length;
+    return 0;
+  };
+
+  const totalTileCount = SECTIONS.reduce((t, s) => t + tileCount(s.name), 0) + initialEmissionFactorsLiveCount;
+
   const crumb = useMemo(() => {
     const firstTab = activeSection.tabs[0];
     return sub && sub !== firstTab ? `${section} / ${sub}` : section;
@@ -290,119 +331,44 @@ export function AdminDashboard({
         @media (max-width: 960px) {
           .admin-t08-grid { grid-template-columns: 1fr; }
         }
-        .admin-t08-sections { grid-template-columns: repeat(3, 1fr); }
+        .admin-t08-sections { grid-template-columns: repeat(4, 1fr); }
+        @media (max-width: 1180px) {
+          .admin-t08-sections { grid-template-columns: repeat(2, 1fr); }
+        }
         @media (max-width: 640px) {
           .admin-t08-sections { grid-template-columns: 1fr; }
           .admin-t08-usage { grid-template-columns: repeat(2, 1fr) !important; }
         }
       `}</style>
 
-      <PageMasthead
-        eyebrow="Platform admin · operator view"
-        title="Platform admin"
-        meta="Workspaces, sources, ingest, coverage · needs-attention queue refreshes every 60 seconds"
-      />
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Platform admin"
+          dateLabel={dateLabel}
+          eyebrowSuffix="Operator view"
+          dek={
+            <>
+              Workspaces, sources, ingest, coverage · issues queue refreshes every 60s ·{" "}
+              <b style={{ color: "var(--ink)" }}>{mtd}</b> month-to-date · {formatNumber(initialMtdRuns)} agent runs ·{" "}
+              {formatNumber(initialMtdErrors)} errors
+            </>
+          }
+          commandBar={{
+            itemCount: totalTileCount,
+            scope: "admin",
+            placeholder: `Search sources, workspaces, flags — or ask "why…"`,
+          }}
+        />
+      </div>
 
-      <div style={{ padding: "28px 36px 80px" }}>
-        {/* Status strip */}
-        <div style={{ display: "flex", gap: 14, flexWrap: "wrap", margin: "0 0 22px" }}>
-          <div
-            style={{
-              flex: 1,
-              minWidth: 300,
-              background: "var(--surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 8,
-              padding: "11px 16px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 12,
-            }}
-          >
-            <p style={{ fontSize: 12, color: "var(--text-2)", margin: 0 }}>
-              <b style={{ color: "var(--text)" }}>Platform-wide controls.</b> Per-org settings
-              (members, billing) live on each org owner&apos;s{" "}
-              <a href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                Profile
-              </a>
-              .
-            </p>
-            <Button variant="secondary" size="sm" onClick={loadData}>
-              Refresh
-            </Button>
-          </div>
-          <div
-            style={{
-              background: "var(--surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 8,
-              padding: "11px 16px",
-              display: "flex",
-              alignItems: "center",
-              gap: 16,
-              flexWrap: "wrap",
-            }}
-          >
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-              {mtd} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>month-to-date</span>
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-              {initialMtdRuns} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>agent runs</span>
-            </span>
-            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)", fontVariantNumeric: "tabular-nums" }}>
-              {initialMtdErrors} <span style={{ fontWeight: 600, color: "var(--text-2)" }}>errors</span>
-            </span>
-            <span
-              style={{
-                fontSize: 9.5,
-                fontWeight: 800,
-                letterSpacing: "0.09em",
-                textTransform: "uppercase",
-                color: "var(--text-2)",
-                border: "1px solid var(--color-border-medium)",
-                borderRadius: 4,
-                padding: "3px 8px",
-              }}
-            >
-              Read-only
-            </span>
-          </div>
-        </div>
-
+      <div style={{ padding: "16px 40px 40px" }}>
         <div className="admin-t08-grid">
-          {/* LEFT — sections + sub-nav + body */}
+          {/* LEFT — counters + sub-nav + body */}
           <div style={{ minWidth: 0 }}>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "baseline",
-                justifyContent: "space-between",
-                borderBottom: "2px solid var(--text)",
-                padding: "0 0 8px",
-                margin: "0 0 14px",
-                gap: 12,
-              }}
-            >
-              <h2
-                style={{
-                  fontFamily: "var(--font-display)",
-                  fontWeight: 400,
-                  fontSize: 26,
-                  letterSpacing: "0.02em",
-                  textTransform: "uppercase",
-                  margin: 0,
-                  color: "var(--text)",
-                }}
-              >
-                Sections
-              </h2>
-              <span style={{ fontSize: 12, color: "var(--text-2)" }}>
-                Admin / <b style={{ color: "var(--text)" }}>{crumb}</b>
-              </span>
-            </div>
-
-            {/* Sections plate grid */}
+            {/* Counter tiles (README screen 13: "counters are stat blocks,
+                never band tiles"). Each tile IS the section switcher the
+                sub-nav below responds to; Emission factors has no sub-nav
+                of its own and instead links straight to /admin/factors. */}
             <div className="admin-t08-sections" style={{ display: "grid", gap: 12, margin: "0 0 18px" }}>
               {SECTIONS.map((s) => {
                 const on = s.name === section;
@@ -417,46 +383,52 @@ export function AdminDashboard({
                       fontFamily: "inherit",
                       cursor: "pointer",
                       textAlign: "left",
-                      background: on ? "var(--color-bg-ai-strip)" : "var(--surface)",
-                      borderRadius: 8,
-                      padding: "13px 16px",
+                      background: "var(--card)",
+                      borderRadius: "var(--radius-card)",
+                      padding: "14px 16px",
                       width: "100%",
-                      border: on
-                        ? "2px solid var(--color-primary)"
-                        : "1px solid var(--color-border)",
+                      border: on ? "2px solid var(--brand)" : "1px solid var(--line-1)",
                     }}
                   >
-                    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10 }}>
-                      <span
-                        style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 16,
-                          letterSpacing: "0.03em",
-                          textTransform: "uppercase",
-                          color: "var(--text)",
-                        }}
-                      >
-                        {s.name}
-                      </span>
-                      {badge !== null && (
-                        <span
-                          style={{
-                            fontFamily: "var(--font-display)",
-                            fontSize: 16,
-                            color: "var(--sev-critical)",
-                            fontVariantNumeric: "tabular-nums",
-                          }}
-                        >
-                          {formatNumber(badge)}
-                        </span>
-                      )}
-                    </div>
-                    <p style={{ fontSize: 11, color: "var(--text-2)", lineHeight: 1.5, margin: "5px 0 0" }}>
-                      {s.sub}
-                    </p>
+                    <StatBlock
+                      label={s.name}
+                      value={formatNumber(tileCount(s.name))}
+                      tone={badge !== null ? "critical" : "default"}
+                      note={s.sub}
+                    />
                   </button>
                 );
               })}
+              <Link
+                href="/admin/factors"
+                prefetch={false}
+                style={{
+                  fontFamily: "inherit",
+                  textAlign: "left",
+                  textDecoration: "none",
+                  background: "var(--card)",
+                  borderRadius: "var(--radius-card)",
+                  padding: "14px 16px",
+                  width: "100%",
+                  border: "1px solid var(--line-1)",
+                  display: "block",
+                }}
+              >
+                <StatBlock
+                  label="Emission factors"
+                  value={formatNumber(initialEmissionFactorsLiveCount)}
+                  note={`${formatNumber(initialEmissionFactorsLiveCount)} live rows · read-only (WO-18)`}
+                />
+              </Link>
+            </div>
+
+            <div style={{ margin: "0 0 18px" }}>
+              <StateNote
+                action={{ label: "Refresh", onClick: loadData }}
+              >
+                Admin / <b>{crumb}</b> · platform-wide controls — per-org settings (members, billing)
+                live on each org owner&apos;s <a href="/profile" style={{ color: "inherit" }}>Account</a>.
+              </StateNote>
             </div>
 
             {/* Sub-nav */}

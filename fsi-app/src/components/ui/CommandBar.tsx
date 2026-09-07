@@ -15,21 +15,29 @@
  * system + one page) — logged in docs/design/handoff-2026-09-06/
  * DEVIATION-LOG.md so a later lane does not reintroduce a per-page panel
  * instead of reusing this.
+ *
+ * `placeholder` (additive extension, admin/account/settings lane
+ * 2026-09-06): the artboards for those three surfaces scope the prompt to
+ * what the page actually holds — "Search sources, workspaces, flags — or
+ * ask…", "Search settings — or ask…" — rather than the generic item-count
+ * copy. Optional; the generic placeholder is unchanged when omitted.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { formatNumber } from "@/lib/format";
 
 export interface CommandBarProps {
-  /** Total item count for the placeholder ("Search or ask across N items…"). */
+  /** Total item count for the default placeholder ("Search or ask across N items…"). */
   itemCount: number;
   /** Called as the reader types/submits a plain search (Enter, not Ask). */
   onSearch?: (query: string) => void;
   /** Page name the Ask call is scoped to (assistant context), e.g. "dashboard". */
   scope?: string;
+  /** Override the default item-count placeholder with a page-scoped prompt. */
+  placeholder?: string;
 }
 
-export function CommandBar({ itemCount, onSearch, scope }: CommandBarProps) {
+export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandBarProps) {
   const [value, setValue] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -82,7 +90,7 @@ export function CommandBar({ itemCount, onSearch, scope }: CommandBarProps) {
           setValue(e.target.value);
           onSearch?.(e.target.value);
         }}
-        placeholder={`Search or ask across ${formatNumber(itemCount)} items…`}
+        placeholder={placeholder ?? `Search or ask across ${formatNumber(itemCount)} items…`}
         aria-label="Search or ask across the workspace"
         style={{
           flex: 1,

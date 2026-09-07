@@ -258,6 +258,7 @@ function NotifRow({
         justifyContent: "space-between",
         alignItems: "center",
         gap: 14,
+        minHeight: 44,
         padding: "11px 0",
         borderTop: "1px solid var(--color-border-subtle)",
       }}
