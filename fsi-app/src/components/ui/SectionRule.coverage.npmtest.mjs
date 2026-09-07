@@ -10,6 +10,11 @@
 //
 // This test locks the files this pass DID touch: each must mount a real `<SectionRule />` JSX
 // element, and the specific `borderBottom` this pass removed must not have returned.
+//
+// UPDATED (fix58-lists, 2026-09-07, design audit B163/B165/B170): the list-surface rail cards
+// (LegendRailCard/RailCard, ListSurfaceRailCards.tsx) and ListSurfaceShell's own facets card(s)
+// were NOT BUILT per this audit — no `<SectionRule/>` at all — and are fixed here, additive to
+// the coverage this file already locked (ListSurfaceShell's per-ledger Card mount, unchanged).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -38,6 +43,7 @@ const FILES_EXPECTING_SECTION_RULE = [
   ["components/map/MapPageView.tsx", 1],
   ["components/watchlist/WatchlistSurface.tsx", 1],
   ["components/dashboard/DashboardBrief.tsx", 1],
+  ["components/list-surface/ListSurfaceRailCards.tsx", 1],
 ];
 
 test("every file this pass touched for GAP G1 mounts at least one real <SectionRule />", () => {
@@ -57,6 +63,11 @@ test("ListSurfaceShell's per-band Card skips SectionRule (noRule) to avoid stack
   const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceShell.tsx"), "utf8");
   assert.match(text, /noRule\?/);
   assert.match(text, /<Card key=\{section\.band\.key\} noRule>/);
+});
+
+test("ListSurfaceShell.tsx mounts SectionRule 3 times (the per-ledger Card, and the primary + secondary facets cards)", () => {
+  const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceShell.tsx"), "utf8");
+  assert.equal(countRealMounts(text), 3);
 });
 
 const NO_BORDER_BOTTOM_UNDER_TITLE = [

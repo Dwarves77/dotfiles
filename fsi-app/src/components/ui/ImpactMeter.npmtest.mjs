@@ -37,3 +37,32 @@ test("operator audit item 2.1 (2026-09-07): unscored row-variant baseline is 30p
   assert.match(SOURCE, /width: variant === "full" \? 96 : 30/);
   assert.doesNotMatch(SOURCE, /variant === "full" \? 96 : 40/);
 });
+
+// Design audit B29-B46 (docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md,
+// impactmeter.json, artboard #sys list-row example): desktop row-scored bars are 9px
+// wide, heights 6/12/18 for scores 1/2/3, top-only 1px radius, sitting in an 18px
+// container on a 1px solid rgba(0,0,0,.25) baseline; the sum label sits margin-left:7px.
+test("B29-B31: row-scored bars container is 18px tall with a 1px solid rgba(0,0,0,.25) baseline", () => {
+  assert.match(SOURCE, /className="cl-impact-bars"[\s\S]{0,160}height: 18,[\s\S]{0,80}borderBottom: "1px solid rgba\(0,0,0,\.25\)"/);
+});
+
+test("B33-B39: row-scored bars are 9px wide, height = score * 6px, top-only radius", () => {
+  assert.match(SOURCE, /width: 9,\s*\n\s*height: `\$\{v \* 6\}px`/);
+  assert.match(SOURCE, /borderRadius: "1px 1px 0 0"/);
+});
+
+test("B40: row-scored sum label sits margin-left:7px from the bars", () => {
+  assert.match(SOURCE, /whiteSpace: "nowrap",\s*\n\s*marginLeft: 7,/);
+});
+
+test("B41: unscored dashed baseline is rgba(0,0,0,.3), not the --line-1 token", () => {
+  assert.match(SOURCE, /borderBottom: "1px dashed rgba\(0,0,0,\.3\)"/);
+});
+
+test("B42-B44: full-variant track is 8px tall, 8px radius, gradient mid stop at 55%", () => {
+  assert.match(SOURCE, /height: 8,\s*\n\s*borderRadius: 8,\s*\n\s*background:\s*\n\s*"linear-gradient\(90deg, var\(--awareness\), var\(--action\) 55%, var\(--immediate\)\)"/);
+});
+
+test("B45-B46: full-variant dimension label is 116px wide at fs-125", () => {
+  assert.match(SOURCE, /fontSize: "var\(--fs-125\)", color: "var\(--ink-2\)", width: 116/);
+});

@@ -9,8 +9,8 @@
   "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
   "notes": [
     "The fixture (2 past, 1 current, 2 future entries) reproduces the artboard row example's own dot pattern (2 passed, 1 next, 2 ahead) so the artboard's own numbers are the comparison.",
-    "The artboard's track is 2px tall, green from 0 to the 'next' dot's position (58%) then rgba(0,0,0,.12) beyond. The built component renders a single 1px rgba(0,0,0,.12) line with no green portion at all — read this as a real geometry/colour gap, not a harness artefact: MilestoneTimeline.tsx's own track span has one style object, no conditional green segment.",
-    "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell; the built component uses `justify-content:space-between` across a `width:100%` row, which auto-spaces n dots evenly rather than at those exact offsets. Position is not asserted below (space-between vs fixed-px is a layout-strategy difference the harness cannot fairly reduce to one number for n dots); the dot SIZES and COLOURS are asserted, which is where the fixed vocabulary lives.",
+    "FIXED (fix58-lists, 2026-09-07, B-row 'the track green-to-next-dot finding'): dc.html #sys line 202 states the list-row track literally as `height:2px;background:linear-gradient(90deg,#16A34A 0,#16A34A 58%,rgba(0,0,0,.12) 58%)` — corrected from this spec's prior expect (height 1px, flat rgba(0,0,0,.12), no green) which had underscored a real, confirmed product gap instead of asserting the design's own stated value. MilestoneTimeline.tsx now renders the track as a single gradient with a hard colour stop at the 'next' dot's own position (green before it, rgba(0,0,0,.12) after), matching the artboard's technique exactly.",
+    "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell, so its gradient stop (58%) is measured against THOSE offsets; the built component uses `justify-content:space-between` across a `width:100%` row (an accepted, pre-existing layout-strategy difference — dot POSITION is not asserted below for the same reason). The gradient stop below is therefore this fixture's own space-between position for the 'next' dot (index 2 of 5, i.e. 50%), not the artboard's literal 58% — the CONVENTION (green-to-next, hard stop, rgba(0,0,0,.12) beyond) is what's asserted, computed consistently with the dots' own real positions rather than a borrowed fixed-px number.",
     "Selectors reach dots by DOM order: MilestoneTimeline.tsx has no per-dot marker class, so nth-of-type addresses the classifier's output directly (dot 1/2 = passed, dot 3 = next, dot 4/5 = ahead, per milestone-timeline-classify.ts, proven independently by its own npmtest.mjs)."
   ],
   "selector": "[data-audit=\"row-populated\"] [role=\"img\"]",
@@ -21,10 +21,10 @@
     {
       "name": "track line",
       "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
-      "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent.",
+      "note": "dc.html #sys line 202: height 2px, linear-gradient green 0-58% (artboard's own fixed-px 'next' position) then rgba(0,0,0,.12) beyond. This fixture's 'next' dot sits at 50% under the built component's own space-between spacing (index 2 of 5) — see the spec's own notes above for why 50% and not 58%.",
       "expect": {
-        "height": "1px",
-        "background-color": "rgba(0,0,0,.12)"
+        "height": "2px",
+        "background-image": "linear-gradient(90deg, #16A34A, #16A34A 50%, rgba(0,0,0,.12) 50%)"
       }
     },
     {

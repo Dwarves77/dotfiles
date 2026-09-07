@@ -76,6 +76,14 @@ export interface ListRowProps {
    * existing caller is unaffected.
    */
   tags?: { id: string; name: string }[] | null;
+  /**
+   * Additive extension (design audit B130, 2026-09-07, map-register.json,
+   * dc.html p10 'Jurisdiction register' card): register-style rows (a row
+   * per JURISDICTION, not per scored item — carries no impact/due/timeline
+   * of its own) are 44px tall, not the general row's 56px. Undefined keeps
+   * the original 56px — every existing caller is unaffected.
+   */
+  minHeight?: number;
 }
 
 const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
@@ -104,6 +112,7 @@ export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string })
         display: "grid",
         gridTemplateColumns: GRID,
         gap: "0 14px",
+        height: 30,
         padding: "8px 0",
         borderBottom: "1px solid var(--line-2)",
       }}
@@ -150,7 +159,7 @@ const RESPONSIVE_CSS = `
   }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56 }: ListRowProps) {
   const tailContent = endStat ? (
     <span
       style={{
@@ -167,11 +176,11 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           display: "inline-flex",
           alignItems: "center",
           gap: 5,
-          fontSize: "var(--fs-105)",
+          fontSize: "var(--fs-10)",
           fontWeight: 800,
-          letterSpacing: "0.08em",
+          letterSpacing: "0.06em",
           textTransform: "uppercase",
-          color: endStat.band.cssVar,
+          color: "var(--ink)",
         }}
       >
         <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar }} />
@@ -180,7 +189,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
       <span
         style={{
           fontFamily: "var(--font-display)",
-          fontSize: 18,
+          fontSize: 16,
           color: endStat.band.cssVar,
           fontVariantNumeric: "tabular-nums",
         }}
@@ -196,7 +205,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
       <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
         {due ? (
           <>
-            <span className="cl-row-due-label" style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+            <span className="cl-row-due-label" style={{ fontSize: "var(--fs-125)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
               {due.label}
             </span>
             <span className="cl-row-due-days" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
@@ -208,7 +217,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
       <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
-      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center" }}>
+      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center" }}>
         {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
       </span>
     </>
@@ -221,10 +230,10 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         display: "grid",
         gridTemplateColumns: GRID,
         gap: "0 14px",
-        minHeight: 56,
+        minHeight,
         alignItems: "stretch",
         borderBottom: "1px solid var(--line-3)",
-        borderLeft: "3px solid transparent",
+        paddingRight: 12,
         position: "relative",
         ["--row-band" as string]: band.cssVar,
       }}
@@ -267,10 +276,10 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
             style={{
               display: "flex",
               alignItems: "center",
-              fontSize: "var(--fs-105)",
-              fontWeight: 800,
-              color: "var(--ink-3)",
-              letterSpacing: "0.04em",
+              fontSize: "var(--fs-11)",
+              fontWeight: 700,
+              color: "var(--ink-2)",
+              letterSpacing: "0.06em",
             }}
           >
             {jurisdiction}
@@ -282,6 +291,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
               style={{
                 fontSize: "var(--fs-14)",
                 fontWeight: 600,
+                lineHeight: "18.2px",
                 color: "var(--ink)",
                 overflow: "hidden",
                 textOverflow: "ellipsis",
@@ -310,7 +320,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                   <span
                     style={{
                       fontSize: "var(--fs-11)",
-                      color: "var(--ink-2)",
+                      color: "var(--ink-3)",
                       overflow: "hidden",
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
@@ -348,7 +358,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              borderLeft: "1px solid var(--line-3)",
+              borderLeft: "1px solid var(--line-2)",
               position: "relative",
               zIndex: 1,
             }}

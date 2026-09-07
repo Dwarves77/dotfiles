@@ -372,45 +372,16 @@ export function ListSurfaceShell({
           <div
             className="cl-facets-desktop"
             style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 10,
               background: "var(--card)",
               border: "1px solid var(--line-1)",
               borderRadius: "var(--radius-card)",
               boxShadow: "var(--shadow-card)",
-              padding: "12px 16px",
+              overflow: "hidden",
             }}
           >
-            {facetGroups.map((group) => (
-              <FilterChipGroup key={group.key} label={group.label}>
-                <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
-                  All
-                </FilterChip>
-                {group.options.map((opt) => (
-                  <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                    {opt.label} · {opt.count}
-                  </FilterChip>
-                ))}
-              </FilterChipGroup>
-            ))}
-          </div>
-
-          {secondaryFacetGroups && secondaryFacetGroups.length > 0 && (
-            <div
-              className="cl-facets-desktop"
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                background: "var(--card)",
-                border: "1px solid var(--line-1)",
-                borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-card)",
-                padding: "12px 16px",
-              }}
-            >
-              {secondaryFacetGroups.map((group) => (
+            <SectionRule />
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
+              {facetGroups.map((group) => (
                 <FilterChipGroup key={group.key} label={group.label}>
                   <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
                     All
@@ -422,6 +393,35 @@ export function ListSurfaceShell({
                   ))}
                 </FilterChipGroup>
               ))}
+            </div>
+          </div>
+
+          {secondaryFacetGroups && secondaryFacetGroups.length > 0 && (
+            <div
+              className="cl-facets-desktop"
+              style={{
+                background: "var(--card)",
+                border: "1px solid var(--line-1)",
+                borderRadius: "var(--radius-card)",
+                boxShadow: "var(--shadow-card)",
+                overflow: "hidden",
+              }}
+            >
+              <SectionRule />
+              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
+                {secondaryFacetGroups.map((group) => (
+                  <FilterChipGroup key={group.key} label={group.label}>
+                    <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
+                      All
+                    </FilterChip>
+                    {group.options.map((opt) => (
+                      <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
+                        {opt.label} · {opt.count}
+                      </FilterChip>
+                    ))}
+                  </FilterChipGroup>
+                ))}
+              </div>
             </div>
           )}
 

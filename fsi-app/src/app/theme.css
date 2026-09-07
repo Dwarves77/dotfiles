@@ -205,9 +205,13 @@
   /* --radius-pill intentionally not re-aliased here: the canonical
      declaration above (999px) is the only definition. A prior
      self-referential redeclaration at this line (`--radius-pill:
-     var(--radius-pill);`) made the custom property guaranteed-invalid
-     per the CSS spec and broke every pill-radius chip sitewide
-     (chips.json / filterchipgroup.json, audit 2026-09-07, B1). */
+     var(--radius-pill);`) was a cyclic custom-property reference, which
+     CSS defines as invalid, so every consumer (BandChip/WorkspaceTagPill/
+     TagChip/FilterChip pill state) silently fell back to border-radius's
+     initial value, 0, breaking every pill-radius chip sitewide
+     (chips.json / filterchipgroup.json, audit 2026-09-07, B1). Two lanes
+     (fix58-tokens and fix58-lists) independently deleted this same line;
+     folded to the single deletion here. */
 
   --transition-base: 0.18s ease;
 
