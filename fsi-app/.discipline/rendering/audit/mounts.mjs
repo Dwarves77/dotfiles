@@ -260,6 +260,88 @@ window.__mount = () => {
 };
 `;
 
+// ── Market + Research list rows — signal-kind / theme tag (real components) ───────────────────
+// README §0.4: "Market and Research rows add a signal-kind tag after the type — a tag, never a
+// band." Fixtures reproduce the shapes ../smoke/market-rows-smoke.mjs and research-rows-smoke.mjs
+// already use (one real row each, EMPTY_AGGREGATES), so the audit exercises the SAME data path
+// those smoke specs proved renders without crashing, not an audit-invented shape.
+const MARKETRESEARCH_ROWS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MarketIntelLedger } from '@/components/market/MarketIntelLedger';
+import { ResearchLedger } from '@/components/research/ResearchLedger';
+
+const EMPTY_AGGREGATES = {
+  totalItems: 0,
+  byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 0,
+  lastUpdatedAt: null,
+};
+
+const signal = {
+  id: 'sig-0',
+  cat: 'ocean',
+  sub: 'freight',
+  title: 'SAF cost outlook',
+  url: 'https://example.com',
+  note: 'Short signal note.',
+  type: 'market_signal',
+  priority: 'HIGH',
+  added: '2026-08-01',
+  reasoning: '',
+  tags: [],
+  whatIsIt: 'What this signal is about.',
+  whyMatters: '',
+  severity: 'cost_alert',
+  signalBand: 'price',
+  jurisdictionIso: ['EU'],
+  sourceTier: 3,
+  citationCount: 2,
+  biasTags: [],
+  priceStat: { valueDisplay: '$42.10/t', label: 'spot price' },
+  whatItChanges: '',
+  conversionTrigger: '',
+};
+
+const finding = {
+  id: 'find-0',
+  theme: 'emissions_accounting',
+  title: 'Methodology shift in Scope 3 reporting',
+  note: 'Short finding note.',
+  type: 'research_finding',
+  priority: 'HIGH',
+  added: '2026-08-01',
+  jurisdiction: 'EU',
+  jurisdictionIso: ['EU'],
+  sourceTier: 2,
+  citationCount: 2,
+  biasTags: [],
+  itemGrade: 'record',
+  reasoning: '',
+  tags: ['scope 3'],
+  whatIsIt: 'What this finding is about.',
+  whyMatters: '',
+  timeline: [{ date: '2027-06-01', label: 'Next review', status: 'future' }],
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 1180 } },
+      React.createElement('div', { 'data-audit': 'market-row' },
+        React.createElement(MarketIntelLedger, { initialResources: [signal], aggregates: EMPTY_AGGREGATES, seriesBoard: undefined })),
+      React.createElement('div', { 'data-audit': 'research-row' },
+        React.createElement(ResearchLedger, { resources: [finding], aggregates: EMPTY_AGGREGATES, sourceCoverage: [] })),
+    ),
+  );
+};
+`;
+
 // ── Operations region x dimension matrix (real component, real prop shape) ────────────────────
 // Reproduces the EXACT dimensions list OperationsLedger.tsx passes in production
 // (SOURCED_DIMENSIONS: DIMENSIONS filtered to exclude "regulatory") so the matrix's rendered row
@@ -509,6 +591,12 @@ export const AUDIT_MOUNTS = {
     description: 'PeerOrgDirectoryTable (community), not in the 17 artboards — general-rule checks only.',
     viewport: 1440,
     entry: PEERORGTABLE_ENTRY,
+  },
+  'market-research-rows': {
+    id: 'market-research-rows',
+    description: 'MarketIntelLedger + ResearchLedger, one real row each (README §0.4 signal-kind/theme tag).',
+    viewport: 1440,
+    entry: MARKETRESEARCH_ROWS_ENTRY,
   },
   'ops-matrix': {
     id: 'ops-matrix',

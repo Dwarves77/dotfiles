@@ -1,0 +1,35 @@
+{
+  "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+  "mount": "market-research-rows",
+  "viewport": 1440,
+  "artboards": ["04-market-list", "06-research-list"],
+  "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band'); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each — the same fixture shapes ../smoke/market-rows-smoke.mjs and research-rows-smoke.mjs already prove render without crashing)",
+  "notes": [
+    "CONFIRMED live, not from source reading alone: MarketIntelLedger.tsx correctly appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text — this is a POSITIVE finding, matching README §0.4 exactly. Checked below as the 'market row — signal-kind TagChip present' target, expected to read MATCH.",
+    "CONFIRMED live: ResearchLedger.tsx passes `meta: metaLine(r)` (src/lib/dashboard/row-fields.ts), which joins only `type`, `modes`, and `topic` — never a theme or kind. ResearchLedger.tsx does not import TagChip at all (confirmed by grep of the file). Research's theme classification (THEME_KEYS/assignTheme, src/lib/research/taxonomy.mjs) exists ONLY as a secondaryFacetGroups filter (the 'Theme' facet row), never rendered as a per-row chip — so the fixture's row meta line reads the bare word 'research_finding' with no theme tag beside it. This is a real gap against README §0.4's stated rule for Research specifically (Market and Research are named as a PAIR: 'Market and Research rows add a signal-kind tag'), checked below as a NOT BUILT target — the selector states the contract ResearchLedger.tsx would need to satisfy it (a TagChip in the row's meta line, mirroring MarketIntelLedger's own SignalRow), not an invented pixel value."
+  ],
+  "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
+  "expect": {
+    "background-color": "#F5F2EE",
+    "border-radius": "999px"
+  },
+  "children": [
+    {
+      "name": "market row — signal-kind TagChip label text",
+      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
+      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert' — matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
+      "expect": {
+        "text": "Cost alert"
+      }
+    },
+    {
+      "name": "research row — theme/kind TagChip (README §0.4 names Research alongside Market; ResearchLedger.tsx has none)",
+      "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"radius-pill\"]",
+      "note": "No such element exists in the built row today — ResearchLedger.tsx's `meta` is a plain string (type only), and the file imports no TagChip. Expected status: NOT BUILT, stating the selector contract a fix lane should satisfy (a TagChip carrying the row's theme, inserted the same way MarketIntelLedger's SignalRow already does).",
+      "expect": {
+        "background-color": "#F5F2EE"
+      }
+    }
+  ],
+  "forbid": []
+}
