@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T18:01:56.108Z",
+  "runAt": "2026-09-07T18:04:56.089Z",
   "specs": [
     {
       "part": "Community — peer-org directory table",
@@ -364,6 +364,45 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/impactmeter.json",
       "__id": "impactmeter"
+    },
+    {
+      "part": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "mount": "list-surface-virtualized",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet (list-row anatomy, the same one every surface uses)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md, 2026-09-07 entry 'ListSurfaceShell.tsx (shared part, extended additively) — PERF-12 remainder virtualization restored': 'Row anatomy is unchanged either way — renderRow still returns one <ListRow/>, per PERF-12's own \"virtualization only decides which rows mount\" contract.'; src/components/list-surface/ListSurfaceShell.tsx (VIRTUALIZE_THRESHOLD=30) and src/components/ledger/VirtualizedRowList.tsx (real components, one band at 35 rows, expanded, so ListSurfaceShell mounts the real VirtualizedRowList path instead of the plain `.map()`)",
+      "notes": [
+        "This is a STRUCTURAL claim check (does virtualization preserve row anatomy), not a page artboard's own stated pixel value — the artboard has no notion of virtualization at all (it shows static example rows). The comparison value is the shared listrow.json spec's own `.cl-list-row` geometry (min-height 56px, the class name itself), read from the SAME real ListRow.tsx component both the plain and virtualized paths render.",
+        "MEASURED, confirming DEVIATION-LOG's claim is TRUE, not asserted from reading the source alone: a standalone debug mount showed all 35 rows present immediately after mount (before `useNearestScrollParent`'s effect resolves), then windowing down to 27 of 35 once it does (no scrollable ancestor exists in this no-AppShell mount, so it falls back to `WindowVirtualized`) — the SAME `.cl-list-row` class and 56px min-height in both states. `run-audit.mjs`'s own 80ms post-mount measurement window lands AFTER that effect has already resolved (confirmed: this spec's own run reads count=27, not 35), so the windowed count is what this spec's row(s) are measured against; it is viewport/timing-dependent and no artboard states it, which is why COUNT is not asserted below (removed after a first attempt at `count:35` read a false MISMATCH here — a harness-timing artefact, not a design defect, fixed by dropping the count assertion rather than chasing a moving number, per this harness's own rule 4).",
+        "This spec adds NO new mount surface concept: it exercises the existing shared `ListSurfaceShell`/`VirtualizedRowList`/`ListRow` components exactly as RegulationsLedger.tsx already wires them (VIRTUALIZE_THRESHOLD, rowHeight=56, renderRow returning `<ListRow/>`) — reproduced from that file's own real integration, not invented."
+      ],
+      "selector": "[data-audit=\"virtualized-band\"] .cl-list-row",
+      "expect": {
+        "min-height": "56px"
+      },
+      "children": [
+        {
+          "name": "a virtualized row keeps the real ListRow title cell (no page-local row shape)",
+          "selector": "[data-audit=\"virtualized-band\"] .cl-list-row .cl-row-title-text",
+          "note": "Same class the shared listrow.json spec already checks (cell 3 — title): font-size 14px, weight 600. If virtualization forked its own row markup this selector would read NOT BUILT.",
+          "expect": {
+            "font-size": "14px",
+            "font-weight": "600"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "the literal word UNSCORED in a virtualized row",
+          "selector": "[data-audit=\"virtualized-band\"] .cl-list-row span",
+          "textMatch": "UNSCORED",
+          "reason": "General rule (operator 2.1), checked identically for the windowed path as the plain one."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/list-surface-virtualized.json",
+      "__id": "list-surface-virtualized"
     },
     {
       "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
@@ -3056,6 +3095,70 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+    },
+    {
+      "spec": "list-surface-virtualized",
+      "part": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "artboards": [
+        "00-system-sheet (list-row anatomy, the same one every surface uses)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md, 2026-09-07 entry 'ListSurfaceShell.tsx (shared part, extended additively) — PERF-12 remainder virtualization restored': 'Row anatomy is unchanged either way — renderRow still returns one <ListRow/>, per PERF-12's own \"virtualization only decides which rows mount\" contract.'; src/components/list-surface/ListSurfaceShell.tsx (VIRTUALIZE_THRESHOLD=30) and src/components/ledger/VirtualizedRowList.tsx (real components, one band at 35 rows, expanded, so ListSurfaceShell mounts the real VirtualizedRowList path instead of the plain `.map()`)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "selector": "[data-audit=\"virtualized-band\"] .cl-list-row",
+      "property": "min-height",
+      "expected": "56px",
+      "actual": "56px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface-virtualized",
+      "part": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "artboards": [
+        "00-system-sheet (list-row anatomy, the same one every surface uses)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md, 2026-09-07 entry 'ListSurfaceShell.tsx (shared part, extended additively) — PERF-12 remainder virtualization restored': 'Row anatomy is unchanged either way — renderRow still returns one <ListRow/>, per PERF-12's own \"virtualization only decides which rows mount\" contract.'; src/components/list-surface/ListSurfaceShell.tsx (VIRTUALIZE_THRESHOLD=30) and src/components/ledger/VirtualizedRowList.tsx (real components, one band at 35 rows, expanded, so ListSurfaceShell mounts the real VirtualizedRowList path instead of the plain `.map()`)",
+      "viewport": 1440,
+      "target": "a virtualized row keeps the real ListRow title cell (no page-local row shape)",
+      "selector": "[data-audit=\"virtualized-band\"] .cl-list-row .cl-row-title-text",
+      "property": "font-size",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "Same class the shared listrow.json spec already checks (cell 3 — title): font-size 14px, weight 600. If virtualization forked its own row markup this selector would read NOT BUILT."
+    },
+    {
+      "spec": "list-surface-virtualized",
+      "part": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "artboards": [
+        "00-system-sheet (list-row anatomy, the same one every surface uses)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md, 2026-09-07 entry 'ListSurfaceShell.tsx (shared part, extended additively) — PERF-12 remainder virtualization restored': 'Row anatomy is unchanged either way — renderRow still returns one <ListRow/>, per PERF-12's own \"virtualization only decides which rows mount\" contract.'; src/components/list-surface/ListSurfaceShell.tsx (VIRTUALIZE_THRESHOLD=30) and src/components/ledger/VirtualizedRowList.tsx (real components, one band at 35 rows, expanded, so ListSurfaceShell mounts the real VirtualizedRowList path instead of the plain `.map()`)",
+      "viewport": 1440,
+      "target": "a virtualized row keeps the real ListRow title cell (no page-local row shape)",
+      "selector": "[data-audit=\"virtualized-band\"] .cl-list-row .cl-row-title-text",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": "Same class the shared listrow.json spec already checks (cell 3 — title): font-size 14px, weight 600. If virtualization forked its own row markup this selector would read NOT BUILT."
+    },
+    {
+      "spec": "list-surface-virtualized",
+      "part": "ListSurfaceShell — PERF-12 virtualized remainder, row anatomy",
+      "artboards": [
+        "00-system-sheet (list-row anatomy, the same one every surface uses)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md, 2026-09-07 entry 'ListSurfaceShell.tsx (shared part, extended additively) — PERF-12 remainder virtualization restored': 'Row anatomy is unchanged either way — renderRow still returns one <ListRow/>, per PERF-12's own \"virtualization only decides which rows mount\" contract.'; src/components/list-surface/ListSurfaceShell.tsx (VIRTUALIZE_THRESHOLD=30) and src/components/ledger/VirtualizedRowList.tsx (real components, one band at 35 rows, expanded, so ListSurfaceShell mounts the real VirtualizedRowList path instead of the plain `.map()`)",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED in a virtualized row",
+      "selector": "[data-audit=\"virtualized-band\"] .cl-list-row span [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "General rule (operator 2.1), checked identically for the windowed path as the plain one."
     },
     {
       "spec": "list-surface",

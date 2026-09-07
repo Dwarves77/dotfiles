@@ -445,6 +445,60 @@ window.__mount = () => {
 };
 `;
 
+// ── ListSurfaceShell — PERF-12 virtualized remainder, real row anatomy ─────────────────────────
+// One band with 35 rows (> VirtualizedRowList's VIRTUALIZE_THRESHOLD of 30), expanded, so
+// ListSurfaceShell mounts the real VirtualizedRowList path (DEVIATION-LOG 2026-09-07, "PERF-12
+// remainder virtualization restored": "Row anatomy is unchanged either way — renderRow still
+// returns one <ListRow/>"). VirtualizedRowList renders every row PLAINLY (no windowing) until its
+// useNearestScrollParent effect resolves an ancestor — in this no-scroll-container mount that
+// effect never finds one, so the FIRST paint (measured here, no waitForTimeout needed) is exactly
+// the windowing mechanism's own documented pre-resolution fallback, not an audit workaround.
+const LISTSURFACE_VIRTUALIZED_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ListSurfaceShell } from '@/components/list-surface/ListSurfaceShell';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const action = BAND_ORDER.find((b) => b.key === 'action');
+const rows = Array.from({ length: 35 }, (_, i) => ({
+  key: 'r' + i,
+  href: '/regulations/item-' + i,
+  band: action,
+  jurisdiction: 'EU',
+  title: 'Virtualized row title ' + i,
+  meta: 'Regulation \\u00b7 Ocean \\u00b7 emissions',
+  impact: { cost: 1, compliance: 1, client: 2, operational: 3 },
+  due: { label: 'Sep 30 2026', days: '24 days' },
+  timeline: [],
+  tier: 1,
+}));
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 1180 }, 'data-audit': 'virtualized-band' },
+      React.createElement(ListSurfaceShell, {
+        title: "Regulations",
+        dateLabel: 'Vol IV · No. 36 · Sunday 6 September 2026',
+        itemCount: 35,
+        scope: 'regulations',
+        bandCounts: { immediate: 0, action: 35, monitor: 0, awareness: 0 },
+        selectedBand: null,
+        onSelectBand: () => {},
+        facetGroups: [],
+        rowsByBand: [{ band: action, rows, total: 35 }],
+        perBandCap: 5,
+        expandedBands: new Set(['action']),
+        rail: null,
+      }),
+    ),
+  );
+};
+`;
+
 // ── Page frame at 1440 ──────────────────────────────────────────────────────────────────────────
 // The real AppShell (nav card, content column, footer, the floating assistant) wrapping the two page
 // surfaces whose own chrome the frame rulings govern: the dashboard (the worked example page, its
@@ -634,6 +688,12 @@ export const AUDIT_MOUNTS = {
     description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own SOURCED_DIMENSIONS (5 of the real 6 DIMENSIONS).',
     viewport: 1440,
     entry: OPSMATRIX_ENTRY,
+  },
+  'list-surface-virtualized': {
+    id: 'list-surface-virtualized',
+    description: 'ListSurfaceShell, one band at 35 rows / expanded (> VIRTUALIZE_THRESHOLD 30) — real VirtualizedRowList path.',
+    viewport: 1440,
+    entry: LISTSURFACE_VIRTUALIZED_ENTRY,
   },
   'list-surface-1440': {
     id: 'list-surface-1440',
