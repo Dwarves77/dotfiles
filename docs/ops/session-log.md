@@ -11454,3 +11454,143 @@ emitted — the `SUPABASE_SERVICE_ROLE_KEY not configured` fail-closed warnings 
 by-design behavior for a credential-free container build, never a silent anon-key downgrade).
 Bundle: `git bundle create` of `origin/master..HEAD` at this container's own
 `train/wave54-2026-09-07` tip (4 commits, tip `958b227f`), verified with `git bundle verify`.
+
+## Addendum 86, postscript 9: train 55, the three UI-delta lanes folded, the UI system programme complete for this wave (2026-09-07, coordinator, lane ASSEMBLE-55)
+
+I am writing this as the coordinator. Train 54 landed on `origin/master` as PR #603
+(`1b9a80d7`). Master's tip going into this train was `1b9a80d7`; the worktree carried ten
+UI lanes already folded on top of it (`ui-system`, `uifix`, `uilists`, `uilists2`, `uidetails`,
+`uidetails2`, `uimapcomm`, `uiadmin`, `uiadmin2`, `uiauth`) at tip `bba3c67a`.
+
+**Three delta lanes folded, in order.** `lane/uitags-2026-09-07` (7 commits: migration 313
+workspace_tags + item_workspace_tags, tags API + client/server lib, `WorkspaceTagPill` +
+`TagPopover`, `ListRow` tags prop + `DetailHeader` tagRow prop, the Workspace tags facet on
+five list surfaces, saved searches, deviation log) merged clean, zero conflicts.
+`lane/uiactions-2026-09-07` (7 commits: `ActionRow` + `WatchButton` row variant,
+`SummaryDepthSwitch` + scoped ask placeholders, `exemptions-375.mjs`, the em-dash fix in
+`canonical-autoverify.mjs` + its regression test, docs) conflicted on `DetailShell.tsx` and
+three of the four detail surfaces (`OperationsDetailSurface.tsx`, `MarketSignalDetailSurface.tsx`,
+`ResearchFindingDetailSurface.tsx`) plus `DEVIATION-LOG.md`, all resolved keeping both lanes'
+additive changes (`DetailHeader` now carries both `tagRow` and `askPlaceholder`/`askScope`;
+`RegulationDetailSurface.tsx` had already auto-merged both from a prior train and needed no
+conflict resolution). `lane/uisettings2-2026-09-07` (2 commits: Notifications as its own
+Settings section, a second em-dash fix of `canonical-autoverify.mjs`) conflicted only on
+`DEVIATION-LOG.md`; per this train's own conflict rule, uisettings2's edits to
+`canonical-autoverify.mjs`/its test were superseded (git resolved them with no diff against
+uiactions' version, since both lanes had converged on the identical comma-prose fix
+independently, uiactions' copy carries the regression test).
+
+**The migration applied live before the code.** Migration 313 (`workspace_tags` +
+`item_workspace_tags`) was applied by the coordinator via Supabase MCP ahead of this fold
+(2 tables, 6 policies confirmed live). The file on the lane branch differed from what actually
+ran in two small ways: a redundant `workspace_tags_org_name_idx` (duplicating the unique index
+on the same `org_id`/`name_key` columns) that the coordinator did not create, and the SQL
+comments' em dashes, which the coordinator replaced with commas. A follow-up commit
+(`migration 313: match the applied DDL`) brought the tracked file into byte-for-byte agreement
+with the live DDL, so the migration file is never a claim about what ran that the database
+itself does not back. `override-check` then caught a real gap this same train (migration 313
+existed on disk with no `docs/inventories/migrations.md` row, a C3 finding, not the known
+worktree-listing C4 artefact); fixed in its own commit.
+
+**The `+ Tag` wiring.** `ActionRow`'s `+ Tag` trigger (uiactions) and `DetailTagRow`'s own
+`+ Tag` trigger under the title (uitags) both needed to open the SAME popover, not two
+independent ones, per the operator's own render of `/regulations/[slug]` showing both. `TagPopover`
+gained an optional controlled `open`/`onOpenChange` pair (uncontrolled by default, so nothing
+else that might one day mount it standalone regresses); `DetailTagRow` forwards the pair through
+to it. Each of the four detail surfaces now lifts one `tagOpen` boolean above both `ActionRow`
+and `DetailTagRow`, so `ActionRow`'s `onTag` and `DetailTagRow`'s own trigger toggle the identical
+state and render the identical popover instance.
+
+**DEVIATION-LOG.md and coverage.** Both fold conflicts on `DEVIATION-LOG.md` were a pure
+chronological union (new rows from each side interleaved by date, nothing dropped); the RULINGS
+section, present once at the top of the file before either fold, stayed present once. Confirmed
+by grep after each merge. `coverage-report.json` regenerated after the full fold: 863 governed
+files, 827 COVERED, 36 EXEMPT, 0 GAPS.
+
+**Dispatch ledger**: three rows appended after #71 (train 54's own last row), #72
+(canonical-autoverify dry on the wall-defer fix landed in train 54, run `34081920378`: 16 pending
+rows -> 4 approved, 9 rejected, 3 deferred, the 2 walled candidates now carrying their attempt
+count in `reviewer_notes` instead of an immediate reject, plus 1 transient); #73
+(canonical-autoverify apply, run `34082118998`, the first apply on the $0 fetch path: 13 rows
+written, 4 approved and promoted, 2 of them provisional tier-5 registrations `greenblue.org` and
+`napa.fi`, 2 into existing codified-tier sources, 9 rejected, 3 left pending; read-back exit 0,
+confirmed by SQL, `canonical_source_candidates` approved 289 / rejected 39 / pending 3); #74
+(tier-opinions dry, run `34082329193`: 2,567 sources scanned, 371 disagreements, identical to the
+371 `host_class_table` rows already in `source_tier_opinions`, the two provisional hosts have no
+class-table entry so the step has no opinion on them yet). **Apply was not dispatched for
+tier-opinions** because it would only append 371 repeat rows with no new information, a coordinator
+decision, not an oversight.
+
+**The UI programme, for the wave.** Ten page lanes (`ui-system`, `uifix`, `uilists`/`uilists2`,
+`uidetails`/`uidetails2`, `uimapcomm`, `uiadmin`/`uiadmin2`, `uiauth`) plus this train's three
+delta lanes (`uitags`, `uiactions`, `uisettings2`) complete the site-wide UI overhaul against the
+September 6 design package for this wave. The `uiadmin` lane is the one that refused scope
+(`DEVIATION-LOG.md`, "Admin (`/admin`), Sources/Organizations rows"): porting the two large,
+functionally rich admin views (`SourceHealthDashboard`'s provisional-review table,
+`OrganizationsTable`) onto `ListRow` was a real component extension, not a same-pass fix, and
+attempting it under that lane's remaining budget risked breaking live admin write-paths (source
+approve/reject, tier commit, member role/ban) with no way to verify against a real Supabase
+project in this sandbox; the lane built only the masthead, counter-row and issues-rail chrome
+around those two components and left them as-is, splitting the admin-row extension out as its
+own named next pass rather than forcing it into this wave. `assemble-train --fold --propose --ledger`:
+folded 0 (27 already folded, 0 conflicts), 0 new proposer briefs, 0 derived ledger rows.
+
+**The operator rulings of the day, as they landed in code and in `DEVIATION-LOG.md`'s RULINGS
+section this train**: R9 built the settings sub-nav as a `SectionIndex` row (five items, six once
+Notifications got its own entry per addendum item 7); the 375px rendering-guard exemptions are
+per-page and dated, six entries (the five list pages plus `/map`, coordinator-extended, operator
+confirmation still pending), expiring at train wave 58 or sooner if real mobile-390 fixtures land
+first (addendum item 8); LinkedIn sign-up is deferred, every LinkedIn route/component/test left
+untouched (addendum item 9, "we will do the linkedin sign up later"); the onboarding 4th
+"Briefing" step has no ruling yet and stays exactly as-is (addendum item 10, open on R7's own
+list); the second em-dash fix landed in `canonical-autoverify.mjs`'s generated `reviewer_notes`
+prose (addendum item 11), superseded in this fold by uiactions' identical earlier fix which
+carries the regression test.
+
+**Mobile 390: the operator's own message, recorded here because it changes what train 56 opens
+with.** The operator has stated the mobile 390 artboards exist, but the files
+(`20-mobile-390.png`, an updated HANDOFF.md/README.md) have not reached this repo or any
+connected folder as of this train. Per R10 (recorded in `DEVIATION-LOG.md`'s RULINGS section:
+"Mobile 390 and tablet 1024: not designed; no responsive rules are invented; they arrive as
+artboards", queue order overlays, then mobile 390, then the community thread page, then the
+settings section index artboards), nothing responsive is invented in the meantime. Mobile moves
+to train 56. `HANDOFF.md`'s open items are updated with this, plus the community thread page and
+overlays (both still queued, not designed), the onboarding Briefing step, and one internal
+tension worth the operator's eye: R9 already built the settings section index in prose-spec form
+while R10's own queue still lists "the settings section index artboards" as not yet designed,
+last in the queue, not a contradiction on outcome, but the built shape has never been checked
+against an artboard and is flagged in `HANDOFF.md` for confirmation once one exists.
+
+**UX compliance**: this train touched `.tsx` under `fsi-app/src` (`DetailShell.tsx`, the four
+detail surfaces, `TagPopover.tsx`, `DetailTagRow.tsx`) resolving the uitags/uiactions merge
+conflicts and wiring the `+ Tag` popover. `docs/design/ux-laws.md` and
+`docs/design/design-principles.md` (DP-1, DP-2) were read before editing. No new layout was
+introduced by the conflict resolution itself, both lanes' own additive changes were kept
+byte-for-byte where they did not touch the same lines; the only net-new behavior is the lifted
+`tagOpen` state and the `open`/`onOpenChange` pair on `TagPopover`/`DetailTagRow`, which changes
+wiring, not visual layout, geometry, or spacing. The rendering guard (run below) confirms no new
+375px clipping was introduced beyond the six already-dated, already-exempted entries carried in
+from train 54's own fold.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): fitness runner 33/33 PASS, 0 violations (F25:
+17 allowlist entries, 0 carrying an `expiry` field, confirmed by reading the live array, not only
+by the runner going green); `node --test` over `.discipline/governance/*.test.mjs`,
+`.discipline/fitness/*.test.mjs`, `.discipline/fitness/functions/*.test.mjs`,
+`.discipline/*.test.mjs`, `.discipline/rendering/*.test.mjs`: 628/628 PASS; closure-gate
+`--report` PASS on all four checks (NEVER-RUN/STALE-NEXT/WRITER-READER/LANE-CONTRACT); the
+rendering guard PASS, 14 failure(s) covered by the six dated 375px per-page exemptions (addendum
+item 8, entries expire at wave 58), all fixtures otherwise clean at every viewport;
+`run-test-suite.sh` 5875/5880 pass, 0 fail, 5 skipped (the `audit-finding-status` 596-unlabeled-line
+report is informational, `|| true`, pre-existing, untouched by this train, same finding trains
+48-54 already recorded); override-check `--range=origin/master..HEAD` failed only on this
+container's own sibling `/root/work/lanes/*` worktrees not listed in
+`docs/inventories/worktrees.md` (known artefact per the lane contract) after the migration-313
+inventory row was added to clear the one real C3 finding; `tsc --noEmit` clean; all 17
+`.github/workflows/*.yml` files parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS
+(119 invariants + 63 doctrines all wired); `next build --webpack` clean (85/85 static pages
+generated, full route manifest emitted, only the expected
+`SUPABASE_SERVICE_ROLE_KEY is not configured` fail-closed warnings, no `.env.local` present).
+Bundle:
+`git bundle create /tmp/train55.bundle origin/master..HEAD` at this container's own
+`train/wave55-2026-09-07` tip (85 commits, tip `8ad63631`, 10.3 MB), `git bundle verify` PASS.

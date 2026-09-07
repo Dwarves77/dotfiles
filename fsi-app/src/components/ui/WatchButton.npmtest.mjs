@@ -71,3 +71,28 @@ test("market_series is not silently missing: the file does not carry a narrower 
   // pattern the WO-23 drift actually took.
   assert.doesNotMatch(SOURCE, /"source"\s*\|\s*"reg"\s*\|\s*"signal"/);
 });
+
+// Lane uiactions (2026-09-07, design ruling R5): the ActionRow "row" variant — a compact star
+// toggle sharing the SAME persistence hook as the default personal+team pill, never a second
+// fetch/toggle implementation.
+test("the 'row' variant reuses useWatchMembership rather than re-deriving watch state", () => {
+  assert.match(SOURCE, /function useWatchMembership\(/);
+  const rowBody = SOURCE.slice(SOURCE.indexOf("function RowWatchButton"));
+  assert.match(rowBody, /useWatchMembership\(itemType, itemId, initialWatched\)/);
+  // RowWatchButton must not declare its own useState for watched/loaded/failed — only destructure
+  // them from the shared hook.
+  assert.doesNotMatch(rowBody.slice(0, rowBody.indexOf("}")), /useState\(/);
+});
+
+test("the 'row' variant renders the star glyph (☆ unwatched / ★ watched) via the shared ActionButton chrome, not a re-styled pill", () => {
+  assert.match(SOURCE, /import \{ ActionButton \} from "@\/components\/ui\/ActionRow"/);
+  const rowBody = SOURCE.slice(SOURCE.indexOf("function RowWatchButton"));
+  assert.match(rowBody, /\{watched \? "★" : "☆"\}/);
+  assert.match(rowBody, /<ActionButton/);
+});
+
+test("default (personal+team pill) rendering is unchanged: DefaultWatchButton still returns personalButton/teamButton, never the row chrome", () => {
+  const defaultBody = SOURCE.slice(SOURCE.indexOf("function DefaultWatchButton"), SOURCE.indexOf("function RowWatchButton"));
+  assert.match(defaultBody, /const personalButton = \(/);
+  assert.match(defaultBody, /const teamButton = /);
+});

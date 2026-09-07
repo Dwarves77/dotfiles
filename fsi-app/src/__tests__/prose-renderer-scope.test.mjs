@@ -1,18 +1,37 @@
-// prose-renderer-scope.test.mjs — the regression guard for the ProseSection/GfmSection split.
+// prose-renderer-scope.test.mjs — the regression guard for section-content rendering.
 //
-// THE DEFECT THIS LOCKS OUT. `regulations/sections/ProseSection.tsx` renders paragraphs only: it
-// splits on blank lines and emits <p>, with inline bold/italic/code/link and nothing else. No table,
-// no list, no heading. Its own docstring scopes it to "the tight 2-3-paragraph surface the mockup
-// specifies". It was nevertheless imported by Operations, Market Intel and Research, whose section
-// content is tabular — measured 2026-08-17 over `intelligence_item_sections`: 978 sections carry a
-// markdown table, 714 a bullet list, and on those three surfaces 114 of 116 items hold content
-// ProseSection cannot draw. A GFM table handed to it renders as a paragraph of pipe characters.
+// HISTORY. This test used to guard the ProseSection/GfmSection split: `regulations/sections/
+// ProseSection.tsx` rendered paragraphs only (no table, no list, no heading) and was scoped to "the
+// tight 2-3-paragraph surface the mockup specifies", yet was imported by Operations, Market Intel and
+// Research, whose section content is tabular — a GFM table handed to it rendered as a paragraph of
+// pipe characters. GfmSection (remark-gfm) fixed that.
+//
+// lane uidetails (2026-09-06): the entire `regulations/sections/` tree (RegulationSections,
+// ProseSection, ActionList, ObligationsTable, SectionCard, RegulationTimeline, SourcesList) was
+// deleted — RegulationDetailSurface.tsx was rebuilt onto the ONE detail architecture (README §0.5)
+// and re-parses each section's content_md directly into FactCards
+// (src/components/detail/FactBlocks.tsx + src/lib/detail/fact-paragraphs.ts) instead of dispatching
+// through that per-kind renderer tree. F25 module-liveness confirmed the tree had zero remaining
+// production importers before deletion. The ProseSection-specific assertions below (its scoping, its
+// typography match with GfmSection) are retired with it — CLAUDE.md rule 13 (a refuted/retired
+// premise is corrected in place, not silently dropped).
+//
+// lane uidetails2 (2026-09-07): Operations, Market Intel and Research were themselves rebuilt onto
+// the ONE detail architecture and now render every section's content_md through the same shared
+// FactBlocks (src/components/detail/FactBlocks.tsx), which routes non-claim "prose" blocks through
+// GfmSection internally — see FactBlocks.npmtest.mjs. A per-surface direct `import { GfmSection }`
+// used only to satisfy this test (with no call site) is exactly the dead-import smell CLAUDE.md rule
+// 13 forbids; Market's copy was that and has been removed. Research keeps a legitimate direct
+// GfmSection usage of its own (the WO-25 "cluster synthesis" ThemeBriefCard renders brief.briefMd,
+// content that never flows through FactBlocks/content_md), so it still appears in the direct-importer
+// list below, but the invariant that actually matters for all three is: content_md-carrying sections
+// render via FactBlocks, and GfmSection (wherever it is reached from) still actually enables GFM.
 //
 // WHY A SOURCE-TEXT ASSERTION. This repo has no component render harness — zero *.test.tsx, no
 // vitest/jest/tsx runner; `node --test` over *.mjs is the only execution-wired proof surface (the same
-// constraint F26 records for the storage-ceiling parity check, and the reason theme-stats.mjs exists).
-// A component-level test would be a proof that never runs, which standing rule 15 forbids. What CAN be
-// asserted here, and is what actually regresses, is WHICH renderer each surface is wired to.
+// constraint F26 records for the storage-ceiling parity check). A component-level test would be a
+// proof that never runs, which standing rule 15 forbids. What CAN be asserted here, and is what
+// actually regresses, is WHICH renderer each surface is wired to.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync, readdirSync, statSync } from "node:fs";
@@ -36,25 +55,28 @@ const importersOf = (name) =>
     .map(rel)
     .sort();
 
-test("ProseSection is imported ONLY by RegulationSections — it is correct in its own home, nowhere else", () => {
-  assert.deepEqual(importersOf("ProseSection"), ["components/regulations/sections/RegulationSections.tsx"]);
+test("regulations/sections/ (RegulationSections, ProseSection, and the rest of the per-kind renderer tree) no longer exists", () => {
+  assert.equal(importersOf("ProseSection").length, 0, "ProseSection should have been deleted with the rest of regulations/sections/");
+  assert.equal(importersOf("RegulationSections").length, 0, "RegulationSections should have been deleted (lane uidetails, 2026-09-06 — zero production importers per F25)");
 });
 
-test("Operations, Market Intel and Research each render sections through GfmSection", () => {
+test("Operations, Market Intel and Research each render content_md sections through the shared FactBlocks (which itself renders prose through GfmSection)", () => {
   const expected = [
     "components/operations/OperationsDetailSurface.tsx",
     "components/pages/MarketSignalDetailSurface.tsx",
     "components/research/ResearchFindingDetailSurface.tsx",
   ];
-  const actual = importersOf("GfmSection");
-  for (const f of expected) assert.ok(actual.includes(f), `${f} must import GfmSection (found: ${actual.join(", ")})`);
+  const actual = importersOf("FactBlocks");
+  for (const f of expected) assert.ok(actual.includes(f), `${f} must import FactBlocks (found: ${actual.join(", ")})`);
+  // FactBlocks is the one place a content_md prose block reaches GfmSection — see FactBlocks.npmtest.mjs.
+  assert.ok(importersOf("GfmSection").includes("components/detail/FactBlocks.tsx"));
 });
 
-test("no surface still renders a <ProseSection> element outside the regulations section tree", () => {
-  const offenders = FILES.filter((f) => /<ProseSection\b/.test(readFileSync(f, "utf8")))
-    .map(rel)
-    .filter((f) => !f.startsWith("components/regulations/"));
-  assert.deepEqual(offenders, [], `these render ProseSection outside regulations: ${offenders.join(", ")}`);
+test("no surface carries a direct GfmSection import with no call site (the dead-import smell rule 13 forbids)", () => {
+  for (const f of importersOf("GfmSection")) {
+    const src = readFileSync(join(SRC, f), "utf8");
+    assert.match(src, /<GfmSection[\s/>]/, `${f} imports GfmSection but never renders <GfmSection .../> — remove the dead import`);
+  }
 });
 
 test("GfmSection actually enables GFM — remark-gfm is what makes a table a table", () => {
@@ -63,14 +85,5 @@ test("GfmSection actually enables GFM — remark-gfm is what makes a table a tab
   assert.match(src, /remarkPlugins=\{\[\s*remarkGfm\s*\]\}/, "must pass remarkGfm to ReactMarkdown");
   for (const tag of ["table:", "thead:", "th:", "td:", "ul:", "ol:", "li:"]) {
     assert.ok(src.includes(tag), `GfmSection must style ${tag} — an unstyled table is the defect half-fixed`);
-  }
-});
-
-test("GfmSection keeps ProseSection's paragraph typography so the prose path is a visual no-op", () => {
-  const gfm = readFileSync(join(SRC, "components/shared/GfmSection.tsx"), "utf8");
-  const prose = readFileSync(join(SRC, "components/regulations/sections/ProseSection.tsx"), "utf8");
-  for (const decl of ["fontSize: 14", "lineHeight: 1.7", '"78ch"']) {
-    assert.ok(prose.includes(decl), `precondition: ProseSection should declare ${decl}`);
-    assert.ok(gfm.includes(decl), `GfmSection must match ProseSection's ${decl}`);
   }
 });

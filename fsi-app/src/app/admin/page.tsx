@@ -2,6 +2,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { AdminDashboard } from "@/components/admin/AdminDashboard";
 import { fetchSourceData } from "@/lib/supabase-server";
 import { requirePlatformAdmin } from "@/lib/auth/admin";
+import { formatLocaleDate } from "@/lib/format";
 import type { ErrorGroupRow } from "@/components/admin/ErrorGroupsView";
 import type { AssumptionRegisterRow } from "@/components/admin/AssumptionRegisterPanel";
 
@@ -85,6 +86,57 @@ export default async function AdminPage() {
     }
   };
 
+  // UI system handoff 2026-09-06 (README screen 13 "Platform admin"): two of
+  // the eight counter tiles (Research pipeline, Community pickups) had no
+  // server-side count anywhere — ResearchPipelineQueueView/
+  // CommunityPickupsQueueView fetch their own rows client-side. `head:true`
+  // exact counts, same filter each view already applies, so the tile number
+  // can never contradict the queue it links to.
+  const fetchResearchPipelineCount = async (): Promise<number> => {
+    try {
+      const { count, error } = await supabase
+        .from("intelligence_items")
+        .select("id", { count: "exact", head: true })
+        .eq("pipeline_stage", "draft")
+        .eq("is_archived", false);
+      return error || count == null ? 0 : count;
+    } catch {
+      return 0;
+    }
+  };
+
+  const fetchCommunityPickupsCount = async (): Promise<number> => {
+    try {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      const { count, error } = await supabase
+        .from("community_posts")
+        .select("id", { count: "exact", head: true })
+        .is("parent_post_id", null)
+        .is("promoted_at", null)
+        .gte("reply_count", 3)
+        .gte("created_at", thirtyDaysAgo);
+      return error || count == null ? 0 : count;
+    } catch {
+      return 0;
+    }
+  };
+
+  // Emission-factors tile (README screen 13's "Emission factors" counter,
+  // added to the existing seven-tile section grid). Same filter /admin/
+  // factors uses for its own "N live" meta line — the tile and that page
+  // can never disagree.
+  const fetchEmissionFactorsLiveCount = async (): Promise<number> => {
+    try {
+      const { count, error } = await supabase
+        .from("emission_factors")
+        .select("factor_id", { count: "exact", head: true })
+        .is("superseded_by", null);
+      return error || count == null ? 0 : count;
+    } catch {
+      return 0;
+    }
+  };
+
   const [
     sourceData,
     orgsRes,
@@ -93,6 +145,9 @@ export default async function AdminPage() {
     mtdSpend,
     errorGroups,
     assumptionRegister,
+    researchPipelineCount,
+    communityPickupsCount,
+    emissionFactorsLiveCount,
   ] = await Promise.all([
     fetchSourceData(true),
     supabase
@@ -125,14 +180,25 @@ export default async function AdminPage() {
     fetchMtdSpend(),
     fetchErrorGroups(),
     fetchAssumptionRegister(),
+    fetchResearchPipelineCount(),
+    fetchCommunityPickupsCount(),
+    fetchEmissionFactorsLiveCount(),
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
+
+  const dateLabel = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <AdminDashboard
       userId={userId}
       userEmail={email}
+      dateLabel={dateLabel}
       initialSources={sourceData.sources}
       initialProvisionalSources={sourceData.provisionalSources}
       initialOrgs={orgsRes.data || []}
@@ -143,6 +209,9 @@ export default async function AdminPage() {
       initialMtdErrors={mtdSpend.errors}
       initialErrorGroups={errorGroups}
       initialAssumptionRegister={assumptionRegister}
+      initialResearchPipelineCount={researchPipelineCount}
+      initialCommunityPickupsCount={communityPickupsCount}
+      initialEmissionFactorsLiveCount={emissionFactorsLiveCount}
     />
   );
 }

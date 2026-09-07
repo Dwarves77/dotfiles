@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { getListingsOnly } from "@/lib/data";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
+import { Masthead } from "@/components/ui/Masthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import {
   CommunityRooms,
@@ -14,10 +14,13 @@ import {
   CANONICAL_ROOM_SLUGS,
   roomForJurisdiction,
   homeJurisdictionsInRoom,
+  isRoomMember,
   type RoomKey,
 } from "@/lib/community/rooms";
 import type { Resource } from "@/types/resource";
 import { VERTICALS } from "@/lib/constants";
+import { bandFromPriority } from "@/lib/urgency/bands";
+import { formatLocaleDate } from "@/lib/format";
 
 export const dynamic = "force-dynamic";
 
@@ -42,10 +45,17 @@ function thirtyDaysAgoIso(): string {
   return new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 }
 
+// Delegates to bandFromPriority (src/lib/urgency/bands.ts), the ONE urgency
+// vocabulary (README §0.2) — this used to hand-roll its own CRITICAL/HIGH/
+// MODERATE/LOW mapping; kept as the same "critical"/"high"/"moderate"/"low"
+// return union (RoomVM.hue, HUE_VAR below) since that key only ever indexes
+// a CSS var lookup and is never rendered as visible text, but the band
+// classification itself now has one source of truth instead of two.
 function toneForPriority(p: string | undefined): "critical" | "high" | "moderate" | "low" {
-  if (p === "CRITICAL") return "critical";
-  if (p === "HIGH") return "high";
-  if (p === "MODERATE") return "moderate";
+  const key = bandFromPriority(p).key;
+  if (key === "immediate") return "critical";
+  if (key === "action") return "high";
+  if (key === "monitor") return "moderate";
   return "low";
 }
 
@@ -362,6 +372,7 @@ export default async function CommunityPage() {
       body: p.body,
       replyCount: p.reply_count ?? 0,
       createdAt: p.created_at,
+      lastActivityAt: p.last_reply_at ?? p.created_at,
       referencedItemIds: p.referenced_intelligence_item_ids ?? [],
       authorName,
       isYou,
@@ -446,27 +457,41 @@ export default async function CommunityPage() {
   }
 
   const totalItems = rooms.reduce((sum, r) => sum + r.itemCount, 0);
+  const yourRoomCount = (rs: RoomVM[]) => rs.filter(isRoomMember).length;
 
-  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
-  const meta = (
+  const boldInk = { fontWeight: 800, color: "var(--ink)" } as const;
+  const dek = (
     <span>
-      Regional rooms — what&rsquo;s live in each region, who&rsquo;s there, and the discussions
-      that explain what the ledger can&rsquo;t print yet.{" "}
+      {rooms.length} regional room{rooms.length === 1 ? "" : "s"}
       {seeded ? (
         <>
-          <span style={boldInk}>{totalItems}</span> active items across{" "}
-          <span style={boldInk}>{rooms.length}</span> rooms
+          {" "}
+          · <span style={boldInk}>{totalItems}</span> active item{totalItems === 1 ? "" : "s"} across
+          them · you are in <span style={boldInk}>{yourRoomCount(rooms)}</span>
         </>
-      ) : (
-        <>Peer posts are unverified by design; a verifier&rsquo;s sign-off makes them citable.</>
-      )}
+      ) : null}{" "}
+      · peer signal is unverified until a verifier signs off
     </span>
   );
+
+  const dateStr = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <>
       <SystemErrorBanner message={listings._error} />
-      <EditorialMasthead title="Community" meta={meta} />
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Community"
+          dateLabel={dateStr}
+          dek={dek}
+          commandBar={{ itemCount: totalItems, scope: "community" }}
+        />
+      </div>
       <CommunityRooms
         rooms={rooms}
         seeded={seeded}

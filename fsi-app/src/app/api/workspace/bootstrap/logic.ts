@@ -223,3 +223,23 @@ export async function loadOverrides(
     return [];
   }
 }
+
+// UI system handoff (2026-09-06, README §0.3): the nav rail's per-section live
+// counts (Regulations/Market/Research/Operations/Community/Watchlist). Joins
+// this bundle rather than becoming a seventh per-mount fetch — the exact
+// PERF-9 reasoning this whole route exists for.
+//
+// REUSES getNavCounts() (src/lib/nav/nav-counts.ts), which itself reuses
+// getSurfaceCoverageSnapshot (unstable_cache, migration-148 RPC) and
+// getWatchlist (unstable_cache) — the SAME calls the dashboard rail already
+// makes; no new Supabase read. Unlike this file's other loaders, it does not
+// take an explicit userId/orgId — getNavCounts resolves both from the
+// request's own cookies (legitimate here: this function runs inside a Route
+// Handler's request scope, the one place in this app that reads cookies()
+// server-side by design), because getSurfaceCoverageSnapshot/getWatchlist
+// are shared functions also called directly from the dashboard's own
+// page.tsx and were not written to accept an injected org id.
+export async function loadNavCounts(): Promise<import("@/lib/nav/nav-counts").NavCounts> {
+  const { getNavCounts } = await import("@/lib/nav/nav-counts");
+  return getNavCounts();
+}

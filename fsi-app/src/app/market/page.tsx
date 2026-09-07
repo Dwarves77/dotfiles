@@ -42,8 +42,6 @@
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
-import { formatLocaleDate } from "@/lib/format";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
 import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRibbon";
@@ -87,8 +85,6 @@ import { SurchargeAuditPanel } from "@/components/market/SurchargeAuditPanel";
 import { OemRoadmapPanel } from "@/components/market/OemRoadmapPanel";
 import { ReroutingPanel } from "@/components/market/ReroutingPanel";
 import { IndexationPanel } from "@/components/market/IndexationPanel";
-
-const BAND_VOCAB_SIZE = 3; // price / corporate / corridor (fixed taxonomy)
 
 interface DesnzFixtureRow {
   mode: string;
@@ -161,28 +157,16 @@ export default async function Market() {
     getCachedCorridorScopes(),
   ]);
 
-  const totalSignals = aggregates.totalItems || marketIntel.resources.length;
-  const today = formatLocaleDate(new Date(), {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
-  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
-
-  const meta = (
-    <span>
-      {today} · <span style={boldInk}>{totalSignals}</span> active{" "}
-      {totalSignals === 1 ? "signal" : "signals"} · <span style={boldInk}>{BAND_VOCAB_SIZE}</span> signal
-      bands · signals are unverified by design — timely first, confirmed later
-    </span>
-  );
-
   return (
     <>
-      <EditorialMasthead title="Market Intelligence" meta={meta} />
-      {/* Comparative ribbon (spec 02 §6 item 1): the 15-second "has anything moved" read, ahead of
-          the signal ledger and the full series board. Renders nothing when no series is populated yet
-          (MarketComparativeRibbon's own null-return), never an empty shell. */}
+      {/* UILISTS lane (2026-09-06): MarketIntelLedger now renders its own Masthead (UI system
+          handoff artboard 04) — the old hand-built <EditorialMasthead> + meta sub-line is gone. */}
+      {/* Comparative ribbon (spec 02 §6 item 1): the 15-second "has anything moved" read. The
+          artboard nests this ("Headline series") between the band tiles and the row list; kept as
+          its own section below the ledger instead — restructuring MarketComparativeRibbon's own
+          layout to nest inside ListSurfaceShell is out of this lane's budget, logged in
+          DEVIATION-LOG.md. Renders nothing when no series is populated yet, never an empty shell. */}
+      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
       <MarketComparativeRibbon board={seriesBoard} />
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
           every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
@@ -198,8 +182,7 @@ export default async function Market() {
           here the way there is on /regulations (1,316 verified items). PERF-MERGE: trim applies
           regardless of which RPC produced `marketIntel.resources` (toLedgerRowPayload is a generic
           Resource→Resource projection) — kept on top of PERF-10's org-independent
-          getPublicMarketIntelItems() fetch. */}
-      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
+          getPublicMarketIntelItems() fetch. Rendered once, above (UILISTS lane). */}
       {/* PERF-10 (2026-09-04): watchMembership is null — no per-viewer batch read runs on this page at
           all (see this file's header); each row's WatchButton resolves its own watch state
           client-side instead of arriving pre-seeded. */}

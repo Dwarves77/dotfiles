@@ -42,4 +42,13 @@ test('018 check: PASS — a removed page.tsx (null content) is not flagged (dele
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
+test('018 check: PASS — /settings is pre-existing account plumbing (PR #15), not a new surface', () => {
+  const ctx = buildContextFromFixture({
+    message: 'settings: one merged tab row from the UI system parts',
+    files: [{ path: 'fsi-app/src/app/settings/page.tsx', additions: 40, deletions: 10 }],
+    fileContents: { 'fsi-app/src/app/settings/page.tsx': 'export default function Page(){return null;}\n' },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
 test('018: metadata', () => { assert.equal(rule.id, '018'); });

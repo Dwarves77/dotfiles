@@ -10,19 +10,20 @@ import { runSmoke as runMarketRowsSmoke } from './market-rows-smoke.mjs';
 import { runSmoke as runOperationsRowsSmoke } from './operations-rows-smoke.mjs';
 import { runSmoke as runResearchRowsSmoke } from './research-rows-smoke.mjs';
 import { runSmoke as runRegulationsRowsSmoke } from './regulations-rows-smoke.mjs';
-import { runSmoke as runHomeSectionsSmoke } from './home-sections-smoke.mjs';
+import { runSmoke as runDashboardBriefSmoke } from './dashboard-brief-smoke.mjs';
 import { runSmoke as runCommunitySmoke } from './community-smoke.mjs';
 import { runSmoke as runSpec09Smoke } from './spec09-smoke.mjs';
 import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs';
 import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
 import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
+import { runSmoke as runMapSmoke } from './map-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
   { name: "operations-rows", run: runOperationsRowsSmoke }, // lane MOBILE
   { name: "research-rows", run: runResearchRowsSmoke }, // lane MOBILE
   { name: "regulations-rows", run: runRegulationsRowsSmoke }, // lane MOBILE
-  { name: "home-sections", run: runHomeSectionsSmoke }, // lane MOBILE
+  { name: "dashboard-brief", run: runDashboardBriefSmoke }, // lane UIFIX, 2026-09-06 (supersedes home-sections/HomeSurface, deleted)
   { name: "community-surface", run: runCommunitySmoke }, // lane COMMUNITY-B
   { name: "spec09-panels", run: runSpec09Smoke }, // lane SPEC-09
   { name: "detail-surfaces", run: runDetailSurfacesSmoke }, // lane MOBILE-2 (the four detail surfaces)
@@ -35,4 +36,8 @@ export const UX_SMOKE_SPECS = [
   // and the new CorridorsAppliedStripView (regulation-detail "Corridors this applies on" block) — the
   // reader's two customer-facing surfaces.
   { name: "corridor-scope", run: runCorridorScopeSmoke },
+  // lane uimapcomm, 2026-09-06: map-smoke.mjs mounts the real MapView (marker legend) and the real
+  // ListRow (jurisdiction register rows, endStat prop) — the gap the perf audit named ("no smoke
+  // spec mounts the map register or the marker legend").
+  { name: "map-page", run: runMapSmoke },
 ];

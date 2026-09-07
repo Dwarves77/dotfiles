@@ -131,6 +131,12 @@ export const ROW_SYSTEM_CSS = `
 export function watchlistFixtures() {
   const empty = { items: [], limit: 50 };
 
+  // UILISTS lane (2026-09-06): `priority`/`impactScores`/`sourceTier`/`complianceDeadline` are
+  // additive columns this lane's fetchWatchlist extension now populates for the three
+  // ITEM_BACKED_TYPES (reg/research/operations) — WatchlistSurface renders those rows through the
+  // shared ListRow (same row anatomy as the other four surfaces) only when `priority` is present;
+  // source/market_series rows carry none of them and render the Absence convention. `priority` on
+  // the "reg" oneRow fixture exercises the ListRow path (see WatchlistSurface.tsx's own header).
   const oneRow = {
     items: [
       {
@@ -143,24 +149,32 @@ export function watchlistFixtures() {
         scope: "team",
         note: "Flagged for the compliance review ahead of the Q4 filing.",
         addedBy: "Alice Chen",
+        priority: "HIGH",
+        sourceTier: 3,
       },
     ],
     limit: 50,
   };
 
   const TYPES = ["source", "reg", "signal", "research", "operations", "market_series"];
+  const ITEM_BACKED = new Set(["reg", "research", "operations"]);
   const extreme = {
-    items: Array.from({ length: 24 }, (_, i) => ({
-      id: `w${i}`,
-      type: TYPES[i % TYPES.length],
-      title: `${LONG(6, "Extremely long watched item title token")} #${i}`,
-      source: `${LONG(4, "Very-long-source-name-segment")}`,
-      jurisdiction: i % 3 === 0 ? "EU" : i % 3 === 1 ? "US-CA" : undefined,
-      lastChangedAt: `2026-0${(i % 8) + 1}-01T00:00:00Z`,
-      scope: i % 2 === 0 ? "team" : "personal",
-      note: i % 2 === 0 ? LONG(20, "long-team-note-word") : undefined,
-      addedBy: i % 2 === 0 ? "Priya Patel" : undefined,
-    })),
+    items: Array.from({ length: 24 }, (_, i) => {
+      const type = TYPES[i % TYPES.length];
+      return {
+        id: `w${i}`,
+        type,
+        title: `${LONG(6, "Extremely long watched item title token")} #${i}`,
+        source: `${LONG(4, "Very-long-source-name-segment")}`,
+        jurisdiction: i % 3 === 0 ? "EU" : i % 3 === 1 ? "US-CA" : undefined,
+        lastChangedAt: `2026-0${(i % 8) + 1}-01T00:00:00Z`,
+        scope: i % 2 === 0 ? "team" : "personal",
+        note: i % 2 === 0 ? LONG(20, "long-team-note-word") : undefined,
+        addedBy: i % 2 === 0 ? "Priya Patel" : undefined,
+        priority: ITEM_BACKED.has(type) ? (i % 4 === 0 ? "CRITICAL" : i % 4 === 1 ? "HIGH" : i % 4 === 2 ? "MODERATE" : "LOW") : undefined,
+        sourceTier: ITEM_BACKED.has(type) ? (i % 7) + 1 : undefined,
+      };
+    }),
     // limit === items.length: exercises the "standing at the read cap" honest banner (§4).
     limit: 24,
   };

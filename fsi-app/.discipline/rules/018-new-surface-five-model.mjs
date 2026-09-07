@@ -20,6 +20,7 @@ const ALLOWED_SEGMENTS = new Set([
   'map',           // geographic view of Regulations
   'admin',         // internal, role-gated (not a customer content surface)
   'onboarding', 'signup', 'login', 'profile', 'invitations', 'workspace', 'auth', // plumbing
+  'settings', // pre-existing account plumbing (PR #15, b02a415b), same class as profile, not a customer content surface
 ]);
 
 function norm(p) { return (p || '').replaceAll('\\', '/'); }

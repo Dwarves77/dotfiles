@@ -1,16 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import dynamic from "next/dynamic";
 import type { Resource, Supersession } from "@/types/resource";
 import { useSettingsStore } from "@/stores/settingsStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useResourceStore } from "@/stores/resourceStore";
 import { ALL_SECTORS } from "@/lib/constants";
-import { AccountMasthead } from "@/components/account/AccountMasthead";
+import { Masthead } from "@/components/ui/Masthead";
+import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
+import { SectionIndex, type SectionIndexEntry } from "@/components/detail/DetailShell";
+import { formatLocaleDate } from "@/lib/format";
 import {
-  SubTabBar,
-  type SubTab,
   AccountCard,
   HonestFrame,
   Chip,
@@ -44,22 +45,21 @@ interface Props {
   userEmail?: string;
 }
 
-type TabKey = "general" | "saved" | "data" | "archive" | "help";
-
-const TABS: SubTab<TabKey>[] = [
-  { key: "general", label: "General" },
-  { key: "saved", label: "Saved searches" },
-  { key: "data", label: "Data & supersessions" },
-  { key: "archive", label: "Archive" },
-  { key: "help", label: "Help" },
+// Ruling R9 (2026-09-07, docs/design/handoff-2026-09-06/DEVIATION-LOG.md): the five second-level
+// items become anchored SECTIONS in one scrolling page, reusing the sticky S1 . S2 . S3 SectionIndex
+// from the detail architecture (src/components/detail/DetailShell.tsx) rather than a second tab row.
+// `key` doubles as the anchor id every card below is mounted under.
+// Addendum item 7 (2026-09-07, docs/design/handoff-2026-09-06/DEVIATION-LOG.md): notification
+// preferences move off the profile page and become their own anchored "Notifications" section,
+// placed immediately after General — a sixth SectionIndex entry alongside R9's original five.
+const SETTINGS_SECTIONS: SectionIndexEntry[] = [
+  { id: "general", label: "General" },
+  { id: "notifications", label: "Notifications" },
+  { id: "saved", label: "Saved searches" },
+  { id: "data", label: "Data & supersessions" },
+  { id: "archive", label: "Archive" },
+  { id: "help", label: "Help" },
 ];
-
-const LEGACY_HASH_ALIASES: Record<string, TabKey> = {
-  notifications: "general",
-  briefing: "general",
-  dashboard: "general",
-  exports: "general",
-};
 
 const HOME_SECTIONS: Array<{ key: string; label: string }> = [
   { key: "SummaryStrip", label: "Summary strip" },
@@ -71,14 +71,6 @@ const HOME_SECTIONS: Array<{ key: string; label: string }> = [
 ];
 
 export function SettingsPage({ initialResources, initialArchived, supersessions, userId, userEmail = "" }: Props) {
-  const initialTab: TabKey = useMemo(() => {
-    if (typeof window === "undefined") return "general";
-    const h = window.location.hash.replace(/^#/, "");
-    if (TABS.some((t) => t.key === h)) return h as TabKey;
-    if (h in LEGACY_HASH_ALIASES) return LEGACY_HASH_ALIASES[h];
-    return "general";
-  }, []);
-  const [tab, setTab] = useState<TabKey>(initialTab);
 
   const resourceMap = useMemo(() => {
     const map = new Map<string, Resource>();
@@ -129,58 +121,92 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
   );
   const archiveCount = initialArchived.length + personalArchivedCount;
 
-  const onTabClick = (key: TabKey) => {
-    setTab(key);
-    if (typeof window !== "undefined") history.replaceState(null, "", `#${key}`);
-  };
+  const dateLabel = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
+  // Merged Account tab row (README screen 15: "a sub-tab of Account, same
+  // frame" — the same eight-entry row UserProfilePage renders, "Settings"
+  // active here). The first seven are real links back to /profile,
+  // carrying the tab to restore via `?tab=`; see that component's own
+  // header for the shared contract. Below it: ONE tab row on the page
+  // (ruling R9) — the settings' own five second-level items are anchored
+  // sections under a sticky SectionIndex, not a second tab row.
+  const accountTabs: TabRowItem[] = [
+    { key: "personal", label: "Personal", href: "/profile?tab=personal" },
+    { key: "organization", label: "Organization", href: "/profile?tab=organization" },
+    { key: "members", label: "Members & roles", href: "/profile?tab=members" },
+    { key: "sectors", label: "Sector profile", href: "/profile?tab=sectors" },
+    { key: "jurisdictions", label: "Jurisdictions", href: "/profile?tab=jurisdictions" },
+    { key: "verifier", label: "Verifier badge", href: "/profile?tab=verifier" },
+    { key: "activity", label: "Activity", href: "/profile?tab=activity" },
+    { key: "settings", label: "Settings", active: true },
+  ];
 
   return (
     <div>
-      <AccountMasthead active="settings" userEmail={userEmail} />
-      <div style={{ padding: "26px 36px 80px" }}>
-        <SubTabBar tabs={TABS} active={tab} onSelect={onTabClick} ariaLabel="Settings sections" />
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Settings"
+          dateLabel={dateLabel}
+          eyebrowSuffix="Personal"
+          dek="Dashboard defaults, freight sectors, notifications, briefing schedule."
+          commandBar={{
+            itemCount: 0,
+            scope: "settings",
+            placeholder: 'Search settings — or ask "how do I change my briefing…"',
+          }}
+        />
+      </div>
+      <div style={{ padding: "16px 40px 0" }}>
+        <TabRow tabs={accountTabs} ariaLabel="Account sections" />
+      </div>
+      <div style={{ padding: "16px 40px 80px" }}>
+        <SectionIndex sections={SETTINGS_SECTIONS} />
 
-        {tab === "general" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <DashboardSettingsCard />
-            <FreightSectorsCard />
-            <AccountCard title="Notifications" meta="In-app channel available now · email and push coming soon">
-              <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 4px" }}>
-                Choose what gets your attention. Conservative by default — higher-volume notifications are off
-                until you opt in.
-              </p>
-              <NotificationPreferences userId={userId} />
-            </AccountCard>
-            <AccountCard title="Briefing schedule" meta="Cadence · time · jurisdictions · delivery">
-              <BriefingScheduleSection />
-            </AccountCard>
-          </div>
-        )}
+        <div id="general" style={{ scrollMarginTop: 56, display: "grid", gap: 16, marginBottom: 32 }}>
+          <DashboardSettingsCard />
+          <FreightSectorsCard />
+          <AccountCard title="Briefing schedule" meta="Cadence · time · jurisdictions · delivery">
+            <BriefingScheduleSection />
+          </AccountCard>
+        </div>
 
-        {tab === "saved" && (
+        <div id="notifications" style={{ scrollMarginTop: 56, marginBottom: 32 }}>
+          <AccountCard title="Notifications" meta="In-app channel available now · email and push coming soon">
+            <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 4px" }}>
+              Choose what gets your attention. Conservative by default — higher-volume notifications are off
+              until you opt in.
+            </p>
+            <NotificationPreferences userId={userId} />
+          </AccountCard>
+        </div>
+
+        <div id="saved" style={{ scrollMarginTop: 56, marginBottom: 32 }}>
           <AccountCard title="Saved searches" meta="Named filter combinations · stored locally" maxWidth={720}>
             <SavedSearchesSection />
           </AccountCard>
-        )}
+        </div>
 
-        {tab === "data" && (
-          <div style={{ display: "grid", gap: 16 }}>
-            <AccountCard title="Data summary">
-              <DataSummary resources={initialResources} archived={initialArchived} />
-            </AccountCard>
-            <AccountCard
-              title="Upload operational data (CSV)"
-              meta="Surcharge audits · DQI · auxiliary energy · EUDR claims · custody chains · indexation terms"
-            >
-              <Spec09CsvUpload />
-            </AccountCard>
-            <AccountCard title="Supersession history">
-              <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />
-            </AccountCard>
-          </div>
-        )}
+        <div id="data" style={{ scrollMarginTop: 56, display: "grid", gap: 16, marginBottom: 32 }}>
+          <AccountCard title="Data summary">
+            <DataSummary resources={initialResources} archived={initialArchived} />
+          </AccountCard>
+          <AccountCard
+            title="Upload operational data (CSV)"
+            meta="Surcharge audits · DQI · auxiliary energy · EUDR claims · custody chains · indexation terms"
+          >
+            <Spec09CsvUpload />
+          </AccountCard>
+          <AccountCard title="Supersession history">
+            <SupersessionHistory supersessions={supersessions} resourceMap={resourceMap} />
+          </AccountCard>
+        </div>
 
-        {tab === "archive" && (
+        <div id="archive" style={{ scrollMarginTop: 56, marginBottom: 32 }}>
           <AccountCard
             title="Archive"
             meta={`${archiveCount} item${archiveCount !== 1 ? "s" : ""} · still recoverable`}
@@ -194,14 +220,14 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
               <ArchiveViewer />
             )}
           </AccountCard>
-        )}
+        </div>
 
-        {tab === "help" && (
+        <div id="help" style={{ scrollMarginTop: 56 }}>
           <HonestFrame heading="Help centre pending">
             Documentation and contact routes land here. Until then, workspace owners reach the team through
             the onboarding channel.
           </HonestFrame>
-        )}
+        </div>
       </div>
     </div>
   );
@@ -227,8 +253,6 @@ function LabelRow({ children }: { children: React.ReactNode }) {
 }
 
 function DashboardSettingsCard() {
-  const theme = useSettingsStore((s) => s.theme);
-  const setTheme = useSettingsStore((s) => s.setTheme);
   const defaultSort = useSettingsStore((s) => s.defaultSort);
   const setDefaultSort = useSettingsStore((s) => s.setDefaultSort);
   const exportFormat = useSettingsStore((s) => s.exportFormat);
@@ -266,9 +290,11 @@ function DashboardSettingsCard() {
         <div>
           <LabelRow>Appearance</LabelRow>
           <div style={{ display: "flex", gap: 6 }}>
-            <Chip label="Light" on={theme === "light"} onClick={() => setTheme("light")} />
-            <Chip label="Dark" on={theme === "dark"} onClick={() => setTheme("dark")} />
+            <Chip label="Light" on onClick={() => {}} />
           </div>
+          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "6px 0 0" }}>
+            Light only. There is one theme; the product reads like a printed ledger and stays that way.
+          </p>
         </div>
         <div>
           <LabelRow>Default sort</LabelRow>
@@ -317,7 +343,8 @@ function DashboardSettingsCard() {
                     justifyContent: "space-between",
                     alignItems: "center",
                     gap: 10,
-                    padding: "7px 0",
+                    minHeight: 44,
+                    padding: "0 2px",
                     borderBottom: "1px solid var(--color-border-subtle)",
                   }}
                 >

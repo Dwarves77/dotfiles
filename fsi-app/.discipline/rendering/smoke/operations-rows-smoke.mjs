@@ -129,15 +129,21 @@ function opsItem(i, { long = false } = {}) {
   };
 }
 
-// ── OperationsLedger states (region cards render from DEFAULT_REGIONS regardless of
-//    initialResources, so even the empty state has 5 titled region cards) ──
+// ── OperationsLedger states (UILISTS lane, 2026-09-06: OperationsLedger now assembles from
+//    ListSurfaceShell — band-tiles + band-grouped ListRow rows, plus the UNCHANGED
+//    RegionDimensionMatrix mounted via the `aboveRows` slot. Titles come from two sources: the
+//    matrix's per-dimension-name cells (SOURCED_DIMENSIONS, 5, render regardless of `facts` — see
+//    RegionDimensionMatrix's own comment, unchanged by this lane) and each ListRow's own title,
+//    capped at PER_BAND_CAP (5) per band. `operationsCoverage`/`regulationsByRegion` are omitted
+//    here so the matrix falls back to DEFAULT_REGIONS/SOURCED_DIMENSIONS, same as production when
+//    the coverage read is empty.) ──
 const LEDGER_STATES = [
   { label: 'empty', props: { initialResources: [], aggregates: EMPTY_AGGREGATES }, expectTitles: 5 },
-  { label: 'one-row', props: { initialResources: [opsItem(0)], aggregates: EMPTY_AGGREGATES }, expectTitles: 5 },
+  { label: 'one-row', props: { initialResources: [opsItem(0)], aggregates: EMPTY_AGGREGATES }, expectTitles: 6 },
   {
     label: 'extreme',
     props: { initialResources: Array.from({ length: 10 }, (_, i) => opsItem(i, { long: true })), aggregates: EMPTY_AGGREGATES },
-    expectTitles: 5,
+    expectTitles: 10,
   },
 ];
 
@@ -211,9 +217,22 @@ const MATRIX_STATES = [
   { label: 'extreme', props: { regions: REGIONS, dimensions: DIMENSIONS, facts: [] }, expectTitles: 3 },
 ];
 
+// UILISTS lane (2026-09-06): "Action" is BAND_ORDER's real, static band-tile label
+// (src/lib/urgency/bands.ts), rendered by OperationsLedger (via the shared ListSurfaceShell/
+// BandTile) — a disclosed, confirmed-safe match against source-entry-filter.mjs's HEADER_LITERALS
+// vocabulary (built for an unrelated table-header case), same carve-out regulations-rows-smoke.mjs
+// established per-spec.
+const KNOWN_SAFE_PLACEHOLDERS = ['Action'];
+
 export async function runSmoke(browser) {
   const results = await Promise.all([
-    runUxSpec(browser, { name: 'operations-ledger', entry: LEDGER_ENTRY, apiRoutes: LEDGER_API_ROUTES, states: LEDGER_STATES }),
+    runUxSpec(browser, {
+      name: 'operations-ledger',
+      entry: LEDGER_ENTRY,
+      apiRoutes: LEDGER_API_ROUTES,
+      states: LEDGER_STATES,
+      knownSafePlaceholders: KNOWN_SAFE_PLACEHOLDERS,
+    }),
     runUxSpec(browser, { name: 'operations-items', entry: ITEMS_ENTRY, states: ITEMS_STATES }),
     runUxSpec(browser, { name: 'operations-matrix', entry: MATRIX_ENTRY, states: MATRIX_STATES }),
   ]);

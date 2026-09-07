@@ -1,100 +1,50 @@
+/**
+ * Operations index (`/operations`) — server component.
+ *
+ * UI system handoff 2026-09-06, artboard 08 "Operations list". Composes
+ * <OperationsLedger> (masthead + band tiles + Mode/Region facets + region x
+ * dimension matrix + band-grouped rows + rail) plus the pre-existing
+ * DQI/auxiliary-energy/grid-queue panels and the automate-vs-hire
+ * calculator, none of which duplicate list-row UI.
+ *
+ * REWRITTEN this lane (UILISTS, 2026-09-06): the old <EditorialMasthead> is
+ * gone.
+ *
+ * RESTORED (UILISTS2 lane, 2026-09-07, operator ruling: an app feature not
+ * shown in the 17 artboards is restored exactly): `fetchStateCostFacts()` is
+ * read again here and passed to OperationsLedger, which renders the By-state
+ * sub-list below the region x dimension matrix — see that component's own
+ * header.
+ */
+
 import { getPublicOperationsItems, getPublicResourcesOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE, toLedgerRowPayload } from "@/lib/list-pagination";
 import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
-// Spec 09 §1.4/§1.5/§1.6 (lane SPEC-09, wave 3, 2026-09-03): three self-contained server components, each
-// reading its own table via the request-scoped service client. See each component's own header for the
-// fetch/soft-fail contract (shared with market/SurchargeAuditPanel.tsx's pattern).
 import { DqiPanel } from "@/components/operations/DqiPanel";
 import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
 import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 
-// PERF-10 (2026-09-04, root-cause fix, ADR-026 Follow-up / migration 306): `force-dynamic` REMOVED.
-// It existed because getOperationsItems()/getResourcesOnly() both called resolveOrgIdFromCookies()
-// before their cached RPC calls, so static generation baked in an empty payload — the comment this
-// replaces named exactly that failure mode. This page now renders from getPublicOperationsItems/
-// getPublicResourcesOnly (org-independent, unstable_cache-backed, migration 306's
-// get_operations_items_public) — no cookies() read anywhere in this page's own server render.
 export default async function Operations() {
   const t0 = Date.now();
-  // Sprint 2 Build 4: category routing wiring (OBS-26 / REC-OBS-G).
-  // Previously this page received the unfiltered slim payload via
-  // getResourcesOnly and shared its content with /market through the same
-  // shape. getOperationsItems wraps get_operations_items
-  // (source_role = 'statistical_data_agency') with skill Section 3
-  // exception filtering (Carbon Trust + Project Drawdown excluded; those
-  // route to Research). getResourcesOnly still runs in parallel as a
-  // fallback so the surface is never blank when the category RPC is
-  // empty (anon / misconfigured); it ALSO supplies the regulation cross-
-  // references for Build 9's regulatory feasibility section.
   const [opsItems, fallback, aggregates, operationsCoverage, stateCosts] = await Promise.all([
     getPublicOperationsItems(),
-    // First-paint page only (60 rows, newest added_date first) — the client
-    // (OperationsLedger) fetches the rest after paint via /api/listings/rest
-    // and appends it to regulationsByRegion below.
     getPublicResourcesOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0 }),
-    // Count-integrity consistency close-out: operations-scoped counts from the single SoT
-    // (migration 148), gated verified. PERF-10: getPublicSurfaceCounts (no cookies) — see its
-    // header in data.ts for the platform-wide vs per-org-override-adjusted trade-off.
     getPublicSurfaceCounts("operations"),
-    // Sprint 3 A6.3 (2026-05-27): regions + coverage state + facts from
-    // migrations 106 (regions + regional_data_facts) and 109
-    // (region_dimension_coverage). Empty arrays when not configured.
     fetchOperationsCoverage(),
-    // Sourced per-state cost facts (state_cost_facts, migration 152) for the
-    // US By-state sub-list. Fails soft to [] → honest dashes.
     fetchStateCostFacts(),
   ]);
   console.log(
-    `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length}, coverage_rows=${operationsCoverage.coverage.length}, fact_rows=${operationsCoverage.facts.length})`
+    `[perf] /operations data ${Date.now() - t0}ms (category-routed=${opsItems.total}, fallback=${fallback.resources.length}, coverage_rows=${operationsCoverage.coverage.length}, fact_rows=${operationsCoverage.facts.length})`,
   );
-  // Fail CLOSED: the ops item list is ONLY the item_type-gated RPC result; never fall through to
-  // the ungated seed on RPC error/empty. (fallback/getResourcesOnly is still fetched above — it
-  // legitimately supplies the regulation cross-references at regulationsByRegion below, NOT this list.)
-  //
-  // PAYLOAD lane (2026-09-04, item 2 of the perf brief): getOperationsItems() is unpaginated — unlike
-  // /regulations, this route ships its FULL category-routed result set server-side (no client remainder
-  // fetch exists for this list; the OperationsLedger remainder fetch above is for regulationsByRegion,
-  // a different prop). Full pagination of this list (capping the SSR render to LIST_FIRST_PAGE_SIZE and
-  // adding a client-side remainder fetch, mirroring RegulationsLedger) is a larger change than this
-  // trim — OperationsItemsView renders every row in one region-grouped/dimension-chip pass, not a
-  // paged ledger, so capping the row count needs its own design pass and is left for a follow-up lane
-  // (flagged, not silently dropped). What IS safe here, same-lane: trimming each row to the fields this
-  // surface actually reads. Verified by direct grep (this lane) that neither OperationsLedger.tsx nor
-  // OperationsItemsView.tsx read keyData/reasoning/fullBrief/regulatoryConflict/trajectoryPoints/
-  // operationalImpact/riskRegister/recommendedActions/openQuestions/sourceUrls — the same field set
-  // toLedgerRowPayload already blanks for /api/listings/rest's remainder response and now for
-  // /regulations' first-paint payload (src/lib/list-pagination.ts, src/app/regulations/page.tsx).
+
   const initialResources = opsItems.resources.map(toLedgerRowPayload);
-
-  // Build 9 Priority 1: regulatory feasibility by region. Cross-references
-  // regulation items from the full workspace payload, grouped per-region
-  // by the OperationsPage. Source-of-truth content lives on /regulations;
-  // /operations links into it. Per caros-ledge-platform-intent SKILL
-  // Section 3 binding framing, this is structured content, NOT a separate
-  // decision-engine UI (OBS-29).
   const regulationsByRegion = fallback.resources.filter(isRegulationItem);
-
-  // Redesign TEMPLATE 07: masthead (VOL eyebrow + Anton title + counts sub-line)
-  // + the OperationsLedger (severity tiles → D1–D6 dimension chips → Ask bar →
-  // region cards with the US By-state sub-list → active items → right rail).
-  // COUNTS bind to get_surface_counts('operations') (fail-soft) — never the
-  // mock snapshot; the descriptive tail is static editorial copy.
-  const boldInk = { fontWeight: 800, color: "var(--color-text-primary)" } as const;
-  const meta = (
-    <span>
-      <span style={boldInk}>{aggregates.totalItems || initialResources.length}</span> active items ·{" "}
-      <span style={boldInk}>{aggregates.totalJurisdictions || operationsCoverage.regions.length || 5}</span>{" "}
-      jurisdictions in scope · six dimensions per region · every fact carries a source and date
-    </span>
-  );
 
   return (
     <>
-      <EditorialMasthead title="Operations Intelligence" meta={meta} />
       <OperationsLedger
         initialResources={initialResources}
         aggregates={aggregates}
@@ -102,14 +52,9 @@ export default async function Operations() {
         operationsCoverage={operationsCoverage}
         stateCosts={stateCosts}
       />
-      {/* Lane DP-SURF, system-completion train, 2026-09-02: the automate-vs-hire calculator (docs/specs/
-          08-flywheel-design.md §2.3 worked example). Pure client-side compute — see the component's own
-          header for why no server round-trip/API route backs it. Existing OperationsLedger content above
-          is untouched. */}
+      {/* Lane DP-SURF: the automate-vs-hire calculator. Pure client-side compute. */}
       <AutomateVsHireCalculator />
-      {/* Spec 09 §1.4/§1.5/§1.6 (lane SPEC-09, wave 3, 2026-09-03): DQI, auxiliary energy, grid queue.
-          Each renders a single short "no rows yet" line when its table is empty (today's live state for
-          all three — see scripts/spec09/SOURCES.md) rather than an empty card. */}
+      {/* Spec 09 §1.4/§1.5/§1.6: DQI, auxiliary energy, grid queue. */}
       <DqiPanel />
       <AuxiliaryEnergyPanel />
       <GridQueuePanel />

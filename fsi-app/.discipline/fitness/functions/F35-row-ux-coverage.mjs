@@ -44,7 +44,7 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/regulations/RegulationsLedger.tsx': 'same row shape as MarketIntelLedger (read)',
   'src/components/regulations/UpcomingObligationsStripView.tsx': 'screenshot 05-regulations-upcoming (narrow title column, icon-only control); the View half of the async server component (lane MOBILE split)',
   'src/components/regulations/ObligationRegister.tsx': 'table rows; must scroll inside its own container',
-  'src/components/home/HomeSurface.tsx': 'screenshots 06/07-home (section header title beside a subtitle that runs off page)',
+  'src/components/dashboard/DashboardBrief.tsx': 'UI system handoff 2026-09-06 dashboard (README screen 1) — supersedes HomeSurface.tsx (deleted, no route rendered it); Due next / What changed SectionHeadings carry data-guard-title.',
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
@@ -56,10 +56,19 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/operations/GridQueuePanelView.tsx': 'spec09 §1.6 grid-queue gate row',
   'src/components/regulations/EudrCustodyPanelView.tsx': 'spec09 §1.8 EUDR/custody blocking-alert row',
   // Detail surfaces (lane MOBILE-2, second phone round): screenshot 09, breadcrumb off page and doubling the H1.
-  'src/components/regulations/RegulationDetailSurface.tsx': 'screenshot 09-regulation-detail-breadcrumb (crumb clipped, title doubled)',
-  'src/components/operations/OperationsDetailSurface.tsx': 'same header shape as the regulation detail (read)',
-  'src/components/research/ResearchFindingDetailSurface.tsx': 'same header shape as the regulation detail (read)',
-  'src/components/pages/MarketSignalDetailSurface.tsx': 'the market detail surface; same header shape (read)',
+  // lane uidetails (2026-09-06): RegulationDetailSurface.tsx was rebuilt onto the shared ONE detail
+  // architecture (DetailShell.tsx, README §0.5) — the H1/data-guard-title element it used to carry
+  // directly now lives in DetailShell.tsx's <DetailHeader>, the real shared home for the title on
+  // every detail surface that adopts it. Tracking moved to that file rather than left pointing at a
+  // component that no longer carries the attribute itself.
+  // lane uidetails2 (2026-09-07): OperationsDetailSurface.tsx, ResearchFindingDetailSurface.tsx and
+  // MarketSignalDetailSurface.tsx were rebuilt onto the SAME shared ONE detail architecture as
+  // RegulationDetailSurface.tsx above (DetailShell.tsx's <DetailHeader>) — same move, same reason:
+  // the data-guard-title H1 they used to carry directly now lives in DetailShell.tsx, so tracking
+  // them here as separate per-file requirements would demand a literal duplicate of the attribute
+  // string in a file that no longer renders its own <h1>. Dropped from this per-file list exactly as
+  // RegulationDetailSurface.tsx already was; DetailShell.tsx (below) remains the one tracked home.
+  'src/components/detail/DetailShell.tsx': 'the ONE detail architecture header (README §0.5) — home of the shared data-guard-title element for all four detail surfaces (regulations, market, research, operations), lane uidetails 2026-09-06 / uidetails2 2026-09-07',
   // lane NOTICES (2026-09-05): the entity-label link sat below the law-2 44/24px interactive-target
   // floor and an unbroken long entity name overflowed the row — found by notices-rail-smoke.mjs, which
   // mounts the real component (via NoticesRail, the shared rail Market and all four detail surfaces use).

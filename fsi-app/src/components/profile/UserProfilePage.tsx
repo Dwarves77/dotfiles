@@ -7,10 +7,11 @@ import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
-import { AccountMasthead } from "@/components/account/AccountMasthead";
+import { Masthead } from "@/components/ui/Masthead";
+import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
+import { StatBlock } from "@/components/ui/StatBlock";
+import { resolveInitialProfileTab } from "@/lib/account/initial-tab";
 import {
-  SubTabBar,
-  type SubTab,
   AccountCard,
   HonestFrame,
   PlainCard,
@@ -61,15 +62,6 @@ type TabKey =
   | "verifier"
   | "activity";
 
-const PROFILE_TABS: SubTab<TabKey>[] = [
-  { key: "personal", label: "Personal" },
-  { key: "organization", label: "Organization" },
-  { key: "members", label: "Members & roles" },
-  { key: "sectors", label: "Sector profile" },
-  { key: "jurisdictions", label: "Jurisdictions" },
-  { key: "verifier", label: "Verifier badge" },
-  { key: "activity", label: "Activity" },
-];
 
 // The six highlighted "core" verticals (fine art, live events, luxury,
 // film/TV, automotive, humanitarian) — the operator's specialised niches.
@@ -118,11 +110,45 @@ export function UserProfilePage({ userId, userEmail }: Props) {
   const isAdmin = userRole === "owner" || userRole === "admin";
   const { total: adminAttentionTotal } = useAdminAttention();
 
-  const [tab, setTab] = useState<TabKey>("personal");
+  // Cross-page tab restore (README screen 15: Settings' merged tab row links
+  // its first seven entries back here as `/profile?tab=<key>`) — read once on
+  // mount via window.location, same convention SettingsPage's own
+  // hash-based initialTab already uses (no useSearchParams Suspense
+  // boundary needed, and the read is genuinely client-only: SSR always
+  // renders the "personal" default, then this effect corrects it before
+  // paint on a real browser navigation).
+  const initialTab: TabKey = useMemo(() => {
+    if (typeof window === "undefined") return "personal";
+    return resolveInitialProfileTab(new URLSearchParams(window.location.search).get("tab"));
+  }, []);
+  const [tab, setTab] = useState<TabKey>(initialTab);
   const [profile, setProfile] = useState<ProfileRow>({ ...EMPTY_PROFILE, id: userId });
   const [workspaceSectors, setWorkspaceSectors] = useState<string[]>([]);
+  const [memberCount, setMemberCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Real count for the merged tab row's "Members & roles · N" (README screen
+  // 14) — MembersPanel owns its own member list state for the tab body; this
+  // is the same table, head-only, so the tab-row number can never disagree
+  // with what that panel shows once it loads.
+  useEffect(() => {
+    if (!orgId) {
+      setMemberCount(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { count, error } = await supabase
+        .from("org_memberships")
+        .select("id", { count: "exact", head: true })
+        .eq("org_id", orgId);
+      if (!cancelled) setMemberCount(error || count == null ? null : count);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, supabase]);
 
   useEffect(() => {
     let cancelled = false;
@@ -189,11 +215,62 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     };
   }, [profile, workspaceSectors]);
 
+  const dateLabel = formatLocaleDate(new Date(), {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+  const email = userEmail;
+
+  // Merged tab row (README screen 14: "one tab row" — replaces the
+  // pre-existing stacked pair, AccountMasthead's own Profile/Settings tabs
+  // over AccountPrimitives' SubTabBar). The seven Profile sub-tabs are
+  // in-page state switches; "Settings" is the eighth entry and a real link
+  // to the sibling route — SettingsPage renders the SAME merged row with
+  // "Settings" active and these first seven as links back here.
+  const accountTabs: TabRowItem[] = [
+    { key: "personal", label: "Personal", active: tab === "personal", onClick: () => setTab("personal") },
+    { key: "organization", label: "Organization", active: tab === "organization", onClick: () => setTab("organization") },
+    {
+      key: "members",
+      label: `Members & roles${memberCount != null ? ` · ${formatNumber(memberCount)}` : ""}`,
+      active: tab === "members",
+      onClick: () => setTab("members"),
+    },
+    {
+      key: "sectors",
+      label: `Sector profile${stats.sectorCount > 0 ? ` · ${formatNumber(stats.sectorCount)}` : ""}`,
+      active: tab === "sectors",
+      onClick: () => setTab("sectors"),
+    },
+    {
+      key: "jurisdictions",
+      label: `Jurisdictions${stats.jurisCount > 0 ? ` · ${formatNumber(stats.jurisCount)}` : ""}`,
+      active: tab === "jurisdictions",
+      onClick: () => setTab("jurisdictions"),
+    },
+    { key: "verifier", label: "Verifier badge", active: tab === "verifier", onClick: () => setTab("verifier") },
+    { key: "activity", label: "Activity", active: tab === "activity", onClick: () => setTab("activity") },
+    { key: "settings", label: "Settings", href: "/settings" },
+  ];
+
   if (loading) {
     return (
       <div>
-        <AccountMasthead active="profile" userEmail={userEmail} />
-        <div style={{ padding: "26px 36px 80px" }}>
+        <div style={{ padding: "20px 40px 0" }}>
+          <Masthead
+            title="Account"
+            dateLabel={dateLabel}
+            eyebrowSuffix="Personal"
+            dek={`${email} · loading…`}
+            commandBar={{ itemCount: 0, scope: "account", placeholder: 'Search settings — or ask "how do I add a member…"' }}
+          />
+        </div>
+        <div style={{ padding: "16px 40px 0" }}>
+          <TabRow tabs={accountTabs} ariaLabel="Account sections" />
+        </div>
+        <div style={{ padding: "16px 40px 80px" }}>
           <p style={{ fontSize: 13, color: "var(--color-text-muted)" }}>Loading profile…</p>
         </div>
       </div>
@@ -204,8 +281,29 @@ export function UserProfilePage({ userId, userEmail }: Props) {
 
   return (
     <div>
-      <AccountMasthead active="profile" userEmail={userEmail} />
-      <div style={{ padding: "26px 36px 80px" }}>
+      <div style={{ padding: "20px 40px 0" }}>
+        <Masthead
+          title="Account"
+          dateLabel={dateLabel}
+          eyebrowSuffix="Personal"
+          dek={
+            <>
+              {email} · <b style={{ color: "var(--ink)" }}>{orgName || "No workspace"}</b>
+              {userRole ? ` · ${capitalize(userRole)}` : ""}
+              {memberSince ? ` · member since ${memberSince}` : ""}
+            </>
+          }
+          commandBar={{
+            itemCount: 0,
+            scope: "account",
+            placeholder: 'Search settings — or ask "how do I add a member…"',
+          }}
+        />
+      </div>
+      <div style={{ padding: "16px 40px 0" }}>
+        <TabRow tabs={accountTabs} ariaLabel="Account sections" />
+      </div>
+      <div style={{ padding: "16px 40px 80px" }}>
         {/* Owner banner */}
         {isOwner && (
           <div
@@ -244,7 +342,9 @@ export function UserProfilePage({ userId, userEmail }: Props) {
           </div>
         )}
 
-        {/* Stat tiles */}
+        {/* Stat blocks (README screen 14: "statistics are stat blocks, never
+            band tiles" — replaces the page-local StatTile, a duplicate of
+            the shared StatBlock). */}
         <div
           style={{
             display: "grid",
@@ -258,52 +358,56 @@ export function UserProfilePage({ userId, userEmail }: Props) {
             @media (max-width: 900px) { .cl-acct-stats { grid-template-columns: repeat(2, 1fr) !important; } }
             @media (max-width: 520px) { .cl-acct-stats { grid-template-columns: 1fr !important; } }
           `}</style>
-          <StatTile
-            label="Sectors followed"
-            value={stats.sectorCount}
-            meta={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
-          />
-          <StatTile
-            label="Home jurisdictions"
-            value={stats.jurisCount}
-            meta={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
-          />
-          <StatTile
-            label="Member since"
-            value={memberSince ?? "—"}
-            meta={
-              orgName
-                ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
-                : memberSince
-                  ? "Not in a workspace"
-                  : "Join date not recorded"
-            }
-          />
-          {isAdmin ? (
-            <StatTile
-              label="Admin attention"
-              value={formatNumber(adminAttentionTotal)}
-              alarm={adminAttentionTotal > 0}
-              meta={
-                <a
-                  href="/admin"
-                  style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}
-                >
-                  items for review →
-                </a>
+          <StatTileCard>
+            <StatBlock
+              label="Sectors followed"
+              value={formatNumber(stats.sectorCount)}
+              note={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
+            />
+          </StatTileCard>
+          <StatTileCard>
+            <StatBlock
+              label="Home jurisdictions"
+              value={formatNumber(stats.jurisCount)}
+              note={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
+            />
+          </StatTileCard>
+          <StatTileCard>
+            <StatBlock
+              label="Member since"
+              value={memberSince ?? "—"}
+              note={
+                orgName
+                  ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
+                  : memberSince
+                    ? "Not in a workspace"
+                    : "Join date not recorded"
               }
             />
+          </StatTileCard>
+          {isAdmin ? (
+            <StatTileCard alarm={adminAttentionTotal > 0}>
+              <StatBlock
+                label="Admin attention"
+                value={formatNumber(adminAttentionTotal)}
+                tone={adminAttentionTotal > 0 ? "critical" : "default"}
+                note={
+                  <a href="/admin" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
+                    items for review →
+                  </a>
+                }
+              />
+            </StatTileCard>
           ) : (
-            <StatTile
-              label="Account role"
-              value={userRole ? capitalize(userRole) : "—"}
-              meta={orgName ? `In ${orgName}` : "No workspace role"}
-            />
+            <StatTileCard>
+              <StatBlock
+                label="Account role"
+                value={userRole ? capitalize(userRole) : "—"}
+                note={orgName ? `In ${orgName}` : "No workspace role"}
+              />
+            </StatTileCard>
           )}
         </div>
-
-        {/* Sub-tabs */}
-        <SubTabBar tabs={PROFILE_TABS} active={tab} onSelect={setTab} ariaLabel="Profile sections" />
 
         {error && (
           <div
@@ -337,56 +441,24 @@ export function UserProfilePage({ userId, userEmail }: Props) {
   );
 }
 
-// ── Stat tile ─────────────────────────────────────────────────────────────
-
-function StatTile({
-  label,
-  value,
-  meta,
-  alarm = false,
-}: {
-  label: string;
-  value: React.ReactNode;
-  meta?: React.ReactNode;
-  alarm?: boolean;
-}) {
+// ── Stat block card chrome ──────────────────────────────────────────────
+// Just the bordered card frame around a shared <StatBlock/> — not a second
+// stat component. Kept here (not promoted to src/components/ui/) because
+// it is pure chrome with no props beyond "which stat is inside" and admin's
+// equivalent tiles are buttons, not cards; if a third surface needs the
+// same frame it should move to a shared part then, not be copied again.
+function StatTileCard({ children, alarm = false }: { children: React.ReactNode; alarm?: boolean }) {
   return (
     <div
       style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderLeft: alarm ? "3px solid var(--sev-critical)" : "1px solid var(--color-border)",
-        borderRadius: 8,
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderLeft: alarm ? "3px solid var(--immediate)" : "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
         padding: "13px 16px",
       }}
     >
-      <p
-        style={{
-          fontSize: "9.5px",
-          fontWeight: 800,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: alarm ? "var(--sev-critical)" : "var(--color-text-muted)",
-          margin: "0 0 4px",
-        }}
-      >
-        {label}
-      </p>
-      <p
-        style={{
-          fontFamily: "var(--font-display)",
-          fontWeight: 400,
-          fontSize: 30,
-          lineHeight: 1,
-          margin: 0,
-          color: alarm ? "var(--sev-critical)" : "var(--color-text-primary)",
-        }}
-      >
-        {value}
-      </p>
-      {meta != null && (
-        <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "5px 0 0" }}>{meta}</p>
-      )}
+      {children}
     </div>
   );
 }

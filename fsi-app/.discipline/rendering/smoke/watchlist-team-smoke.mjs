@@ -107,10 +107,14 @@ export async function runSmoke(browser) {
       const disabled = await typeSelect.evaluate((el) => el.disabled);
       if (disabled) failures.push('watchlist-team[extreme]: type filter is present but disabled.');
 
-      const before = await page.$$eval('li', (els) => els.length);
+      // UILISTS lane (2026-09-06): WatchlistSurface now renders each row via the shared ListRow
+      // (a styled <div>, not an <li>) or, for row-less types, a plain <div> — both carry
+      // `data-guard-title` on the title element (ListRow's own, added additively this lane; the
+      // fallback div's own, added alongside it), so that attribute is the row count, not `li`.
+      const before = await page.$$eval('[data-guard-title]', (els) => els.length);
       await page.selectOption('#watchlist-type', 'reg');
       await page.waitForTimeout(100);
-      const after = await page.$$eval('li', (els) => els.length);
+      const after = await page.$$eval('[data-guard-title]', (els) => els.length);
       checks++;
       if (!(after < before)) {
         failures.push(`watchlist-team[extreme]: selecting the "reg" type filter did not narrow the row list (${before} -> ${after}; onChange handler did not fire).`);
@@ -120,7 +124,7 @@ export async function runSmoke(browser) {
       if (clearBtn) {
         await clearBtn.click();
         await page.waitForTimeout(100);
-        const restored = await page.$$eval('li', (els) => els.length);
+        const restored = await page.$$eval('[data-guard-title]', (els) => els.length);
         checks++;
         if (restored !== before) {
           failures.push(`watchlist-team[extreme]: "Clear filters" click did not restore the full row list (${restored} !== ${before}).`);

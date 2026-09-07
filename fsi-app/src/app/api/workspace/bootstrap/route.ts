@@ -4,7 +4,7 @@ import { getServiceSupabase } from "@/lib/supabase-service";
 import { requireAuth, isAuthError } from "@/lib/api/auth";
 import { checkRateLimit, rateLimitHeaders } from "@/lib/api/rate-limit";
 import { withErrorCapture } from "@/lib/telemetry/capture-error";
-import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides } from "./logic";
+import { loadPersonalState, loadListOrders, loadMembers, loadAdminAttention, loadOverrides, loadNavCounts } from "./logic";
 // PERF-ARCH (2026-09-04, docs/decisions/ADR-027-*.md): Server-Timing instrumentation, wired here
 // as this lane's one concrete example of the "add the timing wrapper" write-set item. A Route
 // Handler is the ONE response type this app can attach a genuine HTTP Server-Timing header to —
@@ -60,7 +60,7 @@ async function handleGET(request: NextRequest) {
   // route pages the org-independent public RPC (no per-viewer/per-org data in that response at all,
   // see that route's own header). No reader of `orgId` on this payload survives, so the field is
   // deleted rather than kept as unused surface (CLAUDE.md's no-dead-code rule).
-  const [personalState, listOrders, members, adminAttention, overrides] = await Promise.all([
+  const [personalState, listOrders, members, adminAttention, overrides, navCounts] = await Promise.all([
     timePhase("personal_state", () => loadPersonalState(supabase, auth.userId)),
     timePhase("list_orders", () => loadListOrders(supabase, auth.userId)),
     timePhase("members", () => loadMembers(supabase, auth.userId)),
@@ -69,9 +69,12 @@ async function handleGET(request: NextRequest) {
     // workspace_item_overrides rows — see logic.ts's loadOverrides header for why this joined the
     // bundle (it is what lets the four index/detail pages stop reading cookies() server-side).
     timePhase("overrides", () => loadOverrides(supabase, auth.userId)),
+    // UI system handoff (2026-09-06): the nav rail's per-section counts — see logic.ts's
+    // loadNavCounts header for why this reuses getSurfaceCoverageSnapshot/getWatchlist as-is.
+    timePhase("nav_counts", () => loadNavCounts()),
   ]);
 
-  const payload = { personalState, listOrders, members, adminAttention, overrides };
+  const payload = { personalState, listOrders, members, adminAttention, overrides, navCounts };
   recordSerializedBytes(payload, PERF_PHASES.SERIALIZE_BYTES);
 
   return withServerTiming(

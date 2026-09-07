@@ -17,7 +17,6 @@ interface SettingsState {
   exportFormat: "html" | "slack";
   briefingDay: "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
   alertPriorities: string[];
-  theme: "light" | "dark";
 
   // Saved filter defaults (persisted to localStorage)
   savedFilters: {
@@ -37,7 +36,6 @@ interface SettingsState {
   setExportFormat: (format: SettingsState["exportFormat"]) => void;
   setBriefingDay: (day: SettingsState["briefingDay"]) => void;
   setAlertPriorities: (priorities: string[]) => void;
-  setTheme: (theme: "light" | "dark") => void;
   saveFilterDefaults: (filters: { modes: string[]; topics: string[]; jurisdictions: string[]; priorities: string[] }) => void;
   clearFilterDefaults: () => void;
   loadFromWorkspace: (orgId: string) => Promise<void>;
@@ -91,7 +89,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   exportFormat: "html",
   briefingDay: "monday",
   alertPriorities: ["CRITICAL", "HIGH"],
-  theme: ((typeof window !== "undefined" ? localStorage.getItem("fsi-theme") : null) || "light") as "light" | "dark",
   savedFilters: (typeof window !== "undefined" ? (() => { try { return JSON.parse(localStorage.getItem("fsi-saved-filters") || "null"); } catch { return null; } })() : null),
 
   orgId: null,
@@ -131,14 +128,6 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ alertPriorities });
     const state = get();
     debouncedSave(state.orgId, { ...state, alertPriorities });
-  },
-
-  setTheme: (theme) => {
-    set({ theme });
-    if (typeof window !== "undefined") {
-      localStorage.setItem("fsi-theme", theme);
-      document.documentElement.setAttribute("data-theme", theme);
-    }
   },
 
   saveFilterDefaults: (filters) => {

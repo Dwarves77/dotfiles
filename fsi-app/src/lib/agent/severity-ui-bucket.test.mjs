@@ -57,7 +57,7 @@ test("SEVERITY_TO_OPERATIONS_BUCKET is a pass-through identity for the 4 already
   assert.equal(SEVERITY_TO_OPERATIONS_BUCKET.low, "low");
 });
 
-// ── 2. Regression: OperationsItemsView.tsx / OperationsLedger.tsx import the shared map, no local copy ──
+// ── 2. Regression: OperationsItemsView.tsx imports the shared map, no local copy ──
 
 test("OperationsItemsView.tsx has no local SEVERITY_COLUMN_TO_KEY duplicate; imports the shared bucket map", () => {
   const code = read("../../components/operations/OperationsItemsView.tsx");
@@ -65,10 +65,23 @@ test("OperationsItemsView.tsx has no local SEVERITY_COLUMN_TO_KEY duplicate; imp
   assert.match(code, /import\s*\{\s*SEVERITY_TO_OPERATIONS_BUCKET\s*\}\s*from\s*"@\/lib\/agent\/metadata-vocab"/);
 });
 
-test("OperationsLedger.tsx has no local SEVERITY_COLUMN_TO_KEY duplicate; imports the shared bucket map", () => {
+// UILISTS lane (2026-09-06): OperationsLedger.tsx was rewritten to assemble from
+// ListSurfaceShell/BandTile per the UI system handoff's artboard 08 ("Operations list") — the
+// severity-tile render this original regression guard existed for (DB severity -> critical/high/
+// moderate/low bucket, drawn as its own tile system) is gone, replaced by the ONE shared urgency
+// band (src/lib/urgency/bands.ts's bandFromPriority), same as the other four list surfaces. There
+// is no longer any severity-bucket mapping in this file to duplicate OR import — only the "no local
+// duplicate" half of the original guard still describes a live invariant; the "imports the shared
+// bucket map" half described a feature this file no longer has. Per this lane's "tests describe the
+// product, they do not preserve the old one" rule, that half is dropped rather than kept red.
+test("OperationsLedger.tsx has no local SEVERITY_COLUMN_TO_KEY duplicate (severity tiles were replaced by the shared urgency band, UILISTS lane)", () => {
   const code = read("../../components/operations/OperationsLedger.tsx");
   assert.doesNotMatch(code, /const SEVERITY_COLUMN_TO_KEY/);
-  assert.match(code, /import\s*\{\s*SEVERITY_TO_OPERATIONS_BUCKET\s*\}\s*from\s*"@\/lib\/agent\/metadata-vocab"/);
+  assert.doesNotMatch(
+    code,
+    /import\s*\{\s*SEVERITY_TO_OPERATIONS_BUCKET\s*\}\s*from\s*"@\/lib\/agent\/metadata-vocab"/,
+    "OperationsLedger.tsx no longer renders severity tiles; importing the bucket map with nothing to feed it would itself be dead code",
+  );
 });
 
 // ── 3. Regression: IntelligenceMetadataStrip converts DB form -> display form before the color lookup ──

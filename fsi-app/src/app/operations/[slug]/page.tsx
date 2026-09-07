@@ -34,17 +34,14 @@
  * PERF-10 note for the full mechanism).
  */
 
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { loadDetail } from "@/lib/detail/load-detail";
 import { getPublicSurfaceSlugs } from "@/lib/data";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
-import { EditorialMasthead } from "@/components/ui/EditorialMasthead";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
-import { formatLocaleDate } from "@/lib/format";
 import { NoticesRail } from "@/components/figures/NoticesRail";
 
 const UUID_RE =
@@ -272,41 +269,12 @@ export default async function OperationsDetailPage({
 
   console.log(`[perf] /operations/${id} data ${result.elapsedMs}ms`);
 
-  // Masthead meta: source name + published date.
-  const metaParts = [
-    r.sourceName,
-    r.added
-      ? `Published ${formatLocaleDate(new Date(r.added), {
-          year: "numeric",
-          month: "short",
-          day: "numeric",
-        })}`
-      : null,
-  ].filter(Boolean) as string[];
-
+  // UI SYSTEM HANDOFF (lane uidetails2, 2026-09-07): the back-link +
+  // EditorialMasthead pair is REMOVED — the ONE detail architecture's
+  // DetailHeader (inside OperationsDetailSurface) now owns the
+  // title/meta/breadcrumb-equivalent for this route.
   return (
     <>
-      {/* Back-link — points to /operations, not /research. Lane MOBILE-2, 2026-09-03 sweep: 32px
-          side padding had no responsive step-down (same shape as the header padding fix item 1
-          addresses on Regulations) — --cl-detail-pad-x (globals.css) steps to 16px at <=767px. */}
-      <div style={{ paddingTop: 10, paddingLeft: "var(--cl-detail-pad-x)", paddingRight: "var(--cl-detail-pad-x)" }}>
-        <Link
-          href="/operations"
-          prefetch={false}
-          style={{
-            color: "var(--color-text-muted, var(--muted))",
-            fontSize: 12,
-            textDecoration: "none",
-          }}
-        >
-          ← Operations
-        </Link>
-      </div>
-      <EditorialMasthead
-        eyebrow="Operations"
-        title={r.title}
-        meta={metaParts.join(" · ")}
-      />
       <OperationsDetailSurface
         resource={r}
         related={related}

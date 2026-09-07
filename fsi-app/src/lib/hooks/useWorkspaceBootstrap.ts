@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import type { NavCounts } from "@/lib/nav/nav-counts";
 
 export interface BootstrapPersonalStateItem {
   itemId: string;
@@ -85,6 +86,9 @@ export interface WorkspaceBootstrapData {
   // Absent/undefined on responses from before this field existed — callers
   // must treat `overrides` as optional, never assume presence.
   overrides?: BootstrapOverrideRow[];
+  // UI system handoff 2026-09-06 (README §0.3 nav rail counts). Same
+  // optional-until-populated contract as `overrides` above.
+  navCounts?: NavCounts;
 }
 
 interface SingletonState {
