@@ -76,6 +76,71 @@ export function TagChip({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * WorkspaceTagPill — the workspace-tag chip (lane uitags, 2026-09-07,
+ * README "Workspace tags" / ruling R6): a 6px SQUARE ink dot (never round —
+ * that is BandChip's mark, and the neutral TagChip above has no dot at all,
+ * so the three chip families stay visually distinct at a glance), #F5F2EE
+ * fill, 1px rgba(0,0,0,.14) border, 11.5px/600 label. Optional `onRemove`
+ * renders a trailing × (removable, used inside TagPopover's applied rows
+ * and the detail tag row).
+ */
+export function WorkspaceTagPill({
+  name,
+  onRemove,
+}: {
+  name: string;
+  onRemove?: () => void;
+}) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 11.5,
+        fontWeight: 600,
+        color: "var(--ink-2)",
+        background: "#F5F2EE",
+        border: "1px solid rgba(0,0,0,.14)",
+        borderRadius: "var(--radius-pill)",
+        padding: onRemove ? "3px 6px 3px 8px" : "3px 9px",
+      }}
+    >
+      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: 1, background: "var(--ink)", flexShrink: 0 }} />
+      {name}
+      {onRemove && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onRemove();
+          }}
+          aria-label={`Remove tag ${name}`}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 14,
+            height: 14,
+            border: "none",
+            background: "transparent",
+            color: "var(--ink-3)",
+            cursor: "pointer",
+            padding: 0,
+            fontSize: 12,
+            lineHeight: 1,
+            fontFamily: "inherit",
+          }}
+        >
+          ×
+        </button>
+      )}
+    </span>
+  );
+}
+
 export interface FilterChipGroupProps {
   label: string;
   children: React.ReactNode;

@@ -64,6 +64,7 @@ import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
 import { ItemConnectionsCard } from "@/components/shell/ItemConnectionsCard";
 import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
+import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
   DetailExposure,
@@ -327,6 +328,7 @@ export function MarketSignalDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           meta={meta}
+          tagRow={<DetailTagRow itemId={String(r.id)} />}
           extraChips={
             <>
               <TagChip>Signal</TagChip>

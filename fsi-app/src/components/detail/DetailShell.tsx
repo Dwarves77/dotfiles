@@ -46,9 +46,19 @@ export interface DetailHeaderProps {
    * regulation detail's band+tier alone).
    */
   extraChips?: React.ReactNode;
+  /**
+   * Extension point (lane uitags, 2026-09-07, README "Workspace tags" /
+   * ruling R6): the detail tag row, rendered directly under the title —
+   * applied WorkspaceTagPills, then the + Tag trigger, then a muted
+   * "workspace tags" label. Built by DetailTagRow (src/components/ui/) and
+   * passed in by each of the four detail surfaces; undefined renders
+   * nothing extra, so this stays additive for any other DetailHeader
+   * caller.
+   */
+  tagRow?: React.ReactNode;
 }
 
-export function DetailHeader({ band, tier, title, meta, actions, extraChips }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, meta, actions, extraChips, tagRow }: DetailHeaderProps) {
   return (
     <header
       style={{
@@ -89,6 +99,7 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips }: D
           >
             {title}
           </h1>
+          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
         </div>
         {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", maxWidth: "100%" }}>{actions}</div>}
       </div>

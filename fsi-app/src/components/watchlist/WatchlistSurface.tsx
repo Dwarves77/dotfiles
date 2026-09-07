@@ -34,6 +34,8 @@ import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
+import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
@@ -81,15 +83,18 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
 
   const hasTeamRows = useMemo(() => items.some((i) => i.scope === "team"), [items]);
 
+  const tagsFacet = useWorkspaceTagsFacet();
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     return items.filter(
       (i) =>
         (scope === "all" || i.scope === scope) &&
         (type === "all" || i.type === type) &&
-        (!q || i.title.toLowerCase().includes(q) || (i.jurisdiction ?? "").toLowerCase().includes(q)),
+        (!q || i.title.toLowerCase().includes(q) || (i.jurisdiction ?? "").toLowerCase().includes(q)) &&
+        tagsFacet.matchesSelectedTag(i.id),
     );
-  }, [items, scope, type, query]);
+  }, [items, scope, type, query, tagsFacet.matchesSelectedTag]);
 
   const filtered = scope !== "all" || type !== "all" || query.trim().length > 0;
   const atCap = items.length >= limit;
@@ -109,6 +114,35 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
       >
         <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: 1fr !important; } }`}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+          {tagsFacet.tags.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                background: "var(--card)",
+                border: "1px solid var(--line-1)",
+                borderRadius: "var(--radius-card)",
+                boxShadow: "var(--shadow-card)",
+                padding: "12px 16px",
+              }}
+            >
+              <FilterChipGroup label="Workspace tags">
+                <FilterChip active={tagsFacet.selectedTagId === null} onClick={() => tagsFacet.setSelectedTagId(null)}>
+                  All
+                </FilterChip>
+                {tagsFacet.tags.map((t) => (
+                  <FilterChip
+                    key={t.id}
+                    active={tagsFacet.selectedTagId === t.id}
+                    onClick={() => tagsFacet.setSelectedTagId(tagsFacet.selectedTagId === t.id ? null : t.id)}
+                  >
+                    {t.name} · {t.itemCount}
+                  </FilterChip>
+                ))}
+              </FilterChipGroup>
+            </div>
+          )}
           {items.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14 }}>
               {hasTeamRows && (
@@ -202,6 +236,7 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
                       due={due}
                       timeline={null}
                       tier={item.sourceTier ?? null}
+                      tags={tagsFacet.tagsForItem(item.id)}
                       overflow={<WatchButton itemType={item.type} itemId={item.id} />}
                     />
                   ) : (

@@ -40,6 +40,7 @@ import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
   bandFacetOptions,
@@ -99,10 +100,13 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
+  const tagsFacet = useWorkspaceTagsFacet();
+
   const filtered = useMemo(() => {
     const base = filterRows(initialResources, filter);
-    return kindFilter ? base.filter((r) => signalKindLabel(r) === kindFilter) : base;
-  }, [initialResources, filter, kindFilter]);
+    const kinded = kindFilter ? base.filter((r) => signalKindLabel(r) === kindFilter) : base;
+    return kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id));
+  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag]);
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(initialResources, aggregates.byPriority as unknown as Record<string, number>);
@@ -135,6 +139,16 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
     { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
   ];
 
+  const workspaceTagFacetGroups: ListSurfaceFacetGroup[] = [
+    {
+      key: "workspace-tags",
+      label: "Workspace tags",
+      options: tagsFacet.tags.map((t) => ({ value: t.id, label: t.name, count: t.itemCount })),
+      selected: tagsFacet.selectedTagId,
+      onSelect: tagsFacet.setSelectedTagId,
+    },
+  ];
+
   const rowsByBand = useMemo(() => {
     return BAND_ORDER.map((band) => {
       const bandRows = filter.band && filter.band !== band.key ? [] : filtered.filter((r) => bandFromPriority(r.priority).key === band.key);
@@ -162,12 +176,13 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            tags: tagsFacet.tagsForItem(r.id),
             overflow: <WatchButton itemType="signal" itemId={r.id} />,
           };
         }),
       };
     });
-  }, [filtered, filter.band]);
+  }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
   const total = aggregates.totalItems || initialResources.length;
   const producers = seriesBoard?.groups ?? [];
@@ -184,6 +199,7 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
       selectedBand={filter.band}
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
+      secondaryFacetGroups={workspaceTagFacetGroups}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
