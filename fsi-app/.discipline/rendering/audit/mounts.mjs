@@ -1150,6 +1150,68 @@ window.__mount = () => {
 };
 `;
 
+// ── AdminIssuesRail (README screen 13 / dc.html p13) ──────────────────────────────────────────────
+// Real component, real `useAdminAttention` hook — its `@/components/auth/AuthProvider` import is
+// aliased to the shared auth stub (a signed-in user), and its `useWorkspaceStore` userRole is set to
+// 'owner' before mount so the hook's `enabled` gate opens and the real fetch fires against a fixture
+// api route matching dc.html p13's own example numbers exactly (489 / 4576 / 6 / 3 non-zero, the rest
+// zero — total 5,074).
+const ADMIN_ISSUES_RAIL_FIXTURE = {
+  provisional_sources_pending: 489,
+  staged_updates_pending: 0,
+  staged_updates_materialization_failed: 0,
+  integrity_flags_unresolved: 3,
+  platform_integrity_flags_open: 4576,
+  source_attribution_mismatches: 0,
+  auto_approved_awaiting_spotcheck: 6,
+  coverage_gaps_critical: 0,
+  total: 5074,
+};
+
+const ADMIN_ISSUES_RAIL_API = [
+  { urlGlob: '**/api/admin/attention', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(ADMIN_ISSUES_RAIL_FIXTURE) }) },
+];
+
+const ADMIN_ISSUES_RAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AdminIssuesRail } from '@/components/admin/redesign/AdminIssuesRail';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setUserRole('owner');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 300, padding: 20, background: 'var(--page)' } },
+      React.createElement(AdminIssuesRail, { onNavigate: () => {} }),
+    ),
+  );
+};
+`;
+
+// ── OnboardingStepper (README screen 17 / dc.html p17) ─────────────────────────────────────────────
+const ONBOARDING_STEPPER_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { OnboardingStepper } from '@/components/onboarding/OnboardingStepper';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 620, padding: 20, background: '#fff' }, 'data-audit': 'stepper' },
+      React.createElement(OnboardingStepper, { current: 2 }),
+    ),
+  );
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -1334,5 +1396,21 @@ export const AUDIT_MOUNTS = {
     description: "The real SectionIndex with Settings's own six-entry SETTINGS_SECTIONS list.",
     viewport: 1440,
     entry: SETTINGS_SECTION_INDEX_ENTRY,
+  },
+  'admin-issues-rail': {
+    id: 'admin-issues-rail',
+    description: 'The real AdminIssuesRail (Admin surface right rail), README screen 13 / dc.html p13.',
+    viewport: 1440,
+    entry: ADMIN_ISSUES_RAIL_ENTRY,
+    alias: {
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'onboarding-stepper': {
+    id: 'onboarding-stepper',
+    description: 'The real OnboardingStepper (4-pill progress row), README screen 17 / dc.html p17.',
+    viewport: 1440,
+    entry: ONBOARDING_STEPPER_ENTRY,
   },
 };

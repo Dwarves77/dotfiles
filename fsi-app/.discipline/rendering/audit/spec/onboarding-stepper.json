@@ -1,0 +1,84 @@
+{
+  "part": "OnboardingStepper (4-pill progress row)",
+  "mount": "onboarding-stepper",
+  "viewport": 1440,
+  "artboards": ["17-onboarding"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p17\", the 4-pill stepper (Workspace · done, Modes & jurisdictions · active, Sectors · todo, Briefing · todo)",
+  "notes": [
+    "dc.html p17 stepper row: `display:flex;gap:18px;flex-wrap:wrap`; each entry `display:flex;align-items:center;gap:8px;font-size:12px`, weight/colour by state (done 600/#1A1A1A, active 700/#1A1A1A, todo 600/#7A6E6C).",
+    "Circle: `width:20px;height:20px;border-radius:50%` — done `background:#16A34A;color:#fff` with a check glyph; active `background:#5A5552;color:#fff` with the step number; todo `border:1.5px solid rgba(0,0,0,.3)` no fill.",
+    "Mounted at step 2 ('current: 2') so this spec exercises all three states (done/active/todo) in one render, matching the artboard's own step-2 render exactly."
+  ],
+  "selector": "[data-audit=\"stepper\"] > div",
+  "expect": {
+    "display": "flex",
+    "column-gap": "18px",
+    "row-gap": "18px"
+  },
+  "children": [
+    {
+      "name": "done step (Workspace)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1)",
+      "expect": {
+        "font-size": "12px",
+        "font-weight": "600",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "done step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(1) span",
+      "expect": {
+        "width": "20px",
+        "height": "20px",
+        "border-radius": "50%",
+        "background-color": "#16A34A",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "active step (Modes & jurisdictions)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2)",
+      "note": "No 'text' check: the step label is a bare text node after the circle <span>, so textContent also carries the circle's own '2' — a selector artifact, not a design statement to measure.",
+      "expect": {
+        "font-size": "12px",
+        "font-weight": "700",
+        "color": "#1A1A1A"
+      }
+    },
+    {
+      "name": "active step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(2) span",
+      "expect": {
+        "width": "20px",
+        "height": "20px",
+        "border-radius": "50%",
+        "background-color": "#5A5552",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "todo step (Sectors)",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3)",
+      "note": "No 'text' check: same selector-artifact reason as the active step above ('3Sectors').",
+      "expect": {
+        "font-size": "12px",
+        "font-weight": "600",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "todo step circle",
+      "selector": "[data-audit=\"stepper\"] > div > div:nth-child(3) span",
+      "note": "dc.html states `border:1.5px solid rgba(0,0,0,.3)`; Chromium at 1x DPR rounds a fractional hairline border to the nearest device pixel on paint (1px), which `getComputedStyle` reflects — this is a rendering fact of the source's correct 1.5px declaration, not a design deviation. Source: OnboardingStepper.tsx (confirmed, direct read this session).",
+      "expect": {
+        "width": "20px",
+        "height": "20px",
+        "border-radius": "50%",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.3)"
+      }
+    }
+  ],
+  "forbid": []
+}

@@ -21,6 +21,7 @@
 
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber } from "@/lib/format";
+import { SectionRule } from "@/components/ui/SectionRule";
 
 export interface IssueNavTarget {
   section: string;
@@ -30,7 +31,6 @@ export interface IssueNavTarget {
 interface RailRow {
   key: string;
   title: string;
-  sub: string;
   count: number;
   target: IssueNavTarget;
 }
@@ -61,56 +61,48 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     {
       key: "provisional",
       title: "Provisional sources pending review",
-      sub: "Discovered URLs — machine-gated promotion (evaluatePromotion); visibility",
       count: c.provisional_sources_pending,
       target: { section: "Sources", tab: "Provisional review" },
     },
     {
       key: "staged",
       title: "Staged updates pending",
-      sub: "Worker-staged regulations — machine-gated intake (visibility)",
       count: c.staged_updates_pending,
       target: { section: "Ingest", tab: "Staged updates" },
     },
     {
       key: "materialization",
       title: "Materialization failures",
-      sub: "Approved updates that failed to write through",
       count: c.staged_updates_materialization_failed,
       target: { section: "Ingest", tab: "Staged updates" },
     },
     {
       key: "integrity",
       title: "Integrity flags unresolved",
-      sub: "Agent emissions flagged — the operator may review",
       count: c.integrity_flags_unresolved,
       target: { section: "Ingest", tab: "Flags & rejections" },
     },
     {
       key: "platform",
       title: "Platform integrity flags open",
-      sub: "Quarantine & data-quality flags",
       count: c.platform_integrity_flags_open,
       target: { section: "Ingest", tab: "Flags & rejections" },
     },
     {
       key: "attribution",
       title: "Source attribution mismatches",
-      sub: "Citations not matching declared source",
       count: c.source_attribution_mismatches,
       target: { section: "Sources", tab: "Source registry" },
     },
     {
       key: "spotcheck",
       title: "Auto-approved awaiting spot-check",
-      sub: "Sources added in the last 7 days — the operator may spot-check",
       count: c.auto_approved_awaiting_spotcheck,
       target: { section: "Sources", tab: "Spot-check" },
     },
     {
       key: "coverage",
       title: "Coverage gaps (critical)",
-      sub: "Jurisdictions with insufficient source coverage",
       count: c.coverage_gaps_critical,
       target: { section: "Coverage", tab: "Jurisdiction review" },
     },
@@ -121,64 +113,66 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
   const total = rows.reduce((t, r) => t + r.count, 0);
 
   return (
-    <div style={{ minWidth: 0 }}>
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          borderBottom: "2px solid var(--text)",
-          padding: "0 0 8px",
-          margin: "0 0 14px",
-          gap: 12,
-        }}
-      >
-        <h2
+    <div
+      data-audit="rail-card"
+      style={{
+        minWidth: 0,
+        background: "var(--surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card, 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06))",
+        overflow: "hidden",
+      }}
+    >
+      {/* Ruling 5.1: the graduated rule above the section title, no divider below it. */}
+      <SectionRule />
+      <div style={{ padding: "12px 16px 14px" }}>
+        <div
           style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            fontSize: 26,
-            letterSpacing: "0.02em",
-            textTransform: "uppercase",
-            margin: 0,
-            color: "var(--text)",
+            display: "flex",
+            alignItems: "baseline",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            gap: 12,
           }}
         >
-          Issues queue
-        </h2>
-        <span
-          aria-label={`${total} items need attention`}
-          style={{
-            fontFamily: "var(--font-display)",
-            fontSize: 26,
-            lineHeight: 1,
-            fontVariantNumeric: "tabular-nums",
-            color: total > 0 ? "var(--sev-critical)" : "var(--text-2)",
-          }}
-        >
-          {formatNumber(total)}
-        </span>
-      </div>
+          <h2
+            style={{
+              fontSize: 10.5,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontWeight: 700,
+              margin: 0,
+              color: "var(--ink-3)",
+            }}
+          >
+            Issues queue
+          </h2>
+          <span
+            aria-label={`${total} items need attention`}
+            style={{
+              fontFamily: "var(--font-display)",
+              fontSize: 18,
+              lineHeight: 1,
+              fontVariantNumeric: "tabular-nums",
+              color: total > 0 ? "var(--sev-critical)" : "var(--ink-3)",
+            }}
+          >
+            {formatNumber(total)}
+          </span>
+        </div>
 
-      <div
-        style={{
-          background: "var(--surface)",
-          border: "1px solid var(--color-border)",
-          borderLeft: "3px solid var(--sev-critical)",
-          borderRadius: 8,
-          overflow: "hidden",
-        }}
-      >
-        {rows.map((r) => (
-          <RailButton key={r.key} row={r} onNavigate={onNavigate} />
-        ))}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
+          {rows.map((r) => (
+            <RailButton key={r.key} row={r} onNavigate={onNavigate} />
+          ))}
+        </div>
+
         <p
           style={{
             fontSize: 10.5,
-            color: "var(--text-2)",
-            margin: 0,
-            padding: "10px 16px",
-            background: "var(--color-background)",
+            color: "var(--ink-3)",
+            margin: "8px 0 0",
           }}
         >
           {error
@@ -207,65 +201,33 @@ function RailButton({
     width: "100%",
     display: "flex",
     justifyContent: "space-between",
-    alignItems: "center",
     gap: 10,
-    padding: "10px 16px",
-    background: "var(--surface)",
+    alignItems: "center",
+    padding: "4px 0",
+    background: "transparent",
     border: "none",
-    borderBottom: "1px solid var(--color-border-subtle)",
+    borderBottom: "1px solid rgba(0,0,0,.06)",
     textAlign: "left",
   };
 
   const content = (
     <>
-      <span style={{ textAlign: "left", minWidth: 0 }}>
-        <span
-          style={{
-            display: "block",
-            fontSize: 12,
-            fontWeight: zero ? 600 : 800,
-            margin: 0,
-            color: zero ? "var(--text-2)" : "var(--text)",
-          }}
-        >
-          {row.title}
-        </span>
-        <span
-          style={{
-            display: "block",
-            fontSize: 10.5,
-            color: "var(--text-2)",
-            margin: "1px 0 0",
-          }}
-        >
-          {row.sub}
-        </span>
+      <span
+        style={{
+          fontWeight: zero ? 500 : 700,
+          color: zero ? "var(--ink-2)" : "var(--text)",
+        }}
+      >
+        {row.title}
       </span>
       <span
-        style={
-          zero
-            ? {
-                fontSize: 11,
-                fontWeight: 700,
-                color: "var(--text-2)",
-                padding: "2px 9px",
-                borderRadius: 999,
-                border: "1px solid var(--color-border)",
-                fontVariantNumeric: "tabular-nums",
-                flexShrink: 0,
-              }
-            : {
-                fontFamily: "var(--font-display)",
-                fontSize: 15,
-                color: "var(--sev-critical)",
-                padding: "2px 10px",
-                borderRadius: 999,
-                border: "1px solid var(--critical-bd)",
-                background: "var(--critical-bg)",
-                fontVariantNumeric: "tabular-nums",
-                flexShrink: 0,
-              }
-        }
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 16,
+          color: zero ? "var(--text)" : "var(--sev-critical)",
+          fontVariantNumeric: "tabular-nums",
+          flexShrink: 0,
+        }}
       >
         {formatNumber(row.count)}
       </span>
