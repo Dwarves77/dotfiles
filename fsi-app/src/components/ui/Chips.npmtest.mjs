@@ -42,6 +42,13 @@ test("BandChip/TagChip/WorkspaceTagPill carry no mobile media query — out of s
   assert.doesNotMatch(workspaceTagPill, /@media/);
 });
 
+test("operator audit item 2.5 (2026-09-07): inactive filter chips inside a group never carry their own border — the group shell's border is the only one", () => {
+  assert.match(SOURCE, /\.cl-filter-chip\[data-active="false"\]\s*\{[^}]*border-color:\s*transparent\s*!important/);
+  assert.doesNotMatch(SOURCE, /\.cl-filter-chip\[data-active="false"\]\s*\{[^}]*border:\s*1px solid rgba\(0,0,0,\.15\)/);
+  // the shell itself (.cl-filter-group) still keeps its own 1px border, per the same ruling.
+  assert.match(SOURCE, /\.cl-filter-group\s*\{[^}]*border:\s*1px solid rgba\(0,0,0,\.1\)/);
+});
+
 test("TierChip carries the 767px mobile block (FOLD-56 F4): 9.5px/800 letter-spacing .06em text in a 1px rgba(0,0,0,.2) radius-4 box", () => {
   const tierChip = SOURCE.slice(SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"), SOURCE.indexOf("export function TagChip"));
   assert.match(tierChip, /@media \(max-width: 767px\)/);

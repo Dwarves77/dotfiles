@@ -42,6 +42,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { BandTile } from "@/components/ui/BandTile";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -244,7 +245,12 @@ function FilterSheet({
   );
 }
 
-function Card({ children }: { children: ReactNode }) {
+function Card({ children, noRule }: { children: ReactNode; noRule?: boolean }) {
+  // Ruling 5.1 (2026-09-07): every panel/section card gets the dark-grey graduated top rule. The
+  // per-band Card (BandSectionHeader inside it) already carries its own top-edge 3px band-colour
+  // accent, which is a data-grouping marker (which band this row group is), not a page-level
+  // "section title" rule in 5.1's sense — `noRule` lets that one caller skip a doubled-up top edge
+  // rather than stacking two 3px rules. The loading/empty-state Cards (no band header) still get it.
   return (
     <div
       style={{
@@ -255,6 +261,7 @@ function Card({ children }: { children: ReactNode }) {
         overflow: "hidden",
       }}
     >
+      {!noRule && <SectionRule />}
       {children}
     </div>
   );
@@ -460,7 +467,7 @@ export function ListSurfaceShell({
                 const cap = expanded ? section.rows.length : perBandCap;
                 const visible = section.rows.slice(0, cap);
                 return (
-                  <Card key={section.band.key}>
+                  <Card key={section.band.key} noRule>
                     <BandSectionHeader band={section.band} total={section.total} showing={visible.length} />
                     {visible.length > VIRTUALIZE_THRESHOLD ? (
                       // PERF-12 (restored UILISTS2 lane, 2026-09-07): a band expanded to its full

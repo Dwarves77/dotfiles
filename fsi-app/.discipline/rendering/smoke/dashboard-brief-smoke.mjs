@@ -195,3 +195,10 @@ export async function runSmoke(browser) {
   }
   return { checks, failures };
 }
+
+// Lane uxfix-lists (2026-09-07): additive named exports of this fixture's bundle entry and its
+// populated ('one-row'/'extreme') states — so a one-off screenshot capture script can mount the
+// SAME real `DashboardBrief` with real data (audit item 1.1's "All N immediate" link) instead of
+// hitting this sandbox's honest-empty live-server state (no reachable Supabase project — see
+// DEVIATION-LOG.md). `runSmoke` above is unchanged; this only widens what the module exposes.
+export { ENTRY, STATES };

@@ -96,3 +96,40 @@ test("default (personal+team pill) rendering is unchanged: DefaultWatchButton st
   assert.match(defaultBody, /const personalButton = \(/);
   assert.match(defaultBody, /const teamButton = /);
 });
+
+// Audit item 3.5 (2026-09-07, operator ruling — CLOSED): "watched rows show a filled ★ in ink and
+// the label 'Watching'; hover/menu action 'Unwatch'; a watched row never reads 'Watch'." Fixed in
+// the ONE implementation (PersonalWatchButton, shared by DefaultWatchButton's personal pill) plus
+// RowWatchButton's own inline hover swap, so every surface (watchlist rows, the four list pages'
+// row overflow menu, the detail action row) benefits from one fix.
+
+test("PersonalWatchButton renders a filled ink star (not the accent/brand color) when watched", () => {
+  assert.match(SOURCE, /function PersonalWatchButton\(/);
+  const body = SOURCE.slice(SOURCE.indexOf("function PersonalWatchButton"), SOURCE.indexOf("function DefaultWatchButton"));
+  assert.match(body, /\{watched \? "★" : "☆"\}/, "expected the filled/hollow star glyph pair");
+  // The text/icon color must be palette.ink unconditionally — not palette.accent when watched,
+  // which was the pre-fix bug (brand-colored star/text instead of ink).
+  assert.match(body, /color:\s*palette\.ink,/);
+  assert.doesNotMatch(body, /color:\s*watched\s*\?\s*palette\.accent/, "watched text/star must not be accent-colored");
+});
+
+test("PersonalWatchButton never renders bare 'Watch' when watched: hover/focus swaps the label to 'Unwatch', at rest it reads 'Watching'", () => {
+  const body = SOURCE.slice(SOURCE.indexOf("function PersonalWatchButton"), SOURCE.indexOf("function DefaultWatchButton"));
+  assert.match(body, /const \[hovered, setHovered\] = useState\(false\)/);
+  assert.match(body, /const showUnwatch = watched && hovered/);
+  assert.match(body, /\{watched \? \(showUnwatch \? "Unwatch" : "Watching"\) : "Watch"\}/);
+  assert.match(body, /onMouseEnter=\{\(\) => setHovered\(true\)\}/);
+  assert.match(body, /onFocus=\{\(\) => setHovered\(true\)\}/);
+});
+
+test("RowWatchButton (ActionRow star) applies the same hover-to-'Unwatch' rule, never bare 'Watch' while watched", () => {
+  const rowBody = SOURCE.slice(SOURCE.indexOf("function RowWatchButton"));
+  assert.match(rowBody, /const \[hovered, setHovered\] = useState\(false\)/);
+  assert.match(rowBody, /const showUnwatch = watched && hovered/);
+  assert.match(rowBody, /\{watched \? \(showUnwatch \? "Unwatch" : "Watching"\) : "Watch"\}/);
+});
+
+test("DefaultWatchButton's personal pill is built from the shared PersonalWatchButton, not a re-declared inline <button>", () => {
+  const defaultBody = SOURCE.slice(SOURCE.indexOf("function DefaultWatchButton"), SOURCE.indexOf("function RowWatchButton"));
+  assert.match(defaultBody, /const personalButton = \(\s*<PersonalWatchButton/);
+});

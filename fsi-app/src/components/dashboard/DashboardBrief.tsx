@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
@@ -30,18 +31,22 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
+import { BAND_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
 
 const DUE_NEXT_CAP = 5;
 const CHANGED_CAP = 6;
 
 function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
+  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings): the graduated rule ABOVE the
+  // section title wins (see `Card`'s own SectionRule, which this heading sits directly under) —
+  // no divider below the title. The prior 2px solid ink bottom border here was exactly the
+  // wrong-direction divider ruling 4.1 removes.
   return (
     <div
       style={{
         display: "flex",
         alignItems: "baseline",
         justifyContent: "space-between",
-        borderBottom: "2px solid var(--ink)",
         padding: "14px 16px 8px",
         gap: 12,
       }}
@@ -52,7 +57,7 @@ function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
           fontFamily: "var(--font-display)",
           fontWeight: 400,
           fontSize: 20,
-          letterSpacing: "0.02em",
+          letterSpacing: "0.04em",
           textTransform: "uppercase",
           margin: 0,
           color: "var(--ink)",
@@ -99,6 +104,10 @@ function CardFoot({ left, right }: { left: ReactNode; right: ReactNode }) {
 }
 
 function Card({ children }: { children: ReactNode }) {
+  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings, artboard 18): every panel/section
+  // card sitewide gets the 3px top gradient rule (full card width, top edge, no radius on it) and
+  // loses the divider that used to sit below the section title — see `<SectionRule/>`'s own header
+  // for the shared value and `SectionHeading` above for the removed divider.
   return (
     <div
       style={{
@@ -109,6 +118,7 @@ function Card({ children }: { children: ReactNode }) {
         overflow: "hidden",
       }}
     >
+      <SectionRule />
       {children}
     </div>
   );
@@ -232,7 +242,30 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
-                  left={<>All {formatNumber(immediateTotal)} immediate</>}
+                  left={
+                    // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
+                    // nothing). Navigates to /regulations with the Immediate band facet applied,
+                    // via the same `?band=` contract RegulationsLedger now reads (see
+                    // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
+                    // inline expansion of the Immediate band built here on the dashboard.
+                    <Link
+                      href={`/regulations?${BAND_FACET_PARAM}=immediate`}
+                      style={{
+                        color: "inherit",
+                        textDecoration: "underline",
+                        textUnderlineOffset: 2,
+                        display: "inline-block",
+                        // Law-2's 24px-with-8px-clearance floor: the surrounding Card clips
+                        // overflow, so a negative-margin hit-area trick would be clipped along
+                        // with it — real padding instead, which grows the footer row itself by a
+                        // few px (not specified either way by the artboard; logged in
+                        // DEVIATION-LOG.md).
+                        padding: "8px 0",
+                      }}
+                    >
+                      All {formatNumber(immediateTotal)} immediate
+                    </Link>
+                  }
                   right={<>then {formatNumber(actionTotal)} action · {formatNumber(monitorTotal)} monitor</>}
                 />
               </>

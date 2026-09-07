@@ -198,7 +198,11 @@ const FILTER_GROUP_MOBILE_CSS = `
     .cl-filter-group-label { font-size: 9.5px !important; letter-spacing: 0.1em !important; }
     .cl-filter-chip { font-size: 12px !important; border-radius: 6px !important; white-space: nowrap; }
     .cl-filter-chip[data-active="true"] { background: #5A5552 !important; color: #FFFFFF !important; border-color: #5A5552 !important; }
-    .cl-filter-chip[data-active="false"] { background: transparent !important; color: #5A6B67 !important; border: 1px solid rgba(0,0,0,.15) !important; }
+    /* Operator audit item 2.5 (2026-09-07, CLOSED ruling): "Filter chips inside a labelled group
+       shell keep the group's border; the individual inactive chips inside it do not." The shell
+       (.cl-filter-group above) already carries the border — an inactive chip's own border is
+       always transparent here, never a second visible border stacked inside the shell's. */
+    .cl-filter-chip[data-active="false"] { background: transparent !important; color: #5A6B67 !important; border-color: transparent !important; }
   }
 `;
 

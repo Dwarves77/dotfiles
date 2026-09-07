@@ -319,22 +319,15 @@ export function AskAssistant() {
 
   const handleAsk = () => handleAskWithQuestion(input);
 
+  // Operator audit item 2.2 (2026-09-07, CLOSED ruling): "Remove the floating 'Ask AI' button on
+  // every page (bottom-right). The masthead command bar is the ask. No floating control." This
+  // component itself stays mounted (AppShell) and stays the answer panel the masthead
+  // CommandBar's "Ask" button opens via the `open-ask-assistant` CustomEvent (see CommandBar.tsx's
+  // own header) — removing that would leave CommandBar's dispatch with no listener, i.e. its Ask
+  // button silently doing nothing, the same "dead control" class as audit item 1.1. What's removed
+  // is only the floating trigger: with no open event yet received, this renders nothing.
   if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 rounded-full shadow-lg cursor-pointer transition-transform hover:scale-105"
-        style={{
-          backgroundColor: "var(--color-invert-bg)",
-          color: "var(--color-invert-text)",
-          boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
-        }}
-        aria-label="Open AI assistant"
-      >
-        <Bot size={18} />
-        <span className="text-sm font-medium hidden sm:inline">Ask AI</span>
-      </button>
-    );
+    return null;
   }
 
   // Drop-down positioning: if a bar anchor was supplied, drop down from

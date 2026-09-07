@@ -68,6 +68,7 @@ import { RelevanceBadgeClient } from "@/components/shell/RelevanceBadgeClient";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
+  DetailMasthead,
   DetailExposure,
   DetailTimeline,
   SectionIndex,
@@ -329,14 +330,19 @@ export function MarketSignalDetailSurface({
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper>
+        <DetailMasthead
+          title={r.title}
+          band={band}
+          surface="Market"
+          jurisdiction={jurisLabel}
+          dek={meta}
+          placeholder="Ask about this signal — e.g. when does the largest deadline hit"
+        />
         <DetailHeader
           band={band}
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
-          meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          askPlaceholder="Ask about this signal"
-          askScope="market-signal-detail"
           extraChips={
             <>
               <TagChip>Signal</TagChip>

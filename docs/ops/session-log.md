@@ -11713,3 +11713,156 @@ the two-part split: `git bundle create /tmp/train56.bundle origin/master..train/
 `git bundle verify` PASS. `tmp-mid56` (`2150d0c9`, the 12th commit in `--first-parent --reverse`
 order) is still tagged on the branch per the procedure, just not used as a bundle split point
 this train.
+
+## Addendum 86, postscript 11: train 57, the operator's UI-DISCREPANCY-REPORT audit, three lanes folded, four coordinator gaps closed (2026-09-07, coordinator, lane ASSEMBLE-57 / FOLD-57)
+
+The operator ran a manual UI discrepancy audit of carosledge.com at 1440 against the Claude
+Design package on 2026-09-07 ("UI DISCREPANCY REPORT 2026-09-07"), with the closing line "I'm
+frustrated by your inability to follow the designs exactly." The audit named 17 items across
+P0/P1/P2, plus two rulings from Claude Design that were CLOSED and binding without further
+question:
+
+- **Ruling 5.1** (artboard 18): the graduated dark-grey rule ABOVE a section/panel card's title
+  wins — 3px, full card width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552
+  22%,rgba(90,85,82,.18))` — and NO line below the title, on EVERY panel/section card sitewide.
+  The prior `border-bottom: 2px solid #5A5552` under the title convention was wrong; item 4.1
+  (the section-header divider) is unblocked by this ruling and is P1.
+- **Ruling 5.2** (artboard 19): the band-proportion COLOURED gradient rule (segment widths = live
+  band counts) stays in exactly ONE place sitewide — the 3px cap above "Caro's Ledge" in the nav
+  card (and its mobile equivalents, the 56px top bar and drawer). Every OTHER 3px rule in the
+  product — masthead, panels, section cards, detail headers — uses the dark-grey gradation from
+  5.1. One coloured rule per screen.
+
+Three UI lanes were dispatched against the audit + rulings, each scoped to one part of the
+product: `lane/uxfix-system-2026-09-07` (dashboard cards + `SectionRule.tsx`, `BandGradientRule`
+audit, Sidebar margin, `AskAssistant` closed-state, `ImpactMeter` 30px baseline, `FactCard` forms,
+`Chips` mobile border, `StateNote` neutral colour), `lane/uxfix-detail-2026-09-07` (DetailHeader
+ask-box removal, `PriorityDropdown` hero-variant removal + kebab relocation, `TagPopover`
+controlled-trigger gating, `OperationsLedger` six dimensions, `RegionDimensionMatrix` Absence
+cells), and `lane/uxfix-lists-2026-09-07` (`WatchButton` Watching/Unwatch, `BAND_FACET_PARAM` +
+`/regulations?band=` + the Dashboard "All N immediate" link).
+
+**This train (FOLD-57) folded all three onto `train/wave57-2026-09-07` (cut from
+`origin/master` at `13ef5e7a`)**, in the coordinator's specified order (system, then detail, then
+lists). One real conflict: `DEVIATION-LOG.md`, resolved as a chronological union keeping both
+lanes' entries (each recorded a disjoint set of ruling closures — 5.1/4.1/5.2/4.2/2.1/2.2/2.4/2.5/
+2.6 from uxfix-system, item 1.1's URL-contract build from uxfix-lists). `ActionRow.tsx`,
+`ImpactMeter`/`Chips` auto-merged clean, no manual resolution needed. F25 (module-liveness)
+flagged uxfix-detail's `capture-defect-fix-screenshots.mjs` as unwired — uxfix-lists' own
+equivalent capture scripts had been added to `package.json`'s `scripts`, this one had not — fixed
+in the same train (own commit, `debb4df2`).
+
+**The two lanes' scope refusals, and how they were closed this train:**
+
+- **uxfix-detail's item-2.3 refusal**: the lane's own dispatch instruction was "remove the inline
+  ask bar; it moves to the page's Masthead CommandBar," but the shared `ui/Masthead` was, at the
+  time, list/dashboard-only — no detail route mounted it. The lane did the literal, safely
+  testable half (removed the second ask box, locked by a negative-assertion test) and named the
+  Masthead relocation as deferred, out-of-write-set scope in `DEVIATION-LOG.md` rather than
+  inventing an unspecified header architecture. **This train's G2 closed it**: a new
+  `DetailMasthead` (`DetailShell.tsx`) mounts the shared `ui/Masthead` — with its own `SectionRule`
+  (see below), the R4 breadcrumb format in the VOL line, and the ONE scoped `CommandBar` ("Ask
+  about this regulation"/"this signal"/"this finding"/"this profile") — on top of all four detail
+  surfaces. `DetailHeader`'s own `<h1>` and meta/breadcrumb paragraph were removed (artboard 03
+  shows the item title exactly once, not duplicated across two header cards); `DetailHeader` now
+  renders chips/tags/actions only, with `aria-label={title}` on the landmark for accessibility.
+  F35's row-ux-coverage registry entry for the guarded title (`data-guard-title`) moved from
+  `DetailShell.tsx` to `Masthead.tsx`, its real new home.
+- **uxfix-system's item-5.1/4.1 refusal**: the lane built `SectionRule.tsx` and mounted it
+  correctly per the ruling, but only inside its own write set (`src/components/dashboard/**`) —
+  `DashboardBrief.tsx`'s `Card`. It explicitly logged rolling the rule onto
+  DetailShell/ListSurfaceShell/admin/community panel wrappers as "outside this lane's write set...
+  needs a follow-up lane." **This train's G1 partially closed it**: `SectionRule` now also mounts
+  on every `DetailShell.tsx` card (`DetailHeader`, `DetailExposure`, `DetailTimeline`,
+  `DetailSection`, `AtAGlanceCard`, `RailLegend`, `ImpactRailCard`, `InThisListStat` — 8 sites),
+  the shared `ui/Masthead` itself (ruling 5.2 explicitly names "masthead" among the dark-grey
+  gradation's homes — a gap uxfix-system's own audit of 5.2 did not catch, since `ui/Masthead`
+  carried no 3px rule of its own at all before this train), `ListSurfaceShell`'s `Card` (covers all
+  four ledgers — Regulations/Market/Research/Operations, each of which mounts
+  `ListSurfaceShell`), `AccountCard` (`account/AccountPrimitives.tsx`), `MapPageView`'s `Card`+
+  `CardHead` (the register + regulatory-map cards), and `WatchlistSurface`'s own card — removing
+  the matching `border-bottom`-under-title in each. `ListSurfaceShell`'s per-band `Card` variant
+  (its own `BandSectionHeader` already carries a band-colour top accent, a data-grouping marker,
+  not a page-level section title rule) got a new `noRule` opt-out rather than stacking two 3px top
+  edges. **Not closed this train**: admin cards (`AdminDashboard.tsx` and its many
+  `admin/redesign/*` subpanels), the community table card (`CommunityRooms.tsx` and siblings), and
+  the auth/onboarding panels (`AuthPanel.tsx`, `OnboardingWizard.tsx`) — the sheer per-file count
+  made full sitewide coverage infeasible inside this train's time budget. Logged, named, as its own
+  `DEVIATION-LOG.md` row rather than left silently incomplete. `SectionRule.coverage.npmtest.mjs`
+  (new) locks what this train DID fix as a positive allowlist, not yet a true repo-wide walk —
+  named as the very next lane's own opening task.
+
+**The audit harness in flight**: `lane/uxaudit-2026-09-07` (`ca85e925`) and its four sub-lanes
+(`uxaudit-a/b/c/d`, `uxaudit-harness`) were NOT merged this train per the dispatch's own
+instruction ("git show it, do not merge that branch") — `AUDIT-2026-09-07.md`'s item A9 (Anton
+title letter-spacing) was read from that branch via `git show`, and its fix applied independently
+here (G3, below), never by merging the audit branch's own commits. The harness itself (a separate,
+still-running effort to mechanize the 1440px production-vs-artboard comparison the operator ran by
+hand) is out of this train's scope; its own lanes will land on a later train once that harness
+proves itself.
+
+**G3** (item A9, `AUDIT-2026-09-07.md`, read via `git show ca85e925`, not merged): Anton title
+letter-spacing was 0.04em on `Masthead.tsx` only and 0.02em/0.03em everywhere else the same Anton/
+uppercase treatment is used — `DetailShell.tsx`'s `DetailSection` and (pre-this-train)
+`DetailHeader`, `DashboardBrief.tsx`'s `SectionHeading`, `PageMasthead.tsx`'s page `<h1>`,
+`WatchlistSurface.tsx`'s card title, and `MapPageView.tsx`'s `CardHead`. README's own "Anton
+uppercase letter-spacing .04em for every display title" is now true at all of these sites, fixed
+in the shared parts themselves (one value each), locked by a new `AntonTitleLetterSpacing.npmtest.mjs`
+(6 sites).
+
+**G4** (item 1.2, PPWR title, re-verified per the operator's own runtime item): the earlier
+`uxfix-detail` lane had already investigated item 1.2 with a synthetic long-title fixture and
+found no `title.length`-shaped conditional anywhere in the shared parts (`DetailShell.npmtest.mjs`'s
+own item-1.2 test). This train re-ran the check with the LITERAL production title and slug the
+audit named — `eu-ppwr-2025-40` / "EU Packaging and Packaging Waste Regulation (PPWR)" — as a
+third `detail-surfaces-smoke.mjs` fixture state, and a new one-off Playwright script
+(`verify-ppwr-title-style.mjs`, wired as `npm run verify:ppwr-title-style`) that reads the mounted
+`[data-guard-title]` element's COMPUTED style (not source text): `fontFamily: "Anton, system-ui,
+sans-serif"`, `textTransform: "uppercase"`, `letterSpacing: "1.12px"` (= 0.04em at the title's
+28px font-size), `fontWeight: "400"`. The reported defect does not reproduce on this base with the
+literal title/slug; combined with G2's own move of the title into exactly ONE shared `<h1
+data-guard-title>` (`ui/Masthead.tsx`), a second, differently-styled title element is now
+structurally impossible, not merely untested. Logged in `DEVIATION-LOG.md` per the dispatch's own
+fallback instruction ("if it still cannot reproduce, say so plainly").
+
+**UX compliance**: this train touched extensive `.tsx` under `fsi-app/src` across the detail
+architecture, the shared `ui/` parts, `ListSurfaceShell`, `AccountPrimitives`, `MapPageView`,
+`WatchlistSurface`, `DashboardBrief` and `PageMasthead` — every value applied is the ruling's own
+literal number/hex/format (3px, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`,
+0.04em, the R4 breadcrumb string shape), never invented or improvised; `docs/design/ux-laws.md`
+and the handoff `README.md` were read before editing, and every page-local deviation is logged in
+`DEVIATION-LOG.md` rather than left silent. The rendering guard (run below) confirms 0 unaccounted
+failures, `data-guard-title` present exactly once per detail-surface mount.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): `tsc --noEmit` clean; fitness runner 33/33 PASS, 0
+violations (the module-liveness gap on `capture-defect-fix-screenshots.mjs` and later
+`verify-ppwr-title-style.mjs`, both fixed in-train by wiring into `package.json`'s `scripts`);
+`node --test` over `.discipline/governance/*.test.mjs`, `.discipline/fitness/*.test.mjs`,
+`.discipline/fitness/functions/*.test.mjs`, `.discipline/*.test.mjs`,
+`.discipline/rendering/*.test.mjs`: 628/628 PASS; closure-gate `--report` PASS on all four checks
+(NEVER-RUN/STALE-NEXT/WRITER-READER 0 write-orphans/LANE-CONTRACT); the rendering guard PASS, 392
+checks, 11 fixtures, 6 SM + 11 UX smoke specs, 0 unaccounted failures (the earlier "browser
+context closed" cascade on one run was a container resource flake — a clean re-run passed outright,
+no exemption needed); `run-test-suite.sh` 5879/5884 pass, 0 fail, 5 skipped (the
+`audit-finding-status` informational report and the kill-switch-refusal-without-creds tests, same
+pre-existing shape trains 48-56 already recorded), exit 0; `node .discipline/runner.mjs
+--mode=ci --range=origin/master..HEAD` 0 fail across every commit in range; override-check
+`--range=origin/master..HEAD` fails only C4 (this container's own sibling `/root/work/lanes/*`
+worktrees, not listed in `docs/inventories/worktrees.md`, the same pre-existing artefact every
+prior train recorded — no C3 findings); all 18 `.github/workflows`/`.github/actions` YAML files
+parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119 invariants + 63 doctrines all
+wired); `next build --webpack` clean (full route manifest emitted, only the expected
+`SUPABASE_SERVICE_ROLE_KEY is not configured` fail-closed warnings, no `.env.local` present); the
+CI npmtest glob (`node --test $(git ls-files 'fsi-app/src/**/*.npmtest.mjs')`) 628/628 PASS after
+widening one pre-existing test's fixed-length slice window (`DashboardBrief.npmtest.mjs`,
+1000->1600 chars — the item-1.1 doc comment had grown past the old budget, caught only once the
+full CI selection ran it, not by the file alone). `coverage-report.json` regenerated: 878 governed
+files, 841 COVERED, 37 EXEMPT, 0 GAPS.
+
+Bundle: `git bundle create /tmp/train57.bundle origin/master..train/wave57-2026-09-07` at this
+container's own tip (26 commits — 16 folded from the three lanes + 10 this session: 3 merges, the
+F25 fitness-wiring fix, G1/detail-and-masthead, G1/rest-and-G3, G4, the npmtest-slice fix, and the
+STEP 3 docs commit — that commit's own hash is necessarily unknown to itself; see the bundle file
+for the actual tip), well under the 9 MB split threshold, so **one** bundle was made instead of the
+two-part split; `git bundle verify` PASS.

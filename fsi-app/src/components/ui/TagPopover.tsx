@@ -43,14 +43,14 @@ export interface TagPopoverProps {
    *  row, a rail facet group) can re-render off its own tag list. */
   onChange?: () => void;
   /**
-   * Controlled open state (lane uiactions integration, 2026-09-07): the
-   * ActionRow's own "+ Tag" trigger (README "Detail action row") and this
-   * component's own "+ Tag" trigger both need to open ONE popover with ONE
-   * open/closed state, not two independent popovers. When `open` is
-   * supplied the caller (a detail surface, lifting state above both
-   * ActionRow and DetailTagRow) drives visibility via `open`/`onOpenChange`
-   * instead of this component's own internal toggle. Omit both for the
-   * uncontrolled default (internal state, this trigger only) — unchanged
+   * Controlled open state (lane uiactions integration, 2026-09-07; DEFECT-FIX
+   * item 3.2, 2026-09-07): the ActionRow's own "+ Tag" trigger (README
+   * "Detail action row") drives ONE popover with ONE open/closed state. When
+   * `open` is supplied (every one of the four detail surfaces does this) this
+   * component does NOT render its own "+ Tag" trigger button at all — the
+   * action row's trigger is the only one, per the audit ("the action-row
+   * + Tag is the only trigger opening the one popover"). Omit both for the
+   * uncontrolled default (internal state, own trigger rendered) — unchanged
    * behaviour for any caller that does not need the shared-state wiring.
    */
   open?: boolean;
@@ -192,32 +192,42 @@ export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: T
 
   return (
     <div ref={containerRef} style={{ position: "relative", display: "inline-block" }}>
-      <button
-        ref={triggerRef}
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-haspopup="listbox"
-        aria-expanded={open}
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: 6,
-          minHeight: 44,
-          minWidth: 44,
-          padding: "8px 14px",
-          fontSize: "var(--fs-12)",
-          fontWeight: 600,
-          color: "var(--ink-2)",
-          background: "#FFFFFF",
-          border: "1px dashed rgba(0,0,0,.28)",
-          borderRadius: 6,
-          cursor: "pointer",
-          fontFamily: "inherit",
-        }}
-      >
-        + Tag
-      </button>
+      {/* DEFECT-FIX (item 3.2, 2026-09-07): when `open` is controlled (a caller — every detail
+          surface's ActionRow "+ Tag" — already drives visibility), this component must not render
+          its OWN second "+ Tag" trigger: DetailTagRow renders applied tags only, and the action row's
+          own "+ Tag" is the one trigger that opens this popover. Uncontrolled callers (none exist in
+          this repo today, but the prop stays optional for any future one) keep their own trigger
+          exactly as before — this is additive, not a breaking change to TagPopover's contract. The
+          wrapping div still anchors the popover's `position: absolute` panel when the trigger is
+          hidden, so the panel still opens in the same place (directly under the applied-tags row). */}
+      {!controlled && (
+        <button
+          ref={triggerRef}
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 6,
+            minHeight: 44,
+            minWidth: 44,
+            padding: "8px 14px",
+            fontSize: "var(--fs-12)",
+            fontWeight: 600,
+            color: "var(--ink-2)",
+            background: "#FFFFFF",
+            border: "1px dashed rgba(0,0,0,.28)",
+            borderRadius: 6,
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          + Tag
+        </button>
+      )}
 
       {open && (
         <div

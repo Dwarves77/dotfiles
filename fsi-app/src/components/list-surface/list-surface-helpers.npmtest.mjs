@@ -17,8 +17,16 @@ const jiti = createJiti(import.meta.url, {
   interopDefault: true,
   alias: { "@": resolve(ROOT, "src") },
 });
-const { modeFacetOptions, regionFacetOptions, bandFacetOptions, filterRows, withListPosition, EMPTY_FILTER_STATE } =
-  await jiti.import("./list-surface-helpers.ts");
+const {
+  modeFacetOptions,
+  regionFacetOptions,
+  bandFacetOptions,
+  filterRows,
+  withListPosition,
+  EMPTY_FILTER_STATE,
+  BAND_FACET_PARAM,
+  bandFromSearchParam,
+} = await jiti.import("./list-surface-helpers.ts");
 
 function res(over = {}) {
   return { id: "r1", title: "A regulation", priority: "HIGH", jurisdiction: "EU", modes: ["ocean"], tags: [], ...over };
@@ -126,4 +134,30 @@ test("withListPosition adds no query beyond list/pos/of/prev/next when neighbors
 test("withListPosition URL-encodes a neighbour slug that needs it", () => {
   const href = withListPosition("/x", "list", 1, 2, { next: "a/b" });
   assert.ok(href.includes("next=a%2Fb"));
+});
+
+// Audit item 1.1 (2026-09-07, operator ruling — CLOSED): the Dashboard's "All N immediate"
+// control now navigates to /regulations with the Immediate band facet applied, via this SAME
+// `?band=` contract (regulations/page.tsx reads it server-side and seeds RegulationsLedger's
+// filter). BAND_FACET_PARAM/bandFromSearchParam are the one home for that contract, so a future
+// list-surface caller (or another dashboard row) never invents a second query-param name.
+
+test("BAND_FACET_PARAM is the literal 'band' query key", () => {
+  assert.equal(BAND_FACET_PARAM, "band");
+});
+
+test("bandFromSearchParam accepts every real UrgencyBandKey value", () => {
+  assert.equal(bandFromSearchParam("immediate"), "immediate");
+  assert.equal(bandFromSearchParam("action"), "action");
+  assert.equal(bandFromSearchParam("monitor"), "monitor");
+  assert.equal(bandFromSearchParam("awareness"), "awareness");
+});
+
+test("bandFromSearchParam rejects anything outside the vocabulary (absent, misspelled, stale)", () => {
+  assert.equal(bandFromSearchParam(null), null);
+  assert.equal(bandFromSearchParam(undefined), null);
+  assert.equal(bandFromSearchParam(""), null);
+  assert.equal(bandFromSearchParam("IMMEDIATE"), null, "case-sensitive: only the real lower-case band keys are valid");
+  assert.equal(bandFromSearchParam("critical"), null, "platform priority values are not band keys");
+  assert.equal(bandFromSearchParam("not-a-band"), null);
 });

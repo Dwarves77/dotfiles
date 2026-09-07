@@ -8,7 +8,8 @@
  * Row variant: four 9px bars on a 1px baseline, sorted ascending
  * left→right, coloured by value (1 green · 2 orange · 3 red) so green is
  * always left and red always right; the sum N/12 sits beside it in
- * tabular numerals. Unscored = a dashed baseline and the Absence
+ * tabular numerals. Unscored = a 30px dashed baseline (operator audit item
+ * 2.1, 2026-09-07 ruling — one width, desktop and mobile) and the Absence
  * component's small-caps reason, never a second "NOT SCORED" row.
  *
  * Full variant (detail rail, dashboard): one continuous bar per dimension
@@ -17,8 +18,7 @@
  * Mobile (lane moblist, 2026-09-07, mobile-390 spec "LIST ROW"): below
  * 768px the row variant's bars grow to heights 5/10/16 for scores 1/2/3
  * (from 5/7/9) on a rgba(0,0,0,.25) baseline (from --line-1's rgba(0,0,0,.12))
- * and the unscored baseline narrows from 40px to 30px — a CSS media query on
- * this shared part, never a page-local mobile copy.
+ * — a CSS media query on this shared part, never a page-local mobile copy.
  *
  * FOLD-56 (2026-09-07): the spec's "8px bars" is resolved as bar WIDTH — bars
  * widen from 4px to 8px below 768px (desktop 4px untouched), additive to the
@@ -62,7 +62,10 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
           aria-hidden="true"
           className={variant === "row" ? "cl-impact-baseline" : undefined}
           style={{
-            width: variant === "full" ? 96 : 40,
+            // Operator audit item 2.1 (2026-09-07, CLOSED ruling): "Unscored = a 30px dashed
+            // baseline ... one row, everywhere the meter renders, desktop and mobile" — the row
+            // variant's baseline is 30px at every viewport (was 40px desktop, 30px mobile-only).
+            width: variant === "full" ? 96 : 30,
             height: 0,
             borderBottom: "1px dashed var(--line-1)",
           }}
@@ -170,9 +173,11 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
 }
 
 // Mobile-390 spec "LIST ROW" (lane moblist, 2026-09-07): row-variant bars grow to heights
-// 5/10/16 for scores 1/2/3 on a rgba(0,0,0,.25) baseline below 768px; unscored baseline
-// narrows 40px -> 30px. A CSS media query on this shared part, not a page-local override.
-// FOLD-56 (F5): bar width also widens 4px -> 8px below 768px (desktop 4px untouched).
+// 5/10/16 for scores 1/2/3 on a rgba(0,0,0,.25) baseline below 768px. A CSS media query on this
+// shared part, not a page-local override. FOLD-56 (F5): bar width also widens 4px -> 8px below
+// 768px (desktop 4px untouched). Operator audit item 2.1 (2026-09-07): the unscored baseline width
+// is now 30px at every viewport (set on the base style above), so `.cl-impact-baseline`'s own
+// width rule below is a no-op kept only to carry the mobile-only dashed-line colour change.
 const MOBILE_CSS = `
   @media (max-width: 767px) {
     .cl-impact-bars { height: 16px !important; border-bottom: 1px solid rgba(0,0,0,.25); padding-bottom: 1px; }
@@ -180,6 +185,6 @@ const MOBILE_CSS = `
     .cl-impact-bar[data-score="1"] { height: 5px !important; }
     .cl-impact-bar[data-score="2"] { height: 10px !important; }
     .cl-impact-bar[data-score="3"] { height: 16px !important; }
-    .cl-impact-baseline { width: 30px !important; border-bottom-color: rgba(0,0,0,.25) !important; }
+    .cl-impact-baseline { border-bottom-color: rgba(0,0,0,.25) !important; }
   }
 `;

@@ -74,42 +74,49 @@ test("InThisListStat reads prev/next neighbour slugs via a second isolated bridg
 
 test("InThisListStat reconstructs each neighbour's href from withListPosition (imported, not hand-built query string)", () => {
   assert.match(SOURCE, /import \{ withListPosition \} from "@\/components\/list-surface\/list-surface-helpers"/);
-  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 5000);
   assert.match(statBody, /withListPosition\(/);
 });
 
 test("InThisListStat's prev/next links are omitted, not rendered empty, when a neighbour is absent", () => {
-  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 5000);
   assert.match(statBody, /\(prevHref \|\| nextHref\) &&/);
   assert.match(statBody, /prevHref &&/);
   assert.match(statBody, /nextHref &&/);
 });
 
-// Lane uidetails2 (2026-09-07): the breadcrumb's own last segment ("1 of 9 in Action") reuses the
-// SAME InThisListBridge/list-pos-of contract, mounted directly inside DetailHeader so every detail
-// surface picks it up with no page-local change.
-test("DetailHeader renders the breadcrumb list-position segment via the same shared bridge, not a second searchParams reader", () => {
-  assert.match(SOURCE, /function BreadcrumbListPosition/);
+// GAP G2 (2026-09-07, operator audit item 2.3, ruling R4): the breadcrumb's own last segment
+// ("N of M in Band") now renders inside DetailMastheadBreadcrumb, feeding the shared Masthead's
+// own VOL/breadcrumb line (dateLabel) — DetailHeader no longer carries a meta/breadcrumb line at
+// all (see its own doc comment). The old DetailHeader-local BreadcrumbListPosition bridge was
+// removed as dead code once DetailHeader stopped rendering it (CLAUDE.md rule 13).
+test("DetailHeader carries no BreadcrumbListPosition / meta reader — the breadcrumb line moved to DetailMasthead", () => {
+  assert.doesNotMatch(CODE_ONLY, /function BreadcrumbListPosition/);
   const headerBody = SOURCE.slice(
     SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Exposure grid")
+    SOURCE.indexOf("// ── Masthead:")
   );
-  assert.match(headerBody, /<BreadcrumbListPosition band=\{band\} \/>/);
-  // BreadcrumbListPosition itself must not call the hook directly — only render the shared bridge.
-  const bridgeCompBody = SOURCE.slice(
-    SOURCE.indexOf("function BreadcrumbListPosition"),
-    SOURCE.indexOf("export function InThisListStat")
-  );
-  assert.doesNotMatch(bridgeCompBody.split("function ")[1] ?? bridgeCompBody, /useSearchParams\(\)/);
-  assert.match(bridgeCompBody, /<InThisListBridge/);
+  assert.doesNotMatch(headerBody, /useSearchParams\(\)/);
 });
 
-test("the breadcrumb list-position segment renders nothing when pos/of are absent — Absence-by-omission, never a fabricated '1 of 1'", () => {
-  const bridgeCompBody = SOURCE.slice(
-    SOURCE.indexOf("function BreadcrumbListPosition"),
-    SOURCE.indexOf("export function InThisListStat")
+test("DetailMastheadBreadcrumb renders the R4 breadcrumb format via the shared searchParams reader, isolated from DetailMasthead's own body", () => {
+  assert.match(SOURCE, /function DetailMastheadBreadcrumb/);
+  const bridgeBody = SOURCE.slice(
+    SOURCE.indexOf("function DetailMastheadBreadcrumb"),
+    SOURCE.indexOf("export interface DetailMastheadProps")
   );
-  assert.match(bridgeCompBody, /\{known && `/);
+  assert.match(bridgeBody, /useSearchParams\(\)/);
+  assert.match(bridgeBody, /\$\{base\} \/ \$\{pos\} of \$\{of\} in \$\{band\.label\}/);
+  const mastheadBody = SOURCE.slice(SOURCE.indexOf("export function DetailMasthead("));
+  assert.doesNotMatch(mastheadBody.split("function ")[0], /useSearchParams\(\)/);
+  assert.match(mastheadBody, /<Suspense fallback=\{null\}>\s*<DetailMastheadBreadcrumb/);
+});
+
+test("DetailMasthead mounts the shared ui/Masthead with size=\"detail\" and passes the scoped placeholder to its ONE CommandBar", () => {
+  assert.match(SOURCE, /import \{ Masthead \} from "@\/components\/ui\/Masthead"/);
+  const mastheadBody = SOURCE.slice(SOURCE.indexOf("export function DetailMasthead("));
+  assert.match(mastheadBody, /<Masthead[\s\S]*size="detail"/);
+  assert.match(mastheadBody, /commandBar=\{\{ itemCount: 0, placeholder, scope: surface\.toLowerCase\(\) \}\}/);
 });
 
 test("an unknown list position renders the Absence convention, never a fabricated '1 of 1'", () => {
@@ -143,15 +150,36 @@ test("SummaryDepthSwitch's buttons clear the 44px law-2 hit-target floor (both s
   assert.match(body, /minHeight: 44/);
 });
 
-// Lane uiactions (2026-09-07, README "no per-page ask panel — the CommandBar in the Masthead is
-// the only search/ask surface" + design ruling R4): the detail header's scoped ask placeholder
-// mounts the SAME shared CommandBar part, never a bespoke per-page ask box.
-test("DetailHeader's askPlaceholder mounts the shared CommandBar part, never a page-local ask input", () => {
-  assert.match(SOURCE, /import \{ CommandBar \} from "@\/components\/ui\/CommandBar"/);
+// DEFECT-FIX item 2.3 (2026-09-07, audit ruling, SUPERSEDES the prior "DetailHeader mounts a
+// scoped CommandBar" test this replaces): "the CommandBar in the Masthead is the only search/ask
+// surface" — a second, item-scoped ask box living inside DetailHeader (the old
+// askPlaceholder/askScope props) was itself a second ask surface on every detail page. DetailHeader
+// must not mount CommandBar (or any ask box) at all — nothing dormant left (no unused
+// askPlaceholder/askScope prop survives either).
+test("DetailHeader mounts no CommandBar and carries no askPlaceholder/askScope prop (item 2.3 — one ask surface, the Masthead, never a second box here)", () => {
+  // CODE_ONLY (block comments stripped) — this file's own header prose is allowed to name the
+  // removed props/import for history; the actual code must carry neither.
+  assert.doesNotMatch(CODE_ONLY, /from "@\/components\/ui\/CommandBar"/);
+  assert.doesNotMatch(CODE_ONLY, /askPlaceholder/);
+  assert.doesNotMatch(CODE_ONLY, /askScope/);
   const headerBody = SOURCE.slice(
     SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Exposure grid")
+    SOURCE.indexOf("// ── Masthead:")
   );
-  assert.match(headerBody, /<CommandBar itemCount=\{0\} placeholder=\{askPlaceholder\} scope=\{askScope\} \/>/);
-  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form — CommandBar owns that markup");
+  assert.doesNotMatch(headerBody, /<CommandBar/);
+  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form");
+});
+
+// GAP G2 (2026-09-07): DetailHeader no longer renders an <h1> at all — the item title moved to the
+// shared ui/Masthead (via DetailMasthead), so the item-1.2 "unconditional Anton title" guarantee is
+// now Masthead.tsx's own contract (see Masthead.npmtest.mjs), not this file's. DetailHeader itself
+// carries no title.length/itemGrade-shaped conditional anywhere.
+test("DetailHeader renders no <h1> (title lives in DetailMasthead's Masthead mount, not duplicated here) and no length-based title-style switch survives in this file", () => {
+  const headerBody = SOURCE.slice(
+    SOURCE.indexOf("export function DetailHeader"),
+    SOURCE.indexOf("// ── Masthead:")
+  );
+  assert.doesNotMatch(headerBody, /<h1/);
+  assert.match(headerBody, /aria-label=\{title\}/);
+  assert.doesNotMatch(SOURCE, /title\.length/, "no length-based title-style switch survives anywhere in this file");
 });

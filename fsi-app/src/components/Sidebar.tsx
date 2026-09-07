@@ -4,8 +4,11 @@
  * Sidebar — the nav card (UI system handoff 2026-09-06, README §0.3):
  * "Nav 252px, always — one width, so the page never shifts on navigation
  * (the audit found two nav widths)." White card, radius 10, margin
- * `16px 0 16px 16px`, band-gradient 3px cap, sections Brief / Intelligence
- * / Network / Operator, counts right-aligned in each row.
+ * `20px 0 16px 16px` (operator audit item 4.2, 2026-09-07 ruling: the 20px
+ * top margin aligns the card with the content column's own 20px top
+ * padding — was `16px 0 16px 16px`), band-gradient 3px cap, sections
+ * Brief / Intelligence / Network / Operator, counts right-aligned in each
+ * row.
  *
  * Supersedes the pre-existing 208px sidebar (docs/design/audit-2026-09-06/
  * ASSESSMENT.md's "two nav widths" finding — the OTHER width lived in
@@ -294,8 +297,10 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
         className="hidden md:flex flex-col shrink-0 overflow-hidden"
         style={{
           width: 252,
-          maxHeight: "calc(100vh - 32px)",
-          margin: "16px 0 16px 16px",
+          // Operator audit item 4.2 (2026-09-07, CLOSED ruling): "Nav card top margin becomes 20px
+          // (margin: 20px 0 16px 16px) so it aligns with the content column's 20px top padding."
+          maxHeight: "calc(100vh - 36px)",
+          margin: "20px 0 16px 16px",
           background: "var(--card)",
           border: "1px solid var(--line-1)",
           borderRadius: "var(--radius-card)",

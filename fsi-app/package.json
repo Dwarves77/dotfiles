@@ -13,7 +13,11 @@
     "assemble-train": "node scripts/lib/assemble-train.mjs",
     "verify:audit-findings": "node scripts/verify/audit-finding-status.mjs",
     "worklist:consolidate-attach": "node scripts/maintenance/lib/consolidate-attach-worklist.mjs",
-    "capture:detail-mobile-screenshots": "node .discipline/rendering/capture-detail-mobile-screenshots.mjs"
+    "capture:detail-mobile-screenshots": "node .discipline/rendering/capture-detail-mobile-screenshots.mjs",
+    "capture:uxfix-lists-live": "node .discipline/rendering/capture-uxfix-lists-screenshots.mjs",
+    "capture:uxfix-lists-fixture": "node .discipline/rendering/capture-uxfix-lists-fixture-screenshots.mjs",
+    "capture:defect-fix-screenshots": "node .discipline/rendering/capture-defect-fix-screenshots.mjs",
+    "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

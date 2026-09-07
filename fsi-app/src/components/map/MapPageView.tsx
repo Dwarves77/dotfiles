@@ -53,6 +53,7 @@ import { BAND_ORDER, bandFromPriority, type UrgencyBand, type UrgencyBandKey } f
 import { ListRow } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { formatNumber } from "@/lib/format";
 
 const MapView = dynamic(
@@ -111,6 +112,9 @@ function bandOf(items: Resource[]): UrgencyBand {
 function Card({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", overflow: "hidden" }}>
+      {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no divider
+          below the title — see CardHead below, whose borderBottom this removes. */}
+      <SectionRule />
       {children}
     </div>
   );
@@ -118,8 +122,8 @@ function Card({ children }: { children: React.ReactNode }) {
 
 function CardHead({ title, aside }: { title: string; aside?: React.ReactNode }) {
   return (
-    <div style={{ padding: "11px 16px", borderBottom: "1px solid var(--line-2)", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-      <p style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 15, letterSpacing: "0.03em", textTransform: "uppercase", color: "var(--ink)", margin: 0 }}>{title}</p>
+    <div style={{ padding: "11px 16px", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+      <p style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 15, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--ink)", margin: 0 }}>{title}</p>
       {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
     </div>
   );

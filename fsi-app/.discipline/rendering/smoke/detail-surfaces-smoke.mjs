@@ -19,9 +19,10 @@
 //   - ResearchFindingDetailSurface.tsx   (src/components/research/)
 //   - MarketSignalDetailSurface.tsx      (src/components/pages/)
 //
-// Each surface is mounted with a long official title (>80 chars, the length threshold
-// RegulationDetailSurface itself uses to switch from the Anton poster face to the wrapping body
-// face), a long breadcrumb group (Regulations only — the only one of the four with a breadcrumb; see
+// Each surface is mounted with a long official title (>80 chars, stressing the title's word-wrap;
+// item 1.2, 2026-09-07 confirmed there is no length-based style SWITCH — the Anton/uppercase title
+// treatment is unconditional, see DetailShell.npmtest.mjs's own test for that), a long breadcrumb
+// group (Regulations only — the only one of the four with a breadcrumb; see
 // this spec's own per-surface comments below for why the other three have none), and six section
 // rows, at 375x812 and 1280x800. None of the four surfaces fetch on mount (confirmed by reading each
 // file — MarketSignalDetailSurface's one client fetch is a debounced notes-save fired by user typing,
@@ -61,8 +62,14 @@ const STYLE_INJECT = `
 const LONG = (n, word = 'extremely-long-official-instrument-title-token') =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
 
-// >80 chars — RegulationDetailSurface's own threshold (r.title.length > 80) for switching from the
-// Anton poster face to the wrapping body face; long enough to stress every surface's title wrap.
+// >80 chars — DEFECT-FIX item 1.2 (2026-09-07, audit ruling) confirmed there is no
+// length-based title-style switch anywhere in DetailHeader (a repo-wide grep found none; this
+// comment used to claim "RegulationDetailSurface's own threshold (r.title.length > 80) for
+// switching from the Anton poster face to the wrapping body face" — that logic never existed in the
+// current DetailShell architecture, the claim was stale, corrected here per CLAUDE.md rule 14). The
+// title is styled unconditionally (Anton/uppercase/400) regardless of length; this fixture stays
+// long enough to stress every surface's title WRAP (word-break/overflow), which is the real thing
+// worth measuring at this length.
 const LONG_TITLE = `Commission Delegated Regulation amending the rules for the monitoring of greenhouse gas emissions from offshore ships and the zero-rating of sustainable fuels ${LONG(4)}`;
 const LONG_GROUP = 'Mexico · Diario Oficial de la Federación · Secretaría de Medio Ambiente y Recursos Naturales';
 
@@ -238,6 +245,12 @@ import { RegulationDetailSurface } from '@/components/regulations/RegulationDeta
 // §0.5), following the same precedent regulations-rows-smoke.mjs documents for ObligationRegister.
 import { DetailHeader as _DetailHeaderCoverageOnly } from '@/components/detail/DetailShell';
 void _DetailHeaderCoverageOnly;
+// GAP G2 (2026-09-07): the guarded H1 moved again, out of DetailShell.tsx's DetailHeader and into
+// the shared ui/Masthead via the new DetailMasthead (DetailShell.tsx) — mounted at the top of all
+// four *DetailSurface.tsx components this spec already mounts. Same coverage-only-import precedent as
+// above, updated to the H1's real current home.
+import { Masthead as _MastheadCoverageOnly } from '@/components/ui/Masthead';
+void _MastheadCoverageOnly;
 
 let root = null;
 window.__mount = (props) => {
@@ -298,6 +311,35 @@ const REGULATION_STATES = [
       claimTiers: recordClaimTiers(),
       groupLabel: LONG_GROUP,
       deck: 'EUR-Lex · catalogue record',
+      initialOwner: null,
+      upcomingObligations: null,
+    },
+    expectTitles: 1,
+  },
+  // GAP G4 (2026-09-07, TRAIN-57 dispatch): the operator's audit item 1.2 named the EXACT production
+  // title/slug that reproduced body-weight text — /regulations/eu-ppwr-2025-40, "EU Packaging and
+  // Packaging Waste Regulation (PPWR)". Item 1.2 was already investigated (VERIFIED ALREADY FIXED,
+  // see DetailShell.npmtest.mjs's own item-1.2 test) via a synthetic long title, never this literal
+  // string. This state mounts the exact production title/id so a regression on that specific string
+  // (markup, a non-breaking-space character, a slug-keyed conditional) cannot hide behind a
+  // synthetic fixture.
+  {
+    label: 'ppwr-production-title-verbatim',
+    props: {
+      resource: baseResource({
+        id: 'eu-ppwr-2025-40',
+        title: 'EU Packaging and Packaging Waste Regulation (PPWR)',
+        legalInstrument: 'EU Packaging and Packaging Waste Regulation (PPWR)',
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      sections: regulationSections(),
+      groupLabel: 'Regulations · European Union',
+      deck: 'EUR-Lex · adopted 2024',
       initialOwner: null,
       upcomingObligations: null,
     },

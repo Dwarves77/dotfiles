@@ -21,6 +21,7 @@
 
 import type { ReactNode } from "react";
 import { CommandBar } from "@/components/ui/CommandBar";
+import { SectionRule } from "@/components/ui/SectionRule";
 
 const EDITORIAL_VOLUME = "IV";
 
@@ -63,16 +64,21 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "18px 24px 20px",
+        overflow: "hidden",
       }}
     >
+      {/* Ruling 5.2 (2026-09-07): the masthead's own 3px rule is the dark grey gradation from 5.1,
+          never the band-coloured rule (that stays confined to the nav card cap / mobile top bar /
+          drawer). */}
+      <SectionRule />
+      <div className="cl-masthead-body" style={{ padding: "18px 24px 20px" }}>
       {/* Mobile spec (MASTHEAD): padding 14px 16px 0, VOL line 9.5px/700,
           title 24px/line-height 1.08 margin-top 5px, scope line 12px, the
           command bar drops to full width under the title. Below 768
           (theme.css's documented --bp-mobile). */}
       <style>{`
         @media (max-width: 767px) {
-          .cl-masthead { padding: 14px 16px 0 !important; }
+          .cl-masthead-body { padding: 14px 16px 0 !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }
           .cl-masthead .cl-masthead-title { font-size: 24px !important; line-height: 1.08 !important; margin-top: 5px !important; }
           .cl-masthead .cl-masthead-dek { font-size: 12px !important; line-height: 1.45 !important; }
@@ -128,6 +134,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
             />
           </div>
         )}
+      </div>
       </div>
     </header>
   );

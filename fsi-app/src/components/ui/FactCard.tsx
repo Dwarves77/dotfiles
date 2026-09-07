@@ -8,19 +8,27 @@
  * apart by FORM, not just colour, so a reader can tell them apart even in
  * grayscale:
  *
- *   sourced   — solid ink edge on white. A verbatim quote, an operative
- *               date when known, a tier chip, and a link to the source.
- *               This is a FACT claim (system-prompt.ts §1): checkable,
- *               span-grounded, citable.
- *   inference — dashed border on raised paper (--tag), italic body, NO
- *               link ("not citable" — README §0.4). This is an ANALYSIS
- *               claim: the pipeline's own reasoning, opened with one of
- *               "Analytical inference:" / "Industry interpretation:" /
- *               "Operational implication:" (system-prompt.ts §1).
- *   counsel   — orange edge. This is a LEGAL claim: a question the
- *               pipeline explicitly declined to answer ("Legal
- *               Confirmation Required:" — the agent does not make legal
- *               determinations, system-prompt.ts §1).
+ *   sourced   — 2px solid #1A1A1A LEFT edge, 1px rgba(0,0,0,.12) the other
+ *               three sides, radius 0 8px 8px 0, white. A verbatim quote,
+ *               an operative date when known, a tier chip, and a link to
+ *               the source. This is a FACT claim (system-prompt.ts §1):
+ *               checkable, span-grounded, citable.
+ *   inference — 1px DASHED rgba(0,0,0,.25) all round, #FAFAF8, italic
+ *               body, NO link ("not citable" — README §0.4). This is an
+ *               ANALYSIS claim: the pipeline's own reasoning, opened with
+ *               one of "Analytical inference:" / "Industry interpretation:"
+ *               / "Operational implication:" (system-prompt.ts §1).
+ *   counsel   — 2px solid #F97316 LEFT edge, otherwise shaped exactly like
+ *               sourced. This is a LEGAL claim: a question the pipeline
+ *               explicitly declined to answer ("Legal Confirmation
+ *               Required:" — the agent does not make legal determinations,
+ *               system-prompt.ts §1).
+ *
+ * Form is what tells the three apart (operator audit item 2.4, 2026-09-07
+ * ruling): the prior build gave all three the same 1px grey perimeter with
+ * only colour distinguishing them, which reads identically in grayscale.
+ * SOURCED_SHAPE below is the one right-rounded card shape sourced and
+ * counsel share; only the left edge differs between them.
  *
  * Built once here (lane uidetails, 2026-09-06) because all four detail
  * surfaces (regulations, market, research, operations) need it and no
@@ -75,13 +83,29 @@ const BODY: React.CSSProperties = {
   overflowWrap: "anywhere",
 };
 
+// Operator audit item 2.4 (2026-09-07, CLOSED ruling): fact cards are told apart by FORM, not a
+// uniform grey perimeter. sourced = 2px solid #1A1A1A LEFT edge + 1px rgba(0,0,0,.12) the other
+// three sides + radius 0 8px 8px 0 + white; counsel = 2px solid #F97316 LEFT edge, otherwise as
+// sourced (a "Legal Confirmation Required" card). SOURCED_SHAPE carries everything the two share;
+// only the left edge colour differs, via `borderLeft` applied after the `border` shorthand below.
+const SOURCED_SHAPE: React.CSSProperties = {
+  background: "var(--card)",
+  border: "1px solid var(--line-1)",
+  borderRadius: "0 8px 8px 0",
+  padding: "12px 14px",
+  margin: "0 0 10px",
+  display: "flex",
+  flexDirection: "column",
+  gap: 8,
+};
+
 export function FactCard({ variant, text, source, label }: FactCardProps) {
   if (variant === "inference") {
     return (
       <div
         style={{
-          background: "var(--tag)",
-          border: "1px dashed var(--line-1)",
+          background: "var(--page)",
+          border: "1px dashed rgba(0,0,0,.25)",
           borderRadius: "var(--radius-control)",
           padding: "12px 14px",
           margin: "0 0 10px",
@@ -95,17 +119,7 @@ export function FactCard({ variant, text, source, label }: FactCardProps) {
 
   if (variant === "counsel") {
     return (
-      <div
-        style={{
-          background: "var(--card)",
-          borderLeft: "3px solid var(--action)",
-          border: "1px solid var(--line-1)",
-          borderLeftWidth: 3,
-          borderRadius: "0 var(--radius-control) var(--radius-control) 0",
-          padding: "12px 14px",
-          margin: "0 0 10px",
-        }}
-      >
+      <div style={{ ...SOURCED_SHAPE, borderLeft: "2px solid var(--action)" }}>
         <p style={{ ...EYEBROW, color: "var(--action)" }}>Legal confirmation required</p>
         <p style={{ ...BODY, color: "var(--ink)" }}>{text}</p>
       </div>
@@ -114,18 +128,7 @@ export function FactCard({ variant, text, source, label }: FactCardProps) {
 
   // sourced (FACT)
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--ink)",
-        borderRadius: "var(--radius-control)",
-        padding: "12px 14px",
-        margin: "0 0 10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 8,
-      }}
-    >
+    <div style={{ ...SOURCED_SHAPE, borderLeft: "2px solid var(--ink)" }}>
       <p style={{ ...EYEBROW, color: "var(--ink-3)" }}>Fact</p>
       <p style={{ ...BODY, color: "var(--ink)" }}>&ldquo;{text}&rdquo;</p>
       {(source?.date || source?.issuer || source?.title || source?.tier != null || source?.url) && (

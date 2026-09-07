@@ -27,10 +27,19 @@
  *
  * All computation lives in `@/lib/operations/region-grid.mjs`, which OperationsLedger's coverage rail
  * also consumes, so this surface cannot show two different coverage numbers for one page.
+ *
+ * DEFECT-FIX (item 3.3, 2026-09-07): every empty cell (`factCount === 0`, `grid` state 'absent') now
+ * renders the shared `Absence` component (`ui/Absence.tsx`, reason "not in primary source") instead of
+ * a bare "— no data" text span, in both the desktop table cell and the mobile card summary badge. This
+ * is what lets `regulatory_feasibility` (D1 — see OperationsLedger.tsx's own MATRIX_DIMENSIONS comment)
+ * render as a real row: it structurally has zero rows in `regional_data_facts`, so every one of its
+ * cells hits this same empty-cell branch and shows the one honest absence convention, never a blank and
+ * never an invented count.
  */
 
 import { Fragment, useMemo, useState } from "react";
 import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-server";
+import { Absence } from "@/components/ui/Absence";
 import {
   buildRegionGrid,
   orderRegions,
@@ -262,8 +271,8 @@ export function RegionDimensionMatrix({
                       const c = grid.byCell[`${r.key}|${d.db}`];
                       if (!c || c.factCount === 0) {
                         return (
-                          <td key={r.key} style={{ ...cell, color: "var(--color-text-muted)" }}>
-                            <span title="No producer has written this cell">— no data</span>
+                          <td key={r.key} style={{ ...cell, color: "var(--color-text-muted)" }} title="No producer has written this cell">
+                            <Absence reason="not in primary source" />
                           </td>
                         );
                       }
@@ -389,7 +398,7 @@ export function RegionDimensionMatrix({
                               {c!.factCount} · <span style={{ color: FRESHNESS_COLOR[fresh] }}>{FRESHNESS_LABEL[fresh]}</span>
                             </span>
                           ) : (
-                            <span style={{ fontSize: 11, color: "var(--color-text-muted)", whiteSpace: "nowrap" }}>no data</span>
+                            <Absence reason="not in primary source" />
                           )}
                           <span aria-hidden style={{ fontSize: 16, fontWeight: 700, lineHeight: 1, color: "var(--color-primary)" }}>
                             {open ? "−" : "+"}

@@ -88,6 +88,10 @@ export function ActionButton({
   disabled,
   ariaPressed,
   title,
+  onMouseEnter,
+  onMouseLeave,
+  onFocus,
+  onBlur,
 }: {
   children: ReactNode;
   variant?: "primary" | "secondary" | "dashed";
@@ -95,6 +99,14 @@ export function ActionButton({
   disabled?: boolean;
   ariaPressed?: boolean;
   title?: string;
+  /** Additive (audit item 3.5, 2026-09-07): WatchButton's "row" variant uses these to swap its
+   *  label to "Unwatch" on hover/focus without re-deriving this chrome's own hover-background
+   *  effect. Optional — every existing caller (Export brief/Share/+ Tag) passes none and behaves
+   *  exactly as before. */
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+  onFocus?: () => void;
+  onBlur?: () => void;
 }) {
   const primary = variant === "primary";
   return (
@@ -123,10 +135,14 @@ export function ActionButton({
       }}
       onMouseEnter={(e) => {
         if (!primary && !disabled) (e.currentTarget as HTMLButtonElement).style.background = "#F5F2EE";
+        onMouseEnter?.();
       }}
       onMouseLeave={(e) => {
         if (!primary) (e.currentTarget as HTMLButtonElement).style.background = "var(--card)";
+        onMouseLeave?.();
       }}
+      onFocus={onFocus}
+      onBlur={onBlur}
     >
       {children}
     </button>
