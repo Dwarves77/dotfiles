@@ -8,8 +8,13 @@
 // differ row to row inside one (host, reason) group, and "accept" here only ever means "safe to
 // auto-apply as a group" (see apply-canonical-candidates.mjs) — a group is recommended accept only when
 // EVERY row in it already cleared the verifier at high confidence, reject only when EVERY row is
-// unverified. A mixed group is "uncertain": the operator's own per-row review is the honest path,
-// exactly as this table's existing /decide route already offers.
+// unverified. A mixed group is labeled "auto-verify" (renamed from "uncertain", lane
+// CANONICAL-AUTOVERIFY, 2026-09-06, operator ruling — a web-crawl-surfaced replacement source is
+// machine-verifiable the same way a human reviewer would check it, so it does not wait on a human): the
+// MAINT step scripts/maintenance/canonical-autoverify.mjs performs that verification and rules each row
+// itself. This module's own per-row apply script (apply-canonical-candidates.mjs, below) is unaffected —
+// it still only auto-resolves an "accept" group's already-registered URLs; canonical-autoverify.mjs is a
+// separate, additive mechanism for everything this one still cannot.
 //
 // WHAT "ACCEPT" DOES NOT DO. The product's approve flow (decide/route.ts, bulk-approve/route.ts)
 // creates a NEW `sources` row (with an operator- or classifier-chosen tier) when the candidate URL isn't
@@ -38,11 +43,18 @@ export function groupKeyOf(row) {
   return `${hostOf(row.candidate_url) || "(unparseable-host)"}::${row.issue_classification}`;
 }
 
-/** Deterministic GROUP rule: unanimous verified+high -> accept; unanimous unverified -> reject; else uncertain. */
+/** Deterministic GROUP rule: unanimous verified+high -> accept; unanimous unverified -> reject; else
+ *  auto-verify. RENAMED from "uncertain" (lane CANONICAL-AUTOVERIFY, 2026-09-06, operator ruling — "it has
+ *  the tools to review and find sources to start, so its completely capable of doing that again for the
+ *  secondary source or new source location"): a mixed group is no longer a human-review dead end. The
+ *  MAINT step `canonical-autoverify` (scripts/maintenance/canonical-autoverify.mjs) performs the same
+ *  reachability/page-class/content-proof/authority verification a human reviewer would and rules each row
+ *  itself; this label just says that is where a mixed group's rows actually get resolved, not "wait for
+ *  an operator." See docs/runbooks/MAINTENANCE-RUNBOOK.md §14's "Sequence" note and §38. */
 export function recommendGroupDecision(rows) {
   if (rows.every((r) => r.verified && r.confidence === "high")) return "accept";
   if (rows.every((r) => !r.verified)) return "reject";
-  return "uncertain";
+  return "auto-verify";
 }
 
 export function groupRows(rows) {

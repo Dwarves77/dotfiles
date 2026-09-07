@@ -10,11 +10,11 @@ test("groupKeyOf: host x issue_classification", () => {
   );
 });
 
-test("recommendGroupDecision: both directions — unanimous verified+high accepts, unanimous unverified rejects, mixed is uncertain", () => {
+test("recommendGroupDecision: both directions — unanimous verified+high accepts, unanimous unverified rejects, mixed is auto-verify (lane CANONICAL-AUTOVERIFY, 2026-09-06 — the old label was 'uncertain'; canonical-autoverify.mjs resolves these rows now, not a human)", () => {
   assert.equal(recommendGroupDecision([{ verified: true, confidence: "high" }, { verified: true, confidence: "high" }]), "accept");
   assert.equal(recommendGroupDecision([{ verified: false, confidence: "low" }, { verified: false, confidence: "medium" }]), "reject");
-  assert.equal(recommendGroupDecision([{ verified: true, confidence: "high" }, { verified: false, confidence: "low" }]), "uncertain");
-  assert.equal(recommendGroupDecision([{ verified: true, confidence: "medium" }]), "uncertain");
+  assert.equal(recommendGroupDecision([{ verified: true, confidence: "high" }, { verified: false, confidence: "low" }]), "auto-verify");
+  assert.equal(recommendGroupDecision([{ verified: true, confidence: "medium" }]), "auto-verify");
 });
 
 const ROWS = [

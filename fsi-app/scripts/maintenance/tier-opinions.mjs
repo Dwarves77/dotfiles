@@ -65,6 +65,12 @@ export const CITE = Object.freeze({
  * (`classTierForHost` returns null) is excluded — never guessed. A source whose class tier already
  * MATCHES its base_tier is excluded — nothing to opine.
  */
+// CONFIRMED (lane CANONICAL-AUTOVERIFY-2, 2026-09-06): this planner takes no `status` filter, and its own
+// `buildDeps` reads `readAll("sources", "id, url, base_tier")` below with no `match` — `readAll`'s own
+// default is an unfiltered paginated scan of the whole table (scripts/lib/db.mjs), so a `status:
+// 'provisional'` row (the status canonical-autoverify.mjs now registers an ambiguous-host accept at) is
+// scanned on this step's very next dispatch, exactly like an `active` row — no selection change needed;
+// see tier-opinions.test.mjs's own provisional-source test for the planner-level proof.
 export function planTierOpinions(sources) {
   const plan = [];
   for (const s of sources ?? []) {
