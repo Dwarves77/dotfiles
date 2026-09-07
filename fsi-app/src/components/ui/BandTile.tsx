@@ -9,6 +9,13 @@
  * Anton numeral 34px in band colour; the 4px band rule is pinned to the
  * card's bottom edge (margin: auto -16px 0) so all four rules align
  * regardless of label length. Each tile filters the list (onSelect).
+ *
+ * MOBILE 390 (lane mobframe, 2026-09-07, mobile-390 spec, BAND TILES):
+ * below 768, card padding 12px 14px 0, label 10px/800/.06em, window 10px,
+ * numeral 30px, margin "6px 0 8px", band rule pinned with "auto -14px 0"
+ * (matches the smaller side padding) — `.cl-band-tile` media query below,
+ * same component, no variant prop needed since every value is a fixed
+ * override at this one breakpoint.
  */
 
 import type { UrgencyBand } from "@/lib/urgency/bands";
@@ -46,7 +53,21 @@ export function BandTile({ band, count, loading, selected, onSelect }: BandTileP
         minHeight: 112,
       }}
     >
+      {/* Mobile spec (BAND TILES): below 768 (theme.css's documented
+          --bp-mobile), card padding 12/14/0, label 10px/.06em, window 10px,
+          numeral 30px with margin 6px 0 8px, band rule at -14px (matches
+          the smaller side padding). */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-band-tile { padding: 12px 14px 0 !important; }
+          .cl-band-tile .cl-band-tile-label { font-size: 10px !important; letter-spacing: 0.06em !important; }
+          .cl-band-tile .cl-band-tile-window { font-size: 10px !important; }
+          .cl-band-tile .cl-band-tile-numeral { font-size: 30px !important; margin: 6px 0 8px !important; }
+          .cl-band-tile .cl-band-tile-rule { margin: auto -14px 0 !important; }
+        }
+      `}</style>
       <span
+        className="cl-band-tile-label"
         style={{
           fontSize: "var(--fs-105)",
           fontWeight: 800,
@@ -58,6 +79,7 @@ export function BandTile({ band, count, loading, selected, onSelect }: BandTileP
         {band.label}
       </span>
       <span
+        className="cl-band-tile-window"
         style={{
           fontSize: "var(--fs-105)",
           color: "var(--ink-3)",
@@ -80,6 +102,7 @@ export function BandTile({ band, count, loading, selected, onSelect }: BandTileP
         />
       ) : (
         <span
+          className="cl-band-tile-numeral"
           style={{
             fontFamily: "var(--font-display)",
             fontSize: 34,
@@ -95,6 +118,7 @@ export function BandTile({ band, count, loading, selected, onSelect }: BandTileP
       )}
       <span
         aria-hidden="true"
+        className="cl-band-tile-rule"
         style={{
           display: "block",
           height: 4,

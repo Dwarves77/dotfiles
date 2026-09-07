@@ -52,7 +52,16 @@ export default async function Home() {
 
   return (
     <>
-      <div style={{ padding: "20px 40px 0" }}>
+      {/* Mobile spec (MASTHEAD): the masthead's own 14px/16px padding is
+          the mobile gutter — this wrapper's desktop 40px side padding
+          would double it below 768 (theme.css's documented --bp-mobile),
+          so it collapses to 0 there and the masthead card owns the inset. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-dashboard-masthead-wrap { padding: 0 !important; }
+        }
+      `}</style>
+      <div className="cl-dashboard-masthead-wrap" style={{ padding: "20px 40px 0" }}>
         <DashboardMasthead
           dateLabel={dateStr}
           itemCount={itemsCount}

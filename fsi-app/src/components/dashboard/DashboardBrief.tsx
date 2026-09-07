@@ -181,8 +181,12 @@ export function DashboardBrief({
         @media (max-width: 1280px) {
           .cl-brief-outer { grid-template-columns: 1fr !important; }
         }
-        @media (max-width: 640px) {
-          .cl-band-tiles { grid-template-columns: repeat(2, 1fr) !important; }
+        /* Mobile spec (BAND TILES, BREAKPOINTS): below 768 (theme.css's
+           documented --bp-mobile) — one column, 2x2 band tiles, gap 10px,
+           container padding 14px 16px 16px. */
+        @media (max-width: 767px) {
+          .cl-brief-outer { padding: 14px 16px 16px !important; }
+          .cl-band-tiles { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }} className="cl-brief-grid">
