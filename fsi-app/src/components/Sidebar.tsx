@@ -164,8 +164,10 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
                 fontSize: "var(--fs-13)",
                 color: active ? "var(--ink)" : "var(--ink-2)",
                 backgroundColor: active ? "var(--tag)" : undefined,
-                borderLeft: `2px solid ${active ? "var(--brand)" : "transparent"}`,
-                fontWeight: active ? 800 : 600,
+                // dc.html p1 active row: an INSET 3px spine, not a border — drawn inside the
+                // row so it never shifts row content (design audit 2026-09-07, B98).
+                boxShadow: active ? "inset 3px 0px 0px var(--brand)" : "none",
+                fontWeight: active ? 700 : 600,
               }
         }
       >
@@ -203,8 +205,8 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
         <p
           style={{
             fontSize: "var(--fs-95)",
-            fontWeight: drawer ? 700 : 800,
-            letterSpacing: drawer ? "0.14em" : "0.12em",
+            fontWeight: 700,
+            letterSpacing: "0.14em",
             textTransform: "uppercase",
             color: "var(--ink-3)",
             margin: drawer ? 0 : "4px 12px 4px",
