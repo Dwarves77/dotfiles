@@ -29,6 +29,12 @@ import { createRequire } from "node:module";
 import { buildFixtures, VIEWPORTS } from "./fixtures.mjs";
 import { detectOverflows, findPlaceholderLiterals } from "./assertions.mjs";
 import { measureUx, assertUxClean } from "./ux-assert.mjs";
+// Addendum item 8 (2026-09-07, operator ruling): dated, per-page 375 exemptions for the five list
+// pages + /map — see exemptions-375.mjs's own header for the full mechanism and why it is not a
+// global viewport relaxation.
+import { RENDERING_375_EXEMPTIONS, isExempt375, activeExemptions } from "./exemptions-375.mjs";
+import { latestTrainWave } from "../fitness/functions/F25-module-liveness.mjs";
+import { getRepoRoot } from "../lib/context.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
 import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
@@ -183,6 +189,24 @@ async function main() {
 
   await browser.close();
 
+  // Addendum item 8: split off failures covered by a still-active, dated, per-page 375 exemption
+  // (see exemptions-375.mjs). NOT a global relaxation — only a failure line starting with one of the
+  // exempted `fixturePrefix` values AND carrying "@375" is moved; every other failure (these same
+  // pages at any other viewport, every other page at 375) stays a real failure.
+  let latestWave = null;
+  try {
+    latestWave = latestTrainWave(getRepoRoot());
+  } catch { /* best-effort, same posture as F25's own oracle — an unreadable git history exempts nothing */ }
+  const active = activeExemptions(RENDERING_375_EXEMPTIONS, latestWave);
+  const exempted375 = [];
+  const realFailures = failures.filter((f) => {
+    if (isExempt375(f, active)) {
+      exempted375.push(f);
+      return false;
+    }
+    return true;
+  });
+
   console.log(`\n===== RENDERING GUARD (browser) =====`);
   console.log(`fixtures: ${fixtures.length}  viewports: ${VIEWPORTS.join(",")}  checks: ${checks}`);
   console.log(`SM smoke specs: ${SMOKE_SPECS.length} (${SMOKE_SPECS.map((s) => s.name).join(", ")})  smoke checks: ${smokeChecks}`);
@@ -191,13 +215,19 @@ async function main() {
     console.log(`\nNEW mobile/tablet overflow findings (< 480px, missed by the 1297px audit):`);
     for (const f of newMobileFindings) console.log(`  ! ${f}`);
   }
-  if (failures.length === 0) {
+  if (exempted375.length) {
+    console.log(
+      `\n${exempted375.length} failure(s) covered by a dated 375px per-page exemption (addendum item 8, latest landed wave: ${latestWave ?? "unknown"}, entries expire at wave58):`
+    );
+    for (const f of exempted375) console.log(`  ~ ${f}`);
+  }
+  if (realFailures.length === 0) {
     console.log(`\nALL fixtures pass: GREEN fixtures clean at every viewport; RED fixtures reproduced their defect (in-browser red-then-green).`);
     console.log(`=== rendering guard PASS ===`);
     process.exit(0);
   }
-  console.error(`\n${failures.length} FAILURE(S):`);
-  for (const f of failures) console.error(`  ✗ ${f}`);
+  console.error(`\n${realFailures.length} FAILURE(S):`);
+  for (const f of realFailures) console.error(`  ✗ ${f}`);
   console.error(`\n=== rendering guard FAIL ===`);
   process.exit(1);
 }

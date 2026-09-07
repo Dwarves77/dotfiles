@@ -5,6 +5,7 @@ import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { WatchlistItemType } from "@/lib/data";
 import { isTeamOnlyWatchType } from "@/lib/watchlist-scope";
 import { getClientWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
+import { ActionButton } from "@/components/ui/ActionRow";
 
 /** WatchButton — the WIRED watch toggle (chrome-audit S2-04, browser wave).
  *
@@ -64,29 +65,21 @@ const DEFAULT_PALETTE = {
 
 type WatchScope = "personal" | "team";
 
-export function WatchButton({
-  itemType,
-  itemId,
-  palette = DEFAULT_PALETTE,
-  initialWatched,
-  initialTeamWatched,
-  initialTeamAvailable,
-}: {
-  itemType: WatchlistItemType;
-  itemId: string;
-  palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
-  /**
-   * Server-resolved initial state (PERF-3, 2026-09-03, docs/audits/perf-load-times-2026-09-03.md
-   * item 2). When the caller can supply this (one server-side batch read for the whole page — see
-   * src/lib/watchlist/membership.ts), WatchButton renders it immediately and fetches NOTHING on
-   * mount — the GET this component used to fire unconditionally, once per instance, is skipped
-   * entirely. `initialWatched` is the signal: pass all three together or none: a caller that knows
-   * one of them knows all three (they come from the same server read).
-   */
-  initialWatched?: boolean;
-  initialTeamWatched?: boolean;
-  initialTeamAvailable?: boolean;
-}) {
+/**
+ * useWatchMembership — the watch state + optimistic toggle, extracted (lane
+ * uiactions, 2026-09-07) so `DefaultWatchButton`'s dual personal/team pill
+ * and `RowWatchButton`'s compact star toggle share ONE persistence
+ * implementation rather than two copies of this fetch/optimistic-toggle
+ * logic (CLAUDE.md rule 13). Behavior unchanged from the pre-extraction
+ * inline version.
+ */
+function useWatchMembership(
+  itemType: WatchlistItemType,
+  itemId: string,
+  initialWatched?: boolean,
+  initialTeamWatched?: boolean,
+  initialTeamAvailable?: boolean
+) {
   const hasServerState = initialWatched !== undefined;
   const [watched, setWatched] = useState(initialWatched ?? false);
   const [teamWatched, setTeamWatched] = useState(initialTeamWatched ?? false);
@@ -162,6 +155,82 @@ export function WatchButton({
       busy.current[scope] = false;
     },
     [itemType, itemId, watched, teamWatched]
+  );
+
+  return { watched, teamWatched, teamAvailable, loaded, failed, teamFailed, toggle };
+}
+
+export function WatchButton({
+  itemType,
+  itemId,
+  palette = DEFAULT_PALETTE,
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
+  variant = "default",
+}: {
+  itemType: WatchlistItemType;
+  itemId: string;
+  palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
+  /**
+   * "row" (lane uiactions, 2026-09-07, design ruling R5): the detail
+   * ActionRow's compact star toggle — `☆ Watch` / `★ Watching`, chrome
+   * matching ActionRow's other three buttons (padding 8px 14px, radius 6,
+   * `rgba(0,0,0,.25)` border) instead of this component's own default pill.
+   * Personal scope only — the team pill is omitted in this variant (logged
+   * in DEVIATION-LOG.md: the four-button artboard row has no second watch
+   * control; team watching stays reachable from the default variant
+   * elsewhere, e.g. list rows). Default ("default") is the pre-existing
+   * dual personal+team pill, unchanged.
+   */
+  variant?: "default" | "row";
+}): React.JSX.Element {
+  return variant === "row" ? (
+    <RowWatchButton itemType={itemType} itemId={itemId} initialWatched={initialWatched} />
+  ) : (
+    <DefaultWatchButton
+      itemType={itemType}
+      itemId={itemId}
+      palette={palette}
+      initialWatched={initialWatched}
+      initialTeamWatched={initialTeamWatched}
+      initialTeamAvailable={initialTeamAvailable}
+    />
+  );
+}
+
+function DefaultWatchButton({
+  itemType,
+  itemId,
+  palette = DEFAULT_PALETTE,
+  initialWatched,
+  initialTeamWatched,
+  initialTeamAvailable,
+}: {
+  itemType: WatchlistItemType;
+  itemId: string;
+  palette?: { accent: string; hairStrong: string; tint: string; card: string; ink: string };
+  /**
+   * Server-resolved initial state (PERF-3, 2026-09-03, docs/audits/perf-load-times-2026-09-03.md
+   * item 2). When the caller can supply this (one server-side batch read for the whole page — see
+   * src/lib/watchlist/membership.ts), WatchButton renders it immediately and fetches NOTHING on
+   * mount — the GET this component used to fire unconditionally, once per instance, is skipped
+   * entirely. `initialWatched` is the signal: pass all three together or none: a caller that knows
+   * one of them knows all three (they come from the same server read).
+   */
+  initialWatched?: boolean;
+  initialTeamWatched?: boolean;
+  initialTeamAvailable?: boolean;
+}) {
+  const { watched, teamWatched, teamAvailable, loaded, failed, teamFailed, toggle } = useWatchMembership(
+    itemType,
+    itemId,
+    initialWatched,
+    initialTeamWatched,
+    initialTeamAvailable
   );
 
   const personalButton = (
@@ -267,5 +336,43 @@ export function WatchButton({
       {personalButton}
       {teamButton(false)}
     </span>
+  );
+}
+
+/**
+ * RowWatchButton — the ActionRow "row" variant (design ruling R5): a single
+ * personal-scope star toggle, styled with the SAME `ActionButton` chrome as
+ * Export brief / Share / + Tag (padding 8px 14px, radius 6, `rgba(0,0,0,.25)`
+ * border) rather than this file's own default pill. Uses the same
+ * `useWatchMembership` hook as `DefaultWatchButton` — one persistence
+ * implementation, two renderings.
+ */
+function RowWatchButton({
+  itemType,
+  itemId,
+  initialWatched,
+}: {
+  itemType: WatchlistItemType;
+  itemId: string;
+  initialWatched?: boolean;
+}) {
+  const { watched, loaded, failed, toggle } = useWatchMembership(itemType, itemId, initialWatched);
+  return (
+    <ActionButton
+      variant="secondary"
+      ariaPressed={watched}
+      disabled={!loaded}
+      onClick={() => toggle("personal")}
+      title={
+        failed
+          ? "Save failed — click to retry"
+          : watched
+            ? "Watching — updates surface on your dashboard watchlist"
+            : "Watch this item on your dashboard watchlist"
+      }
+    >
+      <span aria-hidden="true">{watched ? "★" : "☆"}</span>
+      {watched ? "Watching" : "Watch"}
+    </ActionButton>
   );
 }

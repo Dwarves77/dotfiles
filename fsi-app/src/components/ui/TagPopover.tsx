@@ -42,10 +42,30 @@ export interface TagPopoverProps {
   /** Called after every apply/remove/create so the caller (the detail tag
    *  row, a rail facet group) can re-render off its own tag list. */
   onChange?: () => void;
+  /**
+   * Controlled open state (lane uiactions integration, 2026-09-07): the
+   * ActionRow's own "+ Tag" trigger (README "Detail action row") and this
+   * component's own "+ Tag" trigger both need to open ONE popover with ONE
+   * open/closed state, not two independent popovers. When `open` is
+   * supplied the caller (a detail surface, lifting state above both
+   * ActionRow and DetailTagRow) drives visibility via `open`/`onOpenChange`
+   * instead of this component's own internal toggle. Omit both for the
+   * uncontrolled default (internal state, this trigger only) — unchanged
+   * behaviour for any caller that does not need the shared-state wiring.
+   */
+  open?: boolean;
+  onOpenChange?: (open: boolean) => void;
 }
 
-export function TagPopover({ itemId, onChange }: TagPopoverProps) {
-  const [open, setOpen] = useState(false);
+export function TagPopover({ itemId, onChange, open: openProp, onOpenChange }: TagPopoverProps) {
+  const [openState, setOpenState] = useState(false);
+  const controlled = openProp !== undefined;
+  const open = controlled ? (openProp as boolean) : openState;
+  const setOpen = (next: boolean | ((prev: boolean) => boolean)) => {
+    const resolved = typeof next === "function" ? (next as (prev: boolean) => boolean)(open) : next;
+    if (controlled) onOpenChange?.(resolved);
+    else setOpenState(resolved);
+  };
   const [tags, setTags] = useState<TagOption[]>([]);
   const [appliedOrder, setAppliedOrder] = useState<string[]>([]); // oldest -> newest
   const [query, setQuery] = useState("");

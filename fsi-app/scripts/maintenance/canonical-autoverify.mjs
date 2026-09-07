@@ -539,7 +539,7 @@ export function decideRow(row, item, fetchResult, deps) {
       // blip, DNS failure, timeout). Left 'pending' by the caller; retried next dispatch.
       return {
         id: row.id, decision: "deferred",
-        reviewer_notes: `auto: deferred — ${reach.reason}, retry next run`,
+        reviewer_notes: `auto: deferred, ${reach.reason}, retry next run`,
         verified_status_code: fetchResult?.status ?? null,
         verified_content_excerpt: null,
         proof: { stage: "reachability", ...reach },
@@ -554,7 +554,7 @@ export function decideRow(row, item, fetchResult, deps) {
       if (attempt >= WALL_MAX_ATTEMPTS) {
         return {
           id: row.id, decision: "rejected",
-          reviewer_notes: `auto: reject — candidate unverifiable behind an access wall after ${WALL_MAX_ATTEMPTS} attempts`,
+          reviewer_notes: `auto: reject, candidate unverifiable behind an access wall after ${WALL_MAX_ATTEMPTS} attempts`,
           verified_status_code: fetchResult?.status ?? null,
           verified_content_excerpt: null,
           proof: { stage: "reachability", ...reach, wallAttempt: attempt },
@@ -562,7 +562,7 @@ export function decideRow(row, item, fetchResult, deps) {
       }
       return {
         id: row.id, decision: "deferred",
-        reviewer_notes: `auto: deferred — candidate behind an access wall from this network (attempt ${attempt}), retry next run`,
+        reviewer_notes: `auto: deferred, candidate behind an access wall from this network (attempt ${attempt}), retry next run`,
         verified_status_code: fetchResult?.status ?? null,
         verified_content_excerpt: null,
         proof: { stage: "reachability", ...reach, wallAttempt: attempt },
@@ -570,7 +570,7 @@ export function decideRow(row, item, fetchResult, deps) {
     }
     return {
       id: row.id, decision: "rejected",
-      reviewer_notes: `auto: reject — ${reach.reason}`,
+      reviewer_notes: `auto: reject, ${reach.reason}`,
       verified_status_code: fetchResult?.status ?? null,
       verified_content_excerpt: null,
       proof: { stage: "reachability", ...reach },
@@ -581,7 +581,7 @@ export function decideRow(row, item, fetchResult, deps) {
   if (pageClass) {
     return {
       id: row.id, decision: "rejected",
-      reviewer_notes: `auto: reject — ${pageClass.reason}`,
+      reviewer_notes: `auto: reject, ${pageClass.reason}`,
       verified_status_code: fetchResult?.status ?? null,
       verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
       proof: { stage: "page_class", ...pageClass },
@@ -597,7 +597,7 @@ export function decideRow(row, item, fetchResult, deps) {
   if (!content.pass) {
     return {
       id: row.id, decision: "rejected",
-      reviewer_notes: `auto: reject — ${content.reason}`,
+      reviewer_notes: `auto: reject, ${content.reason}`,
       verified_status_code: fetchResult?.status ?? null,
       verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
       proof: { stage: "content_proof", ...content },
@@ -639,7 +639,7 @@ export function decideRow(row, item, fetchResult, deps) {
     // (operator ruling 2026-09-06: "a wall is not a dead link" — the current citation stands).
     return {
       id: row.id, decision: "rejected",
-      reviewer_notes: `auto: reject — ${authority.reason}`,
+      reviewer_notes: `auto: reject, ${authority.reason}`,
       verified_status_code: fetchResult?.status ?? null,
       verified_content_excerpt: String(fetchResult.text ?? "").slice(0, 500),
       proof: { stage: "authority", content, ...authority },

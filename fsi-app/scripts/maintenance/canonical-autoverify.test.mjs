@@ -4,6 +4,7 @@
 // with a fixture of the 16 real pending rows this lane read from Supabase 2026-09-06.
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import {
   isDeadStatus,
   classifyReachability,
@@ -383,13 +384,13 @@ test("decideRow: a WALLED CANDIDATE defers on its first attempt — never an imm
   const row = { ...ROW_BASE, reviewer_notes: null };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
-  assert.match(v.reviewer_notes, /auto: deferred — candidate behind an access wall from this network \(attempt 1\), retry next run/);
+  assert.match(v.reviewer_notes, /auto: deferred, candidate behind an access wall from this network \(attempt 1\), retry next run/);
   assert.equal(v.proof.stage, "reachability");
   assert.equal(v.proof.wallAttempt, 1);
 });
 
 test("decideRow: a WALLED CANDIDATE defers again on its second attempt, reading the prior count back from reviewer_notes", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred, candidate behind an access wall from this network (attempt 1), retry next run" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
   assert.match(v.reviewer_notes, /\(attempt 2\)/);
@@ -397,15 +398,15 @@ test("decideRow: a WALLED CANDIDATE defers again on its second attempt, reading 
 });
 
 test("decideRow: a WALLED CANDIDATE finally rejects on its 3rd attempt — the only terminal outcome a candidate-side wall ever produces", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: deferred, candidate behind an access wall from this network (attempt 2), retry next run" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "rejected");
-  assert.match(v.reviewer_notes, /auto: reject — candidate unverifiable behind an access wall after 3 attempts/);
+  assert.match(v.reviewer_notes, /auto: reject, candidate unverifiable behind an access wall after 3 attempts/);
   assert.equal(v.proof.wallAttempt, 3);
 });
 
 test("decideRow: a candidate wall never leaves the row 'pending' forever unaccounted — a reviewer_notes value from an unrelated stage reads as attempt 0, same as a fresh row", () => {
-  const row = { ...ROW_BASE, reviewer_notes: "auto: reject — dead (HTTP 404)" };
+  const row = { ...ROW_BASE, reviewer_notes: "auto: reject, dead (HTTP 404)" };
   const v = decideRow(row, ITEM, { status: 200, text: WALL_TEXT }, BASE_DEPS);
   assert.equal(v.decision, "deferred");
   assert.match(v.reviewer_notes, /\(attempt 1\)/);
@@ -414,9 +415,9 @@ test("decideRow: a candidate wall never leaves the row 'pending' forever unaccou
 test("previousWallAttempts: parses the exact phrase this module writes; anything else (or nothing) reads as 0", () => {
   assert.equal(previousWallAttempts(null), 0);
   assert.equal(previousWallAttempts(undefined), 0);
-  assert.equal(previousWallAttempts("auto: reject — dead (HTTP 404)"), 0);
-  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 1), retry next run"), 1);
-  assert.equal(previousWallAttempts("auto: deferred — candidate behind an access wall from this network (attempt 2), retry next run"), 2);
+  assert.equal(previousWallAttempts("auto: reject, dead (HTTP 404)"), 0);
+  assert.equal(previousWallAttempts("auto: deferred, candidate behind an access wall from this network (attempt 1), retry next run"), 1);
+  assert.equal(previousWallAttempts("auto: deferred, candidate behind an access wall from this network (attempt 2), retry next run"), 2);
 });
 
 test("decideRow: the CURRENT source's own wall handling is UNCHANGED by this fix — 'downgrade_walled' still rejects outright with no attempt count at all (regression against the walled-current test above)", () => {
@@ -713,4 +714,19 @@ test("makeCanonicalFetchCandidate: does not import or call anything named Browse
   const codeLines = src.split("\n").filter((line) => !/^\s*\/\//.test(line) && !/^\s*\*/.test(line));
   const offenders = codeLines.filter((line) => /browserless/i.test(line));
   assert.deepEqual(offenders, [], `found non-comment reference(s) to Browserless: ${JSON.stringify(offenders)}`);
+});
+
+// Addendum item 11 (2026-09-07): no em dash survives in the reviewer_notes templates this module
+// writes to canonical_source_candidates — the no-em-dash rule covers generated prose, not just
+// hand-written copy. Source-text check (regression guard for the specific 7 template literals fixed
+// this lane), not a behavioral test — decideRow's own tests above already prove the parser and the
+// terminal outcomes are unaffected by the character swap.
+test("no reviewer_notes template literal in canonical-autoverify.mjs contains an em dash", () => {
+  const src = readFileSync(new URL("./canonical-autoverify.mjs", import.meta.url), "utf8");
+  const templateLines = src
+    .split("\n")
+    .filter((line) => /reviewer_notes:\s*`auto:/.test(line));
+  assert.ok(templateLines.length >= 7, `expected at least 7 reviewer_notes template lines, found ${templateLines.length}`);
+  const offenders = templateLines.filter((line) => line.includes("—"));
+  assert.deepEqual(offenders, [], `em dash found in reviewer_notes template(s): ${JSON.stringify(offenders)}`);
 });
