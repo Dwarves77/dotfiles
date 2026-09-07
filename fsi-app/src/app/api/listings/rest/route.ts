@@ -1,7 +1,8 @@
 import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { getResourcesOnly } from "@/lib/data";
+import { getResourcesOnly, getPublicListingsOnly } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
+import { REGULATIONS_DOMAIN } from "@/lib/domains";
 
 // PERF-12 (2026-09-04, ADR-027 §2): Regulations-only cap this route used to share with Operations
 // (LIST_REMAINDER_LIMIT, list-pagination.ts) is DELETED along with Regulations' one-shot remainder
@@ -13,6 +14,18 @@ import { toLedgerRowPayload } from "@/lib/list-pagination";
 // used to reach for identically, which is what made deleting one half of that sharing safe) is
 // kept here rather than re-exporting a Regulations-flavored cap under a new name.
 const OPERATIONS_REMAINDER_LIMIT = 5000;
+
+// UILISTS lane (2026-09-06): the regulations remainder cap. The live corpus is ~1,316 (2026-09-05
+// measurement, see getPublicSurfaceSlugs's own header) — 5000 stays a genuine safety ceiling, not a
+// per-request limit that silently truncates. Re-adds a "regulations" branch this route lost under
+// PERF-12 (2026-09-04), which moved /regulations onto keyset-cursor pagination instead — this lane's
+// dispatch explicitly directs "keep LIST_FIRST_PAGE_SIZE = 60 server-side rendering and the
+// after-paint fetch of the rest" for ALL FIVE list surfaces it owns, for one consistent mechanism
+// across Regulations/Market/Research/Operations/Watchlist. Logged as a considered reversal of
+// PERF-12's own choice in docs/design/handoff-2026-09-06/DEVIATION-LOG.md, not an oversight — the
+// PERF-12 cursor route (/api/listings/cursor) is left in place, unused by RegulationsLedger now, for
+// a later lane to reconcile or remove.
+const REGULATIONS_REMAINDER_LIMIT = 5000;
 
 /**
  * GET /api/listings/rest?surface=operations&offset=60
@@ -65,9 +78,9 @@ export async function GET(request: NextRequest) {
   const offsetRaw = searchParams.get("offset") ?? "";
   const offset = Number.parseInt(offsetRaw, 10);
 
-  if (surface !== "operations") {
+  if (surface !== "operations" && surface !== "regulations") {
     return NextResponse.json(
-      { error: 'surface must be "operations" — /api/listings/cursor now serves regulations' },
+      { error: 'surface must be "operations" or "regulations"' },
       { status: 400 }
     );
   }
@@ -76,7 +89,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await getResourcesOnly({ limit: OPERATIONS_REMAINDER_LIMIT, offset });
+    const result =
+      surface === "regulations"
+        ? await getPublicListingsOnly({ limit: REGULATIONS_REMAINDER_LIMIT, offset, domain: REGULATIONS_DOMAIN })
+        : await getResourcesOnly({ limit: OPERATIONS_REMAINDER_LIMIT, offset });
 
     if (result._error) {
       // Non-fatal: log with full detail (message/details/hint/code already
