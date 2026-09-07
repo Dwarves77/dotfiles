@@ -38,6 +38,7 @@ import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields"
 import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
+import { TagChip } from "@/components/ui/Chips";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
@@ -130,6 +131,14 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
         rows: bandRows.map((r, i) => {
           const due = dueInfo(r);
           const baseHref = itemDetailHref(r);
+          const themeKey = themeKeyOf(r);
+          const themeLabel = themeKey ? (THEME_LABELS as Record<string, string>)[themeKey] ?? themeKey : null;
+          const meta = (
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+              {themeLabel && <TagChip>{themeLabel}</TagChip>}
+              <span>{metaLine(r)}</span>
+            </span>
+          );
           return {
             key: r.id,
             href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length, {
@@ -139,7 +148,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
             band,
             jurisdiction: jurisdictionCode(r),
             title: r.title,
-            meta: metaLine(r),
+            meta,
             impact: r.impactScores ?? scoreResource(r),
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
