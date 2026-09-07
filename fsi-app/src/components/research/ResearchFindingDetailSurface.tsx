@@ -47,6 +47,7 @@ import { FactCard } from "@/components/ui/FactCard";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
+  DetailMasthead,
   DetailExposure,
   DetailTimeline,
   SectionIndex,
@@ -179,11 +180,18 @@ export function ResearchFindingDetailSurface({
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper>
+        <DetailMasthead
+          title={r.title}
+          band={band}
+          surface="Research"
+          jurisdiction={jurisLabel}
+          dek={meta}
+          placeholder="Ask about this finding — e.g. when does the largest deadline hit"
+        />
         <DetailHeader
           band={band}
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
-          meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
           extraChips={
             <>

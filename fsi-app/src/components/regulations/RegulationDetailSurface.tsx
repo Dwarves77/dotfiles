@@ -44,6 +44,7 @@ import { StateNote } from "@/components/ui/StateNote";
 import { DetailTagRow } from "@/components/ui/DetailTagRow";
 import {
   DetailHeader,
+  DetailMasthead,
   DetailTimeline,
   SectionIndex,
   SummaryDepthSwitch,
@@ -177,11 +178,18 @@ export function RegulationDetailSurface({
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
       <DetailPageWrapper>
+        <DetailMasthead
+          title={r.title}
+          band={band}
+          surface="Regulations"
+          jurisdiction={jurisLabel}
+          dek={meta}
+          placeholder="Ask about this regulation — e.g. when does the largest deadline hit"
+        />
         <DetailHeader
           band={band}
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
-          meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
           extraChips={<HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />}
           actions={

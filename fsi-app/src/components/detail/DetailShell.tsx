@@ -10,22 +10,26 @@
  * (CLAUDE.md rule 13).
  *
  * Shape (README §0.5, exact order):
- *   Header (band pill + tier + title + meta) -> full MilestoneTimeline
- *   with the next obligation as the callout -> StateNote -> sticky section
- *   index (S1 . S2 . S3 ...) -> sections of FactCards at <=72ch -> rail.
- *   Section names vary by surface; the shape, rail and index never do.
- *   No tabs, no per-tab ask bar, no "Complete brief" toggle.
+ *   DetailMasthead (VOL/breadcrumb + title + dek + ONE scoped CommandBar)
+ *   -> DetailHeader (band pill + tier + workspace tags + action row) -> full
+ *   MilestoneTimeline with the next obligation as the callout -> StateNote
+ *   -> sticky section index (S1 . S2 . S3 ...) -> sections of FactCards at
+ *   <=72ch -> rail. Section names vary by surface; the shape, rail and
+ *   index never do. No tabs, no per-tab ask bar, no "Complete brief" toggle.
  *
  * DEFECT-FIX (item 2.3, 2026-09-07): DetailHeader no longer mounts a second
  * `CommandBar` scoped to the item (the old `askPlaceholder`/`askScope`
  * props). "The CommandBar in the Masthead is the only search/ask surface" —
  * a per-item ask box living inside this header was a second ask surface on
- * every detail page, which the audit named directly. Confirmed by code
- * search (2026-09-07) that no detail route today mounts the shared
- * `ui/Masthead` (that component is presently list/dashboard-only — see its
- * own header); relocating the scoped placeholder onto a detail-page
- * Masthead is therefore a separate, larger architecture change than "remove
- * the second ask box," logged in DEVIATION-LOG.md rather than invented here.
+ * every detail page, which the audit named directly.
+ *
+ * GAP G2 (2026-09-07, artboard 03, ruling R4): the above left detail pages
+ * with NO command bar at all — this shell now mounts the shared `ui/Masthead`
+ * (`DetailMasthead` below) at the top of every detail page, carrying the
+ * item title (moved out of DetailHeader, which would otherwise duplicate
+ * it — artboard 03 shows the title exactly once), the R4 breadcrumb format
+ * in the VOL line, and the ONE scoped CommandBar ("Ask about this
+ * regulation" / "this signal" / "this finding" / "this profile").
  */
 
 import { Suspense, useEffect, useState } from "react";
@@ -37,6 +41,8 @@ import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/Mile
 import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
+import { SectionRule } from "@/components/ui/SectionRule";
+import { Masthead } from "@/components/ui/Masthead";
 import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 
@@ -45,9 +51,16 @@ import type { ImpactScores, TimelineEntry } from "@/types/resource";
 export interface DetailHeaderProps {
   band: UrgencyBand;
   tier?: number | null;
+  /**
+   * Item title. GAP G2 (2026-09-07, artboard 03 + ruling R4): the visible
+   * title now lives in `DetailMasthead` below, mounted once per detail
+   * page above this header — rendering it a second time here would be
+   * exactly the duplicate-title artboard 03 does not show. Kept as a
+   * required prop (used only for this header's `aria-label`) so a screen
+   * reader landmark still names the header even though no second <h1>
+   * is drawn.
+   */
   title: string;
-  /** Breadcrumb-style meta line, e.g. "Regulations · European Union". */
-  meta?: React.ReactNode;
   actions?: React.ReactNode;
   /**
    * Extension point (lane uidetails2, 2026-09-07): additional chips
@@ -70,57 +83,31 @@ export interface DetailHeaderProps {
   tagRow?: React.ReactNode;
 }
 
-export function DetailHeader({ band, tier, title, meta, actions, extraChips, tagRow }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, actions, extraChips, tagRow }: DetailHeaderProps) {
   return (
     <header
+      aria-label={title}
       style={{
         background: "var(--card)",
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "18px 24px 20px",
         marginBottom: 16,
+        overflow: "hidden",
       }}
     >
-      {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "DETAIL HEADER"): title drops from
-          28px to the spec's 22px and meta to 11.5px/ink-3 below 768 — the same DetailHeader part,
-          expressed at a smaller measure via a media query, never a second component. */}
-      <style>{`
-        @media (max-width: 768px) {
-          .cl-detail-title { font-size: 22px !important; line-height: 1.1 !important; }
-          .cl-detail-meta { font-size: var(--fs-115) !important; color: var(--ink-3) !important; }
-        }
-      `}</style>
+      {/* Ruling 5.2 (2026-09-07): every 3px rule on a detail header uses the dark grey gradation
+          from 5.1, never the band-coloured rule (that stays confined to the nav card cap / mobile
+          top bar / drawer). */}
+      <SectionRule />
+      <div style={{ padding: "16px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
-          {meta && (
-            <p className="cl-detail-meta" style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "0 0 8px", overflowWrap: "anywhere" }}>
-              {meta}
-              <BreadcrumbListPosition band={band} />
-            </p>
-          )}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             <BandChip band={band} />
             {typeof tier === "number" && <TierChip tier={tier} />}
             {extraChips}
           </div>
-          <h1
-            data-guard-title
-            className="cl-detail-title"
-            style={{
-              fontFamily: "var(--font-display)",
-              fontWeight: 400,
-              letterSpacing: "0.02em",
-              textTransform: "uppercase",
-              fontSize: 28,
-              lineHeight: 1.12,
-              color: "var(--ink)",
-              margin: 0,
-              overflowWrap: "break-word",
-            }}
-          >
-            {title}
-          </h1>
           {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
         </div>
         {actions && (
@@ -129,7 +116,72 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips, tag
           </div>
         )}
       </div>
+      </div>
     </header>
+  );
+}
+
+// ── Masthead: page-level VOL/breadcrumb/title/dek/CommandBar for detail
+// routes ─────────────────────────────────────────────────────────────────
+//
+// GAP G2 (2026-09-07 operator audit item 2.3, artboard 03, ruling R4): the
+// audit's own text ("moves to the page's Masthead CommandBar") is now built
+// literally — the shared `ui/Masthead` (previously list/dashboard-only) is
+// mounted once at the top of every detail page, carrying the item title
+// (size="detail", 28px), the breadcrumb in the VOL line itself
+// ("VOL IV . NO. 36 . <Surface> / <Jurisdiction> / N of M in <Band>", R4's
+// exact format — `dateLabel` doubles as the breadcrumb slot Masthead
+// already renders, no second line invented), the optional dek, and ONE
+// scoped CommandBar ("Ask about this regulation" / "this signal" / "this
+// finding" / "this profile"). `DetailHeader` below it no longer renders a
+// title or a meta line — see that component's own doc comment.
+
+function DetailMastheadBreadcrumb({
+  surface,
+  jurisdiction,
+  band,
+  onLabel,
+}: {
+  surface: string;
+  jurisdiction?: string;
+  band: UrgencyBand;
+  onLabel: (label: string) => void;
+}) {
+  const searchParams = useSearchParams();
+  useEffect(() => {
+    const pos = searchParams.get("pos");
+    const of = searchParams.get("of");
+    const known = pos != null && of != null && Number.isFinite(Number(pos)) && Number.isFinite(Number(of));
+    const base = [surface, jurisdiction].filter(Boolean).join(" / ");
+    onLabel(known ? `${base} / ${pos} of ${of} in ${band.label}` : base);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, surface, jurisdiction, band.label]);
+  return null;
+}
+
+export interface DetailMastheadProps {
+  title: string;
+  band: UrgencyBand;
+  /** Breadcrumb surface name, e.g. "Regulations". */
+  surface: string;
+  /** Breadcrumb jurisdiction segment, e.g. "European Union". Omitted renders no second segment (Absence-by-omission). */
+  jurisdiction?: string;
+  dek?: React.ReactNode;
+  /** Scoped ask placeholder, e.g. "Ask about this regulation — e.g. when does the l...". */
+  placeholder: string;
+}
+
+export function DetailMasthead({ title, band, surface, jurisdiction, dek, placeholder }: DetailMastheadProps) {
+  const [breadcrumb, setBreadcrumb] = useState(() => [surface, jurisdiction].filter(Boolean).join(" / "));
+  return (
+    <>
+      <Suspense fallback={null}>
+        <DetailMastheadBreadcrumb surface={surface} jurisdiction={jurisdiction} band={band} onLabel={setBreadcrumb} />
+      </Suspense>
+      <div style={{ marginBottom: 16 }}>
+        <Masthead title={title} size="detail" dateLabel={breadcrumb} dek={dek} commandBar={{ itemCount: 0, placeholder, scope: surface.toLowerCase() }} />
+      </div>
+    </>
   );
 }
 
@@ -159,10 +211,12 @@ export function DetailExposure({ items }: { items: ExposureItem[] }) {
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "16px 20px",
         marginBottom: 16,
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "16px 20px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
         Exposure
       </p>
@@ -187,6 +241,7 @@ export function DetailExposure({ items }: { items: ExposureItem[] }) {
           </div>
         ))}
       </div>
+      </div>
     </div>
   );
 }
@@ -209,10 +264,12 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "16px 20px",
         marginBottom: 16,
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
           Timeline
@@ -263,6 +320,7 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
           </StateNote>
         </div>
       )}
+      </div>
     </div>
   );
 }
@@ -522,17 +580,19 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "16px 20px",
         marginBottom: 16,
         scrollMarginTop: 56,
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <h2
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 400,
-            letterSpacing: "0.02em",
+            letterSpacing: "0.04em",
             textTransform: "uppercase",
             fontSize: 16,
             margin: 0,
@@ -544,6 +604,7 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
         {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
       </div>
       <div style={{ maxWidth: "72ch" }}>{children}</div>
+      </div>
     </section>
   );
 }
@@ -604,9 +665,11 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "14px 16px",
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
         At a glance
       </p>
@@ -621,6 +684,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
             </span>
           </>
         ))}
+      </div>
       </div>
     </div>
   );
@@ -640,9 +704,11 @@ export function RailLegend() {
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "14px 16px",
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
         Legend
       </p>
@@ -659,6 +725,7 @@ export function RailLegend() {
           commentary.
         </p>
       </div>
+      </div>
     </div>
   );
 }
@@ -673,13 +740,16 @@ export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "14px 16px",
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
         Impact assessment
       </p>
       <ImpactMeter scores={scores} variant="full" />
+      </div>
     </div>
   );
 }
@@ -735,31 +805,13 @@ function InThisListNeighborsBridge({
 
 // ── Header: breadcrumb's last segment ("1 of 9 in Action") ──────────────
 //
-// Lane uidetails2 (2026-09-07, README §0.5 + 05/07/09 artboards, each
-// breadcrumb's own last segment: "1 of 9 in Action" / "1 of 4" / "2 of 6").
-// Reuses the SAME InThisListBridge as InThisListStat above (one shared
-// list/pos/of URL-param contract, not a second reader) — mounted directly
-// inside DetailHeader's meta line so every detail surface that adopts
-// DetailHeader (all four: regulations, market, research, operations) picks
-// this up automatically the moment the lists lane's row hrefs carry the
-// params, with NO page-local change needed. Renders nothing when the
-// params are absent (Absence-by-omission — the breadcrumb simply ends at
-// `meta`, never a fabricated "1 of 1"), matching InThisListStat's own
-// honest-omission contract.
-function BreadcrumbListPosition({ band }: { band: UrgencyBand }) {
-  const [params, setParams] = useState<{ pos: string | null; of: string | null } | null>(null);
-  const pos = params?.pos ? Number(params.pos) : null;
-  const of = params?.of ? Number(params.of) : null;
-  const known = pos != null && of != null && Number.isFinite(pos) && Number.isFinite(of);
-  return (
-    <>
-      <Suspense fallback={null}>
-        <InThisListBridge onParams={(p, o) => setParams({ pos: p, of: o })} />
-      </Suspense>
-      {known && ` · ${pos} of ${of} in ${band.label}`}
-    </>
-  );
-}
+// GAP G2 (2026-09-07): this segment now renders inside `DetailMastheadBreadcrumb`
+// above (the Masthead's own VOL/breadcrumb line, ruling R4) rather than inside
+// DetailHeader's meta line — DetailHeader no longer has a meta line at all
+// (see its own doc comment). The prior `BreadcrumbListPosition` component
+// that rendered it there was removed as dead code once its only caller was
+// removed (CLAUDE.md rule 13); `InThisListBridge` (the shared pos/of/list
+// reader) is unchanged and still feeds `InThisListStat` below.
 
 export function InThisListStat({
   backHref,
@@ -806,9 +858,11 @@ export function InThisListStat({
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "14px 16px",
+        overflow: "hidden",
       }}
     >
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
       <Suspense fallback={null}>
         <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
@@ -854,6 +908,7 @@ export function InThisListStat({
             )}
           </span>
         )}
+      </div>
       </div>
     </div>
   );

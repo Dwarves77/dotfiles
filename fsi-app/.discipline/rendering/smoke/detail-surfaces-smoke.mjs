@@ -245,6 +245,12 @@ import { RegulationDetailSurface } from '@/components/regulations/RegulationDeta
 // §0.5), following the same precedent regulations-rows-smoke.mjs documents for ObligationRegister.
 import { DetailHeader as _DetailHeaderCoverageOnly } from '@/components/detail/DetailShell';
 void _DetailHeaderCoverageOnly;
+// GAP G2 (2026-09-07): the guarded H1 moved again, out of DetailShell.tsx's DetailHeader and into
+// the shared ui/Masthead via the new DetailMasthead (DetailShell.tsx) — mounted at the top of all
+// four *DetailSurface.tsx components this spec already mounts. Same coverage-only-import precedent as
+// above, updated to the H1's real current home.
+import { Masthead as _MastheadCoverageOnly } from '@/components/ui/Masthead';
+void _MastheadCoverageOnly;
 
 let root = null;
 window.__mount = (props) => {

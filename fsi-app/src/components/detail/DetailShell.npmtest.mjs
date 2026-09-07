@@ -74,42 +74,49 @@ test("InThisListStat reads prev/next neighbour slugs via a second isolated bridg
 
 test("InThisListStat reconstructs each neighbour's href from withListPosition (imported, not hand-built query string)", () => {
   assert.match(SOURCE, /import \{ withListPosition \} from "@\/components\/list-surface\/list-surface-helpers"/);
-  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 5000);
   assert.match(statBody, /withListPosition\(/);
 });
 
 test("InThisListStat's prev/next links are omitted, not rendered empty, when a neighbour is absent", () => {
-  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 5000);
   assert.match(statBody, /\(prevHref \|\| nextHref\) &&/);
   assert.match(statBody, /prevHref &&/);
   assert.match(statBody, /nextHref &&/);
 });
 
-// Lane uidetails2 (2026-09-07): the breadcrumb's own last segment ("1 of 9 in Action") reuses the
-// SAME InThisListBridge/list-pos-of contract, mounted directly inside DetailHeader so every detail
-// surface picks it up with no page-local change.
-test("DetailHeader renders the breadcrumb list-position segment via the same shared bridge, not a second searchParams reader", () => {
-  assert.match(SOURCE, /function BreadcrumbListPosition/);
+// GAP G2 (2026-09-07, operator audit item 2.3, ruling R4): the breadcrumb's own last segment
+// ("N of M in Band") now renders inside DetailMastheadBreadcrumb, feeding the shared Masthead's
+// own VOL/breadcrumb line (dateLabel) — DetailHeader no longer carries a meta/breadcrumb line at
+// all (see its own doc comment). The old DetailHeader-local BreadcrumbListPosition bridge was
+// removed as dead code once DetailHeader stopped rendering it (CLAUDE.md rule 13).
+test("DetailHeader carries no BreadcrumbListPosition / meta reader — the breadcrumb line moved to DetailMasthead", () => {
+  assert.doesNotMatch(CODE_ONLY, /function BreadcrumbListPosition/);
   const headerBody = SOURCE.slice(
     SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Exposure grid")
+    SOURCE.indexOf("// ── Masthead:")
   );
-  assert.match(headerBody, /<BreadcrumbListPosition band=\{band\} \/>/);
-  // BreadcrumbListPosition itself must not call the hook directly — only render the shared bridge.
-  const bridgeCompBody = SOURCE.slice(
-    SOURCE.indexOf("function BreadcrumbListPosition"),
-    SOURCE.indexOf("export function InThisListStat")
-  );
-  assert.doesNotMatch(bridgeCompBody.split("function ")[1] ?? bridgeCompBody, /useSearchParams\(\)/);
-  assert.match(bridgeCompBody, /<InThisListBridge/);
+  assert.doesNotMatch(headerBody, /useSearchParams\(\)/);
 });
 
-test("the breadcrumb list-position segment renders nothing when pos/of are absent — Absence-by-omission, never a fabricated '1 of 1'", () => {
-  const bridgeCompBody = SOURCE.slice(
-    SOURCE.indexOf("function BreadcrumbListPosition"),
-    SOURCE.indexOf("export function InThisListStat")
+test("DetailMastheadBreadcrumb renders the R4 breadcrumb format via the shared searchParams reader, isolated from DetailMasthead's own body", () => {
+  assert.match(SOURCE, /function DetailMastheadBreadcrumb/);
+  const bridgeBody = SOURCE.slice(
+    SOURCE.indexOf("function DetailMastheadBreadcrumb"),
+    SOURCE.indexOf("export interface DetailMastheadProps")
   );
-  assert.match(bridgeCompBody, /\{known && `/);
+  assert.match(bridgeBody, /useSearchParams\(\)/);
+  assert.match(bridgeBody, /\$\{base\} \/ \$\{pos\} of \$\{of\} in \$\{band\.label\}/);
+  const mastheadBody = SOURCE.slice(SOURCE.indexOf("export function DetailMasthead("));
+  assert.doesNotMatch(mastheadBody.split("function ")[0], /useSearchParams\(\)/);
+  assert.match(mastheadBody, /<Suspense fallback=\{null\}>\s*<DetailMastheadBreadcrumb/);
+});
+
+test("DetailMasthead mounts the shared ui/Masthead with size=\"detail\" and passes the scoped placeholder to its ONE CommandBar", () => {
+  assert.match(SOURCE, /import \{ Masthead \} from "@\/components\/ui\/Masthead"/);
+  const mastheadBody = SOURCE.slice(SOURCE.indexOf("export function DetailMasthead("));
+  assert.match(mastheadBody, /<Masthead[\s\S]*size="detail"/);
+  assert.match(mastheadBody, /commandBar=\{\{ itemCount: 0, placeholder, scope: surface\.toLowerCase\(\) \}\}/);
 });
 
 test("an unknown list position renders the Absence convention, never a fabricated '1 of 1'", () => {
@@ -157,36 +164,22 @@ test("DetailHeader mounts no CommandBar and carries no askPlaceholder/askScope p
   assert.doesNotMatch(CODE_ONLY, /askScope/);
   const headerBody = SOURCE.slice(
     SOURCE.indexOf("export function DetailHeader"),
-    SOURCE.indexOf("// ── Exposure grid")
+    SOURCE.indexOf("// ── Masthead:")
   );
   assert.doesNotMatch(headerBody, /<CommandBar/);
   assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form");
 });
 
-// DEFECT-FIX item 1.2 (2026-09-07, audit ruling — VERIFIED ALREADY FIXED ON THIS BASE, not a new
-// change): the audit named /regulations/eu-ppwr-2025-40 rendering its title in body weight instead
-// of the shared Anton/uppercase/0.04em treatment every other detail title uses. A repo-wide grep
-// (2026-09-07) found no `title.length`/`>80`-shaped conditional anywhere under src/components —
-// the only place such logic is even mentioned is a STALE comment in
-// .discipline/rendering/smoke/detail-surfaces-smoke.mjs describing a "RegulationDetailSurface's own
-// threshold (r.title.length > 80) for switching from the Anton poster face to the wrapping body
-// face" that does not exist in this file (or anywhere else) today — DetailHeader's <h1> is styled
-// unconditionally, with no branch on title length or item grade. This test locks that in: the title
-// style block must carry no length/grade-conditional logic, so a future edit cannot silently
-// reintroduce the PPWR-class bug DetailShell's own rebuild already eliminated.
-test("DetailHeader's <h1> title style is UNCONDITIONAL — no title.length/itemGrade-based branch selects a different font-family/weight (item 1.2)", () => {
-  const start = SOURCE.indexOf("export function DetailHeader");
-  const end = SOURCE.indexOf("// ── Exposure grid");
-  const headerBody = SOURCE.slice(start, end);
-  const h1Start = headerBody.indexOf("<h1");
-  const h1End = headerBody.indexOf("</h1>");
-  assert.ok(h1Start !== -1 && h1End !== -1);
-  const h1Block = headerBody.slice(h1Start, h1End);
-  // The style object must be a single static object literal — no ternary/ternary-shaped branch
-  // (no "?" outside the mobile media-query <style> block, which sits above this element already).
-  assert.doesNotMatch(h1Block, /\?/, "no conditional expression inside the <h1> element itself");
-  assert.match(h1Block, /fontFamily: "var\(--font-display\)"/);
-  assert.match(h1Block, /fontWeight: 400/);
-  assert.match(h1Block, /textTransform: "uppercase"/);
+// GAP G2 (2026-09-07): DetailHeader no longer renders an <h1> at all — the item title moved to the
+// shared ui/Masthead (via DetailMasthead), so the item-1.2 "unconditional Anton title" guarantee is
+// now Masthead.tsx's own contract (see Masthead.npmtest.mjs), not this file's. DetailHeader itself
+// carries no title.length/itemGrade-shaped conditional anywhere.
+test("DetailHeader renders no <h1> (title lives in DetailMasthead's Masthead mount, not duplicated here) and no length-based title-style switch survives in this file", () => {
+  const headerBody = SOURCE.slice(
+    SOURCE.indexOf("export function DetailHeader"),
+    SOURCE.indexOf("// ── Masthead:")
+  );
+  assert.doesNotMatch(headerBody, /<h1/);
+  assert.match(headerBody, /aria-label=\{title\}/);
   assert.doesNotMatch(SOURCE, /title\.length/, "no length-based title-style switch survives anywhere in this file");
 });

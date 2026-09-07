@@ -68,7 +68,12 @@ export const ROW_COMPONENTS = Object.freeze({
   // them here as separate per-file requirements would demand a literal duplicate of the attribute
   // string in a file that no longer renders its own <h1>. Dropped from this per-file list exactly as
   // RegulationDetailSurface.tsx already was; DetailShell.tsx (below) remains the one tracked home.
-  'src/components/detail/DetailShell.tsx': 'the ONE detail architecture header (README §0.5) — home of the shared data-guard-title element for all four detail surfaces (regulations, market, research, operations), lane uidetails 2026-09-06 / uidetails2 2026-09-07',
+  // GAP G2 (2026-09-07, operator audit item 2.3, artboard 03, ruling R4): DetailHeader's own <h1>
+  // moved out of DetailShell.tsx entirely — the item title now renders once, inside the new
+  // DetailMasthead's <Masthead/> mount (src/components/ui/Masthead.tsx), the shared masthead's own
+  // <h1 data-guard-title>. DetailHeader keeps only chips/tags/actions (no title, no second
+  // data-guard-title). Tracking moved to Masthead.tsx, the real shared home now.
+  'src/components/ui/Masthead.tsx': 'the shared masthead <h1> (README §0.3) — home of the data-guard-title element for the dashboard AND (GAP G2, 2026-09-07) all four detail surfaces via DetailMasthead (DetailShell.tsx), regulations/market/research/operations',
   // lane NOTICES (2026-09-05): the entity-label link sat below the law-2 44/24px interactive-target
   // floor and an unbroken long entity name overflowed the row — found by notices-rail-smoke.mjs, which
   // mounts the real component (via NoticesRail, the shared rail Market and all four detail surfaces use).
