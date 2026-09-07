@@ -122,6 +122,15 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   `textTransform: "uppercase"`, `letterSpacing: "1.12px"` at `fontSize: "28px"` (= 0.04em). PASS.
   See `DEVIATION-LOG.md`'s "GAP G4" entry for the full computed-style record.
 
+- **Admin/onboarding full sweep, train 58 (2026-09-07): only four admin parts got a measured
+  spec this train (AdminIssuesRail, admin-stat-tiles, onboarding-stepper, plus what fix58-account
+  brought forward), not the whole admin surface.** `AdminDashboard.tsx`'s section bodies (Sources,
+  Ingest, Coverage, Research pipeline, Community pickups, Runtime), the sub-nav tab row, and the
+  Workspaces section's `WorkspacesUsageRow`/`MembersPanel`/`InvitationsPanel` are unaudited —
+  GAP G1 (train 57's own entry, above) already names admin cards as not yet reached by the
+  SectionRule sitewide rollout; this train did not extend that reach beyond the 8 summary tiles.
+  Needs a follow-up lane once artboards exist for the remaining admin section bodies (most have
+  none in this handoff, same class of gap as `OrganizationsTable` below).
 - **`OrganizationsTable` has no artboard, train 58 (2026-09-07).** Mounted inside
   `AdminDashboard.tsx`'s Workspaces section (`src/components/admin/OrganizationsTable.tsx`); no
   artboard in this handoff shows the Workspaces section's expanded body, so per this train's own
