@@ -6,7 +6,8 @@
   "source": "src/components/detail/DetailShell.tsx (the ONE header shared by all four detail surfaces, per its own docstring); README.md §0.4 'Type' (Anton titles 28px, letter-spacing .04em) + §0.5; operator rulings 1.2 (detail title must be Anton uppercase) and 2.3 (no second ask bar between the tags row and the action row)",
   "notes": [
     "Ruling 1.2 named the PPWR page specifically as bypassing the shared title component; this spec measures the shared component itself (DetailHeader), which every one of the four detail surfaces now imports, so a MATCH here is evidence the shared part is correct — it does not by itself prove every page calls it (that is a page-frame / route-level check, out of this spec's selector reach).",
-    "This mount omits `askPlaceholder` (ruling 2.3: the CommandBar in the Masthead is the only ask surface, DetailHeader must not render a second one when a caller omits it) — the forbid check below confirms no CommandBar renders even though `actions` is populated."
+    "This mount omits `askPlaceholder` (ruling 2.3: the CommandBar in the Masthead is the only ask surface, DetailHeader must not render a second one when a caller omits it) — the forbid check below confirms no CommandBar renders even though `actions` is populated.",
+    "Structural note, train 58 (2026-09-07): DetailHeader.tsx's own doc comment now reads 'title now lives in DetailMasthead below' — train 57 moved the title and meta/breadcrumb line out of this component into the shared `ui/Masthead` (via `DetailMasthead`), confirmed by direct source read this session (`src/components/detail/DetailShell.tsx` ~line 56). DetailHeader itself renders only chips, the tag row, and actions. The title and meta children checks this spec used to carry are therefore removed here, not left as phantom NOT BUILT rows against a part this component no longer owns: the title is checked against its real location by `page-frame.json`'s 'detail title type' row (`.cl-masthead-title`). The former 11px meta/breadcrumb line has no like-for-like replacement to check yet — DetailMasthead's breadcrumb now renders inside Masthead's `.cl-masthead-eyebrow` line (800 weight, .14em, `--fs-105`, a different typographic convention from the old 11px meta line), which no spec measures yet. Logged as a B-list gap (Masthead+CommandBar) for the fix lane rather than asserted against an invented 11px value here."
   ],
   "selector": "[data-audit=\"header\"] > header",
   "expect": {
@@ -18,25 +19,6 @@
     "padding-bottom": "20px"
   },
   "children": [
-    {
-      "name": "title",
-      "selector": "[data-audit=\"header\"] h1[data-guard-title]",
-      "note": "README type scale: Display Anton, uppercase, letter-spacing .04em, page/detail titles 28px. Operator 1.2.",
-      "expect": {
-        "font-family": "contains:Anton",
-        "text-transform": "uppercase",
-        "font-size": "28px",
-        "letter-spacing": "0.04em"
-      }
-    },
-    {
-      "name": "meta line",
-      "selector": "[data-audit=\"header\"] .cl-detail-meta",
-      "note": "README type scale: row meta / breadcrumb 11px.",
-      "expect": {
-        "font-size": "11px"
-      }
-    },
     {
       "name": "tag row sits directly under the title (no gap for a second bar)",
       "selector": "[data-audit=\"header\"] [data-audit=\"tagrow\"]",

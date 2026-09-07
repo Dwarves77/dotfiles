@@ -81,3 +81,27 @@ test('a differing token count falls back to a whole-string canonical compare', (
   assert.equal(compareValue('#FFFFFF', 'rgb(255, 255, 255)').ok, true);
   assert.equal(compareValue('0 8px 8px 0', '6px').ok, false);
 });
+
+test('a gradient with explicit 0%/100% stops matches CSSOM omitting the defaults (train 58, 2026-09-07)', () => {
+  assert.equal(
+    compareValue(
+      'linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))',
+      'linear-gradient(90deg, rgb(90, 85, 82) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18) 100%)',
+    ).ok,
+    true,
+  );
+  assert.equal(
+    compareValue(
+      'linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))',
+      'linear-gradient(90deg, rgb(90, 85, 82) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))',
+    ).ok,
+    true,
+  );
+  assert.equal(
+    compareValue(
+      'linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))',
+      'linear-gradient(90deg, rgb(22, 163, 74) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18) 100%)',
+    ).ok,
+    false,
+  );
+});

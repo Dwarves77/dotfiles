@@ -26,8 +26,8 @@
     },
     {
       "name": "At a glance — grid",
-      "selector": "[data-audit=\"atglance\"] > div > div",
-      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px.",
+      "selector": "[data-audit=\"atglance\"] > div > div > div",
+      "note": "Artboard: grid-template-columns:96px 1fr; gap:7px 12px. Selector repair, train 58 (2026-09-07): the DOM is one level deeper than the old 2-level `>div>div` chain reached — AtAGlanceCard's root div has TWO div children (the `.cl-section-rule` rule and the padded content div), and `>div>div` matched the FIRST of those (the rule div, which has no grid styling at all), silently measuring the wrong element and reporting its `none`/`normal`/`normal` defaults as a design MISMATCH. The grid lives one level further in, inside the padded div — the 3-level selector now reaches it (confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` AtAGlanceCard, ~line 658).",
       "expect": {
         "grid-template-columns": "96px 1fr",
         "column-gap": "12px",
@@ -36,8 +36,8 @@
     },
     {
       "name": "At a glance — first value",
-      "selector": "[data-audit=\"atglance\"] > div > div > span:nth-child(2)",
-      "note": "Artboard: font-weight:600.",
+      "selector": "[data-audit=\"atglance\"] > div > div > div > span:nth-child(2)",
+      "note": "Artboard: font-weight:600. Selector repair, train 58 (2026-09-07): same one-level DOM-depth fix as the grid row above.",
       "expect": {
         "font-weight": "600"
       }

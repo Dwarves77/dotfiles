@@ -5,7 +5,7 @@
   "artboards": ["02-regulations-list (Filters card, Legend rail card)", "18-section-treatments (ruling 5.1)"],
   "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
   "notes": [
-    "The facets card (labelled 'Filters' on the artboard, rendered by ListSurfaceShell's inline facets block, class `.cl-facets-desktop`) and the Legend rail card (LegendRailCard in ListSurfaceRailCards.tsx) both sit under ruling 5.1: every panel/section card carries the 3px graduated rule ABOVE its content, full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)) — exactly what p2's own Filters and Legend cards show (`height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))` immediately inside each card's outer div). Neither built card renders this rule at all: `.cl-facets-desktop` and `RailCard` in ListSurfaceRailCards.tsx both go straight from the card's outer border to the padded content with no rule element. This is checked as a NOT BUILT below (no `[data-section-rule]` marker exists on either card), which is the correct status and also states the selector contract a fix lane should build to (same contract page-frame.json already established for the dashboard's own section cards).",
+    "The facets card (labelled 'Filters' on the artboard, rendered by ListSurfaceShell's inline facets block, class `.cl-facets-desktop`) and the Legend rail card (LegendRailCard in ListSurfaceRailCards.tsx) both sit under ruling 5.1: every panel/section card carries the 3px graduated rule ABOVE its content, full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)) — exactly what p2's own Filters and Legend cards show (`height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))` immediately inside each card's outer div). Neither built card renders this rule at all: `.cl-facets-desktop` and `RailCard` in ListSurfaceRailCards.tsx both go straight from the card's outer border to the padded content with no rule element. This is checked as a NOT BUILT below (no `.cl-section-rule` marker exists on either card), which is the correct status and also states the selector contract a fix lane should build to (same contract page-frame.json already established for the dashboard's own section cards).",
     "Facets card padding: p2 states `padding:12px 16px 14px` on the card's content wrapper (after the 3px rule). ListSurfaceShell's inline facets block uses `padding:'12px 16px'` (missing the differential bottom 14px — CSS shorthand normalises this to 12px all round) — checked below.",
     "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
   ],
@@ -20,7 +20,7 @@
   "children": [
     {
       "name": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
-      "selector": "[data-audit=\"legend-rail\"] [data-section-rule]",
+      "selector": "[data-audit=\"legend-rail\"] .cl-section-rule",
       "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. LegendRailCard/RailCard give no such element — expected status is NOT BUILT, stating the selector contract.",
       "expect": {
         "height": "3px"
@@ -50,7 +50,7 @@
     },
     {
       "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
-      "selector": ".cl-facets-desktop [data-section-rule]",
+      "selector": ".cl-facets-desktop .cl-section-rule",
       "note": "Same ruling as the Legend rail card above; ListSurfaceShell's inline facets block gives no such element either.",
       "expect": {
         "height": "3px"

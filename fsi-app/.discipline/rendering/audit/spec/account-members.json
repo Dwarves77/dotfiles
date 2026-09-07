@@ -6,7 +6,7 @@
   "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' id=\"p14\" (char 577450), the 'Members & roles' section card; operator ruling 5.1 (2026-09-07)",
   "notes": [
     "dc.html p14 section-card shell is identical to p15's (see settings-notifications.json note 1): ruling 5.1 gradient rule `height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`, then a header row `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)` with an Anton 20px title and a 10.5px/600/#7A6E6C meta line.",
-    "The real `AccountCard` shell has no gradient-rule element (see settings-notifications.json note 4) — same finding, reused here rather than restated as a new discovery.",
+    "Correction, train 58 (2026-09-07): AccountCard.tsx DOES render the shared `SectionRule` (`.cl-section-rule`, `src/components/account/AccountPrimitives.tsx` ~line 103, confirmed by direct source read this session) — the gradient-rule row below now MATCHES. This corrects the earlier note (also corrected in settings-notifications.json) that claimed no such element existed.",
     "dc.html p14 table header row: `grid-template-columns:1fr 120px 150px 44px;height:30px;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;border-bottom:1px solid rgba(0,0,0,.08)`.",
     "dc.html p14 member row: same grid, `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06);font-size:12.5px`.",
     "dc.html p14 role pill: `border:1px solid rgba(0,0,0,.25);border-radius:6px;padding:5px 8px;font-weight:600`."
@@ -23,7 +23,7 @@
       "name": "gradient rule (ruling 5.1)",
       "selector": "[data-audit=\"card\"] > section > div",
       "matchStyle": { "height": "3px" },
-      "note": "Ruling 5.1's exact string. Expected NOT BUILT (see notes) — the real AccountCard shell has no such element.",
+      "note": "Ruling 5.1's exact string. Confirmed MATCH, train 58 (2026-09-07): AccountCard.tsx (`src/components/account/AccountPrimitives.tsx`) now renders the shared `SectionRule` component — the note this row used to carry (claiming no such element exists) predates that and is stale; see this spec's notes array for the correction.",
       "expect": {
         "height": "3px",
         "background-image": "linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))"
@@ -31,8 +31,8 @@
     },
     {
       "name": "title",
-      "selector": "[data-audit=\"card\"] > section > div:first-child span:first-child",
-      "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em.",
+      "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
+      "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child, now that AccountCard renders one) rather than the header row that holds the title; the header row is section's SECOND div child.",
       "expect": {
         "text": "Members & roles",
         "font-family": "contains:Anton",

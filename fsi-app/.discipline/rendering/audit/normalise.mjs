@@ -97,6 +97,22 @@ export function collapse(value) {
   return String(value).replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * A CSS gradient's first stop defaults to 0% and its last stop defaults to 100% when the author
+ * omits them; Chrome's CSSOM always omits them for stops actually AT those defaults, while a
+ * design source (this repo's spec JSON, copied from the artboard's own CSS or written by hand)
+ * commonly states them explicitly (SectionRule's own gradient, ruling 5.1: both forms describe the
+ * identical rendered gradient). Stripping the two default stops before comparing avoids a false
+ * MISMATCH on a gradient that renders identically — this decides nothing about what the right
+ * gradient IS, only how two equal descriptions of it are recognised as equal.
+ */
+function stripDefaultGradientStops(value) {
+  if (!/linear-gradient\(/i.test(value)) return value;
+  let out = value.replace(/(linear-gradient\([^,]+,\s*rgba?\([^)]*\))\s*0%/gi, '$1');
+  out = out.replace(/(rgba?\([^)]*\))\s*100%(\s*\))/gi, '$1$2');
+  return out;
+}
+
 function canonicalToken(token, fontSizePx) {
   let t = collapse(token);
   // Unitless zero is zero of any unit in CSS; CSSOM always serialises it with a unit, the design
@@ -105,7 +121,12 @@ function canonicalToken(token, fontSizePx) {
   const em = emToPx(t, fontSizePx);
   if (em != null) t = `${fmtNum(em)}px`;
   t = normaliseColours(t);
+  t = stripDefaultGradientStops(t);
   t = normaliseNumbers(t);
+  // Comma spacing is not a design statement (`rgb(1,2,3)` vs `rgb(1, 2, 3)`, a gradient's stop list
+  // with or without a space after each comma) — collapse it after every other rewrite so it never
+  // reintroduces a token-boundary difference the checks above already resolved.
+  t = t.replace(/,\s+/g, ',');
   return t.toLowerCase();
 }
 

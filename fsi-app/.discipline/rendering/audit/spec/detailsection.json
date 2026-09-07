@@ -5,7 +5,7 @@
   "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile", "18-section-treatments"],
   "source": "'Caros Ledge UI System.dc.html' p3 (#p3) section header block: numeral \"S1\" (9.5-ish/800/.1em/#7A6E6C) beside the Anton title (\"Summary\", 20px/.04em/uppercase); README.md §0.4 type scale ('card titles (20)'); operator ruling 5.1 (the 3px graduated rule above every section/panel card, no line below the title) — applies 'to every panel/section card on every page, including the system sheet', which the ruling's own text makes explicit is not limited to the dashboard",
   "notes": [
-    "Ruling 5.1's 3px graduated rule is checked here via the SAME `[data-section-rule]` selector contract page-frame.json establishes for the dashboard's own section cards — DetailSection.tsx has no such marker (no gradient element at all), so the expected status is NOT BUILT, extending page-frame.json's dashboard-scoped finding to every detail section on all four surfaces.",
+    "Selector repair, train 58 (2026-09-07): the earlier `[data-section-rule]` selector never matched anything. DetailSection.tsx DOES render the shared `SectionRule` component (`src/components/ui/SectionRule.tsx`, marker class `.cl-section-rule`, confirmed by direct source read this session, `src/components/detail/DetailShell.tsx` line ~588) — the selector below now measures the real element.",
     "Title size: the artboard's section title is 20px (README's own 'card titles (20)' line), DetailSection.tsx sets `fontSize: 16` — a real MISMATCH, not a harness artefact (both numbers read directly, no unit conversion involved).",
     "A first pass of this spec also checked the section's own `border-bottom-width` against 0 and got 1px — that was a harness mistake, not a finding: DetailSection.tsx applies one uniform `border: \"1px solid var(--line-1)\"` around the WHOLE card (ordinary card chrome on all four sides), not a dedicated divider under the title the way the dashboard's section cards in page-frame.json do (`border-bottom: 2px solid #5A5552`, ruling 5.1's own '18a' target). DetailSection never had that divider to begin with, so there is nothing at this selector for ruling 5.1's 'no line below the title' half to find; removed from `expect` rather than left as a false MISMATCH.",
     "The artboard also prefixes each section title with a small grey \"S1\"/\"S2\"/… numeral (the same numbering the sticky index uses) directly beside the Anton title; DetailSection.tsx renders the title alone with no numeral prefix. Not independently checked here (no selector exists to address it) — recorded as a structural gap alongside the title-size finding, not a second row asserting a value that cannot be measured."
@@ -20,7 +20,7 @@
   "children": [
     {
       "name": "the 3px graduated rule above the section title (ruling 5.1)",
-      "selector": "[data-audit=\"section\"] section [data-section-rule]",
+      "selector": "[data-audit=\"section\"] section .cl-section-rule",
       "note": "Ruling 5.1: 3px, full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)). Same contract as page-frame.json's dashboard check.",
       "expect": {
         "height": "3px",

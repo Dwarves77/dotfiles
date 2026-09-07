@@ -25,7 +25,7 @@
   "children": [
     {
       "name": "ruling 5.1 rule ABOVE the title",
-      "selector": "[data-audit=\"legend\"] [data-section-rule]",
+      "selector": "[data-audit=\"legend\"] .cl-section-rule",
       "note": "Ruling 5.1: 3px, full width, top edge, no radius, `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`. No element carries this marker in RailCard.tsx today.",
       "expect": { "height": "3px", "count": "1" }
     },
