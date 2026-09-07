@@ -5,10 +5,13 @@
  * README §0.4). Four scored dimensions (cost, compliance, client-facing,
  * operational), each 1-3.
  *
- * Row variant: four 9px bars on a 1px baseline, sorted ascending
- * left→right, coloured by value (1 green · 2 orange · 3 red) so green is
- * always left and red always right; the sum N/12 sits beside it in
- * tabular numerals. Unscored = a 30px dashed baseline (operator audit item
+ * Row variant: four 9px-wide bars (heights 6/12/18 for scores 1/2/3, top
+ * corners radiused, square bottom) on an 18px-tall container with a 1px
+ * solid rgba(0,0,0,.25) baseline under them, sorted ascending left→right,
+ * coloured by value (1 green · 2 orange · 3 red) so green is always left
+ * and red always right; the sum N/12 sits margin-left:7px beside it in
+ * tabular numerals (audit item B29-B46, 2026-09-07, artboard #sys list-row
+ * example). Unscored = a 30px dashed baseline (operator audit item
  * 2.1, 2026-09-07 ruling — one width, desktop and mobile) and the Absence
  * component's small-caps reason, never a second "NOT SCORED" row.
  *
@@ -67,7 +70,7 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
             // variant's baseline is 30px at every viewport (was 40px desktop, 30px mobile-only).
             width: variant === "full" ? 96 : 30,
             height: 0,
-            borderBottom: "1px dashed var(--line-1)",
+            borderBottom: "1px dashed rgba(0,0,0,.3)",
           }}
         />
         {variant === "row" ? <Absence reason="unscored" /> : <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>—</span>}
@@ -90,16 +93,16 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
       <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
         {labels.map(([label, v]) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", width: 84, flexShrink: 0 }}>
+            <span style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", width: 116, flexShrink: 0 }}>
               {label}
             </span>
             <span
               style={{
                 flex: 1,
-                height: 6,
-                borderRadius: 3,
+                height: 8,
+                borderRadius: 8,
                 background:
-                  "linear-gradient(90deg, var(--awareness), var(--action) 50%, var(--immediate))",
+                  "linear-gradient(90deg, var(--awareness), var(--action) 55%, var(--immediate))",
                 position: "relative",
                 overflow: "hidden",
               }}
@@ -137,10 +140,19 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
     <span
       className="cl-impact-scored"
       aria-label={`Impact ${sum} of 12`}
-      style={{ display: "flex", alignItems: "flex-end", gap: 6 }}
+      style={{ display: "flex", alignItems: "flex-end", gap: 0 }}
     >
       <style>{MOBILE_CSS}</style>
-      <span className="cl-impact-bars" style={{ display: "flex", alignItems: "flex-end", gap: 2, height: 9 }}>
+      <span
+        className="cl-impact-bars"
+        style={{
+          display: "flex",
+          alignItems: "flex-end",
+          gap: 2,
+          height: 18,
+          borderBottom: "1px solid rgba(0,0,0,.25)",
+        }}
+      >
         {dims.map((v, i) => (
           <span
             key={i}
@@ -148,11 +160,11 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
             className="cl-impact-bar"
             data-score={v}
             style={{
-              width: 4,
-              height: `${3 + v * 2}px`,
+              width: 9,
+              height: `${v * 6}px`,
               alignSelf: "flex-end",
               background: VALUE_COLOR[v] ?? "var(--line-1)",
-              borderRadius: 1,
+              borderRadius: "1px 1px 0 0",
             }}
           />
         ))}
@@ -164,6 +176,7 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
           color: "var(--ink-2)",
           fontVariantNumeric: "tabular-nums",
           whiteSpace: "nowrap",
+          marginLeft: 7,
         }}
       >
         {sum}/12
