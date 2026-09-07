@@ -258,9 +258,9 @@ function NotifRow({
         justifyContent: "space-between",
         alignItems: "center",
         gap: 14,
-        minHeight: 44,
+        minHeight: 48,
         padding: "11px 0",
-        borderTop: "1px solid var(--color-border-subtle)",
+        borderBottom: "1px solid rgba(0,0,0,.06)",
       }}
     >
       <div style={{ minWidth: 0 }}>

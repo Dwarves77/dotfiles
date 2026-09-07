@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T19:42:22.718Z",
+  "runAt": "2026-09-07T20:18:24.868Z",
   "specs": [
     {
       "part": "Absence",
@@ -2920,8 +2920,8 @@
       "selector": "[data-audit=\"card\"] > section",
       "property": "border-radius",
       "expected": "10px",
-      "actual": "8px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -2984,8 +2984,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "font-family",
       "expected": "contains:Anton",
-      "actual": "\"Plus Jakarta Sans\", system-ui, sans-serif",
-      "status": "MISMATCH",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
       "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child, now that AccountCard renders one) rather than the header row that holds the title; the header row is section's SECOND div child."
     },
     {
@@ -3000,8 +3000,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "font-size",
       "expected": "20px",
-      "actual": "12.5px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child, now that AccountCard renders one) rather than the header row that holds the title; the header row is section's SECOND div child."
     },
     {
@@ -3015,9 +3015,9 @@
       "target": "title",
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "letter-spacing",
-      "expected": "0.04em (= 0.5px at 12.5px)",
-      "actual": "0.625px",
-      "status": "MISMATCH",
+      "expected": "0.04em (= 0.8px at 20px)",
+      "actual": "0.8px",
+      "status": "MATCH",
       "note": "dc.html p14: Anton uppercase 20px, letter-spacing .04em. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child, now that AccountCard renders one) rather than the header row that holds the title; the header row is section's SECOND div child."
     },
     {
@@ -13179,8 +13179,8 @@
       "selector": "[data-audit=\"card\"] > section",
       "property": "border-radius",
       "expected": "10px",
-      "actual": "8px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": null
     },
     {
@@ -13227,8 +13227,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2)",
       "property": "padding-top",
       "expected": "14px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "14px",
+      "status": "MATCH",
       "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child); the header row is section's SECOND div child."
     },
     {
@@ -13243,8 +13243,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2)",
       "property": "padding-right",
       "expected": "16px",
-      "actual": "20px",
-      "status": "MISMATCH",
+      "actual": "16px",
+      "status": "MATCH",
       "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child); the header row is section's SECOND div child."
     },
     {
@@ -13259,8 +13259,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2)",
       "property": "padding-bottom",
       "expected": "10px",
-      "actual": "12px",
-      "status": "MISMATCH",
+      "actual": "10px",
+      "status": "MATCH",
       "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child); the header row is section's SECOND div child."
     },
     {
@@ -13275,8 +13275,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2)",
       "property": "border-bottom-width",
       "expected": "1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "1px",
+      "status": "MATCH",
       "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child); the header row is section's SECOND div child."
     },
     {
@@ -13291,8 +13291,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2)",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.08)",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
       "note": "dc.html p15: `padding:14px 16px 10px;border-bottom:1px solid rgba(0,0,0,.08)`. Selector repair, train 58 (2026-09-07): `div:first-child` matched the SectionRule div (section's actual first child); the header row is section's SECOND div child."
     },
     {
@@ -13323,8 +13323,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "font-family",
       "expected": "contains:Anton",
-      "actual": "\"Plus Jakarta Sans\", system-ui, sans-serif",
-      "status": "MISMATCH",
+      "actual": "Anton, system-ui, sans-serif",
+      "status": "MATCH",
       "note": "dc.html p15: Anton uppercase 20px, letter-spacing .04em — ruling 5.1: 'Section title itself: Anton uppercase, no divider, no underline.' Selector repair, train 58 (2026-09-07): same header-row fix as above."
     },
     {
@@ -13339,8 +13339,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "font-size",
       "expected": "20px",
-      "actual": "12.5px",
-      "status": "MISMATCH",
+      "actual": "20px",
+      "status": "MATCH",
       "note": "dc.html p15: Anton uppercase 20px, letter-spacing .04em — ruling 5.1: 'Section title itself: Anton uppercase, no divider, no underline.' Selector repair, train 58 (2026-09-07): same header-row fix as above."
     },
     {
@@ -13354,9 +13354,9 @@
       "target": "title",
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:first-child",
       "property": "letter-spacing",
-      "expected": "0.04em (= 0.5px at 12.5px)",
-      "actual": "0.625px",
-      "status": "MISMATCH",
+      "expected": "0.04em (= 0.8px at 20px)",
+      "actual": "0.8px",
+      "status": "MATCH",
       "note": "dc.html p15: Anton uppercase 20px, letter-spacing .04em — ruling 5.1: 'Section title itself: Anton uppercase, no divider, no underline.' Selector repair, train 58 (2026-09-07): same header-row fix as above."
     },
     {
@@ -13419,8 +13419,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(2) span:nth-child(2)",
       "property": "font-weight",
       "expected": "600",
-      "actual": "700",
-      "status": "MISMATCH",
+      "actual": "600",
+      "status": "MATCH",
       "note": "dc.html p15: exact copy 'In-app now · email and push coming', 10.5px/600, #7A6E6C. Selector repair, train 58 (2026-09-07): same header-row fix as above."
     },
     {
@@ -13451,8 +13451,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(3) > div > div:first-child",
       "property": "min-height",
       "expected": "48px",
-      "actual": "44px",
-      "status": "MISMATCH",
+      "actual": "48px",
+      "status": "MATCH",
       "note": "dc.html p15: `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06)`. Selector repair, train 58 (2026-09-07): the body (bodyPad) div holding NotificationPreferences is section's THIRD div child (after the rule div and the header div), not its second — `nth-child(2)` was reaching the header row itself, which has no `div` grandchild matching the rest of the chain, hence NOT BUILT. Confirmed by direct source read this session: NotifRow.tsx's real root div is `minHeight: 44` with `borderTop` (not `border-bottom`), on `var(--color-border-subtle)` — a genuine MISMATCH against the artboard's 48px/border-bottom, now that the check reaches the real element."
     },
     {
@@ -13467,8 +13467,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(3) > div > div:first-child",
       "property": "border-bottom-width",
       "expected": "1px",
-      "actual": "0px",
-      "status": "MISMATCH",
+      "actual": "1px",
+      "status": "MATCH",
       "note": "dc.html p15: `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06)`. Selector repair, train 58 (2026-09-07): the body (bodyPad) div holding NotificationPreferences is section's THIRD div child (after the rule div and the header div), not its second — `nth-child(2)` was reaching the header row itself, which has no `div` grandchild matching the rest of the chain, hence NOT BUILT. Confirmed by direct source read this session: NotifRow.tsx's real root div is `minHeight: 44` with `borderTop` (not `border-bottom`), on `var(--color-border-subtle)` — a genuine MISMATCH against the artboard's 48px/border-bottom, now that the check reaches the real element."
     },
     {
@@ -13483,8 +13483,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(3) > div > div:first-child",
       "property": "border-bottom-color",
       "expected": "rgba(0,0,0,.06)",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MISMATCH",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
       "note": "dc.html p15: `min-height:48px;border-bottom:1px solid rgba(0,0,0,.06)`. Selector repair, train 58 (2026-09-07): the body (bodyPad) div holding NotificationPreferences is section's THIRD div child (after the rule div and the header div), not its second — `nth-child(2)` was reaching the header row itself, which has no `div` grandchild matching the rest of the chain, hence NOT BUILT. Confirmed by direct source read this session: NotifRow.tsx's real root div is `minHeight: 44` with `borderTop` (not `border-bottom`), on `var(--color-border-subtle)` — a genuine MISMATCH against the artboard's 48px/border-bottom, now that the check reaches the real element."
     },
     {
@@ -13499,8 +13499,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(3) > div > div:first-child button[role=\"switch\"]",
       "property": "width",
       "expected": "32px",
-      "actual": "36px",
-      "status": "MISMATCH",
+      "actual": "32px",
+      "status": "MATCH",
       "note": "dc.html p15: pill `width:32px;height:18px;border-radius:999px`, on-state background #5A5552. Selector repair, train 58 (2026-09-07): same body-depth fix as the toggle row above. Confirmed by direct source read this session: ToggleSwitch (`src/components/account/AccountPrimitives.tsx`) is 36x20px on `var(--color-primary)` when on — a genuine MISMATCH against the artboard's 32x18px/#5A5552, now that the check reaches the real element."
     },
     {
@@ -13515,8 +13515,8 @@
       "selector": "[data-audit=\"card\"] > section > div:nth-child(3) > div > div:first-child button[role=\"switch\"]",
       "property": "height",
       "expected": "18px",
-      "actual": "20px",
-      "status": "MISMATCH",
+      "actual": "18px",
+      "status": "MATCH",
       "note": "dc.html p15: pill `width:32px;height:18px;border-radius:999px`, on-state background #5A5552. Selector repair, train 58 (2026-09-07): same body-depth fix as the toggle row above. Confirmed by direct source read this session: ToggleSwitch (`src/components/account/AccountPrimitives.tsx`) is 36x20px on `var(--color-primary)` when on — a genuine MISMATCH against the artboard's 32x18px/#5A5552, now that the check reaches the real element."
     },
     {
