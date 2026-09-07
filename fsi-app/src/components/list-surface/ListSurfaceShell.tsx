@@ -68,6 +68,9 @@ export interface ListSurfaceShellProps {
   title: string;
   dek?: ReactNode;
   dateLabel: string;
+  /** Server render instant (src/lib/render-now.ts) — threaded to <Masthead/> so the VOL week
+   *  number is not recomputed from each host's own clock. See render-now.ts. */
+  nowIso?: string;
   itemCount: number;
   scope: string;
   onSearch?: (q: string) => void;
@@ -299,6 +302,7 @@ export function ListSurfaceShell({
   title,
   dek,
   dateLabel,
+  nowIso,
   itemCount,
   scope,
   onSearch,
@@ -329,7 +333,7 @@ export function ListSurfaceShell({
   return (
     <>
       <div style={{ padding: "20px 40px 0" }}>
-        <Masthead title={title} dek={dek} dateLabel={dateLabel} commandBar={{ itemCount, onSearch, scope }} />
+        <Masthead title={title} dek={dek} dateLabel={dateLabel} nowIso={nowIso} commandBar={{ itemCount, onSearch, scope }} />
       </div>
       <div
         style={{

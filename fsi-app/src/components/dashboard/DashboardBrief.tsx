@@ -21,20 +21,15 @@ import { SectionRule } from "@/components/ui/SectionRule";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
-import { jurisdictionCode, dueInfo, metaLine } from "@/lib/dashboard/row-fields";
-import { itemDetailHref } from "@/lib/item-links";
-import type { Resource } from "@/types/resource";
-import type { RecentChangeRow } from "@/lib/supabase-server";
+import type { BriefRow } from "@/lib/dashboard/brief-rows";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
 import { BAND_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
-
-const DUE_NEXT_CAP = 5;
-const CHANGED_CAP = 6;
 
 function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
   // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings): the graduated rule ABOVE the
@@ -125,10 +120,18 @@ function Card({ children }: { children: ReactNode }) {
 }
 
 export interface DashboardBriefProps {
-  resources: Resource[];
+  /** Rows SELECTED AND SHAPED ON THE SERVER (src/lib/dashboard/brief-rows.ts) through the shared
+   *  `toListRowFields` derivation the list ledgers use — see that module for defect D3, and
+   *  src/lib/render-now.ts for why no row derivation may run against this component's own clock. */
+  dueNextRows: BriefRow[];
+  changedRows: BriefRow[];
+  /** Total changes in the last detection pass (the card foot's figure) — the rows themselves are
+   *  capped at CHANGED_CAP. */
+  totalChanges: number;
   aggregates: WorkspaceAggregates;
-  recentChanges: RecentChangeRow[];
   auditDate: string;
+  /** Server render instant (src/lib/render-now.ts). */
+  nowIso?: string;
   surfaceCoverage: SurfaceCoverageSnapshot;
   watchlistPromise: Promise<WatchlistItem[]>;
   loadingCounts?: boolean;
@@ -142,44 +145,27 @@ export interface DashboardBriefProps {
 }
 
 export function DashboardBrief({
-  resources,
+  dueNextRows,
+  changedRows,
+  totalChanges,
   aggregates,
-  recentChanges,
   auditDate,
+  nowIso,
   surfaceCoverage,
   watchlistPromise,
   loadingCounts,
   fetchError,
 }: DashboardBriefProps) {
-  const dueNext = useMemo(() => {
-    const withDue = resources
-      .map((r) => ({ r, due: dueInfo(r) }))
-      .filter((x): x is { r: Resource; due: NonNullable<ReturnType<typeof dueInfo>> } => x.due != null)
-      .sort((a, b) => a.due.daysNum - b.due.daysNum);
-    return withDue.slice(0, DUE_NEXT_CAP);
-  }, [resources]);
-
-  const changed = useMemo(() => {
-    const seen = new Set<string>();
-    const rows: Array<{ id: string; title: string; href: string; band: ReturnType<typeof bandFromPriority>; isNew: boolean }> = [];
-    for (const c of recentChanges) {
-      if (seen.has(c.id)) continue;
-      seen.add(c.id);
-      rows.push({
-        id: c.id,
-        title: c.title,
-        href: itemDetailHref({ id: c.id, type: c.itemType, domain: c.domain }),
-        band: bandFromPriority(c.priority),
-        isNew: true,
-      });
-      if (rows.length >= CHANGED_CAP) break;
-    }
-    return rows;
-  }, [recentChanges]);
-
+  // HYDRATION-59 [CONFIRMED root cause of this route's React #418]: this label was
+  // `formatLocaleDate(new Date(), { month: "short", day: "numeric" })` — a client component
+  // reading its OWN host clock in render, with no timezone pin. The SSR pass (UTC container) and
+  // the hydration pass (the viewer's zone) resolve a different calendar date for part of every
+  // day, so the SSR HTML said "week of Sep 7" and the browser said "week of Sep 8" — reproduced
+  // this lane in a Pacific/Kiritimati Playwright context, verbatim React text-mismatch diff. Now
+  // derived from the SERVER's instant (`nowIso`) and UTC-pinned: identical string, both passes.
   const weekOfLabel = useMemo(
-    () => formatLocaleDate(new Date(), { month: "short", day: "numeric" }),
-    [],
+    () => formatLocaleDate(nowFrom(nowIso), { month: "short", day: "numeric", timeZone: "UTC" }),
+    [nowIso],
   );
   const immediateTotal = aggregates.byPriority.CRITICAL ?? 0;
   const actionTotal = aggregates.byPriority.HIGH ?? 0;
@@ -208,7 +194,19 @@ export function DashboardBrief({
             loadingCounts ? (
               <SkeletonBandTile key={band.key} />
             ) : (
-              <BandTile key={band.key} band={band} count={aggregates.byPriority[band.priority] ?? 0} />
+              // Defect D2 (2026-09-07) [CONFIRMED root cause]: these four tiles were mounted with
+              // NEITHER `onSelect` NOR any navigation target, so <BandTile/>'s own
+              // `onClick={() => onSelect?.(band.key)}` resolved to a no-op — every one of the four
+              // was dead, not just "Immediate" (the audit clicked only that one). They now carry
+              // the SAME `?band=` contract the card foot's "All N immediate" link already used
+              // (train 57, list-surface-helpers.ts's BAND_FACET_PARAM), so the dashboard has ONE
+              // way to open a band, not two.
+              <BandTile
+                key={band.key}
+                band={band}
+                count={aggregates.byPriority[band.priority] ?? 0}
+                href={`/regulations?${BAND_FACET_PARAM}=${band.key}`}
+              />
             ),
           )}
         </div>
@@ -217,10 +215,10 @@ export function DashboardBrief({
         <section>
           <Card>
             <SectionHeading
-              title={`Due next · ${dueNext.length} items`}
+              title={`Due next · ${dueNextRows.length} items`}
               aside={`By next binding date · week of ${weekOfLabel}`}
             />
-            {dueNext.length === 0 ? (
+            {dueNextRows.length === 0 ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
                   Nothing with a dated deadline right now. Items appear here as they enter scope and are verified.
@@ -229,18 +227,18 @@ export function DashboardBrief({
             ) : (
               <>
                 <ListRowColumnHeader dueLabel="Due" />
-                {dueNext.map(({ r, due }) => (
+                {dueNextRows.map((row) => (
                   <ListRow
-                    key={r.id}
-                    href={itemDetailHref(r)}
-                    band={bandFromPriority(r.priority)}
-                    jurisdiction={jurisdictionCode(r)}
-                    title={r.title}
-                    meta={metaLine(r)}
-                    impact={r.impactScores}
-                    due={{ label: due.label, days: `${due.days}` }}
-                    timeline={r.timeline}
-                    tier={r.sourceTier ?? null}
+                    key={row.id}
+                    href={row.href}
+                    band={bandFromPriority(row.priority)}
+                    jurisdiction={row.jurisdiction}
+                    title={row.title}
+                    meta={row.meta}
+                    impact={row.impact}
+                    due={row.due}
+                    timeline={row.timeline}
+                    tier={row.tier}
                   />
                 ))}
                 <CardFoot
@@ -287,7 +285,7 @@ export function DashboardBrief({
               title="What changed"
               aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
             />
-            {changed.length === 0 ? (
+            {changedRows.length === 0 ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
                   Nothing added or updated in the last detection pass.
@@ -296,22 +294,30 @@ export function DashboardBrief({
             ) : (
               <>
                 <ListRowColumnHeader dueLabel="Due" />
-                {changed.map((c) => (
+                {/* Defect D3 (2026-09-07): these rows used to be built from the change feed
+                    alone (impact/due/timeline/tier all hard-coded null), so every one read
+                    "UNSCORED · PENDING · not in primary source" while the SAME item on
+                    /regulations showed its score and tier. They are now the SHARED row shape
+                    (src/lib/dashboard/brief-rows.ts -> toListRowFields), resolved against the
+                    corpus payload this route already loads — no second query shape. A change
+                    whose item is outside the loaded slice still degrades to the Absence
+                    convention rather than an invented value. */}
+                {changedRows.map((row) => (
                   <ListRow
-                    key={c.id}
-                    href={c.href}
-                    band={c.band}
-                    jurisdiction=""
-                    title={c.title}
-                    meta={c.isNew ? "NEW · first seen this pass" : undefined}
-                    impact={null}
-                    due={null}
-                    timeline={null}
-                    tier={null}
+                    key={row.id}
+                    href={row.href}
+                    band={bandFromPriority(row.priority)}
+                    jurisdiction={row.jurisdiction}
+                    title={row.title}
+                    meta={row.isNew ? `NEW · first seen this pass${row.meta ? ` · ${row.meta}` : ""}` : row.meta}
+                    impact={row.impact}
+                    due={row.due}
+                    timeline={row.timeline}
+                    tier={row.tier}
                   />
                 ))}
                 <CardFoot
-                  left={<>All {formatNumber(recentChanges.length)} changes in the last 7 days</>}
+                  left={<>All {formatNumber(totalChanges)} changes in the last 7 days</>}
                   right="old band → new band · NEW = first seen this pass"
                 />
               </>

@@ -1559,6 +1559,29 @@ function rpcRowToResource(row: any): Resource {
   };
 }
 
+/**
+ * Source-chip enrichment (publisher name + effective tier) for a SMALL, already-selected row set.
+ *
+ * HYDRATION-59 / defect D3 (2026-09-07): `/regulations` runs `enrichCategoryRows` over its rows
+ * (fetchPublicListingsOnly, "Row-chip rule" lane CHIPS) and `getAppData` never did — which is why
+ * the dashboard rendered "not in primary source" for the tier of items /regulations showed as T1.
+ * Rather than enrich the dashboard's WHOLE corpus payload (an unbounded `.in()` over every distinct
+ * source_id in the workspace — exactly what F39 exists to stop), the dashboard route selects the
+ * ≤11 rows it actually renders and enriches only those, through the SAME function, so the two
+ * surfaces cannot show a different tier for one item.
+ *
+ * Mutates `resources` in place (same contract as enrichCategoryRows). Non-fatal on error.
+ */
+export async function enrichRowSourceChips(resources: Resource[]): Promise<void> {
+  if (!resources.length) return;
+  if (!isSupabaseConfigured()) return;
+  try {
+    await enrichCategoryRows(getServiceSupabase(), resources, "dashboard-brief-rows");
+  } catch (e) {
+    console.error("enrichRowSourceChips failed (rows render the Absence convention):", e);
+  }
+}
+
 export interface CategoryRoutedResult {
   resources: Resource[];
   total: number;

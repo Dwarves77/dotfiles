@@ -166,7 +166,7 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
           on_invite: next.on_invite,
           on_promote: next.on_promote,
           channels: next.channels,
-          updated_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(), // clock-ok: async save handler, never the render path
         },
         { onConflict: "user_id" }
       );

@@ -121,6 +121,9 @@ function jurTag(r: Resource): string {
  *  timezone → React #418). UTC is deterministic across server and client; the only residual
  *  divergence is a sub-second render straddling UTC midnight, which is negligible. */
 function deadlineLabel(r: Resource): string | null {
+  // clock-ok: UTC day math only (see V-07 note above), and this component has NO import site
+  // anywhere in src/ as of 2026-09-07 — it renders on no route. Threading the server instant here
+  // is the job of the lane that either mounts it again or retires it.
   const now = new Date();
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const candidates: string[] = [];

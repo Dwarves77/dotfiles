@@ -34,6 +34,7 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { bandFromSearchParam } from "@/components/list-surface/list-surface-helpers";
+import { renderNowIso } from "@/lib/render-now";
 
 export default async function RegulationsPage({
   searchParams,
@@ -72,6 +73,7 @@ export default async function RegulationsPage({
         aggregates={aggregates}
         hasMore={hasMore}
         initialBand={bandFromSearchParam(bandParam ?? null)}
+        nowIso={renderNowIso()}
       />
       {/* Lane SURF (2026-09-01): customer-facing top strip for item_forward_events ("what is due,
           when") — see UpcomingObligationsStrip.tsx's own header. Self-contained server component. */}

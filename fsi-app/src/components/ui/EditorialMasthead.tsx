@@ -56,6 +56,10 @@ function isoWeekNumber(date: Date): number {
   return weekNo;
 }
 
+// clock-ok: render-time read, but every value derived from it below is locale- AND UTC-pinned
+// (see the comment inside), so the only residual divergence is an SSR/hydration pair straddling
+// UTC midnight. Community surfaces only; the audited customer surfaces use <Masthead/>, which
+// takes the server instant as `nowIso` (src/lib/render-now.ts).
 function defaultEyebrow(now: Date = new Date()): string {
   const weekNo = isoWeekNumber(now);
   // Lock locale AND timezone so the eyebrow is identical between SSR

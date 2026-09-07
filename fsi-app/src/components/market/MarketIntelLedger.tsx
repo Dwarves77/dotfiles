@@ -33,6 +33,7 @@ import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supab
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -91,12 +92,17 @@ void fetchRemainder; // Market's corpus (55 items) ships whole from getPublicMar
 // as documentation of the mechanism other surfaces use, not dead code — see this file's header.
 
 export interface MarketIntelLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   initialResources: Resource[];
   aggregates: WorkspaceAggregates;
   seriesBoard?: MarketSeriesBoardVM;
 }
 
-export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }: MarketIntelLedgerProps) {
+export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, nowIso }: MarketIntelLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -202,7 +208,8 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
     <ListSurfaceShell
       title="Market Intelligence"
       dek="Signals are unverified by design — timely first, confirmed later."
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="market"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}

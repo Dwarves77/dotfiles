@@ -22,6 +22,7 @@
 import type { ReactNode } from "react";
 import { CommandBar } from "@/components/ui/CommandBar";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { nowFrom } from "@/lib/render-now";
 
 const EDITORIAL_VOLUME = "IV";
 
@@ -29,9 +30,18 @@ const EDITORIAL_VOLUME = "IV";
  *  mirrors EditorialMasthead's own helper (kept duplicated rather than
  *  imported: that file is a "use client" sibling with no shared export of
  *  just this helper, and the function is a pure 6-line date computation,
- *  not a vocabulary at risk of drifting). */
+ *  not a vocabulary at risk of drifting).
+ *
+ *  HYDRATION-59 (2026-09-07): reads the UTC field getters, not the local
+ *  ones. The local getters made this function's output depend on the HOST's
+ *  timezone — the server (UTC) and the viewer's browser resolve a different
+ *  calendar date for part of every day, and when the two dates fall either
+ *  side of a Monday they resolve a different ISO WEEK, so the "VOL IV · No.
+ *  N" line rendered one number in the SSR HTML and another during hydration.
+ *  See src/lib/render-now.ts for the two axes and why `nowIso` closes the
+ *  second one. */
 function isoWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
@@ -46,6 +56,11 @@ export interface MastheadProps {
   dateLabel: string;
   commandBar?: { itemCount: number; onSearch?: (q: string) => void; scope?: string; placeholder?: string };
   volNumber?: number;
+  /** The server's render instant (src/lib/render-now.ts `renderNowIso()`),
+   *  threaded so the VOL line's week number is computed from an instant the
+   *  SERVER chose rather than from each host's own clock — see that module
+   *  for why a client component may not read its own clock in render. */
+  nowIso?: string;
   /**
    * Appended to the "VOL IV · No. N · <date>" line (additive extension,
    * admin/account/settings lane 2026-09-06 — README screens 13-15 append
@@ -54,8 +69,8 @@ export interface MastheadProps {
   eyebrowSuffix?: string;
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix }: MastheadProps) {
-  const weekNo = volNumber ?? isoWeekNumber(new Date());
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso }: MastheadProps) {
+  const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
     <header
       className="cl-masthead"

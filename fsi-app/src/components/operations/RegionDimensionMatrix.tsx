@@ -64,6 +64,12 @@ interface Props {
   coverageRows?: OperationsCoverageRow[];
   /** Regulation cross-reference counts per region. Reported, never folded into coverage. */
   crossRefCountsByRegion?: Record<string, number>;
+  /** True while the row set those counts are derived from is still loading (OperationsLedger's
+   *  after-paint remainder fetch). Defect D4 (2026-09-07): a count over a partially-loaded row set
+   *  is a WRONG count, and publishing it produced the "27 -> 777" jump the clickthrough audit saw.
+   *  While pending, the line says it is counting rather than naming a number (README §0.6: a count
+   *  still loading shows a loading affordance, never a figure that will change under the reader). */
+  crossRefCountsPending?: boolean;
 }
 
 const FRESHNESS_LABEL: Record<string, string> = {
@@ -88,6 +94,7 @@ export function RegionDimensionMatrix({
   facts,
   coverageRows = [],
   crossRefCountsByRegion = {},
+  crossRefCountsPending = false,
 }: Props) {
   const [baseRegion, setBaseRegion] = useState<string | null>(null);
   const [openDimension, setOpenDimension] = useState<string | null>(null);
@@ -224,7 +231,36 @@ export function RegionDimensionMatrix({
           hides this table at <=640px (globals.css); `.cl-ops-matrix-cards` below replaces it with one
           card per region at that width. Desktop is unchanged — same table, same class list plus the
           new one. */}
-      <div className="cl-ops-matrix-table" style={{ overflowX: "auto" }}>
+      {/* Defect D4 (2026-09-07): a scroll CONTAINER was already here (overflowX:auto) — the audit's
+          finding was that at 1440 the rightmost region column is cut off with NO VISIBLE
+          AFFORDANCE, so the table reads as clipped rather than scrollable. Two additions, both
+          CSS-only (no JS width measurement, so they hold at every viewport and in the design-audit
+          harness): an always-rendered horizontal scrollbar gutter (`scrollbar-gutter`/`::-webkit-
+          scrollbar`, so the bar is visible before the pointer enters the region — overlay
+          scrollbars are why there was nothing to see), and the standard CSS scroll-shadow: two
+          `local` background layers that sit flush against the content edges and two `scroll` layers
+          that stay pinned to the box, so a right-edge shade appears exactly when there is more
+          table to the right and disappears at the end of the scroll. */}
+      <style>{`
+        .cl-ops-matrix-scroll {
+          overflow-x: auto;
+          scrollbar-gutter: stable;
+          background:
+            linear-gradient(to right, var(--card, #fff) 30%, rgba(255,255,255,0)) left center local,
+            linear-gradient(to left, var(--card, #fff) 30%, rgba(255,255,255,0)) right center local,
+            linear-gradient(to right, rgba(0,0,0,0.16), rgba(0,0,0,0)) left center scroll,
+            linear-gradient(to left, rgba(0,0,0,0.16), rgba(0,0,0,0)) right center scroll;
+          background-repeat: no-repeat;
+          background-size: 28px 100%, 28px 100%, 14px 100%, 14px 100%;
+          background-attachment: local, local, scroll, scroll;
+        }
+        .cl-ops-matrix-scroll::-webkit-scrollbar { height: 10px; }
+        .cl-ops-matrix-scroll::-webkit-scrollbar-thumb {
+          background: var(--line-1, rgba(0,0,0,.25)); border-radius: 5px;
+        }
+        .cl-ops-matrix-scroll::-webkit-scrollbar-track { background: var(--tag, rgba(0,0,0,.05)); border-radius: 5px; }
+      `}</style>
+      <div className="cl-ops-matrix-table cl-ops-matrix-scroll">
         <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
           <thead style={{ backgroundColor: "var(--color-surface-raised)" }}>
             <tr>
@@ -237,10 +273,16 @@ export function RegionDimensionMatrix({
                     <div style={{ fontSize: 11, fontWeight: 400, color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)" }}>
                       {cov?.filled ?? 0}/{cov?.total ?? 0} dimensions sourced
                     </div>
-                    {cov?.crossReferenceCount > 0 && (
+                    {crossRefCountsPending ? (
                       <div style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-muted)" }}>
-                        {cov.crossReferenceCount} linked regulations
+                        counting linked regulations…
                       </div>
+                    ) : (
+                      cov?.crossReferenceCount > 0 && (
+                        <div style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-muted)" }}>
+                          {cov.crossReferenceCount} linked regulations
+                        </div>
+                      )
                     )}
                   </th>
                 );
@@ -340,7 +382,7 @@ export function RegionDimensionMatrix({
                 marginBottom: 12,
               }}
             >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: cov?.crossReferenceCount > 0 ? 4 : 8 }}>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: crossRefCountsPending || cov?.crossReferenceCount > 0 ? 4 : 8 }}>
                 <span data-guard-title style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
                   {r.label}
                 </span>
@@ -358,10 +400,16 @@ export function RegionDimensionMatrix({
                   {cov?.filled ?? 0}/{cov?.total ?? 0} dimensions
                 </span>
               </div>
-              {cov?.crossReferenceCount > 0 && (
+              {crossRefCountsPending ? (
                 <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
-                  {cov.crossReferenceCount} linked regulations
+                  counting linked regulations…
                 </div>
+              ) : (
+                cov?.crossReferenceCount > 0 && (
+                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
+                    {cov.crossReferenceCount} linked regulations
+                  </div>
+                )
               )}
               <div style={{ display: "flex", flexDirection: "column" }}>
                 {dimensions.map((d) => {

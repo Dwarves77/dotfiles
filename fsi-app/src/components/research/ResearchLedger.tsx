@@ -33,6 +33,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -69,12 +70,17 @@ export interface ResearchSourceCoverageCellProp {
 }
 
 export interface ResearchLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   resources: Resource[];
   aggregates: WorkspaceAggregates;
   sourceCoverage?: ResearchSourceCoverageCellProp[];
 }
 
-export function ResearchLedger({ resources, aggregates, sourceCoverage }: ResearchLedgerProps) {
+export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso }: ResearchLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [theme, setTheme] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -179,7 +185,8 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
     <ListSurfaceShell
       title="Research"
       dek="Peer-reviewed journals, think tanks, quantified-climate research, analytical press."
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="research"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}

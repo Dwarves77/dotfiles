@@ -51,6 +51,7 @@ import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -163,6 +164,11 @@ function dedupeById<T extends { id: string }>(rows: T[]): T[] {
 }
 
 export interface OperationsLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   initialResources: Resource[];
   aggregates?: WorkspaceAggregates;
   regulationsByRegion?: Resource[];
@@ -177,6 +183,7 @@ export function OperationsLedger({
   regulationsByRegion = [],
   operationsCoverage,
   stateCosts = [],
+  nowIso,
 }: OperationsLedgerProps) {
   // Index the sourced per-state facts by state code for the By-state sub-list. One primary
   // figure per state (the first fact — minimum wage today).
@@ -201,22 +208,39 @@ export function OperationsLedger({
   // Load-the-rest for the D1 cross-reference set (unchanged mechanism).
   const fetchedRestRef = useRef(false);
   const [restRegulations, setRestRegulations] = useState<Resource[]>([]);
+  // Defect D4 (2026-09-07) [CONFIRMED root cause]: the matrix's "N linked regulations" figure is
+  // derived from THIS progressively-loaded row set, so before the remainder landed it reported the
+  // count over the first LIST_FIRST_PAGE_SIZE rows only, and jumped to the corpus figure the moment
+  // the fetch resolved (the audit read that jump as "clicking a region column recomputed 27 -> 777";
+  // `crossReferenceCount` does not depend on the selected base region at all — orderRegions only
+  // reorders columns, coverageByRegion is keyed by region). A partial count is a WRONG count, and
+  // README §0.6 already rules that a count still loading shows a loading affordance, never a
+  // number. This flag carries that state to the matrix instead of letting it publish the partial.
+  const [restLoaded, setRestLoaded] = useState(false);
   useEffect(() => {
+    // HYDRATION-59 note: the once-only guard is `fetchedRestRef`, and there is deliberately NO
+    // `cancelled` flag alongside it. The two together were a latent bug: under React's
+    // double-invoked development effects the FIRST pass sets the ref and starts the fetch, its
+    // cleanup sets `cancelled = true`, the SECOND pass returns early at the ref — and when the one
+    // in-flight response lands it is discarded as "cancelled", so the remainder never arrived and
+    // (since this lane) the linked-regulations count would sit at "counting…" forever. The ref
+    // already guarantees exactly one fetch per mount; a late setState after unmount is a no-op in
+    // React 18+, so cancellation buys nothing here and costs the result.
     if (fetchedRestRef.current) return;
     fetchedRestRef.current = true;
-    let cancelled = false;
     fetch(`/api/listings/rest?surface=operations&offset=${LIST_FIRST_PAGE_SIZE}`)
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`responded ${res.status}`))))
       .then((body: { resources?: Resource[]; error?: string }) => {
-        if (cancelled || body.error) return;
-        setRestRegulations((body.resources ?? []).filter(isRegulationItem));
+        if (!body.error) setRestRegulations((body.resources ?? []).filter(isRegulationItem));
+        setRestLoaded(true);
       })
       .catch((err) => {
-        if (!cancelled) console.error("[OperationsLedger] remainder fetch failed:", err instanceof Error ? err.message : err);
+        console.error("[OperationsLedger] remainder fetch failed:", err instanceof Error ? err.message : err);
+        // A failed remainder still RESOLVES the count state: the figure then reflects the rows
+        // actually loaded rather than being left mid-flight forever (an honest, resolved state
+        // beats a permanent spinner).
+        setRestLoaded(true);
       });
-    return () => {
-      cancelled = true;
-    };
   }, []);
 
   const allRegulationsByRegion = useMemo(() => dedupeById(regulationsByRegion.concat(restRegulations)), [regulationsByRegion, restRegulations]);
@@ -340,7 +364,8 @@ export function OperationsLedger({
     <ListSurfaceShell
       title="Operations Intelligence"
       dek="Six dimensions per region · every fact carries a source and date."
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="operations"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
@@ -357,6 +382,7 @@ export function OperationsLedger({
             facts={operationsCoverage?.facts ?? []}
             coverageRows={operationsCoverage?.coverage ?? []}
             crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
+            crossRefCountsPending={!restLoaded}
           />
           <ByStateSubList regs={regsByRegion["US"] ?? []} stateCosts={stateCostByCode} />
         </>

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { UserProfilePage } from "@/components/profile/UserProfilePage";
+import { renderNowIso } from "@/lib/render-now";
 
 // Phase C: refactored profile.
 // Editable user_profiles fields, sector multi-select, jurisdiction chips,
@@ -20,5 +21,5 @@ export default async function ProfilePage() {
 
   if (!user) redirect("/login?redirect=/profile");
 
-  return <UserProfilePage userId={user.id} userEmail={user.email || ""} />;
+  return <UserProfilePage userId={user.id} userEmail={user.email || ""} nowIso={renderNowIso()} />;
 }

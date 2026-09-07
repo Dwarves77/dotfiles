@@ -304,10 +304,14 @@ export function MarketSignalDetailSurface({
           lifecycle: lifecycleFromFactorOriginClass(undefined),
           admissibility: "calculation_ok",
           baseConfidence: confidenceFromPedigree(undefined),
+          // clock-ok: envelope METADATA on a client-preview figure object, never rendered as
+          // text — `assertedAt`/`computedAt` have no render site in this file or in the figure
+          // components it feeds (grep, 2026-09-07), so neither value can produce mismatched DOM.
           assertedAt: new Date().toISOString(),
           halfLifeDays: null,
           inputs: [{ table: "emission_factors", pk: intensity.factorId ?? "" }],
           supersedes: null,
+          // clock-ok: same as assertedAt above — metadata, not rendered text.
           computedAt: new Date().toISOString(),
           computedBy: "client-preview",
         }

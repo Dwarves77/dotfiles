@@ -40,6 +40,7 @@ import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
+import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate } from "@/lib/format";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
@@ -54,15 +55,23 @@ const LIST_KEY = "watchlist";
 export interface WatchlistSurfaceProps {
   items: WatchlistItem[];
   limit: number;
+  /** Server render instant (src/lib/render-now.ts) — every date this surface renders derives from
+   *  it, never from the host clock during render (React #418 class). */
+  nowIso?: string;
 }
 
 /** Days until an item's compliance deadline, or null when it carries none —
  *  same UTC day math as src/lib/dashboard/row-fields.ts's dueInfo, kept
  *  local since WatchlistItem is not a Resource (no timeline array to also
  *  scan). */
-function dueInfo(deadline: string | null | undefined): { label: string; days: string } | null {
+function dueInfo(deadline: string | null | undefined, now: Date): { label: string; days: string } | null {
   if (!deadline) return null;
-  const today = Date.now();
+  // HYDRATION-59: floored to UTC midnight from an INJECTED instant, matching row-fields.ts's own
+  // dueInfo. `Date.now()` here was doubly unsafe — it read this client component's own clock in
+  // render (SSR instant != hydration instant), and it compared against a sub-second instant rather
+  // than a day boundary, so `Math.round` could bucket the same deadline to a different "N days" in
+  // the two passes.
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const d = new Date(deadline + (deadline.length === 10 ? "T00:00:00Z" : ""));
   const ms = d.getTime();
   if (Number.isNaN(ms) || ms < today) return null;
@@ -71,7 +80,8 @@ function dueInfo(deadline: string | null | undefined): { label: string; days: st
   return { label, days: `${diff} day${diff === 1 ? "" : "s"}` };
 }
 
-export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
+export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps) {
+  const now = nowFrom(nowIso);
   const [scope, setScope] = useState<ScopeFilterValue>("all");
   const [type, setType] = useState<TypeFilterValue>("all");
   const [query, setQuery] = useState("");
@@ -105,7 +115,8 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
       <div style={{ padding: "20px 40px 0" }}>
         <Masthead
           title="Watchlist"
-          dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+          dateLabel={formatLocaleDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+          nowIso={nowIso}
           commandBar={{ itemCount: items.length, onSearch: setQuery, scope: "watchlist" }}
         />
       </div>
@@ -215,7 +226,7 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
                 .map((item) => {
                   const href = watchlistHref(item);
                   const band = item.priority ? bandFromPriority(item.priority) : null;
-                  const due = dueInfo(item.complianceDeadline);
+                  const due = dueInfo(item.complianceDeadline, now);
                   const impact =
                     item.impactScores ??
                     (item.priority ? scoreResource({ type: item.type, priority: item.priority, tags: [], cat: "global" } as unknown as Resource) : null);

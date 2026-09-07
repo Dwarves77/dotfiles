@@ -10,6 +10,7 @@ import { ALL_SECTORS } from "@/lib/constants";
 import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
 import { SectionIndex, type SectionIndexEntry } from "@/components/detail/DetailShell";
+import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate } from "@/lib/format";
 import {
   AccountCard,
@@ -43,6 +44,8 @@ interface Props {
   supersessions: Supersession[];
   userId: string;
   userEmail?: string;
+  /** Server render instant (src/lib/render-now.ts). */
+  nowIso?: string;
 }
 
 // Ruling R9 (2026-09-07, docs/design/handoff-2026-09-06/DEVIATION-LOG.md): the five second-level
@@ -70,7 +73,7 @@ const HOME_SECTIONS: Array<{ key: string; label: string }> = [
   { key: "Supersessions", label: "Supersessions" },
 ];
 
-export function SettingsPage({ initialResources, initialArchived, supersessions, userId, userEmail = "" }: Props) {
+export function SettingsPage({ initialResources, initialArchived, supersessions, userId, userEmail = "", nowIso }: Props) {
 
   const resourceMap = useMemo(() => {
     const map = new Map<string, Resource>();
@@ -121,11 +124,12 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
   );
   const archiveCount = initialArchived.length + personalArchivedCount;
 
-  const dateLabel = formatLocaleDate(new Date(), {
+  const dateLabel = formatLocaleDate(nowFrom(nowIso), {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 
   // Merged Account tab row (README screen 15: "a sub-tab of Account, same

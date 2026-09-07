@@ -7,6 +7,7 @@ import { getWorkspaceProfile } from "@/lib/workspace/profile";
 import { ALL_SECTORS, JURISDICTIONS } from "@/lib/constants";
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
 import { StatBlock } from "@/components/ui/StatBlock";
@@ -51,6 +52,8 @@ import { MembersPanel } from "@/components/profile/MembersPanel";
 interface Props {
   userId: string;
   userEmail: string;
+  /** Server render instant (src/lib/render-now.ts). */
+  nowIso?: string;
 }
 
 type TabKey =
@@ -101,7 +104,7 @@ const EMPTY_PROFILE: ProfileRow = {
 const SECTOR_LABEL = new Map<string, string>(ALL_SECTORS.map((s) => [s.id, s.label]));
 const JURIS_LABEL = new Map<string, string>(JURISDICTIONS.map((j) => [j.id, j.label]));
 
-export function UserProfilePage({ userId, userEmail }: Props) {
+export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   const supabase = createSupabaseBrowserClient();
   const userRole = useWorkspaceStore((s) => s.userRole);
   const orgName = useWorkspaceStore((s) => s.orgName);
@@ -196,6 +199,7 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     setProfile((p) => ({ ...p, ...patch }));
     const { error } = await supabase
       .from("profiles")
+      // clock-ok: inside the async `persist` mutation handler, never the render path.
       .update({ ...patch, updated_at: new Date().toISOString() })
       .eq("id", userId);
     if (error) {
@@ -215,11 +219,12 @@ export function UserProfilePage({ userId, userEmail }: Props) {
     };
   }, [profile, workspaceSectors]);
 
-  const dateLabel = formatLocaleDate(new Date(), {
+  const dateLabel = formatLocaleDate(nowFrom(nowIso), {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
   const email = userEmail;
 

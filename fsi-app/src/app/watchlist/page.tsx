@@ -1,4 +1,5 @@
 import { WatchlistSurface } from "@/components/watchlist/WatchlistSurface";
+import { renderNowIso } from "@/lib/render-now";
 import { getWatchlistFull, WATCHLIST_PAGE_LIMIT } from "@/lib/data";
 
 // force-dynamic for the same reason /research and /operations are: the read
@@ -41,5 +42,5 @@ export default async function Watchlist() {
   // The bound is passed rather than imported by the client component so the
   // cap the surface reports is provably the same number the read used, not a
   // second copy that could drift from it.
-  return <WatchlistSurface items={items} limit={WATCHLIST_PAGE_LIMIT} />;
+  return <WatchlistSurface items={items} limit={WATCHLIST_PAGE_LIMIT} nowIso={renderNowIso()} />;
 }

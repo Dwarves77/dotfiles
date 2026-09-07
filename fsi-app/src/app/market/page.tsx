@@ -41,6 +41,7 @@
 
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
+import { renderNowIso } from "@/lib/render-now";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
@@ -166,7 +167,7 @@ export default async function Market() {
           its own section below the ledger instead — restructuring MarketComparativeRibbon's own
           layout to nest inside ListSurfaceShell is out of this lane's budget, logged in
           DEVIATION-LOG.md. Renders nothing when no series is populated yet, never an empty shell. */}
-      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
+      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} nowIso={renderNowIso()} />
       <MarketComparativeRibbon board={seriesBoard} />
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
           every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
@@ -186,7 +187,7 @@ export default async function Market() {
       {/* PERF-10 (2026-09-04): watchMembership is null — no per-viewer batch read runs on this page at
           all (see this file's header); each row's WatchButton resolves its own watch state
           client-side instead of arriving pre-seeded. */}
-      <MarketSeriesBoard board={seriesBoard} watchMembership={null} />
+      <MarketSeriesBoard board={seriesBoard} watchMembership={null} nowIso={renderNowIso()} />
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p
           style={{

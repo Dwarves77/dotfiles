@@ -43,6 +43,11 @@ import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-secti
 // lane uiauth, 2026-09-06: mounts the real AuthFrame/AuthTabs/OnboardingStepper
 // shared chrome /login, /signup, /workspace/new and /onboarding all render.
 import { runSmoke as runAuthOnboardingSmoke } from "./smoke/auth-onboarding-smoke.mjs";
+// lane HYDRATION-59, 2026-09-07: the SSR-string-then-hydrateRoot leg. The only slot in this engine
+// that runs React's TWO-pass sequence, so the only one that can catch React #418 (and the
+// `$RS ... parentNode` follow-on a #418 produces on a streamed route). Red-then-green inside the
+// spec — see its header.
+import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -155,6 +160,7 @@ async function main() {
     // SectionIndex (S1..S5) it now uses in place of the retired second-level tab row.
     { name: "settings-section-index", run: runSettingsSectionIndexSmoke },
     { name: "auth-onboarding", run: runAuthOnboardingSmoke },
+    { name: "hydration", run: runHydrationSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

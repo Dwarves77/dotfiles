@@ -55,6 +55,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -92,6 +93,11 @@ async function fetchRemainder(): Promise<Resource[]> {
 }
 
 export interface RegulationsLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   initialResources: Resource[];
   initialArchived: Resource[];
   aggregates: WorkspaceAggregates;
@@ -104,7 +110,7 @@ export interface RegulationsLedgerProps {
   initialBand?: UrgencyBandKey | null;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null, nowIso }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -200,7 +206,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   return (
     <ListSurfaceShell
       title="Regulations"
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="regulations"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}

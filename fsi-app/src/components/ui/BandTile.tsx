@@ -18,6 +18,7 @@
  * override at this one breakpoint.
  */
 
+import Link from "next/link";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 
 export interface BandTileProps {
@@ -28,31 +29,36 @@ export interface BandTileProps {
   loading?: boolean;
   selected?: boolean;
   onSelect?: (bandKey: UrgencyBand["key"]) => void;
+  /** Navigation target for a tile that FILTERS ANOTHER PAGE rather than the page it sits on (the
+   *  dashboard's four tiles -> `/regulations?band=<key>`, defect D2, 2026-09-07). Mutually
+   *  exclusive with `onSelect` in practice: a list surface filters in place and passes onSelect;
+   *  the dashboard navigates and passes href. A tile given NEITHER renders as a disabled control
+   *  rather than a live-looking button that does nothing — which is exactly what the dashboard
+   *  shipped before this fix. */
+  href?: string;
 }
 
-export function BandTile({ band, count, loading, selected, onSelect }: BandTileProps) {
+function tileBoxStyle(selected: boolean | undefined, interactive: boolean): React.CSSProperties {
+  return {
+    textAlign: "left",
+    display: "flex",
+    flexDirection: "column",
+    background: "var(--card)",
+    border: `1px solid ${selected ? "var(--card-hover-line)" : "var(--line-1)"}`,
+    borderRadius: "var(--radius-card)",
+    padding: "14px 16px 0",
+    overflow: "hidden",
+    cursor: interactive ? "pointer" : "default",
+    fontFamily: "inherit",
+    color: "inherit",
+    boxShadow: "var(--shadow-card)",
+    minHeight: 112,
+  };
+}
+
+function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "count" | "loading">) {
   return (
-    <button
-      type="button"
-      onClick={() => onSelect?.(band.key)}
-      aria-pressed={selected}
-      aria-label={`${band.label} — ${band.window}${count != null ? `, ${count} items` : ""}`}
-      className="cl-band-tile"
-      style={{
-        textAlign: "left",
-        display: "flex",
-        flexDirection: "column",
-        background: "var(--card)",
-        border: `1px solid ${selected ? "var(--card-hover-line)" : "var(--line-1)"}`,
-        borderRadius: "var(--radius-card)",
-        padding: "14px 16px 0",
-        overflow: "hidden",
-        cursor: onSelect ? "pointer" : "default",
-        fontFamily: "inherit",
-        boxShadow: "var(--shadow-card)",
-        minHeight: 112,
-      }}
-    >
+    <>
       {/* Mobile spec (BAND TILES): below 768 (theme.css's documented
           --bp-mobile), card padding 12/14/0, label 10px/.06em, window 10px,
           numeral 30px with margin 6px 0 8px, band rule at -14px (matches
@@ -126,6 +132,40 @@ export function BandTile({ band, count, loading, selected, onSelect }: BandTileP
           margin: "auto -16px 0",
         }}
       />
+    </>
+  );
+}
+
+export function BandTile({ band, count, loading, selected, onSelect, href }: BandTileProps) {
+  const label = `${band.label} — ${band.window}${count != null ? `, ${count} items` : ""}`;
+  const body = <BandTileBody band={band} count={count} loading={loading} />;
+  const boxStyle = tileBoxStyle(selected, Boolean(onSelect || href));
+
+  // Defect D2 (2026-09-07): a tile with a navigation target renders as a real link, so it works
+  // with keyboard, middle-click and "open in new tab" — never a <button> wrapped in an <a> (invalid
+  // nesting) and never a click handler pretending to be navigation.
+  if (href) {
+    return (
+      <Link href={href} aria-label={label} className="cl-band-tile" style={{ ...boxStyle, textDecoration: "none" }}>
+        {body}
+      </Link>
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect?.(band.key)}
+      // A tile with neither onSelect nor href is NOT interactive. Saying so in the DOM is what
+      // makes defect D2's class impossible to reintroduce silently: a dead tile now reads as
+      // disabled to the user, to assistive tech, and to the rendering guard.
+      disabled={!onSelect}
+      aria-pressed={selected}
+      aria-label={label}
+      className="cl-band-tile"
+      style={boxStyle}
+    >
+      {body}
     </button>
   );
 }

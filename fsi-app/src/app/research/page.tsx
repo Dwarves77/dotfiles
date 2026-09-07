@@ -17,6 +17,7 @@
  */
 
 import { ResearchLedger } from "@/components/research/ResearchLedger";
+import { renderNowIso } from "@/lib/render-now";
 import { ThemeStrip } from "@/components/research/ThemeStrip";
 import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEvidence";
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
@@ -40,6 +41,7 @@ export default async function Research() {
         resources={research.resources}
         aggregates={aggregates}
         sourceCoverage={sourceCoverage}
+        nowIso={renderNowIso()}
       />
       {/* Split-credibility legend (spec-03 §4 "two scores, never merged"). Kept below the ledger —
           not part of the artboard's row/facet system, out of this lane's scope to relocate. */}
