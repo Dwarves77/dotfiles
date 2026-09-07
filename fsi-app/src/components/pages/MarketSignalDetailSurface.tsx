@@ -335,8 +335,6 @@ export function MarketSignalDetailSurface({
           title={r.title}
           meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          askPlaceholder="Ask about this signal"
-          askScope="market-signal-detail"
           extraChips={
             <>
               <TagChip>Signal</TagChip>

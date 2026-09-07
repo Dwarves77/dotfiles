@@ -143,15 +143,50 @@ test("SummaryDepthSwitch's buttons clear the 44px law-2 hit-target floor (both s
   assert.match(body, /minHeight: 44/);
 });
 
-// Lane uiactions (2026-09-07, README "no per-page ask panel — the CommandBar in the Masthead is
-// the only search/ask surface" + design ruling R4): the detail header's scoped ask placeholder
-// mounts the SAME shared CommandBar part, never a bespoke per-page ask box.
-test("DetailHeader's askPlaceholder mounts the shared CommandBar part, never a page-local ask input", () => {
-  assert.match(SOURCE, /import \{ CommandBar \} from "@\/components\/ui\/CommandBar"/);
+// DEFECT-FIX item 2.3 (2026-09-07, audit ruling, SUPERSEDES the prior "DetailHeader mounts a
+// scoped CommandBar" test this replaces): "the CommandBar in the Masthead is the only search/ask
+// surface" — a second, item-scoped ask box living inside DetailHeader (the old
+// askPlaceholder/askScope props) was itself a second ask surface on every detail page. DetailHeader
+// must not mount CommandBar (or any ask box) at all — nothing dormant left (no unused
+// askPlaceholder/askScope prop survives either).
+test("DetailHeader mounts no CommandBar and carries no askPlaceholder/askScope prop (item 2.3 — one ask surface, the Masthead, never a second box here)", () => {
+  // CODE_ONLY (block comments stripped) — this file's own header prose is allowed to name the
+  // removed props/import for history; the actual code must carry neither.
+  assert.doesNotMatch(CODE_ONLY, /from "@\/components\/ui\/CommandBar"/);
+  assert.doesNotMatch(CODE_ONLY, /askPlaceholder/);
+  assert.doesNotMatch(CODE_ONLY, /askScope/);
   const headerBody = SOURCE.slice(
     SOURCE.indexOf("export function DetailHeader"),
     SOURCE.indexOf("// ── Exposure grid")
   );
-  assert.match(headerBody, /<CommandBar itemCount=\{0\} placeholder=\{askPlaceholder\} scope=\{askScope\} \/>/);
-  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form — CommandBar owns that markup");
+  assert.doesNotMatch(headerBody, /<CommandBar/);
+  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form");
+});
+
+// DEFECT-FIX item 1.2 (2026-09-07, audit ruling — VERIFIED ALREADY FIXED ON THIS BASE, not a new
+// change): the audit named /regulations/eu-ppwr-2025-40 rendering its title in body weight instead
+// of the shared Anton/uppercase/0.04em treatment every other detail title uses. A repo-wide grep
+// (2026-09-07) found no `title.length`/`>80`-shaped conditional anywhere under src/components —
+// the only place such logic is even mentioned is a STALE comment in
+// .discipline/rendering/smoke/detail-surfaces-smoke.mjs describing a "RegulationDetailSurface's own
+// threshold (r.title.length > 80) for switching from the Anton poster face to the wrapping body
+// face" that does not exist in this file (or anywhere else) today — DetailHeader's <h1> is styled
+// unconditionally, with no branch on title length or item grade. This test locks that in: the title
+// style block must carry no length/grade-conditional logic, so a future edit cannot silently
+// reintroduce the PPWR-class bug DetailShell's own rebuild already eliminated.
+test("DetailHeader's <h1> title style is UNCONDITIONAL — no title.length/itemGrade-based branch selects a different font-family/weight (item 1.2)", () => {
+  const start = SOURCE.indexOf("export function DetailHeader");
+  const end = SOURCE.indexOf("// ── Exposure grid");
+  const headerBody = SOURCE.slice(start, end);
+  const h1Start = headerBody.indexOf("<h1");
+  const h1End = headerBody.indexOf("</h1>");
+  assert.ok(h1Start !== -1 && h1End !== -1);
+  const h1Block = headerBody.slice(h1Start, h1End);
+  // The style object must be a single static object literal — no ternary/ternary-shaped branch
+  // (no "?" outside the mobile media-query <style> block, which sits above this element already).
+  assert.doesNotMatch(h1Block, /\?/, "no conditional expression inside the <h1> element itself");
+  assert.match(h1Block, /fontFamily: "var\(--font-display\)"/);
+  assert.match(h1Block, /fontWeight: 400/);
+  assert.match(h1Block, /textTransform: "uppercase"/);
+  assert.doesNotMatch(SOURCE, /title\.length/, "no length-based title-style switch survives anywhere in this file");
 });

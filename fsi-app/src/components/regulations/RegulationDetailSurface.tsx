@@ -181,40 +181,36 @@ export function RegulationDetailSurface({
           band={band}
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
-          askPlaceholder="Ask about this regulation"
-          askScope="regulation-detail"
           meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
+          extraChips={<HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />}
           actions={
-            <>
-              <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
-              <ActionRow
-                onExport={() =>
-                  downloadMarkdownBrief(r, {
-                    filenamePrefix: "regulation",
-                    metaRows: [
-                      r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-                      r.priority ? `- Priority: ${r.priority}` : null,
-                      r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
-                      r.url ? `- Source: ${r.url}` : null,
-                    ],
-                  })
-                }
-                onShare={() => shareResource(r)}
-                onTag={() => setTagOpen((v) => !v)}
-                exportDisabled={!(r.fullBrief || r.url)}
-                watch={
-                  <WatchButton
-                    itemType="reg"
-                    itemId={String(r.id)}
-                    variant="row"
-                    initialWatched={initialWatched}
-                    initialTeamWatched={initialTeamWatched}
-                    initialTeamAvailable={initialTeamAvailable}
-                  />
-                }
-              />
-            </>
+            <ActionRow
+              onExport={() =>
+                downloadMarkdownBrief(r, {
+                  filenamePrefix: "regulation",
+                  metaRows: [
+                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                    r.priority ? `- Priority: ${r.priority}` : null,
+                    r.complianceDeadline ? `- Compliance deadline: ${r.complianceDeadline}` : null,
+                    r.url ? `- Source: ${r.url}` : null,
+                  ],
+                })
+              }
+              onShare={() => shareResource(r)}
+              onTag={() => setTagOpen((v) => !v)}
+              exportDisabled={!(r.fullBrief || r.url)}
+              watch={
+                <WatchButton
+                  itemType="reg"
+                  itemId={String(r.id)}
+                  variant="row"
+                  initialWatched={initialWatched}
+                  initialTeamWatched={initialTeamWatched}
+                  initialTeamAvailable={initialTeamAvailable}
+                />
+              }
+            />
           }
         />
 
@@ -511,8 +507,19 @@ function IntegrityBanner({ phrase }: { phrase: string }) {
   );
 }
 
-// ── Hero priority dropdown (interactive retag/dismiss) — unchanged behavior ──
-
+// ── Priority kebab (interactive retag/dismiss/archive) ──────────────────
+//
+// DEFECT-FIX (item 3.1, 2026-09-07): this used to render PriorityDropdown's
+// "hero" pill ("● Immediate ▾") as a sibling of ActionRow inside the same
+// actions flex row — literally "the Immediate ▾ band dropdown in the
+// regulation detail action row" the audit named. The band is stated by the
+// header's own BandChip; changing it is not a reader action, and the action
+// row is exactly Export brief · Share · Watch · + Tag, no fifth control.
+// Dismiss/Archive still need a home (R5: reachable only through a ⋯ menu,
+// never the action row), so this now mounts PriorityDropdown's existing
+// "card" kebab variant (the same 44px "..." control every regulations-list
+// row already uses for the identical menu — never a forked one) in the
+// header's chip row via `extraChips`, not in `actions`.
 function HeroPriorityDropdown({ currentPriority, itemId, title }: { currentPriority: PriorityKey; itemId: string; title: string }) {
   const updatePriority = useResourceStore((s) => s.updatePriority);
   const dismissResource = useResourceStore((s) => s.dismissResource);
@@ -523,7 +530,8 @@ function HeroPriorityDropdown({ currentPriority, itemId, title }: { currentPrior
   return (
     <>
       <PriorityDropdown
-        variant="hero"
+        variant="card"
+        ariaLabel="Regulation actions"
         currentPriority={effectivePriority}
         isDismissed={isDismissed}
         onSetPriority={(p) => updatePriority(itemId, p)}

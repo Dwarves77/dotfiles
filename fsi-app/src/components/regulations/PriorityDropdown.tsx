@@ -5,8 +5,7 @@
  *
  * Sprint 3 followup Part 2.
  *
- * Renders a round button (44px "card" variant — law-2 floor, 2026-09-03; the pill "hero" variant is
- * sized by its label) rendered as "⋯". On click, opens a
+ * Renders a round 44px button (law-2 floor, 2026-09-03) as "⋯". On click, opens a
  * popover anchored to its right edge with five menu items:
  *
  *   - Mark Critical    (red dot)     → priority=CRITICAL, dismissed=null
@@ -20,13 +19,16 @@
  * The Archive item only renders when an onArchive handler is passed, so
  * mounts without an archive affordance keep the menu they already had.
  *
- * Two layout variants:
- *
- *   - "card"  — small ⋯ glyph, 44px round tap target (law-2 floor), 200px
- *               wide popover. Used on each regulation card in the Kanban grid.
- *   - "hero"  — pill-shaped button that reads "● <currentLabel> ▾",
- *               220px wide popover. Used in the hero actions row on
- *               /regulations/[slug].
+ * One layout: the "card" kebab — small ⋯ glyph, 44px round tap target
+ * (law-2 floor), 200px wide popover. Used on each regulation card in the
+ * Kanban/list grids AND (item 3.1, 2026-09-07) on /regulations/[slug]'s
+ * header chip row, replacing the pill-shaped "hero" variant that used to
+ * read "● <currentLabel> ▾" inside the detail action row — the band is
+ * stated by the header's own BandChip; changing it is not a reader action,
+ * and Dismiss/Archive now live behind this same kebab everywhere, never in
+ * the action row (R5). The "hero" variant is REMOVED (CLAUDE.md rule 13 —
+ * its only caller was that action-row mount; no other caller ever used it,
+ * confirmed by a repo-wide grep before deletion), not left dormant.
  *
  * Outside-click + Escape close the popover. Click inside the popover
  * does NOT propagate to the surrounding card link (this is what makes
@@ -56,8 +58,7 @@ export type PriorityValue = PriorityKey;
 
 interface PriorityDropdownProps {
   /** Current effective priority for this regulation. Used to bold the
-   *  currently-selected menu item and (in "hero" variant) to render
-   *  the colored dot + label in the button. Not required when
+   *  currently-selected menu item. Not required when
    *  `showPriorityActions` is false — see that prop. */
   currentPriority?: PriorityValue;
   /** Whether the regulation is currently dismissed. When true, the
@@ -87,15 +88,17 @@ interface PriorityDropdownProps {
    *  affordance keep exactly the menu they have today. The caller owns the
    *  scope choice — this only opens it. */
   onArchive?: () => void;
-  /** Layout variant. "card" = ⋯ glyph button; "hero" = pill button. */
-  variant?: "card" | "hero";
+  /** Kept accepted (not required) so existing call sites that still pass
+   *  `variant="card"` explicitly need no edit — see this file's own header
+   *  for why "hero" is gone. Only "card" is a valid value now. */
+  variant?: "card";
   /** Extra content rendered at the TOP of the popover, above the priority
    *  items, with its own bottom divider (UILISTS2 lane, 2026-09-07). Used
    *  by RegulationsLedger's list rows to fold the row's Watch toggle into
    *  the same 44px `⋯` control the artboard's list-row anatomy allots for
    *  "rare and destructive" row actions, since the row grid has no second
-   *  44px cell to give it. OPTIONAL: omitted, existing mounts (the detail
-   *  page's hero pill) render exactly the menu they always have. */
+   *  44px cell to give it. OPTIONAL: omitted, existing mounts render
+   *  exactly the menu they always have. */
   menuTopContent?: ReactNode;
 }
 
@@ -106,8 +109,8 @@ interface PriorityDropdownProps {
 //
 // Sprint 3 Track 5 (2026-05-28): menu labels now derive from the central
 // PRIORITY_DISPLAY_LABEL_SHORT (the time-horizon vocabulary used by the
-// Kanban column headers). One vocabulary across dropdown + columns + hero
-// pill: Immediate / Action 6mo / Monitor 6-12mo / Awareness. The "Mark "
+// Kanban column headers). One vocabulary across dropdown + columns:
+// Immediate / Action 6mo / Monitor 6-12mo / Awareness. The "Mark "
 // prefix stays for the menu items so the action verb is explicit.
 const PRIORITY_TOKENS: Record<
   PriorityValue,
@@ -131,10 +134,6 @@ const PRIORITY_TOKENS: Record<
   },
 };
 
-// Hero pill button label = the time-horizon label without the "Mark "
-// prefix (the button reads "● Immediate ▾" etc).
-const PRIORITY_PILL_LABEL = PRIORITY_DISPLAY_LABEL_SHORT;
-
 const PRIORITY_ORDER: PriorityValue[] = ["CRITICAL", "HIGH", "MODERATE", "LOW"];
 
 export function PriorityDropdown({
@@ -143,7 +142,6 @@ export function PriorityDropdown({
   onSetPriority,
   onDismiss,
   onArchive,
-  variant = "card",
   menuTopContent,
   showPriorityActions = true,
   ariaLabel = "Regulation actions",
@@ -199,8 +197,7 @@ export function PriorityDropdown({
     setOpen((v) => !v);
   }
 
-  const popoverWidth = variant === "hero" ? 220 : 200;
-  const tok = PRIORITY_TOKENS[currentPriority ?? "MODERATE"] ?? PRIORITY_TOKENS.MODERATE;
+  const popoverWidth = 200;
 
   return (
     <div
@@ -210,76 +207,37 @@ export function PriorityDropdown({
       // explicit stopPropagation on the trigger ever misses a path.
       onClick={(e) => e.stopPropagation()}
     >
-      {variant === "card" ? (
-        // Law-2 floor (44 CSS px, or 24px with 8px clearance): this button sits inside the row's
-        // own <Link> (the whole regulation row is a navigation target), so the button's box always
-        // overlaps its containing anchor — the clearance branch can never pass. ROOT CAUSE (screenshot
-        // 05-regulations-upcoming, confirmed): a 24x24 button here, labelled but under the floor.
-        // The tap target grows to 44x44; the visible "..." glyph stays the same small size, centered.
-        <button
-          type="button"
-          aria-label={ariaLabel}
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={handleToggle}
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: 999,
-            border: "1px solid var(--color-border)",
-            background: "var(--color-surface)",
-            color: "var(--color-text-secondary)",
-            cursor: "pointer",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 14,
-            lineHeight: 1,
-            padding: 0,
-            fontFamily: "inherit",
-          }}
-        >
-          {/* Unicode "horizontal ellipsis" — not an emoji */}
-          {"⋯"}
-        </button>
-      ) : (
-        <button
-          type="button"
-          aria-haspopup="menu"
-          aria-expanded={open}
-          onClick={handleToggle}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 8,
-            padding: "7px 14px",
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border-focus, var(--color-border))",
-            borderRadius: 999,
-            fontFamily: "inherit",
-            fontSize: 12,
-            fontWeight: 700,
-            letterSpacing: "0.04em",
-            color: "var(--color-text-primary)",
-            cursor: "pointer",
-            whiteSpace: "nowrap",
-          }}
-        >
-          <span
-            style={{
-              width: 10,
-              height: 10,
-              borderRadius: 999,
-              background: isDismissed
-                ? "var(--color-text-muted)"
-                : tok.dotVar,
-              display: "inline-block",
-            }}
-          />
-          {isDismissed ? "Dismissed" : PRIORITY_PILL_LABEL[currentPriority ?? "MODERATE"]}
-          <span style={{ fontSize: 10 }}>{"▾"}</span>
-        </button>
-      )}
+      {/* Law-2 floor (44 CSS px, or 24px with 8px clearance): this button sits inside the row's
+          own <Link> (the whole regulation row is a navigation target), so the button's box always
+          overlaps its containing anchor — the clearance branch can never pass. ROOT CAUSE (screenshot
+          05-regulations-upcoming, confirmed): a 24x24 button here, labelled but under the floor.
+          The tap target grows to 44x44; the visible "..." glyph stays the same small size, centered. */}
+      <button
+        type="button"
+        aria-label={ariaLabel}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={handleToggle}
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: 999,
+          border: "1px solid var(--color-border)",
+          background: "var(--color-surface)",
+          color: "var(--color-text-secondary)",
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 14,
+          lineHeight: 1,
+          padding: 0,
+          fontFamily: "inherit",
+        }}
+      >
+        {/* Unicode "horizontal ellipsis" — not an emoji */}
+        {"⋯"}
+      </button>
 
       {open && (
         <div
