@@ -57,6 +57,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
   bandFacetOptions,
@@ -254,7 +255,12 @@ export function OperationsLedger({
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
-  const filtered = useMemo(() => filterRows(initialResources, filter), [initialResources, filter]);
+  const tagsFacet = useWorkspaceTagsFacet();
+
+  const filtered = useMemo(
+    () => filterRows(initialResources, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)),
+    [initialResources, filter, tagsFacet.matchesSelectedTag]
+  );
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(initialResources, aggregates?.byPriority as unknown as Record<string, number> | undefined);
@@ -267,6 +273,16 @@ export function OperationsLedger({
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
     { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
+  ];
+
+  const workspaceTagFacetGroups: ListSurfaceFacetGroup[] = [
+    {
+      key: "workspace-tags",
+      label: "Workspace tags",
+      options: tagsFacet.tags.map((t) => ({ value: t.id, label: t.name, count: t.itemCount })),
+      selected: tagsFacet.selectedTagId,
+      onSelect: tagsFacet.setSelectedTagId,
+    },
   ];
 
   const rowsByBand = useMemo(() => {
@@ -289,12 +305,13 @@ export function OperationsLedger({
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            tags: tagsFacet.tagsForItem(r.id),
             overflow: <WatchButton itemType="operations" itemId={r.id} />,
           };
         }),
       };
     });
-  }, [filtered, filter.band]);
+  }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
   const total = aggregates?.totalItems || initialResources.length;
 
@@ -310,6 +327,7 @@ export function OperationsLedger({
       selectedBand={filter.band}
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
+      secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={
         <>
           <RegionDimensionMatrix

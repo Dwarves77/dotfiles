@@ -70,6 +70,7 @@ import {
   type ListSurfaceFacetGroup,
 } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
   bandFacetOptions,
@@ -117,7 +118,12 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
   );
   const allRows = active;
 
-  const filtered = useMemo(() => filterRows(allRows, filter), [allRows, filter]);
+  const tagsFacet = useWorkspaceTagsFacet();
+
+  const filtered = useMemo(
+    () => filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)),
+    [allRows, filter, tagsFacet.matchesSelectedTag]
+  );
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(allRows, aggregates.byPriority as unknown as Record<string, number>);
@@ -137,6 +143,14 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
       onSelect: (v) => setFilter((f) => ({ ...f, region: v })),
     },
   ];
+
+  const workspaceTagFacetGroup: ListSurfaceFacetGroup = {
+    key: "workspace-tags",
+    label: "Workspace tags",
+    options: tagsFacet.tags.map((t) => ({ value: t.id, label: t.name, count: t.itemCount })),
+    selected: tagsFacet.selectedTagId,
+    onSelect: tagsFacet.setSelectedTagId,
+  };
 
   const rowsByBand = useMemo(() => {
     return BAND_ORDER.map((band) => {
@@ -158,6 +172,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            tags: tagsFacet.tagsForItem(r.id),
             overflow: (
               <PriorityDropdown
                 variant="card"
@@ -171,7 +186,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
         }),
       };
     });
-  }, [filtered, filter.band, overrides, updatePriority, dismissResource]);
+  }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem]);
 
   const total = aggregates.totalItems || allRows.length;
 
@@ -186,6 +201,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore }: Reg
       selectedBand={filter.band}
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
+      secondaryFacetGroups={[workspaceTagFacetGroup]}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}

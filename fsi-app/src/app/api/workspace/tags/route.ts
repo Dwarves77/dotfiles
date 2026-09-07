@@ -45,7 +45,7 @@ async function handleGET(request: NextRequest) {
 
   const { data: linkRows, error: linksErr } = await supabase
     .from("item_workspace_tags")
-    .select("tag_id")
+    .select("tag_id, intelligence_item_id")
     .eq("org_id", orgId)
     .limit(5000); // fitness-allow: F38 (workspace tag-application count, bounded-by-design per workspace)
 
@@ -80,8 +80,20 @@ async function handleGET(request: NextRequest) {
     }
   }
 
+  // Optional ?withItemTags=1: also return a full itemId -> tagIds map (list
+  // rail facet + ListRow second-line tags) built from the SAME bounded
+  // linkRows read above — no extra query.
+  let itemTags: Record<string, string[]> | undefined;
+  if (request.nextUrl.searchParams.get("withItemTags")) {
+    const map: Record<string, string[]> = {};
+    for (const row of (linkRows ?? []) as { tag_id: string; intelligence_item_id: string }[]) {
+      (map[row.intelligence_item_id] ??= []).push(row.tag_id);
+    }
+    itemTags = map;
+  }
+
   return NextResponse.json(
-    { tags, ...(appliedTagIds ? { appliedTagIds } : {}) },
+    { tags, ...(appliedTagIds ? { appliedTagIds } : {}), ...(itemTags ? { itemTags } : {}) },
     { headers: rateLimitHeaders(auth.userId) }
   );
 }

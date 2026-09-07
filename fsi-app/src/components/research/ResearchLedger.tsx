@@ -39,6 +39,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
   bandFacetOptions,
@@ -76,10 +77,13 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
   const [theme, setTheme] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
+  const tagsFacet = useWorkspaceTagsFacet();
+
   const filtered = useMemo(() => {
     const base = filterRows(resources, filter);
-    return theme ? base.filter((r) => themeKeyOf(r) === theme) : base;
-  }, [resources, filter, theme]);
+    const themed = theme ? base.filter((r) => themeKeyOf(r) === theme) : base;
+    return themed.filter((r) => tagsFacet.matchesSelectedTag(r.id));
+  }, [resources, filter, theme, tagsFacet.matchesSelectedTag]);
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(resources, aggregates.byPriority as unknown as Record<string, number>);
@@ -107,6 +111,13 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
 
   const themeFacetGroups: ListSurfaceFacetGroup[] = [
     { key: "theme", label: "Theme", options: themeOptions, selected: theme, onSelect: setTheme },
+    {
+      key: "workspace-tags",
+      label: "Workspace tags",
+      options: tagsFacet.tags.map((t) => ({ value: t.id, label: t.name, count: t.itemCount })),
+      selected: tagsFacet.selectedTagId,
+      onSelect: tagsFacet.setSelectedTagId,
+    },
   ];
 
   const rowsByBand = useMemo(() => {
@@ -129,12 +140,13 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
+            tags: tagsFacet.tagsForItem(r.id),
             overflow: <WatchButton itemType="research" itemId={r.id} />,
           };
         }),
       };
     });
-  }, [filtered, filter.band]);
+  }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
   const total = aggregates.totalItems || resources.length;
   const coverageBySource = useMemo(() => {
