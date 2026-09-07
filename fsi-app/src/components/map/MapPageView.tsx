@@ -478,25 +478,30 @@ export function MapPageView(props: MapPageViewProps) {
           </div>
         </Card>
 
+        {/* Legend — the same content the dashboard's rail Legend card carries (README's shared
+            explanation of Impact/Timeline/Source tier, reused verbatim per artboard 10's own
+            rail, not a map-specific marker key — the marker/band key already lives inside the
+            map card's own "KEY" box). */}
         <Card>
           <div style={{ padding: "14px 16px" }}>
             <p style={railLabelStyle}>Legend</p>
             <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
               <div>
-                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Marker</dt>
+                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Impact</dt>
                 <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  Size = item count. Colour = highest band present.
+                  Four scored dimensions, sorted low to high: green left, red right. Height is the sum, score 1–3.
                 </dd>
               </div>
               <div>
-                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Bands</dt>
-                <dd style={{ margin: "4px 0 0", display: "flex", flexDirection: "column", gap: 4 }}>
-                  {BAND_ORDER.map((b) => (
-                    <span key={b.key} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
-                      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: b.cssVar, flexShrink: 0 }} />
-                      {b.label} present
-                    </span>
-                  ))}
+                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Timeline</dt>
+                <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
+                  Passed · next · ahead.
+                </dd>
+              </div>
+              <div>
+                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Source tier</dt>
+                <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
+                  T1 binding law → T6 commentary.
                 </dd>
               </div>
             </dl>
