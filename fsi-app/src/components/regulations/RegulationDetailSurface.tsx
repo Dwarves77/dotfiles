@@ -229,8 +229,8 @@ export function RegulationDetailSurface({
         <DetailLayout
           rail={
             <>
+              <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
               <ImpactRailCard scores={impact} />
-              <InThisListStat backHref="/regulations" backLabel="Back to list" />
               <RelevanceBadgeClient itemId={r.id} />
               <AffectedLanesCard resource={r} />
               <OwnerTeamCard resource={r} initialOwner={initialOwner} />

@@ -51,4 +51,22 @@ test('018 check: PASS — /settings is pre-existing account plumbing (PR #15), n
   assert.equal(rule.check(ctx).status, 'PASS');
 });
 
+test('018 check: PASS — /watchlist is an authorized surface (operator ruling 2026-09-07)', () => {
+  const ctx = buildContextFromFixture({
+    message: 'feat: watchlist mobile-390 reflow',
+    files: [{ path: 'fsi-app/src/app/watchlist/page.tsx', additions: 20, deletions: 0 }],
+    fileContents: { 'fsi-app/src/app/watchlist/page.tsx': 'export default function Page(){return null;}\n' },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
+test('018 check: PASS — /privacy is plumbing (operator ruling 2026-09-07)', () => {
+  const ctx = buildContextFromFixture({
+    message: 'feat: privacy LinkedIn API submission page',
+    files: [{ path: 'fsi-app/src/app/privacy/page.tsx', additions: 20, deletions: 0 }],
+    fileContents: { 'fsi-app/src/app/privacy/page.tsx': 'export default function Page(){return null;}\n' },
+  });
+  assert.equal(rule.check(ctx).status, 'PASS');
+});
+
 test('018: metadata', () => { assert.equal(rule.id, '018'); });

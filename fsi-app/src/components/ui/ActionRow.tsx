@@ -49,7 +49,17 @@ export interface ActionRowProps {
 
 export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled }: ActionRowProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+    <div className="cl-action-row" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {/* Mobile 390 build, lane mobdetail (2026-09-07, spec "DETAIL HEADER": "FOUR ACTIONS as a 2x2
+          grid, gap 8px, each min-height 44px" below 768) — the same ActionRow, expressed as a grid
+          at the smaller measure via a media query, never a page-local fork or a second component.
+          All four actions stay visible; none moves into an overflow menu (ruling R5). */}
+      <style>{`
+        @media (max-width: 768px) {
+          .cl-action-row { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
+          .cl-action-row > * { width: 100%; }
+        }
+      `}</style>
       <ActionButton variant="primary" onClick={onExport} disabled={exportDisabled}>
         Export brief
       </ActionButton>

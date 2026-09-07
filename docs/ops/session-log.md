@@ -11594,3 +11594,122 @@ generated, full route manifest emitted, only the expected
 Bundle:
 `git bundle create /tmp/train55.bundle origin/master..HEAD` at this container's own
 `train/wave55-2026-09-07` tip (85 commits, tip `8ad63631`, 10.3 MB), `git bundle verify` PASS.
+
+## Addendum 86, postscript 10: train 56, mobile 390 delivered as text, ten fixes, F10's capture script made real (2026-09-07, coordinator, lane ASSEMBLE-56)
+
+I am writing this as the coordinator. Train 55 landed on `origin/master` as PR #604
+(`6d0da8a6`) after the rule 018 `/settings` fix. Master's tip going into this train was
+`6d0da8a6`; the worktree carried the three mobile-390 lanes already cherry-picked on top of
+it, plus ten fixes (F1-F10) folding a second set of same-day operator rulings, tip `cd84e015`.
+
+**The day's second ruling set, as it landed in code.** (1) The settings section index stays as
+built (R9's prose spec kept, no re-litigation). (2) The `/map` 375px rendering-guard exemption
+is confirmed, not coordinator-pending any more — F2 drops "operator confirmation pending" from
+its `reason` field, still expiring wave 58 like the other five. (3) The onboarding 4th
+"Briefing" step is kept and built from the Settings card — F9 sources it from
+`BriefingScheduleSection`, the same component `/settings` already renders, rather than
+inventing new content for the step. (4) Watchlist surface and privacy-plumbing routing get
+their rule 018 allowlist entries — F1 adds `watchlist` (an authorized surface: Brief group, in
+the nav, predates the rule, one of the five list surfaces in the 390 spec) and `privacy`
+(plumbing: the LinkedIn API submission page) to `018-new-surface-five-model.mjs`'s
+`ALLOWED_SEGMENTS`, with regression tests for both.
+
+**Mobile 390: delivered as the operator's own text this train, not yet as the artboard.** The
+spec landed as prose (LIST ROW / FILTERS sections, exact numbers where given, ambiguity flagged
+where not) via three lanes — `moblist` (ListRow/ImpactMeter/Chips/Absence/ListSurfaceShell
+reflow below 768px, the mobile filter sheet built from the nav drawer's own scrim mechanism),
+`mobdetail` (the 2x2 action grid, vertical timeline, mobile header sizing on
+`RegulationDetailSurface`), and the frame/masthead lane (top bar + 288px drawer, band tiles,
+shared unread-count hook). `20-mobile-390.png` and an updated README/HANDOFF have still not
+reached this repo or any connected folder as of this train; per R10, no responsive rule is
+invented past what the operator's own text specified, and the image wins the moment it lands
+(HANDOFF.md's own rule 2).
+
+**The ten fixes, F1-F10, in order.** F1 rule 018 allowlist (watchlist/privacy, above). F2 map
+exemption confirmed (above). F3 gives Market/Research/Operations ledgers'
+`WatchButton` the same `PriorityDropdown` kebab wrapper Regulations already used
+(`showPriorityActions={false}`, a new prop on the existing component, not a copy), clearing the
+44x44-cell clipping DEVIATION-LOG flagged as NEEDS WRITE-SET EXPANSION last train — re-ran the
+rendering guard, confirmed PASS at 375px with no exemption firing, and removed the
+`market-list`/`research-list`/`operations-list` entries from `exemptions-375.mjs` in the same
+commit (three of the six train-55 exemptions gone; `regulations-list`, `watchlist` were already
+clear; only `/map` remains, now non-pending). F4 gives `TierChip` its mobile 9.5px/800/.06em/
+`rgba(0,0,0,.2)` numbers below 768px (previously flagged NEEDS WRITE-SET EXPANSION, out of
+lane moblist's write set). F5 resolves the "8px bars" spec ambiguity by direct coordinator
+instruction (bar width 4px -> 8px below 768px, desktop untouched; DEVIATION-LOG's prior
+ambiguity entry superseded, kept for history). F6 confirms `ListRow`'s existing mobile omission
+of the `meta` line matches the spec's own line-2 enumeration — no code change, logged as a
+coordinator default pending the operator's confirmation. F7 wires the "In this list" rail's
+prev/next links from the list-position contract (list/pos/of/prev/next), the gap the F10
+capture noted the fixture itself does not exercise. F9 builds onboarding step 4 from
+`BriefingScheduleSection` (above) plus a new built screenshot at 1440
+(`17b-onboarding-briefing.png`). F10 captures `built/m-detail-390.png` and `-375.png` — see
+below, the item this postscript exists to record.
+
+**F10, checked for dormancy per the operator's no-dormant-code rule.**
+`.discipline/rendering/capture-detail-mobile-screenshots.mjs` reuses the SAME
+`RegulationDetailSurface` fixture mounts `detail-surfaces-smoke.mjs` already exports for its
+own smoke run (`REGULATION_ENTRY`/`REGULATION_STATES`/`ALIAS`, exported additively, never a
+second copy of the fixture) in the same Playwright chromium page every guard file uses, and is
+wired as `npm run capture:detail-mobile-screenshots`. Read against F25 (module-liveness): the
+script needs no `LEGACY_ALLOWLIST` entry and carries none — `findDispatchRoots`' Source 2 reads
+`fsi-app/package.json`'s own `scripts` section as a dispatch root, and this script's npm-script
+line is in it, so it is a live dispatch target by construction, not a candidate for the
+allowlist's manual-procedure carve-out. Confirmed by a clean `node .discipline/fitness/runner.mjs`
+run this train: 33 functions checked, 0 violations, F25 PASS. To close the "documented, not a
+one-off" half of the rule, `docs/design/handoff-2026-09-06/HANDOFF.md` (the operator's own
+table names this the lane-facing spec-plus-open-items file; `README.md` is the Claude Design
+spec proper, not edited for process notes) gained a new "Regenerating the built screenshots"
+section naming the npm script, its `NO_PROXY=...,smoke-guard.internal` requirement, and the
+instruction to extend the script with more `[width, state]` pairs rather than writing a
+parallel one-off capture script the next time a `built/*.png` goes missing. `DEVIATION-LOG.md`'s
+existing F10 row (landed same train, prior commit) already records the capture's own content and
+provenance; nothing there needed correction.
+
+**Ledger**: no new dispatches since row 81 (Maintenance #74, train 55's own last entry) —
+`assemble-train --fold --propose --ledger`: folded 0 (27 already folded, 0 conflicts), 0 new
+proposer briefs, 0 derived ledger rows, 0 rows appended to `docs/ops/dispatch-ledger.jsonl`.
+
+**UX compliance**: this train touched `.tsx` under `fsi-app/src` (`ListRow.tsx`,
+`ImpactMeter.tsx`, `Chips.tsx`, `Absence.tsx`, `ListSurfaceShell.tsx`,
+`MarketIntelLedger.tsx`/`ResearchLedger.tsx`/`OperationsLedger.tsx`, `TierChip` in `Chips.tsx`,
+`RegulationDetailSurface.tsx`'s rail component, the onboarding Briefing step, masthead/frame
+components) implementing the mobile-390 text spec's numbers exactly as given, plus F3-F7/F9's
+same-train fixes. `docs/design/ux-laws.md` and `docs/design/design-principles.md` (DP-1, DP-2)
+were read before editing (carried from the mobile-390 lanes' own headers, re-confirmed this
+train for F3/F4/F7/F9). Every mobile media rule is a `@media (max-width: 767px)` block on the
+existing shared part, never a page-local stylesheet; desktop geometry is unchanged and verified
+byte-identical by the rendering guard's own >=768px checks, all green. The rendering guard now
+passes with ZERO exemptions firing at 375px (down from 14 failures / six exemptions last train)
+— confirmed below.
+
+**Gates** (this container; the coordinator lands via browser transport per
+`docs/dispatches/lane-common-contract.md`): fitness runner 33/33 PASS, 0 violations (F25
+carries no allowlist entries at all, confirmed by reading the live array, not only by the
+runner going green); `node --test` over `.discipline/governance/*.test.mjs`,
+`.discipline/fitness/*.test.mjs`, `.discipline/fitness/functions/*.test.mjs`,
+`.discipline/*.test.mjs`, `.discipline/rendering/*.test.mjs`, `.discipline/rules/*.test.mjs`:
+708/708 PASS; `closure-gate --report` PASS on all four checks (NEVER-RUN/STALE-NEXT/
+WRITER-READER 0 write-orphans/LANE-CONTRACT); the rendering guard PASS, ALL fixtures clean at
+every viewport, zero exemptions firing (11 fixtures/390 checks, 6 SM smoke specs/78 checks, 11
+UX smoke specs/180 checks); `run-test-suite.sh` 5878/5883 pass, 0 fail, 5 skipped (the
+`audit-finding-status` 596-unlabeled-line report is informational, `|| true`, pre-existing,
+untouched by this train, same finding trains 48-55 already recorded); `override-check
+--range=origin/master..HEAD` fails only on this container's own sibling `/root/work/lanes/*`
+worktrees not listed in `docs/inventories/worktrees.md` (known C4 artefact per the lane
+contract, no C3 findings); `node .discipline/runner.mjs --mode=ci --range=origin/master..HEAD`
+0 fail across every commit in range; `tsc --noEmit` clean; all 17 `.github/workflows/*.yml`
+files parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119 invariants + 63
+doctrines all wired); `next build --webpack` clean (85/85 static pages generated, full route
+manifest emitted, only the expected `SUPABASE_SERVICE_ROLE_KEY is not configured` fail-closed
+warning and a pre-existing third-party `unpdf`/`import.meta` build warning, unrelated to this
+train, no `.env.local` present). `coverage-report.json` already regenerated at this train's own
+tip (`cd84e015`): 867 governed files, 830 COVERED, 37 EXEMPT, 0 GAPS — re-ran the scan after
+this postscript's own doc edits (PROGRAM-BOARD.md, HANDOFF.md, this file — none governed
+surfaces) and confirmed no drift, `git diff --stat` empty.
+Bundle: the full `origin/master..train/wave56-2026-09-07` range (21 commits, tip `8ce029ab`)
+is 1,067,172 bytes, well under the 9 MB split threshold, so **one** bundle was made instead of
+the two-part split: `git bundle create /tmp/train56.bundle origin/master..train/wave56-2026-09-07`,
+`git bundle verify` PASS. `tmp-mid56` (`2150d0c9`, the 12th commit in `--first-parent --reverse`
+order) is still tagged on the branch per the procedure, just not used as a bundle split point
+this train.

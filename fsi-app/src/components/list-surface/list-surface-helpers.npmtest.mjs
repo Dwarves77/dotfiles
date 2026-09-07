@@ -99,3 +99,31 @@ test("withListPosition encodes a list name that needs it", () => {
   const href = withListPosition("/x", "a list/name", 1, 1);
   assert.ok(href.includes("list=a%20list%2Fname"));
 });
+
+// FOLD-56 (F7): bounded prev/next neighbour slugs.
+test("withListPosition appends prev/next when both neighbors are given", () => {
+  const href = withListPosition("/regulations/r2", "regulations", 2, 3, { prev: "r1", next: "r3" });
+  assert.equal(href, "/regulations/r2?list=regulations&pos=2&of=3&prev=r1&next=r3");
+});
+
+test("withListPosition omits prev when the row is first in the list (no prior neighbour)", () => {
+  const href = withListPosition("/regulations/r1", "regulations", 1, 3, { prev: undefined, next: "r2" });
+  assert.ok(!href.includes("prev="));
+  assert.ok(href.includes("next=r2"));
+});
+
+test("withListPosition omits next when the row is last in the list (no following neighbour)", () => {
+  const href = withListPosition("/regulations/r3", "regulations", 3, 3, { prev: "r2", next: undefined });
+  assert.ok(!href.includes("next="));
+  assert.ok(href.includes("prev=r2"));
+});
+
+test("withListPosition adds no query beyond list/pos/of/prev/next when neighbors is omitted entirely", () => {
+  const href = withListPosition("/regulations/r1", "regulations", 1, 1);
+  assert.equal(href, "/regulations/r1?list=regulations&pos=1&of=1");
+});
+
+test("withListPosition URL-encodes a neighbour slug that needs it", () => {
+  const href = withListPosition("/x", "list", 1, 2, { next: "a/b" });
+  assert.ok(href.includes("next=a%2Fb"));
+});

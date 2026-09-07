@@ -16,15 +16,20 @@
  * target); this is the only one. Title truncates with ellipsis; meta
  * line is 11px muted.
  *
- * Desktop-only (README: 1440px desktop only, Claude Design is producing 390px
- * mobile artboards separately). No <=640px collapse or reflow of any kind —
- * operator ruling 2026-09-07: mobile is not designed in this bundle, so no
- * page in it gets an ad hoc mobile treatment ahead of the real mobile
- * artboards (this retires both UILISTS' own collapse and uimapcomm's
- * flex-wrap reflow). Logged in DEVIATION-LOG.md. The `data-guard-title`
- * attribute, the row-Link's `right: 12` inset, and the additive `endStat`
- * prop (for rows with no impact/due/timeline/tier dimensions of their own,
- * e.g. the map's jurisdiction register) are kept — none is mobile-specific.
+ * Mobile (lane moblist, 2026-09-07, mobile-390 spec "LIST ROW"): below 768px
+ * a CSS media query on THIS shared part (never a page-local override)
+ * reflows the row to the spec's 76px two-line anatomy — line 1 jurisdiction
+ * code + wrapping title, line 2 impact meter/sum, date+days, tier,
+ * workspace tags, then the 44x44 overflow control pushed right; the
+ * TIMELINE column is the only thing dropped at this width (it stays on
+ * detail, per the spec's own "THE 76px TIMELINE COLUMN IS THE ONLY THING
+ * DROPPED" line). 375px is a fluid reflow of the same row, not a fixed
+ * 390px layout — no horizontal clipping at either width. Tablet 1024 and
+ * desktop keep the original fixed 8-column grid unchanged (operator ruling
+ * 2026-09-07: "tablet 1024 keeps the desktop row... leave tablet as is").
+ * The `data-guard-title` attribute and the additive `endStat` prop (for
+ * rows with no impact/due/timeline/tier dimensions of their own, e.g. the
+ * map's jurisdiction register) are unchanged by this lane.
  */
 
 import Link from "next/link";
@@ -116,17 +121,99 @@ export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string })
   );
 }
 
-// Desktop-only (README: 1440px desktop only; mobile artboards are a separate, not-yet-landed
-// track). No <=640px collapse here — operator ruling 2026-09-07: no page gets an ad hoc mobile
-// treatment ahead of the real mobile artboards. Logged in DEVIATION-LOG.md. Known consequence:
-// the rendering guard's 375px UX smoke checks for the five list rows fail (rows clip past the
-// viewport at that width) — expected, not a regression, until the operator picks a desktop-only
-// guard exemption or a temporary stacking rule.
+// Mobile 390 spec "LIST ROW" (lane moblist, 2026-09-07): a media query on this shared part,
+// never a page-local copy. Below 768px the wrappers below (.cl-row-content/.cl-row-line1/
+// .cl-row-line2, each `display: contents` at >=768px so desktop's original 8-column grid is
+// byte-identical to before this lane) switch to a flex column of two flex rows. 375px is a
+// fluid reflow of the same row (min-height 76px, wrapping title, no fixed 390px box) — the
+// mechanism the rendering guard's 375px UX smoke checks for the five list rows require.
 const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
+
+  @media (max-width: 767px) {
+    .cl-list-row { grid-template-columns: 3px 1fr !important; min-height: 76px !important; }
+    .cl-row-link { right: 0 !important; grid-column: 2 / -1 !important; }
+    .cl-row-content { display: flex !important; flex-direction: column; grid-column: 2 / -1; padding: 10px 6px 10px 12px; min-width: 0; }
+    .cl-row-line1 { display: flex !important; align-items: baseline; gap: 8px; min-width: 0; }
+    .cl-row-line1 .cl-row-juris { flex-shrink: 0; padding: 0; }
+    .cl-row-line1 .cl-row-title { padding: 0 !important; min-width: 0; flex: 1; }
+    .cl-row-title-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 13.5px !important; line-height: 1.35 !important; }
+    .cl-row-line1 .cl-row-juris { font-size: 10.5px !important; letter-spacing: 0.06em !important; color: var(--ink-2) !important; }
+    .cl-row-meta-tags { display: none !important; }
+    .cl-row-line2 { display: flex !important; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 7px; }
+    .cl-row-due { flex-direction: row !important; align-items: baseline !important; gap: 5px; }
+    .cl-row-due-label { font-size: 11.5px !important; font-weight: 700 !important; }
+    .cl-row-due-days { font-size: 11.5px !important; font-weight: 500 !important; }
+    .cl-row-timeline { display: none !important; }
+    .cl-row-tags-mobile { display: inline-flex !important; }
+    .cl-row-overflow { margin-left: auto; border-left: 1px solid rgba(0,0,0,.08) !important; width: 44px; height: 44px; flex-shrink: 0; }
+  }
 `;
 
 export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags }: ListRowProps) {
+  const tailContent = endStat ? (
+    <span
+      style={{
+        gridColumn: "4 / span 4",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        gap: 10,
+        paddingRight: 4,
+      }}
+    >
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          fontSize: "var(--fs-105)",
+          fontWeight: 800,
+          letterSpacing: "0.08em",
+          textTransform: "uppercase",
+          color: endStat.band.cssVar,
+        }}
+      >
+        <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar }} />
+        {endStat.label}
+      </span>
+      <span
+        style={{
+          fontFamily: "var(--font-display)",
+          fontSize: 18,
+          color: endStat.band.cssVar,
+          fontVariantNumeric: "tabular-nums",
+        }}
+      >
+        {endStat.value}
+      </span>
+    </span>
+  ) : (
+    <>
+      <span className="cl-row-impact" style={{ display: "flex", alignItems: "center" }}>
+        <ImpactMeter scores={impact} />
+      </span>
+      <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
+        {due ? (
+          <>
+            <span className="cl-row-due-label" style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
+              {due.label}
+            </span>
+            <span className="cl-row-due-days" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
+          </>
+        ) : (
+          <Absence reason="pending" />
+        )}
+      </span>
+      <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
+        <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
+      </span>
+      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center" }}>
+        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
+      </span>
+    </>
+  );
+
   return (
     <div
       className="cl-list-row"
@@ -145,10 +232,14 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
       <style>{RESPONSIVE_CSS}</style>
       <span className="cl-row-spine" aria-hidden="true" style={{ background: band.cssVar }} />
       {/* Column span excludes the spine (col 1) AND the ⋯ overflow cell (last column) — the row
-          Link never shares a box with the Watch/⋯ button. */}
+          Link never shares a box with the Watch/⋯ button. At <768px .cl-row-link (CSS above)
+          spans the full content column instead: the ⋯ control moves inside the flex line-2 flow
+          and wins clicks over the Link via its own z-index (unchanged from desktop), so no
+          competing click target is introduced. */}
       <Link
         href={href}
         prefetch={false}
+        className="cl-row-link"
         style={{
           position: "absolute",
           top: 0,
@@ -169,144 +260,103 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         }}
         aria-label={title}
       />
-      <span
-        className="cl-row-juris"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          fontSize: "var(--fs-105)",
-          fontWeight: 800,
-          color: "var(--ink-3)",
-          letterSpacing: "0.04em",
-        }}
-      >
-        {jurisdiction}
-      </span>
-      <span className="cl-row-title" style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0, padding: "8px 0" }}>
-        <span
-          data-guard-title
-          style={{
-            fontSize: "var(--fs-14)",
-            fontWeight: 600,
-            color: "var(--ink)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}
-        >
-          {title}
-        </span>
-        {(meta || (tags && tags.length > 0)) && (
+      <div className="cl-row-content" style={{ display: "contents" }}>
+        <div className="cl-row-line1" style={{ display: "contents" }}>
           <span
+            className="cl-row-juris"
             style={{
               display: "flex",
               alignItems: "center",
-              gap: 6,
-              overflow: "hidden",
-              marginTop: 2,
-            }}
-          >
-            {meta && (
-              <span
-                style={{
-                  fontSize: "var(--fs-11)",
-                  color: "var(--ink-2)",
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                  flexShrink: 1,
-                }}
-              >
-                {meta}
-              </span>
-            )}
-            {tags && tags.length > 0 && (
-              <span style={{ display: "flex", gap: 4, flexShrink: 0, position: "relative", zIndex: 1 }}>
-                {tags.map((t) => (
-                  <WorkspaceTagPill key={t.id} name={t.name} />
-                ))}
-              </span>
-            )}
-          </span>
-        )}
-      </span>
-      <span className="cl-row-tail" style={{ display: "contents" }}>
-      {endStat ? (
-        <span
-          style={{
-            gridColumn: "4 / span 4",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 10,
-            paddingRight: 4,
-          }}
-        >
-          <span
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 5,
               fontSize: "var(--fs-105)",
               fontWeight: 800,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase",
-              color: endStat.band.cssVar,
+              color: "var(--ink-3)",
+              letterSpacing: "0.04em",
             }}
           >
-            <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar }} />
-            {endStat.label}
+            {jurisdiction}
           </span>
-          <span
-            style={{
-              fontFamily: "var(--font-display)",
-              fontSize: 18,
-              color: endStat.band.cssVar,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            {endStat.value}
-          </span>
-        </span>
-      ) : (
-        <>
-          <span className="cl-row-impact" style={{ display: "flex", alignItems: "center" }}>
-            <ImpactMeter scores={impact} />
-          </span>
-          <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
-            {due ? (
-              <>
-                <span style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
-                  {due.label}
-                </span>
-                <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
-              </>
-            ) : (
-              <Absence reason="pending" />
+          <span className="cl-row-title" style={{ display: "flex", flexDirection: "column", justifyContent: "center", minWidth: 0, padding: "8px 0" }}>
+            <span
+              data-guard-title
+              className="cl-row-title-text"
+              style={{
+                fontSize: "var(--fs-14)",
+                fontWeight: 600,
+                color: "var(--ink)",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {title}
+            </span>
+            {/* Desktop-only line (README §0.4: 11px muted meta + tags beneath the title). Hidden
+                <768px (.cl-row-meta-tags above) where `meta` stays put per this lane's title but
+                `tags` re-renders below in .cl-row-line2 (mobile spec's line-2 item order) instead —
+                logged in DEVIATION-LOG.md: the mobile spec is silent on `meta`'s own position, so it
+                is left exactly where it already sat rather than invented a new placement. */}
+            {(meta || (tags && tags.length > 0)) && (
+              <span
+                className="cl-row-meta-tags"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                  overflow: "hidden",
+                  marginTop: 2,
+                }}
+              >
+                {meta && (
+                  <span
+                    style={{
+                      fontSize: "var(--fs-11)",
+                      color: "var(--ink-2)",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      flexShrink: 1,
+                    }}
+                  >
+                    {meta}
+                  </span>
+                )}
+                {tags && tags.length > 0 && (
+                  <span style={{ display: "flex", gap: 4, flexShrink: 0, position: "relative", zIndex: 1 }}>
+                    {tags.map((t) => (
+                      <WorkspaceTagPill key={t.id} name={t.name} />
+                    ))}
+                  </span>
+                )}
+              </span>
             )}
           </span>
-          <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
-            <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
+        </div>
+        <div className="cl-row-line2" style={{ display: "contents" }}>
+          {tailContent}
+          {/* Mobile-only: line 2's "then workspace tags" item (spec order). Hidden >=768px — the
+              desktop tag rendering above (.cl-row-meta-tags) is unchanged. */}
+          {tags && tags.length > 0 && (
+            <span className="cl-row-tags-mobile" style={{ display: "none", gap: 4, position: "relative", zIndex: 1 }}>
+              {tags.map((t) => (
+                <WorkspaceTagPill key={`m-${t.id}`} name={t.name} />
+              ))}
+            </span>
+          )}
+          <span
+            className="cl-row-overflow"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              borderLeft: "1px solid var(--line-3)",
+              position: "relative",
+              zIndex: 1,
+            }}
+          >
+            {overflow}
           </span>
-          <span className="cl-row-tier" style={{ display: "flex", alignItems: "center" }}>
-            {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
-          </span>
-        </>
-      )}
-      </span>
-      <span
-        className="cl-row-overflow"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          borderLeft: "1px solid var(--line-3)",
-          position: "relative",
-          zIndex: 1,
-        }}
-      >
-        {overflow}
-      </span>
+        </div>
+      </div>
     </div>
   );
 }

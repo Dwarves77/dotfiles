@@ -19,9 +19,13 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
+// UPDATED (lane moblist, 2026-09-07): the endStat/impact-due-timeline-tier branch moved from an
+// inline `{endStat ? (...) : (...)}` expression into a `tailContent = endStat ? (...) : (...)`
+// variable (so both the desktop columns AND the mobile line-2 flex row can reuse the identical
+// JSX) — the branch itself, and everything it guards, is unchanged.
 test("endStat is optional and defaults to the original four-cell anatomy", () => {
   assert.match(SOURCE, /endStat\?:\s*\{[^}]*\}\s*\|\s*null;/, "endStat must be an optional prop (undefined-safe)");
-  assert.match(SOURCE, /\{endStat \? \(/, "rendering must branch on endStat rather than always taking the new path");
+  assert.match(SOURCE, /const tailContent = endStat \? \(/, "rendering must branch on endStat rather than always taking the new path");
   // The original four cells must still exist verbatim in the non-endStat branch.
   assert.match(SOURCE, /<ImpactMeter scores=\{impact\} \/>/);
   assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> : <Absence reason="not in primary source" \/>/);
@@ -31,14 +35,31 @@ test("endStat replaces columns 4-7 as one merged band-coloured stat, never a fif
   assert.match(SOURCE, /gridColumn:\s*"4 \/ span 4"/);
 });
 
-// UPDATED (lane uitags, 2026-09-07): the fold assembling train/wave55 carried the operator's
-// 2026-09-07 ruling forward — no page gets an ad hoc mobile treatment ahead of the real mobile
-// artboards (see this file's own header comment and DEVIATION-LOG.md) — and removed the @media
-// mobile-reflow rule this test used to require. The row is desktop-only by design now; a phone-width
-// check belongs to the rendering guard's dated per-page exemption entries, not to this file.
-test("desktop-only by design: no phone-width @media reflow rule (removed per operator ruling 2026-09-07)", () => {
+// UPDATED (lane moblist, 2026-09-07): the operator's binding mobile-390 spec landed (this lane's
+// brief, "mobile is the desktop part at a smaller measure, expressed as media queries INSIDE the
+// shared part"), superseding the 2026-09-07 "no mobile treatment yet" ruling the previous version
+// of this test guarded — that ruling was itself dated pending exactly this spec's delivery. The row
+// now DOES reflow below 768px (never 640px, the breakpoint this train's base sets: "below 768: one
+// column"), via the `display: contents` sub-wrapper technique documented in the file's own header,
+// which keeps >=768px byte-identical to before (verified live by the rendering guard's unchanged
+// >=768px checks).
+test("mobile reflow: an @media (max-width: 767px) rule exists, keyed to the train's 768 breakpoint, not the retired 640px one", () => {
+  assert.match(SOURCE, /@media \(max-width: 767px\)/);
   assert.doesNotMatch(SOURCE, /@media \(max-width: 640px\)/);
-  assert.match(SOURCE, /Desktop-only/);
+});
+
+test("mobile reflow drops only the timeline column, per the spec's own 'THE 76px TIMELINE COLUMN IS THE ONLY THING DROPPED' line", () => {
+  const mobileBlock = SOURCE.slice(SOURCE.indexOf("@media (max-width: 767px)"));
+  assert.match(mobileBlock, /\.cl-row-timeline\s*\{\s*display:\s*none/, "timeline is the one cell hidden at mobile");
+  assert.doesNotMatch(mobileBlock, /\.cl-row-impact\s*\{\s*display:\s*none/);
+  assert.doesNotMatch(mobileBlock, /\.cl-row-tier\s*\{\s*display:\s*none/);
+  assert.doesNotMatch(mobileBlock, /\.cl-row-due\s*\{\s*display:\s*none/);
+});
+
+test("mobile reflow uses `display: contents` sub-wrappers so >=768px stays the original flat 8-column grid, not a rebuilt one", () => {
+  assert.match(SOURCE, /className="cl-row-content" style=\{\{ display: "contents" \}\}/);
+  assert.match(SOURCE, /className="cl-row-line1" style=\{\{ display: "contents" \}\}/);
+  assert.match(SOURCE, /className="cl-row-line2" style=\{\{ display: "contents" \}\}/);
 });
 
 test("the whole row stays the one click target — no second nested Link/button wraps the row", () => {
@@ -53,4 +74,15 @@ test("tags is an optional prop, additive — every pre-existing caller (no tags 
 test("tags render on the second line, beside meta — not a fifth grid column", () => {
   assert.match(SOURCE, /tags && tags\.length > 0 && \(/);
   assert.match(SOURCE, /WorkspaceTagPill/);
+});
+
+// UPDATED (lane moblist, 2026-09-07): mobile-390 spec's LIST ROW line-2 item order puts workspace
+// tags AFTER impact/date/tier, not under the title where the desktop `meta` line renders them — the
+// spec gives no mobile position for `meta` itself (see DEVIATION-LOG.md), so `meta` stays put and
+// only `tags` gets a second, CSS-gated render for the mobile position.
+test("tags render a SECOND time for the mobile line-2 position, hidden >=768px, desktop rendering (.cl-row-meta-tags) untouched", () => {
+  assert.match(SOURCE, /cl-row-meta-tags/, "the desktop meta+tags line keeps its existing class hook");
+  assert.match(SOURCE, /cl-row-tags-mobile/, "a second, mobile-only tags render exists");
+  assert.match(SOURCE, /\.cl-row-meta-tags\s*\{\s*display:\s*none\s*!important/, "desktop meta+tags line hides at mobile");
+  assert.match(SOURCE, /\.cl-row-tags-mobile\s*\{\s*display:\s*inline-flex\s*!important/, "mobile tags render shows only at mobile");
 });

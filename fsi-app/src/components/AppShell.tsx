@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Sidebar } from "@/components/Sidebar";
+import { TopBar } from "@/components/layout/TopBar";
 import { AskAssistant } from "@/components/AskAssistant";
 import { BackToTop } from "@/components/BackToTop";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -33,6 +35,19 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // a flash even for users with populated workspaces.
   const { user, orgId } = useAuth();
   const hideSidebar = NO_SIDEBAR_ROUTES.some((r) => pathname.startsWith(r));
+
+  // Mobile drawer open/close — lifted here (mobile-390 spec, lane
+  // mobframe, 2026-09-07) so the <TopBar/> hamburger and the <Sidebar/>
+  // drawer share ONE state instead of Sidebar's own now-removed internal
+  // toggle. Closes automatically on navigation (pathname change) so a
+  // route change from a drawer link never leaves it open underneath.
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerPathname = pathname;
+  const [lastDrawerPathname, setLastDrawerPathname] = useState(drawerPathname);
+  if (drawerPathname !== lastDrawerPathname) {
+    setLastDrawerPathname(drawerPathname);
+    if (drawerOpen) setDrawerOpen(false);
+  }
 
   // STEP 2(b) FIX (PERF-MERGE, 2026-09-04) [CONFIRMED root cause]: `orgId` is now three-valued
   // (undefined = unknown/unresolved, null = resolved-no-org, string = resolved-with-org — see
@@ -101,8 +116,12 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex h-screen justify-center" style={{ backgroundColor: "var(--desk)" }}>
       <div className="flex w-full" style={{ maxWidth: 1440 }}>
-        <Sidebar />
+        <Sidebar drawerOpen={drawerOpen} onDrawerClose={() => setDrawerOpen(false)} />
         <div className="flex-1 min-w-0 flex flex-col" style={{ background: "var(--page)" }}>
+          {/* Mobile top bar (mobile-390 spec, TOP BAR): replaces the
+              desktop nav card below 768, sibling of <main/> (not inside
+              it) so it never scrolls away. */}
+          <TopBar onMenuClick={() => setDrawerOpen(true)} />
           {showNoWorkspaceBanner && (
           <div
             role="status"

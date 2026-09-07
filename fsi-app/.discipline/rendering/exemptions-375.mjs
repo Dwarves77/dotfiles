@@ -13,67 +13,34 @@
 // (docs/plans/complete-system-build-plan-2026-09-04.md §W7.1): each entry names a `expiryWave`
 // (train/wave number) and the guard reads the same `latestTrainWave()` oracle F25 uses — once the
 // landed history reaches that wave, the entry no longer applies and the guard FAILS again on these
-// pages' 375 checks, exactly as if this file did not exist. The other stated trigger ("or once a
-// 390 fixture exists for that page, whichever first") is not separately mechanized here; landing a
-// real 390 fixture for a page is the cue to delete that page's entry in the same commit.
+// pages' 375 checks, exactly as if this file did not exist.
 //
-// Six entries: the five list surfaces the ruling names (README screens #2/#4/#6/#8/#11 — Regulations
-// list, Market list, Research list, Operations list, Watchlist; dashboard is explicitly NOT a list
-// page and carries no entry) plus /map, which the ruling does not name — the coordinator extended
-// the same dated shape to it (fold report: "map-page:populated@375 (2 failures: overflow and
-// clipped elements) failing for the same cause") pending the operator's own confirmation; that
-// entry's `reason` and the matching DEVIATION-LOG row both say so, and it is removed at assembly if
-// the answer comes back no.
+// FOLD-56 (2026-09-07): `market-list`, `research-list` and `operations-list` are REMOVED. Lane
+// moblist's mobile-390 build cleared `regulations-list` and `watchlist` (nothing they covered still
+// failed); the remaining three failed for a narrower reason — MarketIntelLedger.tsx,
+// ResearchLedger.tsx and OperationsLedger.tsx each passed a raw WatchButton (64x28 / 75x32) directly
+// into ListRow's 44x44 overflow cell, clipping its neighbour at 375px — not RegulationsLedger's
+// shape, which already wraps its WatchButton in PriorityDropdown's "..." kebab. FOLD-56 gives the
+// three ledgers the same PriorityDropdown kebab wrapper (`showPriorityActions={false}`, a new prop
+// on the SAME component, not a copy — see PriorityDropdown.tsx's header), re-ran the rendering guard,
+// confirmed PASS at 375px with no exemptions firing, and removed the three entries here in the same
+// change per this file's own header ("landing a real 390 fixture for a page is the cue to delete
+// that page's entry in the same commit").
+//
+// One entry remains: `map`. Operator ruling 2026-09-07 (second set, item 2): "exemption confirmed,
+// expires wave 58. Remove 'operator confirmation pending'. No mobile map spec exists and none
+// should be invented." — this entry's `reason` reflects that ruling verbatim; it is not a
+// coordinator extension pending confirmation any more.
 //
 // `fixturePrefix` is the label prefix run-rendering-guard.mjs's failure strings actually carry
-// today (UX_SMOKE_SPECS registry names / runUxSpec `spec.name` values) — confirmed 2026-09-07 by
-// running the guard on the pre-existing train/wave55 base and reading its own failure output
-// verbatim, not guessed from the page route. `watchlist`'s entry has NO fixture prefix carrying UX
-// 375 coverage today (watchlist-team-smoke.mjs is an SM spec, not a UX_SMOKE_SPECS entry, and
-// measures no viewport) — the entry is a documented no-op until a UX spec is added for it; it
-// suppresses nothing today because nothing there fails today, and is kept so the pending-item list
-// stays five-list-pages-plus-map complete per the ruling rather than four-plus-map.
+// today (UX_SMOKE_SPECS registry names / runUxSpec `spec.name` values) — confirmed by running the
+// guard and reading its own failure output verbatim, not guessed from the page route.
 export const RENDERING_375_EXEMPTIONS = [
-  {
-    page: "regulations-list",
-    fixturePrefix: "regulations-ledger",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
-    page: "market-list",
-    fixturePrefix: "market-rows",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
-    page: "research-list",
-    fixturePrefix: "research-rows",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
-    page: "operations-list",
-    fixturePrefix: "operations-ledger",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
-    page: "watchlist",
-    fixturePrefix: "watchlist",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07); no-op today, no UX_SMOKE_SPECS 375 coverage exists yet for this page",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
   {
     page: "map",
     fixturePrefix: "map-page",
     reason:
-      "coordinator-extended, operator confirmation pending (not named by the operator's ruling, same cause and shape as the five list pages); mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
+      "operator ruling 2026-09-07: exemption confirmed, no mobile map spec exists and none is to be invented; expires wave 58",
     dated: "2026-09-07",
     expiryWave: 58,
   },

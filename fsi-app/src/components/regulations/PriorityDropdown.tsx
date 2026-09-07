@@ -34,6 +34,16 @@
  *
  * No emoji per CLAUDE.md global rule: ⋯, ▾, ✕ are Unicode glyphs; the
  * priority dots are inline-block <span> with CSS background.
+ *
+ * FOLD-56 (2026-09-07): `showPriorityActions` (default true) lets a surface with no manual
+ * priority-retag concept (Market, Research, Operations — none of their ledgers carry an
+ * `updatePriority`/`dismissResource` pair) reuse this SAME component as a bare kebab shell around
+ * `menuTopContent` only, instead of forking a copy. When false, `currentPriority`/`onSetPriority`/
+ * `onDismiss` are not required and the priority list + Dismiss item are not rendered — only
+ * `menuTopContent` (each surface's WatchButton) shows in the popover. This is what moves the three
+ * ledgers' WatchButton out of ListRow's bare 44x44 overflow cell (where a 64x28/75x32 text pill
+ * clipped its neighbour at 375px, exemptions-375.mjs) and into the same 44x44 "..." control
+ * RegulationsLedger already uses.
  */
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -47,18 +57,30 @@ export type PriorityValue = PriorityKey;
 interface PriorityDropdownProps {
   /** Current effective priority for this regulation. Used to bold the
    *  currently-selected menu item and (in "hero" variant) to render
-   *  the colored dot + label in the button. */
-  currentPriority: PriorityValue;
+   *  the colored dot + label in the button. Not required when
+   *  `showPriorityActions` is false — see that prop. */
+  currentPriority?: PriorityValue;
   /** Whether the regulation is currently dismissed. When true, the
    *  "Dismiss" item is rendered as inactive (or hidden) since dismiss
    *  is a one-way action from this surface; restore happens from the
    *  dismissed-stash drawer. */
   isDismissed?: boolean;
   /** Fires when the operator picks one of the priority menu items.
-   *  Caller is responsible for the optimistic write + persist. */
-  onSetPriority: (p: PriorityValue) => void;
-  /** Fires when the operator picks the Dismiss menu item. */
-  onDismiss: () => void;
+   *  Caller is responsible for the optimistic write + persist. Not
+   *  required when `showPriorityActions` is false. */
+  onSetPriority?: (p: PriorityValue) => void;
+  /** Fires when the operator picks the Dismiss menu item. Not required
+   *  when `showPriorityActions` is false. */
+  onDismiss?: () => void;
+  /** Whether the priority list + Dismiss item render at all. Default true
+   *  (Regulations, which has manual priority retag). Set false for a
+   *  surface with no priority-retag concept (Market, Research, Operations)
+   *  so the popover shows only `menuTopContent` — the same 44x44 "..."
+   *  shell, no forked component. */
+  showPriorityActions?: boolean;
+  /** Accessible label for the trigger button. Defaults to "Regulation
+   *  actions"; surfaces without priority retag pass a generic label. */
+  ariaLabel?: string;
   /** Fires when the operator picks the Archive menu item (dual-scope
    *  archive, migration 235). OPTIONAL: the menu item is only rendered
    *  when a handler is supplied, so existing mounts that have no archive
@@ -123,6 +145,8 @@ export function PriorityDropdown({
   onArchive,
   variant = "card",
   menuTopContent,
+  showPriorityActions = true,
+  ariaLabel = "Regulation actions",
 }: PriorityDropdownProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement | null>(null);
@@ -154,13 +178,13 @@ export function PriorityDropdown({
   function handleSelectPriority(e: React.MouseEvent, p: PriorityValue) {
     e.preventDefault();
     e.stopPropagation();
-    onSetPriority(p);
+    onSetPriority?.(p);
     setOpen(false);
   }
   function handleDismiss(e: React.MouseEvent) {
     e.preventDefault();
     e.stopPropagation();
-    onDismiss();
+    onDismiss?.();
     setOpen(false);
   }
   function handleArchive(e: React.MouseEvent) {
@@ -176,7 +200,7 @@ export function PriorityDropdown({
   }
 
   const popoverWidth = variant === "hero" ? 220 : 200;
-  const tok = PRIORITY_TOKENS[currentPriority] ?? PRIORITY_TOKENS.MODERATE;
+  const tok = PRIORITY_TOKENS[currentPriority ?? "MODERATE"] ?? PRIORITY_TOKENS.MODERATE;
 
   return (
     <div
@@ -194,7 +218,7 @@ export function PriorityDropdown({
         // The tap target grows to 44x44; the visible "..." glyph stays the same small size, centered.
         <button
           type="button"
-          aria-label="Regulation actions"
+          aria-label={ariaLabel}
           aria-haspopup="menu"
           aria-expanded={open}
           onClick={handleToggle}
@@ -252,7 +276,7 @@ export function PriorityDropdown({
               display: "inline-block",
             }}
           />
-          {isDismissed ? "Dismissed" : PRIORITY_PILL_LABEL[currentPriority]}
+          {isDismissed ? "Dismissed" : PRIORITY_PILL_LABEL[currentPriority ?? "MODERATE"]}
           <span style={{ fontSize: 10 }}>{"▾"}</span>
         </button>
       )}
@@ -261,9 +285,11 @@ export function PriorityDropdown({
         <div
           role="menu"
           aria-label={
-            onArchive
-              ? "Set priority, dismiss, or archive"
-              : "Set priority or dismiss"
+            !showPriorityActions
+              ? "Row actions"
+              : onArchive
+                ? "Set priority, dismiss, or archive"
+                : "Set priority or dismiss"
           }
           style={{
             position: "absolute",
@@ -292,7 +318,7 @@ export function PriorityDropdown({
               {menuTopContent}
             </div>
           )}
-          {PRIORITY_ORDER.map((p) => {
+          {showPriorityActions && PRIORITY_ORDER.map((p) => {
             const t = PRIORITY_TOKENS[p];
             const isCurrent = !isDismissed && currentPriority === p;
             return (
@@ -336,55 +362,57 @@ export function PriorityDropdown({
             );
           })}
 
-          <button
-            type="button"
-            role="menuitem"
-            onClick={handleDismiss}
-            disabled={isDismissed}
-            style={{
-              width: "100%",
-              display: "flex",
-              alignItems: "center",
-              gap: 10,
-              height: 36,
-              padding: "0 10px",
-              marginTop: 4,
-              borderTop: "1px solid var(--color-border-subtle)",
-              paddingTop: 8,
-              background: "transparent",
-              border: 0,
-              borderRadius: "var(--radius-sm, 4px)",
-              fontFamily: "inherit",
-              fontSize: 13,
-              fontWeight: 500,
-              color: isDismissed
-                ? "var(--color-text-muted)"
-                : "var(--color-text-primary)",
-              cursor: isDismissed ? "default" : "pointer",
-              textAlign: "left",
-              opacity: isDismissed ? 0.6 : 1,
-            }}
-          >
-            <span
+          {showPriorityActions && (
+            <button
+              type="button"
+              role="menuitem"
+              onClick={handleDismiss}
+              disabled={isDismissed}
               style={{
-                width: 10,
-                height: 10,
-                borderRadius: 999,
-                border: "1.5px solid var(--color-text-muted)",
-                display: "inline-flex",
+                width: "100%",
+                display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                color: "var(--color-text-muted)",
-                fontSize: 8,
-                lineHeight: 1,
-                flexShrink: 0,
+                gap: 10,
+                height: 36,
+                padding: "0 10px",
+                marginTop: 4,
+                borderTop: "1px solid var(--color-border-subtle)",
+                paddingTop: 8,
+                background: "transparent",
+                border: 0,
+                borderRadius: "var(--radius-sm, 4px)",
+                fontFamily: "inherit",
+                fontSize: 13,
+                fontWeight: 500,
+                color: isDismissed
+                  ? "var(--color-text-muted)"
+                  : "var(--color-text-primary)",
+                cursor: isDismissed ? "default" : "pointer",
+                textAlign: "left",
+                opacity: isDismissed ? 0.6 : 1,
               }}
             >
-              {/* Unicode multiplication sign — not an emoji */}
-              {"×"}
-            </span>
-            Dismiss this regulation
-          </button>
+              <span
+                style={{
+                  width: 10,
+                  height: 10,
+                  borderRadius: 999,
+                  border: "1.5px solid var(--color-text-muted)",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "var(--color-text-muted)",
+                  fontSize: 8,
+                  lineHeight: 1,
+                  flexShrink: 0,
+                }}
+              >
+                {/* Unicode multiplication sign — not an emoji */}
+                {"×"}
+              </span>
+              Dismiss this regulation
+            </button>
+          )}
 
           {/* Dual-scope archive (migration 235). Opens the scope dialog —
               this menu never archives directly, because "for me" and "for the

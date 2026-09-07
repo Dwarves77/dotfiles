@@ -1478,6 +1478,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/onboarding/OnboardingWizard.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "EXEMPT"
+    },
+    {
       "path": "fsi-app/src/components/onboarding/OnboardingWizard.tsx",
       "kinds": [
         "WRITES"
@@ -1559,6 +1568,15 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/Chips.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/FactCard.npmtest.mjs",
       "kinds": [
         "PROOF"
@@ -1568,7 +1586,25 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/components/ui/ImpactMeter.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/components/ui/ListRow.npmtest.mjs",
+      "kinds": [
+        "PROOF"
+      ],
+      "skills": [],
+      "proofWired": true,
+      "status": "COVERED"
+    },
+    {
+      "path": "fsi-app/src/components/ui/MilestoneTimeline.npmtest.mjs",
       "kinds": [
         "PROOF"
       ],
@@ -9371,9 +9407,9 @@
     }
   ],
   "summary": {
-    "governed_files": 863,
-    "covered": 827,
-    "exempt": 36,
+    "governed_files": 867,
+    "covered": 830,
+    "exempt": 37,
     "gaps": 0,
     "orphaned_proofs": 0,
     "unmapped_writes": 0,

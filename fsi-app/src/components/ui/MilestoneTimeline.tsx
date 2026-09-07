@@ -13,6 +13,8 @@
  */
 
 import type { TimelineEntry } from "@/types/resource";
+import { classifyTimelineEntries } from "./milestone-timeline-classify";
+import type { TimelineDotState } from "./milestone-timeline-classify";
 
 export interface MilestoneTimelineProps {
   entries?: TimelineEntry[] | null;
@@ -21,12 +23,12 @@ export interface MilestoneTimelineProps {
   variant?: "row" | "full";
 }
 
-function dotState(status: TimelineEntry["status"] | undefined, hasNext: boolean, isFirstFuture: boolean) {
-  if (status === "past") return "passed" as const;
-  if (status === "current") return "next" as const;
-  if (isFirstFuture && !hasNext) return "next" as const;
-  return "ahead" as const;
-}
+// Re-exported so existing callers (DetailShell.tsx) keep importing the
+// classifier from "@/components/ui/MilestoneTimeline" — the pure logic
+// itself lives in milestone-timeline-classify.ts (no JSX, so its own
+// npmtest.mjs can import it directly via jiti; see that file's header).
+export { classifyTimelineEntries };
+export type { TimelineDotState };
 
 export function MilestoneTimeline({ entries, bandHex, variant = "row" }: MilestoneTimelineProps) {
   const list = (entries ?? []).slice(0, 5);
@@ -36,8 +38,7 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
     );
   }
 
-  const hasExplicitCurrent = list.some((e) => e.status === "current");
-  let firstFutureSeen = false;
+  const classified = classifyTimelineEntries(list);
 
   return (
     <span
@@ -63,10 +64,7 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
         }}
       />
       <span style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%", position: "relative" }}>
-        {list.map((e, i) => {
-          const isFirstFuture = !hasExplicitCurrent && e.status !== "past" && !firstFutureSeen;
-          if (isFirstFuture) firstFutureSeen = true;
-          const state = dotState(e.status, hasExplicitCurrent, isFirstFuture);
+        {classified.map(({ state }, i) => {
           if (state === "passed") {
             return (
               <span

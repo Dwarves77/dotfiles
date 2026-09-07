@@ -4,6 +4,9 @@
  * CommandBar — the one command bar (UI system handoff 2026-09-06, README
  * §0.3): replaces every per-page ask panel. 40px tall, ⌕ glyph,
  * placeholder "Search or ask across N items…", ⌘K hint, dark Ask button.
+ * Below 768 (mobile spec, MASTHEAD: "drop the Cmd-K hint"): the ⌘K chip is
+ * hidden via `.cl-cmdk-hint { display: none }` at max-width 767.98px —
+ * README breakpoint token, see theme.css's own comment.
  * Typing searches (onSearch); Ask sends the same text to the assistant
  * scoped to the current page — via the SAME `open-ask-assistant`
  * CustomEvent contract AskAssistant.tsx already listens for (see
@@ -69,6 +72,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         e.preventDefault();
         onSearch?.(value.trim());
       }}
+      className="cl-command-bar"
       style={{
         display: "flex",
         alignItems: "center",
@@ -80,10 +84,20 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
         padding: "0 6px 0 12px",
       }}
     >
-      <span aria-hidden="true" style={{ fontSize: 14, color: "var(--ink-3)" }}>
+      {/* Mobile spec (MASTHEAD): command bar height 44px, glyph 15px, drop
+          the ⌘K hint — below 768 (theme.css's documented --bp-mobile). */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-command-bar { height: 44px !important; }
+          .cl-command-bar .cl-cmdk-hint { display: none; }
+          .cl-command-bar .cl-search-glyph { font-size: 15px !important; }
+        }
+      `}</style>
+      <span aria-hidden="true" className="cl-search-glyph" style={{ fontSize: 14, color: "var(--ink-3)" }}>
         ⌕
       </span>
       <input
+        id="cl-command-bar-input"
         ref={inputRef}
         value={value}
         onChange={(e) => {
@@ -106,6 +120,7 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
       />
       <span
         aria-hidden="true"
+        className="cl-cmdk-hint"
         style={{
           flexShrink: 0,
           fontSize: "var(--fs-105)",

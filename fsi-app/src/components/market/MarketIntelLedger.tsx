@@ -36,6 +36,7 @@ import { formatLocaleDate } from "@/lib/format";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
@@ -167,7 +168,10 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
           const baseHref = itemDetailHref(r);
           return {
             key: r.id,
-            href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length),
+            href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length, {
+              prev: bandRows[i - 1]?.id,
+              next: bandRows[i + 1]?.id,
+            }),
             band,
             jurisdiction: jurisdictionCode(r),
             title: r.title,
@@ -177,7 +181,14 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
             timeline: r.timeline ?? null,
             tier: r.sourceTier ?? null,
             tags: tagsFacet.tagsForItem(r.id),
-            overflow: <WatchButton itemType="signal" itemId={r.id} />,
+            overflow: (
+              <PriorityDropdown
+                variant="card"
+                showPriorityActions={false}
+                ariaLabel="Signal actions"
+                menuTopContent={<WatchButton itemType="signal" itemId={r.id} />}
+              />
+            ),
           };
         }),
       };

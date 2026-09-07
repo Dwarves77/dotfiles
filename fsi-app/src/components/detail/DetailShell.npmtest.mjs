@@ -59,6 +59,32 @@ test("InThisListStat reads the confirmed list/pos/of URL param contract (the lis
   assert.match(SOURCE, /searchParams\.get\("list"\)/);
 });
 
+// FOLD-56 (F7): the mobile-390 spec's rail "prev/next links" — InThisListStat reads the bounded
+// prev/next slugs withListPosition's row href now optionally carries, via a second Suspense-wrapped
+// bridge (never a direct hook call in InThisListStat's own body, same isolation rule as the
+// list/pos/of bridge above).
+test("InThisListStat reads prev/next neighbour slugs via a second isolated bridge", () => {
+  assert.match(SOURCE, /function InThisListNeighborsBridge/);
+  assert.match(SOURCE, /searchParams\.get\("prev"\)/);
+  assert.match(SOURCE, /searchParams\.get\("next"\)/);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"));
+  assert.doesNotMatch(statBody.split("function ")[0], /useSearchParams\(\)/);
+  assert.match(SOURCE, /<Suspense fallback=\{null\}>\s*<InThisListNeighborsBridge/);
+});
+
+test("InThisListStat reconstructs each neighbour's href from withListPosition (imported, not hand-built query string)", () => {
+  assert.match(SOURCE, /import \{ withListPosition \} from "@\/components\/list-surface\/list-surface-helpers"/);
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  assert.match(statBody, /withListPosition\(/);
+});
+
+test("InThisListStat's prev/next links are omitted, not rendered empty, when a neighbour is absent", () => {
+  const statBody = SOURCE.slice(SOURCE.indexOf("export function InThisListStat"), SOURCE.indexOf("export function InThisListStat") + 4000);
+  assert.match(statBody, /\(prevHref \|\| nextHref\) &&/);
+  assert.match(statBody, /prevHref &&/);
+  assert.match(statBody, /nextHref &&/);
+});
+
 // Lane uidetails2 (2026-09-07): the breadcrumb's own last segment ("1 of 9 in Action") reuses the
 // SAME InThisListBridge/list-pos-of contract, mounted directly inside DetailHeader so every detail
 // surface picks it up with no page-local change.

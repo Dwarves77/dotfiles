@@ -611,3 +611,10 @@ export async function runSmoke(browser) {
     failures: results.flatMap((r) => r.failures),
   };
 }
+
+// FOLD-56 (F10): additive named exports of the RegulationDetailSurface fixture's own bundle entry,
+// its states, and its `next/navigation` alias — so a one-off screenshot capture script can reuse the
+// SAME fixture this spec's own `runSmoke` mounts (mobdetail's lane could not produce
+// built/m-detail-390.png/-375.png), rather than duplicating REGULATION_ENTRY/REGULATION_STATES/ALIAS
+// into a second copy. `runSmoke` above is unchanged; this only widens what the module exposes.
+export { REGULATION_ENTRY, REGULATION_STATES, ALIAS };

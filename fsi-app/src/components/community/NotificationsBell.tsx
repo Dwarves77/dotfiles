@@ -22,64 +22,13 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { Bell } from "lucide-react";
 import { NotificationsList } from "./NotificationsList";
-
-const POLL_INTERVAL_MS = 60_000; // 60s when visible
-const COUNT_FETCH_PATH =
-  "/api/community/notifications?unread_only=true&limit=1";
-
-interface CountResponse {
-  unread_count: number;
-}
+import { useUnreadNotificationsCount } from "@/lib/hooks/useUnreadNotificationsCount";
 
 export function NotificationsBell() {
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { unreadCount, setUnreadCount } = useUnreadNotificationsCount();
   const [open, setOpen] = useState(false);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
   const dropdownRef = useRef<HTMLDivElement | null>(null);
-
-  const fetchUnreadCount = useCallback(async () => {
-    try {
-      const res = await fetch(COUNT_FETCH_PATH, { cache: "no-store" });
-      if (!res.ok) return; // 401/429 — silently ignore for the badge
-      const json: CountResponse = await res.json();
-      if (typeof json.unread_count === "number") {
-        setUnreadCount(json.unread_count);
-      }
-    } catch {
-      // network blip — keep last known count, don't surface
-    }
-  }, []);
-
-  // ── Polling: 60s when visible only ──────────────────────────────
-  useEffect(() => {
-    let intervalId: ReturnType<typeof setInterval> | null = null;
-
-    const start = () => {
-      if (intervalId !== null) return;
-      // Fire immediately on (re)entry to visibility, then settle into 60s.
-      fetchUnreadCount();
-      intervalId = setInterval(fetchUnreadCount, POLL_INTERVAL_MS);
-    };
-    const stop = () => {
-      if (intervalId !== null) {
-        clearInterval(intervalId);
-        intervalId = null;
-      }
-    };
-
-    const onVisibility = () => {
-      if (document.visibilityState === "visible") start();
-      else stop();
-    };
-
-    if (document.visibilityState === "visible") start();
-    document.addEventListener("visibilitychange", onVisibility);
-
-    return () => {
-      stop();
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [fetchUnreadCount]);
 
   // ── Click-outside to close ──────────────────────────────────────
   useEffect(() => {
