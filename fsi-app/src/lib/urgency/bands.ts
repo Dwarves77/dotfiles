@@ -48,6 +48,12 @@ export interface UrgencyBand {
   cssVar: string;
   /** CSS var name carrying `tint`. */
   tintCssVar: string;
+  /** Band-tinted border colour (dc.html #sys "Chips" band chip: each band
+   *  chip's 1px border is a tint of the band hue, not the hue itself —
+   *  design audit 2026-09-07 B7). */
+  border: string;
+  /** CSS var name carrying `border`. */
+  borderCssVar: string;
   /** The platform priority value this band corresponds to. */
   priority: PlatformPriority;
 }
@@ -63,6 +69,8 @@ export const BAND_ORDER: readonly UrgencyBand[] = [
     tint: "#FEF2F2",
     cssVar: "var(--immediate)",
     tintCssVar: "var(--immediate-tint)",
+    border: "#FECACA",
+    borderCssVar: "var(--immediate-border)",
     priority: "CRITICAL",
   },
   {
@@ -73,6 +81,8 @@ export const BAND_ORDER: readonly UrgencyBand[] = [
     tint: "#FFF7ED",
     cssVar: "var(--action)",
     tintCssVar: "var(--action-tint)",
+    border: "#FED7AA",
+    borderCssVar: "var(--action-border)",
     priority: "HIGH",
   },
   {
@@ -83,6 +93,8 @@ export const BAND_ORDER: readonly UrgencyBand[] = [
     tint: "#EFF6FF",
     cssVar: "var(--monitor)",
     tintCssVar: "var(--monitor-tint)",
+    border: "#BFDBFE",
+    borderCssVar: "var(--monitor-border)",
     priority: "MODERATE",
   },
   {
@@ -93,6 +105,8 @@ export const BAND_ORDER: readonly UrgencyBand[] = [
     tint: "#F0FDF4",
     cssVar: "var(--awareness)",
     tintCssVar: "var(--awareness-tint)",
+    border: "#BBF7D0",
+    borderCssVar: "var(--awareness-border)",
     priority: "LOW",
   },
 ] as const;

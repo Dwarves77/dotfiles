@@ -28,16 +28,19 @@ export function BandChip({ band }: { band: UrgencyBand }) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        gap: 5,
+        gap: 6,
         fontSize: "var(--fs-105)",
-        fontWeight: 700,
+        fontWeight: 800,
+        letterSpacing: "0.06em",
+        textTransform: "uppercase",
         color: band.cssVar,
         background: band.tintCssVar,
+        border: `1px solid ${band.borderCssVar}`,
         borderRadius: "var(--radius-pill)",
         padding: "3px 9px 3px 7px",
       }}
     >
-      <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: band.cssVar }} />
+      <span aria-hidden="true" style={{ width: 7, height: 7, borderRadius: "50%", background: band.cssVar }} />
       {band.label}
     </span>
   );
@@ -71,14 +74,15 @@ export function TierChip({ tier }: { tier: number }) {
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 24,
-          height: 20,
-          fontSize: "var(--fs-105)",
+          padding: "3px 7px",
+          fontSize: "var(--fs-10)",
           fontWeight: 800,
+          letterSpacing: "0.06em",
           color: "var(--ink-2)",
-          border: "1px solid var(--line-1)",
+          border: "1px solid rgba(0,0,0,.2)",
           borderRadius: 4,
           fontVariantNumeric: "tabular-nums",
+          textAlign: "center",
         }}
       >
         T{clamped}
@@ -98,8 +102,10 @@ export function TagChip({ children }: { children: React.ReactNode }) {
         fontWeight: 600,
         color: "var(--ink-2)",
         background: "var(--tag)",
-        borderRadius: "var(--radius-pill)",
-        padding: "3px 9px",
+        borderRadius: 4,
+        textTransform: "uppercase",
+        letterSpacing: "0.04em",
+        padding: "3px 8px",
       }}
     >
       {children}
@@ -216,9 +222,9 @@ export function FilterChipGroup({ label, children }: FilterChipGroupProps) {
       <span
         className="cl-filter-group-label"
         style={{
-          fontSize: "var(--fs-95)",
-          fontWeight: 800,
-          letterSpacing: "0.1em",
+          fontSize: "var(--fs-10)",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: "var(--ink-3)",
         }}

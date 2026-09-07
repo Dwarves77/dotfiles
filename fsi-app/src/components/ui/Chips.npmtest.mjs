@@ -49,6 +49,27 @@ test("operator audit item 2.5 (2026-09-07): inactive filter chips inside a group
   assert.match(SOURCE, /\.cl-filter-group\s*\{[^}]*border:\s*1px solid rgba\(0,0,0,\.1\)/);
 });
 
+test("fix58-tokens (2026-09-07, design audit B1-B28): BandChip carries the band-tinted border, uppercase/.06em label, and 7x7 dot (dc.html #sys 'Chips')", () => {
+  const bandChip = SOURCE.slice(SOURCE.indexOf("export function BandChip"), SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"));
+  assert.match(bandChip, /fontWeight:\s*800/);
+  assert.match(bandChip, /letterSpacing:\s*"0\.06em"/);
+  assert.match(bandChip, /textTransform:\s*"uppercase"/);
+  assert.match(bandChip, /border:\s*`1px solid \$\{band\.borderCssVar\}`/);
+  assert.match(bandChip, /width:\s*7,\s*height:\s*7/);
+});
+
+test("fix58-tokens: TagChip is a squared 4px-radius neutral tag (dc.html #sys), not the pill token", () => {
+  const tagChip = SOURCE.slice(SOURCE.indexOf("export function TagChip"), SOURCE.indexOf("export function WorkspaceTagPill"));
+  assert.match(tagChip, /borderRadius:\s*4/);
+  assert.doesNotMatch(tagChip, /var\(--radius-pill\)/);
+});
+
+test("fix58-tokens: FilterChipGroup label reads 10px/.12em/700 (dc.html p2 'Mode' label), not the old 9.5px/.1em/800", () => {
+  assert.match(SOURCE, /className="cl-filter-group-label"[\s\S]{0,200}fontSize:\s*"var\(--fs-10\)"/);
+  assert.match(SOURCE, /className="cl-filter-group-label"[\s\S]{0,200}letterSpacing:\s*"0\.12em"/);
+  assert.match(SOURCE, /className="cl-filter-group-label"[\s\S]{0,200}fontWeight:\s*700/);
+});
+
 test("TierChip carries the 767px mobile block (FOLD-56 F4): 9.5px/800 letter-spacing .06em text in a 1px rgba(0,0,0,.2) radius-4 box", () => {
   const tierChip = SOURCE.slice(SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"), SOURCE.indexOf("export function TagChip"));
   assert.match(tierChip, /@media \(max-width: 767px\)/);
