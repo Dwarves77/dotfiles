@@ -316,6 +316,35 @@ const REGULATION_STATES = [
     },
     expectTitles: 1,
   },
+  // GAP G4 (2026-09-07, TRAIN-57 dispatch): the operator's audit item 1.2 named the EXACT production
+  // title/slug that reproduced body-weight text — /regulations/eu-ppwr-2025-40, "EU Packaging and
+  // Packaging Waste Regulation (PPWR)". Item 1.2 was already investigated (VERIFIED ALREADY FIXED,
+  // see DetailShell.npmtest.mjs's own item-1.2 test) via a synthetic long title, never this literal
+  // string. This state mounts the exact production title/id so a regression on that specific string
+  // (markup, a non-breaking-space character, a slug-keyed conditional) cannot hide behind a
+  // synthetic fixture.
+  {
+    label: 'ppwr-production-title-verbatim',
+    props: {
+      resource: baseResource({
+        id: 'eu-ppwr-2025-40',
+        title: 'EU Packaging and Packaging Waste Regulation (PPWR)',
+        legalInstrument: 'EU Packaging and Packaging Waste Regulation (PPWR)',
+      }),
+      changelog: [],
+      dispute: null,
+      supersessions: [],
+      connections: [],
+      relevance: null,
+      resourceLookup: {},
+      sections: regulationSections(),
+      groupLabel: 'Regulations · European Union',
+      deck: 'EUR-Lex · adopted 2024',
+      initialOwner: null,
+      upcomingObligations: null,
+    },
+    expectTitles: 1,
+  },
 ];
 
 // ── Operations ──────────────────────────────────────────────────────────────────────────────────
