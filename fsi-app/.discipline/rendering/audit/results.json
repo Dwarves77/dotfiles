@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T17:59:39.445Z",
+  "runAt": "2026-09-07T18:01:56.108Z",
   "specs": [
     {
       "part": "Community — peer-org directory table",
@@ -961,6 +961,51 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/page-frame.json",
       "__id": "page-frame"
+    },
+    {
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "mount": "watchbutton",
+      "viewport": 1440,
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "notes": [
+        "CONFIRMED live: WatchButton's row variant (RowWatchButton) satisfies ruling 3.5's FIRST half exactly — watched=true renders '★' (filled, aria-hidden) plus the literal label 'Watching', in ink (--ink, via ActionButton's secondary-variant colour); watched=false renders '☆' plus 'Watch'. Checked below.",
+        "Text checks below read '★Watching' / '☆Watch' with no space — RowWatchButton's glyph and label are adjacent JSX children with no whitespace text node between them, so textContent concatenates with none; this is the DOM's actual (harmless, whitespace-collapse-safe) concatenation, not a design statement about spacing, and matching it exactly avoids a false MISMATCH the harness's own README warns against (rule 14).",
+        "CONFIRMED ABSENT, by a codebase-wide grep ('grep -rn \"Unwatch\" src/'), zero matches: ruling 3.5's SECOND half ('the action on hover/menu is \"Unwatch\"') has no implementation anywhere in the product. RowWatchButton's label is `{watched ? \"Watching\" : \"Watch\"}` with no third, hover-only state — the control has no hover-driven text swap at all, so there is no element a selector could address for an 'Unwatch' string; this is stated in prose rather than forced into a spurious selector check, per this harness's own rule (a false MISMATCH is worse than no audit, CLAUDE.md rule 14). The gap is real and is the second half of the same ruling the row-label check below confirms the first half of."
+      ],
+      "selector": "[data-audit=\"watched\"] button",
+      "expect": {
+        "text": "★Watching",
+        "padding-top": "8px",
+        "padding-left": "14px",
+        "border-radius": "6px"
+      },
+      "children": [
+        {
+          "name": "unwatched — label + glyph",
+          "selector": "[data-audit=\"unwatched\"] button",
+          "note": "RowWatchButton: '☆' + 'Watch' when initialWatched is false.",
+          "expect": {
+            "text": "☆Watch"
+          }
+        },
+        {
+          "name": "watched — border colour (ActionButton secondary chrome)",
+          "selector": "[data-audit=\"watched\"] button",
+          "note": "#sys 'Actions · stat block': border 1px solid rgba(0,0,0,.25) on the Share/Watch secondary buttons.",
+          "expect": {
+            "border-width": "1px",
+            "border-style": "solid",
+            "border-color": "rgba(0,0,0,.25)"
+          }
+        }
+      ],
+      "forbid": [],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/watchbutton.json",
+      "__id": "watchbutton"
     }
   ],
   "rows": [
@@ -5791,6 +5836,142 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "WatchButton (row variant) — watched / unwatched states",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "text",
+      "expected": "★Watching",
+      "actual": "★Watching",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "WatchButton (row variant) — watched / unwatched states",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "padding-top",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "WatchButton (row variant) — watched / unwatched states",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "padding-left",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "WatchButton (row variant) — watched / unwatched states",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "border-radius",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "unwatched — label + glyph",
+      "selector": "[data-audit=\"unwatched\"] button",
+      "property": "text",
+      "expected": "☆Watch",
+      "actual": "☆Watch",
+      "status": "MATCH",
+      "note": "RowWatchButton: '☆' + 'Watch' when initialWatched is false."
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "watched — border colour (ActionButton secondary chrome)",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "border-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "#sys 'Actions · stat block': border 1px solid rgba(0,0,0,.25) on the Share/Watch secondary buttons."
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "watched — border colour (ActionButton secondary chrome)",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "border-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "#sys 'Actions · stat block': border 1px solid rgba(0,0,0,.25) on the Share/Watch secondary buttons."
+    },
+    {
+      "spec": "watchbutton",
+      "part": "WatchButton (row variant) — watched / unwatched states",
+      "artboards": [
+        "11-watchlist",
+        "03-regulation-detail (action row)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys 'Actions · stat block' (the ☆ Watch action button chrome: padding 8px 14px, border rgba(0,0,0,.25), radius 6, background #fff, font-size 12.5px, weight 600 — the family WatchButton.tsx's own header comment says the row variant matches: 'chrome matching ActionRow's other three buttons'); operator ruling 3.5 ('watched rows show a filled ★ in ink and the label \"Watching\"; the action on hover/menu is \"Unwatch\". A watched row must never read \"Watch\"'); src/components/ui/WatchButton.tsx (real component, mounted with `initialWatched` so no network fetch is needed to reach a deterministic watched/unwatched state)",
+      "viewport": 1440,
+      "target": "watched — border colour (ActionButton secondary chrome)",
+      "selector": "[data-audit=\"watched\"] button",
+      "property": "border-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgba(0, 0, 0, 0.25)",
+      "status": "MATCH",
+      "note": "#sys 'Actions · stat block': border 1px solid rgba(0,0,0,.25) on the Share/Watch secondary buttons."
     }
   ],
   "errors": []

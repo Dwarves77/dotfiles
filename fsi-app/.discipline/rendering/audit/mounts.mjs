@@ -260,6 +260,31 @@ window.__mount = () => {
 };
 `;
 
+// ── WatchButton (row variant) — watched / unwatched (operator ruling 3.5) ──────────────────────
+// initialWatched bypasses the client-side fetch entirely (useWatchMembership's own
+// hasServerState = initialWatched !== undefined short-circuit), so this mounts the REAL component
+// in a deterministic state with no network stub needed — not a fork of its logic.
+const WATCHBUTTON_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { WatchButton } from '@/components/ui/WatchButton';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { display: 'flex', gap: 20, padding: 20 } },
+      React.createElement('div', { 'data-audit': 'watched' },
+        React.createElement(WatchButton, { itemType: 'regulation', itemId: 'r1', variant: 'row', initialWatched: true })),
+      React.createElement('div', { 'data-audit': 'unwatched' },
+        React.createElement(WatchButton, { itemType: 'regulation', itemId: 'r2', variant: 'row', initialWatched: false })),
+    ),
+  );
+};
+`;
+
 // ── Market + Research list rows — signal-kind / theme tag (real components) ───────────────────
 // README §0.4: "Market and Research rows add a signal-kind tag after the type — a tag, never a
 // band." Fixtures reproduce the shapes ../smoke/market-rows-smoke.mjs and research-rows-smoke.mjs
@@ -591,6 +616,12 @@ export const AUDIT_MOUNTS = {
     description: 'PeerOrgDirectoryTable (community), not in the 17 artboards — general-rule checks only.',
     viewport: 1440,
     entry: PEERORGTABLE_ENTRY,
+  },
+  watchbutton: {
+    id: 'watchbutton',
+    description: 'WatchButton row variant, watched=true + watched=false (operator ruling 3.5).',
+    viewport: 1440,
+    entry: WATCHBUTTON_ENTRY,
   },
   'market-research-rows': {
     id: 'market-research-rows',
