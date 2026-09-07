@@ -185,8 +185,6 @@ export function ResearchFindingDetailSurface({
           title={r.title}
           meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          askPlaceholder="Ask about this finding"
-          askScope="research-finding-detail"
           extraChips={
             <>
               <TagChip>Finding</TagChip>

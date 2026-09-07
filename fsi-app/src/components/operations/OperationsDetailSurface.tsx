@@ -182,8 +182,6 @@ export function OperationsDetailSurface({
           title={r.title}
           meta={meta}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          askPlaceholder="Ask about this profile"
-          askScope="operations-profile-detail"
           extraChips={
             <>
               <TagChip>Regional profile</TagChip>

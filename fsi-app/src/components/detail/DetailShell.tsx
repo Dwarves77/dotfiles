@@ -15,6 +15,17 @@
  *   index (S1 . S2 . S3 ...) -> sections of FactCards at <=72ch -> rail.
  *   Section names vary by surface; the shape, rail and index never do.
  *   No tabs, no per-tab ask bar, no "Complete brief" toggle.
+ *
+ * DEFECT-FIX (item 2.3, 2026-09-07): DetailHeader no longer mounts a second
+ * `CommandBar` scoped to the item (the old `askPlaceholder`/`askScope`
+ * props). "The CommandBar in the Masthead is the only search/ask surface" —
+ * a per-item ask box living inside this header was a second ask surface on
+ * every detail page, which the audit named directly. Confirmed by code
+ * search (2026-09-07) that no detail route today mounts the shared
+ * `ui/Masthead` (that component is presently list/dashboard-only — see its
+ * own header); relocating the scoped placeholder onto a detail-page
+ * Masthead is therefore a separate, larger architecture change than "remove
+ * the second ask box," logged in DEVIATION-LOG.md rather than invented here.
  */
 
 import { Suspense, useEffect, useState } from "react";
@@ -22,7 +33,6 @@ import { useSearchParams, usePathname } from "next/navigation";
 import Link from "next/link";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { BandChip, TierChip } from "@/components/ui/Chips";
-import { CommandBar } from "@/components/ui/CommandBar";
 import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/MilestoneTimeline";
 import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
@@ -58,21 +68,9 @@ export interface DetailHeaderProps {
    * caller.
    */
   tagRow?: React.ReactNode;
-  /**
-   * Scoped ask placeholder (lane uiactions, 2026-09-07, README §0.3 "no
-   * per-page ask panel, the CommandBar in the Masthead is the only
-   * search/ask surface" + design ruling R4): e.g. "Ask about this
-   * regulation". Rendering it mounts the SAME shared `CommandBar` part
-   * every list/dashboard masthead uses (never a bespoke per-page ask box)
-   * scoped to this item via `askScope`. Optional, a detail surface that
-   * omits it renders exactly the header it had before.
-   */
-  askPlaceholder?: string;
-  /** Assistant scope tag passed through to CommandBar, e.g. "regulation-detail". */
-  askScope?: string;
 }
 
-export function DetailHeader({ band, tier, title, meta, actions, extraChips, tagRow, askPlaceholder, askScope }: DetailHeaderProps) {
+export function DetailHeader({ band, tier, title, meta, actions, extraChips, tagRow }: DetailHeaderProps) {
   return (
     <header
       style={{
@@ -125,14 +123,9 @@ export function DetailHeader({ band, tier, title, meta, actions, extraChips, tag
           </h1>
           {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
         </div>
-        {(askPlaceholder || actions) && (
+        {actions && (
           <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, maxWidth: "100%" }}>
-            {askPlaceholder && (
-              <div style={{ width: 320, maxWidth: "100%" }}>
-                <CommandBar itemCount={0} placeholder={askPlaceholder} scope={askScope} />
-              </div>
-            )}
-            {actions && <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>}
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
           </div>
         )}
       </div>
