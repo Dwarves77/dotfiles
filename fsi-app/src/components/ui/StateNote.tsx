@@ -17,7 +17,9 @@ export interface StateNoteProps {
 }
 
 export function StateNote({ band, children, action }: StateNoteProps) {
-  const color = band ? band.cssVar : "var(--ink-2)";
+  // Operator audit item 2.6 (2026-09-07, CLOSED ruling): "Neutral variant #5A5552 on #F5F2EE" —
+  // the prior neutral edge was --ink-2 (#5A6B67), a shade off the ruled value. --brand is #5A5552.
+  const color = band ? band.cssVar : "var(--brand)";
   const bg = band ? band.tintCssVar : "var(--tag)";
   return (
     <div

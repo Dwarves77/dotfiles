@@ -17,6 +17,7 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { formatNumber, formatLocaleDate } from "@/lib/format";
@@ -35,13 +36,16 @@ const DUE_NEXT_CAP = 5;
 const CHANGED_CAP = 6;
 
 function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
+  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings): the graduated rule ABOVE the
+  // section title wins (see `Card`'s own SectionRule, which this heading sits directly under) —
+  // no divider below the title. The prior 2px solid ink bottom border here was exactly the
+  // wrong-direction divider ruling 4.1 removes.
   return (
     <div
       style={{
         display: "flex",
         alignItems: "baseline",
         justifyContent: "space-between",
-        borderBottom: "2px solid var(--ink)",
         padding: "14px 16px 8px",
         gap: 12,
       }}
@@ -99,6 +103,10 @@ function CardFoot({ left, right }: { left: ReactNode; right: ReactNode }) {
 }
 
 function Card({ children }: { children: ReactNode }) {
+  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings, artboard 18): every panel/section
+  // card sitewide gets the 3px top gradient rule (full card width, top edge, no radius on it) and
+  // loses the divider that used to sit below the section title — see `<SectionRule/>`'s own header
+  // for the shared value and `SectionHeading` above for the removed divider.
   return (
     <div
       style={{
@@ -109,6 +117,7 @@ function Card({ children }: { children: ReactNode }) {
         overflow: "hidden",
       }}
     >
+      <SectionRule />
       {children}
     </div>
   );
