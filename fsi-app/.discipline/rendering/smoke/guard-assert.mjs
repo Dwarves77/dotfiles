@@ -8,7 +8,7 @@
 // harness.mjs re-exports this file's exports for spec-file convenience; specs never import this file
 // directly — they import from harness.mjs.
 
-import { detectOverflows, findPlaceholderLiterals } from '../assertions.mjs';
+import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations } from '../assertions.mjs';
 
 /** Run the overflow + placeholder-literal detectors against a `measureGuard()`-shaped result
  *  (`{ measurements, texts }`) and return human-readable failure strings (empty = clean), prefixed
@@ -38,4 +38,21 @@ export function assertGuardClean(label, { measurements, texts }, known = []) {
   return failures;
 }
 
-export { detectOverflows, findPlaceholderLiterals };
+/** Run the cell-bounds detector (D1 class, 2026-09-07) against a `measureBoundsSweep()`-shaped
+ *  result (an array of `{ name, containerRect, cells }`) and return human-readable failure
+ *  strings (empty = clean), prefixed with `label`. Pure: takes already-collected rects, never
+ *  touches a page. Catches what `assertGuardClean`'s `detectOverflows` structurally cannot — a
+ *  cell's content box bleeding into a sibling's box (or past its own card) with the container
+ *  itself never gaining a horizontal scrollbar. */
+export function assertBoundsClean(label, sweepResults) {
+  const failures = [];
+  for (const { name, containerRect, cells } of sweepResults) {
+    const violations = detectBoundsViolations(containerRect, cells);
+    if (violations.length > 0) {
+      failures.push(`${label}: bounds violation in ${name} — ${violations.join('; ')}`);
+    }
+  }
+  return failures;
+}
+
+export { detectOverflows, findPlaceholderLiterals, detectBoundsViolations };

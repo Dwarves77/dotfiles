@@ -46,7 +46,7 @@ import * as esbuild from 'esbuild';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
-import { assertGuardClean, detectOverflows, findPlaceholderLiterals } from './guard-assert.mjs';
+import { assertGuardClean, detectOverflows, findPlaceholderLiterals, assertBoundsClean } from './guard-assert.mjs';
 
 const HERE = fileURLToPath(new URL('.', import.meta.url));
 
@@ -152,4 +152,72 @@ export async function measureGuard(page) {
   });
 }
 
-export { assertGuardClean, detectOverflows, findPlaceholderLiterals };
+/**
+ * D1 rendering-guard UX assertion (operator report 2026-09-07): collect the bounding rects a
+ * cell-bounds scan needs — the actual per-cell/per-card boxes `detectBoundsViolations`
+ * (assertions.mjs) compares, since neither `detectOverflows` (whole-container scrollWidth) nor a
+ * text scan can see one cell's content bleeding into a sibling's box while the container itself
+ * stays perfectly scroll-free.
+ *
+ * Two shapes of container are swept, each returned as `{ name, containerRect, cells }`:
+ *   1. Every `.cl-list-row` / `.cl-list-row-header` (ListRow's own grid) — cells are the eight
+ *      named grid-cell classes (`.cl-row-spine`, `.cl-row-juris`, ..., `.cl-row-overflow`), read
+ *      via a descendant selector rather than direct children because ListRow's title/tail cells
+ *      sit inside `display: contents` wrappers (`.cl-row-content`/`.cl-row-line1`/`.cl-row-line2`)
+ *      that are transparent to grid layout — their real DIRECT children are what actually occupy a
+ *      grid column. `.cl-row-link` (the whole-row absolutely-positioned click target — ListRow's
+ *      own header comments this is DELIBERATE, spanning multiple cells on purpose) is excluded by
+ *      name, never swept as a "cell".
+ *   2. Every `[data-guard-container]` card — its own DIRECT children, excluding `<style>` tags,
+ *      `aria-hidden="true"` decorative elements, and anything CSS-positioned `absolute`/`fixed`
+ *      (the deliberate-overlay pattern — a click-catcher Link, a floating action button — which is
+ *      allowed to occupy the same box as its siblings by design). This is the generic overlap/
+ *      overflow sweep: any OTHER element whose box overlaps a normal-flow sibling's or exceeds its
+ *      parent card is a rendering defect, regardless of which component produced it.
+ */
+export async function measureBoundsSweep(page, { cardSelector = '[data-guard-container]' } = {}) {
+  return page.evaluate(
+    ({ cardSelector }) => {
+      const rectOf = (el) => {
+        const r = el.getBoundingClientRect();
+        return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+      };
+      const isOverlay = (el) => {
+        const pos = getComputedStyle(el).position;
+        return pos === 'absolute' || pos === 'fixed';
+      };
+      const skip = (el) =>
+        el.tagName === 'STYLE' || el.tagName === 'SCRIPT' || el.getAttribute('aria-hidden') === 'true';
+
+      const results = [];
+
+      for (const card of document.querySelectorAll(cardSelector)) {
+        const cells = Array.from(card.children)
+          .filter((el) => !skip(el) && !isOverlay(el))
+          .map((el) => ({ name: el.className || el.tagName, rect: rectOf(el) }));
+        results.push({ name: card.getAttribute('data-guard-container') || card.tagName, containerRect: rectOf(card), cells });
+      }
+
+      const ROW_CELL_SELECTOR =
+        '.cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow';
+      for (const row of document.querySelectorAll('.cl-list-row')) {
+        const cells = Array.from(row.querySelectorAll(ROW_CELL_SELECTOR)).map((el) => ({
+          name: el.className,
+          rect: rectOf(el),
+        }));
+        results.push({ name: 'cl-list-row', containerRect: rectOf(row), cells });
+      }
+      for (const header of document.querySelectorAll('.cl-list-row-header')) {
+        const cells = Array.from(header.children)
+          .filter((el) => !skip(el))
+          .map((el) => ({ name: (el.textContent || '').trim() || el.tagName, rect: rectOf(el) }));
+        results.push({ name: 'cl-list-row-header', containerRect: rectOf(header), cells });
+      }
+
+      return results;
+    },
+    { cardSelector },
+  );
+}
+
+export { assertGuardClean, detectOverflows, findPlaceholderLiterals, assertBoundsClean };

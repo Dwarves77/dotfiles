@@ -40,8 +40,28 @@
 
 import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
-import { bundleEntry, newSmokePage, mountBundle, measureGuard, detectOverflows, findPlaceholderLiterals } from './harness.mjs';
+import {
+  bundleEntry,
+  newSmokePage,
+  mountBundle,
+  measureGuard,
+  detectOverflows,
+  findPlaceholderLiterals,
+  measureBoundsSweep,
+  assertBoundsClean,
+} from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
+
+// D1 rendering-guard UX assertion (operator report 2026-09-07, "your text is too right and it
+// overlays different areas"): the Due-next/What-changed ListRow cells and every
+// `[data-guard-container]` card are swept for a cell's content box escaping its own column or
+// overlapping a sibling — the class of defect `detectOverflows` above cannot see (it only catches
+// the whole container gaining a horizontal scrollbar; this defect never did). Measured at 1440,
+// the dashboard's own real-world width (`docs/design/handoff-2026-09-06/screens/01-dashboard.png`,
+// `DashboardBrief`'s `maxWidth: 1440` outer wrapper) — DESKTOP_VIEWPORT above is 1280 and stays for
+// the existing UX battery, but this defect's own report was measured and fixed at 1440, so this
+// check runs there specifically rather than assuming the two widths agree.
+const BOUNDS_VIEWPORT = { width: 1440, height: 900 };
 
 const STYLE_INJECT = `
 (() => {
@@ -95,7 +115,7 @@ const EMPTY_SURFACE_COVERAGE = {
 const LONG = (n, word = 'extremely-long-dashboard-title-token') =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
 
-function resource(i, { long = false } = {}) {
+function resource(i, { long = false, unscored = false } = {}) {
   return {
     id: `r${i}`,
     title: long ? `${LONG(7)} #${i}` : `Corporate Sustainability Reporting Directive #${i}`,
@@ -104,7 +124,19 @@ function resource(i, { long = false } = {}) {
     jurisdictionIso: [i % 2 === 0 ? 'EU' : 'US'],
     sourceTier: (i % 7) + 1,
     complianceDeadline: '2027-01-01',
-    impactScores: { cost: 3, compliance: 2, clientFacing: 3, operational: 2 },
+    // `unscored` (D1 fixture, 2026-09-07): a real, non-fabricated Due-next row with NO impact
+    // score — matches production, where most items have no impactScores row yet and the Due-next
+    // card renders ImpactMeter's unscored branch (30px dashed baseline + the Absence reason)
+    // beside the DUE column's dates. Never exercised before this fixture: every prior item here
+    // set `impactScores`, so `ImpactMeter`'s unscored branch — the one D1's collision came from —
+    // was never mounted by this spec at all.
+    // Pre-existing fixture bug fixed in passing (D1 lane, 2026-09-07): `client` is the field
+    // ImpactMeter/ImpactScores actually reads (src/types/resource.ts); this fixture had typoed it
+    // as `clientFacing`, which the isScored/dims computation silently tolerated (some() over the
+    // other three real fields still returned true) but which produced `NaN/12` in every scored
+    // row's own sum — visible once this lane's screenshot check first looked at this fixture's
+    // scored rows directly. Unrelated to D1/D2; fixed because it was found while fixing D1.
+    impactScores: unscored ? null : { cost: 3, compliance: 2, client: 3, operational: 2 },
     timeline: [],
     domain: 1,
     type: 'regulation',
@@ -135,7 +167,9 @@ const STATES = [
     label: 'extreme',
     props: {
       ...baseProps(
-        Array.from({ length: 10 }, (_, i) => resource(i, { long: true })),
+        // i === 0 is unscored (D1 fixture): the Due-next card's first row renders ImpactMeter's
+        // unscored branch beside its DUE date, the exact collision the operator reported.
+        Array.from({ length: 10 }, (_, i) => resource(i, { long: true, unscored: i === 0 })),
         Array.from({ length: 10 }, (_, i) => ({ id: `c${i}`, title: `${LONG(6)} change #${i}`, priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 })),
       ),
       aggregates: POPULATED_AGGREGATES,
@@ -193,6 +227,25 @@ export async function runSmoke(browser) {
       }
     }
   }
+
+  // D1 cell-bounds sweep at 1440 (the dashboard's own real-world width) — see this file's header
+  // and BOUNDS_VIEWPORT's own comment. Runs on 'one-row' and 'extreme' (the two populated states;
+  // 'empty' renders StateNote copy, no ListRow at all, nothing to sweep).
+  for (const state of STATES.filter((s) => s.label !== 'empty')) {
+    const label = `dashboard-brief:${state.label}@${BOUNDS_VIEWPORT.width}:bounds`;
+    const page = await newSmokePage(browser);
+    try {
+      await page.setViewportSize(BOUNDS_VIEWPORT);
+      await mountBundle(page, bundleJs, '__mount', state.props);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
+      const sweep = await measureBoundsSweep(page);
+      checks += 1;
+      failures.push(...assertBoundsClean(label, sweep));
+    } finally {
+      await page.close();
+    }
+  }
+
   return { checks, failures };
 }
 

@@ -104,6 +104,14 @@
       "expect": { "count": "1" }
     }
   ],
+  "boundsCheck": [
+    {
+      "name": "Due next / What changed ListRow cells — no cell escapes its 88px impact column or overlaps DUE (D1, operator report 2026-09-07)",
+      "container": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header",
+      "cells": ".cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
+      "reason": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
+    }
+  ],
   "forbid": [
     {
       "name": "floating Ask AI button (bottom-right, every page)",

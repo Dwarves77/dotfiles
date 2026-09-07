@@ -16,7 +16,7 @@
 // invoked by run-rendering-guard.mjs's registration block, which owns the one chromium instance every
 // smoke spec (and every fixture leg) shares.
 
-import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
+import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean, measureBoundsSweep, assertBoundsClean } from './harness.mjs';
 import { watchlistFixtures } from './smoke-fixtures.mjs';
 
 const ENTRY = `
@@ -139,6 +139,19 @@ export async function runSmoke(browser) {
       failures.push('watchlist-team[extreme]: standing-at-the-read-cap honest banner did not render at limit === items.length.');
     }
 
+    await page.close();
+  }
+
+  // D1 cell-bounds sweep at 1440 (this list page's own ListRow use, one of the five list surfaces
+  // the operator report named) — see dashboard-brief-smoke.mjs's BOUNDS_VIEWPORT comment.
+  {
+    const page = await newSmokePage(browser);
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await mountBundle(page, bundleJs, '__mount', extreme);
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+    const sweep = await measureBoundsSweep(page);
+    checks++;
+    failures.push(...assertBoundsClean('watchlist-team[extreme]@1440:bounds', sweep));
     await page.close();
   }
 

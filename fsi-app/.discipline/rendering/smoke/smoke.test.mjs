@@ -7,7 +7,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { assertGuardClean } from './guard-assert.mjs';
+import { assertGuardClean, assertBoundsClean } from './guard-assert.mjs';
 import {
   watchlistFixtures,
   archiveFixtures,
@@ -119,4 +119,36 @@ test('notificationsFixtures: unread volume escalates empty -> oneRow -> extreme,
   assert.equal(oneRow.notifications.length, 1);
   assert.ok(extreme.unreadCount > 99, 'extreme fixture must exceed the bell\'s ">99" badge-truncation threshold');
   assert.ok(extreme.notifications.length > 5, 'extreme-data state should carry many notification rows');
+});
+
+// ── assertBoundsClean (D1 class, 2026-09-07) ─────────────────────────────────
+
+test('assertBoundsClean: clean cells (no overlap, no container escape) produce no failures', () => {
+  const failures = assertBoundsClean('x', [
+    {
+      name: 'cl-list-row',
+      containerRect: { left: 0, top: 0, right: 780, bottom: 56 },
+      cells: [
+        { name: 'cl-row-impact', rect: { left: 582, top: 19, right: 670, bottom: 37, width: 88, height: 18 } },
+        { name: 'cl-row-due', rect: { left: 684, top: 19, right: 768, bottom: 37, width: 84, height: 18 } },
+      ],
+    },
+  ]);
+  assert.deepEqual(failures, []);
+});
+
+test('assertBoundsClean: a cell overlapping a sibling is reported, prefixed by label and named', () => {
+  const failures = assertBoundsClean('dashboard-brief:extreme@1440:bounds', [
+    {
+      name: 'cl-list-row',
+      containerRect: { left: 0, top: 0, right: 780, bottom: 56 },
+      cells: [
+        { name: 'cl-row-impact', rect: { left: 582, top: 19, right: 700, bottom: 37, width: 118, height: 18 } },
+        { name: 'cl-row-due', rect: { left: 684, top: 19, right: 768, bottom: 37, width: 84, height: 18 } },
+      ],
+    },
+  ]);
+  assert.equal(failures.length, 1);
+  assert.match(failures[0], /^dashboard-brief:extreme@1440:bounds: bounds violation in cl-list-row/);
+  assert.match(failures[0], /cl-row-impact overlaps cl-row-due/);
 });

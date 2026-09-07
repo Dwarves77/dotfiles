@@ -96,6 +96,13 @@ const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
  * row instead of a page-local one.
  */
 export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string }) {
+  // Every header cell is a grid item in the same fixed GRID the rows use (88px impact, 84px due,
+  // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
+  // auto`, which otherwise refuses to shrink below its content's intrinsic width — the exact
+  // mechanism that let "Impact low → high" push past its 88px column and collide with the DUE
+  // column's dates (operator report 2026-09-07, D1). `whiteSpace: nowrap` + `textOverflow:
+  // ellipsis` + `overflow: hidden` keep every label on ONE line, clipped inside its own column
+  // rather than wrapping into a second line or bleeding into the next column.
   const cellStyle: CSSProperties = {
     fontSize: "var(--fs-95)",
     fontWeight: 700,
@@ -104,6 +111,10 @@ export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string })
     color: "var(--ink-3)",
     display: "flex",
     alignItems: "center",
+    minWidth: 0,
+    overflow: "hidden",
+    whiteSpace: "nowrap",
+    textOverflow: "ellipsis",
   };
   return (
     <div
@@ -169,6 +180,8 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         justifyContent: "space-between",
         gap: 10,
         paddingRight: 4,
+        minWidth: 0,
+        overflow: "hidden",
       }}
     >
       <span
@@ -199,10 +212,22 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
     </span>
   ) : (
     <>
-      <span className="cl-row-impact" style={{ display: "flex", alignItems: "center" }}>
+      {/* `minWidth: 0` on every fixed-width grid cell (D1, operator report 2026-09-07): a grid
+          item's default `min-width: auto` refuses to shrink below its content's intrinsic width,
+          so a cell whose content is wider than its column (the unscored ImpactMeter's dashed
+          baseline + Absence reason is the case that shipped a visible defect) bleeds into the
+          next column instead of being contained by it. `overflow: hidden` is added ONLY on the
+          impact cell, which is where a fix was actually needed (ImpactMeter's unscored content is
+          made to WRAP inside its column, so nothing here is ever clipped — this is a backstop, not
+          the mechanism): the due/timeline/tier cells are left overflow-VISIBLE, because their own
+          content (nowrap dates, the Absence "not in primary source"/"pending" reason) already
+          wraps or sizes safely within its column via ordinary flex-shrink — an `overflow: hidden`
+          tried here during this fix clipped "not in primary source" mid-word instead of letting it
+          wrap, a regression caught in this lane's own screenshot check, not a fix. */}
+      <span className="cl-row-impact" style={{ display: "flex", alignItems: "center", minWidth: 0, overflow: "hidden" }}>
         <ImpactMeter scores={impact} />
       </span>
-      <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end" }}>
+      <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end", minWidth: 0 }}>
         {due ? (
           <>
             <span className="cl-row-due-label" style={{ fontSize: "var(--fs-125)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap" }}>
@@ -214,10 +239,10 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           <Absence reason="pending" />
         )}
       </span>
-      <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center" }}>
+      <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
-      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center" }}>
+      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center", minWidth: 0 }}>
         {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
       </span>
     </>
@@ -280,6 +305,9 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
               fontWeight: 700,
               color: "var(--ink-2)",
               letterSpacing: "0.06em",
+              minWidth: 0,
+              overflow: "hidden",
+              whiteSpace: "nowrap",
             }}
           >
             {jurisdiction}

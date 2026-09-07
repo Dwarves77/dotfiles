@@ -8,7 +8,7 @@
 // every fetch, no network, no database, no credential. Imports esbuild transitively via harness.mjs, so
 // this file is NOT in the no-npm node --test suite; its pure core (ux-assert.mjs) is.
 
-import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
+import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean, measureBoundsSweep, assertBoundsClean } from './harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 
 /** iPhone-class portrait viewport (the operator's device class, 2026-09-03 screenshots). */
@@ -18,6 +18,11 @@ export const DESKTOP_VIEWPORT = Object.freeze({ width: 1280, height: 800 });
 // the wiring audit's Appendix B (dead exports, 2026-09-04) — MOBILE_VIEWPORT/DESKTOP_VIEWPORT above
 // remain exported since other callers import them individually.
 const UX_VIEWPORTS = Object.freeze([MOBILE_VIEWPORT, DESKTOP_VIEWPORT]);
+// D1 rendering-guard UX assertion (operator report 2026-09-07): the five list pages' own
+// real-world width — the sweep runs here, ADDITIVE to UX_VIEWPORTS above, so every existing
+// runUxSpec caller (market/research/operations/regulations-strip/regulations-register) gets the
+// same cell-bounds coverage the dashboard fixture gained, with no per-spec wiring.
+const BOUNDS_VIEWPORT = Object.freeze({ width: 1440, height: 900 });
 
 /**
  * @param {object} browser Playwright browser (the runner's single chromium instance)
@@ -66,5 +71,26 @@ export async function runUxSpec(browser, spec) {
       }
     }
   }
+
+  // D1 cell-bounds sweep at 1440 (see BOUNDS_VIEWPORT's header comment) — every ListRow/
+  // ListRowColumnHeader this spec's states mount is swept for a cell escaping its own grid column
+  // or overlapping a sibling. A spec with no ListRow (e.g. a filter bar) simply sweeps zero rows —
+  // this never turns a spec that mounts no rows into a failure.
+  for (const state of spec.states) {
+    const label = `${spec.name}:${state.label}@${BOUNDS_VIEWPORT.width}:bounds`;
+    const page = await newSmokePage(browser, { apiRoutes: spec.apiRoutes || [] });
+    try {
+      await page.setViewportSize(BOUNDS_VIEWPORT);
+      await mountBundle(page, bundleJs, '__mount', state.props);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+      await page.waitForTimeout(50);
+      const sweep = await measureBoundsSweep(page);
+      checks += 1;
+      failures.push(...assertBoundsClean(label, sweep));
+    } finally {
+      await page.close();
+    }
+  }
+
   return { checks, failures };
 }

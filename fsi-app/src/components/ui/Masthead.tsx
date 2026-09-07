@@ -77,6 +77,23 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           command bar drops to full width under the title. Below 768
           (theme.css's documented --bp-mobile). */}
       <style>{`
+        /* D2 fix (operator report 2026-09-07): "the top text under Jason's Brief" — the scope
+           line ("N items across N surfaces...") and the verticals line — wrapped with a one-word
+           orphan (e.g. "...Automotive & Motorsport, Humanitarian & NGO" / "Cargo" alone on the
+           next line). Greedy line-breaking packs every line but the last as full as possible,
+           which is exactly what strands a short remainder word alone; \`text-wrap: balance\`
+           distributes a block's own text evenly across its wrapped lines instead, so a multi-line
+           scope/verticals line splits evenly with no orphan. \`text-wrap: pretty\` is the
+           declared fallback for a browser that has \`pretty\` but not yet \`balance\` — the later
+           \`balance\` declaration wins wherever it is supported; an unsupported value is ignored
+           by the cascade, leaving \`pretty\` in effect. Applies to every page through this one
+           shared Masthead part, not a dashboard-only override; DIRECT children of \`.cl-masthead-
+           dek\` are each their own wrapped block (the scope line and the verticals line are two
+           separate <div>s), so the rule targets them individually rather than the dek container. */
+        .cl-masthead-dek > * {
+          text-wrap: pretty;
+          text-wrap: balance;
+        }
         @media (max-width: 767px) {
           .cl-masthead-body { padding: 14px 16px 0 !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }

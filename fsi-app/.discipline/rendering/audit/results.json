@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T23:10:23.813Z",
+  "runAt": "2026-09-07T23:54:42.104Z",
   "specs": [
     {
       "part": "Absence",
@@ -2264,6 +2264,14 @@
           }
         }
       ],
+      "boundsCheck": [
+        {
+          "name": "Due next / What changed ListRow cells — no cell escapes its 88px impact column or overlaps DUE (D1, operator report 2026-09-07)",
+          "container": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header",
+          "cells": ".cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
+          "reason": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
+        }
+      ],
       "forbid": [
         {
           "name": "floating Ask AI button (bottom-right, every page)",
@@ -2673,53 +2681,6 @@
           "expect": {
             "text": "Dashboard"
           }
-        },
-        {
-          "name": "nav card footer — row count (operator ruling 2026-09-07, superseding R2: ONE row, the logged-in person's name, opening Account/Admin/Settings/Sign out as menu options)",
-          "selector": "aside.hidden > div:last-child > *",
-          "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so the menu's role-gated Admin panel item is present to assert on in the dropdown spec below; the footer's own row count does not depend on role any more — it is always exactly 1.",
-          "expect": {
-            "count": "1"
-          }
-        },
-        {
-          "name": "nav card footer — the one row is the logged-in person's name (avatar glyph + name), workspace name right-aligned muted",
-          "selector": "aside.hidden > div:last-child > *:nth-child(1)",
-          "note": "Stub auth user is audit@smoke-guard.internal (../smoke/stub-auth-provider.mjs) — displayName is the email's local part, 'audit'. orgName is unset in this mount, so the Absence dash renders on the right.",
-          "expect": {
-            "text": "audit—"
-          }
-        },
-        {
-          "name": "nav card footer row — button role (aria-haspopup menu trigger, not a Link)",
-          "selector": "aside.hidden > div:last-child button[aria-haspopup=\"menu\"]",
-          "expect": {
-            "text": "audit—"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "a separate Account row/link",
-          "selector": "aside.hidden > div:last-child a",
-          "textMatch": "Account",
-          "reason": "Operator ruling 2026-09-07, superseding R2 and the coordinator default that preceded it: 'we don't need separate Account and Admin buttons visible if they pop up as options when you click the logged-in person's name.' Account is now a menu item inside UserMenuDropdown (Workspace profile), not its own footer row."
-        },
-        {
-          "name": "a separate Admin row/link or OWNER badge in the footer",
-          "selector": "aside.hidden > div:last-child a, aside.hidden > div:last-child *",
-          "textMatch": "OWNER",
-          "reason": "Same ruling: Admin (and its role badge) moves into the menu (Admin panel, role-gated, with its attention count) instead of its own footer row."
-        },
-        {
-          "name": "a third footer row of any kind",
-          "selector": "aside.hidden > div:last-child > *:nth-child(2)",
-          "reason": "Exactly one row now — the name row. Nothing else is a direct child of the footer container."
-        },
-        {
-          "name": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",
-          "selector": "aside.hidden button[aria-label=\"Open user menu\"]",
-          "reason": "UserMenu.tsx was deleted in the coordinator-default lane; the single name row (aria-label 'Open account menu') is the only menu trigger in the footer."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/sidebar.json",
@@ -14181,6 +14142,26 @@
       "note": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
     },
     {
+      "spec": "page-frame",
+      "part": "Page frame (1440)",
+      "artboards": [
+        "00-system-sheet §0.3 'The frame'",
+        "01-dashboard",
+        "03-regulation-detail",
+        "18-section-treatments (ruling 5.1)",
+        "19-masthead-line-options (ruling 5.2)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
+      "viewport": 1440,
+      "target": "Due next / What changed ListRow cells — no cell escapes its 88px impact column or overlaps DUE (D1, operator report 2026-09-07)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header > .cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 5 row(s)",
+      "status": "MATCH",
+      "note": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
+    },
+    {
       "spec": "railcards",
       "part": "Rail cards (ImpactRailCard, AtAGlanceCard, RailLegend)",
       "artboards": [
@@ -15687,125 +15668,6 @@
       "actual": "Dashboard",
       "status": "MATCH",
       "note": null
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "nav card footer — row count (operator ruling 2026-09-07, superseding R2: ONE row, the logged-in person's name, opening Account/Admin/Settings/Sign out as menu options)",
-      "selector": "aside.hidden > div:last-child > *",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so the menu's role-gated Admin panel item is present to assert on in the dropdown spec below; the footer's own row count does not depend on role any more — it is always exactly 1."
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "nav card footer — the one row is the logged-in person's name (avatar glyph + name), workspace name right-aligned muted",
-      "selector": "aside.hidden > div:last-child > *:nth-child(1)",
-      "property": "text",
-      "expected": "audit—",
-      "actual": "audit—",
-      "status": "MATCH",
-      "note": "Stub auth user is audit@smoke-guard.internal (../smoke/stub-auth-provider.mjs) — displayName is the email's local part, 'audit'. orgName is unset in this mount, so the Absence dash renders on the right."
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "nav card footer row — button role (aria-haspopup menu trigger, not a Link)",
-      "selector": "aside.hidden > div:last-child button[aria-haspopup=\"menu\"]",
-      "property": "text",
-      "expected": "audit—",
-      "actual": "audit—",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "a separate Account row/link",
-      "selector": "aside.hidden > div:last-child a [text contains \"Account\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Operator ruling 2026-09-07, superseding R2 and the coordinator default that preceded it: 'we don't need separate Account and Admin buttons visible if they pop up as options when you click the logged-in person's name.' Account is now a menu item inside UserMenuDropdown (Workspace profile), not its own footer row."
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "a separate Admin row/link or OWNER badge in the footer",
-      "selector": "aside.hidden > div:last-child a, aside.hidden > div:last-child * [text contains \"OWNER\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Same ruling: Admin (and its role badge) moves into the menu (Admin panel, role-gated, with its attention count) instead of its own footer row."
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "a third footer row of any kind",
-      "selector": "aside.hidden > div:last-child > *:nth-child(2)",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Exactly one row now — the name row. Nothing else is a direct child of the footer container."
-    },
-    {
-      "spec": "sidebar",
-      "part": "Sidebar (nav card, inline-style-driven properties only)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
-      "viewport": 1440,
-      "target": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",
-      "selector": "aside.hidden button[aria-label=\"Open user menu\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "UserMenu.tsx was deleted in the coordinator-default lane; the single name row (aria-label 'Open account menu') is the only menu trigger in the footer."
     },
     {
       "spec": "skeleton",

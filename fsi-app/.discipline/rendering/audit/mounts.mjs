@@ -528,8 +528,33 @@ const PAGE_FRAME_FIXTURES = {
         note: '',
         tags: [],
       },
+      // D1 fixture (operator report 2026-09-07, page-frame boundsCheck below): a real, unscored
+      // Due-next row — `impactScores` omitted, matching production where most items have no
+      // impact score yet. Without this the audit's page-frame mount, like the pre-fix rendering-
+      // guard smoke fixture, never mounted ImpactMeter's unscored branch (the 30px dashed baseline
+      // + Absence "unscored" reason) at all, so it could not have caught the collision either.
+      {
+        id: 'r1',
+        title: 'EUDR — EU Deforestation Regulation',
+        priority: 'CRITICAL',
+        jurisdiction: 'EU',
+        jurisdictionIso: ['EU'],
+        sourceTier: 1,
+        complianceDeadline: '2026-12-30',
+        timeline: [],
+        domain: 1,
+        type: 'regulation',
+        modes: ['Ocean', 'Road'],
+        topic: 'reporting',
+        note: '',
+        tags: [],
+      },
     ],
-    recentChanges: [],
+    // Non-empty so the "What changed" card renders its ListRow rows (always `impact={null}` —
+    // DashboardBrief.tsx — i.e. always the unscored branch) instead of the empty-state StateNote.
+    recentChanges: [
+      { id: 'c0', title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods', priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 },
+    ],
     auditDate: '2026-09-07',
     aggregates: {
       totalItems: 1434,

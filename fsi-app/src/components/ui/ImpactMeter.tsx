@@ -58,7 +58,23 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
         className={variant === "row" ? "cl-impact-unscored" : undefined}
         aria-label="Impact not scored"
         title="Impact not scored"
-        style={{ display: "flex", alignItems: "center", gap: 6 }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          // D1 fix (operator report 2026-09-07): the 30px dashed baseline plus the Absence
+          // component's small-caps "unscored" reason is wider than the row's 88px impact
+          // column at the row variant's original font size/gap. Rather than shrink the fixed
+          // 30px baseline (operator ruling: "one width, desktop and mobile") or the Absence
+          // vocabulary's own type scale, this wraps to a second line INSIDE the column instead
+          // of bleeding into the DUE column — `minWidth: 0` lets the flex item shrink to the
+          // grid cell's actual 88px, `maxWidth: 100%` bounds it there, `flexWrap: wrap` drops
+          // the reason onto its own line rather than clipping or overflowing it.
+          flexWrap: variant === "row" ? "wrap" : undefined,
+          rowGap: 2,
+          minWidth: 0,
+          maxWidth: "100%",
+        }}
       >
         {variant === "row" && <style>{MOBILE_CSS}</style>}
         <span
@@ -140,7 +156,7 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
     <span
       className="cl-impact-scored"
       aria-label={`Impact ${sum} of 12`}
-      style={{ display: "flex", alignItems: "flex-end", gap: 0 }}
+      style={{ display: "flex", alignItems: "flex-end", gap: 0, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
     >
       <style>{MOBILE_CSS}</style>
       <span

@@ -34,6 +34,7 @@ import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
 import { AUDIT_MOUNTS } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
+import { detectBoundsViolations } from '../assertions.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -141,6 +142,70 @@ async function probe(page, targets, forbids) {
     },
     { targets, forbids },
   );
+}
+
+/**
+ * D1 audit check (operator report 2026-09-07): a `boundsCheck` entry names a row/header selector
+ * and a cell selector — for every matched row, every matched cell's `getBoundingClientRect()` is
+ * checked against its row's own box (no cell escapes it) and against its sibling cells (no two
+ * overlap). This is what `expect`/`children`'s value-level checks structurally cannot do (they
+ * read `getComputedStyle`, never geometry against a SIBLING), and what `detectOverflows`
+ * (the smoke specs' own guard) cannot do either (it only sees a container's own scrollWidth vs
+ * clientWidth — never one cell bleeding into another while the container itself stays scroll-
+ * free, which is exactly the reported defect).
+ */
+async function probeBounds(page, checks) {
+  return page.evaluate((checks) => {
+    const rectOf = (el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    };
+    return checks.map((check) => {
+      const rows = Array.from(document.querySelectorAll(check.container));
+      const perRow = rows.map((row) => ({
+        containerRect: rectOf(row),
+        cells: Array.from(row.querySelectorAll(check.cells)).map((el) => ({ name: el.className || el.tagName, rect: rectOf(el) })),
+      }));
+      return { rowCount: rows.length, perRow };
+    });
+  }, checks);
+}
+
+function rowsForBounds(spec, checks, measured) {
+  const rows = [];
+  const base = { spec: spec.__id, part: spec.part, artboards: spec.artboards, source: spec.source, viewport: spec.viewport };
+  checks.forEach((check, i) => {
+    const { rowCount, perRow } = measured[i];
+    if (rowCount === 0) {
+      rows.push({
+        ...base,
+        target: check.name,
+        selector: check.container,
+        property: '(bounds)',
+        expected: 'present',
+        actual: 'no element matched this selector',
+        status: 'NOT BUILT',
+        note: check.reason ?? null,
+      });
+      return;
+    }
+    const allViolations = [];
+    perRow.forEach(({ containerRect, cells }, rowIdx) => {
+      const v = detectBoundsViolations(containerRect, cells);
+      if (v.length > 0) allViolations.push(`row ${rowIdx}: ${v.join('; ')}`);
+    });
+    rows.push({
+      ...base,
+      target: check.name,
+      selector: `${check.container} > ${check.cells}`,
+      property: '(cell containment)',
+      expected: 'no cell overlaps a sibling or exceeds its row',
+      actual: allViolations.length === 0 ? `clean across ${rowCount} row(s)` : allViolations.join(' | '),
+      status: allViolations.length === 0 ? 'MATCH' : 'MISMATCH',
+      note: check.reason ?? null,
+    });
+  });
+  return rows;
 }
 
 function rowsFor(spec, targets, measuredTargets, forbids, measuredForbids) {
@@ -351,6 +416,12 @@ async function main() {
           forbids.map((f) => ({ selector: f.selector, textMatch: f.textMatch ?? null, matchStyle: f.matchStyle ?? null })),
         );
         rows.push(...rowsFor(spec, targets, measured.targets, forbids, measured.forbids));
+
+        const boundsChecks = spec.boundsCheck || [];
+        if (boundsChecks.length > 0) {
+          const measuredBounds = await probeBounds(page, boundsChecks);
+          rows.push(...rowsForBounds(spec, boundsChecks, measuredBounds));
+        }
       } finally {
         await page.close();
       }

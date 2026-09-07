@@ -64,6 +64,63 @@ export function hydrationAgrees(serverText, clientFirstText) {
   return serverText === clientFirstText;
 }
 
+// ── 4. Cell-bounds detector (D1 class, 2026-09-07) ─────────────────────────────
+// `detectOverflows` above only catches a CONTAINER's own scrollWidth exceeding its clientWidth —
+// the whole-page/whole-card horizontal-scroll case. It never catches a grid cell's content box
+// bleeding into a SIBLING cell while the container itself stays perfectly scroll-free (the actual
+// D1 defect: the impact column's "UNSCORED" reason ran past its 88px column into the DUE column's
+// dates — the card never gained a horizontal scrollbar, so `detectOverflows` was structurally blind
+// to it). This detector operates on plain rect objects (`{name, rect:{left,top,right,bottom,width,
+// height}}`, i.e. `DOMRect`-shaped but framework-free) so it is pure and portable — the caller (a
+// Playwright `page.evaluate`) does the actual `getBoundingClientRect()` collection; this file never
+// touches a DOM.
+
+const BOUNDS_TOLERANCE_PX = 1; // sub-pixel rounding slack, same posture as OVERFLOW_TOLERANCE_PX
+
+/** True when a cell's box extends outside its container box by more than the tolerance. */
+export function cellExceedsContainer(cellRect, containerRect, tolerance = BOUNDS_TOLERANCE_PX) {
+  return (
+    cellRect.right - containerRect.right > tolerance ||
+    containerRect.left - cellRect.left > tolerance ||
+    cellRect.bottom - containerRect.bottom > tolerance ||
+    containerRect.top - cellRect.top > tolerance
+  );
+}
+
+/** True when two rects share more than a sliver of area (both axes overlap beyond tolerance) —
+ *  i.e. one cell's content visually collides with another's, not just a shared 1px border. */
+export function rectsOverlap(a, b, tolerance = BOUNDS_TOLERANCE_PX) {
+  const overlapX = Math.min(a.right, b.right) - Math.max(a.left, b.left);
+  const overlapY = Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top);
+  return overlapX > tolerance && overlapY > tolerance;
+}
+
+/**
+ * Given one container's rect and its cell rects (siblings meant to sit in their own column/box,
+ * never overlapping and never spilling past the container), return human-readable violation
+ * strings. Empty = clean. Zero-size rects (a cell that rendered nothing, e.g. an empty overflow
+ * slot) are skipped — they cannot overflow or overlap by definition.
+ * @param {{left:number,top:number,right:number,bottom:number}} containerRect
+ * @param {{name:string, rect:{left:number,top:number,right:number,bottom:number,width:number,height:number}}[]} cells
+ */
+export function detectBoundsViolations(containerRect, cells, tolerance = BOUNDS_TOLERANCE_PX) {
+  const violations = [];
+  const live = (cells || []).filter((c) => c.rect.width > 0 && c.rect.height > 0);
+  for (const c of live) {
+    if (cellExceedsContainer(c.rect, containerRect, tolerance)) {
+      violations.push(`${c.name} extends outside its container`);
+    }
+  }
+  for (let i = 0; i < live.length; i++) {
+    for (let j = i + 1; j < live.length; j++) {
+      if (rectsOverlap(live[i].rect, live[j].rect, tolerance)) {
+        violations.push(`${live[i].name} overlaps ${live[j].name}`);
+      }
+    }
+  }
+  return violations;
+}
+
 /**
  * Property test: is `formatFn(iso)` independent of Date.now()? Evaluates the formatter with
  * Date.now stubbed to two far-apart instants (spanning minutes/hours/days) and reports whether the
