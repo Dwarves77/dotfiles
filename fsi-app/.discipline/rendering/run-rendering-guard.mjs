@@ -33,6 +33,7 @@ import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.
 import { runSmoke as runPersonalArchiveSmoke } from "./smoke/personal-archive-smoke.mjs";
 import { runSmoke as runListOrderSmoke } from "./smoke/list-order-smoke.mjs";
 import { runSmoke as runNotificationsSmoke } from "./smoke/notifications-smoke.mjs";
+import { runSmoke as runSettingsSectionIndexSmoke } from "./smoke/settings-section-index-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -130,6 +131,9 @@ async function main() {
     { name: "personal-archive", run: runPersonalArchiveSmoke },
     { name: "list-order", run: runListOrderSmoke },
     { name: "notifications", run: runNotificationsSmoke },
+    // lane UIADMIN2, 2026-09-07, ruling R9: mounts the real SettingsPage and proves the sticky
+    // SectionIndex (S1..S5) it now uses in place of the retired second-level tab row.
+    { name: "settings-section-index", run: runSettingsSectionIndexSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

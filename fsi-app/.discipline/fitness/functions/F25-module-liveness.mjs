@@ -875,6 +875,19 @@ export const LEGACY_ALLOWLIST = [
         o(`scripts/verify/${n}.mjs`,
           'a dated, operator-ruled verification/remediation tool under scripts/verify/ that is not one of run-data-audit-lane.mjs\'s dispatched AUDITS — hand-run per its own header\'s usage instructions, tied to a specific past ruling or incident rather than a recurring check.', 52,
           'Zero non-test importers, no workflow/package.json/AUDITS-table dispatch. Predates B1\'s window; scripts/verify/ one-shot family distinct from the AUDITS-table-dispatched audits.')),
+      // FactCard.tsx / fact-paragraphs.ts (lane UIADMIN2, 2026-09-07): cherry-picked from lane
+      // uidetails-2026-09-06's commit 34b476c5 alongside DetailShell.tsx (per ruling R9's own
+      // instruction) solely to reuse DetailShell's SectionIndex for the /settings section index —
+      // src/components/pages/SettingsPage.tsx imports ONLY SectionIndex, not FactCard. FactCard's
+      // real production callers are the four detail-surface pages (regulations/market/research/
+      // operations `[slug]/page.tsx`) that live on the not-yet-landed uidetails lane; they will wire
+      // this module the moment that lane lands (or a coordinator merges it ahead of this one).
+      w('src/components/ui/FactCard.tsx',
+        'wired by the four detail-surface pages on lane uidetails-2026-09-06 (regulations/market/research/operations [slug]/page.tsx) landing', 55,
+        'Brought in as a same-commit dependency of DetailShell.tsx (cherry-pick 34b476c5), which this lane needs only for SectionIndex; FactCard itself has no caller until the uidetails lane lands.'),
+      w('src/lib/detail/fact-paragraphs.ts',
+        'wired by the same four detail-surface pages (parses intelligence_item_sections.content_md for FactCard) on lane uidetails-2026-09-06 landing', 55,
+        'Same cherry-pick dependency as FactCard.tsx above — parses content FactCard renders; no caller in this lane, which only needs SectionIndex.'),
     ];
   })(),
 
