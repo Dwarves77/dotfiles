@@ -35,6 +35,7 @@ import { Absence } from "@/components/ui/Absence";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { bandFromPriority } from "@/lib/urgency/bands";
@@ -172,8 +173,11 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
           )}
 
           <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", overflow: "hidden" }}>
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "10px 16px", borderBottom: "1px solid var(--line-2)" }}>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: "0.02em", textTransform: "uppercase", color: "var(--ink)" }}>
+            {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no
+                divider below the title (the prior borderBottom under "Watched · N" removed). */}
+            <SectionRule />
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "10px 16px" }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--ink)" }}>
                 Watched · {items.length}
               </span>
               <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Sorted by next date</span>

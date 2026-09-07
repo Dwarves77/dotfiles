@@ -113,7 +113,7 @@ export function PageMasthead({ eyebrow, title, meta, rightSlot, belowSlot }: Pag
             style={{
               fontFamily: "var(--font-display)",
               fontWeight: 400,
-              letterSpacing: "0.02em",
+              letterSpacing: "0.04em",
               textTransform: "uppercase",
               color: "var(--text)",
               margin: "0 0 6px",

@@ -57,7 +57,7 @@ function SectionHeading({ title, aside }: { title: string; aside: ReactNode }) {
           fontFamily: "var(--font-display)",
           fontWeight: 400,
           fontSize: 20,
-          letterSpacing: "0.02em",
+          letterSpacing: "0.04em",
           textTransform: "uppercase",
           margin: 0,
           color: "var(--ink)",

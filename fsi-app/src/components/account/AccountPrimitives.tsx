@@ -7,6 +7,7 @@
  */
 
 import type { ReactNode, CSSProperties } from "react";
+import { SectionRule } from "@/components/ui/SectionRule";
 
 const SANS = "var(--font-sans)";
 
@@ -96,11 +97,14 @@ export function AccountCard({
         maxWidth,
       }}
     >
+      {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no divider below
+          the title (the prior borderBottom under this plate header was exactly the wrong-direction
+          divider 4.1 removes). */}
+      <SectionRule />
       <div
         style={{
           padding: "12px 20px",
           background: "var(--color-surface-raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
