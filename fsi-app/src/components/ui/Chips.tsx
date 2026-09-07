@@ -6,6 +6,18 @@
  * label). Tier is a bordered square T1-T6. Kind/mode/topic are neutral
  * tags on --tag. Filter chips are grouped in labelled sets (Mode / Band /
  * Region) so a wrapped group keeps its label.
+ *
+ * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px
+ * each `FilterChipGroup` becomes its own 36px-tall bordered "shell" (1px
+ * solid rgba(0,0,0,.1), radius 8, #FFFFFF, padding 0 8px) that never wraps
+ * internally and never shrinks — so when `ListSurfaceShell` lays a row of
+ * these shells out as one horizontally-scrolling strip (operator's prose
+ * addition: "chip groups scroll sideways as whole units so a group never
+ * loses its label"), each group scrolls as one intact block, label attached
+ * to its chips. `FilterChip` itself squares off (radius 6, not the pill)
+ * and recolors (active #5A5552/white, inactive #5A6B67 on a
+ * rgba(0,0,0,.15) border) per the same spec section. A CSS media query on
+ * both shared parts, never a page-local override.
  */
 
 import type { UrgencyBand } from "@/lib/urgency/bands";
@@ -146,12 +158,40 @@ export interface FilterChipGroupProps {
   children: React.ReactNode;
 }
 
+// Mobile-390 spec "FILTERS" (lane moblist, 2026-09-07): a media query on this shared part.
+// `.cl-filter-group` becomes the 36px shell; `ListSurfaceShell` lays a row of these shells out
+// as one horizontally-scrolling strip at mobile (see that file's own CSS) — this rule only
+// styles the shell and stops it wrapping/shrinking internally, it does not create the strip.
+const FILTER_GROUP_MOBILE_CSS = `
+  @media (max-width: 767px) {
+    .cl-filter-group {
+      height: 36px;
+      min-height: 36px;
+      border: 1px solid rgba(0,0,0,.1);
+      border-radius: 8px;
+      background: #FFFFFF;
+      padding: 0 8px;
+      flex-wrap: nowrap !important;
+      flex-shrink: 0;
+      white-space: nowrap;
+    }
+    .cl-filter-group .cl-filter-group-chips { flex-wrap: nowrap !important; }
+    .cl-filter-group-label { font-size: 9.5px !important; letter-spacing: 0.1em !important; }
+    .cl-filter-chip { font-size: 12px !important; border-radius: 6px !important; white-space: nowrap; }
+    .cl-filter-chip[data-active="true"] { background: #5A5552 !important; color: #FFFFFF !important; border-color: #5A5552 !important; }
+    .cl-filter-chip[data-active="false"] { background: transparent !important; color: #5A6B67 !important; border: 1px solid rgba(0,0,0,.15) !important; }
+  }
+`;
+
 /** A labelled set of filter chips (Mode / Band / Region) — the label stays
- *  attached to its group even when the row wraps. */
+ *  attached to its group even when the row wraps (>=768px) or the group
+ *  scrolls as one unit inside a horizontal strip (<768px). */
 export function FilterChipGroup({ label, children }: FilterChipGroupProps) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+    <div className="cl-filter-group" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      <style>{FILTER_GROUP_MOBILE_CSS}</style>
       <span
+        className="cl-filter-group-label"
         style={{
           fontSize: "var(--fs-95)",
           fontWeight: 800,
@@ -166,7 +206,7 @@ export function FilterChipGroup({ label, children }: FilterChipGroupProps) {
           the law-2 24px-alternative floor's 8px clearance requirement once these five surfaces put
           many chips in one wrapped row. Bumped to 8px, additive (no other FilterChipGroup consumer
           depends on the old 6px). */}
-      <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>
+      <div className="cl-filter-group-chips" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>
     </div>
   );
 }
@@ -183,6 +223,8 @@ export function FilterChip({
   return (
     <button
       type="button"
+      className="cl-filter-chip"
+      data-active={active ? "true" : "false"}
       onClick={onClick}
       aria-pressed={active}
       style={{

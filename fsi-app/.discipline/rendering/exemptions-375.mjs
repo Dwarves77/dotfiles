@@ -17,13 +17,31 @@
 // 390 fixture exists for that page, whichever first") is not separately mechanized here; landing a
 // real 390 fixture for a page is the cue to delete that page's entry in the same commit.
 //
-// Six entries: the five list surfaces the ruling names (README screens #2/#4/#6/#8/#11 — Regulations
-// list, Market list, Research list, Operations list, Watchlist; dashboard is explicitly NOT a list
-// page and carries no entry) plus /map, which the ruling does not name — the coordinator extended
-// the same dated shape to it (fold report: "map-page:populated@375 (2 failures: overflow and
-// clipped elements) failing for the same cause") pending the operator's own confirmation; that
-// entry's `reason` and the matching DEVIATION-LOG row both say so, and it is removed at assembly if
-// the answer comes back no.
+// Updated 2026-09-07, lane moblist (mobile-390 build): the mobile-390 spec landed
+// (ListRow/ImpactMeter/Absence/Chips/ListSurfaceShell all carry `@media (max-width: 767px)`
+// rules now — see each file's own header and DEVIATION-LOG.md). Re-running the guard against the
+// implemented spec, per this ruling's own second trigger ("or once a 390 fixture exists for that
+// page, whichever first" — read here as "or once mobile IS implemented for that page"):
+// `regulations-list` and `watchlist` are CLEAR at 375px (both entries removed below — nothing they
+// covered still fails). `market-list`, `research-list` and `operations-list` still fail, but for a
+// DIFFERENT and narrower reason than the original "no mobile treatment at all": those three
+// surfaces' own ledger components (MarketIntelLedger.tsx/ResearchLedger.tsx/OperationsLedger.tsx,
+// none in this lane's write set) pass `overflow: <WatchButton itemType="..." itemId={r.id} />`
+// directly into ListRow's 44x44 overflow cell — a 64x28/75x32 text pill, not a control sized for
+// that cell — which now clips against its neighbour at 375px (a real law-2 defect, not a clipping
+// defect: ListRow's own cell is exactly 44x44 and does not clip). RegulationsLedger.tsx (passing)
+// wraps its WatchButton inside a proper PriorityDropdown "..." menu instead, which is why it does
+// not share this failure. Fix (decision-ready, not this lane's write set): give
+// MarketIntelLedger/ResearchLedger/OperationsLedger the same PriorityDropdown-style kebab wrapper
+// Regulations already uses, or a dedicated 44x44 icon-only row-overflow control — logged in
+// DEVIATION-LOG.md as NEEDS WRITE-SET EXPANSION. These three entries' `reason` field is updated to
+// name this narrower cause; `expiryWave` is unchanged (58).
+//
+// Three entries remain: the three list surfaces above, plus /map, which the ruling does not name —
+// the coordinator extended the same dated shape to it (fold report: "map-page:populated@375 (2
+// failures: overflow and clipped elements) failing for the same cause") pending the operator's own
+// confirmation; that entry's `reason` and the matching DEVIATION-LOG row both say so, and it is
+// removed at assembly if the answer comes back no. `/map` is NOT this lane's write set.
 //
 // `fixturePrefix` is the label prefix run-rendering-guard.mjs's failure strings actually carry
 // today (UX_SMOKE_SPECS registry names / runUxSpec `spec.name` values) — confirmed 2026-09-07 by
@@ -35,37 +53,26 @@
 // stays five-list-pages-plus-map complete per the ruling rather than four-plus-map.
 export const RENDERING_375_EXEMPTIONS = [
   {
-    page: "regulations-list",
-    fixturePrefix: "regulations-ledger",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
     page: "market-list",
     fixturePrefix: "market-rows",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
+    reason:
+      "law-2: MarketIntelLedger.tsx passes a raw WatchButton (64x28) directly into ListRow's 44x44 overflow cell (not this lane's write set) — narrowed 2026-09-07 by lane moblist from the original 'no mobile treatment' cause, which the mobile-390 build now implements; see DEVIATION-LOG.md",
     dated: "2026-09-07",
     expiryWave: 58,
   },
   {
     page: "research-list",
     fixturePrefix: "research-rows",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
+    reason:
+      "law-2: ResearchLedger.tsx passes a raw WatchButton (64x28) directly into ListRow's 44x44 overflow cell (not this lane's write set) — narrowed 2026-09-07 by lane moblist from the original 'no mobile treatment' cause, which the mobile-390 build now implements; see DEVIATION-LOG.md",
     dated: "2026-09-07",
     expiryWave: 58,
   },
   {
     page: "operations-list",
     fixturePrefix: "operations-ledger",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07)",
-    dated: "2026-09-07",
-    expiryWave: 58,
-  },
-  {
-    page: "watchlist",
-    fixturePrefix: "watchlist",
-    reason: "mobile 390 artboards pending (Claude Design, queued 2026-09-07); no-op today, no UX_SMOKE_SPECS 375 coverage exists yet for this page",
+    reason:
+      "law-2: OperationsLedger.tsx passes a raw WatchButton (75x32) directly into ListRow's 44x44 overflow cell (not this lane's write set) — narrowed 2026-09-07 by lane moblist from the original 'no mobile treatment' cause, which the mobile-390 build now implements; see DEVIATION-LOG.md",
     dated: "2026-09-07",
     expiryWave: 58,
   },

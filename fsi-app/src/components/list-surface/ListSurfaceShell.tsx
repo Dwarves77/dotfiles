@@ -24,6 +24,20 @@
  * calendar, Carbon cost per FEU, Source coverage, Next data drops) are not
  * reproduced here — logged as deferred, out of this lane's list-mechanics
  * budget.
+ *
+ * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px
+ * the facet card becomes ONE horizontally-scrolling strip of
+ * `FilterChipGroup` shells (no live counts in the strip itself — compact,
+ * label + chips only) plus a "Filters" control. That control opens a SHEET
+ * — built from the SAME bottom-anchored/scrim mechanism the nav drawer
+ * uses (`Sidebar.tsx`'s `rgba(0,0,0,.3)` scrim, confirmed the app's own
+ * value by README line 133 "30%-black scrim"), never a page-local overlay
+ * — containing exactly the facet groups the rail shows on desktop (the
+ * SAME `facetGroups`/`secondaryFacetGroups` this shell already receives,
+ * rendered with their live counts, unchanged chip chrome), plus a close
+ * target. The spec names the sheet but the operator's own overlays list
+ * says overlay styling is not designed — logged in DEVIATION-LOG.md as
+ * "sheet built from the drawer mechanism, styling pending an artboard".
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -104,6 +118,132 @@ export interface ListSurfaceShellProps {
   rail: ReactNode;
 }
 
+// Mobile-390 spec "FILTERS" (lane moblist, 2026-09-07). Desktop unchanged (this CSS only fires
+// below 768px): the facets card hides, a horizontal-scroll strip of compact FilterChipGroup
+// shells plus a "Filters" button take its place, and the sheet (built from the nav drawer's own
+// scrim mechanism) is available regardless of viewport but only reachable via that button.
+const MOBILE_FILTERS_CSS = `
+  .cl-facets-mobile, .cl-filters-btn { display: none; }
+  @media (max-width: 767px) {
+    .cl-facets-desktop { display: none !important; }
+    .cl-facets-mobile {
+      display: flex;
+      gap: 8px;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding: 2px 2px 4px;
+    }
+    .cl-facets-mobile .cl-filter-group { flex-shrink: 0; }
+    .cl-filters-btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      min-height: 44px;
+      padding: 0 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(0,0,0,.25);
+      background: #FFFFFF;
+      color: var(--ink);
+      font-size: 13px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      align-self: flex-start;
+    }
+  }
+`;
+
+/**
+ * FilterSheet — the mobile "Filters" sheet (mobile-390 spec: "the sheet from
+ * Filters... built from the SAME drawer/scrim mechanism the nav drawer
+ * uses"). Bottom-anchored, white, the app's existing 30%-black scrim
+ * (Sidebar.tsx), 44px close target; contains exactly the facet groups the
+ * rail shows on desktop (facetGroups + secondaryFacetGroups, unchanged
+ * FilterChipGroup/FilterChip rendering, live counts) — no invented chrome
+ * beyond that mechanism, per this lane's dispatch. Rendered regardless of
+ * viewport (React-controlled `open` state, not a CSS breakpoint) since only
+ * the mobile-only "Filters" button (above) ever opens it.
+ */
+function FilterSheet({
+  open,
+  onClose,
+  groups,
+}: {
+  open: boolean;
+  onClose: () => void;
+  groups: ListSurfaceFacetGroup[];
+}) {
+  if (!open) return null;
+  return (
+    <>
+      <div
+        onClick={onClose}
+        aria-hidden="true"
+        style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.3)", zIndex: 60 }}
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Filters"
+        style={{
+          position: "fixed",
+          left: 0,
+          right: 0,
+          bottom: 0,
+          maxHeight: "80vh",
+          overflowY: "auto",
+          background: "#FFFFFF",
+          borderTopLeftRadius: 14,
+          borderTopRightRadius: 14,
+          boxShadow: "var(--shadow-card-hover, 0 -8px 24px rgba(0,0,0,.12))",
+          zIndex: 61,
+          padding: "12px 16px 24px",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+          <span style={{ fontSize: "var(--fs-14)", fontWeight: 800, color: "var(--ink)" }}>Filters</span>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close filters"
+            style={{
+              minWidth: 44,
+              minHeight: 44,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              border: "none",
+              background: "transparent",
+              fontSize: 20,
+              color: "var(--ink-3)",
+              cursor: "pointer",
+            }}
+          >
+            ×
+          </button>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {groups.map((group) => (
+            <div key={group.key} style={{ minHeight: 44, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+              <FilterChipGroup label={group.label}>
+                <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
+                  All
+                </FilterChip>
+                {group.options.map((opt) => (
+                  <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
+                    {opt.label} · {opt.count}
+                  </FilterChip>
+                ))}
+              </FilterChipGroup>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  );
+}
+
 function Card({ children }: { children: ReactNode }) {
   return (
     <div
@@ -173,6 +313,11 @@ export function ListSurfaceShell({
   rail,
 }: ListSurfaceShellProps) {
   const anyRows = rowsByBand.some((b) => b.rows.length > 0);
+  const [filterSheetOpen, setFilterSheetOpen] = useState(false);
+  const allFacetGroups = useMemo(
+    () => [...facetGroups, ...(secondaryFacetGroups ?? [])],
+    [facetGroups, secondaryFacetGroups],
+  );
 
   return (
     <>
@@ -194,6 +339,7 @@ export function ListSurfaceShell({
             .cl-list-surface-grid { grid-template-columns: 1fr !important; }
           }
         `}</style>
+        <style>{MOBILE_FILTERS_CSS}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           {/* Band tiles */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
@@ -212,8 +358,12 @@ export function ListSurfaceShell({
             )}
           </div>
 
-          {/* Facets — always visible, live counts */}
+          {/* Facets — always visible, live counts. Desktop (>=768px): the two cards below,
+              unchanged. Mobile (<768px, CSS-hidden here, MOBILE_FILTERS_CSS above): a compact
+              horizontally-scrolling strip (no counts) plus a "Filters" button opening the sheet
+              below with the SAME groups and their live counts. */}
           <div
+            className="cl-facets-desktop"
             style={{
               display: "flex",
               flexDirection: "column",
@@ -241,6 +391,7 @@ export function ListSurfaceShell({
 
           {secondaryFacetGroups && secondaryFacetGroups.length > 0 && (
             <div
+              className="cl-facets-desktop"
               style={{
                 display: "flex",
                 flexDirection: "column",
@@ -266,6 +417,31 @@ export function ListSurfaceShell({
               ))}
             </div>
           )}
+
+          {allFacetGroups.length > 0 && (
+            <div className="cl-facets-mobile" data-guard-strip="true">
+              {allFacetGroups.map((group) => (
+                <FilterChipGroup key={group.key} label={group.label}>
+                  <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
+                    All
+                  </FilterChip>
+                  {group.options.map((opt) => (
+                    <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
+                      {opt.label}
+                    </FilterChip>
+                  ))}
+                </FilterChipGroup>
+              ))}
+            </div>
+          )}
+
+          {allFacetGroups.length > 0 && (
+            <button type="button" className="cl-filters-btn" onClick={() => setFilterSheetOpen(true)}>
+              Filters
+            </button>
+          )}
+
+          <FilterSheet open={filterSheetOpen} onClose={() => setFilterSheetOpen(false)} groups={allFacetGroups} />
 
           {aboveRows}
 

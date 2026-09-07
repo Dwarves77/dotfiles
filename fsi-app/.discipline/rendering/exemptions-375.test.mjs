@@ -1,22 +1,16 @@
-// Unit test for exemptions-375.mjs (lane uiactions, 2026-09-07, addendum item 8). Pure functions
-// only — run-rendering-guard.mjs's own integration behavior (the exemption actually suppressing a
-// real Playwright failure) is proven live by that guard's own run; this file proves the two pure
-// helpers it calls in isolation.
+// Unit test for exemptions-375.mjs (lane uiactions, 2026-09-07, addendum item 8; entries narrowed
+// 2026-09-07 by lane moblist once the mobile-390 build landed — see that file's own header). Pure
+// functions only — run-rendering-guard.mjs's own integration behavior (the exemption actually
+// suppressing a real Playwright failure) is proven live by that guard's own run; this file proves
+// the two pure helpers it calls in isolation.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { RENDERING_375_EXEMPTIONS, isExempt375, activeExemptions } from "./exemptions-375.mjs";
 
-test("exactly six entries: the five list pages the operator's ruling names, plus /map (coordinator-extended)", () => {
-  assert.equal(RENDERING_375_EXEMPTIONS.length, 6);
+test("exactly four entries: regulations-list and watchlist clear at 375 (mobile-390 build implemented, lane moblist 2026-09-07) leaving market/research/operations (a narrower law-2 cause, not this lane's write set) plus /map (coordinator-extended)", () => {
+  assert.equal(RENDERING_375_EXEMPTIONS.length, 4);
   const pages = RENDERING_375_EXEMPTIONS.map((e) => e.page).sort();
-  assert.deepEqual(pages, [
-    "map",
-    "market-list",
-    "operations-list",
-    "regulations-list",
-    "research-list",
-    "watchlist",
-  ]);
+  assert.deepEqual(pages, ["map", "market-list", "operations-list", "research-list"]);
 });
 
 test("every entry is dated and carries the same expiry (train wave 58)", () => {
@@ -34,7 +28,7 @@ test("the map entry's reason names it as coordinator-extended, operator confirma
 });
 
 test("isExempt375 only matches a failure line carrying '@375' from an active entry's exact fixturePrefix", () => {
-  const active = RENDERING_375_EXEMPTIONS.filter((e) => e.page !== "watchlist"); // has a real fixturePrefix match in current failures
+  const active = RENDERING_375_EXEMPTIONS;
   assert.equal(isExempt375("market-rows:one-row@375: 7 element(s) clipped...", active), true);
   // Same page, different (non-375) viewport must NOT be exempt — this is not a global relaxation.
   assert.equal(isExempt375("market-rows:one-row@768: 7 element(s) clipped...", active), false);
