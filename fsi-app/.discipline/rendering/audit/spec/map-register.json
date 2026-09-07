@@ -1,0 +1,42 @@
+{
+  "part": "Map — jurisdiction register (ListRow's endStat extension)",
+  "mount": "listrow-1440",
+  "viewport": 1440,
+  "artboards": ["10-map (\"Jurisdiction register\" card)"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p10 (#p10, Map): the 'Jurisdiction register' card's column header row and its example rows (grid-template-columns:3px 1fr 1fr 110px 80px 40px; min-height:44px); src/components/ui/ListRow.tsx's own `endStat` prop (an additive extension the map lane built onto the shared ListRow, per its header comment: 'ListRow's new optional endStat prop (additive extension, see ListRow.tsx) replaces those four cells with a single band-coloured highest-band + item-count stat, matching the artboard's own HIGHEST BAND / ITEMS columns without forking a second row component'); src/components/map/MapPageView.tsx (real usage: `endStat={{ label: row.band.label, value: formatNumber(row.count), band: row.band }}`)",
+  "notes": [
+    "This spec extends the SHARED listrow-1440 mount (mounts.mjs) with one additional wrapped instance (`[data-audit=\"row-endstat\"]`) that reproduces MapPageView.tsx's own ListRow call exactly (title=jurisdiction label, meta=activeThemes, endStat={label,value,band}, no impact/due/timeline/tier/overflow) — the values below are read from the SAME real ListRow.tsx component, not a page-local fork.",
+    "Register row height: the artboard states min-height:44px for register rows specifically (smaller than the general list row's 56px, since a jurisdiction register row carries less content — no impact meter, no timeline). ListRow.tsx's own `minHeight: 56` in its root style is unconditional; endStat does not change it. Checked below against the artboard's own p10 value, not the generic listrow.json's 56px (that spec is about the GENERAL row anatomy across every other list surface, correctly 56px there).",
+    "endStat label: p10's 'HIGHEST BAND' column example ('IMMEDIATE', 'MONITOR', 'ACTION') is font-size 10px, weight 800, letter-spacing .06em, colour #1A1A1A (ink — the LABEL TEXT stays ink; only its leading dot is band-coloured). ListRow.tsx's endStat label span sets `color: endStat.band.cssVar` on the WHOLE label (text included), at font-size var(--fs-105)=10.5px and letter-spacing .08em — three separate divergences from the artboard's own register row.",
+    "endStat value: p10's numeral ('392', '549', '28'...) is font-family Anton, font-size 16px, colour = band colour (this part DOES match the artboard — only the numeral is band-coloured, not the label). ListRow.tsx sets font-size 18 for the same numeral.",
+    "The 6-column register-specific grid (3px 1fr 1fr 110px 80px 40px) is NOT reproduced by ListRow: the endStat branch keeps the generic 8-column ListRow grid (3px 56px 1fr 88px 84px 76px 40px 44px, per listrow.json) and merges 4 of those columns (`gridColumn:'4 / span 4'`) into the endStat area. This is a genuine layout-strategy difference (a purpose-built 6-column grid vs a reused 8-column grid with a merged region) that the harness does not reduce to a single property mismatch below — logged here as the header comment's own claim ('matching the artboard's own HIGHEST BAND / ITEMS columns') is only true for the two coloured values (band colour, band dot), not the surrounding geometry."
+  ],
+  "selector": "[data-audit=\"row-endstat\"] .cl-list-row",
+  "expect": {
+    "min-height": "44px"
+  },
+  "children": [
+    {
+      "name": "endStat — label text colour",
+      "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:first-child",
+      "note": "p10: label text colour #1A1A1A (ink); only the dot is band-coloured. ListRow.tsx colours the whole label span with `endStat.band.cssVar`.",
+      "expect": {
+        "color": "#1A1A1A",
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.06em"
+      }
+    },
+    {
+      "name": "endStat — value numeral",
+      "selector": "[data-audit=\"row-endstat\"] .cl-row-line2 > span:first-child > span:last-child",
+      "note": "p10: font-family Anton, font-size 16px, colour = band colour (#DC2626 for Immediate — this fixture's band). Colour matches the artboard; size does not.",
+      "expect": {
+        "font-family": "contains:Anton",
+        "font-size": "16px",
+        "color": "#DC2626"
+      }
+    }
+  ],
+  "forbid": []
+}

@@ -1,0 +1,55 @@
+{
+  "part": "FilterChipGroup / FilterChip",
+  "mount": "filterchipgroup",
+  "viewport": 1440,
+  "artboards": ["02-regulations-list (Filters rail card)"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+  "notes": [
+    "The artboard's own Filters rail card is a CHECKBOX list, not chip pills — ListSurfaceShell.tsx's own header comment logs this as a DEVIATION already recorded in DEVIATION-LOG.md, so this spec does not compare FilterChip's pill geometry against the artboard's checkbox rows (that would be comparing two different widget types under one name). What IS comparable and is checked below: the group LABEL typography (10px/700/.12em/uppercase muted, matching the artboard's per-group label 'Mode', 'Jurisdiction' etc.) and, per operator ruling 2.5 ('Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not'), that the built FilterChip pill uses the shared chip system's pill radius (--radius-pill) at desktop width, not a bordered box.",
+    "Chips.tsx's own header comment states the group-label class is `.cl-filter-group-label` at font-size var(--fs-95)=9.5px, not the artboard's 10px — logged as the comparison; the artboard's Filters-card group label ('Mode') is 10px/700/.12em/uppercase/#7A6E6C exactly, read from p2's Filters card markup.",
+    "SITEWIDE FINDING, confirmed live (not a harness artefact): both filter-chip border-radius checks below measure 0px against theme.css's own --radius-pill:999px token. Root cause, confirmed by reading src/app/theme.css line 213: `--radius-pill: var(--radius-pill);` — a CUSTOM PROPERTY THAT REFERENCES ITSELF inside the same :root block that first declares `--radius-pill: 999px` at line 55. Per the CSS custom-properties spec, a property whose computed value cycles back to itself is 'guaranteed-invalid' and resolves to nothing wherever it is USED (there is no fallback in the `var(--radius-pill)` calls that consume it) — a definition-order bug, not a consumer bug. This is not scoped to FilterChip: every pill-radius shared part that reads `var(--radius-pill)` (BandChip, TagChip, WorkspaceTagPill, FilterChip — all in Chips.tsx) renders a SQUARE corner sitewide instead of the design's pill. Confirmed by a standalone debug mount reading `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` against the real theme.css + globals.css bundle: returns the empty string. This lane writes no product code (dispatch: 'NO product code is written by this lane'); the fix (delete the redundant redeclaration at line 213, or point it at a differently-named canonical token) belongs to a product lane, flagged here with its exact line and mechanism per CLAUDE.md rule 13 ('a flag is a commitment')."
+  ],
+  "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+  "expect": {
+    "font-weight": "700",
+    "letter-spacing": "0.1em",
+    "text-transform": "uppercase",
+    "color": "#7A6E6C"
+  },
+  "children": [
+    {
+      "name": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px.",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "700",
+        "color": "#5A6B67",
+        "background-color": "#F5F2EE",
+        "border-radius": "999px",
+        "padding-top": "5px",
+        "padding-left": "11px"
+      }
+    },
+    {
+      "name": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour.",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "700",
+        "color": "#FFFFFF",
+        "background-color": "#5A5552",
+        "border-radius": "999px"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a border on an individual inactive filter chip (operator 2.5: the group shell keeps the border, the chip does not)",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "matchStyle": { "border-top-style": "solid", "border-top-color": "rgba(0, 0, 0, 0.15)" },
+      "reason": "Operator 2.5: 'Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not.' The rgba(0,0,0,.15) border only exists in Chips.tsx's <768px mobile media block (`.cl-filter-chip[data-active=\"false\"]`) — at the 1440 desktop viewport this mount runs at, the base FilterChip style ('1px solid transparent') should apply, so this forbid is expected to read MATCH (absent) at this viewport; it is here to catch the mobile rule leaking into desktop."
+    }
+  ]
+}

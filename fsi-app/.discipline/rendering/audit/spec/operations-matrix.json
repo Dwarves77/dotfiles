@@ -1,0 +1,36 @@
+{
+  "part": "Operations region x dimension matrix (D1-D6)",
+  "mount": "ops-matrix",
+  "viewport": 1440,
+  "artboards": ["08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"],
+  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
+  "notes": [
+    "CONFIRMED, not a harness artefact: OperationsLedger.tsx defines all 6 dimensions in its own DIMENSIONS constant (D1 Regulatory feasibility through D6 Operational cost data, in that exact order and naming, matching the artboard's rail-card breakdown token for token) at line 84, then immediately derives `const SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` at line 93 — a 5-item list with the comment 'the ones with rows in regional_data_facts'. Line 346 passes ONLY `SOURCED_DIMENSIONS` to `RegionDimensionMatrix`'s `dimensions` prop, so the matrix table renders 5 rows, never the D1 row, no matter what data exists.",
+    "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) ALSO shows only 5 rows in its example markup (Regional resource, Labor markets, Materials sourcing, Infrastructure, and — off the fold in this extract — Operational cost; no Regulatory feasibility row) — so the built component's exclusion mirrors the artboard's own example, not a build-time regression from it. The dek text on both the artboard and the built dashboard nonetheless states 'six dimensions', a self-contradiction inside the artboard itself.",
+    "Operator ruling 3.3 is the binding, later statement over both: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — build against it, ask nothing, per this dispatch's framing of the closed rulings. This spec therefore asserts the matrix's dimension-row COUNT at 6, which reads MISMATCH against the current 5, and states the exact fix point (OperationsLedger.tsx:93's filter) rather than proposing a fix in the audit tooling itself (this lane writes no product code).",
+    "The mount reproduces OperationsLedger.tsx's DIMENSIONS/SOURCED_DIMENSIONS constants VERBATIM (copied into mounts.mjs, not re-derived), so the row count measured here is the same 5 a real page render produces, not a mount-only approximation."
+  ],
+  "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+  "expect": {
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
+      "note": "Operator 3.3: six dimensions, D1-D6. The matrix currently renders one td:first-child per SOURCED_DIMENSIONS entry (5), never a D1 Regulatory feasibility row.",
+      "expect": {
+        "count": "6"
+      }
+    },
+    {
+      "name": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
+      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row today is 'Regional resource availability' (D2), since D1 is filtered out before this component ever sees it — a MISMATCH here is the same defect as the row-count check above, from a different angle (order, not just count).",
+      "expect": {
+        "text": "Regulatory feasibility"
+      }
+    }
+  ],
+  "forbid": []
+}
