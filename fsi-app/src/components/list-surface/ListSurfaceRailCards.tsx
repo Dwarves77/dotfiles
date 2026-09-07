@@ -10,7 +10,14 @@
  */
 
 import type { ReactNode } from "react";
+import { SectionRule } from "@/components/ui/SectionRule";
 
+// Ruling 5.1 (2026-09-07, CLOSED): every panel/section card carries the dark-grey graduated 3px
+// rule above its title, full card width, top edge, no radius on the rule. Design audit B163/B165/
+// B170 (2026-09-07, docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md, list-surface.json /
+// section-card-lists.json) found this rail card and the facets card (ListSurfaceShell.tsx)
+// rendered NO rule at all — the base lane's own DEVIATION-LOG entry named rolling SectionRule onto
+// this file as later-lane scope; this is that lane.
 export function RailCard({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div
@@ -19,22 +26,25 @@ export function RailCard({ title, children }: { title: string; children: ReactNo
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
         boxShadow: "var(--shadow-card)",
-        padding: "14px 16px",
+        overflow: "hidden",
       }}
     >
-      <p
-        style={{
-          fontSize: "var(--fs-105)",
-          fontWeight: 800,
-          letterSpacing: "0.12em",
-          textTransform: "uppercase",
-          color: "var(--ink-3)",
-          margin: "0 0 10px",
-        }}
-      >
-        {title}
-      </p>
-      {children}
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
+        <p
+          style={{
+            fontSize: "var(--fs-105)",
+            fontWeight: 800,
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            margin: "0 0 10px",
+          }}
+        >
+          {title}
+        </p>
+        {children}
+      </div>
     </div>
   );
 }

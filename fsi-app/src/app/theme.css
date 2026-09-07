@@ -198,7 +198,13 @@
 
   --radius-sm: var(--radius-control);
   --radius-md: var(--radius-card);
-  --radius-pill: var(--radius-pill);
+  /* --radius-pill was redeclared here as `var(--radius-pill)` — a cyclic custom-property
+     reference, which CSS defines as invalid, so every consumer (BandChip/WorkspaceTagPill/
+     TagChip/FilterChip pill state) silently fell back to border-radius's initial value, 0.
+     Design audit 2026-09-07 (docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md, root-cause
+     note above the Chips fix list); fixed at the root, once, per this lane's own rule 2 —
+     the legacy-alias layer's real value is line 55's `--radius-pill: 999px`, this line added
+     nothing and is deleted rather than corrected. */
 
   --transition-base: 0.18s ease;
 
