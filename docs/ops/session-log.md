@@ -11242,3 +11242,47 @@ map smoke spec gap; a THETIS-MRV row for FUELEU's `statutory_computations` write
 
 **UX compliance**: `CanonicalSourceReview.tsx` — the one `.tsx` file this train's fold touched — changed
 one line of copy text; no layout, no structural, no interaction change [CONFIRMED by `git diff`].
+
+## Addendum 86, postscript 6: train 52, the $0 canonical-autoverify fetch fix, one dispatch (2026-09-07, coordinator, lane ASSEMBLE-52)
+
+I am writing this as the coordinator. Train 51 landed on `origin/master` as PR #600 (`ad4d7690`).
+Master's tip going into this train was `ad4d7690`.
+
+**Dispatch #70, the deferral**: the first real dispatch of `canonical-autoverify` (run
+`34069709848`, mode dry) deferred all 16 pending rows, every one with
+`BrowserlessError: BROWSERLESS_API_KEY not configured`. Root cause: `buildDeps` wired
+`deps.fetchCandidate` to `src/lib/sources/canonical-fetch.mjs`'s `browserlessFetch`, a paid
+rendering service — CLAUDE.md's $0 rule means no `BROWSERLESS_API_KEY` exists anywhere in
+`.github/workflows/maintenance.yml`, by design, so every fetch attempt failed the same way. This
+is a build defect in the fold that landed on train 51, not a data problem — none of the 16 rows
+were actually reachability-tested.
+
+**The fix, lane CANONICAL-AUTOVERIFY-3 (train 52)**: `e2e91409`, cherry-picked onto train 51 with
+zero conflicts. Replaces `deps.fetchCandidate`'s wiring with the same $0 path
+`scripts/maintenance/provenance-heal.mjs`'s `buildHealDeps` already uses for heal —
+`makePoliteFetch({fetchImpl:fetch})` at 1 req/s through `followUpgradingRedirects` into
+`scripts/mint/export-census-rows.mjs`'s `captureDocument`. New `makeCanonicalFetchCandidate`
+reshapes `captureDocument`'s `{ok,status,html,text,error}` envelope into the
+`{status,text,error,host,path}` shape `decideRow`/`classifyReachability`/`detectAccessWall`
+already depend on — no change to that contract, so the existing 52 tests pass unchanged; 5 new
+tests cover the adapter directly (200/404/network-failure/redirect-following/
+no-Browserless-reference). The current-source liveness probe (walled-vs-dead check for
+`stale_url` rows) uses the same `deps.fetchCandidate`, so it is fixed by the same change — no
+separate module to touch. Also updated: the module header, `.github/workflows/maintenance.yml`'s
+step comment, and runbook §38, all to name the real fetch path; no "render with Browserless if a
+key is present" fallback was added — Browserless is not referenced by this step's code at all
+after this change, only in prose explaining what was removed and why. `coverage-report.json`
+regenerated: 849 governed files, 814 COVERED, 35 EXEMPT, 0 GAPS — no drift, already current.
+
+**Ledger row #70 appended** (dry, run `34069709848`, outcome reported) recording the deferral and
+its fix, per the dispatch above. `assemble-train --fold --propose --ledger`: folded 0 (26 already
+folded from train 51, 0 conflicts), 0 new proposer briefs, 0 derived ledger rows.
+
+**Next**: `canonical-autoverify` dry then apply, re-run now that the fetch path is real (expect
+the same 6 approved / 10 rejected split the prior lane's own re-run against live network
+found, modulo any rows that have changed state since); `tier-opinions` dry then apply once those
+rows have moved; UI train 53 (the six UI page lanes + UI-DELTA queued behind train 51, still not
+folded into any train through this one).
+
+**UX compliance**: no `.tsx` or `.css` file was touched this train — the fold is entirely
+`.mjs`/`.test.mjs`/`.yml`/`.md`. No UX compliance block is required.
