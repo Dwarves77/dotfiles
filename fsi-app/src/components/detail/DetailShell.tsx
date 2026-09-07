@@ -309,9 +309,10 @@ export function SectionIndex({
 //
 // Lane uiactions (2026-09-07, README §0.5 + design ruling R3): the ONLY
 // summary depth control in this architecture — two states, not the old
-// three-state "Complete brief" toggle (removed pre-existing, confirmed by
-// DetailShell.npmtest.mjs's "no 'Complete brief' toggle vocabulary"
-// assertion). Wired, not decorative: a detail surface passes `depth` +
+// three-state summary-depth toggle README §0.5 names as removed pre-existing
+// (confirmed by this file's own npmtest.mjs asserting that dead control's
+// exact former label is gone from the code). Wired, not decorative: a
+// detail surface passes `depth` +
 // `onChange` from its own useState and reads `depth` when deciding whether
 // to also render the item's full brief markdown in the Summary section.
 export type SummaryDepth = "summary" | "full";
@@ -321,8 +322,7 @@ export function SummaryDepthSwitch({ depth, onChange }: { depth: SummaryDepth; o
     <button
       key={value}
       type="button"
-      role="tab"
-      aria-selected={depth === value}
+      aria-pressed={depth === value}
       onClick={() => onChange(value)}
       style={{
         fontFamily: "var(--font-sans)",
@@ -344,7 +344,7 @@ export function SummaryDepthSwitch({ depth, onChange }: { depth: SummaryDepth; o
   );
   return (
     <div
-      role="tablist"
+      role="group"
       aria-label="Summary depth"
       style={{
         display: "inline-flex",

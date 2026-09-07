@@ -96,3 +96,36 @@ test("SectionIndex renders sticky (position: sticky), the README §0.5 'sticky s
   const body = SOURCE.slice(start, end === -1 ? undefined : end);
   assert.match(body, /position: "sticky"/);
 });
+
+// Lane uiactions (2026-09-07, design ruling R3): the Summary | Full brief depth switch — TWO
+// states only, never the old three-state control, and never role="tab"/"tablist" (that vocabulary
+// is reserved for the per-tab architecture README §0.5 removes — see the "no tab" test above).
+test("SummaryDepthSwitch offers exactly two depths (summary, full) and never reintroduces tab/tablist ARIA roles", () => {
+  assert.match(SOURCE, /export type SummaryDepth = "summary" \| "full";/);
+  const start = SOURCE.indexOf("export function SummaryDepthSwitch");
+  assert.notEqual(start, -1);
+  const body = SOURCE.slice(start);
+  assert.doesNotMatch(body, /role="tab"/);
+  assert.doesNotMatch(body, /role="tablist"/);
+  assert.match(body, /opt\("summary", "Summary"\)/);
+  assert.match(body, /opt\("full", "Full brief"\)/);
+});
+
+test("SummaryDepthSwitch's buttons clear the 44px law-2 hit-target floor (both states, no clearance-based exemption)", () => {
+  const start = SOURCE.indexOf("export function SummaryDepthSwitch");
+  const body = SOURCE.slice(start);
+  assert.match(body, /minHeight: 44/);
+});
+
+// Lane uiactions (2026-09-07, README "no per-page ask panel — the CommandBar in the Masthead is
+// the only search/ask surface" + design ruling R4): the detail header's scoped ask placeholder
+// mounts the SAME shared CommandBar part, never a bespoke per-page ask box.
+test("DetailHeader's askPlaceholder mounts the shared CommandBar part, never a page-local ask input", () => {
+  assert.match(SOURCE, /import \{ CommandBar \} from "@\/components\/ui\/CommandBar"/);
+  const headerBody = SOURCE.slice(
+    SOURCE.indexOf("export function DetailHeader"),
+    SOURCE.indexOf("// ── Exposure grid")
+  );
+  assert.match(headerBody, /<CommandBar itemCount=\{0\} placeholder=\{askPlaceholder\} scope=\{askScope\} \/>/);
+  assert.doesNotMatch(headerBody, /role="search"/, "DetailHeader must not hand-roll a second search form — CommandBar owns that markup");
+});
