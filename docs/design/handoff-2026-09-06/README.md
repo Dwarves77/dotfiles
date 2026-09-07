@@ -69,6 +69,10 @@ Hover `background:#FAFAF8`; row divider `1px solid rgba(0,0,0,.06)`; the whole r
 
 **Buttons / stat blocks.** One primary per view, in ink `#5A5552`. Stat block (label / Anton numeral / note) is what profile and admin counters use — never a band tile.
 
+**Detail action row — always visible.** `Export brief` (primary, ink) · `Share` · `☆ Watch` · `＋ Tag`, all four on the detail header, 8px gap, `padding:8px 14px; radius 6`, secondary = white with `rgba(0,0,0,.25)` border and `#F5F2EE` hover. These are not folded into the `⋯` menu; that menu holds only rare and destructive items. Watch renders filled (`★`) when the item is watched.
+
+**Workspace tags.** User-applied labels, shared across the workspace, distinct from pipeline tags. Pill with a 6px **square** ink dot, `#F5F2EE` fill, `rgba(0,0,0,.14)` border, `11.5px/600`, removable `×`. Told apart at a glance from band chips (round dot, band colour) and pipeline tags (no dot, no border). They appear under the detail title, on the list row's second line, as a facet group on every list, and as the source for saved views. `＋ Tag` is a dashed-outline pill that opens a popover with type-ahead over existing tags plus a create option — needed as an overlay artboard.
+
 **Hit targets.** 44px minimum on every toggle row and control; the `⋯` control is a 28px glyph inside a 44px cell with a `1px` left divider.
 
 ### 0.5 Detail architecture — one shape for all four detail surfaces
@@ -116,6 +120,23 @@ Decorative or stock imagery of any kind. Dark mode. The GOV.UK, Federal Register
 - **Artboard 19** — the line at the top of the masthead: four candidates. Pages currently render the band-proportion gradient rule (3px, segment widths = live band counts). Confirm before build; whichever wins applies to all 17 pages.
 - **Artboard 18** — how sections sit on the page: four treatments of the same content, one to be chosen and applied everywhere including the system sheet.
 - **Not yet designed, captures needed**: mobile 390, tablet 1024, logged-out, loading states as built, overlays (Export brief, Share, per-row `⋯`, Ask AI), data-rich extremes, and the non-owner roles (plain member, read-only viewer).
+
+## Codebase constraints (read from Dwarves77/dotfiles@master, audit-2026-09-06)
+
+Source of truth for these: `docs/design/audit-2026-09-06/ASSESSMENT.md` §3, §18, §25, §30–32.
+
+- **Stack**: Next.js App Router, Tailwind v4 (`@theme inline` in `globals.css`), React. Fonts are self-hosted via `@fontsource` (`Anton`, `Plus Jakarta Sans`) — do **not** add the Google Fonts link used in the prototype.
+- **Retire, do not extend, the two live token sets.** `theme.css` keeps a legacy orange/blue set alongside an editorial set specifically so unmigrated components keep rendering, with migration stated as "one screen at a time" — that policy is the documented cause of the drift and is replaced by this system. Casualties to remove: `--color-primary #E8610A` and `--accent #1E3A8A` (two brand accents), and the duplicate priority scales where `--moderate` is grey `#6B7280` in one set and `#EAB308` in the other, `--low` grey `#9CA3AF` vs green `#16A34A`.
+- **Per-dimension impact colours are dropped.** The old set coloured the four impact dimensions (cost `#CA8A04`, compliance `#9333EA`, client `#0D9488`, operational `#2563EB`). In this system a meter bar's colour encodes its **score** (1 green / 2 orange / 3 red), sorted ascending; dimension identity comes from order and the legend, not hue.
+- **Existing surface tokens that carry over unchanged**: `--color-bg-base #FAFAF8`, `--color-bg-surface #FFFFFF`, `--color-text-primary #1A1A1A`, `--color-text-secondary #5A6B67`, `--color-text-muted #7A6E6C`, border `.12 / .06 / .20`. Note `--color-bg-raised` is `#F5F2EE` in the repo; this system uses that value for neutral tags and `#FAFAF8` for row hover and card feet.
+- **Nav width**: `Sidebar.tsx` currently hard-codes `width: 208` on the desktop rail (and the drawer). The system specifies **252**; change it in one place, both breakpoints.
+- **Mobile nav already exists** — `md:hidden` hamburger, 30%-black scrim, 208px drawer carrying the same nav content. Content does not adapt: only 27 of 160 `.tsx` files carry any breakpoint rule and none of the data components do. Desktop-first is a deliberate scope decision for this bundle.
+- **Scroll containment**: the real scroll container is an inner `<main class="overflow-y-auto">`, so browser scroll restoration does not apply. The "returns to the same scroll position" behaviour on list → detail → back must be implemented explicitly against that container.
+- **Pagination**: `LIST_FIRST_PAGE_SIZE = 60`, `LIST_REMAINDER_LIMIT = 5000`. First paint is 60 rows of 1,316; the rest arrive after paint. Skeletons and counts must tolerate a list that grows after first render — and a count still loading shows a skeleton, never `0`.
+- **CI gates a design must pass**: the rendering guard (`.discipline/rendering/run-rendering-guard.mjs` — overflow, placeholder leakage, hydration faults; new surfaces register a smoke spec), 32 fitness functions (`F35` maintains a `ROW_COMPONENTS` register; `F25` fails on any module built but unreachable — so a component must be wired, not drawn), and the memory gate (any `.tsx` change ships with a session-log entry including a UX compliance block).
+- **DP-1 "Single-Pane Operator Review"** (`docs/design/design-principles.md`) is binding on operator surfaces only: every action on one item is reachable from one location. Artboard 13 follows it — every action on a source sits on that source's row. It does not apply to customer-facing UI.
+- **Known dead control to delete, not restyle**: the "Complete brief" toggle on `/regulations/[slug]` is an unwired `<span>` with no handler, role or disabled state. Two summary depths, not three.
+- **Superseded, do not read as specification**: `docs/design/redesign/` (2026-07 mocks; its README claims "the mock wins") and `design_handoff_2026-04/DESIGN_SYSTEM.md` (named in `theme.css`).
 
 ## Design tokens
 
