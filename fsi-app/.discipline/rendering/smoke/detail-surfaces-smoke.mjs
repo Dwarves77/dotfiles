@@ -19,9 +19,10 @@
 //   - ResearchFindingDetailSurface.tsx   (src/components/research/)
 //   - MarketSignalDetailSurface.tsx      (src/components/pages/)
 //
-// Each surface is mounted with a long official title (>80 chars, the length threshold
-// RegulationDetailSurface itself uses to switch from the Anton poster face to the wrapping body
-// face), a long breadcrumb group (Regulations only — the only one of the four with a breadcrumb; see
+// Each surface is mounted with a long official title (>80 chars, stressing the title's word-wrap;
+// item 1.2, 2026-09-07 confirmed there is no length-based style SWITCH — the Anton/uppercase title
+// treatment is unconditional, see DetailShell.npmtest.mjs's own test for that), a long breadcrumb
+// group (Regulations only — the only one of the four with a breadcrumb; see
 // this spec's own per-surface comments below for why the other three have none), and six section
 // rows, at 375x812 and 1280x800. None of the four surfaces fetch on mount (confirmed by reading each
 // file — MarketSignalDetailSurface's one client fetch is a debounced notes-save fired by user typing,
@@ -61,8 +62,14 @@ const STYLE_INJECT = `
 const LONG = (n, word = 'extremely-long-official-instrument-title-token') =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
 
-// >80 chars — RegulationDetailSurface's own threshold (r.title.length > 80) for switching from the
-// Anton poster face to the wrapping body face; long enough to stress every surface's title wrap.
+// >80 chars — DEFECT-FIX item 1.2 (2026-09-07, audit ruling) confirmed there is no
+// length-based title-style switch anywhere in DetailHeader (a repo-wide grep found none; this
+// comment used to claim "RegulationDetailSurface's own threshold (r.title.length > 80) for
+// switching from the Anton poster face to the wrapping body face" — that logic never existed in the
+// current DetailShell architecture, the claim was stale, corrected here per CLAUDE.md rule 14). The
+// title is styled unconditionally (Anton/uppercase/400) regardless of length; this fixture stays
+// long enough to stress every surface's title WRAP (word-break/overflow), which is the real thing
+// worth measuring at this length.
 const LONG_TITLE = `Commission Delegated Regulation amending the rules for the monitoring of greenhouse gas emissions from offshore ships and the zero-rating of sustainable fuels ${LONG(4)}`;
 const LONG_GROUP = 'Mexico · Diario Oficial de la Federación · Secretaría de Medio Ambiente y Recursos Naturales';
 
