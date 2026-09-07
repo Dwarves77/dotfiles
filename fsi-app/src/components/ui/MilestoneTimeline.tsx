@@ -13,6 +13,8 @@
  */
 
 import type { TimelineEntry } from "@/types/resource";
+import { classifyTimelineEntries } from "./milestone-timeline-classify";
+import type { TimelineDotState } from "./milestone-timeline-classify";
 
 export interface MilestoneTimelineProps {
   entries?: TimelineEntry[] | null;
@@ -21,34 +23,12 @@ export interface MilestoneTimelineProps {
   variant?: "row" | "full";
 }
 
-function dotState(status: TimelineEntry["status"] | undefined, hasNext: boolean, isFirstFuture: boolean) {
-  if (status === "past") return "passed" as const;
-  if (status === "current") return "next" as const;
-  if (isFirstFuture && !hasNext) return "next" as const;
-  return "ahead" as const;
-}
-
-export type TimelineDotState = "passed" | "next" | "ahead";
-
-/**
- * classifyTimelineEntries — the one place that turns raw TimelineEntry
- * status into a passed/next/ahead dot state (mobile 390 build, lane
- * mobdetail, 2026-09-07). Factored out of this file's own row/full dot
- * render loop below so DetailTimeline's mobile vertical stack
- * (DetailShell.tsx) can classify the SAME entries the same way rather than
- * re-deriving the hasExplicitCurrent/firstFutureSeen bookkeeping a second
- * time (CLAUDE.md rule 13, no duplication).
- */
-export function classifyTimelineEntries(entries: TimelineEntry[]): Array<{ entry: TimelineEntry; state: TimelineDotState }> {
-  const hasExplicitCurrent = entries.some((e) => e.status === "current");
-  let firstFutureSeen = false;
-  return entries.map((e) => {
-    const isFirstFuture = !hasExplicitCurrent && e.status !== "past" && !firstFutureSeen;
-    if (isFirstFuture) firstFutureSeen = true;
-    const state = dotState(e.status, hasExplicitCurrent, isFirstFuture);
-    return { entry: e, state };
-  });
-}
+// Re-exported so existing callers (DetailShell.tsx) keep importing the
+// classifier from "@/components/ui/MilestoneTimeline" — the pure logic
+// itself lives in milestone-timeline-classify.ts (no JSX, so its own
+// npmtest.mjs can import it directly via jiti; see that file's header).
+export { classifyTimelineEntries };
+export type { TimelineDotState };
 
 export function MilestoneTimeline({ entries, bandHex, variant = "row" }: MilestoneTimelineProps) {
   const list = (entries ?? []).slice(0, 5);
