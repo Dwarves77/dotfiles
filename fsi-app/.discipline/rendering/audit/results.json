@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T17:33:53.614Z",
+  "runAt": "2026-09-07T17:46:35.693Z",
   "specs": [
     {
       "part": "FactCard",
@@ -134,6 +134,268 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/factcard.json",
       "__id": "factcard"
+    },
+    {
+      "part": "FilterChipGroup / FilterChip",
+      "mount": "filterchipgroup",
+      "viewport": 1440,
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "notes": [
+        "The artboard's own Filters rail card is a CHECKBOX list, not chip pills — ListSurfaceShell.tsx's own header comment logs this as a DEVIATION already recorded in DEVIATION-LOG.md, so this spec does not compare FilterChip's pill geometry against the artboard's checkbox rows (that would be comparing two different widget types under one name). What IS comparable and is checked below: the group LABEL typography (10px/700/.12em/uppercase muted, matching the artboard's per-group label 'Mode', 'Jurisdiction' etc.) and, per operator ruling 2.5 ('Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not'), that the built FilterChip pill uses the shared chip system's pill radius (--radius-pill) at desktop width, not a bordered box.",
+        "Chips.tsx's own header comment states the group-label class is `.cl-filter-group-label` at font-size var(--fs-95)=9.5px, not the artboard's 10px — logged as the comparison; the artboard's Filters-card group label ('Mode') is 10px/700/.12em/uppercase/#7A6E6C exactly, read from p2's Filters card markup.",
+        "SITEWIDE FINDING, confirmed live (not a harness artefact): both filter-chip border-radius checks below measure 0px against theme.css's own --radius-pill:999px token. Root cause, confirmed by reading src/app/theme.css line 213: `--radius-pill: var(--radius-pill);` — a CUSTOM PROPERTY THAT REFERENCES ITSELF inside the same :root block that first declares `--radius-pill: 999px` at line 55. Per the CSS custom-properties spec, a property whose computed value cycles back to itself is 'guaranteed-invalid' and resolves to nothing wherever it is USED (there is no fallback in the `var(--radius-pill)` calls that consume it) — a definition-order bug, not a consumer bug. This is not scoped to FilterChip: every pill-radius shared part that reads `var(--radius-pill)` (BandChip, TagChip, WorkspaceTagPill, FilterChip — all in Chips.tsx) renders a SQUARE corner sitewide instead of the design's pill. Confirmed by a standalone debug mount reading `getComputedStyle(document.documentElement).getPropertyValue('--radius-pill')` against the real theme.css + globals.css bundle: returns the empty string. This lane writes no product code (dispatch: 'NO product code is written by this lane'); the fix (delete the redundant redeclaration at line 213, or point it at a differently-named canonical token) belongs to a product lane, flagged here with its exact line and mechanism per CLAUDE.md rule 13 ('a flag is a commitment')."
+      ],
+      "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+      "expect": {
+        "font-weight": "700",
+        "letter-spacing": "0.1em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C"
+      },
+      "children": [
+        {
+          "name": "inactive chip",
+          "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+          "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px.",
+          "expect": {
+            "font-size": "11px",
+            "font-weight": "700",
+            "color": "#5A6B67",
+            "background-color": "#F5F2EE",
+            "border-radius": "999px",
+            "padding-top": "5px",
+            "padding-left": "11px"
+          }
+        },
+        {
+          "name": "active chip",
+          "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+          "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour.",
+          "expect": {
+            "font-size": "11px",
+            "font-weight": "700",
+            "color": "#FFFFFF",
+            "background-color": "#5A5552",
+            "border-radius": "999px"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "a border on an individual inactive filter chip (operator 2.5: the group shell keeps the border, the chip does not)",
+          "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+          "matchStyle": {
+            "border-top-style": "solid",
+            "border-top-color": "rgba(0, 0, 0, 0.15)"
+          },
+          "reason": "Operator 2.5: 'Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not.' The rgba(0,0,0,.15) border only exists in Chips.tsx's <768px mobile media block (`.cl-filter-chip[data-active=\"false\"]`) — at the 1440 desktop viewport this mount runs at, the base FilterChip style ('1px solid transparent') should apply, so this forbid is expected to read MATCH (absent) at this viewport; it is here to catch the mobile rule leaking into desktop."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/filterchipgroup.json",
+      "__id": "filterchipgroup"
+    },
+    {
+      "part": "ImpactMeter",
+      "mount": "impactmeter",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "notes": [
+        "Row variant, scored: the #sys list-row example's first row (impact 7/12, dims sorted [1,1,2,3]) uses 9px-wide bars, heights 6/6/12/18, radius '1px 1px 0 0', sitting on an 18px-tall container with a 1px solid rgba(0,0,0,.25) baseline under the bars; the sum sits at margin-left:7px. The fixture reproduces the same scores (cost:1, compliance:1, client:2, operational:3, sum 7/12) so the artboard's own numbers are the comparison.",
+        "Row variant, unscored: the #sys example's second row uses a 30px-wide dashed baseline (border-bottom:1px dashed rgba(0,0,0,.3)) at height 18px, plus a plain em-dash — not the Absence small-caps convention. README §0.4 and operator ruling 2.1 both require the Absence convention instead ('the small-caps absence reason from the fixed vocabulary'), which is what the built component renders; the artboard predates that ruling. The width/height/border values below are still the artboard's stated geometry for the dashed line itself.",
+        "Full variant track: #sys 'Impact meter — full' block states height:8px, border-radius:8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626), label column 116px, bar column flex, value column 64px right-aligned tabular-nums 12.5px. The fixture's four scores (cost:1, compliance:3, client:1, operational:2) reproduce the artboard's own four example rows exactly (1/3 Low, 3/3 High, 1/3 Low, 2/3 Med).",
+        "Full variant, unscored: the artboard does not show a full-variant unscored state; the built component's em-dash fallback is checked only for basic geometry (dashed baseline width 96px per the component's own row-vs-full branch), not against an artboard value — logged as a gap, not asserted as a mismatch."
+      ],
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "expect": {
+        "height": "18px",
+        "gap": "2px",
+        "border-bottom-width": "1px",
+        "border-bottom-style": "solid",
+        "border-bottom-color": "rgba(0,0,0,.25)"
+      },
+      "children": [
+        {
+          "name": "row scored — bar 1 (score 1, first ascending)",
+          "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+          "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1).",
+          "expect": {
+            "width": "9px",
+            "height": "6px",
+            "border-top-left-radius": "1px",
+            "border-top-right-radius": "1px",
+            "border-bottom-left-radius": "0px",
+            "background-color": "#16A34A"
+          }
+        },
+        {
+          "name": "row scored — bar 3 (score 2)",
+          "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
+          "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2).",
+          "expect": {
+            "width": "9px",
+            "height": "12px",
+            "background-color": "#F97316"
+          }
+        },
+        {
+          "name": "row scored — bar 4 (score 3, last/highest)",
+          "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
+          "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3).",
+          "expect": {
+            "width": "9px",
+            "height": "18px",
+            "background-color": "#DC2626"
+          }
+        },
+        {
+          "name": "row scored — sum label",
+          "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+          "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C.",
+          "expect": {
+            "font-size": "11px",
+            "font-variant-numeric": "tabular-nums",
+            "margin-left": "7px",
+            "text": "7/12"
+          }
+        },
+        {
+          "name": "row unscored — dashed baseline",
+          "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
+          "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3).",
+          "expect": {
+            "width": "30px",
+            "border-bottom-width": "1px",
+            "border-bottom-style": "dashed",
+            "border-bottom-color": "rgba(0,0,0,.3)"
+          }
+        },
+        {
+          "name": "row unscored — Absence reason (operator ruling 2.1, supersedes the artboard's plain em-dash)",
+          "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored > span:last-child",
+          "note": "Operator 2.1: 'the small-caps absence reason from the fixed vocabulary ... at 10.5px uppercase/600 #7A6E6C'. Absence.tsx uses font-variant:small-caps (not text-transform:uppercase) at font-size var(--fs-105)=10.5px, weight 600, color var(--ink-3)=#7A6E6C. Selector reaches the Absence element specifically (not the wrapper), which also contains a mobile <style> tag whose CSS text would otherwise pollute textContent.",
+          "expect": {
+            "text": "unscored"
+          }
+        },
+        {
+          "name": "full scored — track height/radius/gradient",
+          "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
+          "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact.",
+          "expect": {
+            "height": "8px",
+            "border-radius": "8px",
+            "background-image": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 55%, rgb(220, 38, 38))"
+          }
+        },
+        {
+          "name": "full scored — dimension label",
+          "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
+          "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value.",
+          "expect": {
+            "width": "116px",
+            "font-size": "12.5px"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "the literal word NOT SCORED / UNSCORED in the meter",
+          "selector": "[data-audit=\"row-unscored\"] span, [data-audit=\"full-unscored\"] span",
+          "textMatch": "NOT SCORED",
+          "reason": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/impactmeter.json",
+      "__id": "impactmeter"
+    },
+    {
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "mount": "list-surface-1440",
+      "viewport": 1440,
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "notes": [
+        "The facets card (labelled 'Filters' on the artboard, rendered by ListSurfaceShell's inline facets block, class `.cl-facets-desktop`) and the Legend rail card (LegendRailCard in ListSurfaceRailCards.tsx) both sit under ruling 5.1: every panel/section card carries the 3px graduated rule ABOVE its content, full card width, top edge, no radius, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)) — exactly what p2's own Filters and Legend cards show (`height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))` immediately inside each card's outer div). Neither built card renders this rule at all: `.cl-facets-desktop` and `RailCard` in ListSurfaceRailCards.tsx both go straight from the card's outer border to the padded content with no rule element. This is checked as a NOT BUILT below (no `[data-section-rule]` marker exists on either card), which is the correct status and also states the selector contract a fix lane should build to (same contract page-frame.json already established for the dashboard's own section cards).",
+        "Facets card padding: p2 states `padding:12px 16px 14px` on the card's content wrapper (after the 3px rule). ListSurfaceShell's inline facets block uses `padding:'12px 16px'` (missing the differential bottom 14px — CSS shorthand normalises this to 12px all round) — checked below.",
+        "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
+      ],
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "expect": {
+        "background-color": "#FFFFFF",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.12)",
+        "border-top-left-radius": "10px",
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px"
+      },
+      "children": [
+        {
+          "name": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
+          "selector": "[data-audit=\"legend-rail\"] [data-section-rule]",
+          "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. LegendRailCard/RailCard give no such element — expected status is NOT BUILT, stating the selector contract.",
+          "expect": {
+            "height": "3px"
+          }
+        },
+        {
+          "name": "Legend rail card — title label",
+          "selector": "[data-audit=\"legend-rail\"] p:first-child",
+          "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C.",
+          "expect": {
+            "font-size": "10.5px",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase",
+            "color": "#7A6E6C"
+          }
+        },
+        {
+          "name": "facets card — padding",
+          "selector": ".cl-facets-desktop",
+          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px).",
+          "expect": {
+            "padding-top": "12px",
+            "padding-right": "16px",
+            "padding-bottom": "14px",
+            "padding-left": "16px"
+          }
+        },
+        {
+          "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
+          "selector": ".cl-facets-desktop [data-section-rule]",
+          "note": "Same ruling as the Legend rail card above; ListSurfaceShell's inline facets block gives no such element either.",
+          "expect": {
+            "height": "3px"
+          }
+        },
+        {
+          "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
+          "selector": "[data-audit=\"dismissed-stash\"] button",
+          "note": "README general rule: '44 px hit targets.' DismissedStash.tsx: minHeight 44 on the Restore button. Checked against the sitewide rule, not against an artboard (this part is not in the artboards).",
+          "expect": {
+            "min-height": "44px"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "the literal word UNSCORED in the dismissed-stash rows",
+          "selector": "[data-audit=\"dismissed-stash\"] span",
+          "textMatch": "UNSCORED",
+          "reason": "General rule (operator 2.1): the literal token never appears anywhere in the product."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/list-surface.json",
+      "__id": "list-surface"
     },
     {
       "part": "ListRow (1440, every cell)",
@@ -311,6 +573,86 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/listrow.json",
       "__id": "listrow"
+    },
+    {
+      "part": "MilestoneTimeline (row variant)",
+      "mount": "milestonetimeline",
+      "viewport": 1440,
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "notes": [
+        "The fixture (2 past, 1 current, 2 future entries) reproduces the artboard row example's own dot pattern (2 passed, 1 next, 2 ahead) so the artboard's own numbers are the comparison.",
+        "The artboard's track is 2px tall, green from 0 to the 'next' dot's position (58%) then rgba(0,0,0,.12) beyond. The built component renders a single 1px rgba(0,0,0,.12) line with no green portion at all — read this as a real geometry/colour gap, not a harness artefact: MilestoneTimeline.tsx's own track span has one style object, no conditional green segment.",
+        "The artboard places dots at fixed pixel offsets (0, 24, 42, 58, 76px) within the 76px cell; the built component uses `justify-content:space-between` across a `width:100%` row, which auto-spaces n dots evenly rather than at those exact offsets. Position is not asserted below (space-between vs fixed-px is a layout-strategy difference the harness cannot fairly reduce to one number for n dots); the dot SIZES and COLOURS are asserted, which is where the fixed vocabulary lives.",
+        "Selectors reach dots by DOM order: MilestoneTimeline.tsx has no per-dot marker class, so nth-of-type addresses the classifier's output directly (dot 1/2 = passed, dot 3 = next, dot 4/5 = ahead, per milestone-timeline-classify.ts, proven independently by its own npmtest.mjs)."
+      ],
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"]",
+      "expect": {
+        "width": "76px"
+      },
+      "children": [
+        {
+          "name": "track line",
+          "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
+          "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent.",
+          "expect": {
+            "height": "1px",
+            "background-color": "rgba(0,0,0,.12)"
+          }
+        },
+        {
+          "name": "dot 1 — passed",
+          "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+          "note": "dc.html #sys: 6x6px filled green (#16A34A) circle.",
+          "expect": {
+            "width": "6px",
+            "height": "6px",
+            "border-radius": "50%",
+            "background-color": "#16A34A"
+          }
+        },
+        {
+          "name": "dot 3 — next (band colour, ring)",
+          "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+          "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px.",
+          "expect": {
+            "width": "9px",
+            "height": "9px",
+            "border-radius": "50%",
+            "background-color": "#F97316"
+          }
+        },
+        {
+          "name": "dot 4 — ahead (hollow)",
+          "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+          "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff.",
+          "expect": {
+            "width": "6px",
+            "height": "6px",
+            "border-radius": "50%",
+            "border-width": "1px",
+            "border-style": "solid",
+            "border-color": "rgba(0,0,0,.28)",
+            "background-color": "#FFFFFF"
+          }
+        },
+        {
+          "name": "row empty — flat line, no dots",
+          "selector": "[data-audit=\"row-empty\"] > span",
+          "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value.",
+          "expect": {
+            "width": "76px",
+            "height": "1px",
+            "background-color": "rgba(0,0,0,.12)"
+          }
+        }
+      ],
+      "forbid": [],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/milestonetimeline.json",
+      "__id": "milestonetimeline"
     },
     {
       "part": "Page frame (1440)",
@@ -1506,6 +1848,1143 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "README §0.4: 'Raw URLs never appear in running text.' The link belongs in the source column, as a labelled anchor."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "FilterChipGroup / FilterChip",
+      "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "800",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "FilterChipGroup / FilterChip",
+      "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+      "property": "letter-spacing",
+      "expected": "0.1em (= 0.95px at 9.5px)",
+      "actual": "0.95px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "FilterChipGroup / FilterChip",
+      "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "FilterChipGroup / FilterChip",
+      "selector": "[data-audit=\"group\"] .cl-filter-group-label",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "color",
+      "expected": "#5A6B67",
+      "actual": "rgb(90, 107, 103)",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "background-color",
+      "expected": "#F5F2EE",
+      "actual": "rgb(245, 242, 238)",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "border-radius",
+      "expected": "999px",
+      "actual": "0px",
+      "status": "MISMATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "padding-top",
+      "expected": "5px",
+      "actual": "5px",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "inactive chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "padding-left",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip: font-size var(--fs-11)=11px, weight 700, color var(--ink-2)=#5A6B67, background var(--tag)=#F5F2EE, border-radius var(--radius-pill)=999px, 1px solid transparent, padding 5px 11px."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "property": "color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "property": "background-color",
+      "expected": "#5A5552",
+      "actual": "rgb(90, 85, 82)",
+      "status": "MATCH",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "active chip",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"true\"]",
+      "property": "border-radius",
+      "expected": "999px",
+      "actual": "0px",
+      "status": "MISMATCH",
+      "note": "Chips.tsx FilterChip active: color #FFFFFF, background var(--brand). theme.css --brand token checked here as its resolved colour."
+    },
+    {
+      "spec": "filterchipgroup",
+      "part": "FilterChipGroup / FilterChip",
+      "artboards": [
+        "02-regulations-list (Filters rail card)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2, Regulations list), the 'Filters' rail card's group label and row typography; operator ruling 2.5 (chip families, one rule each) and 5.2's DEVIATION note in ListSurfaceShell.tsx ('the artboards' Filters rail card uses checkboxes; this renders the same groups as FilterChipGroup/FilterChip pills ... per this lane's dispatch')",
+      "viewport": 1440,
+      "target": "a border on an individual inactive filter chip (operator 2.5: the group shell keeps the border, the chip does not)",
+      "selector": "[data-audit=\"group\"] .cl-filter-chip[data-active=\"false\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator 2.5: 'Filter chips inside a labelled group shell keep the group's border; the individual inactive chips inside it do not.' The rgba(0,0,0,.15) border only exists in Chips.tsx's <768px mobile media block (`.cl-filter-chip[data-active=\"false\"]`) — at the 1440 desktop viewport this mount runs at, the base FilterChip style ('1px solid transparent') should apply, so this forbid is expected to read MATCH (absent) at this viewport; it is here to catch the mobile rule leaking into desktop."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "ImpactMeter",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "property": "height",
+      "expected": "18px",
+      "actual": "9px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "ImpactMeter",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "property": "gap",
+      "expected": "2px",
+      "actual": "2px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "ImpactMeter",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "0px",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "ImpactMeter",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "property": "border-bottom-style",
+      "expected": "solid",
+      "actual": "none",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "ImpactMeter",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bars",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.25)",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MISMATCH",
+      "note": null
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "4px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "height",
+      "expected": "6px",
+      "actual": "5px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "border-top-left-radius",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "border-top-right-radius",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "border-bottom-left-radius",
+      "expected": "0px",
+      "actual": "1px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 1 (score 1, first ascending)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(1)",
+      "property": "background-color",
+      "expected": "#16A34A",
+      "actual": "rgb(22, 163, 74)",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: width 9px, height 6px, radius '1px 1px 0 0', colour #16A34A (score 1)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 3 (score 2)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "4px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 3 (score 2)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "height",
+      "expected": "12px",
+      "actual": "7px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 3 (score 2)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(3)",
+      "property": "background-color",
+      "expected": "#F97316",
+      "actual": "rgb(249, 115, 22)",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: width 9px, height 12px, colour #F97316 (score 2)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 4 (score 3, last/highest)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "4px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 4 (score 3, last/highest)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "height",
+      "expected": "18px",
+      "actual": "9px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — bar 4 (score 3, last/highest)",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-bar:nth-of-type(4)",
+      "property": "background-color",
+      "expected": "#DC2626",
+      "actual": "rgb(220, 38, 38)",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: width 9px, height 18px, colour #DC2626 (score 3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — sum label",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — sum label",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+      "property": "font-variant-numeric",
+      "expected": "tabular-nums",
+      "actual": "tabular-nums",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — sum label",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+      "property": "margin-left",
+      "expected": "7px",
+      "actual": "0px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row scored — sum label",
+      "selector": "[data-audit=\"row-scored\"] .cl-impact-scored > span:last-child",
+      "property": "text",
+      "expected": "7/12",
+      "actual": "7/12",
+      "status": "MATCH",
+      "note": "dc.html #sys row example: font-size 11px, tabular-nums, margin-left 7px; '7' then '/12' in #7A6E6C."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row unscored — dashed baseline",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
+      "property": "width",
+      "expected": "30px",
+      "actual": "40px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row unscored — dashed baseline",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row unscored — dashed baseline",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
+      "property": "border-bottom-style",
+      "expected": "dashed",
+      "actual": "dashed",
+      "status": "MATCH",
+      "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row unscored — dashed baseline",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-baseline",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.3)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MISMATCH",
+      "note": "dc.html #sys row example (second row): width 30px, height 18px container, border-bottom 1px dashed rgba(0,0,0,.3)."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "row unscored — Absence reason (operator ruling 2.1, supersedes the artboard's plain em-dash)",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored > span:last-child",
+      "property": "text",
+      "expected": "unscored",
+      "actual": "unscored",
+      "status": "MATCH",
+      "note": "Operator 2.1: 'the small-caps absence reason from the fixed vocabulary ... at 10.5px uppercase/600 #7A6E6C'. Absence.tsx uses font-variant:small-caps (not text-transform:uppercase) at font-size var(--fs-105)=10.5px, weight 600, color var(--ink-3)=#7A6E6C. Selector reaches the Absence element specifically (not the wrapper), which also contains a mobile <style> tag whose CSS text would otherwise pollute textContent."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "full scored — track height/radius/gradient",
+      "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
+      "property": "height",
+      "expected": "8px",
+      "actual": "6px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "full scored — track height/radius/gradient",
+      "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
+      "property": "border-radius",
+      "expected": "8px",
+      "actual": "3px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "full scored — track height/radius/gradient",
+      "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:nth-of-type(2)",
+      "property": "background-image",
+      "expected": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 55%, rgb(220, 38, 38))",
+      "actual": "linear-gradient(90deg, rgb(22, 163, 74), rgb(249, 115, 22) 50%, rgb(220, 38, 38))",
+      "status": "MISMATCH",
+      "note": "dc.html #sys 'Impact meter — full': height 8px, radius 8px, background linear-gradient(90deg,#16A34A,#F97316 55%,#DC2626). The built component's stop is 50%, not 55% — a real divergence, not a harness artefact."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "full scored — dimension label",
+      "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
+      "property": "width",
+      "expected": "116px",
+      "actual": "84px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "full scored — dimension label",
+      "selector": "[data-audit=\"full-scored\"] > div > div:nth-of-type(1) > span:first-child",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "11px",
+      "status": "MISMATCH",
+      "note": "dc.html #sys: label column is a fixed 116px track (grid-template-columns:116px 1fr 64px). The built component uses a flex row with a 84px label width, not 116px — logged as the comparison value."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "the literal word NOT SCORED / UNSCORED in the meter",
+      "selector": "[data-audit=\"row-unscored\"] span, [data-audit=\"full-unscored\"] span [text contains \"NOT SCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "property": "border-top-left-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "selector": "[data-audit=\"legend-rail\"] > div",
+      "property": "box-shadow",
+      "expected": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+      "actual": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "selector": "[data-audit=\"legend-rail\"] [data-section-rule]",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
+      "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. LegendRailCard/RailCard give no such element — expected status is NOT BUILT, stating the selector contract."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Legend rail card — title label",
+      "selector": "[data-audit=\"legend-rail\"] p:first-child",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Legend rail card — title label",
+      "selector": "[data-audit=\"legend-rail\"] p:first-child",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.26px at 10.5px)",
+      "actual": "1.26px",
+      "status": "MATCH",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Legend rail card — title label",
+      "selector": "[data-audit=\"legend-rail\"] p:first-child",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Legend rail card — title label",
+      "selector": "[data-audit=\"legend-rail\"] p:first-child",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop",
+      "property": "padding-top",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop",
+      "property": "padding-right",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop",
+      "property": "padding-bottom",
+      "expected": "14px",
+      "actual": "12px",
+      "status": "MISMATCH",
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. ListSurfaceShell.tsx inline style: padding '12px 16px' (12px all round, so bottom is 12px not 14px)."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "facets card — the 3px graduated rule above the card (ruling 5.1)",
+      "selector": ".cl-facets-desktop [data-section-rule]",
+      "property": "(element)",
+      "expected": "present",
+      "actual": "no element matched this selector",
+      "status": "NOT BUILT",
+      "note": "Same ruling as the Legend rail card above; ListSurfaceShell's inline facets block gives no such element either."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
+      "selector": "[data-audit=\"dismissed-stash\"] button",
+      "property": "min-height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": "README general rule: '44 px hit targets.' DismissedStash.tsx: minHeight 44 on the Restore button. Checked against the sitewide rule, not against an artboard (this part is not in the artboards)."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED in the dismissed-stash rows",
+      "selector": "[data-audit=\"dismissed-stash\"] span [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "General rule (operator 2.1): the literal token never appears anywhere in the product."
     },
     {
       "spec": "listrow",
@@ -2716,6 +4195,363 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "MilestoneTimeline (row variant)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"]",
+      "property": "width",
+      "expected": "76px",
+      "actual": "76px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "track line",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
+      "property": "height",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "track line",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:first-child",
+      "property": "background-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": "dc.html #sys: height 2px, green 0-58%, rgba(0,0,0,.12) beyond. Built: height 1px, flat rgba(0,0,0,.12) throughout (no green segment) — logged as the comparison; only the built value's own baseline colour/height is asserted here since the split-gradient has no single computed-style equivalent."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 1 — passed",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+      "property": "width",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px filled green (#16A34A) circle."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 1 — passed",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+      "property": "height",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px filled green (#16A34A) circle."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 1 — passed",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px filled green (#16A34A) circle."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 1 — passed",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(1)",
+      "property": "background-color",
+      "expected": "#16A34A",
+      "actual": "rgb(22, 163, 74)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px filled green (#16A34A) circle."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 3 — next (band colour, ring)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+      "property": "width",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 3 — next (band colour, ring)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+      "property": "height",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 3 — next (band colour, ring)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 3 — next (band colour, ring)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(3)",
+      "property": "background-color",
+      "expected": "#F97316",
+      "actual": "rgb(249, 115, 22)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 8x8px, background is the band colour (#F97316 in the artboard's own example, matching this fixture's Action band), box-shadow ring (artboard: '0 0 0 2px #fff' — a white ring; the built component's ring is the band colour at 20% alpha, '0 0 0 2px <bandHex>33' — a real colour divergence, logged as the comparison). Built dot size is 9x9px, not 8x8px."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "width",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "height",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "border-radius",
+      "expected": "50%",
+      "actual": "50%",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "border-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "border-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "border-color",
+      "expected": "rgba(0,0,0,.28)",
+      "actual": "rgba(0, 0, 0, 0.28)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "dot 4 — ahead (hollow)",
+      "selector": "[data-audit=\"row-populated\"] [role=\"img\"] > span:last-child > span:nth-of-type(4)",
+      "property": "background-color",
+      "expected": "#FFFFFF",
+      "actual": "rgb(255, 255, 255)",
+      "status": "MATCH",
+      "note": "dc.html #sys: 6x6px hollow circle, border 1.5px solid #7A6E6C, background #fff."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "row empty — flat line, no dots",
+      "selector": "[data-audit=\"row-empty\"] > span",
+      "property": "width",
+      "expected": "76px",
+      "actual": "76px",
+      "status": "MATCH",
+      "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "row empty — flat line, no dots",
+      "selector": "[data-audit=\"row-empty\"] > span",
+      "property": "height",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value."
+    },
+    {
+      "spec": "milestonetimeline",
+      "part": "MilestoneTimeline (row variant)",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example, timeline cell)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row example's timeline cell (5 dots: passed, passed, next, ahead, ahead); README.md §0.4 'Meters and timeline on every row' and 'Passed = filled green dot; next = larger dot in the item's band colour with a ring, ahead = hollow'",
+      "viewport": 1440,
+      "target": "row empty — flat line, no dots",
+      "selector": "[data-audit=\"row-empty\"] > span",
+      "property": "background-color",
+      "expected": "rgba(0,0,0,.12)",
+      "actual": "rgba(0, 0, 0, 0.12)",
+      "status": "MATCH",
+      "note": "MilestoneTimeline.tsx: entries.length===0 renders a single flat 1px rgba(0,0,0,.12) line, width 76px, no dots. Not shown as its own state in the artboard (the artboard's two example rows are populated/dashed-unscored, not empty); logged as the built component's own contract, not compared to an artboard value."
     },
     {
       "spec": "page-frame",

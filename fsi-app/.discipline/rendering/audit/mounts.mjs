@@ -116,6 +116,141 @@ window.__mount = () => {
 };
 `;
 
+// ── ImpactMeter ─────────────────────────────────────────────────────────────────────────────────
+// Row + full variants, each scored and unscored, wrapped in `[data-audit]` boxes.
+const IMPACTMETER_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ImpactMeter } from '@/components/ui/ImpactMeter';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 420, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 24 } },
+      React.createElement('div', { 'data-audit': 'row-scored' },
+        React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 1, compliance: 1, client: 2, operational: 3 } })),
+      React.createElement('div', { 'data-audit': 'row-unscored' },
+        React.createElement(ImpactMeter, { variant: 'row', scores: null })),
+      React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },
+        React.createElement(ImpactMeter, { variant: 'full', scores: { cost: 1, compliance: 3, client: 1, operational: 2 } })),
+      React.createElement('div', { 'data-audit': 'full-unscored', style: { width: 380 } },
+        React.createElement(ImpactMeter, { variant: 'full', scores: null })),
+    ),
+  );
+};
+`;
+
+// ── MilestoneTimeline (row variant) ────────────────────────────────────────────────────────────
+// Five entries reproducing the #sys row example's dot pattern (2 passed, 1 next, 2 ahead) plus the
+// empty (no entries) state, wrapped in `[data-audit]` boxes.
+const MILESTONETIMELINE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MilestoneTimeline } from '@/components/ui/MilestoneTimeline';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const action = BAND_ORDER.find((b) => b.key === 'action');
+const entries = [
+  { date: '2022-01-01', label: 'A', status: 'past' },
+  { date: '2023-06-01', label: 'B', status: 'past' },
+  { date: '2026-09-30', label: 'C', status: 'current' },
+  { date: '2027-01-01', label: 'D', status: 'future' },
+  { date: '2027-06-01', label: 'E', status: 'future' },
+];
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 200, padding: 20, background: 'var(--page)', display: 'flex', flexDirection: 'column', gap: 24 } },
+      React.createElement('div', { 'data-audit': 'row-populated' },
+        React.createElement(MilestoneTimeline, { variant: 'row', bandHex: action.hex, entries })),
+      React.createElement('div', { 'data-audit': 'row-empty' },
+        React.createElement(MilestoneTimeline, { variant: 'row', bandHex: '#F97316', entries: [] })),
+    ),
+  );
+};
+`;
+
+// ── FilterChipGroup / FilterChip ───────────────────────────────────────────────────────────────
+const FILTERCHIP_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { FilterChipGroup, FilterChip } from '@/components/ui/Chips';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 420, padding: 20, background: 'var(--page)' } },
+      React.createElement('div', { 'data-audit': 'group' },
+        React.createElement(FilterChipGroup, { label: 'Mode' },
+          React.createElement(FilterChip, { active: false }, 'Air'),
+          React.createElement(FilterChip, { active: true }, 'Ocean'),
+        )),
+    ),
+  );
+};
+`;
+
+// ── ListSurfaceShell rail facets + Legend + DismissedStash foot ───────────────────────────────
+// Assembled from the real shared parts (ListSurfaceShell, ListSurfaceRailCards, DismissedStash),
+// minimal fixture data — guard code, not a page mount.
+const LISTSURFACE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ListSurfaceShell } from '@/components/list-surface/ListSurfaceShell';
+import { LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
+import { DismissedStash } from '@/components/regulations/DismissedStash';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const facetGroups = [
+  { key: 'mode', label: 'Mode', options: [
+      { value: 'air', label: 'Air', count: 212 },
+      { value: 'ocean', label: 'Ocean', count: 388 },
+    ], selected: 'ocean', onSelect: () => {} },
+];
+
+const dismissed = [
+  { id: 'd1', jurisdiction: 'EU', title: 'Dismissed regulation title one' },
+  { id: 'd2', jurisdiction: 'GB', title: 'Dismissed regulation title two' },
+];
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 1180 } },
+      React.createElement(ListSurfaceShell, {
+        title: "Regulations",
+        dateLabel: 'Vol IV · No. 36 · Sunday 6 September 2026',
+        itemCount: 1316,
+        scope: 'regulations',
+        bandCounts: { immediate: 14, action: 31, monitor: 1135, awareness: 254 },
+        selectedBand: null,
+        onSelectBand: () => {},
+        facetGroups,
+        rowsByBand: BAND_ORDER.map((band) => ({ band, rows: [], total: 0 })),
+        perBandCap: 5,
+        belowRows: React.createElement('div', { 'data-audit': 'dismissed-stash' },
+          React.createElement(DismissedStash, { dismissed, onRestore: () => {} })),
+        rail: React.createElement('div', { 'data-audit': 'legend-rail' },
+          React.createElement(LegendRailCard, null)),
+      }),
+    ),
+  );
+};
+`;
+
 // ── Page frame at 1440 ──────────────────────────────────────────────────────────────────────────
 // The real AppShell (nav card, content column, footer, the floating assistant) wrapping the two page
 // surfaces whose own chrome the frame rulings govern: the dashboard (the worked example page, its
@@ -263,6 +398,30 @@ export const AUDIT_MOUNTS = {
     description: 'ListRow + ListRowColumnHeader in the 778px content column the 1440 frame produces.',
     viewport: 1440,
     entry: LISTROW_ENTRY,
+  },
+  impactmeter: {
+    id: 'impactmeter',
+    description: 'ImpactMeter, row + full variants, scored + unscored.',
+    viewport: 1440,
+    entry: IMPACTMETER_ENTRY,
+  },
+  milestonetimeline: {
+    id: 'milestonetimeline',
+    description: 'MilestoneTimeline row variant, populated (2 passed/1 next/2 ahead) + empty.',
+    viewport: 1440,
+    entry: MILESTONETIMELINE_ENTRY,
+  },
+  filterchipgroup: {
+    id: 'filterchipgroup',
+    description: 'FilterChipGroup + FilterChip, one active + one inactive chip.',
+    viewport: 1440,
+    entry: FILTERCHIP_ENTRY,
+  },
+  'list-surface-1440': {
+    id: 'list-surface-1440',
+    description: 'ListSurfaceShell (real assembly): facets card, Legend rail card, DismissedStash foot.',
+    viewport: 1440,
+    entry: LISTSURFACE_ENTRY,
   },
   'page-frame-1440': {
     id: 'page-frame-1440',
