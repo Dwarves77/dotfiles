@@ -37,6 +37,7 @@ import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { TagChip } from "@/components/ui/Chips";
@@ -186,21 +187,30 @@ export function ResearchFindingDetailSurface({
             </>
           }
           actions={
-            <>
-              {(r.fullBrief || r.url) && (
-                <ActionButton primary onClick={() => exportBriefAsMarkdown(r)}>
-                  Export brief
-                </ActionButton>
-              )}
-              <ActionButton onClick={() => shareCurrent(r)}>Share</ActionButton>
-              <WatchButton
-                itemType="research"
-                itemId={String(r.id)}
-                initialWatched={initialWatched}
-                initialTeamWatched={initialTeamWatched}
-                initialTeamAvailable={initialTeamAvailable}
-              />
-            </>
+            <ActionRow
+              onExport={() =>
+                downloadMarkdownBrief(r, {
+                  filenamePrefix: "research",
+                  metaRows: [
+                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                    r.type ? `- Type: ${r.type}` : null,
+                    r.url ? `- Source: ${r.url}` : null,
+                  ],
+                })
+              }
+              onShare={() => shareResource(r)}
+              exportDisabled={!(r.fullBrief || r.url)}
+              watch={
+                <WatchButton
+                  itemType="research"
+                  itemId={String(r.id)}
+                  variant="row"
+                  initialWatched={initialWatched}
+                  initialTeamWatched={initialTeamWatched}
+                  initialTeamAvailable={initialTeamAvailable}
+                />
+              }
+            />
           }
         />
 
@@ -365,62 +375,3 @@ function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
   );
 }
 
-// ── Action button / handlers ──────────────────────────────────────────
-function ActionButton({ children, primary, onClick }: { children: React.ReactNode; primary?: boolean; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        fontFamily: "var(--font-sans)", fontSize: "var(--fs-115)", fontWeight: primary ? 800 : 700,
-        padding: "8px 16px", minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center",
-        borderRadius: "var(--radius-control)", border: primary ? "1px solid var(--brand)" : "1px solid var(--line-1)",
-        background: primary ? "var(--brand)" : "var(--card)", color: primary ? "#fff" : "var(--ink)", cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function exportBriefAsMarkdown(r: Resource) {
-  if (typeof window === "undefined") return;
-  const titleLine = `# ${r.title}\n\n`;
-  const meta = [
-    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-    r.type ? `- Type: ${r.type}` : null,
-    r.url ? `- Source: ${r.url}` : null,
-  ].filter(Boolean).join("\n");
-  const body = r.fullBrief || [r.whatIsIt, r.whyMatters].filter(Boolean).join("\n\n") || r.note || "(No briefing body recorded.)";
-  const md = `${titleLine}${meta ? meta + "\n\n" : ""}${body}\n`;
-  const slug = (r.id || "finding").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `research-${slug || "brief"}.md`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function shareCurrent(r: Resource) {
-  if (typeof window === "undefined") return;
-  const href = typeof window.location !== "undefined" ? window.location.href : "";
-  const shareData = { title: r.title, text: r.note || r.whatIsIt || r.title, url: href };
-  const nav = window.navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
-  if (typeof nav.share === "function") {
-    nav.share(shareData).catch(() => copyToClipboard(href));
-    return;
-  }
-  copyToClipboard(href);
-}
-
-function copyToClipboard(text: string) {
-  if (typeof window === "undefined" || !text) return;
-  const nav = window.navigator as Navigator & { clipboard?: { writeText: (s: string) => Promise<void> } };
-  if (nav.clipboard && typeof nav.clipboard.writeText === "function") {
-    nav.clipboard.writeText(text).catch(() => {});
-  }
-}

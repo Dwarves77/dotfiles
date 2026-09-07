@@ -46,6 +46,7 @@ import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
 import { TagChip } from "@/components/ui/Chips";
@@ -336,22 +337,31 @@ export function MarketSignalDetailSurface({
             </>
           }
           actions={
-            <>
-              {(r.fullBrief || r.url) && (
-                <ActionButton primary onClick={() => exportBriefAsMarkdown(r)}>
-                  Export brief
-                </ActionButton>
-              )}
-              <ActionButton onClick={() => shareCurrent(r)}>Share</ActionButton>
-              <WatchButton
-                itemType="signal"
-                itemId={String(r.id)}
-                palette={{ accent: "var(--action)", hairStrong: "var(--line-1)", tint: "var(--action-tint)", card: "var(--card)", ink: "var(--ink)" }}
-                initialWatched={initialWatched}
-                initialTeamWatched={initialTeamWatched}
-                initialTeamAvailable={initialTeamAvailable}
-              />
-            </>
+            <ActionRow
+              onExport={() =>
+                downloadMarkdownBrief(r, {
+                  filenamePrefix: "signal",
+                  metaRows: [
+                    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
+                    r.severity ? `- Severity: ${r.severity}` : null,
+                    r.signalBand ? `- Signal band: ${r.signalBand}` : null,
+                    r.url ? `- Source: ${r.url}` : null,
+                  ],
+                })
+              }
+              onShare={() => shareResource(r)}
+              exportDisabled={!(r.fullBrief || r.url)}
+              watch={
+                <WatchButton
+                  itemType="signal"
+                  itemId={String(r.id)}
+                  variant="row"
+                  initialWatched={initialWatched}
+                  initialTeamWatched={initialTeamWatched}
+                  initialTeamAvailable={initialTeamAvailable}
+                />
+              }
+            />
           }
         />
 
@@ -672,68 +682,6 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
       <p style={{ fontSize: "var(--fs-10)", color: status === "error" ? "var(--immediate)" : "var(--ink-3)", margin: "6px 0 0" }}>{statusLabel}</p>
     </div>
   );
-}
-
-// ── Action button ─────────────────────────────────────────────────────
-function ActionButton({ children, primary, onClick }: { children: React.ReactNode; primary?: boolean; onClick?: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        fontFamily: "var(--font-sans)", fontSize: "var(--fs-115)", fontWeight: primary ? 800 : 700,
-        padding: "8px 16px", minHeight: 44, display: "inline-flex", alignItems: "center", justifyContent: "center",
-        borderRadius: "var(--radius-control)", border: primary ? "1px solid var(--brand)" : "1px solid var(--line-1)",
-        background: primary ? "var(--brand)" : "var(--card)", color: primary ? "#fff" : "var(--ink)", cursor: "pointer",
-      }}
-    >
-      {children}
-    </button>
-  );
-}
-
-// ── Action handlers ───────────────────────────────────────────────────
-function exportBriefAsMarkdown(r: Resource) {
-  if (typeof window === "undefined") return;
-  const titleLine = `# ${r.title}\n\n`;
-  const meta = [
-    r.jurisdiction ? `- Jurisdiction: ${r.jurisdiction}` : null,
-    r.severity ? `- Severity: ${r.severity}` : null,
-    r.signalBand ? `- Signal band: ${r.signalBand}` : null,
-    r.url ? `- Source: ${r.url}` : null,
-  ].filter(Boolean).join("\n");
-  const body = r.fullBrief || [r.whatIsIt, r.whyMatters].filter(Boolean).join("\n\n") || r.note || "(No briefing body recorded.)";
-  const md = `${titleLine}${meta ? meta + "\n\n" : ""}${body}\n`;
-  const slug = (r.id || "signal").toString().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  const blob = new Blob([md], { type: "text/markdown;charset=utf-8" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `signal-${slug || "brief"}.md`;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  window.setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
-function shareCurrent(r: Resource) {
-  if (typeof window === "undefined") return;
-  const href = typeof window.location !== "undefined" ? window.location.href : "";
-  const shareData = { title: r.title, text: r.note || r.whatIsIt || r.title, url: href };
-  const nav = window.navigator as Navigator & { share?: (data: ShareData) => Promise<void> };
-  if (typeof nav.share === "function") {
-    nav.share(shareData).catch(() => copyToClipboard(href));
-    return;
-  }
-  copyToClipboard(href);
-}
-
-function copyToClipboard(text: string) {
-  if (typeof window === "undefined" || !text) return;
-  const nav = window.navigator as Navigator & { clipboard?: { writeText: (s: string) => Promise<void> } };
-  if (nav.clipboard && typeof nav.clipboard.writeText === "function") {
-    nav.clipboard.writeText(text).catch(() => {});
-  }
 }
 
 function shortDate(d: string): string {
