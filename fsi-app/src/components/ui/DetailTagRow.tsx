@@ -3,16 +3,18 @@
 /**
  * DetailTagRow — the detail-header tag row (lane uitags, 2026-09-07,
  * README "Workspace tags", operator render of /regulations/[slug]): the
- * item's applied WorkspaceTagPills, then the + Tag trigger, then a muted
- * "workspace tags" label. Passed into DetailHeader's `tagRow` prop by all
- * four detail surfaces (regulation, market, research, operations), one
- * component, not a fork per surface.
+ * item's applied WorkspaceTagPills, then a muted "workspace tags" label.
+ * Passed into DetailHeader's `tagRow` prop by all four detail surfaces
+ * (regulation, market, research, operations), one component, not a fork
+ * per surface.
  *
- * `open`/`onOpenChange` (lane uiactions integration, 2026-09-07, forwarded
- * straight to TagPopover): lets the surface lift the popover's open state
- * above both this row and ActionRow, so ActionRow's own "+ Tag" trigger
- * opens the SAME popover this row's trigger opens, one popover, one state.
- * Omitted, this row keeps its own uncontrolled popover exactly as before.
+ * DEFECT-FIX (item 3.2, 2026-09-07): this row renders APPLIED TAGS ONLY —
+ * it carries no trigger of its own. `open`/`onOpenChange` (lane uiactions
+ * integration, 2026-09-07) are always supplied by every caller, so the
+ * `TagPopover` mounted here renders in its controlled mode (no internal
+ * "+ Tag" button — see TagPopover's own header) and stays purely an
+ * anchor for the popover panel; ActionRow's own "+ Tag" button (the action
+ * row, README "Detail action row") is the ONE trigger that opens it.
  */
 
 import { useEffect, useState } from "react";
