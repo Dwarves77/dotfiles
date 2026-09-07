@@ -1,0 +1,63 @@
+{
+  "part": "ActionRow (detail action row)",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile", "00-system-sheet (Actions · stat block example)"],
+  "source": "README.md §0.4 'Detail action row — always visible': 'Export brief (primary, ink) · Share · ☆ Watch · ＋ Tag, all four on the detail header, 8px gap, padding:8px 14px; radius 6, secondary = white with rgba(0,0,0,.25) border and #F5F2EE hover'; operator rulings 3.1 (remove the Immediate ▾ dropdown) and 3.2 (the action-row + Tag is the only trigger)",
+  "notes": [
+    "The dc.html #sys 'Actions · stat block' block (Export brief / Share / ☆ Watch example) carries the identical padding:8px 14px;border-radius:6px;font-size:12.5px values as a worked example of the same button chrome; README's own 8px gap / padding:8px 14px; radius 6 prose is used as the primary source line for this spec, per the harness convention of preferring the exact-numbers statement over the illustrative artboard block.",
+    "This mount's `watch` slot is a plain ActionButton placeholder (variant=secondary), not the real WatchButton (out of this spec's reach: WatchButton owns its own persistence and is audited separately if a lane adds a spec for it) — sufficient to measure the ROW's own gap and the three buttons this component itself owns (Export, Share, + Tag)."
+  ],
+  "selector": "[data-audit=\"actionrow\"] .cl-action-row",
+  "expect": {
+    "display": "flex",
+    "column-gap": "8px",
+    "row-gap": "8px"
+  },
+  "children": [
+    {
+      "name": "Export brief (primary)",
+      "selector": "[data-audit=\"actionrow\"] button",
+      "note": "README: primary, ink fill, padding 8px 14px, radius 6.",
+      "expect": {
+        "text": "Export brief",
+        "padding-top": "8px",
+        "padding-left": "14px",
+        "border-radius": "6px",
+        "color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "Share (secondary)",
+      "selector": "[data-audit=\"actionrow\"] button:nth-of-type(2)",
+      "note": "README: secondary = white, rgba(0,0,0,.25) border.",
+      "expect": {
+        "text": "Share",
+        "background-color": "#FFFFFF",
+        "border-top-width": "1px",
+        "border-top-style": "solid",
+        "border-top-color": "rgba(0,0,0,.25)",
+        "border-radius": "6px"
+      }
+    },
+    {
+      "name": "+ Tag (dashed pill)",
+      "selector": "[data-audit=\"actionrow\"] button:last-of-type",
+      "note": "ActionRow.tsx: dashed variant, 1px dashed rgba(0,0,0,.25). Operator 3.2: this is the ONLY + Tag trigger a detail surface should render outside the tag row itself (the tag row's own trigger is audited separately — both existing is correct per 3.2's own text: 'Applied workspace tags still render as a row under the title; that row displays tags, it does not carry the trigger' — meaning the TAG ROW's trigger is the violation to look for, not this one).",
+      "expect": {
+        "text": "+ Tag",
+        "border-top-width": "1px",
+        "border-top-style": "dashed",
+        "border-top-color": "rgba(0,0,0,.25)"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "an 'Immediate ▾' band-change dropdown in the action row",
+      "selector": "[data-audit=\"actionrow\"] button",
+      "textMatch": "▾",
+      "reason": "Operator 3.1: 'Remove the Immediate ▾ dropdown from the regulation detail action row... Action row is exactly Export brief (primary) · Share · ☆ Watch · + Tag.' ActionRow.tsx itself never renders this control (it lived in HeroPriorityDropdown, a separate component some detail surfaces compose alongside ActionRow) — a MATCH here confirms the shared part is clean; the forbid check on the composed page (page-frame.json) is what catches a surface that still renders HeroPriorityDropdown next to it."
+    }
+  ]
+}

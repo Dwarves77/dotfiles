@@ -1,0 +1,39 @@
+{
+  "part": "\"HIGH RELEVANCE\" chip (RelevanceBadge)",
+  "mount": "relevancebadge",
+  "viewport": 1440,
+  "artboards": ["none — confirmed absent from every extracted page section (00-sys, p3, p5, p7, p8, p9) by grep this session"],
+  "source": "src/components/shell/RelevanceBadge.tsx (used by RelevanceBadgeClient on the regulation and research detail rails); operator ruling 3.4, DO NOT TOUCH: 'DO NOT REMOVE. It is the four-band relevance gradation the brief keeps; Claude Design is defining the relevance component and will send it with the overlays. Leave it live and unstyled as is.'",
+  "notes": [
+    "RECORD, DO NOT JUDGE, per the ruling's own framing. This spec asserts PRESENCE ONLY: a MATCH on the checks below means the element still renders (the thing 3.4 forbids removing); a MISMATCH would mean a value drifted from the component's own current code, not from any design source, since none exists yet.",
+    "No dc.html artboard and no README line names a 'HIGH RELEVANCE' or 'RelevanceBadge' element anywhere in this handoff package — confirmed by grep across every extracted page section this session, not assumed from the ruling's own wording alone.",
+    "This checks the component in isolation (mounts.mjs's relevancebadge entry) rather than inside RegulationDetailSurface/ResearchFindingDetailSurface, since RelevanceBadgeClient wraps it in a client-side fetch (getViewerRelevanceForItem, a Dynamic API per that file's own header) this harness's no-network posture cannot resolve without a bespoke stub; presence in the real surfaces is a page-level integration fact (RegulationDetailSurface.tsx:234, ResearchFindingDetailSurface.tsx:254 both import RelevanceBadgeClient), confirmed by source read, not by this render."
+  ],
+  "selector": "[data-audit=\"relevance\"] > div",
+  "expect": {
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "band pill",
+      "selector": "[data-audit=\"relevance\"] > div > span:first-of-type",
+      "note": "RelevanceBadge.tsx's own current values: 9px/800/.08em/uppercase, rounded pill, background = the band colour token. Recorded as a baseline, not compared to a design number.",
+      "expect": {
+        "text": "High relevance",
+        "font-size": "9px",
+        "font-weight": "800",
+        "letter-spacing": "0.08em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "summary line",
+      "selector": "[data-audit=\"relevance\"] > div > span:last-of-type",
+      "expect": {
+        "text": "Directly affects two active EEA ocean lanes.",
+        "font-size": "11.5px"
+      }
+    }
+  ],
+  "forbid": []
+}

@@ -1,0 +1,52 @@
+{
+  "part": "InThisListStat",
+  "mount": "detail-shell",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "'Caros Ledge UI System.dc.html' p3 (#p3) rail card block: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;...;overflow:hidden` with a `height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))` rule on the card's OWN top edge, then `padding:12px 16px 14px`; README.md §0.5 (AlphaSense place-keeping behaviour, \"In this list · 4 of 15\"); operator ruling 5.1",
+  "notes": [
+    "The rail card in the artboard carries ruling 5.1's 3px graduated rule directly on the card (not just section cards with titles) — InThisListStat.tsx (like every other rail card in DetailShell.tsx) has no such element, so this is the SAME sitewide gap page-frame.json and detailsection.json record, now confirmed on a rail card too.",
+    "Padding differs: artboard `padding:12px 16px 14px` (top 12, bottom 14) vs the built card's `padding: 14px 16px` (top 14, bottom 14) — a small but real MISMATCH on padding-top.",
+    "The artboard's example reads \"Action · 4 of 13 · sorted by next date\" (a third clause, 'sorted by next date') where the built component renders \"4 of 13 in Action\" (order reversed, no sort clause) — this is a DATA/COPY difference, not a geometry one; logged as an observation, not asserted as a text MISMATCH since the exact numbers (4 of 13) are fixture-dependent on both sides."
+  ],
+  "selector": "[data-audit=\"inthislist\"] > div",
+  "expect": {
+    "background-color": "#FFFFFF",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.12)",
+    "border-top-left-radius": "10px",
+    "padding-top": "14px",
+    "padding-right": "16px",
+    "padding-left": "16px"
+  },
+  "children": [
+    {
+      "name": "the 3px graduated rule on the rail card (ruling 5.1)",
+      "selector": "[data-audit=\"inthislist\"] [data-section-rule]",
+      "note": "Artboard: height 3px, linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18)) on the card's own top edge, before its padded content.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82) 0%, rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18) 100%)"
+      }
+    },
+    {
+      "name": "'In this list' eyebrow label",
+      "selector": "[data-audit=\"inthislist\"] p:first-of-type",
+      "expect": {
+        "font-size": "10.5px",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "font-weight": "800"
+      }
+    },
+    {
+      "name": "'Back to list' link",
+      "selector": "[data-audit=\"inthislist\"] a",
+      "note": "Artboard: 11px/600.",
+      "expect": {
+        "font-size": "11px"
+      }
+    }
+  ],
+  "forbid": []
+}

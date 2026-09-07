@@ -1,0 +1,101 @@
+{
+  "part": "FactBlocks in context (FactCard variants + concession table, 03/05/07/09)",
+  "mount": "factblocks",
+  "viewport": 1440,
+  "artboards": ["03-regulation-detail", "05-market-detail", "07-research-detail", "09-operations-profile"],
+  "source": "src/components/detail/FactBlocks.tsx (the ONE renderer all four detail surfaces route section content_md through, per its own header, which names the operations concession table by name); 'Caros Ledge UI System.dc.html' p9 (#p9, Operations profile) concession table markup: `<table>` in a `border:1px solid rgba(0,0,0,.12);border-radius:8px;overflow:hidden` wrapper, `<thead style=\"background:#FAFAF8\">`, `<th style=\"padding:8px 12px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#7A6E6C;font-weight:700;border-bottom:1px solid rgba(0,0,0,.12)\">`, `<td style=\"padding:8px 12px;border-bottom:1px solid rgba(0,0,0,.06)\">`; operator ruling 2.4 (fact card form, re-checked here in the parser-driven path, not the harness's own hand-built proof)",
+  "notes": [
+    "factcard.json (the harness's original proof spec) already measures FactCard's own geometry directly with hand-built props; this spec instead drives the SAME variants through the real markdown parser (parseFactParagraphs -> FactBlocks -> FactCard), confirming the parser-to-component wiring — a raw URL never leaking into the sourced card's visible text, and the LEGAL label producing the exact 'Legal confirmation required' text — is correct end to end, per README §0.4's own claim that FactBlocks 'replaces every FACT: … *Source: …* paragraph'.",
+    "The concession table is GfmSection's `<table>` render (components/shared/GfmSection.tsx), reached here because `parseFactParagraphs` classifies a markdown table with no FACT/ANALYSIS/LEGAL prefix as a plain `prose` block, which FactBlocks routes through GfmSection (that file's own header names this exact case: 'a structured concession table (the operations port-dues section)... renders as a real table').",
+    "FactCard.tsx wraps the sourced variant's body in literal curly quotes (`&ldquo;{text}&rdquo;`) — the expected text below includes them; a first pass without the quote characters read as a MISMATCH that was a spec mistake, not a finding."
+  ],
+  "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(1)",
+  "expect": {
+    "border-left-width": "2px",
+    "border-left-color": "#1A1A1A"
+  },
+  "children": [
+    {
+      "name": "sourced fact card — no raw URL in visible text",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(1) p:nth-of-type(2)",
+      "note": "parseFactParagraphs strips the inline *Source: ...* citation before handing text to FactCard; this confirms the stripped text carries no leftover 'https://'.",
+      "expect": {
+        "text": "“Shipping companies must monitor, report and surrender ETS allowances for each tonne of reported CO2 from ships of 5,000 GT and above calling at EEA ports.”"
+      }
+    },
+    {
+      "name": "inference card, second block",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(2)",
+      "note": "Ruling 2.4: dashed all round, background #FAFAF8.",
+      "expect": {
+        "border-top-style": "dashed",
+        "background-color": "#FAFAF8"
+      }
+    },
+    {
+      "name": "counsel card, third block — parser-driven label text",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(3) p:first-of-type",
+      "note": "The LEGAL: markdown token maps to FactCard's counsel variant via a fixed label, not the markdown's own text.",
+      "expect": {
+        "text": "Legal confirmation required"
+      }
+    },
+    {
+      "name": "counsel card — orange left edge",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(3)",
+      "expect": {
+        "border-left-width": "2px",
+        "border-left-color": "#F97316"
+      }
+    },
+    {
+      "name": "concession table wrapper",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table",
+      "note": "Artboard p9: border-collapse collapse inside a border:1px solid rgba(0,0,0,.12); border-radius:8px; overflow:hidden wrapper.",
+      "expect": {
+        "border-collapse": "collapse"
+      }
+    },
+    {
+      "name": "concession table — header cell",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table th",
+      "note": "Artboard p9: padding:8px 12px; font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:#7A6E6C; font-weight:700; border-bottom:1px solid rgba(0,0,0,.12). GfmSection.tsx: padding 6px 10px, fontWeight 600, no letter-spacing, no uppercase, no #7A6E6C.",
+      "expect": {
+        "padding-top": "8px",
+        "padding-left": "12px",
+        "font-size": "10px",
+        "letter-spacing": "0.1em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "concession table — thead background",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table thead",
+      "note": "Artboard p9: background:#FAFAF8. GfmSection.tsx: var(--color-surface-raised).",
+      "expect": {
+        "background-color": "#FAFAF8"
+      }
+    },
+    {
+      "name": "concession table — body cell",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(4) table td",
+      "note": "Artboard p9: padding:8px 12px; border-bottom:1px solid rgba(0,0,0,.06). GfmSection.tsx: padding 6px 10px, border 1px solid on all sides (not border-bottom only).",
+      "expect": {
+        "padding-top": "8px",
+        "padding-left": "12px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.06)"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "a raw URL in the sourced card's visible text",
+      "selector": "[data-audit=\"factblocks\"] > div:nth-of-type(1) p",
+      "textMatch": "https://",
+      "reason": "README §0.4: 'Raw URLs never appear in running text.' Confirms the parser strips the citation URL before it reaches FactCard's rendered text, not only that FactCard's own props contract keeps it out (already checked by factcard.json)."
+    }
+  ]
+}

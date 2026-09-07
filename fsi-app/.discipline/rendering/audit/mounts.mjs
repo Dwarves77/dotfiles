@@ -634,6 +634,164 @@ const EMPTY_API = [
   { urlGlob: '**/api/**', handler: (route) => route.fulfill({ contentType: 'application/json', body: '{}' }) },
 ];
 
+
+// ── Detail shell (lane uxaudit-c, 2026-09-07) ──────────────────────────────────────────────────
+// DetailHeader, ActionRow, DetailTagRow (+TagPopover, forced open so its geometry is measurable
+// without a click), SectionIndex + SummaryDepthSwitch, DetailTimeline, DetailSection, and every
+// rail card (InThisListStat, ImpactRailCard, AtAGlanceCard, RailLegend) — the ONE shared
+// components/detail/DetailShell.tsx module every one of the four detail surfaces assembles from
+// (that file's own header: "the ONE detail architecture... shared by all four detail surfaces").
+// One mount instead of four, since the shell is the SAME code on every surface; each real detail
+// surface's OWN section content and rail composition is audited separately where it differs
+// (factblocks mount, below).
+const DETAIL_SHELL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import {
+  DetailHeader,
+  DetailTimeline,
+  SectionIndex,
+  SummaryDepthSwitch,
+  DetailSection,
+  ImpactRailCard,
+  InThisListStat,
+  AtAGlanceCard,
+  RailLegend,
+  DetailPageWrapper,
+  DetailLayout,
+} from '@/components/detail/DetailShell';
+import { ActionRow, ActionButton } from '@/components/ui/ActionRow';
+import { DetailTagRow } from '@/components/ui/DetailTagRow';
+import { BAND_ORDER } from '@/lib/urgency/bands';
+
+const band = BAND_ORDER.find((b) => b.key === 'action');
+
+function Demo() {
+  const [depth, setDepth] = React.useState('summary');
+  return React.createElement(DetailPageWrapper, null,
+    React.createElement('div', { 'data-audit': 'header' },
+      React.createElement(DetailHeader, {
+        band,
+        tier: 1,
+        title: 'EU Emissions Trading System (ETS) extension to maritime transport',
+        meta: 'Regulations \\u00b7 European Union',
+        tagRow: React.createElement('div', { 'data-audit': 'tagrow' },
+          React.createElement(DetailTagRow, { itemId: 'demo-item', open: true, onOpenChange: () => {} })),
+        actions: React.createElement('div', { 'data-audit': 'actionrow' },
+          React.createElement(ActionRow, {
+            onExport: () => {},
+            onShare: () => {},
+            onTag: () => {},
+            watch: React.createElement(ActionButton, { key: 'watch', variant: 'secondary' }, '\\u2606 Watch'),
+          })),
+      })),
+    React.createElement('div', { 'data-audit': 'timeline' },
+      React.createElement(DetailTimeline, {
+        band,
+        entries: [
+          { date: '2023-01-01', label: 'Adopted', status: 'past' },
+          { date: '2026-09-30', label: 'Surrender', status: 'current' },
+          { date: '2027-01-01', label: 'Phase 2', status: 'future' },
+        ],
+      })),
+    React.createElement('div', { 'data-audit': 'sectionindex' },
+      React.createElement(SectionIndex, {
+        sections: [
+          { id: 'summary', label: 'Summary' },
+          { id: 'obligations', label: 'Obligations' },
+        ],
+        trailing: React.createElement('div', { 'data-audit': 'depthswitch' },
+          React.createElement(SummaryDepthSwitch, { depth, onChange: setDepth })),
+      })),
+    React.createElement(DetailLayout, {
+      rail: React.createElement(React.Fragment, null,
+        React.createElement('div', { key: 'r1', 'data-audit': 'inthislist' },
+          React.createElement(InThisListStat, { backHref: '/regulations', backLabel: 'Back to list', band })),
+        React.createElement('div', { key: 'r2', 'data-audit': 'impactrail' },
+          React.createElement(ImpactRailCard, { scores: { cost: 1, compliance: 2, client: 3, operational: 1 } })),
+        React.createElement('div', { key: 'r3', 'data-audit': 'atglance' },
+          React.createElement(AtAGlanceCard, { rows: [{ label: 'Band', value: 'Action' }, { label: 'Tier', value: 'T1' }] })),
+        React.createElement('div', { key: 'r4', 'data-audit': 'raillegend' },
+          React.createElement(RailLegend, null)),
+      ),
+    },
+      React.createElement('div', { 'data-audit': 'section' },
+        React.createElement(DetailSection, { id: 'summary', title: 'Summary' },
+          React.createElement('p', null, 'Body text for the summary section.'))),
+    ),
+  );
+}
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(Demo));
+};
+`;
+
+
+// ── FactBlocks in context (lane uxaudit-c, 2026-09-07) ─────────────────────────────────────────
+// FactBlocks.tsx is the ONE renderer all four detail surfaces route section content_md through
+// (that file's own header) — mounting it directly, fed markdown carrying a FACT/ANALYSIS/LEGAL
+// paragraph plus a GFM table, measures the SAME FactCard variants and the SAME concession-table
+// rendering (09-operations-profile's port-dues table, per that file's own header: "a structured
+// concession table... renders as a real table") that regulation/market/research/operations detail
+// (03/05/07/09) all use, without mounting all four heavy detail surfaces separately.
+const FACTBLOCKS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { FactBlocks } from '@/components/detail/FactBlocks';
+
+const MARKDOWN = [
+  'Shipping companies must monitor, report and surrender ETS allowances for each tonne of reported CO2 from ships of 5,000 GT and above calling at EEA ports. *Source: ETS Extension to Maritime, EMSA, accessed 2026. https://example.com/source.*',
+  '*Analytical inference:* Forwarders sit outside the direct surrender chain; exposure arrives as carrier surcharge pass-through on any EEA-touching lane.',
+  '*Legal Confirmation Required:* Whether a workspace entity operating its own vessel is a "shipping company" under the amended Directive.',
+  '| Qualifying fuel / technology | Condition | Concession |\\n| --- | --- | --- |\\n| Zero-emission (hydrogen, full electrification) | \\u2014 | 100% |\\n| Zero-carbon (ammonia) | pilot fuel <= 25% | 50% |',
+].join('\\n\\n');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 778, padding: 20, background: 'var(--page)' }, 'data-audit': 'factblocks' },
+      React.createElement(FactBlocks, { markdown: MARKDOWN }),
+    ),
+  );
+};
+`;
+
+
+// ── "HIGH RELEVANCE" chip (lane uxaudit-c, 2026-09-07) ─────────────────────────────────────────
+// RelevanceBadge.tsx — operator ruling 3.4 (DO NOT TOUCH): "leave it live and unstyled as is...
+// Claude Design is defining the relevance component and will send it with the overlays." No
+// dc.html artboard carries this element (confirmed by grep across every extracted page section
+// this session) so this spec asserts PRESENCE ONLY (a removal would violate 3.4) and records its
+// current measured values as a baseline for whenever the real spec lands — never a pass/fail
+// judgment on its current styling.
+const RELEVANCEBADGE_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RelevanceBadge } from '@/components/shell/RelevanceBadge';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { style: { width: 300, padding: 20, background: 'var(--page)' }, 'data-audit': 'relevance' },
+      React.createElement(RelevanceBadge, {
+        relevance: { band: 'high', summary: 'Directly affects two active EEA ocean lanes.' },
+      }),
+    ),
+  );
+};
+`;
+
 // ── Masthead + CommandBar ───────────────────────────────────────────────────────────────────────
 // The real Masthead (list-size title, dek, command bar) in the 778px content column.
 const MASTHEAD_ENTRY = `
@@ -1000,5 +1158,27 @@ export const AUDIT_MOUNTS = {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
     },
     apiRoutes: EMPTY_API,
+  },
+  'detail-shell': {
+    id: 'detail-shell',
+    description: 'DetailHeader/ActionRow/DetailTagRow+TagPopover/SectionIndex/SummaryDepthSwitch/DetailTimeline/DetailSection/rail cards, real components from DetailShell.tsx.',
+    viewport: 1440,
+    entry: DETAIL_SHELL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  factblocks: {
+    id: 'factblocks',
+    description: 'FactBlocks (FactCard variants + GFM concession table) in context, the shared renderer all four detail surfaces use.',
+    viewport: 1440,
+    entry: FACTBLOCKS_ENTRY,
+  },
+  relevancebadge: {
+    id: 'relevancebadge',
+    description: 'RelevanceBadge ("HIGH RELEVANCE" chip) — presence-only per operator ruling 3.4 (DO NOT TOUCH).',
+    viewport: 1440,
+    entry: RELEVANCEBADGE_ENTRY,
   },
 };
