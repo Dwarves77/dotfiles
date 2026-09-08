@@ -54,8 +54,14 @@ import {
   DetailPageWrapper,
   ImpactRailCard,
   InThisListStat,
+  DetailRail,
+  DetailExposure,
+  AtAGlanceCard,
+  RailLegend,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
+import { TagChip } from "@/components/ui/Chips";
+import { formatDate } from "@/lib/format";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { AffectedLanesCard } from "@/components/regulations/AffectedLanesCard";
@@ -191,7 +197,19 @@ export function RegulationDetailSurface({
           tier={typeof r.sourceTier === "number" ? r.sourceTier : null}
           title={r.title}
           tagRow={<DetailTagRow itemId={String(r.id)} open={tagOpen} onOpenChange={setTagOpen} />}
-          extraChips={<HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />}
+          extraChips={
+            <>
+              <HeroPriorityDropdown currentPriority={r.priority as PriorityKey} itemId={r.id} title={r.title} />
+              {/* Artboard 03 chip row (dc.html #p3): "Action · <= 6 months" · Regulation · Ocean ·
+                  Emissions · T1 · "7 sources · T1 primary". This surface rendered the band pill and
+                  the tier alone; the type/mode/topic chips the other three detail surfaces have
+                  carried since lane uidetails2 were missing here, so the row read as a different
+                  page. Same shared TagChip, same order, omitted where the item has no value. */}
+              <TagChip>Regulation</TagChip>
+              {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.replace(/^./, (c) => c.toUpperCase())}</TagChip>)}
+              {r.topic && <TagChip>{r.topic}</TagChip>}
+            </>
+          }
           headerStat={
             sourceRows.length > 0
               ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
@@ -231,6 +249,20 @@ export function RegulationDetailSurface({
 
         {showIntegrityBanner && <IntegrityBanner phrase={r.agentIntegrityPhrase!} />}
 
+        {/* EXPOSURE (artboard 03, dc.html #p3, directly under the header card: WHERE / WHO PAYS /
+            YOUR LANES / TRAJECTORY). DetailShell's shared DetailExposure has existed since lane
+            uidetails2 and 05/07/09 all mount it; 03 was the one detail surface that never called it,
+            which is why its capture showed no EXPOSURE region. Same four columns, same fields, same
+            Absence reasons as the other three — not a fixture gap. */}
+        <DetailExposure
+          items={[
+            { label: "Where", value: [r.sub, jurisLabel].filter(Boolean).join(" · ") || <Absence reason="not in primary source" /> },
+            { label: "Who pays", value: r.costMechanism || <Absence reason="not in primary source" /> },
+            { label: "Your lanes", value: <span style={{ color: "var(--ink-3)" }}>Connect shipment data</span> },
+            { label: "Trajectory", value: r.conversionTrigger || <Absence reason="pending" /> },
+          ]}
+        />
+
         <DetailTimeline entries={r.timeline} band={band} />
 
         {upcomingObligations && <div style={{ marginBottom: 16 }}>{upcomingObligations}</div>}
@@ -239,14 +271,40 @@ export function RegulationDetailSurface({
 
         <DetailLayout
           rail={
-            <>
-              <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
-              <ImpactRailCard scores={impact} />
-              <RelevanceBadgeClient itemId={r.id} />
-              <AffectedLanesCard resource={r} />
-              <OwnerTeamCard resource={r} initialOwner={initialOwner} />
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-            </>
+            <DetailRail
+              /* Artboard 03's rail opens with AT A GLANCE, which this surface alone did not build
+                 (the other three detail surfaces have had it since lane uidetails2). Same shared
+                 card, same Absence-by-omission contract: a row whose value the item does not carry
+                 is dropped, never fabricated. */
+              atAGlance={
+                <AtAGlanceCard
+                  rows={[
+                    { label: "Band", value: `${band.label} · ${band.window}` },
+                    { label: "Type", value: "Regulation" },
+                    { label: "Jurisdiction", value: jurisLabel },
+                    { label: "Instrument", value: r.legalInstrument },
+                    { label: "Topic", value: r.topic },
+                    { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${clampTier(r.sourceTier)}` : r.sourceName },
+                    { label: "Published", value: r.added ? formatDate(r.added) : null },
+                    { label: "Deadline", value: r.complianceDeadline ? formatDate(r.complianceDeadline) : null },
+                  ]}
+                />
+              }
+              impact={<ImpactRailCard scores={impact} />}
+              relevance={<RelevanceBadgeClient itemId={r.id} />}
+              /* Artboard 03's page-specific cards, in its own order:
+                 OWNER & TEAM, IN THIS LIST, CONNECTIONS · 3. */
+              designed={
+                <>
+                  <OwnerTeamCard resource={r} initialOwner={initialOwner} />
+                  <InThisListStat backHref="/regulations" backLabel="Back to list" band={band} />
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                </>
+              }
+              legend={<RailLegend />}
+              /* R7 — artboard 03 does not draw it. */
+              undesigned={<AffectedLanesCard resource={r} />}
+            />
           }
         >
           {/* Artboard 03 (dc.html #p3, S1 "Summary"): aside reads "Generated · 30-second read" for a

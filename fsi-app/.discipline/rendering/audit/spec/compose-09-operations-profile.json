@@ -2,47 +2,105 @@
   "part": "Page composition — Operations profile detail (09)",
   "mount": "operations-detail-1440",
   "viewport": 1440,
-  "artboards": ["09-operations-profile"],
+  "artboards": [
+    "09-operations-profile"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
   "notes": [
     "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
-    "Artboard order top to bottom: header (chips incl. trailing topic chip 'Corridors', header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Legend)."
+    "Artboard order top to bottom: header (chips incl. the region-group chip and trailing topic chip 'Corridors', TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Related in <region>, Legend)."
   ],
   "selector": "[data-audit=\"operations-detail\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
       "selector": "[data-audit=\"operations-detail\"] .cl-action-row button",
-      "expect": { "count": "4" }
+      "expect": {
+        "count": "4"
+      }
     },
     {
       "name": "region 2 — header carries the trailing topic chip ('Corridors')",
       "selector": "[data-audit=\"operations-detail\"] header span",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Corridors"
     },
     {
       "name": "region 3 — Exposure grid renders before the timeline",
       "selector": "[data-audit=\"operations-detail\"] p",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Exposure"
     },
     {
       "name": "region 4 — Summary section (id=summary) renders when no dynamic sections carry content",
       "selector": "[data-audit=\"operations-detail\"] section#summary h2",
-      "expect": { "text": "Summary" }
+      "expect": {
+        "text": "Summary"
+      }
     },
     {
-      "name": "region 5 — At a glance 'Region' row is the humanized jurisdiction, not a raw ISO code",
+      "name": "region 5 — At a glance 'Region' row is region group + humanized country, never a raw ISO code",
       "selector": "[data-audit=\"operations-detail\"] span",
-      "expect": { "count": "3" },
-      "textMatch": "Singapore"
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "re:^Asia-Pacific · Singapore$",
+      "note": "Artboard 09 labels the region 'Asia'. JURISDICTIONS carries a region per jurisdiction, so regionGroupForIso resolves the group from the app's own vocabulary ('Asia-Pacific') rather than fabricating the artboard's shorter word."
     },
     {
-      "name": "region 6 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"operations-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "expect": { "text": "In this list" }
+      "name": "region 6 — RELATED IN <region> rail card, artboard 09's own head",
+      "selector": "[data-audit=\"operations-detail\"] span",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Related in Asia-Pacific",
+      "note": "dc.html #p9 char 482235. RelatedRegionCard is product code and always was; the fixture carried no related rows, so it returned null and nothing was captured."
+    },
+    {
+      "name": "region 6a — RELATED IN <region> carries one row per related profile",
+      "selector": "[data-audit=\"operations-detail\"] a[href^=\"/operations/o-detail-\"]",
+      "expect": {
+        "count": "3"
+      }
+    },
+    {
+      "name": "rail order 1 — AT A GLANCE is the first rail card (artboard 09)",
+      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1) p:first-of-type",
+      "expect": {
+        "text": "At a glance"
+      },
+      "note": "Fixed once in DetailShell's DetailRail slot order (lane details60, 2026-09-08); the build put IN THIS LIST first on all four detail pages."
+    },
+    {
+      "name": "rail order 2 — IMPACT ASSESSMENT is the second rail card (artboard 09)",
+      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(2) p:first-of-type",
+      "expect": {
+        "text": "Impact assessment"
+      }
+    },
+    {
+      "name": "rail order last — LEGEND is present, after the artboard's own page cards (Related in <region>)",
+      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-rail\"] p",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Legend"
+    },
+    {
+      "name": "region 2a — chip row order: band pill, Regional profile, region group, modes, topic, then the TIER square last",
+      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-chips\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "re:Regional profile[\\s\\S]*Asia-Pacific[\\s\\S]*OCEAN[\\s\\S]*AIR[\\s\\S]*Corridors[\\s\\S]*T2",
+      "note": "dc.html #p9: Regional profile · Asia · Ocean · Air · Corridors · T2. The build rendered the tier chip straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages."
     }
   ],
   "forbid": [
@@ -50,6 +108,12 @@
       "name": "no per-item ask bar in the header (ruling 2.3)",
       "selector": "[data-audit=\"operations-detail\"] header:not(.cl-masthead) input[placeholder]",
       "reason": "The masthead command bar is the only ask surface."
+    },
+    {
+      "name": "the place-keeping card is never the first rail card",
+      "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1)",
+      "textMatch": "In this list",
+      "reason": "Every detail artboard opens its rail with AT A GLANCE; IN THIS LIST comes after it (03/05) or is an R7 undesigned card placed after LEGEND (07/09)."
     }
   ]
 }

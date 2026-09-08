@@ -2,35 +2,80 @@
   "part": "Page composition — Research finding detail (07)",
   "mount": "research-detail-1440",
   "viewport": 1440,
-  "artboards": ["07-research-detail"],
+  "artboards": [
+    "07-research-detail"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
   "notes": [
     "Region-composition check inside [data-audit=\"research-detail\"] — ResearchFindingDetailSurface mounted with fixture data matching artboard 07's Mission Innovation example (mounts.mjs RESEARCH_FIXTURE).",
-    "Artboard order top to bottom: header (chips, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Connections, Legend)."
+    "Artboard order top to bottom: header (chips, TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Connections, Cluster synthesis, Legend)."
   ],
   "selector": "[data-audit=\"research-detail\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
       "selector": "[data-audit=\"research-detail\"] .cl-action-row button",
-      "expect": { "count": "4" }
+      "expect": {
+        "count": "4"
+      }
     },
     {
       "name": "region 2 — Exposure grid renders before the timeline",
       "selector": "[data-audit=\"research-detail\"] p",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Exposure"
     },
     {
       "name": "region 3 — Summary section (id=summary) renders when no dynamic sections carry content",
       "selector": "[data-audit=\"research-detail\"] section#summary h2",
-      "expect": { "text": "Summary" }
+      "expect": {
+        "text": "Summary"
+      }
     },
     {
-      "name": "region 5 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"research-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "expect": { "text": "In this list" }
+      "name": "region 6 — CLUSTER SYNTHESIS rail card, artboard 07's own head",
+      "selector": "[data-audit=\"research-detail\"] span",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Cluster synthesis",
+      "note": "dc.html #p7 char 402759. The card is product code (ThemeBriefCard) reading connection_themes -> theme_briefs; the audit fixture now carries the artboard's own theme so the card is measured."
+    },
+    {
+      "name": "region 6a — CLUSTER SYNTHESIS meta line: N items · density · staleness",
+      "selector": "[data-audit=\"research-detail\"] div",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "re:^85 items · density 0\\.180 · stale · membership changed$"
+    },
+    {
+      "name": "rail order 1 — AT A GLANCE is the first rail card (artboard 07)",
+      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1) p:first-of-type",
+      "expect": {
+        "text": "At a glance"
+      },
+      "note": "Fixed once in DetailShell's DetailRail slot order (lane details60, 2026-09-08); the build put IN THIS LIST first on all four detail pages."
+    },
+    {
+      "name": "rail order 2 — IMPACT ASSESSMENT is the second rail card (artboard 07)",
+      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(2) p:first-of-type",
+      "expect": {
+        "text": "Impact assessment"
+      }
+    },
+    {
+      "name": "rail order last — LEGEND is present, after the artboard's own page cards (Connections, Cluster synthesis)",
+      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-rail\"] p",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Legend"
     }
   ],
   "forbid": [
@@ -44,6 +89,18 @@
       "selector": "[data-audit=\"research-detail\"] div",
       "textMatch": "research_finding",
       "reason": "The Type row humanizes the enum (e.g. 'Research finding'), never the raw DB value."
+    },
+    {
+      "name": "the place-keeping card is never the first rail card",
+      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1)",
+      "textMatch": "In this list",
+      "reason": "Every detail artboard opens its rail with AT A GLANCE; IN THIS LIST comes after it (03/05) or is an R7 undesigned card placed after LEGEND (07/09)."
+    },
+    {
+      "name": "no 'Synthesis across N items' sentence under the CLUSTER SYNTHESIS head",
+      "selector": "[data-audit=\"research-detail\"] p",
+      "textMatch": "Synthesis across",
+      "reason": "Artboard 07 draws head, title and one meta line. The italic explanatory sentence and the scrolling brief body it introduced are not in the artboard."
     }
   ]
 }

@@ -150,6 +150,28 @@ export const JURISDICTIONS = [
   { id: "un", label: "United Nations", region: "International" },
 ] as const;
 
+// ── Region group for a jurisdiction label ──
+//
+// Lane details60 (2026-09-08). Artboard 09 labels the operations profile's region chip, breadcrumb
+// and rail card with a CONTINENTAL grouping ("Asia"), and an earlier lane logged that grouping as a
+// field this build has no data for. That was wrong and is corrected in place (CLAUDE.md rule 13's
+// corollary): the table above has carried a `region` for every jurisdiction all along. This resolves
+// a DISPLAY LABEL (what src/lib/jurisdictions/iso.ts's `isoToDisplayLabel` returns for an ISO code,
+// e.g. "Singapore") to that group, so a surface renders the app's own region vocabulary
+// ("Asia-Pacific") rather than a fabricated one.
+//
+// It lives HERE, not in iso.ts, on purpose: iso.ts is imported by tests that run under plain
+// `node --test` with no bundler resolution, so it must stay import-free (its own
+// jurisdiction-iso-mapping.test.mjs breaks the moment it gains an extensionless import). Callers
+// compose the two: `regionGroupForLabel(isoToDisplayLabel(code))`.
+//
+// Returns "" for an unknown label — the caller falls back to the country label, never to a guess.
+export function regionGroupForLabel(label: string): string {
+  if (typeof label !== "string" || label.length === 0) return "";
+  const match = JURISDICTIONS.find((j) => j.label === label);
+  return match ? match.region : "";
+}
+
 // ── Freight Sectors ──
 // Master list of all available sectors. Workspaces select which apply
 // to their operations via workspace_settings.sector_profile.

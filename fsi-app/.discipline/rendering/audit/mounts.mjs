@@ -629,7 +629,12 @@ const PAGE_FRAME_FIXTURES = {
       agentIntegrityPhrase: null,
       itemGrade: null,
       penaltyRange: null,
-      costMechanism: null,
+      // Artboard 03's EXPOSURE row "Who pays" and its "Emissions" topic chip. Lane details60
+      // (2026-09-08): both are real Resource fields the regulation fixture simply left empty, so
+      // the 03 capture rendered an EXPOSURE region of four Absence cells and a chip row with no
+      // topic chip while 09's rendered in full. Populated from the artboard's own EU ETS example.
+      costMechanism: 'Vessel operator is obligated; forwarders and shippers receive it as carrier ETS surcharge',
+      topic: 'Emissions',
       enforcementBody: 'National maritime authority',
       complianceDeadline: '2027-06-01',
     },
@@ -786,6 +791,19 @@ const RESEARCH_FIXTURE = {
   related: [],
   relatedReason: 'none',
   sections: [],
+  // Artboard 07's CLUSTER SYNTHESIS rail card, in the artboard's own values ("Maritime
+  // decarbonisation: ... green-corridor economy", "85 items · density 0.180 · stale · membership
+  // changed"). Shaped as selectThemeBriefForItem returns it (src/lib/research/theme-brief.mjs), so
+  // this mount measures the real view-model, not a hand-shaped card. Lane details60, 2026-09-08.
+  themeBrief: {
+    themeId: 'theme-maritime-decarb',
+    title: 'Maritime decarbonisation: the IMO net-zero arc, EU MRV and ETS-for-shipping machinery, and the green-corridor economy',
+    briefMd: '',
+    generatedAt: '2026-05-01T00:00:00.000Z',
+    memberCount: 85,
+    density: 0.18,
+    stale: true,
+  },
   groupLabel: 'Global',
   deck: 'Mission Innovation · published May 10 2026 · theme: Emissions accounting',
   connections: [],
@@ -823,8 +841,15 @@ const OPERATIONS_FIXTURE = {
     ],
     impactScores: { cost: 1, compliance: 1, client: 1, operational: 2 },
   },
-  related: [],
-  relatedReason: 'none',
+  // Artboard 09's RELATED IN ASIA rail card, in the artboard's own three rows. Lane details60,
+  // 2026-09-08 — the card is product code (RelatedRegionCard) and always was; the fixture carried
+  // no related rows, so it returned null and the capture showed no card at all.
+  related: [
+    { id: 'o-detail-au', title: 'Australia Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+    { id: 'o-detail-jp', title: 'Japan Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+    { id: 'o-detail-in', title: 'India Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+  ],
+  relatedReason: 'jurisdiction',
   sections: [],
   groupLabel: 'Asia',
   deck: 'Singapore Ministry of Transport (MOT) · Maritime and Port Authority · published Apr 11 2026 · Ocean · Air',

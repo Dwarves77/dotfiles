@@ -2,47 +2,79 @@
   "part": "Page composition — Market signal detail (05)",
   "mount": "market-detail-1440",
   "viewport": 1440,
-  "artboards": ["05-market-detail"],
+  "artboards": [
+    "05-market-detail"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
   "notes": [
     "Region-composition check inside [data-audit=\"market-detail\"] — MarketSignalDetailSurface mounted with fixture data matching artboard 05's Packaging material input costs example (mounts.mjs MARKET_FIXTURE).",
-    "Artboard order top to bottom: header (chips: Signal / severity / topic / band, header stat, action row) -> exposure grid -> timeline -> sticky section index S1..S6 -> Summary (Generated · 30-second read) -> rail (In this list, At a glance, Impact assessment, Your notes, Legend)."
+    "Artboard order top to bottom: header (chips: Signal / severity / topic / band, TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index S1..S6 -> Summary (Generated · 30-second read) -> rail (At a glance, Impact assessment, Relevance, Your notes, In this list, Legend)."
   ],
   "selector": "[data-audit=\"market-detail\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — header chips include the artboard's Signal/severity/topic/band set",
       "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead)",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Signal"
     },
     {
       "name": "region 2 — action row, exactly Export brief / Share / Watch / + Tag",
       "selector": "[data-audit=\"market-detail\"] .cl-action-row button",
-      "expect": { "count": "4" }
+      "expect": {
+        "count": "4"
+      }
     },
     {
       "name": "region 3 — Exposure grid renders before the timeline",
       "selector": "[data-audit=\"market-detail\"] p",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Exposure"
     },
     {
       "name": "region 4 — sticky section index carries all six entries, S1..S6",
       "selector": "[data-audit=\"market-detail\"] nav[aria-label=\"Section index\"] a",
-      "expect": { "count": "6" }
+      "expect": {
+        "count": "6"
+      }
     },
     {
       "name": "region 5 — Summary section aside 'Generated · 30-second read'",
       "selector": "[data-audit=\"market-detail\"] section#summary span",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Generated"
     },
     {
-      "name": "region 6 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"market-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "expect": { "text": "In this list" }
+      "name": "rail order 1 — AT A GLANCE is the first rail card (artboard 05)",
+      "selector": "[data-audit=\"market-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1) p:first-of-type",
+      "expect": {
+        "text": "At a glance"
+      },
+      "note": "Fixed once in DetailShell's DetailRail slot order (lane details60, 2026-09-08); the build put IN THIS LIST first on all four detail pages."
+    },
+    {
+      "name": "rail order 2 — IMPACT ASSESSMENT is the second rail card (artboard 05)",
+      "selector": "[data-audit=\"market-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(2) p:first-of-type",
+      "expect": {
+        "text": "Impact assessment"
+      }
+    },
+    {
+      "name": "rail order last — LEGEND is present, after the artboard's own page cards (Your notes, In this list)",
+      "selector": "[data-audit=\"market-detail\"] [data-audit=\"detail-rail\"] p",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Legend"
     }
   ],
   "forbid": [
@@ -50,6 +82,12 @@
       "name": "no per-item ask bar in the header (ruling 2.3)",
       "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead) input[placeholder]",
       "reason": "The masthead command bar is the only ask surface."
+    },
+    {
+      "name": "the place-keeping card is never the first rail card",
+      "selector": "[data-audit=\"market-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1)",
+      "textMatch": "In this list",
+      "reason": "Every detail artboard opens its rail with AT A GLANCE; IN THIS LIST comes after it (03/05) or is an R7 undesigned card placed after LEGEND (07/09)."
     }
   ]
 }

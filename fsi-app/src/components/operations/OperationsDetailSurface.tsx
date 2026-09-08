@@ -62,14 +62,17 @@ import {
   AtAGlanceCard,
   RailLegend,
   InThisListStat,
+  DetailRail,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
+import { regionGroupForLabel } from "@/lib/constants";
 
 interface RelatedItem {
   id: string;
@@ -149,11 +152,15 @@ export function OperationsDetailSurface({
 }: Props) {
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);
-  // Artboard 09 (dc.html #p9): "Region" chip + At a glance row read "Asia" / "Asia · Singapore" — a
-  // continental grouping this Resource shape has no field for (logged in DEVIATION-LOG.md); the ISO
-  // country code IS on record, so it renders humanized ("Singapore") rather than the raw code ("SG").
+  // Artboard 09 (dc.html #p9): "Region" chip + At a glance row read "Asia" / "Asia · Singapore".
+  // CORRECTED, lane details60 (2026-09-08): an earlier lane logged the continental grouping as a
+  // field this build has no data for. It does — `JURISDICTIONS` carries a `region` per jurisdiction
+  // — so `regionGroupForLabel` resolves it (src/lib/constants.ts) and the surface renders the
+  // app's own vocabulary ("Asia-Pacific") rather than the artboard's shorter "Asia", which it would
+  // have to fabricate. The ISO country code stays humanized ("Singapore"), never the raw code.
   const jurisdictionIsoCode = r.jurisdiction || (r.jurisdictionIso && r.jurisdictionIso[0]) || "";
   const jurisdiction = jurisdictionIsoCode ? isoToDisplayLabel(jurisdictionIsoCode) : "";
+  const regionGroup = regionGroupForLabel(jurisdiction);
 
   const meta = [
     ["Operations", jurisdiction].filter(Boolean).join(" · "),
@@ -186,7 +193,9 @@ export function OperationsDetailSurface({
           title={r.title}
           band={band}
           surface="Operations"
-          jurisdiction={jurisdiction || undefined}
+          /* Artboard 09 breadcrumb: "Operations / Asia / 2 of 6" — the REGION GROUP, not the
+             country. Falls back to the country label where the code resolves to no group. */
+          jurisdiction={regionGroup || jurisdiction || undefined}
           dek={meta}
           placeholder="Ask about this profile — e.g. when does the largest deadline hit"
         />
@@ -198,7 +207,9 @@ export function OperationsDetailSurface({
           extraChips={
             <>
               <TagChip>Regional profile</TagChip>
-              {jurisdiction && <TagChip>{jurisdiction}</TagChip>}
+              {/* Artboard 09 chip row: "Regional profile · Asia · Ocean · Air · Corridors" — the
+                  region GROUP chip, not the country (which the At a glance card carries in full). */}
+              {(regionGroup || jurisdiction) && <TagChip>{regionGroup || jurisdiction}</TagChip>}
               {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)}
               {/* Artboard 09 (dc.html #p9): trailing "Corridors" topic chip after the mode chips. */}
               {r.topic && <TagChip>{r.topic}</TagChip>}
@@ -255,33 +266,42 @@ export function OperationsDetailSurface({
 
         <DetailLayout
           rail={
-            <>
-              <InThisListStat backHref="/operations" backLabel="Back to list" band={band} />
-              <AtAGlanceCard
-                rows={[
-                  { label: "Band", value: `${band.label} · ${band.window}` },
-                  { label: "Type", value: "Regional profile" },
-                  { label: "Region", value: jurisdiction },
-                  { label: "Modes", value: r.modes && r.modes.length > 0 ? r.modes.map((m) => m.toUpperCase()).join(" · ") : null },
-                  { label: "Topic", value: r.topic },
-                  { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${r.sourceTier}` : r.sourceName },
-                  { label: "Published", value: r.added ? formatDate(r.added) : null },
-                  {
-                    label: "Comparison",
-                    value: matrixEligibility
-                      ? matrixEligibility.s3Eligible
-                        ? "Available"
-                        : `Building${matrixEligibility.resolvedRegionCodes.length > 0 ? ` (${matrixEligibility.resolvedRegionCodes.join(", ")})` : ""}`
-                      : null,
-                  },
-                ]}
-              />
-              <ImpactRailCard scores={impact} />
-              <RelevanceBadgeClient itemId={r.id} />
-              <RelatedRegionCard related={related} reason={relatedReason} jurisdiction={jurisdiction} />
-              <RailLegend />
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-            </>
+            <DetailRail
+              atAGlance={
+                <AtAGlanceCard
+                  rows={[
+                    { label: "Band", value: `${band.label} · ${band.window}` },
+                    { label: "Type", value: "Regional profile" },
+                    { label: "Region", value: regionGroup ? `${regionGroup} · ${jurisdiction}` : jurisdiction },
+                    { label: "Modes", value: r.modes && r.modes.length > 0 ? r.modes.map((m) => m.toUpperCase()).join(" · ") : null },
+                    { label: "Topic", value: r.topic },
+                    { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${r.sourceTier}` : r.sourceName },
+                    { label: "Published", value: r.added ? formatDate(r.added) : null },
+                    {
+                      label: "Comparison",
+                      value: matrixEligibility
+                        ? matrixEligibility.s3Eligible
+                          ? "Available"
+                          : `Building${matrixEligibility.resolvedRegionCodes.length > 0 ? ` (${matrixEligibility.resolvedRegionCodes.join(", ")})` : ""}`
+                        : null,
+                    },
+                  ]}
+                />
+              }
+              impact={<ImpactRailCard scores={impact} />}
+              relevance={<RelevanceBadgeClient itemId={r.id} />}
+              /* Artboard 09's only page-specific rail card: RELATED IN ASIA. */
+              designed={<RelatedRegionCard related={related} reason={relatedReason} region={regionGroup || jurisdiction} />}
+              legend={<RailLegend />}
+              /* R7 — artboard 09 draws neither: place-keeping and connections
+                 go after the last designed region of the column. */
+              undesigned={
+                <>
+                  <InThisListStat backHref="/operations" backLabel="Back to list" band={band} />
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                </>
+              }
+            />
           }
         >
           {knownSections.length > 0
@@ -338,27 +358,62 @@ export function OperationsDetailSurface({
 }
 
 // ── Rail: related-in-region (matches the artboard's "RELATED IN ASIA") ───
-function RelatedRegionCard({ related, reason, jurisdiction }: { related: RelatedItem[]; reason: "jurisdiction" | "source" | "none"; jurisdiction: string }) {
+// RELATED IN ASIA — artboard 09's page-specific rail card (dc.html #p9, char 482235).
+//
+// Rebuilt to the artboard's own measures, lane details60 (2026-09-08). The
+// artboard draws: the 3px dark-grey section rule cap, padding 12px 16px 14px,
+// a head row (10.5px/.12em/700/#7A6E6C) and then rows only — a flex column,
+// gap 8, 12px text, each row a `3px 1fr` grid whose first cell is a band-
+// coloured 3px bar (radius 2) and whose second is the title at 600/1.35.
+// Deleted with it: the italic reason sentence under the head, which the
+// artboard does not draw. The reason it carried is not lost — it moves into
+// the head itself ("Related in <region>" vs "Related by source"), so a
+// related-by-source list is never mislabelled as a regional one.
+//
+// The row is the whole click target and keeps a 24px minimum box with the
+// artboard's own 8px gap between rows (ux-laws law 2's small-target branch:
+// >= 24px with >= 8px clearance), so the card is ~8px per row taller than the
+// artboard's 16px text rows. Logged in DEVIATION-LOG.md.
+function RelatedRegionCard({ related, reason, region }: { related: RelatedItem[]; reason: "jurisdiction" | "source" | "none"; region: string }) {
   if (related.length === 0) return null;
-  const regionWord = jurisdiction || "region";
+  const regionWord = region || "region";
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", padding: "14px 16px" }}>
-      <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
-        Related in {regionWord}
-      </p>
-      <p style={{ fontSize: "var(--fs-10)", color: "var(--ink-3)", fontStyle: "italic", margin: "0 0 10px" }}>
-        {reason === "jurisdiction" ? `Other Operations profiles covering ${regionWord}.` : "Other items from the same source."}
-      </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-        {related.map((it) => (
-          <Link
-            key={it.id}
-            href={`/operations/${encodeURIComponent(it.id)}`}
-            style={{ display: "block", padding: "8px 0", borderBottom: "1px solid var(--line-3)", textDecoration: "none", color: "inherit", minHeight: 44 }}
-          >
-            <p style={{ fontSize: "var(--fs-12)", fontWeight: 700, color: "var(--ink)", margin: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</p>
-          </Link>
-        ))}
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      <div style={{ padding: "12px 16px 14px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+          <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
+            {reason === "source" ? "Related by source" : `Related in ${regionWord}`}
+          </span>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "var(--fs-12)" }}>
+          {related.map((it) => (
+            <Link
+              key={it.id}
+              href={`/operations/${encodeURIComponent(it.id)}`}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "3px 1fr",
+                gap: 10,
+                alignItems: "stretch",
+                minHeight: 24,
+                textDecoration: "none",
+                color: "inherit",
+              }}
+            >
+              <span aria-hidden="true" style={{ background: "var(--awareness)", borderRadius: 2 }} />
+              <span style={{ fontWeight: 600, lineHeight: 1.35, color: "var(--ink)", overflowWrap: "anywhere" }}>{it.title}</span>
+            </Link>
+          ))}
+        </div>
       </div>
     </div>
   );

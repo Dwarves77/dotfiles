@@ -612,7 +612,14 @@ export async function runSmoke(browser) {
       // legitimate, deliberate copy, coincidentally also one of source-entry-filter.mjs's
       // HEADER_LITERALS ("action" doubles as a §3/§14 table-header word). Same false-positive class
       // as 'Type'/'Title'/'—' above, not fabricated or omitted content.
-      knownSafePlaceholders: ['Type', 'Title', '—', 'Action'],
+      // 'Source' / 'Deadline' (2026-09-08, lane details60): artboard 03's rail opens with AT A
+      // GLANCE, which this surface alone never mounted. It now mounts the SAME shared
+      // AtAGlanceCard the other three detail surfaces already do, so its two remaining row LABELS
+      // join the list on exactly the basis 'Source' already sits here for Operations/Research:
+      // static field-label copy that exact-matches HEADER_LITERALS ('source' is a §15 table
+      // header, 'deadline' a §8 one), never a row's fabricated or omitted data. A row whose value
+      // the item does not carry is DROPPED by AtAGlanceCard itself, so no placeholder reaches it.
+      knownSafePlaceholders: ['Type', 'Title', '—', 'Action', 'Source', 'Deadline'],
       skipSmallTargetSubstrings: AI_PROMPT_BAR_TARGETS,
       alias: ALIAS,
     }),
