@@ -48,6 +48,51 @@ const ANALYSIS_LABELS: Array<{ token: string; humanized: string }> = [
 
 const LEGAL_TOKEN = "Legal Confirmation Required:";
 
+// COUNTS-61 (production defect, click-through audit 2026-09-08). Every FACT card on the regulation,
+// research and operations detail pages rendered as `"FACT: "…""` — the literal word FACT inside a
+// card already titled FACT, with a doubled closing quote.
+//
+// ROOT CAUSE [CONFIRMED against the live database]: the pipeline writes the FACT label into the
+// stored paragraph, in three observed shapes —
+//   FACT: "ACT requires that 40-75% of new ... vehicles ... be zero-emission by 2035."
+//   **FACT:** "The ninth STI Forum was convened by ..."
+//   **Effective date and jurisdictional scope — FACT:** "This final rule is effective on July 6, 2026." ...
+// — and wraps the claim in straight double quotes. This parser stripped the ANALYSIS and LEGAL
+// label tokens but had no FACT stripper and no quote unwrap, while FactCard's sourced variant adds
+// its own typographic quotes around whatever text it is handed. So the label and one pair of quotes
+// were printed twice over.
+//
+// The fix is here, in the ONE parser, not in the three surfaces: the label token comes off (with an
+// optional lead-in phrase before an em dash, the third shape above), and ONE layer of surrounding
+// straight or curly double quotes comes off with it. FactCard keeps supplying the typographic
+// quotes, which is the single home for them.
+//
+// This is a render-time reparse of already-written text (this file's own header rule): it changes
+// nothing the pipeline emits and writes nothing back.
+const FACT_TOKEN_RE = /^\*{0,2}\s*(?:[^*\n]{0,120}?\s+[—–-]\s+)?FACT:\s*\*{0,2}\s*/i;
+
+/** Remove one layer of surrounding double quotes (straight or curly) when the WHOLE text is one
+ *  quotation — never when the quotes are interior punctuation inside a longer paragraph, which
+ *  would silently alter a real sentence. */
+function unwrapOuterQuotes(text: string): string {
+  const t = text.trim();
+  const pairs: Array<[string, string]> = [['"', '"'], ["\u201c", "\u201d"]];
+  for (const [open, close] of pairs) {
+    if (t.length >= 2 && t.startsWith(open) && t.endsWith(close)) {
+      const inner = t.slice(1, -1);
+      if (!inner.includes(open) && !inner.includes(close)) return inner.trim();
+    }
+  }
+  return t;
+}
+
+/** Strip the pipeline's own "FACT:" label from a claim paragraph, and the quotes it wraps the claim
+ *  in. Returns the text unchanged when there is no label, so a plain claim paragraph is untouched. */
+export function stripFactLabel(text: string): string {
+  const withoutLabel = text.replace(FACT_TOKEN_RE, "").trim();
+  return unwrapOuterQuotes(withoutLabel);
+}
+
 // Matches a trailing inline citation in either of the two forms the pipeline
 // writes: the emphasis-wrapped canonical form *Source: ...* (system-prompt.ts
 // §"Markdown storage convention"), and a bare "Source: ..." line (the same
@@ -110,7 +155,7 @@ export function classifyParagraph(paragraph: string): FactParagraph {
     // fall through to prose so the caller's Sources section can render it
     // its own way rather than as an empty-quote FactCard.
     if (before) {
-      return { kind: "fact", text: before, source: parseSourceCitation(m[1]) };
+      return { kind: "fact", text: stripFactLabel(before), source: parseSourceCitation(m[1]) };
     }
   }
 

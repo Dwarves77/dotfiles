@@ -96,6 +96,11 @@ window.__mount = (props) => {
     changedRows: buildChangedRows(props.recentChanges, props.resources, now),
     totalChanges: props.totalChanges ?? props.recentChanges.length,
     aggregates: props.aggregates,
+    // COUNTS-61 (2026-09-08): the band tiles read the REGULATIONS surface counts, because that is
+    // the surface every tile navigates to. The smoke passes the same bundle for both, which is the
+    // no-divergence case; the invariant that they come from one call is pinned separately in
+    // src/components/dashboard/band-tile-count-source.npmtest.mjs.
+    bandCounts: props.bandCounts ?? props.aggregates,
     auditDate: props.auditDate,
     surfaceCoverage: props.surfaceCoverage,
     nowIso: props.nowIso,
@@ -120,9 +125,19 @@ const POPULATED_AGGREGATES = {
   totalJurisdictions: 61,
 };
 
+// COUNTS-61: the regulations surface's own figures (get_surface_counts('regulations'), 2026-09-08),
+// deliberately DIFFERENT from POPULATED_AGGREGATES above — the divergence between the two is what
+// the production defect consisted of, so the spec measures the tiles in that state.
+const POPULATED_BAND_COUNTS = {
+  ...EMPTY_AGGREGATES,
+  totalItems: 1317,
+  byPriority: { CRITICAL: 15, HIGH: 14, MODERATE: 1119, LOW: 169 },
+  totalJurisdictions: 32,
+};
+
 const EMPTY_SURFACE_COVERAGE = {
   intelligence: { regulations: 0, marketIntel: 0, research: 0, operations: 0, uncategorized: 0, totalIntelligence: 0 },
-  community: { activeGroups: 0, activeThreads: 0 },
+  community: { regionalRooms: 7, joinedGroups: 0, activeThreads: 0 },
 };
 
 const LONG = (n, word = 'extremely-long-dashboard-title-token') =>
@@ -161,6 +176,9 @@ function baseProps(dueNextRows, changedRows = []) {
     totalChanges: changedRows.length,
     auditDate: '2026-09-06',
     aggregates: EMPTY_AGGREGATES,
+    // COUNTS-61 (2026-09-08): the band tiles read the REGULATIONS surface's counts, because that is
+    // where every tile navigates. A separate prop from `aggregates`, and separately supplied here.
+    bandCounts: EMPTY_AGGREGATES,
     surfaceCoverage: EMPTY_SURFACE_COVERAGE,
     nowIso: '2026-09-07T00:00:00.000Z',
     __watchlist: [],
@@ -171,7 +189,7 @@ function baseProps(dueNextRows, changedRows = []) {
 // regardless of row count — every state's floor is 2.
 const STATES = [
   { label: 'empty', props: baseProps([]), expectTitles: 2 },
-  { label: 'one-row', props: { ...baseProps([briefRow(0)]), aggregates: POPULATED_AGGREGATES }, expectTitles: 2 },
+  { label: 'one-row', props: { ...baseProps([briefRow(0)]), aggregates: POPULATED_AGGREGATES, bandCounts: POPULATED_BAND_COUNTS }, expectTitles: 2 },
   {
     label: 'extreme',
     props: {
@@ -182,6 +200,7 @@ const STATES = [
         Array.from({ length: 6 }, (_, i) => briefRow(i, { long: true, changed: true })),
       ),
       aggregates: POPULATED_AGGREGATES,
+      bandCounts: POPULATED_BAND_COUNTS,
     },
     expectTitles: 2,
   },

@@ -17,6 +17,7 @@
  * header.
  */
 
+import { Suspense } from "react";
 import { getPublicOperationsItems, getPublicResourcesOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
@@ -46,14 +47,19 @@ export default async function Operations() {
 
   return (
     <>
-      <OperationsLedger
-        initialResources={initialResources}
-        aggregates={aggregates}
-        regulationsByRegion={regulationsByRegion}
-        operationsCoverage={operationsCoverage}
-        stateCosts={stateCosts}
-        nowIso={renderNowIso()}
-      />
+      {/* COUNTS-61: useSearchParams() inside the ledger (the facet URL contract) needs a Suspense
+          boundary, Next's own rule, so the surface streams rather than opting the whole route into
+          client rendering. */}
+      <Suspense fallback={null}>
+        <OperationsLedger
+          initialResources={initialResources}
+          aggregates={aggregates}
+          regulationsByRegion={regulationsByRegion}
+          operationsCoverage={operationsCoverage}
+          stateCosts={stateCosts}
+          nowIso={renderNowIso()}
+        />
+      </Suspense>
       {/* Lane DP-SURF: the automate-vs-hire calculator. Pure client-side compute. */}
       <AutomateVsHireCalculator />
       {/* Spec 09 §1.4/§1.5/§1.6: DQI, auxiliary energy, grid queue. */}

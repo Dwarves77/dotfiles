@@ -30,7 +30,7 @@ const POPULATED_AGGREGATES = {
 
 const SURFACE_COVERAGE = {
   intelligence: { regulations: 1316, marketIntel: 55, research: 39, operations: 25, uncategorized: 0, totalIntelligence: 1435 },
-  community: { activeGroups: 7, activeThreads: 0 },
+  community: { regionalRooms: 7, joinedGroups: 1, activeThreads: 0 },
 };
 
 const TITLES = [
@@ -89,6 +89,8 @@ const PROPS = {
   // moves with the wall clock is not evidence.
   nowIso: '2026-09-06T00:00:00.000Z',
   aggregates: POPULATED_AGGREGATES,
+  // COUNTS-61: the band tiles' own source (the regulations surface counts). Same bundle here.
+  bandCounts: POPULATED_AGGREGATES,
   surfaceCoverage: SURFACE_COVERAGE,
   __watchlist: [
     { id: 'w1', title: 'EU PPWR 2025/40', href: '/regulations/eu-ppwr-2025-40', band: 'immediate', dueLabel: 'Next: Dec 31', days: 116, watchedAgo: '1 mo ago' },

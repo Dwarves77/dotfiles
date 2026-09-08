@@ -18,6 +18,7 @@
  * consumed it); getResearchSourceCoverage() is unchanged.
  */
 
+import { Suspense } from "react";
 import { ResearchLedger } from "@/components/research/ResearchLedger";
 import { renderNowIso } from "@/lib/render-now";
 import { ThemeStrip } from "@/components/research/ThemeStrip";
@@ -34,44 +35,49 @@ export default async function Research() {
   ]);
   console.log(`[perf] /research data ${Date.now() - t0}ms (category-routed=${research.total}, coverage_cells=${sourceCoverage.length})`);
 
+  // COUNTS-61: useSearchParams() inside the ledger (the facet URL contract) needs a Suspense
+  // boundary, Next's own rule, so the surface streams rather than opting the whole route into
+  // client rendering.
   return (
-    <ResearchLedger
-      resources={research.resources}
-      aggregates={aggregates}
-      sourceCoverage={sourceCoverage}
-      nowIso={renderNowIso()}
-      belowRows={
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {/* Lane SURF (2026-09-01): customer-facing connection_themes strip, see ThemeStrip.tsx's
-              own header. Self-contained server component; soft-fails to nothing on a read error.
-              MOVED here (lane comp-06, 2026-09-08) from above the masthead: artboard 06/id="p6"
-              puts the masthead first and draws no strip, and operator ruling R7 keeps an app
-              feature the artboards have no region for, at the foot of the content column rather
-              than in a region an artboard region must occupy. */}
-          <ThemeStrip />
-          {/* Split-credibility legend (spec-03 §4 "two scores, never merged"). Same R7 move: it
-              already sat below the ledger, now inside the content column so it shares the page's
-              one geometry instead of its own centred 1180px band. */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-            <span
-              style={{
-                fontSize: 10,
-                fontWeight: 800,
-                letterSpacing: "0.12em",
-                textTransform: "uppercase",
-                color: "var(--ink-3)",
-              }}
-            >
-              Credibility model
-            </span>
-            <CredibilityChipEvidence biasTags={[]} />
-            <CredibilityChipAuthority />
-            <span style={{ fontSize: 11, color: "var(--ink-2)" }}>
-              Two scores, never merged (spec-03 §4). Click a chip for the GRADE modifier ledger.
-            </span>
+    <Suspense fallback={null}>
+      <ResearchLedger
+        resources={research.resources}
+        aggregates={aggregates}
+        sourceCoverage={sourceCoverage}
+        nowIso={renderNowIso()}
+        belowRows={
+          <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            {/* Lane SURF (2026-09-01): customer-facing connection_themes strip, see ThemeStrip.tsx's
+                own header. Self-contained server component; soft-fails to nothing on a read error.
+                MOVED here (lane comp-06, 2026-09-08) from above the masthead: artboard 06/id="p6"
+                puts the masthead first and draws no strip, and operator ruling R7 keeps an app
+                feature the artboards have no region for, at the foot of the content column rather
+                than in a region an artboard region must occupy. */}
+            <ThemeStrip />
+            {/* Split-credibility legend (spec-03 §4 "two scores, never merged"). Same R7 move: it
+                already sat below the ledger, now inside the content column so it shares the page's
+                one geometry instead of its own centred 1180px band. */}
+            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  fontSize: 10,
+                  fontWeight: 800,
+                  letterSpacing: "0.12em",
+                  textTransform: "uppercase",
+                  color: "var(--ink-3)",
+                }}
+              >
+                Credibility model
+              </span>
+              <CredibilityChipEvidence biasTags={[]} />
+              <CredibilityChipAuthority />
+              <span style={{ fontSize: 11, color: "var(--ink-2)" }}>
+                Two scores, never merged (spec-03 §4). Click a chip for the GRADE modifier ledger.
+              </span>
+            </div>
           </div>
-        </div>
-      }
-    />
+        }
+      />
+    </Suspense>
   );
 }

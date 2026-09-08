@@ -61,14 +61,12 @@ import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
-  EMPTY_FILTER_STATE,
-  bandFacetOptions,
-  modeFacetOptions,
-  regionFacetOptions,
+  liveFacetCounts,
   filterRows,
   withListPosition,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
+import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "operations";
@@ -289,7 +287,9 @@ export function OperationsLedger({
     [regions, operationsCoverage, regsByRegion],
   );
 
-  const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
+  // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
+  // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
+  const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
   const tagsFacet = useWorkspaceTagsFacet();
@@ -299,13 +299,25 @@ export function OperationsLedger({
     [initialResources, filter, tagsFacet.matchesSelectedTag]
   );
 
-  const bandCounts = useMemo(() => {
-    const opts = bandFacetOptions(initialResources, aggregates?.byPriority as unknown as Record<string, number> | undefined);
-    return Object.fromEntries(opts.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>;
-  }, [initialResources, aggregates?.byPriority]);
+  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so the
+  // Filters card's own caption ("Counts are live for the current selection") is true here too. See
+  // liveFacetCounts in list-surface-helpers.ts for the two regimes and why they are what they are.
+  const counts = useMemo(
+    () =>
+      liveFacetCounts(initialResources, filter, {
+        byPriority: aggregates?.byPriority as unknown as Record<string, number> | undefined,
+        byJurisdiction: aggregates?.byJurisdiction,
+        totalItems: aggregates?.totalItems,
+      }),
+    [initialResources, filter, aggregates],
+  );
+  const bandCounts = useMemo(
+    () => Object.fromEntries(counts.band.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>,
+    [counts.band],
+  );
 
-  const modeOptions = useMemo(() => modeFacetOptions(initialResources), [initialResources]);
-  const regionOptions = useMemo(() => regionFacetOptions(initialResources, aggregates?.byJurisdiction), [initialResources, aggregates?.byJurisdiction]);
+  const modeOptions = counts.mode;
+  const regionOptions = counts.region;
 
   // DIMENSION facet (artboard 08/id="p8" rail: REGION then DIMENSION, "D1 Regulatory feasibility
   // 3/5 ... D6 Operational cost 4/5"). The count is REAL coverage, not a row count: how many of the
@@ -332,12 +344,12 @@ export function OperationsLedger({
   }, [operationsCoverage, regions.length]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
-    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
+    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFacet("region", v) },
     { key: "dimension", label: "Dimension", options: dimensionOptions, selected: dimensionFilter, onSelect: setDimensionFilter },
     // R7: Mode is an app facet artboard 08's rail does not draw. Kept exactly as it was, listed in
     // the lane report, and placed AFTER the two groups the artboard does draw so it never occupies
     // an artboard region's position.
-    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
+    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFacet("mode", v) },
   ];
 
   const workspaceTagFacetGroups: ListSurfaceFacetGroup[] = [
@@ -388,7 +400,10 @@ export function OperationsLedger({
     });
   }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
-  const total = aggregates?.totalItems || initialResources.length;
+  // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
+  // current selection under a filter. It was the corpus total unconditionally, which is how a
+  // narrowed list came to sit under a header stating the whole corpus.
+  const total = counts.total;
 
   // Masthead scope line (artboard 08/id="p8": "25 active items · 18 jurisdictions · six dimensions
   // per region · every fact carries a source and date"). Live fields only: the jurisdiction count is
@@ -447,10 +462,10 @@ export function OperationsLedger({
       itemCount={total}
       scope="operations"
       searchPlaceholder={'Search regions and dimensions \u2014 or ask "warehouse labor rates, Singapore vs LA?"'}
-      onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
+      onSearch={(q) => setFacet("query", q)}
       bandCounts={bandCounts}
       selectedBand={filter.band}
-      onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
+      onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={

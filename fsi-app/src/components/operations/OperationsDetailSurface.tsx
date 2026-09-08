@@ -33,6 +33,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { joinMetaSegments } from "@/lib/detail/meta-line";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -162,12 +163,14 @@ export function OperationsDetailSurface({
   const jurisdiction = jurisdictionIsoCode ? isoToDisplayLabel(jurisdictionIsoCode) : "";
   const regionGroup = regionGroupForLabel(jurisdiction);
 
-  const meta = [
+  // COUNTS-61: the same shared join every detail sub-line now uses, so a segment can never be
+  // printed twice when two producers reach for the same field (the /market/[id] defect).
+  const meta = joinMetaSegments([
     ["Operations", jurisdiction].filter(Boolean).join(" · "),
     r.sourceName,
     r.added ? `published ${formatDate(r.added)}` : null,
     r.modes && r.modes.length > 0 ? r.modes.map((m) => m.toUpperCase()).join(" · ") : null,
-  ].filter(Boolean).join(" · ");
+  ]);
 
   const knownSections = useMemo(
     () => sections.filter((s) => KNOWN_OPERATIONS_KEYS.has(s.section_key)),

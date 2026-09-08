@@ -27,6 +27,7 @@
 // notifications-smoke.mjs mounting two components side by side).
 
 import { runUxSpec } from './ux-harness.mjs';
+import { fileURLToPath } from 'node:url';
 import { fullAppCss } from './smoke-fixtures.mjs';
 
 // OperationsLedger's own top-level layout depends on a PRE-EXISTING responsive class
@@ -41,6 +42,14 @@ const STYLE_INJECT = `
   document.head.appendChild(style);
 })();
 `;
+
+// COUNTS-61 (2026-09-08): the ledger now reads its facet state from the URL through
+// useListSurfaceFilter (useSearchParams/useRouter/usePathname), so every facet is linkable rather
+// than only the band. Outside a real Next App Router tree those hooks throw ("invariant expected app
+// router to be mounted"), so this spec aliases them to the same stub regulations-rows-smoke.mjs and
+// community-smoke.mjs already use, rather than a third copy of it.
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 
 const LEDGER_ENTRY = `
 ${STYLE_INJECT}
@@ -232,9 +241,10 @@ export async function runSmoke(browser) {
       apiRoutes: LEDGER_API_ROUTES,
       states: LEDGER_STATES,
       knownSafePlaceholders: KNOWN_SAFE_PLACEHOLDERS,
+      alias: ALIAS,
     }),
-    runUxSpec(browser, { name: 'operations-items', entry: ITEMS_ENTRY, states: ITEMS_STATES }),
-    runUxSpec(browser, { name: 'operations-matrix', entry: MATRIX_ENTRY, states: MATRIX_STATES }),
+    runUxSpec(browser, { name: 'operations-items', entry: ITEMS_ENTRY, states: ITEMS_STATES, alias: ALIAS }),
+    runUxSpec(browser, { name: 'operations-matrix', entry: MATRIX_ENTRY, states: MATRIX_STATES, alias: ALIAS }),
   ]);
   return {
     checks: results.reduce((n, r) => n + r.checks, 0),

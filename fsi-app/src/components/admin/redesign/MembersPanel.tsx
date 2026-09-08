@@ -19,12 +19,17 @@
  *   - Ban requires a TYPED confirmation (keyboard-operable dialog) — no
  *     one-click destructive action.
  *
- * Display-name chain (DO-NOT-REVERT): full_name ?? display_name ?? email ??
- * uuid-slice. NO raw UUIDs render in member rows.
+ * Display-name chain (DO-NOT-REVERT): full_name ?? display_name ?? email ?? "(no profile)".
+ * NO raw UUIDs render in member rows. COUNTS-61 (2026-09-08): the chain moved to
+ * src/lib/admin/member-display-name.ts, its one home, because WorkspacesUsageRow.tsx did NOT use
+ * this copy and printed a sliced UUID to the user ("a0764ff3… · owner") on the same screen. The
+ * uuid-slice fallback is gone from the chain itself, which is the loophole that rule was written
+ * against.
  */
 
 import { useEffect, useRef, useState } from "react";
 import { formatLocaleDate } from "@/lib/format";
+import { memberDisplayName } from "@/lib/admin/member-display-name";
 
 type MemberUser = {
   full_name?: string | null;
@@ -53,19 +58,6 @@ export interface MembersPanelProps {
 }
 
 const ROLES = ["Owner", "Member", "Viewer"] as const;
-
-/** Display-name chain: full_name ?? display_name ?? email ?? uuid-slice. */
-function memberDisplayName(m: MemberRow): string {
-  const u = m.user;
-  const full = u?.full_name?.trim();
-  if (full) return full;
-  const display = u?.display_name?.trim();
-  if (display) return display;
-  const email = u?.email?.trim();
-  if (email) return email;
-  if (m.user_id) return `${m.user_id.slice(0, 8)}…`;
-  return "(no profile)";
-}
 
 export function MembersPanel({ members, orgId, onToast, onChanged }: MembersPanelProps) {
   const [email, setEmail] = useState("");

@@ -54,8 +54,19 @@ export interface NoticesRailProps {
  * below it — two regions off one feed. `NoticesRail` is now this hook plus its
  * markup, unchanged in behaviour.
  */
-export function useRecalculationNotices(): { notices: RecalculationNoticeItem[]; loading: boolean } {
+export function useRecalculationNotices(): {
+  notices: RecalculationNoticeItem[];
+  loading: boolean;
+  /** COUNTS-61 (production defect, click-through audit 2026-09-08): the START of the window these
+   *  notices cover, as the route itself reports it (`json.since`). The route has always returned it;
+   *  this hook used to discard it, which is why /watchlist could print "SINCE YOUR LAST VISIT" twice
+   *  and never state a date. It is NOT a last-visit instant and never was: GET /api/notices defaults
+   *  to a fixed 30-day window (DEFAULT_WINDOW_DAYS in its own logic.ts) and no caller sends `?since=`.
+   *  Surfaces state the window this value describes rather than a visit the product does not track. */
+  since: string | null;
+} {
   const [notices, setNotices] = useState<RecalculationNoticeItem[]>([]);
+  const [since, setSince] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -67,7 +78,9 @@ export function useRecalculationNotices(): { notices: RecalculationNoticeItem[];
         });
         if (!res.ok) return;
         const json = await res.json();
-        if (!cancelled && Array.isArray(json.notices)) setNotices(json.notices);
+        if (cancelled) return;
+        if (Array.isArray(json.notices)) setNotices(json.notices);
+        if (typeof json.since === "string") setSince(json.since);
       } catch {
         // Fail soft — the notices rail is a courtesy on every surface it appears on, never a blocker for
         // the page's own primary content (same posture AutomateVsHireCalculator's prior inline copy took).
@@ -80,12 +93,14 @@ export function useRecalculationNotices(): { notices: RecalculationNoticeItem[];
     };
   }, []);
 
-  return { notices, loading };
+  return { notices, loading, since };
 }
 
 export function NoticesRail({
   heading = "Recalculation notices",
-  emptyMessage = "No recalculations on your team's watchlist since your last visit.",
+  // COUNTS-61 (2026-09-08): "since your last visit" was false on every mount — GET /api/notices
+  // covers a fixed 30-day window and no caller sends `?since=`; the product tracks no last visit.
+  emptyMessage = "No recalculations on your team's watchlist in this window.",
   bare = false,
 }: NoticesRailProps) {
   const { notices, loading } = useRecalculationNotices();

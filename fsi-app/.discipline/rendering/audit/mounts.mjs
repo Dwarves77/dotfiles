@@ -590,9 +590,20 @@ const PAGE_FRAME_FIXTURES = {
       totalJurisdictions: 61,
       lastUpdatedAt: null,
     },
+    // COUNTS-61 (2026-09-08): the regulations surface's own counts, the figures /regulations puts
+    // on its identical four tiles. Deliberately DIFFERENT from `aggregates` above, so this mount
+    // renders the case the production defect turned on rather than one where the two agree.
+    bandCounts: {
+      totalItems: 1317,
+      byPriority: { CRITICAL: 15, HIGH: 14, MODERATE: 1119, LOW: 169 },
+      byStatus: {},
+      byJurisdiction: {},
+      totalJurisdictions: 32,
+      lastUpdatedAt: null,
+    },
     surfaceCoverage: {
       intelligence: { regulations: 0, marketIntel: 0, research: 0, operations: 0, uncategorized: 0, totalIntelligence: 0 },
-      community: { activeGroups: 0, activeThreads: 0 },
+      community: { regionalRooms: 7, joinedGroups: 0, activeThreads: 0 },
     },
   },
   regulation: {
@@ -696,6 +707,11 @@ window.__mount = () => {
           changedRows: buildChangedRows(F.dashboard.recentChanges, F.dashboard.resources, new Date(NOW_ISO)),
           totalChanges: F.dashboard.recentChanges.length,
           aggregates: F.dashboard.aggregates,
+          // COUNTS-61: the band tiles read the regulations surface's own counts, because that is
+          // where every tile navigates. The fixture supplies the real /regulations figures
+          // (15/14/1119/169, get_surface_counts of regulations on 2026-09-08), which is exactly the
+          // divergence from the workspace aggregates (14/31/1135/254) the defect consisted of.
+          bandCounts: F.dashboard.bandCounts,
           auditDate: F.dashboard.auditDate,
           surfaceCoverage: F.dashboard.surfaceCoverage,
           nowIso: NOW_ISO,
@@ -2556,6 +2572,11 @@ export const AUDIT_MOUNTS = {
     description: 'MarketIntelLedger + ResearchLedger, one real row each (README §0.4 signal-kind/theme tag).',
     viewport: 1440,
     entry: MARKETRESEARCH_ROWS_ENTRY,
+    // COUNTS-61 (2026-09-08): both ledgers now read their facet state from the URL through
+    // useListSurfaceFilter; outside a real Next App Router tree those hooks throw.
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
   },
   'ops-matrix': {
     id: 'ops-matrix',
@@ -2697,6 +2718,12 @@ export const AUDIT_MOUNTS = {
     description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Obligations/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
     viewport: 1440,
     entry: COMPOSE_REGULATIONS_ENTRY,
+    // COUNTS-61 (2026-09-08): the ledger reads its facet state from the URL through
+    // useListSurfaceFilter, so every facet is linkable and not only the band. Outside a real Next
+    // App Router tree those hooks throw; this is the same stub the smoke specs already use.
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
     apiRoutes: COMPOSE_REGULATIONS_API,
   },
   'compose-06-research': {
@@ -2704,6 +2731,12 @@ export const AUDIT_MOUNTS = {
     description: 'The real ResearchLedger page composition (20-row fixture): theme cards, Window row, band-foot rows + transition strip, rail Filters/Source coverage/Legend, artboard 06/id="p6".',
     viewport: 1440,
     entry: COMPOSE_RESEARCH_ENTRY,
+    // COUNTS-61 (2026-09-08): the ledger reads its facet state from the URL through
+    // useListSurfaceFilter, so every facet is linkable and not only the band. Outside a real Next
+    // App Router tree those hooks throw; this is the same stub the smoke specs already use.
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
     apiRoutes: COMPOSE_LEDGER_API,
   },
   'compose-04-market': {
@@ -2711,6 +2744,12 @@ export const AUDIT_MOUNTS = {
     description: 'The real MarketIntelLedger page composition (20-row fixture): rail Filters/Legend, embedded Headline Series card, sort/count row, band-sectioned rows — artboard 04/id="p4".',
     viewport: 1440,
     entry: COMPOSE_MARKET_ENTRY,
+    // COUNTS-61 (2026-09-08): the ledger reads its facet state from the URL through
+    // useListSurfaceFilter, so every facet is linkable and not only the band. Outside a real Next
+    // App Router tree those hooks throw; this is the same stub the smoke specs already use.
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
     apiRoutes: COMPOSE_LEDGER_API,
   },
   'compose-08-operations': {
@@ -2718,6 +2757,12 @@ export const AUDIT_MOUNTS = {
     description: 'The real OperationsLedger page composition (25-row fixture, 5 regions, populated coverage/facts): masthead scope line, band tiles, "Regions side by side" matrix card, band-sectioned rows, By-state disclosure at the card foot, rail Filters/Coverage gaps/Legend — artboard 08/id="p8".',
     viewport: 1440,
     entry: COMPOSE_OPERATIONS_ENTRY,
+    // COUNTS-61 (2026-09-08): the ledger reads its facet state from the URL through
+    // useListSurfaceFilter, so every facet is linkable and not only the band. Outside a real Next
+    // App Router tree those hooks throw; this is the same stub the smoke specs already use.
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+    },
     apiRoutes: COMPOSE_LEDGER_API,
   },
   'compose-11-watchlist': {

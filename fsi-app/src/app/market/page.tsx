@@ -39,6 +39,7 @@
  * rendering a false "not watched" for a viewer who actually has watched a row.
  */
 
+import { Suspense } from "react";
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { renderNowIso } from "@/lib/render-now";
@@ -174,17 +175,22 @@ export default async function Market() {
           tiles and the sort row, inside the content column — matching artboard 04/id="p4"'s own
           "Headline series" card placement exactly, instead of its own full-bleed section below the
           ledger. Renders nothing when no series is populated yet, never an empty shell. */}
-      <MarketIntelLedger
-        initialResources={marketIntel.resources.map(toLedgerRowPayload)}
-        aggregates={aggregates}
-        seriesBoard={seriesBoard}
-        nowIso={renderNowIso()}
-        headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
-        /* Artboard 04/id="p4" rail card CARBON COST PER FEU (lane lists60, 2026-09-08). The SAME
-           overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
-           card's rows — one computation, two views, no second read. */
-        carbonCorridors={summariseCarbonCorridors(carbonOverlays)}
-      />
+      {/* COUNTS-61: useSearchParams() inside the ledger (the facet URL contract) needs a Suspense
+          boundary, Next's own rule, so the surface streams rather than opting the whole route into
+          client rendering. */}
+      <Suspense fallback={null}>
+        <MarketIntelLedger
+          initialResources={marketIntel.resources.map(toLedgerRowPayload)}
+          aggregates={aggregates}
+          seriesBoard={seriesBoard}
+          nowIso={renderNowIso()}
+          headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
+          /* Artboard 04/id="p4" rail card CARBON COST PER FEU (lane lists60, 2026-09-08). The SAME
+             overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
+             card's rows — one computation, two views, no second read. */
+          carbonCorridors={summariseCarbonCorridors(carbonOverlays)}
+        />
+      </Suspense>
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
           every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
           never a fetch inside the component itself (CORR write set — the fetch lives in this page).
