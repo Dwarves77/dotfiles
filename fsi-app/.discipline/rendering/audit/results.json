@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T05:50:33.734Z",
+  "runAt": "2026-09-08T08:03:17.460Z",
   "specs": [
     {
       "part": "Absence",
@@ -929,6 +929,24 @@
             "display": "grid",
             "gap": "10px"
           }
+        },
+        {
+          "name": "Filters rail card head carries the artboard's Clear link, unconditionally",
+          "selector": "[data-audit=\"filters-rail\"] button",
+          "textMatch": "Clear",
+          "note": "Artboard 02/id=\"p2\" draws `Clear 1` and artboard 04/id=\"p4\" draws a bare `Clear` in the same head position, so the link is part of the card's anatomy in BOTH states. It used to render only while a facet was active, which is why the composition capture showed no Clear link at all. With nothing selected it is disabled rather than a press that silently does nothing (operator audit P0 1.1).",
+          "expect": {
+            "font-size": "11px",
+            "font-weight": "700"
+          }
+        },
+        {
+          "name": "Filters rail card foot carries artboard 02's own footnote, verbatim",
+          "selector": "[data-audit=\"filters-rail\"] p",
+          "textMatch": "Counts are live",
+          "expect": {
+            "text": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
+          }
         }
       ],
       "forbid": [
@@ -942,6 +960,12 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+        },
+        {
+          "name": "no trailing 'N regulations tracked across N jurisdictions' line below the band cards",
+          "selector": "body",
+          "textMatch": "regulations tracked across",
+          "reason": "Artboard 02/id=\"p2\" draws nothing below the band cards. Both figures that line restated are already stated by regions the artboard DOES draw: the corpus total and the jurisdiction count in the masthead scope line, the total again in the sort row. Removed on all three surfaces that share this shared slot (/regulations, /market, /operations)."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-02-regulations-list.json",
@@ -1036,7 +1060,8 @@
       "notes": [
         "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
         "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
-        "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage."
+        "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
+        "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED — an app feature no artboard draws — to after Legend, the last designed card of the column, per ruling R7."
       ],
       "selector": "[data-audit=\"filters-rail\"]",
       "expect": {
@@ -1079,6 +1104,92 @@
           "expect": {
             "display": "flex"
           }
+        },
+        {
+          "name": "rail card 2 is CARBON COST PER FEU, mounted after Filters",
+          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"carbon-feu-rail\"]",
+          "note": "Sibling-combinator placement check: only matches when the Filters card's DOM node precedes it.",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "CARBON COST PER FEU head carries the artboard's exact label",
+          "selector": "[data-audit=\"carbon-feu-rail\"] p",
+          "expect": {
+            "text": "Carbon cost per FEU"
+          }
+        },
+        {
+          "name": "CARBON COST PER FEU carries the artboard's dek line, verbatim",
+          "selector": "[data-audit=\"carbon-feu-dek\"]",
+          "expect": {
+            "text": "EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor.",
+            "font-size": "12px"
+          }
+        },
+        {
+          "name": "CARBON COST PER FEU lists one row per corridor (artboard 04 draws two)",
+          "selector": "[data-audit=\"carbon-feu-corridor\"]",
+          "expect": {
+            "count": "2"
+          }
+        },
+        {
+          "name": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
+          "selector": "[data-audit=\"carbon-feu-pending\"]",
+          "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws.",
+          "expect": {
+            "font-size": "10.5px",
+            "font-weight": "700",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "CARBON COST PER FEU foot names the four missing inputs once, not a GAP box per corridor",
+          "selector": "[data-audit=\"carbon-feu-foot\"]",
+          "expect": {
+            "font-size": "11px",
+            "text": "No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor."
+          }
+        },
+        {
+          "name": "rail card 3 is NEXT DATA DROPS, mounted after CARBON COST PER FEU",
+          "selector": "[data-audit=\"carbon-feu-rail\"] ~ [data-audit=\"next-drops-rail\"]",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "NEXT DATA DROPS head carries the artboard's exact label",
+          "selector": "[data-audit=\"next-drops-rail\"] p",
+          "expect": {
+            "text": "Next data drops"
+          }
+        },
+        {
+          "name": "NEXT DATA DROPS rows are the artboard's 70px/1fr date+name grid",
+          "selector": "[data-audit=\"next-drop-row\"]",
+          "expect": {
+            "display": "grid",
+            "gap": "10px"
+          }
+        },
+        {
+          "name": "a NEXT DATA DROPS date is the producer's own registered cadence applied to its latest observed period, in the artboard's 'Mon Sep 7' form",
+          "selector": "[data-audit=\"next-drop-date\"]",
+          "textMatch": "re:^[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{1,2}$",
+          "note": "The fixture's eu-oil-bulletin group observes through 2026-09-03 and the registry gives it cadenceDays 7, so its row reads 'Thu Sep 10' — the SAME derivation deriveDisplayRows writes into published_price_statistics.next_release_at, never a second prediction (spec 02 §9). The regex measures the artboard's own weekday-month-day form with NO comma, which a single locale-pinned formatLocaleDate would have produced as 'Mon, Sep 8'.",
+          "expect": {
+            "font-weight": "700"
+          }
+        },
+        {
+          "name": "rail card 4 is Legend, mounted after NEXT DATA DROPS",
+          "selector": "[data-audit=\"next-drops-rail\"] ~ [data-audit=\"legend-rail\"]",
+          "expect": {
+            "display": "block"
+          }
         }
       ],
       "forbid": [
@@ -1098,6 +1209,12 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+        },
+        {
+          "name": "no trailing 'N active signals across N tracked producers' line below the band cards",
+          "selector": "body",
+          "textMatch": "active signals across",
+          "reason": "Artboard 04/id=\"p4\" draws nothing below the band cards; the signal total is already in the masthead scope line and again in the sort row. Same shared slot cleared on /regulations and /operations."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json",
@@ -1528,6 +1645,18 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+        },
+        {
+          "name": "no 'Facts' label in the expanded dimension row's leading cell",
+          "selector": "[data-audit=\"ops-matrix-card\"] td",
+          "textMatch": "Facts",
+          "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+        },
+        {
+          "name": "no trailing 'N regional operations profiles across N regions' line below the band cards",
+          "selector": "body",
+          "textMatch": "regional operations profiles across",
+          "reason": "Artboard 08/id=\"p8\" draws nothing below the band cards; the item total and the jurisdiction count are already in the masthead scope line. Same shared slot cleared on /regulations and /market."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json",
@@ -1856,6 +1985,16 @@
           "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
           "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
           "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
+          "expect": {
+            "width": "44px",
+            "height": "44px"
+          }
+        },
+        {
+          "name": "every row ends in the artboard's ⋯ overflow glyph, the same control the Regulations rows use",
+          "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+          "textMatch": "⋯",
+          "note": "Artboard 11/id=\"p11\" ends each row with `⋯`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} — a watchlist row has no manual priority retag — holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5).",
           "expect": {
             "width": "44px",
             "height": "44px"
@@ -8788,6 +8927,54 @@
       ],
       "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
+      "target": "Filters rail card head carries the artboard's Clear link, unconditionally",
+      "selector": "[data-audit=\"filters-rail\"] button",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Artboard 02/id=\"p2\" draws `Clear 1` and artboard 04/id=\"p4\" draws a bare `Clear` in the same head position, so the link is part of the card's anatomy in BOTH states. It used to render only while a facet was active, which is why the composition capture showed no Clear link at all. With nothing selected it is disabled rather than a press that silently does nothing (operator audit P0 1.1)."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Filters rail card head carries the artboard's Clear link, unconditionally",
+      "selector": "[data-audit=\"filters-rail\"] button",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "Artboard 02/id=\"p2\" draws `Clear 1` and artboard 04/id=\"p4\" draws a bare `Clear` in the same head position, so the link is part of the card's anatomy in BOTH states. It used to render only while a facet was active, which is why the composition capture showed no Clear link at all. With nothing selected it is disabled rather than a press that silently does nothing (operator audit P0 1.1)."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Filters rail card foot carries artboard 02's own footnote, verbatim",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "property": "text",
+      "expected": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet.",
+      "actual": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet.",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
       "target": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
       "selector": ".cl-facets-desktop",
       "property": "(forbidden element)",
@@ -8811,6 +8998,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "no trailing 'N regulations tracked across N jurisdictions' line below the band cards",
+      "selector": "body [text contains \"regulations tracked across\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 02/id=\"p2\" draws nothing below the band cards. Both figures that line restated are already stated by regions the artboard DOES draw: the corpus total and the jurisdiction count in the masthead scope line, the total again in the sort row. Removed on all three surfaces that share this shared slot (/regulations, /market, /operations)."
     },
     {
       "spec": "compose-03-regulation-detail",
@@ -9060,6 +9263,262 @@
       ],
       "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
+      "target": "rail card 2 is CARBON COST PER FEU, mounted after Filters",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"carbon-feu-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "Sibling-combinator placement check: only matches when the Filters card's DOM node precedes it."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU head carries the artboard's exact label",
+      "selector": "[data-audit=\"carbon-feu-rail\"] p",
+      "property": "text",
+      "expected": "Carbon cost per FEU",
+      "actual": "Carbon cost per FEU",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU carries the artboard's dek line, verbatim",
+      "selector": "[data-audit=\"carbon-feu-dek\"]",
+      "property": "text",
+      "expected": "EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor.",
+      "actual": "EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor.",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU carries the artboard's dek line, verbatim",
+      "selector": "[data-audit=\"carbon-feu-dek\"]",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU lists one row per corridor (artboard 04 draws two)",
+      "selector": "[data-audit=\"carbon-feu-corridor\"]",
+      "property": "count",
+      "expected": "2",
+      "actual": "2",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
+      "selector": "[data-audit=\"carbon-feu-pending\"]",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
+      "selector": "[data-audit=\"carbon-feu-pending\"]",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
+      "selector": "[data-audit=\"carbon-feu-pending\"]",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU foot names the four missing inputs once, not a GAP box per corridor",
+      "selector": "[data-audit=\"carbon-feu-foot\"]",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "CARBON COST PER FEU foot names the four missing inputs once, not a GAP box per corridor",
+      "selector": "[data-audit=\"carbon-feu-foot\"]",
+      "property": "text",
+      "expected": "No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor.",
+      "actual": "No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor.",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "rail card 3 is NEXT DATA DROPS, mounted after CARBON COST PER FEU",
+      "selector": "[data-audit=\"carbon-feu-rail\"] ~ [data-audit=\"next-drops-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "NEXT DATA DROPS head carries the artboard's exact label",
+      "selector": "[data-audit=\"next-drops-rail\"] p",
+      "property": "text",
+      "expected": "Next data drops",
+      "actual": "Next data drops",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "NEXT DATA DROPS rows are the artboard's 70px/1fr date+name grid",
+      "selector": "[data-audit=\"next-drop-row\"]",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "NEXT DATA DROPS rows are the artboard's 70px/1fr date+name grid",
+      "selector": "[data-audit=\"next-drop-row\"]",
+      "property": "gap",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "a NEXT DATA DROPS date is the producer's own registered cadence applied to its latest observed period, in the artboard's 'Mon Sep 7' form",
+      "selector": "[data-audit=\"next-drop-date\"]",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "The fixture's eu-oil-bulletin group observes through 2026-09-03 and the registry gives it cadenceDays 7, so its row reads 'Thu Sep 10' — the SAME derivation deriveDisplayRows writes into published_price_statistics.next_release_at, never a second prediction (spec 02 §9). The regex measures the artboard's own weekday-month-day form with NO comma, which a single locale-pinned formatLocaleDate would have produced as 'Mon, Sep 8'."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "rail card 4 is Legend, mounted after NEXT DATA DROPS",
+      "selector": "[data-audit=\"next-drops-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
       "target": "no content-column facet chip strip above the rows (the original defect)",
       "selector": ".cl-facets-desktop",
       "property": "(forbidden element)",
@@ -9099,6 +9558,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "no trailing 'N active signals across N tracked producers' line below the band cards",
+      "selector": "body [text contains \"active signals across\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 04/id=\"p4\" draws nothing below the band cards; the signal total is already in the masthead scope line and again in the sort row. Same shared slot cleared on /regulations and /operations."
     },
     {
       "spec": "compose-05-market-detail",
@@ -10093,6 +10568,38 @@
       "note": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
     },
     {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "no 'Facts' label in the expanded dimension row's leading cell",
+      "selector": "[data-audit=\"ops-matrix-card\"] td [text contains \"Facts\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "no trailing 'N regional operations profiles across N regions' line below the band cards",
+      "selector": "body [text contains \"regional operations profiles across\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 08/id=\"p8\" draws nothing below the band cards; the item total and the jurisdiction count are already in the masthead scope line. Same shared slot cleared on /regulations and /market."
+    },
+    {
       "spec": "compose-09-operations-profile",
       "part": "Page composition — Operations profile detail (09)",
       "artboards": [
@@ -10811,6 +11318,38 @@
       "actual": "44px",
       "status": "MATCH",
       "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "every row ends in the artboard's ⋯ overflow glyph, the same control the Regulations rows use",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": "Artboard 11/id=\"p11\" ends each row with `⋯`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} — a watchlist row has no manual priority retag — holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5)."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "every row ends in the artboard's ⋯ overflow glyph, the same control the Regulations rows use",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": "Artboard 11/id=\"p11\" ends each row with `⋯`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} — a watchlist row has no manual priority retag — holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5)."
     },
     {
       "spec": "compose-11-watchlist",

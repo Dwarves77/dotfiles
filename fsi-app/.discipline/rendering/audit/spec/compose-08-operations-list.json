@@ -2,7 +2,9 @@
   "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
   "mount": "compose-08-operations",
   "viewport": 1440,
-  "artboards": ["08-operations-list"],
+  "artboards": [
+    "08-operations-list"
+  ],
   "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
   "notes": [
     "This spec measures the COMPOSED page, region by region, in document order — the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
@@ -19,84 +21,117 @@
     {
       "name": "matrix card carries ruling 5.1's graduated top rule (it was a bare section with a 15px h2)",
       "selector": "[data-audit=\"ops-matrix-card\"] .cl-section-rule",
-      "expect": { "height": "3px", "count": "1" }
+      "expect": {
+        "height": "3px",
+        "count": "1"
+      }
     },
     {
       "name": "matrix card head title is the Anton section title, 20px uppercase",
       "selector": "[data-audit=\"ops-matrix-card\"] h2",
-      "expect": { "font-size": "20px", "text-transform": "uppercase", "letter-spacing": "0.04em" }
+      "expect": {
+        "font-size": "20px",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.04em"
+      }
     },
     {
       "name": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
       "selector": "[data-audit=\"ops-matrix-foot\"]",
       "textMatch": "no sourced fact yet",
-      "expect": { "display": "flex" }
+      "expect": {
+        "display": "flex"
+      }
     },
     {
       "name": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
       "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
-      "expect": { "display": "flex" }
+      "expect": {
+        "display": "flex"
+      }
     },
     {
       "name": "the matrix card precedes the first band card's foot strip — the matrix is FIRST in the content column, above the band cards",
       "selector": "[data-audit=\"ops-matrix-card\"] ~ * [data-audit=\"band-foot\"]",
-      "expect": { "display": "flex" }
+      "expect": {
+        "display": "flex"
+      }
     },
     {
       "name": "every band card is closed by a foot strip carrying the transition into the next band (or 'end of list' on the last)",
       "selector": "[data-audit=\"band-foot\"]",
-      "expect": { "count": "3" }
+      "expect": {
+        "count": "3"
+      }
     },
     {
       "name": "the last band card's foot strip says 'end of list'",
       "selector": "[data-audit=\"band-foot\"]",
       "textMatch": "end of list",
-      "expect": { "display": "flex" }
+      "expect": {
+        "display": "flex"
+      }
     },
     {
       "name": "rail FILTERS card mounts before the COVERAGE GAPS card (p8 rail order: Filters, Coverage gaps, Legend)",
       "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"coverage-gaps-rail\"]",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "rail COVERAGE GAPS card mounts before the LEGEND card",
       "selector": "[data-audit=\"coverage-gaps-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "rail facet order is REGION then DIMENSION (p8's own two groups, in p8's order)",
       "selector": "[data-audit=\"facet-region\"] ~ [data-audit=\"facet-dimension\"]",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "the R7 extra (Mode, which p8's rail does not draw) follows both artboard groups, never ahead of one",
       "selector": "[data-audit=\"facet-dimension\"] ~ [data-audit=\"facet-mode\"]",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "FILTERS card carries the DIMENSION group (p8 rail: D1 Regulatory feasibility ... D6 Operational cost)",
       "selector": "[data-audit=\"filters-rail\"] p",
       "textMatch": "Dimension",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "all six dimensions D1-D6 render in the rail with no '+ N more' disclosure hiding D6",
       "selector": "[data-audit=\"filters-rail\"] label",
       "textMatch": "D6 Operational cost",
-      "expect": { "display": "flex" }
+      "expect": {
+        "display": "flex"
+      }
     },
     {
       "name": "COVERAGE GAPS card carries counted gap rows, not prose alone",
       "selector": "[data-audit=\"coverage-gaps-rail\"] p",
       "textMatch": "A known gap, stated plainly",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     },
     {
       "name": "masthead scope line carries p8's own standing sentence after the live counts",
       "selector": ".cl-masthead-dek",
       "textMatch": "six dimensions per region · every fact carries a source and date",
       "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text.",
-      "expect": { "display": "block" }
+      "expect": {
+        "display": "block"
+      }
     }
   ],
   "forbid": [
@@ -115,6 +150,18 @@
       "selector": "body",
       "textMatch": "UNSCORED",
       "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    },
+    {
+      "name": "no 'Facts' label in the expanded dimension row's leading cell",
+      "selector": "[data-audit=\"ops-matrix-card\"] td",
+      "textMatch": "Facts",
+      "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+    },
+    {
+      "name": "no trailing 'N regional operations profiles across N regions' line below the band cards",
+      "selector": "body",
+      "textMatch": "regional operations profiles across",
+      "reason": "Artboard 08/id=\"p8\" draws nothing below the band cards; the item total and the jurisdiction count are already in the masthead scope line. Same shared slot cleared on /regulations and /market."
     }
   ]
 }

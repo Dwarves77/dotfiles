@@ -103,6 +103,24 @@
         "display": "grid",
         "gap": "10px"
       }
+    },
+    {
+      "name": "Filters rail card head carries the artboard's Clear link, unconditionally",
+      "selector": "[data-audit=\"filters-rail\"] button",
+      "textMatch": "Clear",
+      "note": "Artboard 02/id=\"p2\" draws `Clear 1` and artboard 04/id=\"p4\" draws a bare `Clear` in the same head position, so the link is part of the card's anatomy in BOTH states. It used to render only while a facet was active, which is why the composition capture showed no Clear link at all. With nothing selected it is disabled rather than a press that silently does nothing (operator audit P0 1.1).",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "Filters rail card foot carries artboard 02's own footnote, verbatim",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "textMatch": "Counts are live",
+      "expect": {
+        "text": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
+      }
     }
   ],
   "forbid": [
@@ -116,6 +134,12 @@
       "selector": "body",
       "textMatch": "UNSCORED",
       "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+    },
+    {
+      "name": "no trailing 'N regulations tracked across N jurisdictions' line below the band cards",
+      "selector": "body",
+      "textMatch": "regulations tracked across",
+      "reason": "Artboard 02/id=\"p2\" draws nothing below the band cards. Both figures that line restated are already stated by regions the artboard DOES draw: the corpus total and the jurisdiction count in the masthead scope line, the total again in the sort row. Removed on all three surfaces that share this shared slot (/regulations, /market, /operations)."
     }
   ]
 }

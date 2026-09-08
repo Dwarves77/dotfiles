@@ -2039,10 +2039,13 @@ function composeMarketRow(i) {
 }
 const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
 
-function composeSeriesRow(key, label, displayValue, pct1w) {
+// `referencePeriod` is a real value here, not null: artboard 04's NEXT DATA DROPS card derives its
+// dates from the latest observed period per producer (lane lists60, 2026-09-08). It defaults to the
+// EU Weekly Oil Bulletin's own last published week in this fixture.
+function composeSeriesRow(key, label, displayValue, pct1w, referencePeriod = '2026-09-03') {
   return {
     seriesKey: key, id: key, label, displayValue, emptyReason: null, asAtDate: '2026-09-03',
-    referencePeriod: null, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
+    referencePeriod, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
     currency: null, derivation: null, originClass: null, methodVersion: null, nObservations: 12,
     deltas: {
       count: 12,
@@ -2055,19 +2058,41 @@ function composeSeriesRow(key, label, displayValue, pct1w) {
     },
   };
 }
+// The two producer groups use REAL registry keyPrefixes ('eu-oil-bulletin', 'ecb-fx') and carry a
+// `referencePeriod` on each series row, because artboard 04's NEXT DATA DROPS card derives its rows
+// from exactly those two fields (latest observed period + that producer's own registered
+// cadenceDays — src/lib/market/market-rail-select.mjs). A made-up prefix has no registry entry and
+// would make the card render Absence, measuring nothing (lane lists60, 2026-09-08).
 const COMPOSE_SERIES_BOARD = {
-  groups: [{
-    keyPrefix: 'fixture', name: 'Fixture producer', implemented: true, cadence: 'weekly',
-    sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
-    series: [
-      composeSeriesRow('diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
-      composeSeriesRow('e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
-      composeSeriesRow('hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
-      composeSeriesRow('rfo', 'Residual Fuel Oil', '€646/t', 1.8),
-    ],
-  }],
-  unregistered: [], totalObservedSeries: 4, totalProducers: 1, implementedProducerCount: 1, isEmpty: false,
+  groups: [
+    {
+      keyPrefix: 'eu-oil-bulletin', name: 'EU Weekly Oil Bulletin', implemented: true, cadence: 'weekly',
+      sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+      series: [
+        composeSeriesRow('eu-oil-bulletin:diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+        composeSeriesRow('eu-oil-bulletin:e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+        composeSeriesRow('eu-oil-bulletin:hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+        composeSeriesRow('eu-oil-bulletin:rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+      ],
+    },
+    {
+      keyPrefix: 'ecb-fx', name: 'ECB euro foreign exchange reference rates', implemented: true, cadence: 'daily',
+      sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+      series: [composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04')],
+    },
+  ],
+  unregistered: [], totalObservedSeries: 5, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
 };
+
+// Artboard 04's CARBON COST PER FEU rows, in the shape summariseCarbonCorridors() returns from the
+// overlay entries src/app/market/page.tsx already builds: a corridor label from
+// formatCorridorLabel() plus the count of inputs still missing. Both entries carry the four-gap
+// state every LIVE corridor is in today (see carbon-cost-per-feu.mjs's header), which is the state
+// the artboard itself draws.
+const COMPOSE_CARBON_CORRIDORS = [
+  { label: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
+];
 
 const COMPOSE_MARKET_ENTRY = `
 ${STYLE_INJECT}
@@ -2090,6 +2115,11 @@ const props = {
   },
   seriesBoard: SERIES_BOARD,
   headlineSeries: React.createElement(MarketComparativeRibbon, { board: SERIES_BOARD, embedded: true }),
+  // Artboard 04 rail card 2: the same reduced rows /market passes from its own overlay entries.
+  carbonCorridors: ${JSON.stringify(COMPOSE_CARBON_CORRIDORS)},
+  // The instant every date on this surface derives from — including NEXT DATA DROPS, so the audit
+  // measures a fixed calendar rather than one that moves with the day the audit is run.
+  nowIso: '2026-09-06T00:00:00Z',
 };
 
 let root = null;

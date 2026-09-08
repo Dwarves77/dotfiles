@@ -381,9 +381,12 @@ export function RegionDimensionMatrix({
 
                   {open && (
                     <tr>
-                      <td style={{ ...cell, verticalAlign: "top", textAlign: "left", color: "var(--color-text-muted)", fontSize: 12 }}>
-                        Facts
-                      </td>
+                      {/* Artboard 08/id="p8" leaves this leading cell of the expanded facts row
+                          EMPTY: the dimension is already named by the "▾ Labor markets" row directly
+                          above it, and no "Facts" label is drawn under it (lane lists60,
+                          2026-09-08). The cell itself stays, so the facts columns keep the header
+                          row's column alignment. */}
+                      <td style={{ ...cell, verticalAlign: "top", textAlign: "left" }} />
                       {orderedRegions.map((r) => {
                         const c = grid.byCell[`${r.key}|${d.db}`];
                         return (

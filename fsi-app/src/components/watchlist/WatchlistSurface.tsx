@@ -66,6 +66,7 @@ import { Absence } from "@/components/ui/Absence";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { RailCard, LegendRailCard, FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import type { ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { SectionRule } from "@/components/ui/SectionRule";
@@ -341,13 +342,26 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                           tier={item.sourceTier ?? null}
                           tags={tagsFacet.tagsForItem(item.id)}
                           overflow={
-                            // Every row ON /watchlist is watched by definition, so the state is
-                            // known without a fetch — `initialWatched` both skips the per-row GET
-                            // and satisfies ruling 3.5 (a watched row must never read "Watch";
-                            // this row shows the filled ★ and offers "Unwatch"). The glyph-only
-                            // "icon" variant is the one that fits the artboard's 44px trailing
-                            // cell; the labelled variants are 100px+ wide and overflowed it.
-                            <WatchButton variant="icon" itemType={item.type} itemId={item.id} initialWatched />
+                            // Artboard 11/id="p11" ends every row with the SAME `⋯` overflow glyph
+                            // artboard 02's regulation rows end with — not a star (lane lists60,
+                            // 2026-09-08: the row previously rendered WatchButton's glyph-only
+                            // "icon" variant here, which put a second star in the product where the
+                            // star belongs to the detail action row's Watch control alone). The
+                            // control is the one the other four list surfaces already use:
+                            // PriorityDropdown's 44px kebab with `showPriorityActions={false}`
+                            // (there is no manual priority retag on a watchlist row), holding the
+                            // WatchButton in its popover. Every row here is watched by definition,
+                            // so `initialWatched` skips the per-row GET and satisfies ruling 3.5 —
+                            // the menu item reads "Watching" at rest and "Unwatch" on hover, never
+                            // "Watch".
+                            <PriorityDropdown
+                              variant="card"
+                              showPriorityActions={false}
+                              ariaLabel={`Actions for ${item.title}`}
+                              menuTopContent={
+                                <WatchButton variant="row" itemType={item.type} itemId={item.id} initialWatched />
+                              }
+                            />
                           }
                         />
                       ) : (
@@ -424,6 +438,16 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
             exactly as they do on the other four list surfaces. Logged in DEVIATION-LOG.md. */}
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           <FiltersRailCard groups={facetGroups} />
+          {/* Artboard 11 draws a "Create shared watchlist" button under this prose. NOT BUILT (lane
+              lists60, 2026-09-08), and the reason is the ruling's own: a control with no function
+              behind it is a defect (operator audit P0 1.1). Checked for one — `src/app/api` has a
+              single `watchlist` route (GET/POST/DELETE over `user_watchlist`/`org_watchlist` for one
+              item at a time), `src/lib/watchlist-scope.ts` holds the whole personal/team vocabulary,
+              and `src/lib/watchlist-links.ts`/`watchlist-order.ts` hold the rest; nothing anywhere
+              creates a shared watchlist AS AN OBJECT. What the product actually has is a per-item
+              TEAM SCOPE: watching a row at `scope=team` puts it on every member's list. The prose
+              therefore states that real action instead of promising a creation flow that does not
+              exist. Logged in DEVIATION-LOG.md; the button returns with the function. */}
           <RailCard title="Share with workspace" dataAudit="share-rail">
             <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0, lineHeight: 1.5 }}>
               A shared watchlist puts the same rows on every member&apos;s dashboard. Team-watch any row to add it.

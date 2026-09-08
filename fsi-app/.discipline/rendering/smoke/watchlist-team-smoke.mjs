@@ -90,19 +90,43 @@ export async function runSmoke(browser) {
     // unrouted /api/watchlist call then reverts, so a click assertion here would be asserting on a
     // race, not on the handler. The real click-fire proof lives in the extreme state below, where
     // the facets exist and the effect is local and deterministic.
-    const watchToggle = await page.$('.cl-row-overflow button');
+    // Lane lists60 (2026-09-08): the row's trailing control is now the artboard's `⋯` overflow
+    // kebab (artboard 11/id="p11" draws the same glyph artboard 02's rows end with), holding the
+    // WatchButton in its popover — it used to be WatchButton's glyph-only star variant mounted
+    // directly in the cell. Ruling 3.5's INVARIANT is unchanged and still proven in full below: the
+    // row offers a real, enabled control, and the watch action reachable from it is UNWATCH, never
+    // a bare "Watch" on a row that is watched by construction. What changed is the MOUNT — the
+    // action is one click deeper — so the check opens the menu and reads the control inside it.
+    const rowOverflow = await page.$('.cl-row-overflow button');
     checks++;
-    if (!watchToggle) {
-      failures.push('watchlist-team[one-row]: primary action (the row watch toggle) is missing.');
+    if (!rowOverflow) {
+      failures.push('watchlist-team[one-row]: primary action (the row overflow control) is missing.');
     } else {
-      const disabled = await watchToggle.evaluate((el) => el.disabled);
-      if (disabled) failures.push('watchlist-team[one-row]: the row watch toggle is present but disabled.');
-      // Operator ruling 3.5: a watched row must never offer a bare "Watch". Every row on this
-      // surface is watched by construction, so the control's accessible name is the UNWATCH action.
-      const label = await watchToggle.evaluate((el) => el.getAttribute('aria-label') || '');
+      const disabled = await rowOverflow.evaluate((el) => el.disabled);
+      if (disabled) failures.push('watchlist-team[one-row]: the row overflow control is present but disabled.');
+      const glyph = await rowOverflow.evaluate((el) => (el.textContent || '').trim());
       checks++;
-      if (!/unwatch/i.test(label)) {
-        failures.push(`watchlist-team[one-row]: the watch toggle on a watched row reads "${label}" — ruling 3.5 requires the unwatch action.`);
+      if (glyph !== '\u22ef') {
+        failures.push(`watchlist-team[one-row]: the row's trailing control reads "${glyph}" — artboard 11 draws the \u22ef overflow glyph.`);
+      }
+      await rowOverflow.click();
+      await page.waitForTimeout(80);
+      // Operator ruling 3.5: a watched row must never offer a bare "Watch". Every row on this
+      // surface is watched by construction, so the watch control inside the menu states the UNWATCH
+      // action (its accessible name is the action; its visible text reads "Watching" at rest and
+      // "Unwatch" on hover — WatchButton.tsx's own contract).
+      const menuLabels = await page.$$eval('button', (els) =>
+        els.map((el) => `${el.getAttribute('aria-label') || ''} ${el.textContent || ''}`),
+      );
+      checks++;
+      if (!menuLabels.some((l) => /unwatch|watching/i.test(l))) {
+        failures.push(
+          `watchlist-team[one-row]: the row's \u22ef menu offers no unwatch action (labels seen: ${JSON.stringify(menuLabels)}) — ruling 3.5.`,
+        );
+      }
+      checks++;
+      if (menuLabels.some((l) => /(^|[^n])\bWatch\b(?!ing)/.test(l))) {
+        failures.push(`watchlist-team[one-row]: a watched row's menu reads a bare "Watch" — ruling 3.5 forbids it.`);
       }
     }
 

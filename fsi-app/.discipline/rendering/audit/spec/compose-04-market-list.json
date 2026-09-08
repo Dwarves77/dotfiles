@@ -2,12 +2,15 @@
   "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
   "mount": "compose-04-market",
   "viewport": 1440,
-  "artboards": ["04-market-list"],
+  "artboards": [
+    "04-market-list"
+  ],
   "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
   "notes": [
     "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
     "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
-    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage."
+    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
+    "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED — an app feature no artboard draws — to after Legend, the last designed card of the column, per ruling R7."
   ],
   "selector": "[data-audit=\"filters-rail\"]",
   "expect": {
@@ -50,6 +53,92 @@
       "expect": {
         "display": "flex"
       }
+    },
+    {
+      "name": "rail card 2 is CARBON COST PER FEU, mounted after Filters",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"carbon-feu-rail\"]",
+      "note": "Sibling-combinator placement check: only matches when the Filters card's DOM node precedes it.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU head carries the artboard's exact label",
+      "selector": "[data-audit=\"carbon-feu-rail\"] p",
+      "expect": {
+        "text": "Carbon cost per FEU"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU carries the artboard's dek line, verbatim",
+      "selector": "[data-audit=\"carbon-feu-dek\"]",
+      "expect": {
+        "text": "EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor.",
+        "font-size": "12px"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU lists one row per corridor (artboard 04 draws two)",
+      "selector": "[data-audit=\"carbon-feu-corridor\"]",
+      "expect": {
+        "count": "2"
+      }
+    },
+    {
+      "name": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
+      "selector": "[data-audit=\"carbon-feu-pending\"]",
+      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws.",
+      "expect": {
+        "font-size": "10.5px",
+        "font-weight": "700",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU foot names the four missing inputs once, not a GAP box per corridor",
+      "selector": "[data-audit=\"carbon-feu-foot\"]",
+      "expect": {
+        "font-size": "11px",
+        "text": "No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor."
+      }
+    },
+    {
+      "name": "rail card 3 is NEXT DATA DROPS, mounted after CARBON COST PER FEU",
+      "selector": "[data-audit=\"carbon-feu-rail\"] ~ [data-audit=\"next-drops-rail\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "NEXT DATA DROPS head carries the artboard's exact label",
+      "selector": "[data-audit=\"next-drops-rail\"] p",
+      "expect": {
+        "text": "Next data drops"
+      }
+    },
+    {
+      "name": "NEXT DATA DROPS rows are the artboard's 70px/1fr date+name grid",
+      "selector": "[data-audit=\"next-drop-row\"]",
+      "expect": {
+        "display": "grid",
+        "gap": "10px"
+      }
+    },
+    {
+      "name": "a NEXT DATA DROPS date is the producer's own registered cadence applied to its latest observed period, in the artboard's 'Mon Sep 7' form",
+      "selector": "[data-audit=\"next-drop-date\"]",
+      "textMatch": "re:^[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{1,2}$",
+      "note": "The fixture's eu-oil-bulletin group observes through 2026-09-03 and the registry gives it cadenceDays 7, so its row reads 'Thu Sep 10' — the SAME derivation deriveDisplayRows writes into published_price_statistics.next_release_at, never a second prediction (spec 02 §9). The regex measures the artboard's own weekday-month-day form with NO comma, which a single locale-pinned formatLocaleDate would have produced as 'Mon, Sep 8'.",
+      "expect": {
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "rail card 4 is Legend, mounted after NEXT DATA DROPS",
+      "selector": "[data-audit=\"next-drops-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "expect": {
+        "display": "block"
+      }
     }
   ],
   "forbid": [
@@ -69,6 +158,12 @@
       "selector": "body",
       "textMatch": "UNSCORED",
       "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+    },
+    {
+      "name": "no trailing 'N active signals across N tracked producers' line below the band cards",
+      "selector": "body",
+      "textMatch": "active signals across",
+      "reason": "Artboard 04/id=\"p4\" draws nothing below the band cards; the signal total is already in the masthead scope line and again in the sort row. Same shared slot cleared on /regulations and /operations."
     }
   ]
 }

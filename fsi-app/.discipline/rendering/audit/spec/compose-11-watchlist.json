@@ -2,7 +2,9 @@
   "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
   "mount": "compose-11-watchlist",
   "viewport": 1440,
-  "artboards": ["11-watchlist"],
+  "artboards": [
+    "11-watchlist"
+  ],
   "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
   "notes": [
     "This spec exists per the operator's own composition complaint ('you are NOT matching the images directly'): it measures the page REGION BY REGION IN DOCUMENT ORDER, so a future regression that drops the column header, drops the card foot, drops the notices card, or puts the filters back into the content column is caught here rather than in a screenshot review.",
@@ -158,6 +160,16 @@
       "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
       "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
       "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
+      "expect": {
+        "width": "44px",
+        "height": "44px"
+      }
+    },
+    {
+      "name": "every row ends in the artboard's ⋯ overflow glyph, the same control the Regulations rows use",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "textMatch": "⋯",
+      "note": "Artboard 11/id=\"p11\" ends each row with `⋯`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} — a watchlist row has no manual priority retag — holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5).",
       "expect": {
         "width": "44px",
         "height": "44px"
