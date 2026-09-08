@@ -14909,4 +14909,251 @@ guard PASS: 11 fixtures, 12 viewports, 445 checks, 97 SM smoke, 216 UX smoke. `n
 (984 before this lane's 12). `run-test-suite.sh` 5,972 tests, 5,967 pass, 0 fail, exit 0.
 `npx next build --webpack` exit 0.
 
+## Addendum 86, postscript 18: train 62, the seven-lane fold, one due-next read where there were two, one card where there were two (2026-09-08, coordinator, lane FOLD-62)
+
+Train 61 landed as `24bef1dd`. Seven lanes were dispatched against it, and this is their fold: 24
+cherry-picks on `train/wave62-2026-09-08`, plus the fold's own reconciliation.
+
+**Why cherry-pick and not merge.** The usual reason, unchanged since postscript 14: master carries
+the squash, so its TREE equals `train/wave61-2026-09-08`'s while its ancestry does not, and a merge
+would argue about ancestry for every file. `git cherry-pick -x` applies by content and leaves each
+origin commit traceable in the landed trailer.
+
+**Order applied.** The two lanes that CREATE shared parts first, because everything downstream
+renders through them: layoutguard (1) then cardrule (4). Then listrow (5), railfacets (4),
+adminlayout (1), briefdata (6) and duenext (3). briefdata deliberately before duenext, so the
+surviving due-next read lands last and the removal is visible in the diff rather than in a comment.
+
+**THE DEDUP, which is why this fold needed judgement.** Lanes briefdata and duenext were dispatched
+an hour apart on the same production defect and each built a due-next read.
+
+- REMOVED: briefdata's `fetchDueNextCandidateIds` and its call site in `fetchDashboardData` (a
+  bounded date-ordered scan of `item_timelines` and `intelligence_items`, merged in date order in
+  TypeScript, then re-read by id through `fetchBriefResourcesByIds`), plus its private helper
+  `utcToday`, whose only caller it was. Three round trips, and a second definition of "binding
+  date" in TypeScript.
+- SURVIVOR: duenext's migration 315 `get_workspace_due_next(p_org_id, p_limit)`, one bounded
+  date-ordered RPC computing the binding date in SQL the way `dueInfo` computes it in TypeScript,
+  workspace-scoped through the same `_workspace_active_items` seam as every other workspace read,
+  and ALREADY APPLIED to production (verified by the coordinator; not re-applied here, the file is
+  in the tree for the inventory).
+- KEPT, every line, because none of it is duplicated: the by-id backfill of change rows
+  (`fetchBriefResourcesByIds`, `splitBriefIdsByShape`, `mergeBriefOverrides`, `mergeBriefCorpus`,
+  `DashboardData.briefResources`), the `compliance_deadline` mapper line, the `briefCardState`
+  model and its failure/empty split, `dueNextWindowLabel`, the watchlist cache guard
+  (`readPersonalWatchRows` / `readTeamWatchRows` / `fetchWatchlist` rejecting instead of resolving
+  `[]`), and the membership destructuring fix.
+- The mapper line was itself a DUPLICATE: both lanes added
+  `complianceDeadline: row.compliance_deadline || undefined` to `mapWorkspaceItemRows`, at
+  different anchors, and `tsc` caught it as TS1117 (an object literal cannot have two properties of
+  one name). One copy survives, carrying both lanes' live measurements.
+- `src/app/page.tsx` now builds ONE corpus from all three reads (the LIMIT-50 priority slice, the
+  by-id change backfill, the due-next RPC) through briefdata's own `mergeBriefCorpus`, and hands it
+  to the same three selection calls unchanged. A row present in more than one read renders once;
+  when migration 315 is absent `data.dueNext` is empty and the pool degrades to briefdata's own
+  behaviour. `DASHBOARD_DATA_CACHE_KEY` was rotated ONCE for the union of both lanes' shape changes
+  rather than taking either lane's key. CORRECTION, in place per rule 13's corollary: the hand-typed
+  value this fold first wrote (`app-data-7b3d90e4`) was not the one rule [021] computes from the
+  `DashboardData` interface on this tree, and the rule caught it over the commit range; the landed
+  key is `app-data-e1ae7713`, the interface's own hash. The reasoning was right and the value was
+  invented, which is exactly what that rule exists to catch.
+- The removal is now guarded, not just done: `due-next-read.npmtest.mjs` gains "there is exactly ONE
+  due-next read in the server module", proven red-then-green (planting a call to the removed
+  function turns it red; restored, green).
+
+**THE SECOND DEDUP, the one the operator will see.** Lanes layoutguard and cardrule each created a
+shared card component on the same day, for the same defect: `ui/Card.tsx` and `ui/SectionCard.tsx`.
+SectionCard survives and Card.tsx is deleted. It is the superset (polymorphic tag, a padded layout
+that keeps the rule spanning the full card width, the `dataAudit` hook, caller data attributes) and
+it is the file fitness function F42 already names as the one legal home for a card shell. Card.tsx's
+four callers moved onto it, `noRule` became `suppressRuleForBandGrouping`, and `data-guard-card`
+moved with them so the layout guard's L6 and L10 still name a card that came from the shared shell.
+DashboardBrief mounts `SectionCard` DIRECTLY rather than through a one-line local wrapper, so no
+file in the product has a second name for a card. Four proofs followed the structure rather than the
+old shape (`SectionRule.npmtest`, `SectionRule.coverage.npmtest`, `ListSurfaceRailCards.npmtest`,
+`AdminIssuesRail.npmtest`), and each is stronger than what it replaced: a card that cannot be built
+without its rule cannot lose it.
+
+**Every other conflict, and how it was resolved.** The rule throughout: a conflict is a merge
+artifact, not a disagreement, unless two lanes built the same thing.
+
+- `DEVIATION-LOG.md`, `session-log.md`: chronological unions, both sides whole, never a choice.
+- `AUDIT-2026-09-07.md`, `results.json`, the `built/*.png` composites: never hand-merged; one side
+  taken as a placeholder at each pick and every one regenerated at the end.
+- `spec/compose-01-dashboard.json` (listrow vs cardrule vs briefdata vs duenext, four times): all
+  four lanes appended rows at the same tail anchor. Unioned BY NAME through a small structural
+  merge rather than by text, so a row one lane added cannot be lost to another lane's formatting;
+  the spec went 22 -> 31 checks and every row of every lane is present.
+- `spec/compose-02/04/08` and `spec/list-surface.json` (railfacets): the lane had rewritten these
+  files' whitespace, so git conflicted on the whole file while the SEMANTIC change was six rows and
+  four notes. Merged by name, same tool, with the 2-space escaped formatting the other specs use.
+- `StateNote.tsx`: both lanes fixed the action link's hit target from opposite ends. layoutguard's
+  L9 measured it at 90.4x24 and 157.6x24 against the operator's 28px floor; briefdata's law-2 run
+  found the same box at 375 and 1280 and gave it `inline-flex` with `minHeight: 24`. ONE box now,
+  taking the stricter of the two floors (`minHeight: 28`, `padding: 8px 0`, horizontal padding 0 so
+  the link stays flush with the strip's right edge as README 0.4 draws it), declared once for both
+  element types.
+- `DashboardBrief.tsx` (four lanes): cardrule's per-card `dataAudit` hooks, listrow's F2 overflow
+  control, briefdata's card-state model and window label, and layoutguard's PageFrame adoption all
+  survive. The one thing NOT kept is cardrule's local `Card` wrapper, for the reason above.
+- `data.ts` / `supabase-server.ts`: `briefResources` and `dueNext` are both fields on the payload
+  and both on the failure factory; only the due-next READ was deduplicated.
+- **No file was reported BINARY.** Checked first, as train 59 taught: zero NUL bytes under `src/`
+  and `.discipline/`, zero source files git treats as binary anywhere in this fold's diff.
+
+**The fold's own defects, and their class.** Every one was invisible to the lane that owned it and
+visible only with all seven in one tree.
+
+1. **A hand-typed card shell on /admin (product).** F42 failed on the source registry card: lane
+   adminlayout built it the same day lane cardrule made the card a component, so it typed the five
+   declarations itself, on `--surface`/`--color-border` rather than the card tokens, and shipped
+   with NO box-shadow, which is operator item A3 exactly. It renders `SectionCard` now. The Tier
+   definitions overlay in the same module takes a `fitness-allow: F42` marker with its reason, the
+   convention the two other undesigned overlays already carry. Fitness 36/36, 0 violations.
+2. **A card head that overflowed its card at 1024 (product).** [CONFIRMED, measured in chromium:
+   clientWidth 674, scrollWidth 740, +66px] The band between 768 and 1279 had no rule at all in
+   `SectionHeading`, and it is the band where the content column is NARROWEST on a desktop, because
+   below 1280 the rail stacks (674px against 778px at 1440). Lane briefdata's window label states
+   the span the SELECTED ROWS cover, which is longer than the fixed "week of <date>" it replaced,
+   and lane layoutguard brought the L3 rule that measures it. The aside wraps below 1280 now; the
+   Anton title keeps `nowrap` at every width.
+3. **A mobile rule that had never applied (product, found while fixing 2).** The same aside sets
+   `white-space: nowrap` as an INLINE style, which beats any stylesheet rule without `!important`.
+   MOBILE-60's own 390 wrap rule for this element therefore never applied, at any width, since the
+   day it landed. Measured before and after: the aside computed `nowrap` at 390 and at 1024, and
+   computes `normal` at both now.
+4. **L1's rule 4 was vacuous on every route that adopted the shared frame (harness).** The check
+   read `frameEl.children[0]` and asked whether its computed `width` was "not auto". `PageFrame`
+   renders a `<style>` element as its first child, so on every adopting route the check measured a
+   `display:none` element and passed; and getComputedStyle().width returns the USED width in px for
+   every rendered box, so the one route whose first child was a real box (/admin, whose style block
+   sits outside the frame) failed on a value every route has. It now skips non-rendered children and
+   full-span bands (`grid-column: 1 / -1`, the /admin masthead) and asserts what the rule says: the
+   content column's box EQUALS the frame's content track. Rule 15's own failure mode, in the guard
+   that shipped to enforce rule 15.
+5. **L6 read the wrapper, not the rule (harness).** In `SectionCard`'s padded layout the rule is
+   carried by an absolutely positioned wrapper at the card's top edge, so the collector found a 3px
+   box with a TRANSPARENT background and reported "top rule background rgba(0, 0, 0, 0)" against
+   cards whose rule is drawn correctly. It descends to the element that actually paints now. This
+   alone dissolved 62 findings across the four detail surfaces and /admin, every one a false
+   positive created by the two lanes meeting.
+6. **Two guards, one operator ruling (harness).** Lane railfacets put the desktop facet row at the
+   artboard's 24px (operator item C1) and carried a dated, component-scoped exemption for the
+   rendering guard's law-2 floor. The site-wide layout guard's L9 is a SECOND floor over the same
+   element (44 long, 28 short) and fired 100 times on it. Both guards read the SAME entry now, so
+   the exemption cannot expire in one and live in the other, and it still covers only that target,
+   only at or above 768px, only until wave 70. Proven by attack: at 390, for any other control, for
+   a name that merely begins the same way, and past the expiry wave, the finding returns.
+7. **Seven R7 cards the guard could not read (docs).** L10's designed escape is a dated deviation
+   entry, which `manifests.mjs` parses out of the DEVIATION-LOG's own five-column rows. The cards
+   are /settings' SAVED SEARCHES, DATA SUMMARY, UPLOAD OPERATIONAL DATA CSV, SUPERSESSION HISTORY
+   and ARCHIVE and /community's VERTICAL GROUPS and GLOBAL REGION, all R7 placements trains 60 and
+   61 recorded IN PROSE. They became blocking findings at this fold for a reason worth stating: lane
+   cardrule moved every card onto one shell, so cards the guard could not previously SEE as cards
+   now identify themselves. The rule did not change and the pages did not change; the guard's
+   eyesight did, which is what a shared part is supposed to produce.
+
+**The layout-guard baseline, and what moved in it.** The lane landed 783 findings under a dated
+baseline expiring at wave 65. Over the folded tree the guard measures 792, and the movement is
+stated rather than absorbed: 71 keys dropped (the 62 false L6 rule readings above, plus /admin's L1
+pair and four /admin L2/L9 findings that the frame and card fixes closed) and 83 appeared, every one
+of them a /settings or /profile L2 overlap the baseline ALREADY carried under a different element
+name, because the R7 regions those pairs involve are now real cards and the collector names the card
+rather than the link inside it. [HYPOTHESIS, and labelled: I could not confirm a user-visible
+collision for that class. The two boxes intersect in the layout, but the region renders cleanly in a
+full-height capture at 1024, and both boxes sit below the document height the mount produces.] It
+stays where lane layoutguard put it, with the owner the routing table already names
+(`SettingsPage.tsx`) and the same wave-65 due date. **Blocking findings: 0.**
+
+**Gates** (this container; the coordinator lands). Every figure re-run over the FINAL tree.
+
+- `tsc --noEmit` **clean**
+- fitness runner **36/36, 0 violations** (F42 included, red-then-green on the /admin card)
+- rendering guard **PASS**: 14 fixtures at 12 viewports, 549 checks; 9 SM smoke specs, 113 checks;
+  12 UX smoke specs, 232 checks; **layout-guard slot 36 route x width measurements, 0 findings**
+  (792 covered by the dated baseline, 4 law-2 desktop exemptions printed in full)
+- design audit **71 specs, 2343 checks, 2343 MATCH, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC**
+- overflow sweep **1440: 51 page mounts, 0px horizontal page overflow, 0 clipped runs**
+- overflow sweep **390: 18 page mounts, 0px horizontal page overflow, 0 clipped runs** (34
+  component mounts reported pinned)
+- CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) **1045/1045 PASS**
+- `node --test` over the rendering, rendering/audit and rules globs **157/157 PASS**
+- `run-test-suite.sh` **5997 tests, 5992 pass, 0 fail, 5 skipped, exit 0**
+- closure-gate **PASS on all four checks**; `override-check` **exit 0, no drift**; consistency
+  tests **12/12**
+- `invariant-coverage.mjs` **PASS**, 122 invariants + 63 doctrines wired
+- `next build --webpack` **exit 0** with no `.env.local`
+- mount/spec bijection **52 mounts, 50 named by a design spec, 2 named by the layout guard's own
+  routes.mjs, 0 named by nothing, 0 readers naming a mount that does not exist**
+
+**One spec updated, not weakened.** compose-01's "Due next renders a NON-ZERO row count" expected 2
+and measures 3. Lane duenext wrote it against its own pool; lane briefdata's by-id backfill is part
+of the SAME corpus now, and its third future-dated fixture item reaches the card. The row keeps an
+exact count and still fails on any drop toward zero, and now also fails if either lane's read is
+silently lost.
+
+**The visual pass.** Every side-by-side was regenerated from the folded code and read beside its
+artboard. It found one harness defect of its own: `capture-compose-dashboard.mjs` still shoots the
+`page-frame-1440` mount, which renders DashboardBrief AND a regulation detail with raw globals.css,
+so artboard 01's composite carried an unstyled nav card and the MOBILE top bar at 1440 (train 59's
+own compiled-CSS class, on the one page nobody re-shot since). Artboard 01 is captured from lane
+layoutguard's `compose-01-dashboard` mount now, which is the real AppShell frame with the compiled
+stylesheet, and the composite shows the product.
+
+**The six /market shared-part items the operator listed, each with its measurement.**
+
+1. **The card top rule: CLOSED.** Every card on /market carries the 3px rule at its top edge, and
+   the audit asserts the EXACT gradient rather than a 3px presence:
+   `linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))`,
+   height 3px, count 1, on Headline series, Carbon cost per FEU, Next data drops and Legend. The
+   CLASS CLOSURE forbid (a card element that renders no 3px rule) is absent on /market and on four
+   other pages.
+2. **The literal PENDING in the date column: CLOSED.** The DUE cell renders the real date and its
+   day count ("Sep 14, 2026 / 6 days"). The row's one reason word sits on the title cell's meta
+   line, 10.5px/600 #7A6E6C uppercase, count 1, which is the operator's own B3/B4 placement, and
+   D-M4's "no list row carries more than one absence token" is absent on /market.
+3. **The bordered circle overflow control: CLOSED.** The 44px hit target has border-width 0,
+   border-radius 0 and a transparent background; the glyph inside it is the artboard's bare 28px
+   box, #7A6E6C, radius 6px, text U+22EF. The forbid "the overflow control is never a bordered
+   circle again" is absent.
+4. **The bordered kind chip: CLOSED.** 9.5px/700, letter-spacing 0.06em, uppercase, radius 3px,
+   padding 2px/6px, fill #F5F2EE on #1A1A1A, and all FOUR border widths measured 0px.
+5. **The band-block header phrasing: CLOSED.** A2's measures are asserted on the shared
+   `BandSectionHeader` (label 11px/800/.08em uppercase in the band colour, 7px dot, 11px muted
+   window) and /market renders that shared part: "IMMEDIATE / <= 90 days ... showing 5 of 8".
+6. **The row height: CLOSED.** `min-height: 56px`, grid `3px 56px * 88px 84px 76px 40px 44px`,
+   column-gap 14px, row-gap 0, padding-left 0, on the shared row and on the dashboard's two tables.
+
+**What still differs from the artboard, per page, after this fold.** Only the deltas this fold
+changed are restated; everything else stands as postscript 17 left it.
+
+- **01 Dashboard**: the composite is the real frame now. Due next carries THREE rows with real
+  impact meters, dates, timelines and tier chips, and its aside names the widened window out loud
+  ("BY NEXT BINDING DATE - WEEK OF SEP 7, REACHING TO MAR 15, 2027"). What changed carries a FULL
+  row where it used to carry the Absence convention in four cells: the by-id backfill working, which
+  is lane briefdata's whole point. Still differs: the masthead is out of frame (this mount is the
+  brief alone), ACROSS THE PLATFORM reads 0 for four surfaces and the Watchlist rail card can shoot
+  before its Suspense promise resolves, both fixture.
+- **02 / 04 / 06 / 08 lists**: rail facet rows are the artboard's 24px at 1440 with the 44px touch
+  target intact at 390, and the six /market items above are closed on all four. Still differs as
+  postscript 17 recorded.
+- **13 Admin**: the frame is the shared one, the tier card strip is gone with its legend in the
+  registry card's header and its counts in the source table's facets, the registry card now carries
+  the rule and the shadow it shipped without, and the two state-note strips sit where the operator
+  put them. Still differs: READ-ONLY CONTROLS has Refresh but not Export queue (no queue-export
+  function exists anywhere); "Pipeline - last full extraction run PENDING" where the artboard reads
+  a time and a count, which is the fixture.
+- **11 Watchlist / 12 Community / 14 Account / 15 Settings / 10 Map / details**: unchanged by this
+  fold beyond the shared card and row, both of which they render through; recaptured and read.
+
+**UX compliance**: this fold touched `.tsx`/`.ts` under `fsi-app/src` beyond the lanes' own work in
+five places, every one a containment, a dedup or a count fix with no new interactive element:
+`ui/SectionCard.tsx` (the survivor, plus `data-guard-card`), `ui/StateNote.tsx` (ONE action target
+box at the stricter of two floors), `ui/SectionHeading.tsx` (the aside wraps below 1280; the title
+does not), `sources/SourceHealthDashboard.tsx` and `sources/SourceTierLegend.tsx` (the shared card,
+and one marked overlay), plus `dashboard/DashboardBrief.tsx`, `app/page.tsx`, `lib/data.ts` and
+`lib/supabase-server.ts` for the due-next dedup, which is data-path only. No new interactive element
+is introduced anywhere; every 44px minimum the lanes set is preserved and the StateNote action's
+target grew from 24px to 28px. The rendering guard passes at every viewport including 375.
+
 2026-09-08, lane ci62: rotated DASHBOARD_DATA_CACHE_KEY from `app-data-7b3d90e4` to `app-data-e1ae7713`, the hash rule 021 computes on this tree, because this train changed the DashboardData payload shape (briefdata rows, the due-next read, and the reconciled complianceDeadline field) and the unstable_cache key must rotate so no old-shape cross-deployment entry can reach the new code.
