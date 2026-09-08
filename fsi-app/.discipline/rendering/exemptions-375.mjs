@@ -32,6 +32,16 @@
 // should be invented." — this entry's `reason` reflects that ruling verbatim; it is not a
 // coordinator extension pending confirmation any more.
 //
+// MOBILE-60 (2026-09-08), measured, not assumed. `latestTrainWave()` now reads 58, so
+// `activeExemptions()` returns EMPTY: the one remaining entry no longer applies, and the rendering
+// guard was run this lane with it inactive and PASSED — /map clears the 375 checks on its own, with
+// nothing suppressed. The entry is kept rather than deleted because it is the record of the
+// operator's ruling and of the wave it expired at (deleting it would erase both), and because the
+// mechanism around it is live: a future page that needs a dated per-page exemption adds it here.
+// The five list pages' entries are already gone (FOLD-56 + lane moblist); this lane's own 390 specs
+// are the standing measurement that keeps them from coming back, per the operator's condition
+// ("it fails again the moment the 390 artboards land and are not implemented").
+//
 // `fixturePrefix` is the label prefix run-rendering-guard.mjs's failure strings actually carry
 // today (UX_SMOKE_SPECS registry names / runUxSpec `spec.name` values) — confirmed by running the
 // guard and reading its own failure output verbatim, not guessed from the page route.

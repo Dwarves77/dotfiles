@@ -266,7 +266,7 @@ export function ReportPostMenu({
                 rows={4}
                 maxLength={2000}
                 disabled={busy}
-                placeholder="Add context for the moderator (max 2000 characters)."
+                placeholder="Add context for the moderator (max 2,000 characters)."
                 style={{
                   fontSize: 13,
                   padding: "8px 10px",

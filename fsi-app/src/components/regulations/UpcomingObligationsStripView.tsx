@@ -23,6 +23,7 @@ import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { itemDetailHref } from "@/lib/item-links";
+import { formatNumber } from "@/lib/format";
 
 export const KIND_LABELS: Record<string, string> = {
   entry_into_force: "Entry into force",
@@ -70,7 +71,11 @@ export function UpcomingObligationsStripView({ variant, events, hasJurisdictionF
   return (
     <section style={stripWrapStyle}>
       <Header count={events.length} />
-      <div data-guard-strip style={{ display: "flex", gap: 12, overflowX: "auto", paddingBottom: 4 }}>
+      {/* DEFECT 6 (lane opsclip, train 61): the strip cut its fifth card mid-word at the
+          container edge with no fade, no visible scrollbar and no other affordance, so the cut
+          read as broken rather than as "more to the right". `.cl-scroll-shadow` (globals.css) is
+          the shared definition of that affordance, the same one the operations matrix uses. */}
+      <div data-guard-strip className="cl-scroll-shadow" style={{ display: "flex", gap: 12, paddingBottom: 4 }}>
         {events.map((ev) => (
           <EventCard key={ev.id} ev={ev} />
         ))}
@@ -158,7 +163,7 @@ function Header({ count }: { count?: number }) {
       </h2>
       {typeof count === "number" && (
         <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
-          {count} {count === 1 ? "event" : "events"}
+          {formatNumber(count)} {count === 1 ? "event" : "events"}
         </span>
       )}
     </div>

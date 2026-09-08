@@ -16,13 +16,14 @@ import { Suspense, useMemo } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { formatNumber, formatLocaleDate } from "@/lib/format";
+import { countNoun, formatNumber, formatLocaleDate } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
@@ -31,7 +32,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
-import { BAND_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
+import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
 
 
 function Card({ children }: { children: ReactNode }) {
@@ -65,6 +66,15 @@ export interface DashboardBriefProps {
    *  capped at CHANGED_CAP. */
   totalChanges: number;
   aggregates: WorkspaceAggregates;
+  /** COUNTS-61 (production defect, click-through audit 2026-09-08): the band tiles' OWN counts,
+   *  which must be the counts of the surface each tile NAVIGATES TO. Every tile's href is
+   *  `/regulations?band=<key>`, so this is `getPublicSurfaceCounts("regulations")` — the identical
+   *  call /regulations makes for its identical four tiles. Before this prop they read
+   *  `aggregates.byPriority`, a workspace-wide tally across all five surfaces, so the Monitor tile
+   *  said 1,135 here and 1,119 one click later on the page it opened; Action said 32 against 14.
+   *  `aggregates` stays for the figures that really are workspace-wide (the masthead's item count
+   *  and the platform rail), which say so in their own labels. */
+  bandCounts: WorkspaceAggregates;
   auditDate: string;
   /** Server render instant (src/lib/render-now.ts). */
   nowIso?: string;
@@ -78,6 +88,10 @@ export interface DashboardBriefProps {
    *  such banner (per-page RULES OF THE BUILD: no page-local ask/alert
    *  panel outside the shared parts). */
   fetchError?: string;
+  /** Additive extension (lane rsc503, 2026-09-08): the reason clause from
+   *  `describeFallbackTrigger(data._fallbackTrigger)`, rendered under the sentinel inside the
+   *  SAME StateNote. Undefined renders exactly what this card rendered before. */
+  fetchErrorReason?: string;
 }
 
 export function DashboardBrief({
@@ -85,12 +99,14 @@ export function DashboardBrief({
   changedRows,
   totalChanges,
   aggregates,
+  bandCounts,
   auditDate,
   nowIso,
   surfaceCoverage,
   watchlistPromise,
   loadingCounts,
   fetchError,
+  fetchErrorReason,
 }: DashboardBriefProps) {
   // HYDRATION-59 [CONFIRMED root cause of this route's React #418]: this label was
   // `formatLocaleDate(new Date(), { month: "short", day: "numeric" })` — a client component
@@ -103,29 +119,42 @@ export function DashboardBrief({
     () => formatLocaleDate(nowFrom(nowIso), { month: "short", day: "numeric", timeZone: "UTC" }),
     [nowIso],
   );
-  const immediateTotal = aggregates.byPriority.CRITICAL ?? 0;
-  const actionTotal = aggregates.byPriority.HIGH ?? 0;
-  const monitorTotal = aggregates.byPriority.MODERATE ?? 0;
+  const immediateTotal = bandCounts.byPriority.CRITICAL ?? 0;
+  const actionTotal = bandCounts.byPriority.HIGH ?? 0;
+  const monitorTotal = bandCounts.byPriority.MODERATE ?? 0;
 
   return (
     // Content column top padding is 20px (README §0.3), matching operator ruling 4.2's nav-card
     // margin-top (fix58-tokens, 2026-09-07, page-frame.json B171) so the two align.
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
       <style>{`
+        /* MOBILE-60 (2026-09-08) [CONFIRMED root cause, measured at 390 by
+           .discipline/rendering/audit/spec/mobile-01-dashboard.json]: this override
+           used to read "grid-template-columns: 1fr", dropping the minmax(0, ...)
+           floor the inline desktop value above carries. A bare 1fr is
+           minmax(auto, 1fr), and the auto MINIMUM is the item's min-content width,
+           so at 390 the single content track grew to 539px (the widest unbreakable
+           thing inside it) and the whole brief, band tiles included, ran 165px past
+           the viewport, clipped by the shell's own overflow. minmax(0, 1fr) restores
+           the floor: the track is exactly the container's width and every
+           minWidth:0 child below it can shrink. Same track as the desktop value, so
+           the >=1280 layout is unchanged. */
         @media (max-width: 1280px) {
-          .cl-brief-outer { grid-template-columns: 1fr !important; }
+          .cl-brief-outer { grid-template-columns: minmax(0, 1fr) !important; }
         }
         /* Mobile spec (BAND TILES, BREAKPOINTS): below 768 (theme.css's
            documented --bp-mobile) — one column, 2x2 band tiles, gap 10px,
            container padding 14px 16px 16px. */
         @media (max-width: 767px) {
+          /* The .cl-band-tiles 2x2 rule that used to sit here moved to BandTile.tsx
+             (MOBILE-60, 2026-09-08): the list surfaces render the same row and were
+             missing it, and CLAUDE.md rule 13 forbids the second copy. */
           .cl-brief-outer { padding: 14px 16px 16px !important; }
-          .cl-band-tiles { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }} className="cl-brief-grid">
         {/* Band tiles */}
-        <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        <BandTileRow>
           {BAND_ORDER.map((band) =>
             loadingCounts ? (
               <SkeletonBandTile key={band.key} />
@@ -140,12 +169,12 @@ export function DashboardBrief({
               <BandTile
                 key={band.key}
                 band={band}
-                count={aggregates.byPriority[band.priority] ?? 0}
+                count={bandCounts.byPriority[band.priority] ?? 0}
                 href={`/regulations?${BAND_FACET_PARAM}=${band.key}`}
               />
             ),
           )}
-        </div>
+        </BandTileRow>
 
         {/* Due next */}
         <section>
@@ -178,37 +207,30 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
-                  left={
-                    // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
-                    // nothing). Navigates to /regulations with the Immediate band facet applied,
-                    // via the same `?band=` contract RegulationsLedger now reads (see
-                    // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
-                    // inline expansion of the Immediate band built here on the dashboard.
-                    <Link
-                      href={`/regulations?${BAND_FACET_PARAM}=immediate`}
-                      style={{
-                        color: "inherit",
-                        textDecoration: "underline",
-                        textUnderlineOffset: 2,
-                        display: "inline-block",
-                        // Law-2's 24px-with-8px-clearance floor: the surrounding Card clips
-                        // overflow, so a negative-margin hit-area trick would be clipped along
-                        // with it — real padding instead, which grows the footer row itself by a
-                        // few px (not specified either way by the artboard; logged in
-                        // DEVIATION-LOG.md).
-                        padding: "8px 0",
-                      }}
-                    >
-                      All {formatNumber(immediateTotal)} immediate
-                    </Link>
-                  }
+                  // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
+                  // nothing). Navigates to /regulations with the Immediate band facet applied,
+                  // via the same `?band=` contract RegulationsLedger reads (see
+                  // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam), no second,
+                  // inline expansion of the Immediate band built here on the dashboard.
+                  // Lane opsclip (train 61, defect 5): the anchor and its law-2 padding moved into
+                  // CardFoot's own `leftHref`, so the sibling foot below cannot be built without
+                  // them again.
+                  left={<>All {formatNumber(immediateTotal)} immediate</>}
+                  leftHref={`/regulations?${BAND_FACET_PARAM}=immediate`}
                   right={<>then {formatNumber(actionTotal)} action · {formatNumber(monitorTotal)} monitor</>}
                 />
               </>
             )}
             {fetchError && (
               <div style={{ padding: 12 }}>
-                <StateNote>{fetchError}</StateNote>
+                <StateNote>
+                  {fetchError}
+                  {fetchErrorReason && (
+                    <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>
+                      {fetchErrorReason}
+                    </span>
+                  )}
+                </StateNote>
               </div>
             )}
           </Card>
@@ -253,7 +275,14 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
+                  // DEFECT 5 (lane opsclip, train 61, 2026-09-08): this shipped as a bare <span>
+                  // while its counterpart on the Due Next card above was an anchor, and the
+                  // artboard draws both as links. "The changes" is the regulations list ordered
+                  // newest-first, so it links to that ordering through the `?sort=` contract added
+                  // beside `?band=` in list-surface-helpers.ts, a real target, not a link to an
+                  // unordered list that happens to navigate.
                   left={<>All {formatNumber(totalChanges)} changes in the last 7 days</>}
+                  leftHref={`/regulations?${SORT_FACET_PARAM}=newest`}
                   right="old band → new band · NEW = first seen this pass"
                 />
               </>
@@ -282,7 +311,7 @@ export function DashboardBrief({
                   <RailStat label="Market" note="Price series, corporate moves, capital" value={surfaceCoverage.intelligence.marketIntel} href="/market" />
                   <RailStat label="Research" note="Horizon-scan findings" value={surfaceCoverage.intelligence.research} href="/research" />
                   <RailStat label="Operations" note="Regional cost, feasibility, infrastructure" value={surfaceCoverage.intelligence.operations} href="/operations" />
-                  <RailStat label="Community" note={`${surfaceCoverage.community.activeGroups} regional rooms`} value={surfaceCoverage.community.activeGroups} href="/community" />
+                  <RailStat label="Community" note={countNoun(surfaceCoverage.community.regionalRooms, "regional room")} value={surfaceCoverage.community.regionalRooms} href="/community" />
                 </>
               )}
             </div>

@@ -13,6 +13,7 @@
  */
 
 import { useMemo } from "react";
+import { memberDisplayName } from "@/lib/admin/member-display-name";
 import { formatLocaleDate } from "@/lib/format";
 
 type OrgRow = {
@@ -29,6 +30,10 @@ type MemberRow = {
   user_id: string | null;
   role: string | null;
   created_at: string | null;
+  /** COUNTS-61 (2026-09-08): the joined profile the /admin page already selects
+   *  (`user:profiles!user_id(full_name, display_name, email, avatar_url)`). This component ignored
+   *  it and printed a sliced `user_id` instead, which is how a raw UUID fragment reached the user. */
+  user?: { full_name?: string | null; display_name?: string | null; email?: string | null } | null;
 };
 
 export interface WorkspacesUsageRowProps {
@@ -119,9 +124,11 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
         day: "numeric",
       })
     : null;
+  // COUNTS-61: the shared display chain (src/lib/admin/member-display-name.ts), the same one
+  // MembersPanel uses. A member with no name, display name or email renders the absence, never a
+  // UUID fragment the reader cannot act on.
   const newestSub = derived.newest
-    ? `${(derived.newest.user_id || "").slice(0, 8)}${derived.newest.user_id ? "…" : ""}${derived.newest.role ? ` · ${derived.newest.role}` : ""}`.trim() ||
-      "membership"
+    ? [memberDisplayName(derived.newest), derived.newest.role].filter(Boolean).join(" · ")
     : "no joins yet";
 
   // dc.html p13's rail card: one bordered card, 2x2 inside, 26px figures, no

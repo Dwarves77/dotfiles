@@ -431,7 +431,7 @@ function Header({ total, shown }: { total: number; shown?: number }) {
     <div style={{ display: "flex", alignItems: "baseline", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
       <h2 data-guard-title style={headingStyle}>Obligation register</h2>
       <span style={{ fontSize: 11.5, color: "var(--color-text-muted, #7A6E6C)" }}>
-        {typeof shown === "number" && shown !== total ? `${shown} of ${total}` : `${total}`}{" "}
+        {typeof shown === "number" && shown !== total ? `${formatNumber(shown)} of ${formatNumber(total)}` : formatNumber(total)}{" "}
         {total === 1 ? "obligation" : "obligations"}
       </span>
     </div>

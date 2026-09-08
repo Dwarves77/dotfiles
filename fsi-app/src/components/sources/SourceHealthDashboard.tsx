@@ -333,9 +333,13 @@ export interface SourceHealthDashboardProps {
    * head (dc.html p13 draws it inside that card). Lane admin60, 2026-09-08.
    */
   headTabs?: React.ReactNode;
+  /** The provisional queue's own total, from `admin_attention_counts()` (FOLD-61). Forwarded to
+   *  the card head so it and the Sources tab badge beside it name the SAME queue; optional, and
+   *  omitted the head names the rows it holds, exactly as before. */
+  pendingTotal?: number | null;
 }
 
-export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, headTabs }: SourceHealthDashboardProps = {}) {
+export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, headTabs, pendingTotal = null }: SourceHealthDashboardProps = {}) {
   const { sources, provisionalSources, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
 
   // Optimistically remove a provisional row from the list after a successful
@@ -379,6 +383,7 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
         stagedUpdatesCount={stagedUpdatesCount}
         onOpenQueue={onOpenQueue}
         headTabs={headTabs}
+        pendingTotal={pendingTotal}
       />
     );
   }

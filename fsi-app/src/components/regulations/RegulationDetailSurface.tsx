@@ -36,6 +36,7 @@
  */
 
 import { useMemo, useState } from "react";
+import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { FactCard } from "@/components/ui/FactCard";
@@ -162,7 +163,10 @@ export function RegulationDetailSurface({
       ? [JURISDICTIONS.find((j) => j.id === r.jurisdiction)?.label || r.jurisdiction]
       : ["Global"];
   const jurisLabel = jurisdictionLabels.join(" · ");
-  const meta = [groupLabel || jurisLabel, deck].filter(Boolean).join(" · ");
+  // COUNTS-61: same class as the market sub-line — `groupLabel` is "<jurisdiction> · <publisher>"
+  // and `deck` repeats both the publisher and the jurisdiction, because regulations/[slug]/page.tsx
+  // builds them from the same two fields. joinMetaSegments keeps the first occurrence of each.
+  const meta = joinMetaSegments([groupLabel || jurisLabel, ...splitMetaSegments(deck)]);
 
   const isRecord = r.itemGrade === "record";
   const [depth, setDepth] = useState<SummaryDepth>("summary");

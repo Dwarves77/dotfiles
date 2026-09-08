@@ -66,6 +66,13 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
           the smaller side padding). */}
       <style>{`
         @media (max-width: 767px) {
+          /* MOBILE-60 (2026-09-08): the 2x2 tile GRID lives here, beside the tile's own
+             mobile measures, because the mobile 390 spec states it once ("2x2 grid, gap
+             10px") and two callers render it — DashboardBrief and ListSurfaceShell. It
+             was previously declared only in DashboardBrief, so the five list surfaces
+             rendered four 67px tiles across at 390. minmax(0, 1fr), not a bare 1fr, so
+             a long band label cannot widen the track past the viewport. */
+          .cl-band-tiles { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
           .cl-band-tile { padding: 12px 14px 0 !important; }
           .cl-band-tile .cl-band-tile-label { font-size: 10px !important; letter-spacing: 0.06em !important; }
           .cl-band-tile .cl-band-tile-window { font-size: 10px !important; }
@@ -142,7 +149,7 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
 }
 
 export function BandTile({ band, count, loading, selected, onSelect, href }: BandTileProps) {
-  const label = `${band.label} — ${band.window}${count != null ? `, ${count} items` : ""}`;
+  const label = `${band.label} — ${band.window}${count != null ? `, ${formatNumber(count)} items` : ""}`;
   const body = <BandTileBody band={band} count={count} loading={loading} />;
   const boxStyle = tileBoxStyle(selected, Boolean(onSelect || href));
 

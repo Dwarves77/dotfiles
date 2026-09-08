@@ -23,6 +23,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
@@ -269,13 +270,10 @@ export function AdminDashboard({
     setScanning(true);
     setScanResult(null);
     try {
-      const supabaseClient = createSupabaseBrowserClient();
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      const resp = await fetch("/api/admin/scan", {
+      const resp = await authedFetch("/api/admin/scan", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ topic: scanTopic, jurisdiction: scanJurisdiction }),
       });
@@ -362,7 +360,6 @@ export function AdminDashboard({
   // The provisional card is the Sources body for exactly these two sub-tabs
   // (the same condition the setActiveView effect above uses).
   const tabsInCardHead = section === "Sources" && (sub === "Provisional review" || sub === "Spot-check");
-
 
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-background)" }}>
@@ -557,6 +554,10 @@ export function AdminDashboard({
           )}
           <SourceHealthDashboard
             headTabs={tabsInCardHead ? subNav("card-head") : undefined}
+            // FOLD-61: the same `provisional_sources_pending` this page already puts in the
+            // Sources tab badge and the issues-queue row, so the card head under those two cannot
+            // name a different number for the same queue (COUNTS-61's defect class, third site).
+            pendingTotal={provisionalCount}
             stagedUpdatesCount={stagedUpdates.length}
             onOpenQueue={() => {
               setSection("Ingest");

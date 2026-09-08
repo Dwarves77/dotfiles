@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Send, X, Loader2, Bot, ChevronDown, ChevronRight } from "lucide-react";
 import { tierLabelOf } from "@/lib/tier-labels";
@@ -274,11 +274,9 @@ export function AskAssistant() {
     setLoading(true);
 
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const token = session?.access_token;
+      const headers = await authHeaders({ "Content-Type": "application/json" });
 
-      if (!token) {
+      if (!headers) {
         setMessages((prev) => [...prev, { role: "assistant", content: "Please sign in to use the AI assistant." }]);
         setLoading(false);
         return;
@@ -286,10 +284,7 @@ export function AskAssistant() {
 
       const resp = await fetch("/api/ask", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers,
         body: JSON.stringify({
           question,
           sectorProfile,

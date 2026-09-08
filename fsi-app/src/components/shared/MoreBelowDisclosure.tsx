@@ -18,6 +18,7 @@
  */
 
 import type { ReactNode } from "react";
+import { formatNumber } from "@/lib/format";
 
 export function MoreBelowDisclosure({
   count,
@@ -48,7 +49,7 @@ export function MoreBelowDisclosure({
           color: "var(--color-primary, #1a5fb4)",
         }}
       >
-        {count} {itemNoun} below
+        {formatNumber(count)} {itemNoun} below
       </summary>
       <div style={{ marginTop: 8 }}>{children}</div>
     </details>

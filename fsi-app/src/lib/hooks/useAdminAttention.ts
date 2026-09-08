@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 
@@ -95,11 +95,8 @@ async function performFetch(): Promise<void> {
   publish();
   const promise = (async () => {
     try {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      if (!session?.access_token) {
+      const headers = await authHeaders();
+      if (!headers) {
         singleton.state = {
           counts: singleton.state.counts,
           loading: false,
@@ -110,7 +107,7 @@ async function performFetch(): Promise<void> {
       }
       const resp = await fetch("/api/admin/attention", {
         method: "GET",
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers,
         // Drop the no-store override so the browser HTTP cache honours
         // the route's `Cache-Control: private, max-age=30` (perf v2 —
         // 2026-05-08). Within the cache window, duplicate calls (from

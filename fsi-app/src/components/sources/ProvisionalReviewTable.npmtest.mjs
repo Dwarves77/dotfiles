@@ -40,9 +40,18 @@ test("rowTier prefers the operator's pick, then the recommendation, then the pro
 
 test("every action posts to the one real endpoint the review flow already owns", () => {
   assert.match(SOURCE, /"\/api\/admin\/sources\/promote"/);
-  // No invented endpoints: promote is the only fetch target in the file.
-  const fetches = SOURCE.match(/fetch\(\s*"([^"]+)"/g) ?? [];
+  // No invented endpoints: promote is the only fetch target in the file. The matcher is
+  // case-insensitive on the callee because lane TAGS-401 (2026-09-08) moved every guarded /api/
+  // call onto `authedFetch` from "@/lib/api/authed-fetch" — the invariant this test guards (ONE
+  // endpoint, and it is promote) is unchanged; only the callee's name is.
+  const fetches = SOURCE.match(/\b\w*[Ff]etch\(\s*"([^"]+)"/g) ?? [];
   assert.equal(fetches.length, 1, "expected exactly one fetch target");
+  assert.match(fetches[0], /\/api\/admin\/sources\/promote/);
+});
+
+test("that one call is authenticated (F40): a guarded admin route is never reached by a bare fetch", () => {
+  assert.match(SOURCE, /import \{ authedFetch \} from "@\/lib\/api\/authed-fetch";/);
+  assert.doesNotMatch(SOURCE, /`Bearer \$\{/);
 });
 
 test("approve sends assignedTier (F8 client/server tier boundary), the other decisions do not", () => {
@@ -56,7 +65,13 @@ test("re-tier is decision 'defer', which is what keeps the row provisional", () 
 
 test("artboard strings are verbatim", () => {
   assert.match(SOURCE, /Sources · provisional review/);
-  assert.match(SOURCE, /pending · approve, reject or re-tier on the row/);
+  // UPDATED AT FOLD-61: the artboard's tail is unchanged and still asserted verbatim; what moved
+  // is that the head now names the QUEUE and, when it is holding fewer rows than the queue has,
+  // declares the page between the two ("N pending · showing M · approve, reject or re-tier on the
+  // row"). The clause is optional in the source, so both halves are asserted separately.
+  assert.match(SOURCE, /\{formatNumber\(pendingTotal \?\? rows\.length\)\} pending/);
+  assert.match(SOURCE, /· showing \$\{formatNumber\(rows\.length\)\}/);
+  assert.match(SOURCE, /· approve, reject or re-tier on the row/);
   assert.match(
     SOURCE,
     /Approve = registry · Reject = archived with reason · Re-tier = stays provisional/

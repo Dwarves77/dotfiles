@@ -32,7 +32,7 @@ import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
@@ -47,11 +47,8 @@ import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
-  EMPTY_FILTER_STATE,
+  liveFacetCounts,
   WINDOW_OPTIONS,
-  bandFacetOptions,
-  modeFacetOptions,
-  regionFacetOptions,
   filterByWindow,
   filterRows,
   windowDays,
@@ -59,6 +56,7 @@ import {
   type ListSurfaceWindowKey,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
+import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 import {
   SEVERITY_LABELS,
   THEME_KEYS,
@@ -108,7 +106,9 @@ export interface ResearchLedgerProps {
 }
 
 export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, belowRows }: ResearchLedgerProps) {
-  const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
+  // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
+  // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
+  const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
   const [theme, setTheme] = useState<string | null>(null);
   const [windowKey, setWindowKey] = useState<ListSurfaceWindowKey>("all");
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -127,13 +127,25 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
     [beforeTheme, theme],
   );
 
-  const bandCounts = useMemo(() => {
-    const opts = bandFacetOptions(resources, aggregates.byPriority as unknown as Record<string, number>);
-    return Object.fromEntries(opts.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>;
-  }, [resources, aggregates.byPriority]);
+  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so the
+  // Filters card's own caption ("Counts are live for the current selection") is true here too. See
+  // liveFacetCounts in list-surface-helpers.ts for the two regimes and why they are what they are.
+  const counts = useMemo(
+    () =>
+      liveFacetCounts(resources, filter, {
+        byPriority: aggregates?.byPriority as unknown as Record<string, number> | undefined,
+        byJurisdiction: aggregates?.byJurisdiction,
+        totalItems: aggregates?.totalItems,
+      }),
+    [resources, filter, aggregates],
+  );
+  const bandCounts = useMemo(
+    () => Object.fromEntries(counts.band.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>,
+    [counts.band],
+  );
 
-  const modeOptions = useMemo(() => modeFacetOptions(resources), [resources]);
-  const regionOptions = useMemo(() => regionFacetOptions(resources, aggregates.byJurisdiction), [resources, aggregates.byJurisdiction]);
+  const modeOptions = counts.mode;
+  const regionOptions = counts.region;
 
   /** Theme cards (artboard 06/id="p6"): one card per theme PRESENT in the current selection, in
    *  THEME_KEYS order, each with its live count and how many of those arrived inside
@@ -160,8 +172,8 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
   }, [beforeTheme, nowIso]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
-    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
-    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
+    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFacet("mode", v) },
+    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFacet("region", v) },
   ];
 
   const themeFacetGroups: ListSurfaceFacetGroup[] = [
@@ -236,7 +248,10 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
     return Array.from(map.entries());
   }, [sourceCoverage]);
 
-  const total = aggregates.totalItems || resources.length;
+  // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
+  // current selection under a filter. It was the corpus total unconditionally, which is how a
+  // narrowed list came to sit under a header stating the whole corpus.
+  const total = counts.total;
   const shown = filtered.length;
   const themeLabelOf = (key: string) => (THEME_LABELS as Record<string, string>)[key] ?? key;
   const windowLabel = WINDOW_OPTIONS.find((o) => o.key === windowKey)?.label ?? "All";
@@ -259,7 +274,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
       title="Research"
       scopeLine={
         <>
-          <b style={{ color: "var(--ink)" }}>{total}</b> active findings · <b style={{ color: "var(--ink)" }}>{themeCards.length}</b>{" "}
+          <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active findings · <b style={{ color: "var(--ink)" }}>{themeCards.length}</b>{" "}
           themes · peer-reviewed journals, think tanks, quantified-climate research, analytical press
         </>
       }
@@ -268,10 +283,10 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
       itemCount={total}
       scope="research"
       searchPlaceholder={SEARCH_PLACEHOLDER}
-      onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
+      onSearch={(q) => setFacet("query", q)}
       bandCounts={bandCounts}
       selectedBand={filter.band}
-      onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
+      onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
       secondaryFacetGroups={themeFacetGroups}
       aboveRows={<ResearchThemeCards themes={themeCards} selected={theme} onSelect={setTheme} />}
@@ -280,7 +295,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
           countLabel={
             <>
               <b style={{ color: "var(--ink)" }}>
-                {shown} of {total}
+                {formatNumber(shown)} of {formatNumber(total)}
               </b>{" "}
               findings{theme ? ` · ${themeLabelOf(theme)}` : ""}
             </>
@@ -335,7 +350,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
               : `Nothing in the last ${windowDays(windowKey)} days`}
           </div>
           <div style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.45 }}>
-            0 of {total} findings match{theme ? ` ${themeLabelOf(theme)} · ` : " "}
+            0 of {formatNumber(total)} findings match{theme ? ` ${themeLabelOf(theme)} · ` : " "}
             {windowLabel}.{" "}
             {widerWindow && (
               <>
@@ -401,7 +416,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
                 {coverageBySource.map(([mode, count]) => (
                   <Fragment key={mode}>
                     <span style={{ color: "var(--ink)" }}>{mode}</span>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--ink)" }}>{count}</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--ink)" }}>{formatNumber(count)}</span>
                   </Fragment>
                 ))}
               </div>

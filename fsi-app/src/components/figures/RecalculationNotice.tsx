@@ -93,7 +93,9 @@ function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
 
 export function RecalculationNotice({
   notices,
-  emptyMessage = "No recalculations since your last visit.",
+  // COUNTS-61 (2026-09-08): see NoticesRail's own note — there is no last-visit instant behind this
+  // feed, so the default copy states the window rather than a visit the product does not record.
+  emptyMessage = "No recalculations in this window.",
   bare = false,
 }: RecalculationNoticeProps & {
   /** Additive extension (lane comp-11, 2026-09-08, dc.html p11's "Recalculation

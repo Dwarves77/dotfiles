@@ -77,6 +77,7 @@ function describeSupabaseError(error: {
 // internal callers AND re-export so existing `import { getServiceSupabase } from "@/lib/supabase-server"`
 // callers are unchanged. Fail-closed lives there (throws on missing key; never downgrades to anon).
 import { getServiceSupabase, isServiceSupabaseConfigured } from "./supabase-service";
+import { PROVISIONAL_REVIEW_STATUSES } from "@/lib/admin/provisional-review-queue";
 export { getServiceSupabase, isServiceSupabaseConfigured };
 
 // ── Fetch Functions ──────────────────────────────────────────
@@ -364,7 +365,11 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
   const { data: rows, error } = await supabase
     .from("provisional_sources")
     .select("*")
-    .in("status", ["pending_review", "needs_more_data"])
+    // COUNTS-61: the queue's population is named ONCE, in src/lib/admin/provisional-review-queue.ts,
+    // and migration 314's admin_attention_counts counts the same two statuses. Before that the RPC
+    // counted `pending_review` alone, so the badge said 489 over a table header reading "491 PENDING".
+    // fitness-allow: F39 (a bounded status vocabulary, not a corpus-scale id list)
+    .in("status", [...PROVISIONAL_REVIEW_STATUSES])
     .order("independent_citers", { ascending: false });
 
   if (error) {
@@ -416,8 +421,7 @@ export async function fetchSourceData(includeAdminOnly = false): Promise<SourceD
   try {
     const [sources, provisionalSources] = await withTimeout(
       Promise.all([fetchSources(includeAdminOnly), fetchProvisionalSources()]),
-      8000,
-      [[], []] as [Source[], ProvisionalSource[]]
+      8000
     );
     return { sources, provisionalSources };
   } catch (e) {
@@ -2234,12 +2238,71 @@ export interface DashboardData {
 export const SEED_FALLBACK_ERROR =
   "Data temporarily unavailable. Refresh to retry.";
 
-// Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel
-function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+/**
+ * The reason clause that sits under SEED_FALLBACK_ERROR on the surface that fell back.
+ *
+ * Lane rsc503 (2026-09-08): the production failure state said only "Data temporarily
+ * unavailable. Refresh to retry.": no reason, and (until this lane's cache fix) no refresh
+ * that could ever retry, because the refresh was answered from the poisoned cache entry. A
+ * state note that names nothing and resolves to nothing is the Absence convention misused.
+ * With the cache fix the retry is real; this names what the reader is retrying past.
+ *
+ * One map, read by every surface, keyed on the SAME `_fallbackTrigger` the platform
+ * integrity_flag queue is keyed on, so what the reader is told and what the operator's queue
+ * records can never drift. `null_orgId` deliberately has no clause: it is an anonymous or
+ * no-membership render of a public page, ruled NOT a degradation (operator ruling 2026-07-13),
+ * and telling that reader the system failed would be false.
+ */
+export function describeFallbackTrigger(trigger?: SeedFallbackTrigger): string | undefined {
+  switch (trigger) {
+    case "timeout":
+      return "The intelligence read did not return within its time limit.";
+    case "rpc_error":
+      return "The intelligence read returned no rows.";
+    case "exception":
+      return "The intelligence read failed.";
+    case "supabase_not_configured":
+    case "service_role_missing":
+      return "The data service is not configured for this deployment.";
+    default:
+      return undefined;
+  }
+}
+
+/**
+ * Raised by `withTimeout` when a bounded read did not finish in time. Lane rsc503
+ * (2026-09-08): the wrapper used to RESOLVE with an empty fallback tuple instead, which
+ * meant every caller fell into its own `!resources.length` branch and reported the failure
+ * as `_fallbackTrigger: "rpc_error"`. A timeout is not an RPC error, and the admin
+ * platform-flags queue that reads the trigger was being told the wrong thing about every
+ * one of them, which is also why the `"timeout"` member of SeedFallbackTrigger had no
+ * writer anywhere in the codebase.
+ */
+export class ReadTimeoutError extends Error {
+  constructor(ms: number) {
+    super(`Supabase read exceeded ${ms}ms`);
+    this.name = "ReadTimeoutError";
+  }
+}
+
+/** True for the rejection `withTimeout` raises, so a caller can name the real trigger. */
+export function isReadTimeout(e: unknown): boolean {
+  return e instanceof ReadTimeoutError;
+}
+
+// Timeout wrapper. Prevents Supabase from hanging indefinitely on Vercel. Rejects with
+// ReadTimeoutError; every caller below already has a catch that returns the same empty +
+// `_error` payload it used to build from the fallback tuple, now with the right trigger.
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
   return Promise.race([
     promise,
-    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
-  ]);
+    new Promise<T>((_, reject) => {
+      timer = setTimeout(() => reject(new ReadTimeoutError(ms)), ms);
+    }),
+  ]).finally(() => {
+    if (timer !== undefined) clearTimeout(timer);
+  });
 }
 
 export async function fetchDashboardData(orgId: string | null): Promise<DashboardData> {
@@ -2308,20 +2371,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
         // after it (PERF-5).
         fetchWorkspaceOverrideRowsRaw(orgId),
       ]),
-      8000, // 8 second timeout
-      // Wave-α A2 (2026-07-11): the timeout fallback previously served the
-      // STATIC SEED tuple — non-empty seedResources skipped the
-      // `!resources.length` sentinel branch below and the dashboard rendered
-      // March seed content as live (P1 finding 7, CODE-3 F-01). Now the
-      // timeout lands in the same empty + `_error` path as every sibling
-      // fetcher (fetchMapData, fetchListingsMapData, fetchSettingsData).
-      [
-        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
-        {} as Record<string, ChangeLogEntry[]>,
-        {} as Record<string, Dispute>,
-        [] as Supersession[],
-        { rows: [], ownerNames: new Map<string, string>() } as OverrideRowsRaw,
-      ]
+      8000 // 8 second timeout
     );
 
     // If Supabase returned empty, treat as transient/data-layer issue
@@ -2453,7 +2503,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     };
   } catch (e) {
     console.error("fetchDashboardData failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2514,7 +2564,7 @@ export async function fetchResourcesOnly(
     return { resources: active, archived, overrides };
   } catch (e) {
     console.error("fetchResourcesOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2545,7 +2595,7 @@ export async function fetchPublicResourcesOnly(page?: ResourcePage): Promise<{
     return { resources: active, archived };
   } catch (e) {
     console.error("fetchPublicResourcesOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2592,18 +2642,7 @@ export async function fetchMapData(orgId: string | null): Promise<{
         fetchDisputes(),
         fetchSupersessions(),
       ]),
-      8000,
-      [
-        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
-        {} as Record<string, ChangeLogEntry[]>,
-        {} as Record<string, Dispute>,
-        [] as Supersession[],
-      ] as [
-        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
-        Record<string, ChangeLogEntry[]>,
-        Record<string, Dispute>,
-        Supersession[],
-      ]
+      8000
     );
 
     if (!active.length) {
@@ -2619,7 +2658,7 @@ export async function fetchMapData(orgId: string | null): Promise<{
     };
   } catch (e) {
     console.error("fetchMapData failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2693,7 +2732,7 @@ export async function fetchListingsOnly(
     return { resources: active, archived, overrides };
   } catch (e) {
     console.error("fetchListingsOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2729,7 +2768,7 @@ export async function fetchPublicListingsOnly(page?: ResourcePage): Promise<{
     return { resources: active, archived };
   } catch (e) {
     console.error("fetchPublicListingsOnly failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2773,18 +2812,7 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
         fetchDisputes(),
         fetchSupersessions(),
       ]),
-      8000,
-      [
-        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
-        {} as Record<string, ChangeLogEntry[]>,
-        {} as Record<string, Dispute>,
-        [] as Supersession[],
-      ] as [
-        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
-        Record<string, ChangeLogEntry[]>,
-        Record<string, Dispute>,
-        Supersession[],
-      ]
+      8000
     );
 
     if (!active.length) {
@@ -2800,7 +2828,7 @@ export async function fetchListingsMapData(orgId: string | null): Promise<{
     };
   } catch (e) {
     console.error("fetchListingsMapData failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 
@@ -2841,14 +2869,7 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
         fetchWorkspaceResources(orgId, { slim: true }),
         fetchSupersessions(),
       ]),
-      8000,
-      [
-        { active: [] as Resource[], archived: [] as Resource[], uuidToUiId: new Map<string, string>() },
-        [] as Supersession[],
-      ] as [
-        { active: Resource[]; archived: Resource[]; uuidToUiId: Map<string, string> },
-        Supersession[],
-      ]
+      8000
     );
 
     if (!active.length) {
@@ -2858,7 +2879,7 @@ export async function fetchSettingsData(orgId: string | null): Promise<{
     return { resources: active, archived, supersessions };
   } catch (e) {
     console.error("fetchSettingsData failed, using empty + error sentinel:", e);
-    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: "exception" };
+    return { ...emptyFallback, _error: SEED_FALLBACK_ERROR, _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception" };
   }
 }
 

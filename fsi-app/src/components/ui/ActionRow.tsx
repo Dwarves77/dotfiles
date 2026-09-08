@@ -58,6 +58,14 @@ export function ActionRow({ onExport, onShare, watch, onTag, exportDisabled }: A
         @media (max-width: 768px) {
           .cl-action-row { display: grid !important; grid-template-columns: 1fr 1fr; gap: 8px; }
           .cl-action-row > * { width: 100%; }
+          /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the mobile 390 spec gives these
+             four "Export brief (#5A5552 fill, #FFFFFF, 12.5px/700), Share, Watch, Tag, each 1px
+             solid rgba(0,0,0,.25), 12.5px/600". Only the 2x2 geometry had been taken from that
+             paragraph; the type was still the desktop 11.5px/800/700, so the buttons read a size
+             and a weight the spec does not state. Desktop is untouched (this block is inside the
+             <=768 query). */
+          .cl-action-row > button { font-size: 12.5px !important; font-weight: 600 !important; }
+          .cl-action-row > button:first-of-type { font-weight: 700 !important; }
         }
       `}</style>
       <ActionButton variant="primary" onClick={onExport} disabled={exportDisabled}>

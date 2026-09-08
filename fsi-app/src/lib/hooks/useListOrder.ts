@@ -30,7 +30,7 @@
 // bootstrap snapshot (fetched once per session) has no business serving.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import { LIST_ORDER_ITEM_ID_MAX, LIST_ORDER_SEED_MAX } from "@/lib/list-order";
 import { useWorkspaceBootstrap } from "@/lib/hooks/useWorkspaceBootstrap";
 
@@ -45,15 +45,6 @@ export type ListOrderKey =
 interface ListOrderApiRow {
   itemId: string;
   position: string;
-}
-
-async function authHeader(): Promise<Record<string, string> | null> {
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const token = session?.access_token;
-  return token ? { Authorization: `Bearer ${token}` } : null;
 }
 
 export interface UseListOrder {
@@ -188,7 +179,7 @@ export function useListOrder(listKey: ListOrderKey): UseListOrder {
       setOrder(without);
 
       try {
-        const headers = await authHeader();
+        const headers = await authHeaders();
         if (!headers) {
           setOrder(snapshot);
           setError("Sign in to arrange this list.");
@@ -229,7 +220,7 @@ export function useListOrder(listKey: ListOrderKey): UseListOrder {
     const snapshot = orderedRef.current;
     setOrder([]);
     try {
-      const headers = await authHeader();
+      const headers = await authHeaders();
       if (!headers) {
         setOrder(snapshot);
         setError("Sign in to arrange this list.");

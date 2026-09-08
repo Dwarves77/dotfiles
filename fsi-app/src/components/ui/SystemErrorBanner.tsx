@@ -15,9 +15,15 @@
 
 interface SystemErrorBannerProps {
   message?: string;
+  /**
+   * Additive extension (lane rsc503, 2026-09-08): the reason clause from
+   * `describeFallbackTrigger(data._fallbackTrigger)`. Undefined renders exactly what this
+   * banner rendered before, so every existing caller is unaffected.
+   */
+  reason?: string;
 }
 
-export function SystemErrorBanner({ message }: SystemErrorBannerProps) {
+export function SystemErrorBanner({ message, reason }: SystemErrorBannerProps) {
   if (!message) return null;
   return (
     <div
@@ -38,6 +44,7 @@ export function SystemErrorBanner({ message }: SystemErrorBannerProps) {
       <span aria-hidden="true" style={{ fontSize: 14 }}>⚠</span>
       <span>
         <b style={{ fontWeight: 700 }}>{message}</b>
+        {reason && <span style={{ marginLeft: 6, color: "var(--ink-2)" }}>{reason}</span>}
       </span>
     </div>
   );

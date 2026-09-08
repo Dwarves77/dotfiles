@@ -24,7 +24,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { RefreshCw, CheckCircle, Edit3, Trash2 } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
@@ -51,7 +51,6 @@ interface PjrResponse {
 }
 
 export function PendingJurisdictionReviewView() {
-  const supabase = createSupabaseBrowserClient();
   const [data, setData] = useState<PjrResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -68,10 +67,7 @@ export function PendingJurisdictionReviewView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/triage/pending-jurisdiction-review", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const res = await authedFetch("/api/admin/triage/pending-jurisdiction-review");
       const payload = await res.json();
       if (!res.ok) {
         setError(payload?.error || `HTTP ${res.status}`);
@@ -84,7 +80,7 @@ export function PendingJurisdictionReviewView() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -97,12 +93,10 @@ export function PendingJurisdictionReviewView() {
   ) {
     setPendingId(row.id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/triage/pending-jurisdiction-review", {
+      const res = await authedFetch("/api/admin/triage/pending-jurisdiction-review", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           id: row.id,

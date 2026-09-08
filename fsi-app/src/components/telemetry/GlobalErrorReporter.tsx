@@ -15,7 +15,7 @@
 //     capture-error.ts; the loss is acceptable, breaking the app is not).
 
 import { useEffect } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 
 const SESSION_CAP = 10; // max reports per browser session
 const MIN_INTERVAL_MS = 3000; // min spacing between reports
@@ -60,18 +60,13 @@ export async function reportClientError(message: string, stack?: string | null):
     if (!underLimits()) return;
     bumpLimits();
 
-    const supabase = createSupabaseBrowserClient();
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (!token) return; // pre-auth pages: not captured (documented R0.2 deviation)
+    const headers = await authHeaders({ "content-type": "application/json" });
+    if (!headers) return; // pre-auth pages: not captured (documented R0.2 deviation)
 
     await fetch("/api/telemetry/error", {
       method: "POST",
       keepalive: true,
-      headers: {
-        "content-type": "application/json",
-        authorization: `Bearer ${token}`,
-      },
+      headers,
       body: JSON.stringify({
         message: String(message || "Unknown client error").slice(0, MESSAGE_MAX),
         stack: stack ? String(stack).slice(0, STACK_MAX) : null,

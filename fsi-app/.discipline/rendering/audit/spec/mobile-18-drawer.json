@@ -1,0 +1,171 @@
+{
+  "part": "Mobile 390 — the nav drawer, opened (288px, scrim, header block, 44px rows, one-row footer)",
+  "mount": "mobile-drawer",
+  "viewport": 390,
+  "compiledCss": true,
+  "artboards": [
+    "mobile-390 text spec, DRAWER section (no artboard PNG exists yet)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', DRAWER section. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+  "notes": [
+    "The drawer's measures only exist while it is open, and AppShell owns that state (the hamburger opens it, never a prop). The `mobile-drawer` mount renders the SAME AppShell + DashboardBrief tree as `page-frame-1440` and clicks the real hamburger, so what is measured here is the drawer a reader actually opens — no test-only prop was added to product code.",
+    "FOOTER: the mobile 390 spec's DRAWER section still describes 'two unlabelled 44px rows: Account with the workspace name, Admin with the OWNER badge'. That wording is SUPERSEDED by the operator's 2026-09-07 third-set ruling ('we dont need seperate account and admin buttons visable if they pop up as options when you clicked on the logged in person name there'), which makes the footer ONE row — the logged-in person's name with the workspace name right-aligned, opening the menu that holds Workspace profile, Admin panel, Settings and Sign out. The later ruling wins over the earlier text spec; this file asserts the one row, and the difference is logged in DEVIATION-LOG.md.",
+    "Section labels and counts are the same SECTIONS table the desktop nav card uses (one table, two size variants inside Sidebar's own row builder), so they are not re-asserted here beyond the label's own type.",
+    "Row counts are not asserted here: they come from the workspace-bootstrap fetch, which this mount answers with nothing, so no count span renders. The count itself is one branch of the SAME renderNavItem builder the desktop card uses (11px on the drawer variant, --fs-11 on the card), and the card's is measured by sidebar.json."
+  ],
+  "selector": "[role=\"dialog\"] aside",
+  "expect": {
+    "width": "288px",
+    "background-color": "rgb(255, 255, 255)",
+    "border-right": "1px solid rgba(0, 0, 0, 0.12)",
+    "position": "fixed",
+    "display": "flex",
+    "flex-direction": "column"
+  },
+  "children": [
+    {
+      "name": "Scrim is the app's existing rgba(26,26,26,.3)",
+      "selector": "[role=\"dialog\"] > div:first-child",
+      "expect": {
+        "background-color": "rgba(26, 26, 26, 0.3)",
+        "position": "fixed"
+      }
+    },
+    {
+      "name": "3px band rule at the top of the drawer",
+      "selector": "[role=\"dialog\"] aside > div[aria-hidden=\"true\"]",
+      "expect": {
+        "height": "3px"
+      }
+    },
+    {
+      "name": "Header block padding 16px 18px 12px with a 1px rgba(0,0,0,.08) foot",
+      "selector": "[role=\"dialog\"] aside > div:nth-of-type(2)",
+      "expect": {
+        "padding": "16px 18px 12px",
+        "border-bottom": "1px solid rgba(0, 0, 0, 0.08)"
+      }
+    },
+    {
+      "name": "Wordmark is Anton 19px uppercase",
+      "selector": "[role=\"dialog\"] aside h1",
+      "expect": {
+        "font-size": "19px",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.76px"
+      }
+    },
+    {
+      "name": "Subline 8.5px uppercase .14em muted",
+      "selector": "[role=\"dialog\"] aside > div:nth-of-type(2) p",
+      "expect": {
+        "font-size": "8.5px",
+        "letter-spacing": "1.19px",
+        "text-transform": "uppercase",
+        "color": "rgb(122, 110, 108)",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "Body padding 8px 10px, rows gap 2px",
+      "selector": "[role=\"dialog\"] aside nav",
+      "expect": {
+        "padding": "8px 10px",
+        "gap": "2px",
+        "display": "flex",
+        "flex-direction": "column"
+      }
+    },
+    {
+      "name": "Section labels 9.5px uppercase .14em/700 muted, padding 10px 8px 4px",
+      "selector": "[role=\"dialog\"] aside nav > div > p",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "1.33px",
+        "text-transform": "uppercase",
+        "color": "rgb(122, 110, 108)",
+        "padding": "10px 8px 4px"
+      }
+    },
+    {
+      "name": "Every label after the first gets a 1px rgba(0,0,0,.08) top rule and 6px margin",
+      "selector": "[role=\"dialog\"] aside nav > div:nth-of-type(2)",
+      "expect": {
+        "border-top": "1px solid rgba(0, 0, 0, 0.08)",
+        "margin-top": "6px"
+      }
+    },
+    {
+      "name": "Nav rows are min-height 44, padding 0 10px, radius 6, 14px text",
+      "selector": "[role=\"dialog\"] aside nav a",
+      "expect": {
+        "min-height": "44px",
+        "padding": "0px 10px",
+        "border-radius": "6px",
+        "font-size": "14px",
+        "display": "flex"
+      }
+    },
+    {
+      "name": "The drawer carries the same eight nav rows as the desktop card (Brief, Intelligence, Network)",
+      "selector": "[role=\"dialog\"] aside nav a",
+      "expect": {
+        "count": "8"
+      },
+      "note": "Dashboard, Watchlist, Regulations, Market, Research, Operations, Map, Community — the SECTIONS table Sidebar shares between the card and the drawer."
+    },
+    {
+      "name": "Footer is ONE 44px row with the nav card's 10px horizontal padding and 8px gap",
+      "selector": "[role=\"dialog\"] aside > div:last-child button",
+      "expect": {
+        "count": "1",
+        "min-height": "44px",
+        "padding": "0px 10px",
+        "gap": "8px"
+      },
+      "note": "Operator ruling 2026-09-07, third set: one row, the logged-in person's name, opening the menu that holds Workspace profile, Admin panel, Settings and Sign out. Also 'too tight': the artboard's 44px row, 10px padding, 8px gap, which is what is measured here."
+    },
+    {
+      "name": "The footer row opens a menu (it is the only footer control)",
+      "selector": "[role=\"dialog\"] aside > div:last-child button[aria-haspopup=\"menu\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "Footer sits on a 1px rgba(0,0,0,.08) top rule",
+      "selector": "[role=\"dialog\"] aside > div:last-child",
+      "expect": {
+        "border-top": "1px solid rgba(0, 0, 0, 0.08)"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no separate Admin row in the drawer footer",
+      "selector": "[role=\"dialog\"] aside > div:last-child a",
+      "reason": "Operator ruling 2026-09-07, third set: Admin is an option inside the logged-in person's menu, not a second footer row. This supersedes both R2's two-row footer and the mobile 390 text spec's own DRAWER footer wording."
+    },
+    {
+      "name": "no OWNER badge as a standalone footer row",
+      "selector": "[role=\"dialog\"] aside > div:last-child",
+      "textMatch": "OWNER",
+      "reason": "Same ruling: the OWNER badge belonged to the removed Admin row."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "no drawer nav row cell overlaps its sibling or escapes the row",
+      "container": "[role=\"dialog\"] aside nav a",
+      "cells": ":scope > span",
+      "reason": "Operator, 2026-09-07: 'too tight'. A label and a right-aligned count in a 288px drawer at 10px padding is the measure that ruling is about."
+    },
+    {
+      "name": "no footer row cell overlaps its sibling or escapes the row",
+      "container": "[role=\"dialog\"] aside > div:last-child button",
+      "cells": ":scope > span",
+      "reason": "Same ruling, applied to the one footer row: the person's name and the right-aligned workspace name."
+    }
+  ]
+}

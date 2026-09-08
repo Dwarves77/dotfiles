@@ -27,8 +27,8 @@
 // Light-first, semantic tokens only, no emojis.
 
 import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { X, Users, User, AlertTriangle, Eye, Loader2 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useResourceStore } from "@/stores/resourceStore";
 
 export interface ArchiveImpact {
@@ -88,11 +88,9 @@ export function ArchiveDialog({
     let cancelled = false;
     (async () => {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(
+        const res = await authedFetch(
           `/api/workspace/archive-impact?itemId=${encodeURIComponent(itemId)}`,
-          { headers: { Authorization: `Bearer ${session?.access_token || ""}` } }
+          { }
         );
         if (cancelled) return;
         if (!res.ok) {

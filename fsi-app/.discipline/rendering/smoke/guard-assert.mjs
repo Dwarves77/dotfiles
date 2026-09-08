@@ -8,7 +8,7 @@
 // harness.mjs re-exports this file's exports for spec-file convenience; specs never import this file
 // directly — they import from harness.mjs.
 
-import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations } from '../assertions.mjs';
+import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations, findUnseparatedThousands } from '../assertions.mjs';
 
 /** Run the overflow + placeholder-literal detectors against a `measureGuard()`-shaped result
  *  (`{ measurements, texts }`) and return human-readable failure strings (empty = clean), prefixed
@@ -24,7 +24,7 @@ import { detectOverflows, findPlaceholderLiterals, detectBoundsViolations } from
  *  `assertGuardCleanExceptBandLabel` established per-spec before this lane made the label common to
  *  every surface. Empty by default: a caller that does not pass `known` gets the exact behaviour
  *  this function always had. */
-export function assertGuardClean(label, { measurements, texts }, known = []) {
+export function assertGuardClean(label, { measurements, texts, leafTexts }, known = []) {
   const failures = [];
   const overflows = detectOverflows(measurements);
   if (overflows.length > 0) {
@@ -34,6 +34,13 @@ export function assertGuardClean(label, { measurements, texts }, known = []) {
   const placeholders = findPlaceholderLiterals(texts).filter((p) => !knownSet.has(p));
   if (placeholders.length > 0) {
     failures.push(`${label}: placeholder literal rendered — ${placeholders.join(', ')}`);
+  }
+  // opsclip (train 61, defect 4): a rendered integer >= 1000 without the locale-pinned separator.
+  // Shares the caller's `known` allowlist with the placeholder check above, a spec that has
+  // disclosed a literal as real vocabulary has disclosed it for both detectors.
+  const unseparated = findUnseparatedThousands(leafTexts ?? texts, known);
+  if (unseparated.length > 0) {
+    failures.push(`${label}: unseparated thousands rendered, ${unseparated.join(', ')}`);
   }
   return failures;
 }

@@ -171,6 +171,34 @@ function briefDoc(md) {
   return `<div data-guard-container="brief-body" data-guard-scan-text style="max-width:760px;margin:0 auto">${markdownToHtml(md)}</div>`;
 }
 
+// ── MAP-CLIP (lane mapclip, 2026-09-08): the declared clipping viewport, proven by attack. ──────
+// Train 61's PR #610 failed the rendering guard in CI only, on a Leaflet tile whose unclipped rect
+// ran 128px past the viewport inside a 420px map card. A slippy map's tile grid is deliberately wider
+// than its frame and is panned inside it, so a tile's rect is not a claim that anything the reader
+// must read is off the page; a text run's is. `data-guard-clip` declares that frame, in the same
+// language `data-guard-strip` already declares a scroll strip.
+//
+// The geometry below reproduces the CI report's shape at EVERY viewport (the box is placed off the
+// right edge in vw units, so it is past the edge at 380 and at 1440 alike) and nothing here is
+// leaflet-specific: it is the rule, attacked from three directions.
+//   1. carried: the box is past the edge INSIDE a declared clipping viewport, the guard passes.
+//   2. undeclared: the SAME box, same geometry, no declaration, the guard must fire.
+//   3. self-overflow: the declaring element ITSELF runs past the edge, the guard must fire, on the
+//      declaring element and on its content. Without this the attribute would be a way to hide any
+//      overflow, which is the defect class detectClippedOverflow exists to catch.
+// Boxes carry no text, so only the clipped-overflow detector is under test here. The frame is
+// deliberately NOT a `data-guard-container`: the scrollWidth detector in assertions.mjs is a
+// different rule with its own leaflet carve-out, and measuring this frame with it would test that
+// rule instead of this one.
+function mapClipFixture({ declare, selfOverflow }) {
+  const frameWidth = selfOverflow ? "width:calc(100vw + 128px)" : "width:100%";
+  return `
+    <div ${declare ? "data-guard-clip " : ""}
+         style="position:relative;overflow:hidden;height:200px;${frameWidth};background:#eef">
+      <div style="position:absolute;top:0;left:calc(100vw - 40px);width:256px;height:200px;background:#cce"></div>
+    </div>`;
+}
+
 // ── The fixture set. Each: { id, cls, html, containers, expectOverflow, expectPlaceholder }. ────
 export function buildFixtures() {
   return [
@@ -202,6 +230,26 @@ export function buildFixtures() {
     {
       id: "brief-unstripped-PREFIX", cls: "F-1", expectOverflow: false, expectPlaceholder: true, red: true,
       html: doc(briefDoc(stripSourcesSectionPreFix(BRIEF_WITH_SOURCES_ARTIFACT))),
+    },
+    // MAP-CLIP 1/3 (GREEN): a box past the right edge inside a DECLARED clipping viewport is carried.
+    {
+      id: "map-clip-declared", cls: "MAP-CLIP", ux: true, expectOverflow: false, expectPlaceholder: false,
+      html: doc(mapClipFixture({ declare: true, selfOverflow: false })),
+    },
+    // MAP-CLIP 2/3 (RED): the same box, same geometry, with no declaration, still fails.
+    {
+      id: "map-clip-undeclared-PREFIX", cls: "MAP-CLIP", red: true, ux: true,
+      expectOverflow: false, expectPlaceholder: false,
+      expectUxFailure: /clipped past the viewport/,
+      html: doc(mapClipFixture({ declare: false, selfOverflow: false })),
+    },
+    // MAP-CLIP 3/3 (RED): the DECLARING element itself runs past the edge, so it carries nothing and is
+    // reported like any other box. The attribute is not a way to hide overflow.
+    {
+      id: "map-clip-self-overflow-PREFIX", cls: "MAP-CLIP", red: true, ux: true,
+      expectOverflow: false, expectPlaceholder: false,
+      expectUxFailure: /clipped past the viewport/,
+      html: doc(mapClipFixture({ declare: true, selfOverflow: true })),
     },
     // Zero-data honest empty
     {

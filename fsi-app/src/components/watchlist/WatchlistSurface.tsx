@@ -12,12 +12,13 @@
  *                        "Sorted by next date") · ListRowColumnHeader
  *                        ("Juris. / Title · type · modes / Impact low → high /
  *                        Next date / Timeline / Tier") · ListRows · CardFoot
- *                        ("Watch from any row's ⋯ menu..." / "Browse
- *                        regulations →") · the changed-since-last-visit
+ *                        ("Watch an item from its ⋯ menu on any list page..."
+ *                        / "Browse regulations →") · the changed-in-window
  *                        StateNote
  *                        Recalculation notices card: SectionHeading
- *                        ("Recalculation notices" / "Since your last visit")
- *                        · the /api/notices feed with its honest empty line
+ *                        ("Recalculation notices" / "Since <the feed's own
+ *                        window start>") · the /api/notices feed with its
+ *                        honest empty line
  *   rail (300px) ....... Filters · Share with workspace · Legend
  *
  * COMPOSITION LANE comp-11 (2026-09-08), against the operator's audit of
@@ -52,14 +53,17 @@
  * invented (logged in DEVIATION-LOG.md): the row meta's "All modes ·
  * packaging" segments (WatchlistItem has no modes or topic field), and the
  * state note's "changed BAND" wording (no band-change history exists;
- * /api/notices is the app's only "what changed on watched items since your
- * last visit" feed, so the strip states what that feed actually reports).
+ * /api/notices is the app's only "what changed on watched items" feed, so the
+ * strip states what that feed actually reports, over the window the feed
+ * itself reports — COUNTS-61, 2026-09-08: that window is a fixed 30 days, not
+ * a last visit, which the product does not record).
  *
  * NO DRAG HERE, unchanged from the previous version.
  */
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
+import { LIST_SURFACE_MOBILE_CSS } from "@/components/list-surface/ListSurfaceShell";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
@@ -78,7 +82,7 @@ import { withListPosition } from "@/components/list-surface/list-surface-helpers
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { nowFrom } from "@/lib/render-now";
-import { formatLocaleDate } from "@/lib/format";
+import { countNoun, formatLocaleDate } from "@/lib/format";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
@@ -178,7 +182,23 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
   const teamCount = items.length - personalCount;
 
   const tagsFacet = useWorkspaceTagsFacet();
-  const { notices, loading: noticesLoading } = useRecalculationNotices();
+  const { notices, loading: noticesLoading, since: noticesSince } = useRecalculationNotices();
+
+  // COUNTS-61: ONE label for the recalculation window, derived from the instant the FEED itself
+  // reports, so the two places that name the window cannot say different things and neither claims
+  // a "last visit" the product does not track. Absent while the feed is in flight (and if the route
+  // ever stops reporting it), the label states the window's length instead of inventing a date.
+  // FOLD-61: ONE DATE, two presentations, because the card head and the strip are different
+  // sentences and cannot share a phrase. COUNTS-61 built a single `noticesWindowLabel` reading
+  // "Since Aug 8, 2026" for the card head and reused it, lower-cased, inside the strip, which
+  // rendered "4 watched items changed in since aug 8, 2026" - "in since", and a lower-cased month
+  // under a head that uppercases the same date. Found by eye in this fold's visual pass at 1440;
+  // no spec measured the strip's prose. The date itself is derived once and formatted once.
+  const noticesWindowDate = noticesSince
+    ? formatLocaleDate(new Date(noticesSince), { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+    : null;
+  const noticesWindowLabel = noticesWindowDate ? `Since ${noticesWindowDate}` : "Recent changes";
+  const noticesWindowClause = noticesWindowDate ? `since ${noticesWindowDate}` : "recently";
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -242,7 +262,8 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
 
   return (
     <>
-      <div style={{ padding: "20px 40px 0" }}>
+      <div className="cl-list-surface-masthead" style={{ padding: "20px 40px 0" }}>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <Masthead
           title="Watchlist"
           dateLabel={formatLocaleDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
@@ -265,7 +286,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
         style={{ padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
         className="cl-list-surface-grid"
       >
-        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
           <div data-audit="watched-card">
             <Card>
@@ -285,7 +306,8 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
               {items.length === 0 ? (
                 <div style={{ padding: 16 }}>
                   <StateNote action={{ label: "Browse what to watch →", href: "/regulations" }}>
-                    Nothing watched yet. Watch any row&apos;s ⋯ menu, or a Watch button on a detail page, to follow it here.
+                    Nothing watched yet. Watch an item from its ⋯ menu on any list page, or the Watch
+                    button on a detail page, to follow it here.
                   </StateNote>
                 </div>
               ) : visible.length === 0 ? (
@@ -385,7 +407,9 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
               )}
 
               <CardFoot
-                left="Watch from any row's ⋯ menu or the Watch button on a detail page."
+                // COUNTS-61: this said "any row's ⋯ menu", which reads as a control on THIS page,
+                // where watched rows carry a star and no ⋯ menu. The menu is on the list pages.
+                left="Watch an item from its ⋯ menu on any list page, or the Watch button on a detail page."
                 right={
                   <a
                     href="/regulations"
@@ -412,7 +436,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
               {!noticesLoading && notices.length > 0 && (
                 <div style={{ margin: "10px 16px 14px" }} data-audit="changed-note">
                   <StateNote band={bandFromPriority("HIGH")} action={{ label: "Review changes →", href: "#recalculation-notices" }}>
-                    <b>Action</b> · {notices.length} watched {notices.length === 1 ? "item" : "items"} changed since your last visit
+                    <b>Action</b> · {countNoun(notices.length, "watched item")} changed {noticesWindowClause}
                   </StateNote>
                 </div>
               )}
@@ -421,11 +445,18 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
 
           <div id="recalculation-notices" data-audit="recalculation-notices">
             <Card>
-              <SectionHeading title="Recalculation notices" aside="Since your last visit" />
+              {/* COUNTS-61 (production defect, click-through audit 2026-09-08): this card printed
+                  "SINCE YOUR LAST VISIT" here AND again in its own empty line, and never gave a
+                  date. Root cause [CONFIRMED]: the phrase was wrong twice over — GET /api/notices
+                  covers a fixed 30-day window (its own DEFAULT_WINDOW_DAYS) and no caller sends
+                  `?since=`, so there is no last-visit instant behind it, and the route's own
+                  `since` was discarded by the hook. The window is now stated once, with its real
+                  start date, and the empty line below says only whether there is anything in it. */}
+              <SectionHeading title="Recalculation notices" aside={noticesWindowLabel} />
               {noticesLoading ? (
                 <SkeletonListRow />
               ) : (
-                <RecalculationNotice notices={notices} bare emptyMessage="No recalculations on watched items since your last visit" />
+                <RecalculationNotice notices={notices} bare emptyMessage="No recalculations on watched items in this window." />
               )}
             </Card>
           </div>

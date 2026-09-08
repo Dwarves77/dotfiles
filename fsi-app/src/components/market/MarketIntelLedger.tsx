@@ -53,15 +53,13 @@ import { selectNextDataDrops } from "@/lib/market/market-rail-select.mjs";
 import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
-  EMPTY_FILTER_STATE,
-  bandFacetOptions,
-  modeFacetOptions,
-  regionFacetOptions,
+  liveFacetCounts,
   filterRows,
   withListPosition,
   sortResourceRows,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
+import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "market";
@@ -140,7 +138,9 @@ export function MarketIntelLedger({
   headlineSeries,
   carbonCorridors,
 }: MarketIntelLedgerProps) {
-  const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
+  // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
+  // bookmarked and reloaded. One contract for every facet — see useListSurfaceFilter.
+  const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
   const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az">("next-date");
@@ -154,16 +154,25 @@ export function MarketIntelLedger({
     return sortResourceRows(kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey);
   }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag, sortKey]);
 
-  const bandCounts = useMemo(() => {
-    const opts = bandFacetOptions(initialResources, aggregates.byPriority as unknown as Record<string, number>);
-    return Object.fromEntries(opts.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>;
-  }, [initialResources, aggregates.byPriority]);
-
-  const modeOptions = useMemo(() => modeFacetOptions(initialResources), [initialResources]);
-  const regionOptions = useMemo(
-    () => regionFacetOptions(initialResources, aggregates.byJurisdiction),
-    [initialResources, aggregates.byJurisdiction],
+  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so the
+  // Filters card's own caption ("Counts are live for the current selection") is true here too. See
+  // liveFacetCounts in list-surface-helpers.ts for the two regimes and why they are what they are.
+  const counts = useMemo(
+    () =>
+      liveFacetCounts(initialResources, filter, {
+        byPriority: aggregates?.byPriority as unknown as Record<string, number> | undefined,
+        byJurisdiction: aggregates?.byJurisdiction,
+        totalItems: aggregates?.totalItems,
+      }),
+    [initialResources, filter, aggregates],
   );
+  const bandCounts = useMemo(
+    () => Object.fromEntries(counts.band.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>,
+    [counts.band],
+  );
+
+  const modeOptions = counts.mode;
+  const regionOptions = counts.region;
   const kindOptions = useMemo(() => {
     const counts = new Map<string, number>();
     for (const r of initialResources) {
@@ -181,8 +190,8 @@ export function MarketIntelLedger({
       selected: kindFilter,
       onSelect: setKindFilter,
     },
-    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
-    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
+    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFacet("mode", v) },
+    { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFacet("region", v) },
   ];
 
   const workspaceTagFacetGroups: ListSurfaceFacetGroup[] = [
@@ -240,7 +249,10 @@ export function MarketIntelLedger({
     });
   }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
-  const total = aggregates.totalItems || initialResources.length;
+  // COUNTS-61: the same figure the facets are counted against — the corpus at rest, the
+  // current selection under a filter. It was the corpus total unconditionally, which is how a
+  // narrowed list came to sit under a header stating the whole corpus.
+  const total = counts.total;
   const producers = seriesBoard?.groups ?? [];
   // Artboard 04's NEXT DATA DROPS rows. Derived from the SAME `seriesBoard` prop the Headline
   // series card and the Sources tracked card already read, against the injected server instant —
@@ -282,10 +294,10 @@ export function MarketIntelLedger({
       nowIso={nowIso}
       itemCount={total}
       scope="market"
-      onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
+      onSearch={(q) => setFacet("query", q)}
       bandCounts={bandCounts}
       selectedBand={filter.band}
-      onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
+      onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={headlineSeries}

@@ -185,6 +185,27 @@ export function bandFromSearchParam(value: string | null | undefined): UrgencyBa
   return match ? match.key : null;
 }
 
+/**
+ * SORT_FACET_PARAM, the URL query-parameter name for deep-linking a list surface's SORT, the
+ * sibling of BAND_FACET_PARAM above and built for the same reason.
+ *
+ * DEFECT 5, lane opsclip (train 61, 2026-09-08). The dashboard's "All N changes in the last 7
+ * days" shipped as a bare <span>, `closest('a') === false`, `cursor: auto`, proven statically off
+ * production, while its counterpart "All N immediate" beside it is a real anchor and the artboard
+ * draws both as links. Wiring it needed a target that MEANS "the changes", and "the changes" is
+ * the regulations list ordered newest-first, which had no URL contract: `sortKey` was local
+ * `useState` in every ledger [CONFIRMED by reading all four]. This is that contract, in the same
+ * one home, so the fix is a link to a real ordering rather than a link to an unordered list.
+ */
+export const SORT_FACET_PARAM = "sort";
+
+/** Parses a `?sort=` value into a valid ListSurfaceSortKey, or null for anything else. Never
+ *  trusts the raw string past the sort vocabulary the surfaces already use. */
+export function sortFromSearchParam(value: string | null | undefined): ListSurfaceSortKey | null {
+  const keys: ListSurfaceSortKey[] = ["next-date", "newest", "az", "my-order"];
+  return keys.find((k) => k === value) ?? null;
+}
+
 function haystack(r: Resource): string {
   return [r.title, r.jurisdiction, r.topic, ...(r.tags ?? []), r.whatIsIt, r.whyMatters]
     .filter(Boolean)
@@ -311,4 +332,155 @@ export function filterByWindow(
     if (Number.isNaN(ms)) return true;
     return ms >= floor;
   });
+}
+
+// ── COUNTS-61 (2026-09-08): the facet counters become live, because the panel says they are ──────
+//
+// PRODUCTION DEFECT (click-through audit of carosledge.com, 2026-09-08, /regulations). With the
+// `road` mode applied the list narrowed correctly to "showing 5 of 8", and NOTHING else moved: the
+// band tiles stayed 15 / 14 / 1,119 / 169, the header stayed "1,317 regulations", the footer stayed
+// "1317 regulations tracked across 32 jurisdictions" — directly under the Filters card's own
+// caption, "Counts are live for the current selection." The caption is the artboard's, so the
+// caption stands and the counts are what had to change.
+//
+// ROOT CAUSE [CONFIRMED by reading]: every facet builder above was called with `allRows`, the
+// UNFILTERED loaded set, and `bandFacetOptions` additionally preferred the corpus RPC bundle, which
+// no client-side filter can move at all. Nothing in the four ledgers ever recomputed a count after
+// a facet changed.
+//
+// WHAT "LIVE" MEANS HERE, STATED HONESTLY. Two regimes, and the surface says which one it is in:
+//
+//   No facet selected — the counts are the CORPUS figures from the surface's own
+//   `get_surface_counts` bundle (band, region) and the loaded-row tallies for the facets that have
+//   no RPC breakdown (mode, topic, tier). Unchanged from before; this is the honest whole-corpus
+//   number and it is larger than what the browser has loaded.
+//
+//   Any facet selected — every count is a tally over the CURRENT SELECTION's own rows. A corpus RPC
+//   cannot answer "how many Monitor items are also mode=road", so the corpus figure would be a lie
+//   the moment a filter is on. The tally is over the rows the client holds, which after the
+//   after-paint remainder fetch resolves is the whole corpus (and that fetch is no longer truncated
+//   at 1000 rows — see src/app/api/listings/rest/logic.ts).
+//
+// FACET SEMANTICS: a facet group's own counts exclude ITS OWN selection, which is what makes the
+// other options in that group still switchable ("road 8, rail 3" while road is active). Every OTHER
+// facet is applied. This is the standard faceted-search rule, and it is why this is one function
+// over the whole bundle rather than five independent calls that would each need the same exclusion.
+
+/** The corpus figures a surface has from its own `get_surface_counts` bundle. All optional: a
+ *  surface without one (or a pre-apply / errored RPC) falls back to loaded-row tallies, the same
+ *  fail-soft posture every list page already applies to its band tiles. */
+export interface FacetCorpusCounts {
+  byPriority?: Record<string, number>;
+  byJurisdiction?: Record<string, number>;
+  totalItems?: number;
+}
+
+export interface LiveFacetCounts {
+  band: Array<FacetOption & { key: UrgencyBandKey }>;
+  mode: FacetOption[];
+  region: FacetOption[];
+  topic: FacetOption[];
+  tier: FacetOption[];
+  /** The count the surface prints as its own total ("N regulations", the scope line's "N active").
+   *  The corpus total at rest; the size of the current selection once any facet is on. */
+  total: number;
+  /** True when the numbers above are tallies over the current selection rather than corpus figures.
+   *  Surfaces use it to say which regime they are in instead of leaving the reader to guess. */
+  liveSelection: boolean;
+}
+
+/** True when any facet or the free-text query narrows the current selection. */
+export function isFilterActive(filter: RowFilterState): boolean {
+  return Boolean(
+    filter.band || filter.mode || filter.region || filter.topic || filter.tier || filter.query.trim()
+  );
+}
+
+/** `filter` with one facet cleared — the set a facet group counts its own options over. */
+function without(filter: RowFilterState, facet: keyof RowFilterState): RowFilterState {
+  return { ...filter, [facet]: facet === "query" ? "" : null };
+}
+
+/**
+ * Every facet's counts plus the surface total, for one row set and one filter state. ONE function
+ * rather than five call sites per ledger, because the "exclude this group's own selection" rule and
+ * the corpus-vs-selection switch have to be applied identically to all of them or the panel is
+ * inconsistent with itself again.
+ */
+export function liveFacetCounts(
+  rows: Resource[],
+  filter: RowFilterState,
+  corpus: FacetCorpusCounts = {},
+): LiveFacetCounts {
+  const live = isFilterActive(filter);
+  // At rest the corpus bundle answers; under a filter it cannot, so it is withheld rather than
+  // printed beside a narrowed list.
+  const byPriority = live ? undefined : corpus.byPriority;
+  const byJurisdiction = live ? undefined : corpus.byJurisdiction;
+
+  const rowsFor = (facet: keyof RowFilterState) =>
+    live ? filterRows(rows, without(filter, facet)) : rows;
+
+  return {
+    band: bandFacetOptions(rowsFor("band"), byPriority),
+    mode: modeFacetOptions(rowsFor("mode")),
+    region: regionFacetOptions(rowsFor("region"), byJurisdiction),
+    topic: topicFacetOptions(rowsFor("topic")),
+    tier: tierFacetOptions(rowsFor("tier")),
+    total: live ? filterRows(rows, filter).length : corpus.totalItems || rows.length,
+    liveSelection: live,
+  };
+}
+
+// ── COUNTS-61: the URL contract, extended from the band facet to every facet ─────────────────────
+//
+// PRODUCTION DEFECT (same audit): applying the `road` mode left the URL at a bare `/regulations`, so
+// a filtered view could not be linked, bookmarked or reloaded — while the band facet DID write
+// `?band=`. One panel, two contracts. BAND_FACET_PARAM above is the precedent; these are its
+// siblings, named here beside it so there is one place that knows what a list surface's URL says.
+export const MODE_FACET_PARAM = "mode";
+export const REGION_FACET_PARAM = "region";
+export const TOPIC_FACET_PARAM = "topic";
+export const TIER_FACET_PARAM = "tier";
+export const QUERY_FACET_PARAM = "q";
+
+/** Read a whole filter state out of a URL's search params. Unknown values are dropped, never
+ *  trusted: `bandFromSearchParam` already refuses anything outside BAND_ORDER, and the free-text
+ *  facets are matched against the row set at filter time, so a stale value narrows to nothing
+ *  rather than throwing. */
+export function filterFromSearchParams(params: URLSearchParams | null | undefined): RowFilterState {
+  const get = (k: string) => {
+    const v = params?.get(k);
+    const trimmed = (v ?? "").trim();
+    return trimmed ? trimmed : null;
+  };
+  return {
+    band: bandFromSearchParam(params?.get(BAND_FACET_PARAM)),
+    mode: get(MODE_FACET_PARAM),
+    region: get(REGION_FACET_PARAM),
+    topic: get(TOPIC_FACET_PARAM),
+    tier: get(TIER_FACET_PARAM),
+    query: get(QUERY_FACET_PARAM) ?? "",
+  };
+}
+
+/**
+ * The query string for a filter state: `?band=immediate&mode=road`. An unset facet writes no param
+ * at all (never `mode=`), so an unfiltered view is a bare path and the URL says exactly what is on.
+ * Params are emitted in a fixed order so the same selection always produces the same string, which
+ * is what makes a link stable and a history entry comparable.
+ */
+export function searchParamsFromFilter(filter: RowFilterState): string {
+  const params = new URLSearchParams();
+  const put = (key: string, value: string | null | undefined) => {
+    const v = (value ?? "").trim();
+    if (v) params.set(key, v);
+  };
+  put(BAND_FACET_PARAM, filter.band);
+  put(MODE_FACET_PARAM, filter.mode);
+  put(REGION_FACET_PARAM, filter.region);
+  put(TOPIC_FACET_PARAM, filter.topic);
+  put(TIER_FACET_PARAM, filter.tier);
+  put(QUERY_FACET_PARAM, filter.query);
+  return params.toString();
 }

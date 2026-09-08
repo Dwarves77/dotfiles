@@ -231,3 +231,55 @@ export function sourceNameFromNote(note) {
   const cleaned = note.replace(/https?:\/\/[^\s)]+/g, "").replace(/[·|\-–—\s]+$/, "").trim();
   return cleaned.length > 0 ? cleaned : null;
 }
+
+// ── The artboard's headline figure (lane opsclip, train 61, defect 1) ─────────
+//
+// Artboard 08 (dc.html #p8) draws every cell of the expanded Facts row the same way: a small
+// uppercase region tag, then a HEADLINE FIGURE in the display face at 18px ("EUR 40.4 / hr",
+// "USD 60,000 / yr", "HKD 14,747 / mo", "GBP 40-42k / yr", "3-6% / yr"), then a one-line
+// description in ordinary 11.5px body, then a muted source line. Its own caption says this row is
+// the whole point of the page.
+//
+// Production rendered no headline figure at all and set the ENTIRE prose block in the display face
+// at ~17px in a ~130px measure, 15 or more lines, ~370px tall. Root cause [CONFIRMED by reading
+// the data contract and the render]: the render treats `value` as the figure unconditionally, and
+// `value` is a free-text column that holds a figure on some rows ("EUR 12 / hr") and a whole
+// sentence on others ("EPR compliance costs reached GBP 1.1 billion in 2023 ..."). A sentence set
+// at 18px in the display face is the wall of bold text the operator saw.
+//
+// WHICH FIELD IS THE FIGURE. The designed home for it is the number envelope, `value_numeric` +
+// `unit` (+ `currency`), migration 267, and `formatEnvelopedValue` above already renders it. It is
+// NULL on 100% of live rows [CONFIRMED: supabase-server.ts's OperationsFact header and this
+// module's own header both record it; both envelope producers are kill-switched off]. There is no
+// other numeric column on `regional_data_facts`: the table is (region, dimension, fact_label,
+// value, status, source_*, last_updated) plus the eleven envelope columns. Columns checked and
+// found to hold no figure: `fact_label` (the description), `status`, `source_note`.
+//
+// So: the envelope when it is there; the free-text `value` when it reads as a figure rather than a
+// sentence; and otherwise NO figure, the caller renders the absence convention, and the sentence
+// goes where the artboard puts the description, at the description's own type. Nothing is derived
+// out of the prose: pulling "GBP 1.1 billion" out of a sentence and presenting it as THE figure for
+// the cell would be this codebase inventing a number, which is exactly what rule 2 forbids.
+
+/** Longest string still read as a figure rather than a sentence. The artboard's own five headline
+ *  figures run 9 to 15 characters; 24 leaves headroom for a longer unit without admitting prose. */
+export const FIGURE_MAX_CHARS = 24;
+
+/**
+ * Split a fact into the artboard's two slots. Pure.
+ * @returns {{figure: string|null, description: string, prose: string|null}}
+ *   `figure` null means the data holds no headline figure for this fact and the caller renders the
+ *   absence convention; `description` is always the fact's own label; `prose` is the free-text
+ *   `value` when it was too long to be a figure, so it can be set at the description's type.
+ */
+export function factHeadline(fact) {
+  const label = typeof fact?.factLabel === "string" ? fact.factLabel : "";
+  const enveloped = formatEnvelopedValue(fact);
+  if (enveloped) return { figure: enveloped, description: label, prose: null };
+  const value = typeof fact?.value === "string" ? fact.value.trim() : "";
+  if (!value) return { figure: null, description: label, prose: null };
+  if (value.length <= FIGURE_MAX_CHARS && /\d/.test(value)) {
+    return { figure: value, description: label, prose: null };
+  }
+  return { figure: null, description: label, prose: value };
+}

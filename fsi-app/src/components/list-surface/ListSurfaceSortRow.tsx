@@ -51,6 +51,7 @@ export function ListSurfaceSortRow({
 }) {
   return (
     <div
+      className="cl-sort-row"
       data-audit="sort-row"
       style={{
         display: "flex",
@@ -61,6 +62,28 @@ export function ListSurfaceSortRow({
         flexWrap: "wrap",
       }}
     >
+      {/* D-M6 (lane mobfix61, 2026-09-08, operator: "all text spacing is off")
+          [CONFIRMED, read off the 390 capture of /regulations]: this row had no mobile
+          treatment at all, so at 390 its `flexWrap: wrap` broke the segmented control
+          across two lines and stranded the last option ("My order") on a line of its own,
+          separated from the SORT label that gives it meaning. The mobile 390 spec's FILTERS
+          section states the rule for every labelled option set on the page: "chip groups
+          scroll sideways as whole units so a group never loses its label". So below 768 the
+          control group is one non-wrapping line that scrolls sideways — the same mechanism
+          .cl-facets-mobile already uses for the facet chip groups — and the count line above
+          it takes a full-width line of its own rather than competing for the same row. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-sort-row { flex-wrap: nowrap !important; flex-direction: column; align-items: stretch !important; gap: 8px !important; }
+          .cl-sort-row .cl-sort-options {
+            flex-wrap: nowrap !important;
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 2px;
+          }
+          .cl-sort-row .cl-sort-options > * { flex-shrink: 0; }
+        }
+      `}</style>
       <div style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)" }}>
         {countLabel}
         {linkLabel && onLink && (
@@ -87,7 +110,15 @@ export function ListSurfaceSortRow({
           </>
         )}
       </div>
-      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: "var(--fs-12)" }}>
+      {/* FOLD-61: `data-guard-strip` is how a sideways scroller DECLARES itself to the rendering
+          guard (ux-assert.mjs's detectClippedOverflow: an element past the viewport edge is a
+          defect unless a declared strip ancestor carries it). D-M6's fix above makes this group
+          scroll below 768, and the guard measured the last option, "My order", at right=410 on a
+          375px viewport with no strip to carry it, so the fix read as three UX-smoke failures on
+          /regulations. The convention already exists on .cl-facets-mobile, the ThemeStrip, the
+          obligations strip, the community tabs and the detail chip row; this row is the same
+          mechanism and had simply not said so. The attribute changes nothing visual. */}
+      <div className="cl-sort-options" data-guard-strip="true" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: "var(--fs-12)" }}>
         <span
           style={{
             color: "var(--ink-3)",

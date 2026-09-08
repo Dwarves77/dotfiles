@@ -97,8 +97,30 @@ export function RowTable({ columns, rows, metrics }: RowTableProps) {
   const paddingLeft = metrics?.paddingLeft ?? 16;
   const rowMinHeight = metrics?.rowMinHeight ?? 48;
   const ruleAfterLastRow = metrics?.ruleAfterLastRow ?? false;
+  // FOLD-61 [CONFIRMED, measured at 390 by the fold's own overflow sweep]: this table had no
+  // treatment below 768 at all, and its callers are the three surfaces the mobile 390 work never
+  // reached - /admin's ORGANIZATIONS and SOURCES tables, /account's member list, /community's
+  // discussion feed. Every column keeps its designed px track at 390, so the row is wider than the
+  // card and the card's own `overflow: hidden` cut the cells: the header labels lost characters
+  // mid-word with NO ellipsis ("Discussion" 77px past its cell, "Source" 50px, "Member" 53px,
+  // "Name" 36px) and so did the row sub-lines ("plasticsnews.com" 97px, "emsa.europa.eu" 89px).
+  // A COLUMN HEADER is the `mustFit` class lane opsclip established on the IMPACT header: its text
+  // is fixed, short and known at build time, so there is no reader-supplied string that could
+  // justify truncating it, and an ellipsis would not be a fix either.
+  //
+  // The table therefore SCROLLS SIDEWAYS below 768, as one unit, on the same declared-strip
+  // mechanism the chip groups, the theme strip, the obligations strip, the community tabs and the
+  // detail chip row already use (`data-guard-strip`, which ux-assert.mjs reads before calling an
+  // element past the viewport edge a defect). Every column keeps the width the artboard gives it
+  // and the reader reaches all of them, which is the mobile 390 spec's own rule in the operator's
+  // words: "the frame collapses; every part is the desktop part at a smaller measure". The desktop
+  // rendering is byte-identical - the strip only ever scrolls when the content exceeds the box.
+  // The strip goes on the EXISTING root rather than in a new wrapper: two composition specs
+  // address this table's header as `[data-audit="..."] > div > div:first-child`, and a wrapper
+  // would silently deepen that path and report NOT BUILT against a header that renders correctly
+  // (which is exactly what the first attempt did). Same DOM shape, one class and one attribute.
   return (
-    <div>
+    <div className="cl-rowtable" data-guard-strip="true">
       <div
         style={{
           ...gridStyle(columns, paddingLeft),
@@ -167,6 +189,15 @@ export function RowTable({ columns, rows, metrics }: RowTableProps) {
           </div>
         );
       })}
+      {/* The rule sits at the END of the root, not the start: the header is addressed as
+          `> div > div:first-child` by two composition specs, and a <style> element ahead of it
+          makes that selector match nothing. Placement is load-bearing here, not cosmetic. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-rowtable { overflow-x: auto; }
+          .cl-rowtable > div { min-width: max-content; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -96,6 +96,11 @@ window.__mount = (props) => {
     changedRows: buildChangedRows(props.recentChanges, props.resources, now),
     totalChanges: props.totalChanges ?? props.recentChanges.length,
     aggregates: props.aggregates,
+    // COUNTS-61 (2026-09-08): the band tiles read the REGULATIONS surface counts, because that is
+    // the surface every tile navigates to. The smoke passes the same bundle for both, which is the
+    // no-divergence case; the invariant that they come from one call is pinned separately in
+    // src/components/dashboard/band-tile-count-source.npmtest.mjs.
+    bandCounts: props.bandCounts ?? props.aggregates,
     auditDate: props.auditDate,
     surfaceCoverage: props.surfaceCoverage,
     nowIso: props.nowIso,
@@ -120,9 +125,19 @@ const POPULATED_AGGREGATES = {
   totalJurisdictions: 61,
 };
 
+// COUNTS-61: the regulations surface's own figures (get_surface_counts('regulations'), 2026-09-08),
+// deliberately DIFFERENT from POPULATED_AGGREGATES above — the divergence between the two is what
+// the production defect consisted of, so the spec measures the tiles in that state.
+const POPULATED_BAND_COUNTS = {
+  ...EMPTY_AGGREGATES,
+  totalItems: 1317,
+  byPriority: { CRITICAL: 15, HIGH: 14, MODERATE: 1119, LOW: 169 },
+  totalJurisdictions: 32,
+};
+
 const EMPTY_SURFACE_COVERAGE = {
   intelligence: { regulations: 0, marketIntel: 0, research: 0, operations: 0, uncategorized: 0, totalIntelligence: 0 },
-  community: { activeGroups: 0, activeThreads: 0 },
+  community: { regionalRooms: 7, joinedGroups: 0, activeThreads: 0 },
 };
 
 const LONG = (n, word = 'extremely-long-dashboard-title-token') =>
@@ -161,6 +176,9 @@ function baseProps(dueNextRows, changedRows = []) {
     totalChanges: changedRows.length,
     auditDate: '2026-09-06',
     aggregates: EMPTY_AGGREGATES,
+    // COUNTS-61 (2026-09-08): the band tiles read the REGULATIONS surface's counts, because that is
+    // where every tile navigates. A separate prop from `aggregates`, and separately supplied here.
+    bandCounts: EMPTY_AGGREGATES,
     surfaceCoverage: EMPTY_SURFACE_COVERAGE,
     nowIso: '2026-09-07T00:00:00.000Z',
     __watchlist: [],
@@ -171,7 +189,7 @@ function baseProps(dueNextRows, changedRows = []) {
 // regardless of row count — every state's floor is 2.
 const STATES = [
   { label: 'empty', props: baseProps([]), expectTitles: 2 },
-  { label: 'one-row', props: { ...baseProps([briefRow(0)]), aggregates: POPULATED_AGGREGATES }, expectTitles: 2 },
+  { label: 'one-row', props: { ...baseProps([briefRow(0)]), aggregates: POPULATED_AGGREGATES, bandCounts: POPULATED_BAND_COUNTS }, expectTitles: 2 },
   {
     label: 'extreme',
     props: {
@@ -182,6 +200,7 @@ const STATES = [
         Array.from({ length: 6 }, (_, i) => briefRow(i, { long: true, changed: true })),
       ),
       aggregates: POPULATED_AGGREGATES,
+      bandCounts: POPULATED_BAND_COUNTS,
     },
     expectTitles: 2,
   },
@@ -191,6 +210,70 @@ const KNOWN_SAFE_PLACEHOLDER_LITERALS = new Set(['Action', 'Title', 'Tier', '—
 
 function filteredPlaceholders(texts) {
   return findPlaceholderLiterals(texts).filter((p) => !KNOWN_SAFE_PLACEHOLDER_LITERALS.has(p));
+}
+
+/**
+ * ROW-CONTENT INVARIANT (lane rsc503, 2026-09-08, click-through audit "Blocking finding").
+ *
+ * The audit measured 11 row anchors on production at 657x55 with correct aria-labels and
+ * `innerHTML.length === 0`, and read that as "the client painted empty boxes". Reading
+ * ListRow.tsx settles it the other way: `a.cl-row-link` is `position:absolute; inset:0`,
+ * `gridColumn: 2 / -1`, `aria-label={title}` and DELIBERATELY childless: it is the stretched
+ * overlay that makes the WHOLE ROW one click target (README §0.4). An empty anchor is the design.
+ *
+ * So the invariant worth guarding is not "the anchor has children" (that would fail on a correct
+ * row) but the one the audit was actually reaching for: a row that exists must RENDER something,
+ * and the overlay's accessible name must be the title the sighted reader sees. This fails on a
+ * genuinely empty row, on a row whose content stopped rendering beside its anchor, and on an
+ * overlay whose label drifts from the row it covers, none of which the placeholder, overflow or
+ * target checks above can see.
+ */
+async function measureRowContent(page) {
+  return page.evaluate(() => {
+    return [...document.querySelectorAll('.cl-list-row')].map((row, i) => {
+      const link = row.querySelector('a.cl-row-link');
+      const title = row.querySelector('.cl-row-title-text');
+      const box = row.getBoundingClientRect();
+      return {
+        i,
+        text: (row.textContent || '').replace(/\s+/g, ' ').trim(),
+        hasLink: Boolean(link),
+        label: link ? (link.getAttribute('aria-label') || '') : '',
+        titleText: title ? (title.textContent || '').replace(/\s+/g, ' ').trim() : '',
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+      };
+    });
+  });
+}
+
+function assertRowContent(label, rows, expectedRows) {
+  const failures = [];
+  if (rows.length !== expectedRows) {
+    failures.push(`${label}: expected ${expectedRows} .cl-list-row element(s), found ${rows.length}`);
+  }
+  for (const row of rows) {
+    if (!row.hasLink) {
+      failures.push(`${label}: row ${row.i} has no overlay anchor; the whole row is the click target`);
+      continue;
+    }
+    if (row.text.length === 0) {
+      failures.push(
+        `${label}: row ${row.i} rendered ${row.width}x${row.height} with NO content: an empty box carrying an aria-label`,
+      );
+    }
+    if (row.label.length === 0) {
+      failures.push(`${label}: row ${row.i}'s overlay anchor has no accessible name`);
+    }
+    if (row.titleText.length === 0) {
+      failures.push(`${label}: row ${row.i} rendered no title text`);
+    } else if (row.label !== row.titleText) {
+      failures.push(
+        `${label}: row ${row.i}'s overlay label "${row.label}" is not the title it covers "${row.titleText}"`,
+      );
+    }
+  }
+  return failures;
 }
 
 export async function runSmoke(browser) {
@@ -209,6 +292,11 @@ export async function runSmoke(browser) {
         const guard = await measureGuard(page);
         const ux = await measureUx(page);
         checks += 1;
+
+        // Row-content invariant: see measureRowContent's header. Every Due-next row and every
+        // What-changed row in this state is one .cl-list-row.
+        const expectedRows = state.props.dueNextRows.length + state.props.changedRows.length;
+        failures.push(...assertRowContent(label, await measureRowContent(page), expectedRows));
 
         const placeholders = filteredPlaceholders(guard.texts);
         if (placeholders.length > 0) {

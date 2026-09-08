@@ -23,6 +23,7 @@
 
 import type { Supersession, ItemConnection } from "@/types/resource";
 import { buildAllConnectionRows } from "@/lib/connections/connection-view-model.mjs";
+import { formatNumber } from "@/lib/format";
 
 interface ItemConnectionsCardProps {
   connections: ItemConnection[];
@@ -76,7 +77,7 @@ export function ItemConnectionsCard({
       >
         <span>{title}</span>
         <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-2)" }}>
-          {rows.length}
+          {formatNumber(rows.length)}
         </span>
       </div>
 
@@ -105,7 +106,25 @@ export function ItemConnectionsCard({
                   <span>{row.label}</span>
                   {row.surface !== "uncategorized" && <span style={{ fontWeight: 600 }}>· {row.surface}</span>}
                 </div>
-                <div style={{ fontSize: 12.5, lineHeight: 1.4, color: "var(--text)", fontWeight: 600 }}>
+                {/* DEFECT 6 (lane opsclip, train 61, 2026-09-08): these entries rendered the FULL
+                    untruncated regulation title, running 8 to 12 lines each in a 300px rail and
+                    turning the card into a wall of text. The artboard truncates each entry to a
+                    scannable line. Two lines, clamped, with the full title on `title`, a clamp
+                    draws its own ellipsis, so nothing is cut without a sign. */}
+                <div
+                  title={row.title}
+                  style={{
+                    fontSize: 12.5,
+                    lineHeight: 1.4,
+                    color: "var(--text)",
+                    fontWeight: 600,
+                    display: "-webkit-box",
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: "vertical",
+                    overflow: "hidden",
+                    overflowWrap: "anywhere",
+                  }}
+                >
                   {row.title}
                 </div>
                 {row.discovered && row.basisSummary.length > 0 && (

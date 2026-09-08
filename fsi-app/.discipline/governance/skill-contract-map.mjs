@@ -132,15 +132,34 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // specifically).
 // 2026-09-07 (Lane F25-WAVE52, F25 module-liveness expiry-52 disposition —
 // docs/audits/f25-wave52-dispositions-2026-09-07.md): 'fsi-app/scripts/verify/stale-verified-audit.mjs'
+// RE-PINNED (2026-09-08, lane mobfix61): remediation-discipline SKILL.md gained Section 4 category 40
+// (a responsive @media rule naming a class no element carries is a silent no-op — the D-M3 map defect)
+// and its one normative line, triaged into new invariant RD-65-dead-media-query-class enforced by
+// fitness F40. The citing files below were re-read against the new text: the addition is a new section
+// appended before Section 9 and changes no statement any of them cites, so citingFiles is unchanged and
+// only the contentHash is re-pinned.
+// ---------------------------------------------------------------------------------------------------------
 // REMOVED from remediation-discipline's citingFiles — the file itself was deleted this lane (superseded:
 // its detection surface is now covered by the already-wired defect-signature-scan and surface-visibility
 // audits). No contentHash change; removing a deleted file's citation is the drift this gate exists to
 // catch, not a re-pin.
+// 2026-09-08 (Lane TAGS-401, train 61, production-defect lane): remediation-discipline re-pinned. Added
+// "Section 4 — category 40: a browser call to a requireAuth-guarded route attaches the session token in ONE
+// place, never at the call site" (invariant RD-65, F40). requireAuth reads the Authorization header and
+// nothing else, so a caller sending a cookie, or a bearer carrying no token, gets a 401 that fails soft and
+// is invisible to every test that mounts components against canned fixtures: the whole workspace-tags
+// feature 401'd for every signed-in user from the day it landed. No citingFiles change, same posture as the
+// category 36/37/38/39 re-pins above (the files below cite the skill as a whole, not this section).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: 'b3507fd5735f41cd8556b5b55a3e70c2dbadea6a1a514ced1ed7c3e025bdff54',
+    // 2026-09-08 (FOLD-61): re-pinned once for BOTH of train 61's new Section 4 categories - lane
+    // TAGS-401's category 40 (authed-api-fetch, RD-65 / F40) and lane mobfix61's category 41
+    // (dead-media-query-class, RD-66 / F41). The two lanes each arrived numbering theirs 40 and
+    // each pinned their own hash; the fold keeps both sections, renumbers the second, and pins the
+    // hash of the union. No cited statement changed: both are new appended sections.
+    contentHash: '724342ebbeeb6541456341d9d4e18e8b0b34b14873014533ca8cf5851df659bf',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

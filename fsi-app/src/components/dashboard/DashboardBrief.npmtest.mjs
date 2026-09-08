@@ -25,18 +25,30 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("the 'All N immediate' CardFoot control is wired as a Link to /regulations with the Immediate band facet, not plain text", () => {
+test("the 'All N immediate' CardFoot control is wired to /regulations with the Immediate band facet, not plain text", () => {
+  // UPDATED (lane opsclip, train 61, defect 5): the anchor itself moved into CardFoot's shared
+  // `leftHref` so the sibling foot on the What Changed card could not be built without it. The
+  // invariant this test guards is unchanged, the control has a real target built from the shared
+  // facet constant, only the part that renders the anchor moved.
   assert.match(
     SOURCE,
-    /<Link\s+href=\{`\/regulations\?\$\{BAND_FACET_PARAM\}=immediate`\}/,
-    "expected a <Link> to /regulations?band=immediate built from the shared BAND_FACET_PARAM constant"
+    /leftHref=\{`\/regulations\?\$\{BAND_FACET_PARAM\}=immediate`\}/,
+    "expected CardFoot leftHref = /regulations?band=immediate built from the shared BAND_FACET_PARAM constant"
   );
+});
+
+test("the 'All N changes in the last 7 days' CardFoot control is a real link too (defect 5)", () => {
+  // Production shipped this as a bare <span> while its counterpart above was an anchor. Its target
+  // is the regulations list ordered newest-first, through the `?sort=` contract that sits beside
+  // `?band=` in the same shared helper file.
+  assert.match(SOURCE, /All \{formatNumber\(totalChanges\)\} changes in the last 7 days/);
+  assert.match(SOURCE, /leftHref=\{`\/regulations\?\$\{SORT_FACET_PARAM\}=newest`\}/);
 });
 
 test("DashboardBrief imports BAND_FACET_PARAM from the shared list-surface-helpers contract, not a hardcoded '?band=' string", () => {
   assert.match(
     SOURCE,
-    /import\s*\{\s*BAND_FACET_PARAM\s*\}\s*from\s*["']@\/components\/list-surface\/list-surface-helpers["']/
+    /import\s*\{\s*BAND_FACET_PARAM,\s*SORT_FACET_PARAM\s*\}\s*from\s*["']@\/components\/list-surface\/list-surface-helpers["']/
   );
 });
 

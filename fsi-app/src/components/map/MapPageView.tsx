@@ -41,7 +41,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
-import { getJurisdiction } from "@/lib/scoring";
+import { jurisdictionKeyOf } from "@/lib/map/jurisdiction-rollup";
 import { JURISDICTIONS } from "@/lib/constants";
 import { JURISDICTION_CENTROIDS } from "@/components/map/jurisdictionCentroids";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
@@ -184,7 +184,7 @@ export function MapPageView(props: MapPageViewProps) {
       regionChips.size === 0
         ? bandFiltered
         : bandFiltered.filter((r) => {
-            const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
+            const jur = jurisdictionKeyOf(r);
             for (const chip of regionChips) {
               if (REGION_CHIP_TO_JURS[chip].includes(jur)) return true;
             }
@@ -214,7 +214,7 @@ export function MapPageView(props: MapPageViewProps) {
     const groups = new Map<string, Resource[]>();
     for (const r of filteredResources) {
       if (r.domain !== REGULATIONS_DOMAIN) continue;
-      const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
+      const jur = jurisdictionKeyOf(r);
       const list = groups.get(jur) || [];
       list.push(r);
       groups.set(jur, list);
@@ -281,8 +281,27 @@ export function MapPageView(props: MapPageViewProps) {
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-map-outer">
       <style>{`
+        /* D-M3 (lane mobfix61, 2026-09-08, operator mobile report: "map page complete overlaps
+           sections") [CONFIRMED root cause, twice over]. The rule here named .cl-map-grid, and
+           .cl-map-grid is the INNER content column below — which is a display:flex element, so
+           grid-template-columns on it was inert even on its own terms. The element that actually
+           holds the two-column layout is THIS one, .cl-map-outer, and nothing addressed it: the
+           300px rail track survived at every width, so at 390 the rail cards were laid out on top
+           of the MODE / BAND / REGION chip rows. A media query naming a class no element in the
+           file carries is a silent no-op, which is why this shipped; F41 in
+           .discipline/fitness/functions is the mechanical check that the class named in an @media
+           block exists on an element in the same file, so this class of defect cannot come back.
+
+           Below 1280 the rail folds under the content — the same one-track rule every other page
+           shell uses (ListSurfaceShell's own .cl-list-surface-grid), with minmax(0, 1fr) rather
+           than a bare 1fr so the single track cannot grow past the viewport on its content's
+           min-content width. Below 768 the page padding drops to the mobile 390 spec's measures
+           (14px 16px 16px), replacing the hardcoded 40px sides. */
         @media (max-width: 1280px) {
-          .cl-map-grid { grid-template-columns: 1fr !important; }
+          .cl-map-outer { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+        @media (max-width: 767px) {
+          .cl-map-outer { padding: 14px 16px 16px !important; gap: 16px !important; }
         }
       `}</style>
 
@@ -346,8 +365,18 @@ export function MapPageView(props: MapPageViewProps) {
             title="Regulatory map"
             aside={`${chartedRows.length} charted of ${liveJurisdictions} live · ${chartedItemCount} of ${totalActiveCount} items`}
           />
-          {/* dc.html p10: the map canvas is 420px tall. */}
-          <div style={{ position: "relative", height: 420 }} data-testid="map-canvas">
+          {/* dc.html p10: the map canvas is 420px tall.
+              `data-guard-clip` DECLARES this box a clipping viewport to the rendering guard: Leaflet
+              lays a tile grid deliberately wider than this frame and pans it inside the frame's own
+              overflow, so a tile's unclipped rect can read as past the page's right edge while nothing
+              the reader is meant to read is cut off. A tile is rendering substrate, not a run of words.
+              The declaration is narrow by construction: it carries only this frame's descendants, and
+              only while the frame itself sits inside the viewport (ux-assert.mjs, measureUx). */}
+          <div
+            style={{ position: "relative", height: 420, overflow: "hidden" }}
+            data-testid="map-canvas"
+            data-guard-clip
+          >
             <div style={{ position: "absolute", inset: 0 }}>
               <MapView
                 jurisdictions={mapMarkers}

@@ -176,6 +176,23 @@ import { fitnessFunction as F38 } from './functions/F38-unbounded-supabase-read.
 // db.mjs's readAllByIds/guardedUpdateByIds/guardedDelete or paginate.mjs's fetchAllRows core, or carry a
 // `// fitness-allow: F39 (reason)` marker proving the list is bounded. No allowlist, no expiry.
 import { fitnessFunction as F39 } from './functions/F39-unbounded-in-filter.mjs';
+// Authed API fetch (2026-09-08, lane TAGS-401, train 61): F40 makes "a guarded route is called
+// through the ONE authenticated fetcher" an invariant, and bans the hand-rolled `Bearer ${...}`
+// header outright. The whole workspace-tags feature 401'd for every signed-in user from the day it
+// landed and every gate stayed green, because a dead API fails soft and every test mounted fixtures.
+import { fitnessFunction as F40 } from './functions/F40-authed-api-fetch.mjs';
+
+// Dead-media-query-class (2026-09-08, lane mobfix61): F41 mechanizes the D-M3 defect class - a
+// responsive @media rule naming a `cl-*` class no element in the file carries. Nothing else in the
+// toolchain can see it (a CSS selector matching nothing is not an error), so it ships as a page
+// that is correct at the author's width and broken at the operator's. Maps to the map page's
+// 300px rail overlapping its own content at 390.
+// FOLD-61: this function arrived numbered F40, colliding with lane TAGS-401's own F40 above. Both
+// functions are kept; THIS one was renumbered to F41 because TAGS-401 landed first in train 61 and
+// its number was already cited by four discipline files, a smoke spec and a skill section, so
+// renumbering it would have touched strictly more citations. Its invariant moved with it, from
+// RD-65 to RD-66.
+import { fitnessFunction as F41 } from './functions/F41-dead-media-query-class.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -211,6 +228,8 @@ export const fitnessFunctions = [
   F37,
   F38,
   F39,
+  F40,
+  F41,
 ];
 
 export function getFunctionById(id) {

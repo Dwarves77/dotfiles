@@ -24,9 +24,21 @@ test("mobile bars sit on a rgba(0,0,0,.25) baseline (from the desktop --line-1 r
   assert.match(SOURCE, /rgba\(0,0,0,\.25\)/);
 });
 
-test("unscored row variant renders via Absence (small-caps reason), not a bare em dash", () => {
-  assert.match(SOURCE, /import \{ Absence \} from "@\/components\/ui\/Absence";/);
-  assert.match(SOURCE, /variant === "row" \? <Absence reason="unscored" \/>/);
+// UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4): the meter no longer names an
+// absence reason of its own. It rendered `<Absence reason="unscored" />` unconditionally while the
+// row's due and tier cells rendered their own, so one unscored row showed three tokens (the stack
+// the operator photographed) — and ruling 2.1 forbids that literal outright. The unscored state is
+// now the 30px dashed baseline ALONE, plus whatever single reason the COMPOSITE hands it through
+// `reason`. A test pinning the old literal would be preserving the defect, so it is replaced by
+// the invariant that actually binds.
+test("the meter never renders the literal 'unscored' (ruling 2.1)", () => {
+  assert.match(SOURCE, /import \{ Absence, type AbsenceReason \} from "@\/components\/ui\/Absence";/);
+  assert.doesNotMatch(SOURCE, /<Absence reason="unscored"/);
+});
+
+test("the unscored row variant renders the composite's single reason when given one, and no token when not", () => {
+  assert.match(SOURCE, /reason\?: AbsenceReason \| null;/, "reason must be an optional prop (undefined-safe)");
+  assert.match(SOURCE, /reason\s*\n?\s*\?\s*<Absence reason=\{reason\} \/>/);
 });
 
 test("full variant is untouched — still the bare em-dash unscored render, no Absence/media-query leak", () => {

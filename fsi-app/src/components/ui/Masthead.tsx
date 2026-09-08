@@ -85,6 +85,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
   return (
     <header
       className="cl-masthead"
+      data-masthead-size={size}
       style={{
         background: "var(--card)",
         border: "1px solid var(--line-1)",
@@ -121,9 +122,30 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           text-wrap: balance;
         }
         @media (max-width: 767px) {
-          .cl-masthead-body { padding: 14px 16px 0 !important; }
+          /* D-M5 (lane mobfix61, 2026-09-08, operator mobile report: "search bar touched
+             bounding box") [CONFIRMED by measurement at 390 on compose-02-regulations]:
+             card bottom 186.3, body bottom 185.3, command bar bottom 185.3 — the bar's bottom
+             edge sat ON the card's own 1px bottom border with ZERO padding beneath it, on every
+             mobile surface, because this rule set the body's bottom padding to 0 and the command
+             bar is the body's last child.
+
+             The mobile 390 spec's "padding 14px 16px 0" describes where the BODY's content
+             STARTS; the artboard still draws the card's own padding below the bar, and a card
+             whose content touches its border breaks the contained-by-its-parent rule whatever
+             the spec text reads (this lane's brief: "the card must contain its content with the
+             spec's padding ... which is what the artboard shows"). 16px is the same spec's own
+             bottom measure for the tile/content container directly beneath, so the two agree.
+             Measured after: card bottom 202.3, bar bottom 185.3, 16px of clearance. Logged in
+             DEVIATION-LOG.md. */
+          .cl-masthead-body { padding: 14px 16px 16px !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }
           .cl-masthead .cl-masthead-title { font-size: 24px !important; line-height: 1.08 !important; margin-top: 5px !important; }
+          /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the mobile 390 spec gives the
+             MASTHEAD title 24px/1.08 and the DETAIL HEADER title 22px/1.1, and this component
+             renders both (the size prop). Only the masthead measure was declared, so every detail title
+             rendered at 24px at 390. Keyed off the size prop the component already takes, via a
+             data attribute, rather than a second component or a page-local override. */
+          .cl-masthead[data-masthead-size="detail"] .cl-masthead-title { font-size: 22px !important; line-height: 1.1 !important; }
           .cl-masthead .cl-masthead-dek { font-size: 12px !important; line-height: 1.45 !important; }
           .cl-masthead .cl-masthead-row { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .cl-masthead .cl-masthead-cmdbar { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }
@@ -220,8 +242,14 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           }}
         >
           <span style={{ fontSize: "12.5px" }}>{notice.text}</span>
-          {notice.linkLabel && (
-            <a href={notice.linkHref ?? "#"} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+          {/* DEFECT 5, lane opsclip (train 61, 2026-09-08). This link used to fall back to a bare
+              hash when no target was given, which produced the only hash-href anchor in the whole
+              product: /settings' "See audit log", which the click-through proved dead (clicking
+              appends the hash to the URL and does nothing else). Ruling 1.1's class is that a dead
+              control is a defect, so the fallback is gone, a notice with no target renders NO
+              link, and a label can never again be shipped as a control that does nothing. */}
+          {notice.linkLabel && notice.linkHref && (
+            <a href={notice.linkHref} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
               {notice.linkLabel}
             </a>
           )}

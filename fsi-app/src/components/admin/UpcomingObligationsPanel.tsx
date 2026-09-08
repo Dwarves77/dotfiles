@@ -19,8 +19,8 @@
  * which AdminDashboard sub-tab is active, so this panel is reachable from all of them.
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { Calendar, RefreshCw, AlertCircle } from "lucide-react";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
@@ -75,19 +75,14 @@ export function UpcomingObligationsPanel() {
   const [kindFilter, setKindFilter] = useState<Kind | "all">("all");
   const [precisionFilter, setPrecisionFilter] = useState<Precision | "all">("all");
 
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const params = new URLSearchParams();
       if (kindFilter !== "all") params.set("kind", kindFilter);
       if (precisionFilter !== "all") params.set("precision", precisionFilter);
-      const resp = await fetch(`/api/admin/forward-events?${params}`, {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const resp = await authedFetch(`/api/admin/forward-events?${params}`);
       const payload = await resp.json();
       if (!resp.ok) {
         setError(payload?.error || `Failed to load (${resp.status})`);
@@ -100,7 +95,7 @@ export function UpcomingObligationsPanel() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, kindFilter, precisionFilter]);
+  }, [kindFilter, precisionFilter]);
 
   useEffect(() => {
     load();

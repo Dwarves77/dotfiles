@@ -41,6 +41,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
@@ -49,6 +50,11 @@ import { FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards"
 import { BAND_ORDER, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 import type { FacetOption } from "./list-surface-helpers";
+// Lane opsclip (train 61, defect 4): every RENDERED count on this shell goes through the
+// locale-pinned helper (F36, src/lib/format.ts). Before this pass the band tiles were separated and
+// nothing else was, so one /regulations screen carried "1,317 regulations" and "showing 5 of 1031"
+// on the same fold, plus "All 1031 monitor" and "then Monitor · 1031".
+import { formatNumber } from "@/lib/format";
 
 // PERF-12: only worth windowing once a band's expanded row count clears the perBandCap-collapsed
 // case by a wide margin. 30 rows unwindowed is cheap; a band expanded to hundreds is not.
@@ -153,10 +159,44 @@ export interface ListSurfaceShellProps {
 // below 768px): the facets card hides, a horizontal-scroll strip of compact FilterChipGroup
 // shells plus a "Filters" button take its place, and the sheet (built from the nav drawer's own
 // scrim mechanism) is available regardless of viewport but only reachable via that button.
-const MOBILE_FILTERS_CSS = `
+// Exported (MOBILE-60, 2026-09-08) because WatchlistSurface builds its own copy of this shell's
+// frame (masthead wrapper + content grid) rather than mounting the shell, and so carried NONE of
+// the mobile page measures: at 390 it kept the desktop 40px side padding on both wrappers. It now
+// renders this same block, so the five list surfaces have ONE definition of their mobile frame
+// instead of the shell having it and the watchlist quietly missing it (CLAUDE.md rule 13). The
+// filter rules below are inert on the watchlist, which renders none of those classes.
+export const LIST_SURFACE_MOBILE_CSS = `
   .cl-facets-mobile, .cl-filters-btn { display: none; }
   @media (max-width: 767px) {
-    .cl-facets-desktop { display: none !important; }
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by the audit's mobile-*
+       specs]. Three page-level measures the five list surfaces were missing:
+
+       (a) PAGE PADDING. Both wrappers below carry a hardcoded 40px side padding with
+       no mobile escape, so at 390 the content column was 310px wide and the masthead,
+       whose own mobile rule already sets 14px 16px 0, sat 56px in from the page edge.
+       The mobile 390 spec states 14px 16px 0 for the masthead and 14px 16px 16px for
+       the tile/content container; those are now the values that actually apply.
+
+       (b) BAND TILES. The tile row here had no class at all, so the spec's "2x2 grid,
+       gap 10px" (which DashboardBrief got via .cl-band-tiles) never reached the five
+       list surfaces and they rendered four 67px tiles across. The rule itself lives in
+       BandTile.tsx with the rest of the tile's mobile measures — one definition, both
+       callers — and this row now carries that class.
+
+       (c) DUPLICATE FILTER SURFACE. Below 768 the rail's own FILTERS card rendered
+       UNDER the folded rail at the same time as the mobile chip strip and the Filters
+       sheet button: two live filter controls for one set of facets, from the same
+       facetGroups. The mobile 390 spec designs exactly one ("chip groups scroll
+       sideways as whole units"; "facet counts and the workspace-tag facet open in a
+       sheet from Filters"), so the desktop expression of it is not shown at this
+       width. The rest of the rail still folds under the content, as the spec says.
+       Gated on --mobile-facets, a class this shell adds only when it is actually
+       rendering that chip strip: /watchlist reuses this block for its page measures but
+       has no chip strip of its own, and hiding its rail FILTERS card would leave it with
+       no filter surface at all at 390 — a worse defect than the duplication. */
+    .cl-list-surface-masthead { padding: 0 !important; }
+    .cl-list-surface-grid { padding: 14px 16px 16px !important; gap: 16px !important; }
+    .cl-list-surface-grid--mobile-facets [data-audit="filters-rail"] { display: none !important; }
     .cl-facets-mobile {
       display: flex;
       gap: 8px;
@@ -263,7 +303,7 @@ function FilterSheet({
                 </FilterChip>
                 {group.options.map((opt) => (
                   <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                    {opt.label} · {opt.count}
+                    {opt.label} · {opt.countLabel ?? formatNumber(opt.count)}
                   </FilterChip>
                 ))}
               </FilterChipGroup>
@@ -319,7 +359,7 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
         <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{band.window}</span>
       </span>
       <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
-        showing {showing} of {total}
+        showing {formatNumber(showing)} of {formatNumber(total)}
       </span>
     </div>
   );
@@ -330,7 +370,7 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
  *  is never named as "next". */
 function transitionLabel(sections: Array<{ band: UrgencyBand; total: number }>, index: number): string {
   const next = sections[index + 1];
-  return next ? `then ${next.band.label} \u00b7 ${next.total}` : "end of list";
+  return next ? `then ${next.band.label} \u00b7 ${formatNumber(next.total)}` : "end of list";
 }
 
 export function ListSurfaceShell({
@@ -373,7 +413,8 @@ export function ListSurfaceShell({
 
   return (
     <>
-      <div style={{ padding: "20px 40px 0" }}>
+      <div className="cl-list-surface-masthead" style={{ padding: "20px 40px 0" }}>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <Masthead
           title={title}
           dek={dek ?? scopeLine}
@@ -390,17 +431,20 @@ export function ListSurfaceShell({
           gap: 28,
           alignItems: "start",
         }}
-        className="cl-list-surface-grid"
+        className={allFacetGroups.length > 0 ? "cl-list-surface-grid cl-list-surface-grid--mobile-facets" : "cl-list-surface-grid"}
       >
         <style>{`
           @media (max-width: 1280px) {
-            .cl-list-surface-grid { grid-template-columns: 1fr !important; }
+            /* minmax(0, ...), not a bare 1fr: a bare 1fr is minmax(auto, 1fr), whose auto
+               minimum is the item's min-content width, so the single track could grow past
+               the viewport (MOBILE-60, same defect class fixed in DashboardBrief). */
+            .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; }
           }
         `}</style>
-        <style>{MOBILE_FILTERS_CSS}</style>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           {/* Band tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          <BandTileRow>
             {BAND_ORDER.map((band) =>
               loadingFirstPage || !bandCounts ? (
                 <SkeletonBandTile key={band.key} />
@@ -414,7 +458,7 @@ export function ListSurfaceShell({
                 />
               ),
             )}
-          </div>
+          </BandTileRow>
 
           {/* Facets — desktop: relocated to the rail's FILTERS card (operator audit 2026-09-07:
               "the filters were not above the regulations, they were on the right — same on every
@@ -565,7 +609,7 @@ export function ListSurfaceShell({
                             fontFamily: "inherit",
                           }}
                         >
-                          All {section.total} {section.band.label.toLowerCase()} →
+                          All {formatNumber(section.total)} {section.band.label.toLowerCase()} →
                         </button>
                       ) : (
                         <span style={{ minHeight: 24, display: "inline-flex", alignItems: "center" }} />

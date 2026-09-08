@@ -22,7 +22,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { RefreshCw, ExternalLink, Archive, RotateCw, Tag } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
@@ -44,7 +44,6 @@ interface RejectionsResponse {
 }
 
 export function IngestRejectionsView() {
-  const supabase = createSupabaseBrowserClient();
   const [data, setData] = useState<RejectionsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -61,10 +60,7 @@ export function IngestRejectionsView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/triage/ingest-rejections", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const res = await authedFetch("/api/admin/triage/ingest-rejections");
       const payload = await res.json();
       if (!res.ok) {
         setError(payload?.error || `HTTP ${res.status}`);
@@ -77,7 +73,7 @@ export function IngestRejectionsView() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -89,12 +85,10 @@ export function IngestRejectionsView() {
   ) {
     setPendingId(row.id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/triage/ingest-rejections", {
+      const res = await authedFetch("/api/admin/triage/ingest-rejections", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           id: row.id,

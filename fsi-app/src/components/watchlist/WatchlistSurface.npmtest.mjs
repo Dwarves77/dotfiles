@@ -51,8 +51,35 @@ test("the column header row uses artboard 11's own labels", () => {
 });
 
 test("the card foot carries the artboard's line and its Browse regulations link", () => {
-  assert.match(SRC, /left="Watch from any row's ⋯ menu or the Watch button on a detail page\."/);
+  // UPDATED, lane counts 2026-09-08 (COUNTS-61): the foot used to read "Watch from any row's ⋯
+  // menu", which reads as a control on THIS page. It now names where the menu is. The invariant
+  // this test holds is unchanged (the foot points the reader at the two ways to watch something,
+  // and carries the Browse link); only the copy it anchors on moved.
+  assert.match(SRC, /left="Watch an item from its ⋯ menu on any list page, or the Watch button on a detail page\."/);
   assert.match(SRC, /Browse regulations →/);
+});
+
+test("no region on this page claims a 'last visit' the product does not record", () => {
+  // COUNTS-61: GET /api/notices applies a fixed 30-day window (its own DEFAULT_WINDOW_DAYS) and no
+  // caller sends ?since=. The card used to print "SINCE YOUR LAST VISIT" twice and never a date.
+  // Comments are stripped first: this file's own prose explains the defect and would match itself.
+  const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /last visit/i, "no rendered string claims a last visit");
+  // The window's DATE is derived ONCE, from the instant the feed itself reports, and the two
+  // places that name it are two presentations OF that one date. UPDATED AT FOLD-61: this counted
+  // occurrences of `noticesWindowLabel` and read 3 (one derivation, two mounts). The card head and
+  // the strip are different SENTENCES and cannot share a phrase - reusing the head's label inside
+  // the strip rendered "4 watched items changed in since aug 8, 2026", found by eye in the fold's
+  // visual pass. The invariant is unchanged and is asserted on the date instead: one derivation,
+  // two presentations built from it, no second read of the feed's instant.
+  // Five occurrences, and the arithmetic is the assertion: ONE `const noticesWindowDate = ...`,
+  // then each of the two presentations naming it twice (its own null test and its interpolation).
+  assert.equal(code.split("noticesWindowDate").length - 1, 5, "one date derivation, two presentations");
+  assert.equal(code.split("const noticesWindowDate").length - 1, 1, "derived in exactly one place");
+  assert.match(code, /noticesWindowLabel = noticesWindowDate \?/, "the head label is built from that one date");
+  assert.match(code, /noticesWindowClause = noticesWindowDate \?/, "the strip clause is built from that same date");
+  assert.equal(code.split("formatLocaleDate(new Date(noticesSince)").length - 1, 1, "the instant is formatted exactly once");
+  assert.match(code, /noticesSince/, "the label is derived from the feed's own since");
 });
 
 test("the masthead carries the scope line and the watchlist-scoped command-bar placeholder", () => {
@@ -73,4 +100,19 @@ test("a count still loading is never rendered as 0 (a Skeleton stands in, per th
   // suppressed entirely rather than announcing "0 items changed".
   assert.match(SRC, /noticesLoading \? \(\s*<SkeletonListRow \/>/);
   assert.match(SRC, /\{!noticesLoading && notices\.length > 0 && \(/);
+});
+
+test("the mobile page frame is the list shell's own exported block, not a second copy (MOBILE-60)", () => {
+  // This surface builds its own copy of ListSurfaceShell's frame (masthead wrapper + content
+  // grid) instead of mounting the shell, and so carried NONE of the mobile page measures: at 390
+  // it kept the desktop 40px side padding on both wrappers while the other four list surfaces did
+  // not. It now renders the shell's own exported CSS block, so there is one definition of the
+  // mobile frame rather than one plus a silent omission (CLAUDE.md rule 13).
+  assert.match(SRC, /import \{ LIST_SURFACE_MOBILE_CSS \} from "@\/components\/list-surface\/ListSurfaceShell"/);
+  assert.match(SRC, /<style>\{LIST_SURFACE_MOBILE_CSS\}<\/style>/);
+  assert.match(SRC, /className="cl-list-surface-masthead"/);
+  // The <=1280 single-track override keeps the minmax(0, ...) floor: a bare 1fr is
+  // minmax(auto, 1fr), whose auto minimum is min-content, and the track then grows past the
+  // viewport (the defect measured on the dashboard at 390).
+  assert.match(SRC, /\.cl-list-surface-grid \{ grid-template-columns: minmax\(0, 1fr\) !important; \}/);
 });

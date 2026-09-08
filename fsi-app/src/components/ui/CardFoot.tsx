@@ -24,16 +24,54 @@
  * Either side may be a link: the artboards put the link left on the dashboard
  * ("All 14 immediate →") and right on the watchlist ("Browse regulations →"),
  * so this component takes two arbitrary nodes and imposes no role on either.
+ *
+ * DEFECT 5, lane opsclip (train 61, 2026-09-08). The two band-footer expanders
+ * on the dashboard disagreed with each other on production: "All 14 immediate"
+ * was a real anchor and "All 500 changes in the last 7 days" was a bare
+ * <span>, `closest('a') === false`, `cursor: auto`, i.e. not a control at
+ * all, while the artboard draws BOTH as links. The root cause was that the
+ * link treatment lived at ONE call site inside DashboardBrief rather than
+ * here, so the second foot could be written without it and nothing noticed.
+ * `leftHref`/`rightHref` move that treatment into the shared part: a caller
+ * that names a target gets the anchor, its law-2 padding and its underline,
+ * identically on both sides, and cannot half-build one.
  */
 
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 export interface CardFootProps {
   left: ReactNode;
   right: ReactNode;
+  /** Navigation target for the left label. Additive: undefined renders the
+   *  label as plain text, exactly as before. */
+  leftHref?: string;
+  /** Navigation target for the right label. Additive, same contract. */
+  rightHref?: string;
 }
 
-export function CardFoot({ left, right }: CardFootProps) {
+/** The foot-strip link treatment, one definition for both sides. Law-2's 24px
+ *  floor is met with real padding rather than a negative-margin hit area,
+ *  because the surrounding Card clips overflow and would clip the hit area
+ *  with it; the few extra px of footer height are logged in DEVIATION-LOG.md. */
+function FootLink({ href, children }: { href: string; children: ReactNode }) {
+  return (
+    <Link
+      href={href}
+      style={{
+        color: "inherit",
+        textDecoration: "underline",
+        textUnderlineOffset: 2,
+        display: "inline-block",
+        padding: "8px 0",
+      }}
+    >
+      {children}
+    </Link>
+  );
+}
+
+export function CardFoot({ left, right, leftHref, rightHref }: CardFootProps) {
   return (
     <div
       className="cl-card-foot"
@@ -49,8 +87,21 @@ export function CardFoot({ left, right }: CardFootProps) {
         color: "var(--ink-3)",
       }}
     >
-      <span>{left}</span>
-      <span style={{ whiteSpace: "nowrap" }}>{right}</span>
+      {/* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the right side is
+          white-space: nowrap, which is right in the 778px content column and wrong at
+          390, where the dashboard's own legend ("old band -> new band · NEW = first
+          seen this pass") ran past the card edge. Below 768 the strip wraps to two
+          lines and the right side may break. Nothing else about it changes, and in
+          particular the opsclip foot LINKS below are untouched: the media query is a
+          wrapping rule, not a content rule. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-card-foot { flex-wrap: wrap; }
+          .cl-card-foot > span { white-space: normal !important; min-width: 0; }
+        }
+      `}</style>
+      <span>{leftHref ? <FootLink href={leftHref}>{left}</FootLink> : left}</span>
+      <span style={{ whiteSpace: "nowrap" }}>{rightHref ? <FootLink href={rightHref}>{right}</FootLink> : right}</span>
     </div>
   );
 }

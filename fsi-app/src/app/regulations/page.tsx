@@ -22,6 +22,8 @@
  * considered reversal of PERF-12's own choice.
  */
 
+import { Suspense } from "react";
+import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getPublicListingsOnly, getPublicSurfaceCounts, getPublicObligationRegisterFirstPage } from "@/lib/data";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
@@ -33,19 +35,25 @@ import { ObligationRegister } from "@/components/regulations/ObligationRegister"
 // severity classification and why they render as one block, not two.
 import { EudrCustodyPanel } from "@/components/regulations/EudrCustodyPanel";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
-import { bandFromSearchParam } from "@/components/list-surface/list-surface-helpers";
+import { sortFromSearchParam } from "@/components/list-surface/list-surface-helpers";
 import { renderNowIso } from "@/lib/render-now";
 
 export default async function RegulationsPage({
   searchParams,
 }: {
-  // `?band=immediate|action|monitor|awareness` pre-selects the band facet tile — the same
-  // server-`searchParams` pattern `/map`'s `?region=` already uses (never client-side
-  // `useSearchParams()`, which would opt this page out of static rendering with no Suspense
-  // boundary). Audit item 1.1 (2026-09-07): this is the contract the Dashboard's "All N
-  // immediate" control now links through (`/regulations?band=immediate`) — verified against this
-  // base that no such param existed before this fix (`filter.band` was local `useState` only).
-  searchParams: Promise<{ band?: string }>;
+  // COUNTS-61 (2026-09-08): every FACET round-trips through the URL, not just `?band=`, and the
+  // filter state is read CLIENT-side by useListSurfaceFilter (one contract for all of them) rather
+  // than resolved here and handed down for the band alone. `?band=immediate|action|monitor|
+  // awareness` therefore still works, and is still the contract the Dashboard's "All N immediate"
+  // control links through; it is simply read by the hook now. Reading `searchParams` here at all is
+  // what already made this route dynamic; the <Suspense> boundary below is what keeps
+  // `useSearchParams()` legal inside the ledger regardless.
+  //
+  // `?sort=next-date|newest|az|my-order` is resolved HERE and not by that hook (lane opsclip, train
+  // 61, defect 5), because sort is ORDERING rather than a facet: the dashboard's "All N changes in
+  // the last 7 days" links to this list ordered newest-first, so the link lands on the ordering it
+  // names on the FIRST paint, before any client hook has run.
+  searchParams: Promise<{ band?: string; sort?: string }>;
 }) {
   // First-paint page only (LIST_FIRST_PAGE_SIZE = 60 rows, newest-priority-
   // first) — RegulationsLedger fetches the rest after paint via
@@ -54,7 +62,7 @@ export default async function RegulationsPage({
   // (get_surface_counts, or its scoped-aggregates fallback) — a real RPC,
   // independent of how many rows are loaded — so the header count stays
   // honest at 60, at 1,316, and everywhere in between.
-  const [{ band: bandParam }, data, aggregates, obligationRegisterFirstPage] = await Promise.all([
+  const [{ sort: sortParam }, data, aggregates, obligationRegisterFirstPage] = await Promise.all([
     searchParams,
     getPublicListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getPublicSurfaceCounts("regulations"),
@@ -66,15 +74,19 @@ export default async function RegulationsPage({
 
   return (
     <>
-      <SystemErrorBanner message={data._error} />
-      <RegulationsLedger
-        initialResources={regulationResources.map(toLedgerRowPayload)}
-        initialArchived={data.archived}
-        aggregates={aggregates}
-        hasMore={hasMore}
-        initialBand={bandFromSearchParam(bandParam ?? null)}
-        nowIso={renderNowIso()}
-      />
+      <SystemErrorBanner message={data._error} reason={describeFallbackTrigger(data._fallbackTrigger)} />
+      {/* useSearchParams() inside the ledger needs a Suspense boundary (Next's own rule), so the
+          surface streams rather than opting the whole route into client rendering. */}
+      <Suspense fallback={null}>
+        <RegulationsLedger
+          initialResources={regulationResources.map(toLedgerRowPayload)}
+          initialArchived={data.archived}
+          aggregates={aggregates}
+          hasMore={hasMore}
+          initialSort={sortFromSearchParam(sortParam ?? null)}
+          nowIso={renderNowIso()}
+        />
+      </Suspense>
       {/* Lane SURF (2026-09-01): customer-facing top strip for item_forward_events ("what is due,
           when") — see UpcomingObligationsStrip.tsx's own header. Self-contained server component. */}
       <UpcomingObligationsStrip variant="list" />

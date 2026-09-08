@@ -155,7 +155,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
             Issues queue
           </h2>
           <span
-            aria-label={`${total} items need attention`}
+            aria-label={`${formatNumber(total)} items need attention`}
             style={{
               fontFamily: "var(--font-display)",
               fontSize: 18,

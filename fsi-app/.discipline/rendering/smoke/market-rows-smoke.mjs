@@ -11,6 +11,7 @@
 // the aside stacks BELOW the title at <=640px, full width, figure + actions back on one line.
 
 import { runUxSpec } from './ux-harness.mjs';
+import { fileURLToPath } from 'node:url';
 import { ROW_SYSTEM_CSS } from './smoke-fixtures.mjs';
 
 // See smoke-fixtures.mjs's ROW_SYSTEM_CSS header: the harness never loads globals.css, so this
@@ -34,6 +35,14 @@ window.__mount = (props) => {
   root.render(React.createElement(MarketIntelLedger, props));
 };
 `;
+
+// COUNTS-61 (2026-09-08): the ledger now reads its facet state from the URL through
+// useListSurfaceFilter (useSearchParams/useRouter/usePathname), so every facet is linkable rather
+// than only the band. Outside a real Next App Router tree those hooks throw ("invariant expected app
+// router to be mounted"), so this spec aliases them to the same stub regulations-rows-smoke.mjs and
+// community-smoke.mjs already use, rather than a third copy of it.
+const HERE = fileURLToPath(new URL('.', import.meta.url));
+const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
 
 const EMPTY_AGGREGATES = {
   totalItems: 0,
@@ -117,5 +126,5 @@ const SPEC = {
 };
 
 export async function runSmoke(browser) {
-  return runUxSpec(browser, SPEC);
+  return runUxSpec(browser, { ...SPEC, alias: ALIAS });
 }

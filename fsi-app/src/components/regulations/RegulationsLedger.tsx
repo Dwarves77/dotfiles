@@ -74,17 +74,13 @@ import { LegendRailCard, ObligationsRailCard } from "@/components/list-surface/L
 import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
-  EMPTY_FILTER_STATE,
-  bandFacetOptions,
-  modeFacetOptions,
-  regionFacetOptions,
-  topicFacetOptions,
-  tierFacetOptions,
+  liveFacetCounts,
   filterRows,
   withListPosition,
   sortResourceRows,
-  type RowFilterState,
+  type ListSurfaceSortKey,
 } from "@/components/list-surface/list-surface-helpers";
+import { useListSurfaceFilter } from "@/components/list-surface/useListSurfaceFilter";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "regulations";
@@ -119,17 +115,22 @@ export interface RegulationsLedgerProps {
   /** Whether the corpus is larger than the first-paint page, so the
    *  after-paint remainder fetch should run at all. */
   hasMore: boolean;
-  /** Band facet to pre-select from the page's own `?band=` search param (audit item 1.1,
-   *  2026-09-07) — see regulations/page.tsx's own header. Null when the URL carries no valid
-   *  band, which is the pre-existing default (no facet applied). */
-  initialBand?: UrgencyBandKey | null;
+  /** `?sort=next-date|newest|az|my-order` deep-link (lane opsclip, train 61, defect 5). The band
+   *  and every other FACET now round-trips through useListSurfaceFilter's URL contract
+   *  (COUNTS-61), which is why there is no `initialBand` beside this: sort is ORDERING, not a
+   *  facet, and is the one piece of view state that hook does not own. Undefined keeps the
+   *  surface's own default ordering, so every existing caller is unaffected. */
+  initialSort?: ListSurfaceSortKey | null;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null, nowIso }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialSort = null, nowIso }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
-  const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
+  // COUNTS-61 (2026-09-08): filter state lives in the URL, so a filtered view can be linked,
+  // bookmarked and reloaded. `?band=` is read by this hook rather than resolved server-side and
+  // passed down, so there is exactly one copy of the facet state and no second one to drift.
+  const { filter, setFacet, toggleFacet } = useListSurfaceFilter();
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
-  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az" | "my-order">("next-date");
+  const [sortKey, setSortKey] = useState<ListSurfaceSortKey>(initialSort ?? "next-date");
   const [flat, setFlat] = useState(false);
 
   // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
@@ -152,38 +153,48 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     [allRows, filter, tagsFacet.matchesSelectedTag, sortKey]
   );
 
-  const bandCounts = useMemo(() => {
-    const opts = bandFacetOptions(allRows, aggregates.byPriority as unknown as Record<string, number>);
-    return Object.fromEntries(opts.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>;
-  }, [allRows, aggregates.byPriority]);
-
-  const modeOptions = useMemo(() => modeFacetOptions(allRows), [allRows]);
-  const regionOptions = useMemo(() => regionFacetOptions(allRows, aggregates.byJurisdiction), [allRows, aggregates.byJurisdiction]);
-  const topicOptions = useMemo(() => topicFacetOptions(allRows), [allRows]);
-  const tierOptions = useMemo(() => tierFacetOptions(allRows), [allRows]);
+  // COUNTS-61: ONE derivation for every facet count and the surface total, so the Filters card's
+  // own caption ("Counts are live for the current selection") is true. See liveFacetCounts.
+  const counts = useMemo(
+    () =>
+      liveFacetCounts(allRows, filter, {
+        byPriority: aggregates.byPriority as unknown as Record<string, number>,
+        byJurisdiction: aggregates.byJurisdiction,
+        totalItems: aggregates.totalItems,
+      }),
+    [allRows, filter, aggregates.byPriority, aggregates.byJurisdiction, aggregates.totalItems],
+  );
+  const bandCounts = useMemo(
+    () => Object.fromEntries(counts.band.map((o) => [o.key, o.count])) as Record<UrgencyBandKey, number>,
+    [counts.band],
+  );
+  const modeOptions = counts.mode;
+  const regionOptions = counts.region;
+  const topicOptions = counts.topic;
+  const tierOptions = counts.tier;
 
   const facetGroups: ListSurfaceFacetGroup[] = [
-    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
+    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFacet("mode", v) },
     {
       key: "region",
       label: "Jurisdiction",
       options: regionOptions,
       selected: filter.region,
-      onSelect: (v) => setFilter((f) => ({ ...f, region: v })),
+      onSelect: (v) => setFacet("region", v),
     },
     {
       key: "topic",
       label: "Topic",
       options: topicOptions,
       selected: filter.topic ?? null,
-      onSelect: (v) => setFilter((f) => ({ ...f, topic: v })),
+      onSelect: (v) => setFacet("topic", v),
     },
     {
       key: "tier",
       label: "Source tier",
       options: tierOptions,
       selected: filter.tier ?? null,
-      onSelect: (v) => setFilter((f) => ({ ...f, tier: v })),
+      onSelect: (v) => setFacet("tier", v),
     },
   ];
 
@@ -234,8 +245,13 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     });
   }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem]);
 
-  const total = aggregates.totalItems || allRows.length;
-  const jurisdictionCount = aggregates.totalJurisdictions || regionOptions.length;
+  // COUNTS-61: the surface total is the same figure the facets are counted against — the corpus at
+  // rest, the current selection under a filter. It used to be `aggregates.totalItems` unconditionally,
+  // which is why "1,317 regulations" sat above a list showing 8.
+  const total = counts.total;
+  const jurisdictionCount = counts.liveSelection
+    ? regionOptions.length
+    : aggregates.totalJurisdictions || regionOptions.length;
 
   // Scope line (artboard 02/id="p2" masthead: "1,316 active · 32 jurisdictions · last sync Sep 4 ·
   // next obligation Sep 25 · EU Net-Zero Industry Act"), live fields only — a field this surface
@@ -251,7 +267,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   }, [allRows]);
   const scopeLineParts = [
     `${formatNumber(total)} active`,
-    `${jurisdictionCount} jurisdictions`,
+    `${formatNumber(jurisdictionCount)} jurisdictions`,
     aggregates.lastUpdatedAt
       ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
       : null,
@@ -270,10 +286,10 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       nowIso={nowIso}
       itemCount={total}
       scope="regulations"
-      onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
+      onSearch={(q) => setFacet("query", q)}
       bandCounts={bandCounts}
       selectedBand={filter.band}
-      onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
+      onSelectBand={(key) => toggleFacet("band", key)}
       facetGroups={facetGroups}
       secondaryFacetGroups={[workspaceTagFacetGroup]}
       sortRow={
@@ -288,7 +304,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
           controlLabel="Sort"
           options={SORT_OPTIONS}
           active={sortKey}
-          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az" | "my-order")}
+          onSelect={(k) => setSortKey(k as ListSurfaceSortKey)}
         />
       }
       flat={flat}

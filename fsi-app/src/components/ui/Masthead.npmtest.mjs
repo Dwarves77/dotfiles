@@ -49,3 +49,13 @@ test("the mobile stack below 767 is untouched", () => {
 test("the scope and verticals lines still balance rather than orphan a word (operator, 2026-09-07)", () => {
   assert.match(SOURCE, /\.cl-masthead-dek > \* \{\s*\n\s*text-wrap: pretty;\s*\n\s*text-wrap: balance;/);
 });
+
+// ── notice link (lane opsclip, train 61, defect 5) ────────────────────────────
+test("a notice link renders only when it has a real target: no '#' href fallback", () => {
+  // Production's only `#`-href anchor across all fifteen pages was this fallback, on /settings'
+  // "See audit log →", and it was dead on click. Ruling 1.1's class is that a dead control is a
+  // defect, so the component can no longer manufacture a target it does not have.
+  assert.doesNotMatch(SOURCE, /notice\.linkHref \?\? "#"/);
+  assert.match(SOURCE, /\{notice\.linkLabel && notice\.linkHref && \(/);
+  assert.match(SOURCE, /href=\{notice\.linkHref\}/);
+});

@@ -193,7 +193,12 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
                 <b>Applies workspace-wide</b> · changes here affect every member, not just you
               </>
             ),
-            linkLabel: "See audit log →",
+            // DEFECT 5 (lane opsclip, train 61): "See audit log →" shipped as <a href="#"> and did
+            // nothing. There is no audit-log route and no audit-log table in the product
+            // [CONFIRMED: src/app has no such route, and the only `audit` identifiers in src/ are
+            // admin-side verification helpers], so per ruling 1.1's class the link is removed and
+            // the notice text stands on its own. It comes back the day the surface exists, as a
+            // `linkHref`, which Masthead now requires before it will render any link at all.
           }}
         />
       </div>
@@ -560,7 +565,14 @@ function FreightSectorsCard() {
                   border: on ? "1.5px solid var(--color-primary)" : "1.5px solid var(--color-border-strong)",
                 }}
               />
-              <span style={{ minWidth: 0 }}>{sector.label}</span>
+              {/* FOLD-61 [CONFIRMED, measured at 390 by the fold's own overflow sweep]: `minWidth: 0`
+                  lets this cell shrink, and the label WRAPS between words, but the longest single
+                  word in the vocabulary ("Pharmaceutical") is 6px wider than the tile at 390, and a
+                  word that cannot fit its box is clipped rather than wrapped - characters lost with
+                  no ellipsis, the class lane opsclip fixed at 1440. `break-word` breaks ONLY a word
+                  that does not otherwise fit, so every shorter label is untouched at every width and
+                  the desktop rendering is unchanged. */}
+              <span style={{ minWidth: 0, overflowWrap: "break-word" }}>{sector.label}</span>
             </button>
           );
         })}

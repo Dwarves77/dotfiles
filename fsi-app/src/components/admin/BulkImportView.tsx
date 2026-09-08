@@ -22,8 +22,8 @@
  * the existing admin shell.
  */
 
-import { useCallback, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useCallback, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import {
   Upload,
@@ -98,8 +98,6 @@ export function BulkImportView() {
   const [preview, setPreview] = useState<BulkImportResponse | null>(null);
   const [toast, setToast] = useState("");
 
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 4500);
@@ -144,15 +142,10 @@ export function BulkImportView() {
         .map((s) => s.trim())
         .filter(Boolean);
 
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-
-      const resp = await fetch("/api/admin/sources/bulk-import", {
+      const resp = await authedFetch("/api/admin/sources/bulk-import", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           format,
@@ -174,7 +167,7 @@ export function BulkImportView() {
       }
       return payload as BulkImportResponse;
     },
-    [autoVerify, csvText, defaultJurisdiction, format, jsonText, supabase]
+    [autoVerify, csvText, defaultJurisdiction, format, jsonText]
   );
 
   const handlePreview = useCallback(async () => {

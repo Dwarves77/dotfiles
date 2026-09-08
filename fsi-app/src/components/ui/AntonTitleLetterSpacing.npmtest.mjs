@@ -62,7 +62,11 @@ test("WatchlistSurface's card titles go through the shared SectionHeading (which
   assert.match(text, /import \{ SectionHeading \} from "@\/components\/ui\/SectionHeading"/);
   // dc.html p11's two card heads, in artboard order.
   assert.match(text, /<SectionHeading title=\{`Watched · \$\{items\.length\}`\} aside="Sorted by next date" \/>/);
-  assert.match(text, /<SectionHeading title="Recalculation notices" aside="Since your last visit" \/>/);
+  // UPDATED, lane counts 2026-09-08 (COUNTS-61): the aside was the literal "Since your last visit",
+  // a claim with no instant behind it (see WatchlistSurface's own note). It is now the window the
+  // /api/notices feed reports. This test's invariant is that the head goes through the shared
+  // SectionHeading, which is unchanged; only the aside's value moved from a literal to a binding.
+  assert.match(text, /<SectionHeading title="Recalculation notices" aside=\{noticesWindowLabel\} \/>/);
   // The page-local head this replaced set its own 18px font — the artboard says 20, which the
   // shared component now owns. No page-local title styling may return.
   assert.doesNotMatch(text, /fontSize: 18,/);

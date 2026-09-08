@@ -79,11 +79,11 @@
       }
     },
     {
-      "name": "row unscored — Absence reason (operator ruling 2.1, supersedes the artboard's plain em-dash)",
-      "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored > span:last-child",
-      "note": "Operator 2.1: 'the small-caps absence reason from the fixed vocabulary ... at 10.5px uppercase/600 #7A6E6C'. Absence.tsx uses font-variant:small-caps (not text-transform:uppercase) at font-size var(--fs-105)=10.5px, weight 600, color var(--ink-3)=#7A6E6C. Selector reaches the Absence element specifically (not the wrapper), which also contains a mobile <style> tag whose CSS text would otherwise pollute textContent.",
+      "name": "row unscored — the meter renders the dashed baseline and NO reason of its own (D-M4)",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored",
+      "note": "UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4). This asserted the meter's own text was \"unscored\". It was: the meter named the state itself while the row's due and tier cells named their own absences beside it, so one unscored row rendered three tokens — a dashed baseline, then UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own, which is what the operator photographed on 2026-09-08. Ruling 2.1 forbids the literal outright and allows exactly ONE reason per row. The meter no longer names a reason; the composite hands it one through `reason`, chosen by Absence.tsx's ABSENCE_PRECEDENCE. A spec pinning the old literal would be preserving the defect, so it asserts the unscored container instead, and the one-token invariant is asserted where it belongs, on the ROW (listrow.json / the mobile-* specs' `.cl-list-row .cl-absence` count).",
       "expect": {
-        "text": "unscored"
+        "display": "flex"
       }
     },
     {
@@ -112,6 +112,11 @@
       "selector": "[data-audit=\"row-unscored\"] span, [data-audit=\"full-unscored\"] span",
       "textMatch": "NOT SCORED",
       "reason": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+    },
+    {
+      "name": "the meter never renders an absence token of its own accord",
+      "selector": "[data-audit=\"row-unscored\"] .cl-absence",
+      "reason": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
     }
   ]
 }

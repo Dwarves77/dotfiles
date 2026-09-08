@@ -86,19 +86,59 @@ export function detectSqueezedTitles(titles, ratio = TITLE_MIN_RATIO) {
  * (2026-09-03, second phone report: the regional matrix table and a detail-page breadcrumb were CLIPPED
  * at the right edge; scrollWidth never moved because an `overflow: hidden` ancestor swallowed the
  * overflow, so the existing detector stayed green while words ran off the page). Input:
- * [{ name, right, viewportWidth, scrollable }] where `scrollable` is true only when a DECLARED strip
- * ancestor (`data-guard-strip` + overflow-x auto/scroll) carries the element. Pure.
+ * [{ name, right, viewportWidth, scrollable, inClipViewport }] where `scrollable` is true only when a
+ * DECLARED strip ancestor (`data-guard-strip` + overflow-x auto/scroll) carries the element, and
+ * `inClipViewport` true only when a DECLARED clipping viewport ancestor (`data-guard-clip` + an
+ * overflow that actually clips, and itself inside the viewport) carries it. See measureUx below for
+ * why a slippy map's tile grid is the one thing that legitimately declares itself that way. Pure.
  */
 export function detectClippedOverflow(boxes, tolerance = 2) {
   if (!Array.isArray(boxes)) return [];
-  return boxes.filter((b) => b && !b.scrollable && Number(b.right) > Number(b.viewportWidth) + tolerance);
+  return boxes.filter(
+    (b) => b && !b.scrollable && !b.inClipViewport && Number(b.right) > Number(b.viewportWidth) + tolerance,
+  );
+}
+
+/**
+ * TEXT CLIPPED WITHOUT AN ELLIPSIS (opsclip, train 61, defects 2 and 6). The class the operator
+ * found on production himself, on five surfaces at once: the dashboard and /watchlist column
+ * header shipped as "IMPACT LOW → H"; /research row meta as "Last-mile electrifica"; the
+ * /operations and /regulations section index as "S6 Operational requirem" and a bare "S7"; the
+ * /regulations UPCOMING OBLIGATIONS fifth card cut mid-word. Every one of them is a text run
+ * whose own box hides its overflow with `text-overflow: clip`, a character is lost and the
+ * reader is given no sign that anything is missing.
+ *
+ * The rule: a text run may overflow its own box only when it says so, i.e. `text-overflow:
+ * ellipsis` (or a `-webkit-line-clamp`, which draws its own ellipsis). Otherwise it must fit,
+ * wrap, or scroll inside a DECLARED strip.
+ *
+ * A COLUMN HEADER (`mustFit`) is held to a stricter rule: it must fit outright, ellipsis or not.
+ * Its text is fixed, short and known at build time, so there is no reader-supplied string that
+ * could ever justify truncating it, and an ellipsis is exactly how defect 2 hid itself, shipping
+ * "IMPACT LOW → HIGH" as "IMPACT LOW → H" while every truncation detector stayed green because the
+ * truncation was declared.
+ *
+ * Input: [{ name, overflowX, overflowY, textOverflow, clamped, inStrip, mustFit }] from
+ * `measureUx`. `overflowX`/`overflowY` are scrollWidth-clientWidth / scrollHeight-clientHeight
+ * in px. Pure.
+ */
+export function detectClippedText(runs, tolerance = 1) {
+  if (!Array.isArray(runs)) return [];
+  return runs.filter(
+    (r) =>
+      r &&
+      !r.clamped &&
+      !r.inStrip &&
+      (r.mustFit === true || r.textOverflow !== 'ellipsis') &&
+      (Number(r.overflowX) > tolerance || Number(r.overflowY) > tolerance),
+  );
 }
 
 /**
  * Human-readable failure strings for one measured page (empty = clean). `targets`, `titles` and
  * `clipped` are the collector outputs; `label` prefixes each line for the caller's summary. Pure.
  */
-export function assertUxClean(label, { targets = [], titles = [], clipped = [] } = {}) {
+export function assertUxClean(label, { targets = [], titles = [], clipped = [], textRuns = [] } = {}) {
   const failures = [];
   const off = detectClippedOverflow(clipped);
   if (off.length > 0) {
@@ -113,6 +153,16 @@ export function assertUxClean(label, { targets = [], titles = [], clipped = [] }
       .join(', ');
     failures.push(
       `${label}: ${small.length} interactive target(s) below the law-2 floor (≥${TARGET_MIN_PX}px, or ≥${TARGET_SMALL_MIN_PX}px with ${TARGET_CLEARANCE_PX}px clearance) — ${detail}${small.length > 8 ? ', …' : ''}`,
+    );
+  }
+  const clippedText = detectClippedText(textRuns);
+  if (clippedText.length > 0) {
+    const detail = clippedText
+      .slice(0, 8)
+      .map((r) => `${r.name} +${Math.round(Math.max(r.overflowX, r.overflowY))}px`)
+      .join(', ');
+    failures.push(
+      `${label}: ${clippedText.length} text run(s) clipped with no ellipsis, ${detail}${clippedText.length > 8 ? ', …' : ''}`,
     );
   }
   const squeezed = detectSqueezedTitles(titles);
@@ -176,7 +226,30 @@ export async function measureUx(page) {
             if (ox === 'auto' || ox === 'scroll') { scrollable = true; break; }
           }
         }
-        clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable });
+        // A DECLARED CLIPPING VIEWPORT (`data-guard-clip`) carries its descendants, the same way a
+        // declared strip does (lane mapclip, 2026-09-08, train 61 PR #610's one CI-only red).
+        // WHY A MAP TILE IS NOT A TEXT RUN: a slippy map lays a tile grid deliberately wider than its
+        // own frame and clips it with that frame's overflow, so getBoundingClientRect reports a tile's
+        // UNCLIPPED rect and a tile at the frame's right edge can report a right edge past the viewport
+        // while nothing the reader is meant to read is cut off. A tile is rendering substrate, drawn
+        // to be panned over, not a run of words that must be readable where it sits. That is the whole
+        // width of this exemption: it never excuses a text run, a control or a table, which are still
+        // failures anywhere, INCLUDING inside a declared clipping viewport's own box if they overflow
+        // the page. Two conditions keep it from becoming a way to hide any overflow: the element must
+        // ACTUALLY clip (an `overflow` of hidden/clip, not merely the attribute), and it must ITSELF
+        // sit inside the viewport. A declaring element whose own right edge runs past the edge carries
+        // nothing and is reported here like any other box.
+        let inClipViewport = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (!p.hasAttribute('data-guard-clip')) continue;
+          const pcs = getComputedStyle(p);
+          const clips = (o) => o === 'hidden' || o === 'clip';
+          if (!clips(pcs.overflowX) && !clips(pcs.overflow)) continue;
+          if (p.getBoundingClientRect().right > vw + 2) continue;
+          inClipViewport = true;
+          break;
+        }
+        clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable, inClipViewport });
         if (clipped.length >= 40) break;
       }
       const titles = [];
@@ -185,7 +258,13 @@ export async function measureUx(page) {
         const r = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
         const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3 || 16;
-        const container = el.closest('[data-guard-container]') || el.offsetParent || document.body;
+        // A title inside a TABLE CELL is budgeted by its own column, not by the card the table
+        // sits in (lane opsclip, train 61). Measuring a 6-column matrix's dimension name against
+        // the whole card reports every long name as "squeezed to 12% of its card" whether the
+        // table is laid out well or badly, which is noise; measuring it against its own cell says
+        // the true thing, whether the name fits the column it was given.
+        const container =
+          el.closest('td,th') || el.closest('[data-guard-container]') || el.offsetParent || document.body;
         titles.push({
           name: nameOf(el),
           width: r.width,
@@ -193,7 +272,41 @@ export async function measureUx(page) {
           lines: Math.max(1, Math.round(r.height / lh)),
         });
       }
-      return { targets, titles, clipped };
+      // Text runs (opsclip, defects 2 and 6): every element that IS a run of text, it has visible
+      // text and every element child of its own is inline, measured against its own box. A card or
+      // a column whose children are blocks is not a text run and is not swept here; that case is
+      // what `clipped` above and `detectOverflows` already cover.
+      const textRuns = [];
+      for (const el of document.querySelectorAll('body *')) {
+        if (textRuns.length >= 60) break;
+        const text = (el.textContent || '').trim();
+        if (!text || !visible(el)) continue;
+        const cs = getComputedStyle(el);
+        if (cs.overflowX !== 'hidden' && cs.overflowY !== 'hidden') continue;
+        let inlineOnly = true;
+        for (const child of el.children) {
+          const d = getComputedStyle(child).display;
+          if (d !== 'inline' && d !== 'inline-block' && d !== 'inline-flex' && d !== 'contents') { inlineOnly = false; break; }
+        }
+        if (!inlineOnly) continue;
+        const clamped = cs.webkitLineClamp !== undefined && cs.webkitLineClamp !== 'none' && cs.webkitLineClamp !== '';
+        let inStrip = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (p.hasAttribute('data-guard-strip')) { inStrip = true; break; }
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === 'auto' || ox === 'scroll') { inStrip = true; break; }
+        }
+        textRuns.push({
+          name: nameOf(el),
+          overflowX: el.scrollWidth - el.clientWidth,
+          overflowY: el.scrollHeight - el.clientHeight,
+          textOverflow: cs.textOverflow,
+          clamped,
+          inStrip,
+          mustFit: !!el.closest('.cl-list-row-header'),
+        });
+      }
+      return { targets, titles, clipped, textRuns };
     },
     { selector: TARGET_SELECTOR },
   );

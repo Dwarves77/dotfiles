@@ -405,6 +405,19 @@ function VerticalMilestoneStack({ list, band }: { list: TimelineEntry[]; band: U
             <span
               style={{
                 textAlign: "right",
+                // MOBILE-60 (2026-09-08), measured at 390 and read off
+                // docs/design/handoff-2026-09-06/built/mobile-03-regulation-detail.png. An ISO
+                // milestone date ("2027-01-01") at 11px needs ~57px in Plus Jakarta Sans and
+                // ~70px in the fallback face a host without that font uses; the spec fixes this
+                // gutter at 62px, which fits the former and not the latter. It is left WRAPPING
+                // rather than held on one line: `white-space: nowrap` was tried and, in the wide
+                // fallback, the date overflowed its own 62px box to the RIGHT and ran under the
+                // dot column (text-align: right does not pull back overflowing content), which is
+                // a collision. A date that wraps at its hyphen in one face is worse-looking than
+                // one that does not; a date lying across the dots is wrong at any width. Tabular
+                // figures so the two lines align when it does wrap. Logged in DEVIATION-LOG.md:
+                // the 390 artboard, when it lands, states what date FORM the design intends here.
+                fontVariantNumeric: "tabular-nums",
                 paddingRight: 8,
                 fontSize: "var(--fs-11)",
                 fontWeight: isNext ? 800 : 600,
@@ -471,6 +484,11 @@ export interface SectionIndexEntry {
   id: string;
   label: string;
 }
+
+/** Widest a single section tab may be before it truncates (defect 6). Measured against the
+ *  artboard's own tab labels ("S1 Cost baseline", "S2 Obligations", "S3 Penalties"), the longest
+ *  of which sets ~136px at this row's 12.5px type plus its 12px side padding. */
+const SECTION_TAB_MAX_WIDTH = 150;
 
 export function SectionIndex({
   sections,
@@ -567,6 +585,17 @@ export function SectionIndex({
               href={`#${s.id}`}
               className="cl-section-index-link"
               aria-current={isActive ? "true" : undefined}
+              // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production rendered "S6 Operational
+              // requirem" and a bare "S7", cut mid-glyph at the card's right edge, and pushed the
+              // Summary/Full brief toggle onto a second row. Root cause [CONFIRMED by comparing
+              // the two markups]: the artboard's index uses SHORT tab labels ("S1 Cost baseline")
+              // and the product passes the section's full title ("S1 Operational cost baseline"),
+              // so seven of them do not fit the row. The artboard's own treatment is a short tab,
+              // so the tab is bounded here, in the shared part, and truncates with a real ellipsis
+              // instead of a mid-glyph cut. The full label stays reachable on `title`, and the
+              // link's own accessible name is the full label, so nothing is lost to a reader or to
+              // assistive technology.
+              title={s.label}
               style={{
                 fontSize: "12.5px",
                 fontWeight: isActive ? 700 : 600,
@@ -578,6 +607,11 @@ export function SectionIndex({
                 minHeight: 44,
                 borderRadius: 6,
                 padding: "6px 12px",
+                maxWidth: SECTION_TAB_MAX_WIDTH,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               S{i + 1} {s.label}

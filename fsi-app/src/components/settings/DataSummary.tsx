@@ -4,6 +4,7 @@ import { useMemo } from "react";
 import type { Resource } from "@/types/resource";
 import { JURISDICTIONS } from "@/lib/constants";
 import { getJurisdiction } from "@/lib/scoring";
+import { formatNumber } from "@/lib/format";
 
 interface DataSummaryProps {
   resources: Resource[];
@@ -76,7 +77,7 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
                     />
                   </div>
                   <span className="text-xs text-text-secondary tabular-nums w-6 text-right">
-                    {count}
+                    {formatNumber(count)}
                   </span>
                 </div>
               );

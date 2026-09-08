@@ -22,8 +22,8 @@
  *      with optional resolution_note
  */
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { formatLocaleDateTime } from "@/lib/format";
 import {
@@ -126,8 +126,6 @@ export function PlatformIntegrityFlagsView() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [noteDraft, setNoteDraft] = useState<Record<string, string>>({});
 
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
@@ -137,13 +135,10 @@ export function PlatformIntegrityFlagsView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const params = new URLSearchParams({ platform: "1" });
       if (categoryFilter !== "all") params.set("category", categoryFilter);
       if (statusFilter !== "open_or_review") params.set("status", statusFilter);
-      const resp = await fetch(`/api/admin/integrity-flags?${params}`, {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const resp = await authedFetch(`/api/admin/integrity-flags?${params}`);
       const payload = await resp.json();
       if (!resp.ok) {
         setError(payload?.error || `Failed to load (${resp.status})`);
@@ -156,7 +151,7 @@ export function PlatformIntegrityFlagsView() {
     } finally {
       setLoading(false);
     }
-  }, [supabase, categoryFilter, statusFilter]);
+  }, [categoryFilter, statusFilter]);
 
   useEffect(() => {
     load();
@@ -169,12 +164,10 @@ export function PlatformIntegrityFlagsView() {
   ) {
     setPendingId(id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/admin/integrity-flags?platform=1", {
+      const resp = await authedFetch("/api/admin/integrity-flags?platform=1", {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ id, status: nextStatus, resolution_note: note }),
       });

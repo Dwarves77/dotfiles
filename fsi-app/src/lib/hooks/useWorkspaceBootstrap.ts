@@ -22,7 +22,7 @@
 // contract each hook already had (signed out / offline / non-200 → empty defaults).
 
 import { useCallback, useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import type { NavCounts } from "@/lib/nav/nav-counts";
 
 export interface BootstrapPersonalStateItem {
@@ -132,12 +132,8 @@ async function performFetch(): Promise<void> {
   publish();
   const promise = (async () => {
     try {
-      const supabase = createSupabaseBrowserClient();
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const token = session?.access_token;
-      if (!token) {
+      const headers = await authHeaders();
+      if (!headers) {
         // Signed out — nothing personal to load. Leave prior data (if any) in
         // place and clear loading; every consumer's own empty-default applies.
         singleton.state = {
@@ -149,9 +145,7 @@ async function performFetch(): Promise<void> {
         publish();
         return;
       }
-      const resp = await fetch("/api/workspace/bootstrap", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const resp = await fetch("/api/workspace/bootstrap", { headers });
       if (!resp.ok) {
         singleton.state = {
           data: singleton.state.data,

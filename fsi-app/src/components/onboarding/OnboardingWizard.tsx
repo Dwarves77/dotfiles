@@ -7,6 +7,7 @@ import { ALL_SECTORS, MODES, JURISDICTIONS } from "@/lib/constants";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { Button } from "@/components/ui/Button";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandTileRow } from "@/components/ui/BandTileRow";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
 import type { WorkspaceAggregates } from "@/lib/supabase-server";
 import { AuthFrame } from "@/components/auth/AuthFrame";
@@ -399,7 +400,11 @@ function StepModesJurisdictions({
         >
           Preview · your workspace today
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 8 }}>
+        {/* D-M1 (lane mobfix61, 2026-09-08): the shared BandTileRow, not a fourth hand-written
+            copy of the tile grid. This one still had no `cl-band-tiles` class, so the onboarding
+            preview kept four tiles across at 390 with clipped labels after the dashboard and the
+            list shell were fixed — the duplicated container was the defect. */}
+        <BandTileRow gap={8}>
           {BAND_ORDER.map((band) => (
             <BandTile
               key={band.key}
@@ -408,7 +413,7 @@ function StepModesJurisdictions({
               loading={loading}
             />
           ))}
-        </div>
+        </BandTileRow>
       </div>
 
       {error && <ErrorBanner message={error} />}

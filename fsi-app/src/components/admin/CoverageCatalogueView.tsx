@@ -9,7 +9,7 @@
  */
 
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { formatNumber } from "@/lib/format";
 import type { CoverageEntry, IdentityState } from "@/lib/coverage/index-data";
 
@@ -38,7 +38,6 @@ function Chip({ children, color }: { children: React.ReactNode; color?: string }
 type SortKey = "relevance" | "title" | "jurisdiction" | "type" | "identity";
 
 export function CoverageCatalogueView() {
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const [surface, setSurface] = useState<string>("");
   const [entries, setEntries] = useState<CoverageEntry[]>([]);
   const [loading, setLoading] = useState(true);
@@ -52,9 +51,8 @@ export function CoverageCatalogueView() {
   const load = useCallback(async () => {
     setLoading(true); setErr(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const qs = surface ? `?surface=${encodeURIComponent(surface)}` : "";
-      const res = await fetch(`/api/coverage/entries${qs}`, { headers: { Authorization: `Bearer ${session?.access_token || ""}` } });
+      const res = await authedFetch(`/api/coverage/entries${qs}`);
       if (!res.ok) throw new Error(String(res.status));
       const body = await res.json();
       setEntries(body.entries as CoverageEntry[]);
@@ -62,7 +60,7 @@ export function CoverageCatalogueView() {
       setErr(`Could not load the catalogue (${e instanceof Error ? e.message : "error"}).`);
       setEntries([]);
     } finally { setLoading(false); }
-  }, [supabase, surface]);
+  }, [surface]);
 
   useEffect(() => { void load(); }, [load]);
 

@@ -32,10 +32,10 @@ import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
+import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
-import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -98,13 +98,54 @@ async function probe(page, targets, forbids) {
       // reported NOT IN SPEC. A false finding is worse than no audit (CLAUDE.md rule 14), and the
       // fix belongs in the harness rather than in a weaker spec: the invariant being guarded (an
       // unscored row never renders a fabricated zero) is exactly right, only its expression was.
+      //
+      // MOBFIX-61 (2026-09-08) [CONFIRMED, by attack]: the text a spec matches against is what the
+      // element RENDERS, not its source text. Nineteen spec files carry a `textMatch: "UNSCORED"`
+      // or `"NOT SCORED"` forbid; the product writes those words in lower case and uppercases them
+      // with `text-transform: uppercase` (Absence.tsx's ABSENCE_TEXT_STYLE), so `textContent`
+      // returned "unscored" and every one of those forbids matched nothing, at every viewport, for
+      // as long as they have existed. They reported MATCH while the operator was photographing the
+      // literal token on his phone (mobile report 2026-09-08, D-M4). That is CLAUDE.md rule 15's
+      // exact failure mode — a guard trusted for its presence rather than proven by attack — and
+      // the fix belongs in the harness, not in nineteen individually weakened specs: `renderedText`
+      // applies the element's own computed `text-transform` before matching, so a forbid asserts
+      // what a person actually sees. Proven by attack: with this in place the specs whose mounts
+      // render an unscored row went RED against the pre-fix product and green only once the row
+      // stopped rendering the literal.
+      // Per-TEXT-NODE, not per-element: `text-transform` is inherited, so an element's own
+      // computed value describes only the text it holds directly. A `selector: "body"` forbid
+      // reading body's computed transform ("none") would uppercase nothing and miss a token a
+      // descendant span renders uppercase — the same vacuity in a different place. The walk
+      // applies each text node's nearest element ancestor's own computed transform.
+      const renderedText = (root) => {
+        if (root.nodeType !== 1) return root.textContent || '';
+        const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+        let out = '';
+        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+          const owner = n.parentElement;
+          if (!owner) { out += n.nodeValue || ''; continue; }
+          const tag = owner.tagName;
+          if (tag === 'STYLE' || tag === 'SCRIPT') continue;
+          const tt = getComputedStyle(owner).textTransform;
+          const s = n.nodeValue || '';
+          out += tt === 'uppercase' ? s.toUpperCase() : tt === 'lowercase' ? s.toLowerCase() : s;
+        }
+        return out;
+      };
+      // A node matches if the pattern is in EITHER its source text or its rendered text. The two
+      // forms answer two different questions and both are legitimate: an ordinary target uses
+      // `textMatch` to NARROW a selector to the element the spec means, and is authored against
+      // the source ("Filters", "Watch"); a forbid uses it to ASSERT what a reader sees, and is
+      // authored against the rendering ("UNSCORED"). Matching source-only made every forbid of
+      // the second kind vacuous; matching rendered-only would break every target of the first
+      // kind (measured: 35 targets went NOT BUILT). The union serves both without either spec
+      // author having to know which transform the product happens to apply.
       const textFilter = (nodes, textMatch) => {
         if (!textMatch) return nodes;
-        if (String(textMatch).startsWith('re:')) {
-          const re = new RegExp(String(textMatch).slice('re:'.length));
-          return nodes.filter((n) => re.test(n.textContent || ''));
-        }
-        return nodes.filter((n) => (n.textContent || '').includes(textMatch));
+        const hit = String(textMatch).startsWith('re:')
+          ? (s) => new RegExp(String(textMatch).slice('re:'.length)).test(s)
+          : (s) => s.includes(textMatch);
+        return nodes.filter((n) => hit(n.textContent || '') || hit(renderedText(n)));
       };
       const readTarget = (t) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
@@ -428,24 +469,36 @@ async function main() {
       const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
       try {
         await page.setViewportSize({ width: spec.viewport, height: 1400 });
-        // TWO independent stylesheet mechanisms, both kept at the fold (train 60). They answer
-        // different questions and neither subsumes the other.
+        // THREE stylesheet mechanisms, all kept (trains 60 and 61). They answer different
+        // questions and none subsumes another.
         //
-        // `needsCompiledCss` (lane admin60) gives the mount the app's own compiled stylesheet,
-        // exactly as capture-compose-page.mjs gives it before shooting the same mount. Without it
-        // the eight AppShell page-composition mounts rendered with NO stylesheet at all: every
-        // `var(--fs-*)` fell back to the 16px default, so any measurement that depends on real type
-        // size (a bounds check, a wrapped header cell) was measuring a page the product never
-        // renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its 30px
-        // strip: real at 16px, impossible at the token's 9.5px.
+        // `mount.needsCompiledCss` (lane admin60) gives the mount the app's own compiled
+        // stylesheet, exactly as capture-compose-page.mjs gives it before shooting the same mount.
+        // Without it the eight AppShell page-composition mounts rendered with NO stylesheet at all:
+        // every `var(--fs-*)` fell back to the 16px default, so any measurement that depends on
+        // real type size (a bounds check, a wrapped header cell) was measuring a page the product
+        // never renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its
+        // 30px strip: real at 16px, impossible at the token's 9.5px.
+        //
+        // `spec.compiledCss` (lane mobile60) is the SAME stylesheet, opted in PER SPEC rather than
+        // per mount. The mobile 390 specs are the first that MUST see Tailwind's compiled utility
+        // output: the whole desktop/mobile switch in AppShell/Sidebar/TopBar is expressed as
+        // `hidden md:flex` / `md:hidden` utility classes, which a raw globals.css read leaves
+        // un-expanded, so without it the desktop nav card and the mobile top bar both render at
+        // every width and a 390 spec would measure a frame the product never shows. Keyed off the
+        // SPEC deliberately: the same mounts are already measured at 1440 by the composition specs,
+        // and silently changing the CSS under those would re-baseline them from a lane that is not
+        // auditing them. A mount that declares `needsCompiledCss` already loads it for every spec;
+        // this flag lets a single spec ask for it on a mount that does not.
         //
         // `styleFiles` (lane map60) adds a named stylesheet from node_modules, for a mount whose
         // esbuild alias table drops a bare `.css` import. The compose-map mount aliases
         // `leaflet/dist/leaflet.css` to an empty module, so leaflet built all four markers but
         // nothing gave `.leaflet-pane` its absolute positioning and the canvas photographed empty.
         //
-        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it.
-        if (mount.needsCompiledCss) {
+        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it,
+        // and it is added at most ONCE however many of the two flags ask for it.
+        if (mount.needsCompiledCss || spec.compiledCss) {
           await page.addStyleTag({ content: await fullAppCssCompiled() });
         }
         const extraCss = mountExtraCss(mount);

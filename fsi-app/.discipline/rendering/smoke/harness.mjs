@@ -143,12 +143,41 @@ export async function measureGuard(page) {
     // table-cell scan, wrong for this broader element set, most of which (icon-only spans, layout
     // wrappers) is legitimately textless. An empty string here is "nothing rendered", not "a
     // placeholder literal rendered"; only non-empty text can BE one.
+    // `[data-absence]` is the shared Absence part's own narrow variant (src/components/ui/
+    // Absence.tsx): an em dash CARRYING its closed-vocabulary reason on aria-label/title, for a
+    // cell too narrow to hold the phrase. NO_DATA_TOKENS lists "—" as a placeholder-name token, so
+    // without this the honest dash reads as fabricated content. Skipping the element that DECLARES
+    // itself is narrower than the per-spec "—" allowlists two smoke specs carry: a bare dash
+    // anywhere else in the product still fails.
+    // True for the declaring element itself, for anything inside it, AND for a wrapper (a <td>, a
+    // <span>) whose ENTIRE visible text is that declared dash, otherwise the ancestor's own
+    // textContent still reads as a bare "—".
+    const isDeclaredAbsence = (el) => {
+      if (el.closest('[data-absence]')) return true;
+      const inner = el.querySelectorAll('[data-absence]');
+      if (inner.length === 0) return false;
+      let rest = (el.textContent || '');
+      for (const a of inner) rest = rest.replace((a.textContent || ''), '');
+      return rest.trim() === '';
+    };
     const texts = [];
     for (const cell of document.body.querySelectorAll('th,td,p,span,li,button,a')) {
+      if (isDeclaredAbsence(cell)) continue;
       const t = (cell.textContent || '').trim();
       if (t) texts.push(t);
     }
-    return { measurements, texts };
+    // LEAF text only (opsclip, train 61, defect 4). `texts` above deliberately includes ancestors,
+    // which is right for the placeholder-literal scan and wrong for the thousands scan: an ancestor's
+    // textContent CONCATENATES its children, so a due cell holding "Jun 1, 2027" over "266 days"
+    // reads as the string "Jun 1, 2027266 days" and manufactures a five-digit number that is not on
+    // the screen. A run with no element children of its own cannot do that.
+    const leafTexts = [];
+    for (const el of document.body.querySelectorAll('*')) {
+      if (el.children.length > 0 || isDeclaredAbsence(el)) continue;
+      const t = (el.textContent || '').trim();
+      if (t) leafTexts.push(t);
+    }
+    return { measurements, texts, leafTexts };
   });
 }
 

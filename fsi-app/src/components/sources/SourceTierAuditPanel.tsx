@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Loader2, Sparkles, Check, Flag } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 
 /**
  * SourceTierAuditPanel — Sprint 4 Block 1 task 1.15 (UNVERIFIED-PENDING-RUNTIME).
@@ -33,7 +33,6 @@ interface Props {
 }
 
 export function SourceTierAuditPanel({ sourceId, currentBaseTier, kind, onCommitted }: Props) {
-  const supabase = createSupabaseBrowserClient();
   const [rec, setRec] = useState<TierRecommendation | null>(null);
   const [loading, setLoading] = useState(false);
   const [committing, setCommitting] = useState(false);
@@ -42,18 +41,13 @@ export function SourceTierAuditPanel({ sourceId, currentBaseTier, kind, onCommit
   const [flagged, setFlagged] = useState(false);
   const [done, setDone] = useState<number | null>(null);
 
-  async function authHeader() {
-    const { data: { session } } = await supabase.auth.getSession();
-    return { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` };
-  }
-
   async function getRecommendation() {
     setLoading(true);
     setError(null);
     try {
       const res = await fetch("/api/admin/sources/recommend-tier", {
         method: "POST",
-        headers: await authHeader(),
+        headers: (await authHeaders({ "Content-Type": "application/json" })) ?? undefined,
         body: JSON.stringify({ source_id: sourceId }),
       });
       const json = await res.json();
@@ -73,7 +67,7 @@ export function SourceTierAuditPanel({ sourceId, currentBaseTier, kind, onCommit
     try {
       const res = await fetch("/api/admin/sources/commit-tier-change", {
         method: "POST",
-        headers: await authHeader(),
+        headers: (await authHeaders({ "Content-Type": "application/json" })) ?? undefined,
         body: JSON.stringify({ source_id: sourceId, tier, kind }),
       });
       const json = await res.json();

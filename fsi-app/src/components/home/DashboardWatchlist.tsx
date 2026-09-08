@@ -31,6 +31,7 @@ import { DashboardRailCard, RailEmptyFrame } from "./DashboardRailCard";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem } from "@/lib/data";
+import { formatNumber } from "@/lib/format";
 
 function TeamBadge() {
   return (
@@ -79,7 +80,7 @@ export function DashboardWatchlist({ promise }: DashboardWatchlistProps) {
     <DashboardRailCard
       title="Watchlist"
       titleHref="/watchlist"
-      count={`${visible.length} of ${items.length}`}
+      count={`${formatNumber(visible.length)} of ${formatNumber(items.length)}`}
     >
       <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         {visible.map((item) => {

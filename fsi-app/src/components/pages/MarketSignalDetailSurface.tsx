@@ -42,8 +42,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
@@ -93,6 +93,7 @@ import {
   type RecordFactRow,
   type ClaimTierMap,
 } from "@/lib/agent/parse-record-sections";
+import { joinMetaSegments, splitMetaSegments } from "@/lib/detail/meta-line";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import type { Resource, ItemConnection, Supersession } from "@/types/resource";
@@ -263,9 +264,18 @@ export function MarketSignalDetailSurface({
       : ["Global"];
   const jurisLabel = jurisdictionLabels.join(" · ");
   const crumbGroup = groupLabel || `B${BAND_NUM[signalBand]} · ${BAND_LABEL[signalBand]} · ${jurisLabel}`;
-  const meta = [crumbGroup, deck, independentCiters !== null ? `${independentCiters} independent source${independentCiters === 1 ? "" : "s"} corroborate` : null]
-    .filter(Boolean)
-    .join(" · ");
+  // COUNTS-61 (production defect, click-through audit 2026-09-08): this line printed the source name
+  // TWICE — once inside `crumbGroup` ("Market / <publisher>") and once as `deck`'s first part, since
+  // market/[slug]/page.tsx uses `publisher` for both and neither producer can see the other.
+  // joinMetaSegments drops a part already present in the line; splitMetaSegments is what makes the
+  // pre-joined `deck` comparable part-by-part rather than as one opaque string.
+  const meta = joinMetaSegments([
+    crumbGroup,
+    ...splitMetaSegments(deck),
+    independentCiters !== null
+      ? `${independentCiters} independent source${independentCiters === 1 ? "" : "s"} corroborate`
+      : null,
+  ]);
 
   const isRecord = r.itemGrade === "record";
 
@@ -681,11 +691,9 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
   async function save(value: string) {
     setStatus("saving");
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/workspace/overrides", {
+      const resp = await authedFetch("/api/workspace/overrides", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        headers: { "Content-Type": "application/json", },
         body: JSON.stringify({ itemId, notes: value }),
       });
       if (!resp.ok) throw new Error(`save failed (${resp.status})`);

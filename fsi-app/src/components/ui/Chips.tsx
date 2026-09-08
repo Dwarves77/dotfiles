@@ -208,7 +208,10 @@ const FILTER_GROUP_MOBILE_CSS = `
     }
     .cl-filter-group .cl-filter-group-chips { flex-wrap: nowrap !important; }
     .cl-filter-group-label { font-size: 9.5px !important; letter-spacing: 0.1em !important; }
-    .cl-filter-chip { font-size: 12px !important; border-radius: 6px !important; white-space: nowrap; }
+    /* MOBILE-60 (2026-09-08): the mobile 390 spec writes "chips 12px/600"; the weight was
+       inherited from the desktop chip (700) because only the size and radius were overridden
+       here. Measured mismatch, fixed at the one place the mobile chip is described. */
+    .cl-filter-chip { font-size: 12px !important; font-weight: 600 !important; border-radius: 6px !important; white-space: nowrap; }
     .cl-filter-chip[data-active="true"] { background: #5A5552 !important; color: #FFFFFF !important; border-color: #5A5552 !important; }
     /* Operator audit item 2.5 (2026-09-07, CLOSED ruling): "Filter chips inside a labelled group
        shell keep the group's border; the individual inactive chips inside it do not." The shell

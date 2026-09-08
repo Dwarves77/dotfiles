@@ -41,10 +41,10 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
-import { ImpactMeter } from "@/components/ui/ImpactMeter";
+import { ImpactMeter, isImpactScored } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
 import { TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
-import { Absence } from "@/components/ui/Absence";
+import { Absence, pickAbsenceReason, type AbsenceReason } from "@/components/ui/Absence";
 
 export interface ListRowProps {
   href: string;
@@ -134,9 +134,28 @@ export function ListRowColumnHeader({
   // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
   // auto`, which otherwise refuses to shrink below its content's intrinsic width — the exact
   // mechanism that let "Impact low → high" push past its 88px column and collide with the DUE
-  // column's dates (operator report 2026-09-07, D1). `whiteSpace: nowrap` + `textOverflow:
-  // ellipsis` + `overflow: hidden` keep every label on ONE line, clipped inside its own column
-  // rather than wrapping into a second line or bleeding into the next column.
+  // column's dates (operator report 2026-09-07, D1).
+  //
+  // DEFECT 2, lane opsclip (train 61, 2026-09-08). The D1 fix above was correct; the `whiteSpace:
+  // nowrap` + `textOverflow: ellipsis` that shipped WITH it was not. Measured on production at
+  // 1440, the IMPACT header rendered as "IMPACT LOW → H" on the dashboard and on /watchlist, the
+  // word HIGH cut to one letter, one defect traded for another. The label cannot fit an 88px
+  // column on one line at 9.5px/.12em (it measures ~113px), and the artboard does not ask it to:
+  // dc.html p1/p11 give this header cell the SAME 88px track and the SAME type with no nowrap at
+  // all, and render it over two lines inside the 30px row. Two 9.5px lines at line-height 1.2
+  // measure 22.8px, which fits the artboard's own `height:30px` with room to spare.
+  //
+  // So the cell WRAPS, exactly as the artboard draws it, and stays inside its own 88px column
+  // because `minWidth: 0` (the real D1 fix) is untouched. `alignItems: center` centres the
+  // two-line block against the single-line labels beside it.
+  //
+  // The wrapping treatment goes on the cells that need it (`wrappingCellStyle`), not on
+  // `cellStyle`: JURIS. / TITLE / DUE / TIMELINE / TIER each fit their track on one line and keep
+  // the ellipsis as their honest last resort.
+  //
+  // NOTE FOR THE MOBILE LANE (mobfix61 is editing RESPONSIVE_CSS in this file concurrently): this
+  // change adds `wrappingCellStyle`/`impactCellStyle` and uses them on header spans. It touches no
+  // media query, no class name, and no line of RESPONSIVE_CSS.
   const cellStyle: CSSProperties = {
     fontSize: "var(--fs-95)",
     fontWeight: 700,
@@ -150,10 +169,32 @@ export function ListRowColumnHeader({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
   };
+  // Wraps at WORD boundaries only: the artboard breaks "IMPACT low → high" after IMPACT, and
+  // `overflowWrap: anywhere` would break inside the word ("IMPA / CT"), which is the same lost
+  // legibility the truncation had, differently spelled. Confirmed by capture at 1440.
+  const impactCellStyle: CSSProperties = {
+    ...cellStyle,
+    whiteSpace: "normal",
+    textOverflow: "clip",
+    lineHeight: 1.2,
+  };
+  // The register variant's own labels sit in tracks that go genuinely tiny at the narrow widths
+  // /map has no artboard for, where a single unbreakable word cannot fit any other way.
+  const wrappingCellStyle: CSSProperties = { ...impactCellStyle, overflowWrap: "anywhere" };
   if (variant === "register") {
     // dc.html p10: same 30px height, same 9.5/.12em/700/--ink-3 type, the register grid, and the
     // ITEMS label right-aligned over its right-aligned numerals. The spine and arrow columns carry
     // no label, exactly as the artboard leaves them blank.
+    //
+    // DEFECT 2's class, lane opsclip (train 61): "HIGHEST BAND" measured 146px against its own
+    // 110px track and shipped truncated, exactly as the IMPACT header did, found by the new
+    // column-header fit rule, not by the operator, which is the point. The artboard's own markup
+    // for this row (dc.html p10, the register card's header div) carries no `nowrap` either and
+    // draws the label over two lines, so these cells take the same wrapping treatment. `height`
+    // becomes `minHeight` so the row is the artboard's 30px at every width where two 9.5px lines
+    // fit inside it (every desktop width), and grows rather than clipping at the narrow widths
+    // /map has no artboard for. `overflowWrap: anywhere` lets a single long label break at those
+    // widths instead of running out of its column.
     return (
       <div
         className="cl-list-row-header cl-list-row-header-register"
@@ -161,16 +202,16 @@ export function ListRowColumnHeader({
           display: "grid",
           gridTemplateColumns: REGISTER_GRID,
           gap: "0 14px",
-          height: 30,
+          minHeight: 30,
           padding: REGISTER_PADDING,
           borderBottom: "1px solid var(--line-2)",
         }}
       >
         <span aria-hidden="true" />
-        <span style={cellStyle}>Jurisdiction</span>
-        <span style={cellStyle}>Active themes</span>
-        <span style={cellStyle}>Highest band</span>
-        <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
+        <span style={wrappingCellStyle}>Jurisdiction</span>
+        <span style={wrappingCellStyle}>Active themes</span>
+        <span style={wrappingCellStyle}>Highest band</span>
+        <span style={{ ...wrappingCellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
         <span aria-hidden="true" />
       </div>
     );
@@ -198,7 +239,7 @@ export function ListRowColumnHeader({
       {/* dc.html p1 line 121 / p11 line 60: "low → high" is a nested span at
           weight 400 / letter-spacing .04em inside the 700/.12em "Impact" label,
           not one uniform run. */}
-      <span style={cellStyle}>
+      <span style={impactCellStyle}>
         Impact&nbsp;
         <span style={{ fontWeight: 400, letterSpacing: "0.04em" }}>low → high</span>
       </span>
@@ -225,7 +266,63 @@ const RESPONSIVE_CSS = `
      should be invented). */
   .cl-list-row-register:hover { background: var(--row-hover); }
 
+  /* FOLD-61 [CONFIRMED, measured at 390 by the audit's own probe]: the register's six tracks
+     (3px 1fr 1fr 110px 80px 40px, five 14px gaps) need 303px of fixed width and gap alone. In the
+     356px row the map page gives them at 390, that left 37px for BOTH "1fr" tracks, so the
+     jurisdiction NAME column computed to 18.5px and rendered as roughly one character and an
+     ellipsis, with the meta column beside it the same. Neither lane could see it: map60 built this
+     variant with no 390 spec in existence, and mobfix61's mobile-10-map spec was written against
+     the shared ".cl-list-row" this variant replaced, so its four register rows reported NOT BUILT
+     rather than measuring the row that shipped.
+
+     The comment above is still right that no mobile ARTBOARD for this register exists and none is
+     invented here. What governs instead is the mobile 390 spec's own operator prose: "the frame
+     collapses; every part is the desktop part at a smaller measure". So every part stays - name,
+     meta, band, count and the arrow all still render, in the same order and with the same type -
+     and only the MEASURE changes: name over meta in one flexible column, band over count in a
+     narrow one, the 40px arrow full height. The desktop grid is untouched above 768.
+
+     The band column is 84px, not sized to content: measured max-content for this fixture's widest
+     label is 79.5px ("IMMEDIATE" plus its 6px dot and 5px gap), and AWARENESS is the same nine
+     characters in wider glyphs, so 84px clears the whole four-word band vocabulary with margin.
+     "max-content" would fit too, but it would make the resolved track list depend on WHICH bands
+     the data happens to contain, which is not a thing an exact-equality spec row should measure.
+     At 68px, the first value tried, the label clipped to "IMMEDIAT" with no ellipsis - the same
+     class lane opsclip fixed on the IMPACT column header, in a cell whose text is fixed, short and
+     known at build time and therefore has to FIT. */
   @media (max-width: 767px) {
+    .cl-list-row-register {
+      grid-template-columns: 3px minmax(0, 1fr) 84px 40px !important;
+      /* The two rows are DECLARED, not implicit, and that is load-bearing rather than tidy: the
+         row's stretched click overlay (.cl-row-link, README 0.4) is an absolutely positioned GRID
+         ITEM, so its containing block is the grid AREA it is placed in, not the row's padding box,
+         and its "grid-row: 1 / -1" counts lines in the EXPLICIT grid. With the rows implicit,
+         "-1" resolved to line 2 and the overlay measured 24px tall inside a 51px row - four
+         targets under the law-2 44px floor, which is how the rendering guard caught it at 375
+         within minutes of this reflow being written. Declared rows make "-1" line 3 again. */
+      grid-template-rows: auto auto !important;
+      gap: 2px 10px !important;
+      padding-right: 8px !important;
+    }
+    .cl-list-row-register > .cl-row-spine { grid-column: 1; grid-row: 1 / -1; }
+    .cl-row-register-name { grid-column: 2; grid-row: 1; }
+    .cl-row-register-meta { grid-column: 2; grid-row: 2; }
+    .cl-row-register-band { grid-column: 3; grid-row: 1; }
+    .cl-row-register-count { grid-column: 3; grid-row: 2; }
+    .cl-row-register-arrow { grid-column: 4; grid-row: 1 / -1; }
+  }
+
+  @media (max-width: 767px) {
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
+       .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the column header
+       keeps the desktop eight-track GRID, whose fixed tracks alone (3+56+88+84+76+
+       40+44 plus seven 14px gaps) need 489px before the 1fr title column gets a
+       single pixel — so at 390 it ran ~160px past the card and its IMPACT / DUE /
+       TIMELINE / TIER labels sat over the page edge. The mobile 390 spec has no
+       column header at all (the row is two-line and the timeline column is dropped),
+       so the header is not reflowed here, it is not shown: one rule on the shared
+       part, so every list surface and the dashboard get it once. */
+    .cl-list-row-header { display: none !important; }
     .cl-list-row { grid-template-columns: 3px 1fr !important; min-height: 76px !important; }
     .cl-row-link { right: 0 !important; grid-column: 2 / -1 !important; }
     .cl-row-content { display: flex !important; flex-direction: column; grid-column: 2 / -1; padding: 10px 6px 10px 12px; min-width: 0; }
@@ -241,7 +338,30 @@ const RESPONSIVE_CSS = `
     .cl-row-due-days { font-size: 11.5px !important; font-weight: 500 !important; }
     .cl-row-timeline { display: none !important; }
     .cl-row-tags-mobile { display: inline-flex !important; }
-    .cl-row-overflow { margin-left: auto; border-left: 1px solid rgba(0,0,0,.08) !important; width: 44px; height: 44px; flex-shrink: 0; }
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 and read off
+       docs/design/handoff-2026-09-06/built/mobile-01-dashboard.png]: the overflow control
+       was an ordinary item of the wrapping line-2 flow with margin-left: auto, and at 390
+       the metadata ahead of it (impact 72-108px, date+days 130-142px, tier 30px, three 9px
+       gaps) already fills the 296px content width — so it wrapped onto a line of its own,
+       every time, and rendered as a 44px box with a dangling left rule and nothing beside
+       it. That is the orphan/collision class the operator's 2026-09-07 visual-pass standard
+       forbids. It is now a fixed 44px gutter at the row's right edge, vertically centred:
+       the row reserves the width with its own padding-right, so the control is exactly the
+       spec's 44x44 with its border-left, "pushed right", and the metadata wraps inside the
+       space that is actually left. The row grid stays "3px 1fr" as the spec writes it; the
+       gutter is padding on the row, not a third track. */
+    .cl-list-row { padding-right: 44px !important; }
+    .cl-row-overflow {
+      position: absolute !important;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 0 !important;
+      border-left: 1px solid rgba(0,0,0,.08) !important;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
   }
 `;
 
@@ -364,6 +484,36 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
   // genuine layout-strategy difference" from what p10 draws. The variant reproduces p10 exactly,
   // so the approximation is DELETED rather than left as a second way to render the same row
   // (CLAUDE.md rule 13). The list anatomy below is unchanged.
+  // ONE ABSENCE PER ROW (lane mobfix61, 2026-09-08, operator mobile report D-M4)
+  // [CONFIRMED root cause]: the impact, due and tier cells each rendered their own
+  // `<Absence>` independently, so a row missing all three drew a dashed baseline, then
+  // "UNSCORED", then "PENDING", then "NOT IN PRIMARY SOURCE" - three tokens, and at 390 the
+  // third wrapped onto a line of its own beside a dangling divider. That is what the operator
+  // photographed on 2026-09-08, and the design audit's own "no literal UNSCORED" forbids read
+  // source text rather than rendered text, so all of them reported MATCH while it shipped (the
+  // harness half of this defect is fixed in run-audit.mjs's `renderedText`).
+  //
+  // This is NOT a mobile defect: the same three tokens render at 1440 (measured), so the fix is
+  // in the shared part for both widths, per ruling 2.1 ("removed everywhere").
+  //
+  // The row asks Absence.tsx for the single reason, then renders it in the cell that OWNS that
+  // dimension, so the token still sits under the column it explains and the other cells stay
+  // empty. `reasonSlot` is what makes "at most one" structural rather than a convention.
+  //
+  // FOLD-61: lane opsclip's narrow-cell rule is the PRESENTATION half of this same mechanism, not
+  // a second one. This block decides WHICH reason a row shows and WHERE; `variant="narrow"`
+  // decides how that one reason is drawn in a cell too small to hold the phrase. They meet in the
+  // tier cell, the only 40px fixed track of the three, and the artboard decides what it shows:
+  // dc.html p2 and p8 draw a dash there and explain it once in the card foot, so the tier slot
+  // renders the dash while the impact and due slots, which have room, render the words.
+  const impactScored = isImpactScored(impact);
+  const rowAbsence: AbsenceReason | null = pickAbsenceReason([
+    tier == null ? "not in primary source" : null,
+    !due || !impactScored ? "pending" : null,
+  ]);
+  const reasonSlot: "impact" | "due" | "tier" | null =
+    rowAbsence === null ? null : rowAbsence === "not in primary source" ? "tier" : !due ? "due" : "impact";
+
   const tailContent = (
     <>
       {/* `minWidth: 0` on every fixed-width grid cell (D1, operator report 2026-09-07): a grid
@@ -379,7 +529,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           tried here during this fix clipped "not in primary source" mid-word instead of letting it
           wrap, a regression caught in this lane's own screenshot check, not a fix. */}
       <span className="cl-row-impact" style={{ display: "flex", alignItems: "center", minWidth: 0, overflow: "hidden" }}>
-        <ImpactMeter scores={impact} />
+        <ImpactMeter scores={impact} reason={reasonSlot === "impact" ? rowAbsence : null} />
       </span>
       <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end", minWidth: 0 }}>
         {due ? (
@@ -389,15 +539,22 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
             </span>
             <span className="cl-row-due-days" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
           </>
-        ) : (
-          <Absence reason="pending" />
-        )}
+        ) : reasonSlot === "due" && rowAbsence ? (
+          <Absence reason={rowAbsence} />
+        ) : null}
       </span>
       <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
       <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center", minWidth: 0 }}>
-        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
+        {/* DEFECT 3 (lane opsclip, train 61): the TIER column is a 40px fixed track, and
+            "NOT IN PRIMARY SOURCE" wrapped over three lines inside it, doubling the row's height
+            on the dashboard. `variant="narrow"` is the Absence part's own rule for a cell this
+            size, the dash, with the same closed-vocabulary reason on `aria-label`/`title`.
+            D-M4 (lane mobfix61) decides WHETHER this cell is the one that speaks: the dash is
+            drawn only when the row's single reason belongs to the tier dimension, so a row whose
+            reason is "pending" leaves this cell empty rather than adding a second token. */}
+        {tier != null ? <TierChip tier={tier} /> : reasonSlot === "tier" && rowAbsence ? <Absence reason={rowAbsence} variant="narrow" /> : null}
       </span>
     </>
   );
@@ -507,6 +664,16 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                       flexShrink: 1,
+                      // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production cut this line
+                      // mid-word with NO ellipsis on /research ("initiative · Last-mile
+                      // electrifica") while the title directly above it truncated properly. Root
+                      // cause [CONFIRMED]: `flexShrink: 1` without `minWidth: 0` is inert, a flex
+                      // item's default `min-width: auto` refuses to shrink below its content's
+                      // intrinsic width, so this span never narrowed, its own ellipsis never had
+                      // anything to do, and the PARENT's `overflow: hidden` did the cutting
+                      // instead. Same mechanism this file's own ListRowColumnHeader header
+                      // documents for the D1 collision.
+                      minWidth: 0,
                     }}
                   >
                     {meta}

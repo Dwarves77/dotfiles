@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import type { Resource } from "@/types/resource";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 
 // ── Persistence helpers ──
 // One authed-JSON seam for every workspace/personal write. It returns the
@@ -17,23 +17,14 @@ async function persistJson(
   method: "POST" | "DELETE"
 ): Promise<{ ok: boolean; error: string | null }> {
   try {
-    const supabase = createSupabaseBrowserClient();
-    const { data: { session } } = await supabase.auth.getSession();
-    const token = session?.access_token;
-    if (!token) {
+    const headers = await authHeaders({ "Content-Type": "application/json" });
+    if (!headers) {
       console.warn(
         `[resourceStore] No auth session — ${path} change is local-only and will be lost on reload.`
       );
       return { ok: false, error: "You are signed out. Sign in and try again." };
     }
-    const resp = await fetch(path, {
-      method,
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(payload),
-    });
+    const resp = await fetch(path, { method, headers, body: JSON.stringify(payload) });
     if (!resp.ok) {
       const text = await resp.text().catch(() => "");
       console.error(

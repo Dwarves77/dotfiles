@@ -48,6 +48,11 @@ import { runSmoke as runAuthOnboardingSmoke } from "./smoke/auth-onboarding-smok
 // `$RS ... parentNode` follow-on a #418 produces on a streamed route). Red-then-green inside the
 // spec — see its header.
 import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
+// lane TAGS-401, 2026-09-08: the workspace-tags feature end to end against a route stub that
+// ENFORCES the Authorization header the way requireAuth does. The only api fixture in this engine
+// that inspects the request, which is why the 401 that killed the feature in production was
+// invisible to every other leg.
+import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -120,9 +125,21 @@ async function main() {
       // UX detectors on fixture legs that opt in (`ux: true`): hand-reproduced fixtures only prove a
       // layout contract, so the law-2 / squeezed-title measurement is meaningful only where the fixture
       // carries real control sizes. Real components are measured unconditionally in the UX smoke slot.
-      if (!fx.red && fx.ux) {
+      // A RED fixture may opt in too, with `expectUxFailure` (a regex): the UX detectors MUST fire on
+      // it and MUST say the expected thing, which is how a UX rule is proven by attack in a real
+      // browser rather than only against hand-fed measurements (lane mapclip, 2026-09-08).
+      if (fx.ux) {
         const ux = await measureUxOn(browser, fx.html, width);
-        failures.push(...assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux));
+        const uxFailures = assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux);
+        if (fx.expectUxFailure) {
+          if (!uxFailures.some((f) => fx.expectUxFailure.test(f))) {
+            failures.push(
+              `${fx.id}@${width}: RED ux fixture did NOT reproduce ${fx.expectUxFailure} (detector or fixture broken)`,
+            );
+          }
+        } else if (!fx.red) {
+          failures.push(...uxFailures);
+        }
       }
 
       if (fx.red) {
@@ -161,6 +178,7 @@ async function main() {
     { name: "settings-section-index", run: runSettingsSectionIndexSmoke },
     { name: "auth-onboarding", run: runAuthOnboardingSmoke },
     { name: "hydration", run: runHydrationSmoke },
+    { name: "workspace-tags", run: runWorkspaceTagsSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

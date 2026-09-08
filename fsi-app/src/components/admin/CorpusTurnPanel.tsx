@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { PlayCircle, ListPlus, RefreshCw } from "lucide-react";
 import { formatRelative, toDate } from "@/lib/relative-time";
@@ -37,17 +37,6 @@ interface RequestsResponse {
   open: OpenRequest[];
   open_count: number;
   last_consumed_at: string | null;
-}
-
-async function authHeaders(): Promise<Record<string, string>> {
-  const supabase = createSupabaseBrowserClient();
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  return {
-    "Content-Type": "application/json",
-    Authorization: `Bearer ${session?.access_token || ""}`,
-  };
 }
 
 function fieldStyle(): React.CSSProperties {
@@ -73,7 +62,7 @@ export function CorpusTurnPanel() {
     setLoading(true);
     setQueueError(null);
     try {
-      const headers = await authHeaders();
+      const headers = (await authHeaders({ "Content-Type": "application/json" })) ?? undefined;
       const res = await fetch("/api/admin/corpus-turn-requests", { headers });
       const payload = await res.json();
       if (!res.ok) {
@@ -101,7 +90,7 @@ export function CorpusTurnPanel() {
     setTurnBusy("itemId" in body ? "item" : "all");
     setTurnResult(null);
     try {
-      const headers = await authHeaders();
+      const headers = (await authHeaders({ "Content-Type": "application/json" })) ?? undefined;
       const res = await fetch("/api/admin/corpus-turn-requests", {
         method: "POST",
         headers,
@@ -133,7 +122,7 @@ export function CorpusTurnPanel() {
     setIntakeBusy(true);
     setIntakeResult(null);
     try {
-      const headers = await authHeaders();
+      const headers = (await authHeaders({ "Content-Type": "application/json" })) ?? undefined;
       const res = await fetch("/api/admin/run-intake", {
         method: "POST",
         headers,
