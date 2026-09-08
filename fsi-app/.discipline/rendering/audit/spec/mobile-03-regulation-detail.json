@@ -112,13 +112,16 @@
       }
     },
     {
-      "name": "The date gutter is right-aligned, 11px/600 muted",
+      "name": "The date gutter is the spec's 62px, right-aligned, 11px/600 muted, tabular figures",
       "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
       "expect": {
         "text-align": "right",
         "font-size": "11px",
-        "color": "rgb(122, 110, 108)"
-      }
+        "color": "rgb(122, 110, 108)",
+        "width": "62px",
+        "font-variant-numeric": "tabular-nums"
+      },
+      "note": "MOBILE-60: an ISO date at 11px needs ~57px in Plus Jakarta Sans and ~70px in a fallback face, against this 62px gutter. It is left wrapping, not held on one line: nowrap made the date overflow its own box to the right and run under the dot column in the fallback face. Logged in DEVIATION-LOG.md; the 390 artboard will state the date form the design intends."
     },
     {
       "name": "The dot column carries a 2px track behind the dots",

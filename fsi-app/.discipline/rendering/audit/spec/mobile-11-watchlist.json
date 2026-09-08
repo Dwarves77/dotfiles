@@ -122,7 +122,8 @@
       "selector": ".cl-list-row",
       "expect": {
         "grid-template-columns": "3px *",
-        "min-height": "76px"
+        "min-height": "76px",
+        "padding-right": "44px"
       }
     },
     {
@@ -203,14 +204,16 @@
       }
     },
     {
-      "name": "Overflow control is a 44x44 target with a left rule",
+      "name": "Overflow control is a 44x44 target pinned to the row's right edge, with a left rule",
       "selector": ".cl-list-row .cl-row-overflow",
       "expect": {
         "width": "44px",
         "height": "44px",
-        "border-left": "1px solid rgba(0, 0, 0, 0.08)"
+        "border-left": "1px solid rgba(0, 0, 0, 0.08)",
+        "position": "absolute",
+        "right": "0px"
       },
-      "note": "'Pushed right' is measured by the boundsCheck below, not by margin-left: getComputedStyle resolves `auto` to a used pixel value."
+      "note": "MOBILE-60: it was an ordinary item of the wrapping line-2 flow, so at 390 it wrapped onto a line of its own in every row and rendered as a 44px box with a dangling left rule. The row reserves its width with padding-right; the grid itself is still the spec's 3px 1fr."
     },
     {
       "name": "The 76px timeline column is the only thing dropped at this width",

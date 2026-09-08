@@ -4,6 +4,20 @@
 // technique every other rendering-guard capture in this directory uses.
 //
 // Usage: node .discipline/rendering/capture-compose-page.mjs <mount-id> <out-filename.png>
+//          [--width=<px>] [--compiled-css] [--measure=<css selector>]
+//
+// The three flags are additive (lane mobile60, 2026-09-08) and change nothing when omitted:
+//   --width         shoot at a viewport other than the mount's own (the mobile 390 evidence).
+//   --compiled-css  inject Tailwind's compiled utility output even when the mount does not
+//                   declare needsCompiledCss — required at 390 for any mount that renders
+//                   AppShell/Sidebar/TopBar, whose desktop/mobile switch is `md:` utilities.
+//   --measure       the element whose height the viewport is grown to before the shot, for a
+//                   mount whose root does not carry the [data-audit] name derived from its id.
+//   --element       shoot ONLY that element rather than the viewport. AppShell's frame is
+//                   height:100vh with its own internal scroll, so a mount that renders two
+//                   surfaces inside it (page-frame-1440: dashboard + regulation detail) cannot be
+//                   captured page-wise below the fold; growing the viewport to --measure and then
+//                   shooting the element is how the second surface gets its own evidence file.
 
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -18,7 +32,13 @@ const { chromium } = createRequire(import.meta.url)('playwright');
 const OUT_DIR = join(getRepoRoot(), 'docs/design/handoff-2026-09-06/built');
 
 async function main() {
-  const [mountId, outName] = process.argv.slice(2);
+  const args = process.argv.slice(2);
+  const [mountId, outName] = args.filter((a) => !a.startsWith('--'));
+  const flag = (name) => args.find((a) => a.startsWith(`--${name}=`))?.split('=').slice(1).join('=');
+  const width = Number(flag('width')) || null;
+  const measureSel = flag('measure') || null;
+  const forceCompiledCss = args.includes('--compiled-css');
+  const elementSel = flag('element');
   if (!mountId || !outName) {
     console.error('usage: capture-compose-page.mjs <mount-id> <out-filename.png>');
     process.exit(1);
@@ -42,8 +62,11 @@ async function main() {
   // the artboard sits it higher" in FOLD-59's visual pass. It is the capture that was off by 500px,
   // not the build: the artboard's own frame IS 900 tall (lane lists60, 2026-09-08).
   const captureHeight = mount.captureHeight || 1400;
-  await page.setViewportSize({ width: mount.viewport || 1440, height: captureHeight });
-  if (mount.needsCompiledCss) {
+  // `--width` (lane mobile60) overrides the mount's own viewport, which is what shoots the same
+  // eight mounts at 390 for the mobile evidence without a second mount per page.
+  const shotWidth = width || mount.viewport || 1440;
+  await page.setViewportSize({ width: shotWidth, height: captureHeight });
+  if (mount.needsCompiledCss || forceCompiledCss) {
     const css = await fullAppCssCompiled();
     await page.addStyleTag({ content: css });
   }
@@ -62,14 +85,23 @@ async function main() {
   const contentHeight = await page.evaluate((sel) => {
     const el = document.querySelector(sel);
     return el ? Math.ceil(el.getBoundingClientRect().height) : 1400;
-  }, `[data-audit="${mount.dataAudit || mountId.replace(/^compose-/, '')}"]`);
+  }, measureSel || `[data-audit="${mount.dataAudit || mountId.replace(/^compose-/, '')}"]`);
   // A mount that pinned its height keeps it: growing to content would undo the pin.
   if (!mount.captureHeight && contentHeight > 1400) {
-    await page.setViewportSize({ width: mount.viewport || 1440, height: contentHeight + 40 });
+    await page.setViewportSize({ width: shotWidth, height: contentHeight + 40 });
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
   }
   const out = join(OUT_DIR, outName);
-  await page.screenshot({ path: out, fullPage: false });
+  if (elementSel) {
+    const handle = await page.$(elementSel);
+    if (!handle) {
+      console.error(`--element selector matched nothing: ${elementSel}`);
+      process.exit(1);
+    }
+    await handle.screenshot({ path: out });
+  } else {
+    await page.screenshot({ path: out, fullPage: false });
+  }
   console.log(`wrote ${out}`);
   await browser.close();
 }

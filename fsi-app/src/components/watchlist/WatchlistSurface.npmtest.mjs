@@ -89,3 +89,18 @@ test("a count still loading is never rendered as 0 (a Skeleton stands in, per th
   assert.match(SRC, /noticesLoading \? \(\s*<SkeletonListRow \/>/);
   assert.match(SRC, /\{!noticesLoading && notices\.length > 0 && \(/);
 });
+
+test("the mobile page frame is the list shell's own exported block, not a second copy (MOBILE-60)", () => {
+  // This surface builds its own copy of ListSurfaceShell's frame (masthead wrapper + content
+  // grid) instead of mounting the shell, and so carried NONE of the mobile page measures: at 390
+  // it kept the desktop 40px side padding on both wrappers while the other four list surfaces did
+  // not. It now renders the shell's own exported CSS block, so there is one definition of the
+  // mobile frame rather than one plus a silent omission (CLAUDE.md rule 13).
+  assert.match(SRC, /import \{ LIST_SURFACE_MOBILE_CSS \} from "@\/components\/list-surface\/ListSurfaceShell"/);
+  assert.match(SRC, /<style>\{LIST_SURFACE_MOBILE_CSS\}<\/style>/);
+  assert.match(SRC, /className="cl-list-surface-masthead"/);
+  // The <=1280 single-track override keeps the minmax(0, ...) floor: a bare 1fr is
+  // minmax(auto, 1fr), whose auto minimum is min-content, and the track then grows past the
+  // viewport (the defect measured on the dashboard at 390).
+  assert.match(SRC, /\.cl-list-surface-grid \{ grid-template-columns: minmax\(0, 1fr\) !important; \}/);
+});

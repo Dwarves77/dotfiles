@@ -13813,3 +13813,87 @@ fixtures, 12 viewports, 433 checks + 85 smoke + 216 UX); `audit:design` 61 specs
 **Migration applied to production this session**: 314
 (`admin_attention_counts` provisional-queue population). DDL before the dependent code, verified by
 re-reading the function's own output.
+
+## 2026-09-08: lane mobile60: the mobile 390 audit specs, and the eleven defects they found
+
+**Scope**: one item. Write audit specs at viewport 390 for the dashboard, the five list surfaces,
+one detail page and the nav drawer, asserting the MOBILE 390 SPEC's own measures; fix every
+mismatch in the shared part; check the 375 exemptions. Base `train/wave59-2026-09-08` (1e3f9435).
+
+**What the specs are**. Eight files, `fsi-app/.discipline/rendering/audit/spec/mobile-*.json`,
+measuring the EXISTING compose mounts at 390 rather than new ones, because the mobile 390 spec's
+own framing is "No new components. Every part is the desktop part at a smaller measure" and a
+second mount would have duplicated one that already exists. Between them they assert the text
+spec's numbers: the 56px top bar and its three 44x44 targets, the 288px drawer with 44px rows and
+the operator's one-row footer, the masthead paddings and type, band tiles 2x2 gap 10, the list row
+at `3px 1fr` / min-height 76 with its 3px spine and its dropped timeline column, the unscored 30px
+dashed baseline, the 36px filter group shell and its chips, the detail header's 2x2 action grid,
+the 62/14/1fr vertical timeline, the sticky 36px section index, and the folded rail with the "In
+this list" card first. Every one carries a `boundsCheck`, so an overflowing or colliding cell is a
+failed row from now on rather than something a human has to notice.
+
+**The harness needed one thing, and it is opt-in per spec**. The whole desktop/mobile switch in
+`AppShell`/`Sidebar`/`TopBar` is Tailwind utility classes (`hidden md:flex`, `md:hidden`), which
+the raw `globals.css` read every other spec uses leaves un-expanded, so without the compiled CSS a
+390 spec measures a frame the product never shows (both the desktop nav card and the mobile top bar
+render at once). `run-audit.mjs` now injects `fullAppCssCompiled()` when a SPEC sets
+`compiledCss: true`. Per spec, not per mount, deliberately: the same mounts are measured at 1440 by
+the compose-* specs, and switching the CSS under those would have re-baselined 43 specs this lane
+is not auditing. One new mount, `mobile-drawer`, reuses the page-frame entry and clicks the REAL
+hamburger, because the drawer's measures only exist while it is open and `AppShell` owns that
+state; no test-only prop was added to product code. `mobile-390-specs.test.mjs` proves all of that
+wiring, portably, in the no-npm suite.
+
+**Eleven defects, each fixed once in a shared part.** Six were overflow: `DashboardBrief` and
+`ListSurfaceShell` both dropped the `minmax(0, ...)` floor in their `<=1280` single-track override
+(a bare `1fr` is `minmax(auto, 1fr)`, whose auto minimum is min-content, so the dashboard's content
+track grew to 539px inside a 390px viewport and the whole brief was clipped); `ResearchThemeCards`
+had the same missing floor on `repeat(4, 1fr)`; `ListRowColumnHeader` kept its 489px of fixed
+tracks below 768; `SectionHeading` and `CardFoot` are `nowrap`; `SkeletonListRow` repeated the
+desktop grid with no counterpart to `ListRow`'s own mobile reflow, so the skeleton stated the WRONG
+"final geometry" at exactly the width where it matters. Two were page measures the five list
+surfaces never got, namely a hardcoded 40px side padding on both of `ListSurfaceShell`'s wrappers, and the
+2x2 band tile grid, which only `DashboardBrief` declared. Three were type: `FilterChip` at 700
+where the spec writes 600, every detail title at the masthead's 24px/1.08 where the spec gives the
+detail header 22px/1.1, and the four detail actions at 11.5px/800 where the spec writes 12.5px/700
+and 12.5px/600.
+
+**One duplication closed.** `WatchlistSurface` builds its own copy of `ListSurfaceShell`'s frame
+rather than mounting the shell, and so carried NONE of the mobile page measures: it kept the
+desktop 40px padding at 390 while the other four list surfaces did not. The shell now exports that
+block and the watchlist renders it: one definition, instead of one plus a silent omission.
+
+**The 375 exemptions**. Nothing to remove. The five list pages' entries were already gone
+(FOLD-56 + lane moblist), and the remaining `map` entry is INACTIVE: `latestTrainWave()` reads 58,
+`activeExemptions()` returns empty, and the rendering guard was run this lane with it inactive and
+PASSED. Measured, not assumed. The entry is kept as the record of the operator's ruling and of the
+wave it expired at, with that measurement written into the file's header.
+
+**Evidence**: eight 390 screenshots under `docs/design/handoff-2026-09-06/built/mobile-*.png`, each
+read against the text spec with the Read tool. There is no 390 artboard to composite against, so
+there is no side-by-side; when one lands, the image wins over the text and every difference in
+DEVIATION-LOG's mobile60 section is re-decided against it. The visual pass caught two things the
+value-level checks structurally could not: the overflow control wrapping onto a line of its own in
+every row (a rect-level `boundsCheck` cannot see it, because the control's own box is correct), and
+the timeline date overflowing its 62px gutter as TEXT (likewise invisible to a rect check). Both
+are logged with what was measured.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`DashboardBrief.tsx`,
+`ListSurfaceShell.tsx`, `WatchlistSurface.tsx`, `ResearchThemeCards.tsx`, `ListRow.tsx`,
+`BandTile.tsx`, `SectionHeading.tsx`, `CardFoot.tsx`, `Skeleton.tsx`, `Masthead.tsx`,
+`ActionRow.tsx`, `DetailShell.tsx`). Every value applied is the mobile 390 spec's own literal
+(56/44/288/18/8.5/44/10/12-14-0/30/76/3/9/7/10.5/13.5/11.5/36/9.5/12/62/14/22/12.5); nothing was
+improvised, and every value the spec does not state is either unchanged or logged in DEVIATION-LOG
+with what was measured. No new interactive target was introduced: the drawer, the top bar, the
+Filters control and the four detail actions all keep the 44px floor, and the one target below it,
+the section-index chip at 36px, is the spec's own explicit exception. Every change is inside a
+`max-width: 767px` query or keyed off a prop the component already took, so nothing at 768 and
+above moved; the 43 pre-existing 1440 specs are unchanged and still green. Rendering guard PASS
+with no new failures.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean, exit 0; fitness runner
+33 functions, 0 violations, no allowlist expiries; rendering guard PASS (11 fixtures, 431 checks,
+7 SM + 12 UX smoke specs, 83 + 216 checks) with the 375 exemption list inactive; design audit 68
+specs, 1722 checks, 1722 MATCH, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC; the sibling `.npmtest.mjs`
+files for every touched component plus the new `mobile-390-specs.test.mjs` pass; `run-test-suite.sh`
+5926 tests, 0 fail, exit 0; `next build --webpack` exit 0 with no `.env.local`.

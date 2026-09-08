@@ -147,7 +147,8 @@
       "selector": "[data-audit=\"dashboard\"] .cl-list-row",
       "expect": {
         "grid-template-columns": "3px *",
-        "min-height": "76px"
+        "min-height": "76px",
+        "padding-right": "44px"
       }
     },
     {

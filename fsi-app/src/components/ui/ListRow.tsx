@@ -292,7 +292,30 @@ const RESPONSIVE_CSS = `
     .cl-row-due-days { font-size: 11.5px !important; font-weight: 500 !important; }
     .cl-row-timeline { display: none !important; }
     .cl-row-tags-mobile { display: inline-flex !important; }
-    .cl-row-overflow { margin-left: auto; border-left: 1px solid rgba(0,0,0,.08) !important; width: 44px; height: 44px; flex-shrink: 0; }
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 and read off
+       docs/design/handoff-2026-09-06/built/mobile-01-dashboard.png]: the overflow control
+       was an ordinary item of the wrapping line-2 flow with margin-left: auto, and at 390
+       the metadata ahead of it (impact 72-108px, date+days 130-142px, tier 30px, three 9px
+       gaps) already fills the 296px content width — so it wrapped onto a line of its own,
+       every time, and rendered as a 44px box with a dangling left rule and nothing beside
+       it. That is the orphan/collision class the operator's 2026-09-07 visual-pass standard
+       forbids. It is now a fixed 44px gutter at the row's right edge, vertically centred:
+       the row reserves the width with its own padding-right, so the control is exactly the
+       spec's 44x44 with its border-left, "pushed right", and the metadata wraps inside the
+       space that is actually left. The row grid stays "3px 1fr" as the spec writes it; the
+       gutter is padding on the row, not a third track. */
+    .cl-list-row { padding-right: 44px !important; }
+    .cl-row-overflow {
+      position: absolute !important;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      margin-left: 0 !important;
+      border-left: 1px solid rgba(0,0,0,.08) !important;
+      width: 44px;
+      height: 44px;
+      flex-shrink: 0;
+    }
   }
 `;
 

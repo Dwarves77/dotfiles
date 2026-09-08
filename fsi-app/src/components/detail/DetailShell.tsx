@@ -405,6 +405,19 @@ function VerticalMilestoneStack({ list, band }: { list: TimelineEntry[]; band: U
             <span
               style={{
                 textAlign: "right",
+                // MOBILE-60 (2026-09-08), measured at 390 and read off
+                // docs/design/handoff-2026-09-06/built/mobile-03-regulation-detail.png. An ISO
+                // milestone date ("2027-01-01") at 11px needs ~57px in Plus Jakarta Sans and
+                // ~70px in the fallback face a host without that font uses; the spec fixes this
+                // gutter at 62px, which fits the former and not the latter. It is left WRAPPING
+                // rather than held on one line: `white-space: nowrap` was tried and, in the wide
+                // fallback, the date overflowed its own 62px box to the RIGHT and ran under the
+                // dot column (text-align: right does not pull back overflowing content), which is
+                // a collision. A date that wraps at its hyphen in one face is worse-looking than
+                // one that does not; a date lying across the dots is wrong at any width. Tabular
+                // figures so the two lines align when it does wrap. Logged in DEVIATION-LOG.md:
+                // the 390 artboard, when it lands, states what date FORM the design intends here.
+                fontVariantNumeric: "tabular-nums",
                 paddingRight: 8,
                 fontSize: "var(--fs-11)",
                 fontWeight: isNext ? 800 : 600,
