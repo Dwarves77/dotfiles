@@ -13359,3 +13359,127 @@ the lanes had each already justified against their artboards. No new interactive
 introduced anywhere in the fold, every 44px minimum the lanes set is preserved, and the rendering
 guard passes with no new failures at every viewport including 375 through the UX smoke specs.
 
+
+---
+
+## Addendum: lane TAGS-401 (train 61, production-defect lane) — the workspace-tags 401 and the class behind it, 2026-09-08
+
+Base `train/wave60-2026-09-08` (42005ba8). Source: the click-through audit of production run this
+morning against train 59, `/home/claude/audit-2026-09-08/CLICKTHROUGH-2026-09-08.md`. This lane
+touched no geometry, no colour and no type; every one of its changes is behaviour that was broken
+for every signed-in user.
+
+### Item 1 — the workspace-tags API returned 401 for every signed-in user
+
+**Root cause [CONFIRMED], verified before changing anything.** `requireAuth` (`src/lib/api/auth.ts`)
+reads the caller's identity from the `Authorization: Bearer <jwt>` request header and from nowhere
+else; it never looks at a cookie. `src/lib/tags/client.ts` (six fetches) and
+`src/lib/tags/useWorkspaceTagsFacet.ts` (one) sent `credentials: "include"` and a Content-Type
+instead. Evidence: the audit's network read of a signed-in production session, 23
+`GET /api/workspace/tags 401` in three hours while `/api/auth/identity`,
+`/api/workspace/bootstrap` and `/api/admin/attention` returned 200 on the same page loads; the
+route's own source, which calls `requireAuth` first on all three verbs; and the client's own
+source. So the entire feature, the `+ Tag` popover, the detail tag row and the list rail's
+Workspace tags facet with its counts, has never worked in production since it landed.
+
+Base check, as the dispatch required: train 60 does NOT already fix this. `git show
+42005ba8:fsi-app/src/lib/tags/client.ts` carries all six unauthenticated fetches verbatim.
+
+**The class, not the call.** A census of every literal `/api/` fetch under `src/` against the 50
+route files that actually call `requireAuth` (a route that only NAMES it in a comment,
+`/api/obligations/upcoming`, is public and correctly excluded) found the tags module plus 24 more
+files hand-rolling the header four different ways. Twenty-one interpolate the token
+unconditionally, ``Bearer ${session?.access_token || ""}`` or literally ``Bearer
+${session?.access_token}``, which renders the string "Bearer undefined". Both clear requireAuth's
+`startsWith("Bearer ")` check and then 401. On a click-driven admin control the session has usually
+resolved, so those never showed the symptom; they carried it, and any read firing on mount could
+show it at any time.
+
+`src/lib/api/authed-fetch.ts` is now the one way. It takes the most complete behaviour of the five
+prior copies (`getSession()` with its own refresh, useListOrder's honest null token) and settles
+what they disagreed about: no token means NO REQUEST and a synthetic 401 whose body is
+byte-identical to requireAuth's own, so every caller's existing `!res.ok` branch is unchanged while
+the signed-out branch becomes reachable again. All 25 files are moved onto it and every copy is
+deleted, along with the Supabase client reads and hook dependencies that died with them (rule 13).
+
+**The gate.** F40 `authed-api-fetch`, with invariant RD-65 and Section 4 category 40 in
+`remediation-discipline`. Two lexical rules: (a) no module under `src/` may contain ``Bearer ${``
+outside the shared builder and the two server modules that build a client FROM an already-verified
+token; (b) a `fetch()` on a literal `/api/` path whose route calls `requireAuth` must be
+`authedFetch` or live in a file importing the helper. What is NOT decidable is stated in the
+function's own header rather than papered over: rule (b) cannot prove by dataflow that a `headers`
+value came from `authHeaders()`. Rule (a) closes that hole, because the only way to produce a bearer
+header in this codebase without tripping (a) is to call the shared builder. Verified RED against the
+exact pre-fix client (8 violations) and GREEN on the fix.
+
+**The tests, and which existing test should have caught this.** Three suites were green over a dead
+feature. `TagPopover.npmtest.mjs` reads the component's SOURCE TEXT (this repo has no JSX render
+harness) and asserts a trigger-gating structure; it never calls fetch. `src/lib/tags/server.npmtest.mjs`
+proves the pure server helpers, which are correct, and which the request never reached. The rendering
+guard mounts the real components against a Playwright fixture that fulfils every `**/api/**` with a
+canned body and never inspects the request, so a component sending no credentials is
+indistinguishable there from a correct one. The gap all three share is that nothing exercised the
+CONTRACT between client and route. Closed by three new proofs: the route's own auth contract
+(`src/app/api/workspace/tags/route.npmtest.mjs`, driving the real handler), the helper's
+(`src/lib/api/authed-fetch.npmtest.mjs`), and a browser smoke whose route stub REPLICATES
+requireAuth and refuses an unauthenticated request.
+
+### Item 2 — the other hand-rolled callers, including the first-render path
+
+Checked every one, including the render before the session resolves.
+
+- `useWorkspaceBootstrap`, `useAdminAttention`, `useListOrder`: correct on that path (each bailed on
+  a null token). Moved onto `authHeaders()` and their copies deleted; behaviour unchanged.
+- `CorpusTurnPanel`, `SourceTierAuditPanel`, `CoverageCatalogueView`, `WatchButton` and 21 admin and
+  sources views: the `|| ""` / `Bearer undefined` class. `CoverageCatalogueView.load()` is the worst
+  shape, an on-mount effect, so it could 401 silently on a slow session resolve. All fixed.
+- `resourceStore`, `AskAssistant`, `GlobalErrorReporter`: behaviourally correct (honest null checks)
+  but still copies. Moved onto the shared builder, keeping each one's own signed-out message.
+- `src/lib/watchlist/membership.ts` takes its auth header as an injected parameter by design and is
+  unchanged; its one client caller (`WatchButton`) now feeds it from the shared builder.
+
+### Item 3 — the popover, the tag row and the rail facet, verified by running them
+
+`.discipline/rendering/smoke/workspace-tags-smoke.mjs` mounts the real `DetailTagRow` (with the real
+`TagPopover` forced open) and the real `useWorkspaceTagsFacet` hook. With the fix: the popover lists
+both workspace tags, the detail row renders its applied pill beside the `workspace tags` label, the
+rail facet renders both tags with live counts, `tagsForItem()` returns the item's tag, and clicking
+an unapplied tag issues an AUTHENTICATED `PUT /api/workspace/tags/<id>/items` whose accepted write
+puts the new pill on the row. There is no second defect behind the 401.
+
+Attack-verified (rule 15, a guard is proven by attack). With `client.ts` and `useWorkspaceTagsFacet.ts`
+reverted to their pre-fix text the spec reports the production symptom verbatim: "3 of 3 requests
+carried no Authorization: Bearer header", "the detail tag row rendered no applied tag (text:
+'⌕workspace tags')", zero popover options, an empty rail facet.
+
+### Test updated, not weakened
+
+`ProvisionalReviewTable.npmtest.mjs` asserted "exactly one fetch target" with a regex matching a
+lowercase `fetch(`, which no longer matches `authedFetch(`. The INVARIANT it guards (one endpoint,
+and it is promote) is unchanged and still asserted; only the callee's name changed, so the matcher
+is case-insensitive on the callee and a second assertion was added that the one call is
+authenticated. Nothing was relaxed.
+
+**UX compliance** (per screen or block; goal / path / primary action / feedback per async action):
+- Detail tag row (all four detail surfaces): goal, see which workspace tags this item carries; path,
+  read the row under the title; primary action, none on the row itself (ruling 3.2, the row displays
+  tags and carries no trigger); the per-pill remove control is unchanged. Async: the tag read now
+  succeeds; while it is in flight the row renders nothing rather than a wrong count, and a failed or
+  unauthenticated read keeps the previous list rather than showing 0 (the fail-soft the client
+  already documented, now reachable for the first time).
+- `+ Tag` popover: goal, apply or create a workspace tag; path, the action row's single `+ Tag`
+  trigger; primary action, the option row (44px targets unchanged, no geometry touched). Async: apply
+  and remove now carry identity, so the optimistic pill matches the persisted state instead of
+  silently reverting on the next read.
+- List rail Workspace tags facet: goal, filter a list by tag; path, the rail group; primary action,
+  the facet chip. Async: the counts are live for the first time; a failed read renders the group
+  empty rather than a fabricated 0.
+- No new interactive element anywhere in this lane, no geometry, colour or type change, and the
+  design audit is unchanged at 61 specs / 1193 MATCH.
+
+### Gates
+
+Recorded in the lane REPORT with their exact lines. tsc 0 errors; fitness 34 functions 0 violations
+(F40 included); rendering guard PASS with the new smoke registered; `npm run audit:design` 61 specs
+1193/1193 MATCH, no spec made stale; the CI npmtest glob 113 files, 901 tests, 0 fail;
+`run-test-suite.sh`; `next build --webpack`.

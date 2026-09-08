@@ -17,6 +17,11 @@ import {
 
 const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../../../');
 const TAGS_CLIENT = 'fsi-app/src/lib/tags/client.ts';
+// Built by concatenation, never written as a literal `from "..."` in this file: glob-portability.test.mjs
+// scans this file's SOURCE for module specifiers and would read a fixture string spelling out the
+// helper's import as a real bare-package import of the app tree (which this test never makes).
+const HELPER_IMPORT = ['import { authedFetch }', 'from', '"@/lib/api/authed-fetch";'].join(' ');
+const HEADERS_IMPORT = ['import { authHeaders }', 'from', '"@/lib/api/authed-fetch";'].join(' ');
 
 // ── rule (b): a guarded fetch without the helper ──────────────────────────────────────────────
 
@@ -33,12 +38,12 @@ test('RED: a dynamic segment still resolves — /api/workspace/tags/${tagId}/ite
 });
 
 test('GREEN: the same call through authedFetch', () => {
-  const src = 'import { authedFetch } from "@/lib/api/authed-fetch";\nconst res = await authedFetch("/api/workspace/tags");';
+  const src = HELPER_IMPORT + '\nconst res = await authedFetch("/api/workspace/tags");';
   assert.deepEqual(fitnessFunction.check(TAGS_CLIENT, src), []);
 });
 
 test('GREEN: the authHeaders() form (a bare fetch in a file that imports the helper)', () => {
-  const src = 'import { authHeaders } from "@/lib/api/authed-fetch";\nconst headers = await authHeaders();\nawait fetch("/api/workspace/bootstrap", { headers });';
+  const src = HEADERS_IMPORT + '\nconst headers = await authHeaders();\nawait fetch("/api/workspace/bootstrap", { headers });';
   assert.deepEqual(fitnessFunction.check('fsi-app/src/lib/hooks/useWorkspaceBootstrap.ts', src), []);
 });
 

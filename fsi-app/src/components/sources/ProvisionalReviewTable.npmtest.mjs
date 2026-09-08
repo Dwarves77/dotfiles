@@ -40,9 +40,18 @@ test("rowTier prefers the operator's pick, then the recommendation, then the pro
 
 test("every action posts to the one real endpoint the review flow already owns", () => {
   assert.match(SOURCE, /"\/api\/admin\/sources\/promote"/);
-  // No invented endpoints: promote is the only fetch target in the file.
-  const fetches = SOURCE.match(/fetch\(\s*"([^"]+)"/g) ?? [];
+  // No invented endpoints: promote is the only fetch target in the file. The matcher is
+  // case-insensitive on the callee because lane TAGS-401 (2026-09-08) moved every guarded /api/
+  // call onto `authedFetch` from "@/lib/api/authed-fetch" — the invariant this test guards (ONE
+  // endpoint, and it is promote) is unchanged; only the callee's name is.
+  const fetches = SOURCE.match(/\b\w*[Ff]etch\(\s*"([^"]+)"/g) ?? [];
   assert.equal(fetches.length, 1, "expected exactly one fetch target");
+  assert.match(fetches[0], /\/api\/admin\/sources\/promote/);
+});
+
+test("that one call is authenticated (F40): a guarded admin route is never reached by a bare fetch", () => {
+  assert.match(SOURCE, /import \{ authedFetch \} from "@\/lib\/api\/authed-fetch";/);
+  assert.doesNotMatch(SOURCE, /`Bearer \$\{/);
 });
 
 test("approve sends assignedTier (F8 client/server tier boundary), the other decisions do not", () => {

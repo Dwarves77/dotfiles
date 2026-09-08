@@ -136,11 +136,18 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 // its detection surface is now covered by the already-wired defect-signature-scan and surface-visibility
 // audits). No contentHash change; removing a deleted file's citation is the drift this gate exists to
 // catch, not a re-pin.
+// 2026-09-08 (Lane TAGS-401, train 61, production-defect lane): remediation-discipline re-pinned. Added
+// "Section 4 — category 40: a browser call to a requireAuth-guarded route attaches the session token in ONE
+// place, never at the call site" (invariant RD-65, F40). requireAuth reads the Authorization header and
+// nothing else, so a caller sending a cookie, or a bearer carrying no token, gets a 401 that fails soft and
+// is invisible to every test that mounts components against canned fixtures: the whole workspace-tags
+// feature 401'd for every signed-in user from the day it landed. No citingFiles change, same posture as the
+// category 36/37/38/39 re-pins above (the files below cite the skill as a whole, not this section).
 // ---------------------------------------------------------------------------------------------------------
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
-    contentHash: 'b3507fd5735f41cd8556b5b55a3e70c2dbadea6a1a514ced1ed7c3e025bdff54',
+    contentHash: 'e1d5775e8251bc36742e94cd225e03ddc049bdd6a91950838c6f8844da123424',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
