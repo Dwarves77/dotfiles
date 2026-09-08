@@ -683,12 +683,12 @@ or touches `ListRow`.
 
 **Threaded props (declared, because they touch `DashboardBrief.tsx`).** Two, both server-computed:
 
-- `dueNextWindow` — the Due-next card's aside. It was built inside the client component from
+- `dueNextWindow`, the Due-next card's aside. It was built inside the client component from
   `nowIso`; it now states which window the SELECTED ROWS span, so it is built where the rows are
   selected (`dueNextWindowLabel`, src/lib/dashboard/brief-rows.ts). The component's `weekOfLabel`
   `useMemo` and its `formatLocaleDate`/`nowFrom` imports are deleted with it rather than left
   unreferenced (rule 13). HYDRATION-59's reasoning is preserved verbatim on the new prop's doc.
-- the two cards' state branch — `briefCardState(rows.length, fetchError)`, one decision in
+- the two cards' state branch, `briefCardState(rows.length, fetchError)`, one decision in
   brief-rows.ts, read by both cards. The Due-next card's `fetchError` foot note is removed because
   it is now that card's `failed` state rather than a second thing rendered beside an empty card, and
   the What-changed card gains the same state (it had none: a failed read rendered "Nothing added or
@@ -705,5 +705,5 @@ sitewide, by ~11px of height on the strips that have one.
 
 **Absence budget.** Unchanged, and now proven from the other side: mobfix61's one-token-per-row
 precedence stays exactly as it is, and this lane adds the assertion that a brief row does not NEED
-it — a change row that was carrying its one allowed token in four cells' worth of missing data is
+it, a change row that was carrying its one allowed token in four cells' worth of missing data is
 now a full row, because the data is fetched rather than degraded.
