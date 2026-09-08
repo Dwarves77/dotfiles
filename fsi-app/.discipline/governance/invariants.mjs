@@ -218,7 +218,12 @@ export const SKILL_MARKER_BASELINE = {
   // shell repeated across files MUST become one component that owns every property of the shell,
   // and the class MUST be closed by a gate that fails on a hand-built copy". TRIAGE: new invariant
   // RD-67 (enforcedBy fitness:F42 + its selftest).
-  'remediation-discipline': 51,
+  // 51→52 (2026-09-08, lane noexpand; renumbered at FOLD 64): added Section 4 category 43, "a page that opens something
+  // before the reader acted", one normative line. TRIAGE: new invariant RD-67-default-open-disclosure
+  // (enforcedBy fitness:F43 + its selftest + the rendering guard's no-default-open leg). Not an
+  // instance of an existing rule: the two shapes of this defect are invisible to different tools and
+  // the second one has no source-level tell at all, which is why it needs both halves.
+  'remediation-discipline': 52,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1447,5 +1452,26 @@ export const INVARIANTS = [
     anchor: '### Section 4 \u2014 category 42: a repeated style shell is a component that does not exist yet, and what it omits is invisible',
     enforcedBy: ['fitness:F42', 'selftest:fsi-app/.discipline/fitness/functions/F42-card-shell-outside-section-card.test.mjs'],
     residual: 'F42 is a LEXICAL scanner over `fsi-app/src/**/*.tsx` (test files and `/_archive/` excluded): it reports a nine-line window carrying all three of a card background (`var(--card)`/`var(--surface)`), a card border (`1px solid var(--line-1)`/`var(--color-border)`/the literal `rgba(0,0,0,.12)`) and a card radius (`var(--radius-card)`/a bare `10`). It cannot see a shell built from a variable, a helper that composes the properties across two objects, or a Tailwind class list, and it does not decide whether a marked site really is not a card; the marker is a written reason a reader checks, not a proof. It also says nothing about the RENDERED result: that the rule is present with the exact gradient on each named card, and that no card element renders without one, is measured by the design audit\'s compose-* specs (one row per listed card plus a `[data-section-card=\"\"]:not(:has(.cl-section-rule))` forbid), which is where a rule that is present but the wrong colour (item E4\'s red rule) is caught.',
+  },
+  {
+    id: 'RD-67-default-open-disclosure',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 43: a page that opens something before the reader acted',
+    text: 'No component under `fsi-app/src/components/` may initialise a disclosure to OPEN, and no page mount may render an open disclosure in its INITIAL DOM. [CONFIRMED, operator report 2026-09-08]: he navigated to /operations and the page had already opened a dimension, Infrastructure capacity, with nobody having clicked anything: "no items expanded when first navigtaing to a page". The class has two shapes with different hiding places. The LEXICAL shape (`useState(true)` on an open/expand state, `useState(false)` on a collapsed/closed one, a `defaultOpen`/`defaultExpanded`/`initialOpen`/`expandedByDefault`/`openByDefault`/`defaultIndex` prop defaulting truthy, a `<details open>`) compiles, renders without a warning, and passes every layout and design assertion, because the thing it opened is correctly styled; two live instances were found by grep on the day of the ruling. The RENDERED shape has no source-level tell at all: RegionDimensionMatrix computed a default SELECTION on mount ("the first sourced cell in the first sourced row") and rendered its fact panel for it, so no boolean and no prop existed for a scanner to name, and the design spec that measured the panel REQUIRED it to be open in order to measure it. Two carve-outs, each written at the site rather than as a path allowlist: a FILTERS rail whose stated default is "first two groups open, rest closed" is a control surface rather than page content, and a deep link may open exactly what it names while the bare route may not.',
+    anchor: '### Section 4 — category 43: a page that opens something before the reader acted',
+    enforcedBy: [
+      'fitness:F43',
+      'selftest:fsi-app/.discipline/fitness/functions/F43-default-open-disclosure.test.mjs',
+      // The rendering-guard leg (`no-default-open-smoke.mjs`) is NOT cited as a token here, and the
+      // reason is mechanical rather than a judgement about its worth: `isExecutionWired` recognises
+      // the guard ENTRYPOINT (`run-rendering-guard.mjs`) and not the smoke modules that entrypoint
+      // imports, so a `selftest:` token naming it resolves UNRESOLVED even though the guard runs it on
+      // every invocation. This is the same shape RD-58 (F35) and the rendering-guard invariant already
+      // carry: the fitness function is the citable enforcement, and the browser measurement is named in
+      // `residual` with the runner that executes it. Where it runs, exactly: the `SMOKE_SPECS` array in
+      // `.discipline/rendering/run-rendering-guard.mjs` (entry `no-default-open`), which the
+      // rendering-guard CI job invokes directly.
+    ],
+    residual: 'F43 is a LEXICAL scanner over `fsi-app/src/components/**/*.tsx` (test files and `/_archive/` excluded). It reads POLARITY off the state name after a camelCase split, matching whole words, so `openingHours` and `reopenQueue` are not disclosure state and a disclosure named in a vocabulary it does not carry (`shown`, `visible`, `up`) is invisible to it. It cannot see a disclosure whose open state lives in a store, a URL, a reducer or a parent prop threaded from a server component, and by construction it cannot see the RENDERED shape at all: a default selection, a computed default index, a panel rendered from derived data. That half is closed in the rendering guard: `no-default-open-smoke.mjs` mounts the real RegionDimensionMatrix and every `compose-*` page mount and measures `details[open]`, `aria-expanded="true"`, a non-tab `aria-selected="true"` and a visible `role="tabpanel"` in the initial DOM, using the same probe `audit/open-state-sweep.mjs` exports rather than a second copy of it. The guard\'s reach is the mount registry: a route with no page mount (the /community sub-routes, /admin/factors, /workspace/new, /invitations/[token], /auth/*, /privacy) is covered by F43 alone. A `role="tab"` reporting `aria-selected="true"` is EXCLUDED by both, and the exclusion is a ruling written into the probe: a tab strip is sibling navigation, exactly one tab is always active, and nothing is expanded by it. Proven by attack 2026-09-08 in both directions: the default-selection block was pasted back into RegionDimensionMatrix.tsx and the guard leg went red on six assertions, and `tocOpen` was set back to `true` in IntelligenceBrief.tsx and F43 went red; both were restored to green.',
   },
 ];

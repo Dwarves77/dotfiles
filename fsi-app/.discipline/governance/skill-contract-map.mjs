@@ -163,7 +163,13 @@ export const PINNED_MANIFEST = {
     // (dead-media-query-class, RD-66 / F41). The two lanes each arrived numbering theirs 40 and
     // each pinned their own hash; the fold keeps both sections, renumbers the second, and pins the
     // hash of the union. No cited statement changed: both are new appended sections.
-    contentHash: '7c1941ffb7684837305994a4f47822b82a52d2039c43fe0db372d1506e8a6926',
+    // 2026-09-08 (lane noexpand; renumbered at FOLD 64): re-pinned for Section 4 category 43, "a page
+    // that opens something before the reader acted" (RD-67-default-open-disclosure / F43), from the
+    // operator's ruling that no items are expanded
+    // when first navigating to a page. Reviewed against every citingFile below: none of them cites a
+    // Section 4 category, and no existing statement in the skill changed - the category is a new
+    // appended section, the same posture as the categories 36-41 re-pins above. No citingFiles change.
+    contentHash: '13797439c07131dc105244c291ffdd7e578471299cf72ef700a0e3fc11bda77a',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',

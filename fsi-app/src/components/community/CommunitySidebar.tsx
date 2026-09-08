@@ -421,7 +421,7 @@ function SidebarSection({
   // Left as it stands, deliberately, and reported. The change if the operator rules the other way is
   // this one line: `useState(true)` becomes `useState(false)`, and this marker comes out with it.
   //
-  // fitness-allow: F42 (R2/R3 boundary: a navigation control surface, not page content; reported to
+  // fitness-allow: F43 (R2/R3 boundary: a navigation control surface, not page content; reported to
   // the operator for a ruling, per R3's own "reports the case rather than deciding")
   const [open, setOpen] = useState(true);
   return (

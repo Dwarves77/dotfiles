@@ -62,6 +62,11 @@ import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.
 // See that module's header for the live measurement (org_watchlist: 0 rows; user_watchlist: 1 row)
 // and for why an api fixture that fulfils every request cannot prove a write path.
 import { runSmoke as runWatchlistWriteSmoke } from "./smoke/watchlist-write-smoke.mjs";
+// lane noexpand, 2026-09-08: the operator's "no items expanded when first navigtaing to a page"
+// ruling, measured in the INITIAL DOM. The half of that class with no source-level tell - a page
+// that opens itself by computing a default SELECTION, which is how /operations opened Infrastructure
+// capacity - is invisible to F43 and to every other gate, and visible only here.
+import { runSmoke as runNoDefaultOpenSmoke } from "./smoke/no-default-open-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -195,6 +200,7 @@ async function main() {
     { name: "hydration", run: runHydrationSmoke },
     { name: "workspace-tags", run: runWorkspaceTagsSmoke },
     { name: "watchlist-write", run: runWatchlistWriteSmoke },
+    { name: "no-default-open", run: runNoDefaultOpenSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

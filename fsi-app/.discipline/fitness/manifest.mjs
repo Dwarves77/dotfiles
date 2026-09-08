@@ -200,6 +200,21 @@ import { fitnessFunction as F41 } from './functions/F41-dead-media-query-class.m
 // artboard's radius. Closes the class the operator found open on eighteen card types.
 import { fitnessFunction as F42 } from './functions/F42-card-shell-outside-section-card.mjs';
 
+// Default-open disclosure (2026-09-08, lane noexpand): F43 mechanizes the operator's site-wide
+// ruling "no items expanded when first navigtaing to a page". A component that initialises its own
+// disclosure state to open is valid TypeScript, renders without a warning and passes every layout
+// and design assertion, because the thing it opened is correctly styled; only a person looking at
+// the page can see that it opened itself. Its blind half - a page that opens itself with no boolean
+// anywhere, which is how the /operations matrix did it - is closed in the rendering guard, where the
+// initial DOM is real.
+// FOLD-64: this function arrived numbered F42, colliding with the card-shell chokepoint's own F42
+// above. Both functions are kept; THIS one was renumbered to F43 because the card-shell F42 landed
+// first (train 62) and its number is already cited by SectionCard.tsx, its own invariant, the
+// compose-* audit specs and a dozen `// fitness-allow: F42` markers in product source, so
+// renumbering it would have touched strictly more citations. Its invariant id
+// (RD-67-default-open-disclosure) is distinct from the card-shell RD-67 and did not move.
+import { fitnessFunction as F43 } from './functions/F43-default-open-disclosure.mjs';
+
 export const fitnessFunctions = [
   F2,
   F6,
@@ -237,6 +252,7 @@ export const fitnessFunctions = [
   F40,
   F41,
   F42,
+  F43,
 ];
 
 export function getFunctionById(id) {
