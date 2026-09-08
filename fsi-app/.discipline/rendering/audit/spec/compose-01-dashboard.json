@@ -2,7 +2,9 @@
   "part": "Page composition — Dashboard (01)",
   "mount": "page-frame-1440",
   "viewport": 1440,
-  "artboards": ["01-dashboard"],
+  "artboards": [
+    "01-dashboard"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
   "notes": [
     "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
@@ -19,7 +21,9 @@
     {
       "name": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
       "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
-      "expect": { "display": "grid" },
+      "expect": {
+        "display": "grid"
+      },
       "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
     },
     {
@@ -31,7 +35,9 @@
     {
       "name": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
       "name": "region 3 — What changed card, comes after Due next",
@@ -48,7 +54,9 @@
     {
       "name": "region 5 — rail, Watchlist card second",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
       "name": "region 6 — rail, Legend card third and last",
@@ -67,8 +75,8 @@
     {
       "name": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span",
-      "textMatch": "0/12",
-      "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score."
+      "textMatch": "re:(^|[^0-9])0/12",
+      "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score. The regex form is deliberate: a plain \"0/12\" substring also matches the legitimate \"10/12\", which made this forbid report a passing product as a defect."
     }
   ]
 }

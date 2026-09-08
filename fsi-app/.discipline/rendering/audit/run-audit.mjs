@@ -88,6 +88,23 @@ async function probe(page, targets, forbids) {
           });
         });
       };
+      // `textMatch` value forms, ONE implementation used by both readTarget and readForbid:
+      //   "<text>"      substring, the original and still the default;
+      //   "re:<regex>"  a JS regular expression over the element's own text.
+      // FOLD-59 (2026-09-08): the regex form exists because substring alone produced a FALSE
+      // finding. compose-01's "never a bare 0/12 impact score" forbid read `textMatch: "0/12"`,
+      // and "10/12" — a real, correctly scored row — contains "0/12", so a passing product
+      // reported NOT IN SPEC. A false finding is worse than no audit (CLAUDE.md rule 14), and the
+      // fix belongs in the harness rather than in a weaker spec: the invariant being guarded (an
+      // unscored row never renders a fabricated zero) is exactly right, only its expression was.
+      const textFilter = (nodes, textMatch) => {
+        if (!textMatch) return nodes;
+        if (String(textMatch).startsWith('re:')) {
+          const re = new RegExp(String(textMatch).slice('re:'.length));
+          return nodes.filter((n) => re.test(n.textContent || ''));
+        }
+        return nodes.filter((n) => (n.textContent || '').includes(textMatch));
+      };
       const readTarget = (t) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
         // HARNESS FIX, found independently by two fix lanes (fix58-tokens and fix58-detail,
@@ -98,7 +115,7 @@ async function probe(page, targets, forbids) {
         // under the selector (5: the overflow menu, Export brief, Share, Watch, + Tag) instead
         // of the one it named. Same filter, same rule. Both lanes' fixes were identical; kept
         // once here at the fold.
-        if (t.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(t.textMatch));
+        nodes = textFilter(nodes, t.textMatch);
         if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null, placeholder: null };
         const el = nodes[0];
         const cs = getComputedStyle(el);
@@ -121,7 +138,7 @@ async function probe(page, targets, forbids) {
       };
       const readForbid = (f) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(f.selector)), f.matchStyle);
-        if (f.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(f.textMatch));
+        nodes = textFilter(nodes, f.textMatch);
         // Visible text only: several shared parts carry their own responsive rules in a nested
         // `<style>` tag (ListRow, CommandBar, TierChip), whose textContent is CSS and would make an
         // otherwise correct forbid finding unreadable.
