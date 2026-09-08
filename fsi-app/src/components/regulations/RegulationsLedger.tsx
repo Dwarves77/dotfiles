@@ -70,7 +70,7 @@ import {
   useRemainderFetch,
   type ListSurfaceFacetGroup,
 } from "@/components/list-surface/ListSurfaceShell";
-import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { LegendRailCard, ObligationsRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
@@ -304,7 +304,14 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         )
       }
       belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
-      rail={<LegendRailCard />}
+      /* Artboard 02/id="p2" rail order, top to bottom: Filters (mounted by ListSurfaceShell
+         itself), then "Obligations · next 30 days", then Legend. */
+      rail={
+        <>
+          <ObligationsRailCard />
+          <LegendRailCard />
+        </>
+      }
     />
   );
 }

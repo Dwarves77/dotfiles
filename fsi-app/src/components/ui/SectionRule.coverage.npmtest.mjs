@@ -89,6 +89,13 @@ test("SectionHeading emits no rule of its own (the card mounts SectionRule; the 
   assert.doesNotMatch(text, /borderBottom:/);
 });
 
+// Lane comp-oblig (2026-09-08): the rail file mounts the rule twice — RailCard, which every
+// titled rail card (Obligations, Coverage, Legend) wraps itself in, and FiltersRailCard.
+test("ListSurfaceRailCards.tsx mounts SectionRule twice (RailCard, which every titled rail card uses, and FiltersRailCard)", () => {
+  const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceRailCards.tsx"), "utf8");
+  assert.equal(countRealMounts(text), 2);
+});
+
 const NO_BORDER_BOTTOM_UNDER_TITLE = [
   // [file, text that must not appear — the exact removed borderBottom declaration]
   ["components/account/AccountPrimitives.tsx", 'borderBottom: "1px solid var(--color-border-subtle)",\n          display: "flex"'],

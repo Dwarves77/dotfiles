@@ -9,9 +9,28 @@
  * copy of the same JSX.
  */
 
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { Absence } from "@/components/ui/Absence";
+import { SkeletonRailDateRow } from "@/components/ui/Skeleton";
+import { classifyByDays } from "@/lib/urgency/bands";
+import { formatEventDateCompact } from "@/lib/connections/forward-event-format.mjs";
+import {
+  daysFrom,
+  selectObligationRailRows,
+  OBLIGATION_RAIL_ROW_CAP,
+} from "@/lib/forward-events/obligation-rail-select.mjs";
 import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
+
+/** The card-head label type, shared by RailCard's title and FiltersRailCard's own head. */
+const RAIL_CARD_TITLE_STYLE: React.CSSProperties = {
+  fontSize: "var(--fs-105)",
+  fontWeight: 800,
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--ink-3)",
+  margin: 0,
+};
 
 // Ruling 5.1 (2026-09-07, CLOSED): every panel/section card carries the dark-grey graduated 3px
 // rule above its title, full card width, top edge, no radius on the rule. Design audit B163/B165/
@@ -23,6 +42,7 @@ export function RailCard({
   title,
   children,
   dataAudit,
+  headLink,
 }: {
   title: string;
   children: ReactNode;
@@ -30,6 +50,10 @@ export function RailCard({
    *  composition mount, since a caller like LegendRailCard mounts this with no wrapper div of its
    *  own. Optional: only the callers a compose-*.json spec needs to address by name pass it. */
   dataAudit?: string;
+  /** Optional right-aligned link on the card head's baseline — artboard 02/id="p2" draws one on the
+   *  "Obligations · next 30 days" card ("Calendar →") and none on Legend. Omitted callers render the
+   *  head exactly as before (a bare title paragraph), so no existing card's geometry moves. */
+  headLink?: { label: string; href: string };
 }) {
   return (
     <div
@@ -44,18 +68,30 @@ export function RailCard({
     >
       <SectionRule />
       <div style={{ padding: "14px 16px" }}>
-        <p
-          style={{
-            fontSize: "var(--fs-105)",
-            fontWeight: 800,
-            letterSpacing: "0.12em",
-            textTransform: "uppercase",
-            color: "var(--ink-3)",
-            margin: "0 0 10px",
-          }}
-        >
-          {title}
-        </p>
+        {headLink ? (
+          <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "0 0 10px" }}>
+            <p style={RAIL_CARD_TITLE_STYLE}>{title}</p>
+            <a
+              href={headLink.href}
+              style={{
+                minHeight: 24,
+                display: "inline-flex",
+                alignItems: "center",
+                flexShrink: 0,
+                // Artboard 02/id="p2" head link: 11px, weight 600.
+                fontSize: "var(--fs-11)",
+                fontWeight: 600,
+                color: "var(--ink)",
+                textDecoration: "underline",
+                textDecorationColor: "rgba(0,0,0,.3)",
+              }}
+            >
+              {headLink.label}
+            </a>
+          </div>
+        ) : (
+          <p style={{ ...RAIL_CARD_TITLE_STYLE, margin: "0 0 10px" }}>{title}</p>
+        )}
         {children}
       </div>
     </div>
@@ -232,6 +268,98 @@ export function FiltersRailCard({
         )}
       </div>
     </div>
+  );
+}
+
+// OBLIGATIONS · NEXT 30 DAYS rail card (artboard 02/id="p2", drawn BELOW the Filters card and ABOVE
+// Legend; the page-composition audit found the region simply missing from the built rail). The
+// artboard's own anatomy, exactly: a head carrying the label and a "Calendar →" link on the same
+// baseline, then up to four rows of `3px 48px 1fr` — a band-coloured bar, the date, and one line of
+// "<item title> — <obligation>".
+//
+// DATA. No new Supabase read: this fetches the EXISTING bounded, RLS-gated, jurisdiction-defaulted
+// route GET /api/obligations/upcoming (the same route UpcomingObligationsStrip reads, backed by
+// read-upcoming.mjs's fetchUpcomingObligations with its own limit), then applies the artboard's two
+// extra constraints — the 30-day window and the four-row count — through the pure
+// selectObligationRailRows (src/lib/forward-events/obligation-rail-select.mjs, proven by its own
+// npmtest). A limit of 8 is requested rather than 4 because the route's ordering is "soonest first
+// across all future events": asking for 4 and then dropping the ones past day 30 could show fewer
+// rows than exist inside the window, while 8 covers the artboard's four with headroom and is still
+// bounded (F38/F39).
+//
+// ABSENCE, SKELETON, NEVER A ZERO (README §0.4/§0.6). While the fetch is in flight the card holds
+// the artboard's row geometry open with SkeletonRailDateRow — never an empty card, never "0". When
+// the read returns nothing inside the window (no obligation dates, or the route's own soft-fail to
+// an empty array), the card renders the fixed-vocabulary Absence token instead of rows.
+//
+// BAND BAR. The bar hue is the ONE urgency module's own classification of the days remaining
+// (classifyByDays, src/lib/urgency/bands.ts) — not a page-local colour ramp. Every row inside a
+// 30-day window classifies as Immediate, so the live card's bars are one hue where the artboard's
+// sample data drew a red/orange mix; that is a data-driven difference, logged in DEVIATION-LOG.md,
+// not a geometry or colour deviation.
+export interface ObligationRailEvent {
+  id: string;
+  event_date: string;
+  date_precision: "day" | "month" | "year";
+  event_kind: string;
+  obligation_text: string;
+  item: { id: string; title: string; legacy_id: string | null; jurisdiction_iso: string[] | null };
+}
+
+export function ObligationsRailCard() {
+  const [state, setState] = useState<{ loading: boolean; events: ObligationRailEvent[] }>({
+    loading: true,
+    events: [],
+  });
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/obligations/upcoming?limit=8", { credentials: "same-origin" })
+      .then((r) => (r.ok ? r.json() : { events: [] }))
+      .then((result: { events?: ObligationRailEvent[] }) => {
+        if (!cancelled) setState({ loading: false, events: Array.isArray(result?.events) ? result.events : [] });
+      })
+      .catch(() => {
+        if (!cancelled) setState({ loading: false, events: [] });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const rows = useMemo(
+    () => selectObligationRailRows(state.events, new Date()) as ObligationRailEvent[],
+    [state.events]
+  );
+
+  return (
+    // "Calendar →" points at the Obligation Register section already mounted lower on /regulations
+    // (ruling R7: the register is the app's real full obligation schedule and stays exactly as it
+    // is; there is no calendar route to invent, and the artboard's own link is a self-anchor).
+    <RailCard title="Obligations · next 30 days" dataAudit="obligations-rail" headLink={{ label: "Calendar →", href: "#obligation-register" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: "var(--fs-12)" }}>
+        {state.loading ? (
+          Array.from({ length: OBLIGATION_RAIL_ROW_CAP }, (_, i) => <SkeletonRailDateRow key={i} />)
+        ) : rows.length === 0 ? (
+          <Absence reason="not in primary source" />
+        ) : (
+          rows.map((ev) => {
+            const days = daysFrom(ev.event_date, new Date()) as number | null;
+            return (
+              <div key={ev.id} data-audit="obligation-row" style={{ display: "grid", gridTemplateColumns: "3px 48px 1fr", gap: 10, alignItems: "start" }}>
+                <span aria-hidden="true" style={{ background: classifyByDays(days).hex, borderRadius: 2, alignSelf: "stretch" }} />
+                <span style={{ fontWeight: 700, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+                  {formatEventDateCompact(ev.event_date, ev.date_precision)}
+                </span>
+                <span style={{ lineHeight: 1.4, color: "var(--ink)" }}>
+                  {ev.item.title} — {ev.obligation_text}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </RailCard>
   );
 }
 

@@ -258,7 +258,7 @@ export function ObligationRegisterFilterBar({
 
   if (total === 0 && rows.length === 0 && !loading) {
     return variant === "detail" ? null : (
-      <section style={sectionStyle}>
+      <section id="obligation-register" style={sectionStyle}>
         <Header total={0} />
         <p style={emptyTextStyle}>
           {typeof sourceEventCount === "number" ? (
@@ -280,7 +280,10 @@ export function ObligationRegisterFilterBar({
   const canLoadMore = variant === "list" && rows.length < total;
 
   return (
-    <section style={sectionStyle}>
+    // `id` is the target of the rail card's own "Calendar →" head link (artboard 02/id="p2",
+    // "Obligations · next 30 days"): the rail card shows the next four inside 30 days, this register
+    // is the full schedule it hands off to. R7 keeps this section exactly as it is otherwise.
+    <section id="obligation-register" style={sectionStyle}>
       <Header total={total} shown={rows.length} />
       {variant === "list" && (
         <div style={filterRowStyle}>

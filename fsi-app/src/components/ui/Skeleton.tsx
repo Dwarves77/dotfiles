@@ -67,3 +67,20 @@ export function SkeletonStatBlock() {
     </div>
   );
 }
+
+/** A dated rail-card row in its final geometry — the `3px 48px 1fr` band bar / date / obligation
+ *  grid artboard 02/id="p2" draws in the "Obligations · next 30 days" card. Same literal-geometry
+ *  convention as SkeletonListRow (which repeats ListRow's own grid): the skeleton states the
+ *  geometry it is holding open, so nothing jumps when the rows arrive. */
+export function SkeletonRailDateRow() {
+  return (
+    <div
+      aria-hidden="true"
+      style={{ display: "grid", gridTemplateColumns: "3px 48px 1fr", gap: 10, alignItems: "start", minHeight: 32 }}
+    >
+      <span style={{ ...shimmer(), alignSelf: "stretch", borderRadius: 2 }} />
+      <span style={{ ...shimmer(), height: 12, width: 44 }} />
+      <span style={{ ...shimmer(), height: 12, width: "80%" }} />
+    </div>
+  );
+}
