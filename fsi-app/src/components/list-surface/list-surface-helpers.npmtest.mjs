@@ -26,6 +26,9 @@ const {
   filterRows,
   withListPosition,
   sortResourceRows,
+  filterByWindow,
+  windowDays,
+  WINDOW_OPTIONS,
   EMPTY_FILTER_STATE,
   BAND_FACET_PARAM,
   bandFromSearchParam,
@@ -223,4 +226,60 @@ test("tierFacetOptions returns one row per distinct tier present, T1 first, rows
   assert.deepEqual(opts.map((o) => o.label), ["T1", "T3"]);
   assert.equal(opts[0].count, 2);
   assert.equal(opts[0].value, "1");
+});
+
+// ── Window row (artboard 06/id="p6": "WINDOW 7d | 30d | 90d | All") ────────────────────────────────
+// Research's own control where Regulations/Market carry Sort. A fixed `now` is passed in so these
+// assertions do not depend on the wall clock.
+const NOW = new Date("2026-09-08T00:00:00Z");
+
+test("WINDOW_OPTIONS is exactly the artboard's four buckets, in its order, All last and unbounded", () => {
+  assert.deepEqual(
+    WINDOW_OPTIONS.map((o) => o.key),
+    ["7d", "30d", "90d", "all"],
+  );
+  assert.deepEqual(
+    WINDOW_OPTIONS.map((o) => o.label),
+    ["7d", "30d", "90d", "All"],
+  );
+  assert.equal(windowDays("all"), null);
+  assert.equal(windowDays("7d"), 7);
+});
+
+test("filterByWindow keeps rows added inside the window, drops older ones", () => {
+  const rows = [res({ id: "fresh", added: "2026-09-05" }), res({ id: "stale", added: "2026-07-01" })];
+  assert.deepEqual(
+    filterByWindow(rows, "7d", NOW).map((r) => r.id),
+    ["fresh"],
+  );
+  assert.deepEqual(
+    filterByWindow(rows, "90d", NOW).map((r) => r.id),
+    ["fresh", "stale"],
+  );
+});
+
+test("filterByWindow's lower bound is inclusive (a row added exactly N days ago is inside the window)", () => {
+  const rows = [res({ id: "edge", added: "2026-09-01" })];
+  assert.equal(filterByWindow(rows, "7d", NOW).length, 1);
+});
+
+test("'all' returns the same array untouched: a window is a recency filter, never a copy or a re-sort", () => {
+  const rows = [res({ id: "a" }), res({ id: "b" })];
+  assert.equal(filterByWindow(rows, "all", NOW), rows);
+});
+
+test("a row whose `added` is missing or unparseable is KEPT, never silently dropped", () => {
+  const rows = [res({ id: "no-date", added: "" }), res({ id: "junk", added: "not-a-date" })];
+  assert.deepEqual(
+    filterByWindow(rows, "7d", NOW).map((r) => r.id),
+    ["no-date", "junk"],
+  );
+});
+
+test("filterByWindow preserves input order", () => {
+  const rows = [res({ id: "b", added: "2026-09-02" }), res({ id: "a", added: "2026-09-06" })];
+  assert.deepEqual(
+    filterByWindow(rows, "30d", NOW).map((r) => r.id),
+    ["b", "a"],
+  );
 });

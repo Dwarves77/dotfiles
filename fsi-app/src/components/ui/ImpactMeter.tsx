@@ -38,7 +38,11 @@ const VALUE_COLOR: Record<number, string> = {
   3: "var(--immediate)",
 };
 
-function isScored(scores: ImpactScores | null | undefined): scores is ImpactScores {
+/** The one "is this item scored?" predicate. Exported (lane comp-06, 2026-09-08) so a surface that
+ *  must COUNT its unscored rows, /research's band transition strip, artboard 06/id="p6"
+ *  ("Awareness · N findings sit below the scoring threshold and are kept for context"), asks the
+ *  meter itself rather than re-deriving the threshold beside it. */
+export function isImpactScored(scores: ImpactScores | null | undefined): scores is ImpactScores {
   if (!scores) return false;
   const vals = [scores.cost, scores.compliance, scores.client, scores.operational];
   return vals.some((v) => v >= 1);
@@ -50,7 +54,7 @@ export interface ImpactMeterProps {
 }
 
 export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
-  const scored = isScored(scores);
+  const scored = isImpactScored(scores);
 
   if (!scored) {
     return (

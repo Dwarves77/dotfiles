@@ -59,3 +59,43 @@ test("sortRow renders directly above the rows, and flat concatenates rowsByBand 
     "flat mode must concatenate every band's own (already-sorted) rows, not re-derive a new order",
   );
 });
+
+// ── Band-card foot row + transition strip (lane comp-06, 2026-09-08) ───────────────────────────────
+// Artboards 02/04/06 (id="p2"/"p4"/"p6") close every band section card with the SAME row: "All N
+// <band> →" left, "then <next band> · N" right, "end of list" on the last rendered band; artboards
+// 02 and 06 additionally draw a one-line transition strip under that row. Built once here for all
+// five list surfaces rather than per page.
+
+test("every band section card carries the foot row, with the artboard's own ground and rule", () => {
+  assert.match(SHELL_SOURCE, /data-audit="band-foot"/);
+  assert.match(SHELL_SOURCE, /background: "var\(--page\)"/);
+  assert.match(SHELL_SOURCE, /borderTop: "1px solid var\(--line-2\)"/);
+});
+
+test("the foot row names the next band, or says 'end of list' on the last rendered section", () => {
+  assert.match(SHELL_SOURCE, /then \$\{nextSection\.band\.label\}/);
+  assert.match(SHELL_SOURCE, /"end of list"/);
+});
+
+test("the 'All N <band>' link renders only when the band has rows left to reveal, never a dead control", () => {
+  assert.match(SHELL_SOURCE, /\{section\.total > visible\.length && onExpandBand \? \(/);
+});
+
+test("sectionFoot is an optional per-band slot whose wrapper only exists when the caller returns a node", () => {
+  assert.match(SHELL_SOURCE, /sectionFoot\?: \(bandKey: UrgencyBandKey, nextBandKey: UrgencyBandKey \| null\) => ReactNode;/);
+  assert.match(SHELL_SOURCE, /const foot = sectionFoot\?\.\(section\.band\.key, nextSection \? nextSection\.band\.key : null\);/);
+  assert.match(SHELL_SOURCE, /return foot \? <div style=\{\{ margin: "0 16px 14px" \}\}>\{foot\}<\/div> : null;/);
+});
+
+test("a caller-supplied empty state is not double-padded by the shell (artboard 06's own 28px 20px centred card)", () => {
+  assert.match(SHELL_SOURCE, /\{emptyState \?\? <div style=\{\{ padding: 16 \}\}>/);
+});
+
+test("the masthead command-bar placeholder is a passthrough prop, not a per-surface masthead", () => {
+  assert.match(SHELL_SOURCE, /searchPlaceholder\?: string;/);
+  assert.match(SHELL_SOURCE, /placeholder: searchPlaceholder/);
+});
+
+test("a facet group with no options never renders as a bare heading in the rail", () => {
+  assert.match(RAIL_SOURCE, /groups\.filter\(\(g\) => g\.options\.length > 0\)/);
+});

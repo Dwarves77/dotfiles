@@ -6,9 +6,11 @@
  * id="p2": "1,316 regulations · grouped by band · Show as one list" left,
  * "SORT Next date | Newest | A-Z | My order" right, active option filled)
  * and 04 (Market, id="p4": same row, three sort options — no "My order").
- * Research (06) and Operations (08) do not carry this row (Research has its
- * own "Window" 7d/30d/90d/All row instead, built separately; Operations
- * goes straight from the matrix into the band cards) — this component is
+ * Research (06, id="p6") carries the SAME row with a different control:
+ * "4 of 39 findings · Emissions accounting · Clear theme" left, "WINDOW 7d
+ * | 30d | 90d | All" right (lane comp-06, 2026-09-08, the row is this one
+ * component, not a research-local copy). Operations (08) goes straight from
+ * the matrix into the band cards and passes no row at all: this component is
  * an opt-in slot (`ListSurfaceShellProps.sortRow`), not mounted by every
  * surface.
  *
@@ -26,20 +28,21 @@ export interface ListSurfaceSortOption {
 
 export function ListSurfaceSortRow({
   countLabel,
-  flatToggleLabel,
-  flat,
-  onToggleFlat,
+  linkLabel,
+  onLink,
   controlLabel,
   options,
   active,
   onSelect,
 }: {
-  /** e.g. <>{total} regulations · grouped by band</> — the count text left of the toggle link. */
+  /** e.g. <>{total} regulations · grouped by band</>, the count text left of the link. */
   countLabel: ReactNode;
-  /** e.g. "Show as one list" / "Group by band" — the link's own label, current-state-dependent. */
-  flatToggleLabel: string;
-  flat: boolean;
-  onToggleFlat: () => void;
+  /** The trailing link's own label: "Show as one list" / "Group by band" on artboards 02/04,
+   *  "Clear theme" on artboard 06's Window row (lane comp-06, 2026-09-08, generalised from the
+   *  original flat-toggle-only pair rather than adding a second, parallel link prop). Omit both
+   *  `linkLabel` and `onLink` and the row renders the count text alone. */
+  linkLabel?: string;
+  onLink?: () => void;
   /** e.g. "Sort" or "Window" — the small-caps label left of the segmented options. */
   controlLabel: string;
   options: ListSurfaceSortOption[];
@@ -60,25 +63,29 @@ export function ListSurfaceSortRow({
     >
       <div style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)" }}>
         {countLabel}
-        {" · "}
-        <button
-          type="button"
-          onClick={onToggleFlat}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            font: "inherit",
-            color: "var(--ink)",
-            fontWeight: 600,
-            textDecoration: "underline",
-            textDecorationColor: "rgba(0,0,0,.3)",
-            cursor: "pointer",
-            minHeight: 24,
-          }}
-        >
-          {flatToggleLabel}
-        </button>
+        {linkLabel && onLink && (
+          <>
+            {" · "}
+            <button
+              type="button"
+              onClick={onLink}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                font: "inherit",
+                color: "var(--ink)",
+                fontWeight: 600,
+                textDecoration: "underline",
+                textDecorationColor: "rgba(0,0,0,.3)",
+                cursor: "pointer",
+                minHeight: 24,
+              }}
+            >
+              {linkLabel}
+            </button>
+          </>
+        )}
       </div>
       <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: "var(--fs-12)" }}>
         <span

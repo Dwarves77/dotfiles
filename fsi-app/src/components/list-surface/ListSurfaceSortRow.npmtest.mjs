@@ -10,11 +10,17 @@ import { fileURLToPath } from "node:url";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(HERE, "ListSurfaceSortRow.tsx"), "utf8");
 
-test("renders the flat-toggle link and the labelled segmented option row", () => {
-  assert.match(SOURCE, /onClick=\{onToggleFlat\}/);
-  assert.match(SOURCE, /\{flatToggleLabel\}/);
+test("renders the trailing link and the labelled segmented option row", () => {
+  assert.match(SOURCE, /onClick=\{onLink\}/);
+  assert.match(SOURCE, /\{linkLabel\}/);
   assert.match(SOURCE, /\{controlLabel\}/);
   assert.match(SOURCE, /onClick=\{\(\) => onSelect\(opt\.key\)\}/);
+});
+
+test("the trailing link is optional: a caller passing neither linkLabel nor onLink gets the count text alone (artboard 06's Window row with no theme selected)", () => {
+  assert.match(SOURCE, /\{linkLabel && onLink && \(/);
+  assert.match(SOURCE, /linkLabel\?: string;/);
+  assert.match(SOURCE, /onLink\?: \(\) => void;/);
 });
 
 test("active option is visually distinguished (filled) from inactive options", () => {

@@ -77,6 +77,10 @@ export interface ListSurfaceShellProps {
   itemCount: number;
   scope: string;
   onSearch?: (q: string) => void;
+  /** Masthead command-bar placeholder. Artboard 06/id="p6" scopes it per surface ("Search
+   *  findings and themes, or ask ..."); omitted, CommandBar keeps its generic item-count
+   *  placeholder. */
+  searchPlaceholder?: string;
 
   bandCounts: Record<UrgencyBandKey, number> | null;
   selectedBand: UrgencyBandKey | null;
@@ -127,6 +131,13 @@ export interface ListSurfaceShellProps {
 
   emptyState?: ReactNode;
   stateNote?: ReactNode;
+
+  /** Extra content rendered INSIDE a band's card, below that card's foot row (artboards 02/06:
+   *  the one-line transition strip that explains the next band, e.g. Research's "Awareness · 34
+   *  findings sit below the scoring threshold and are kept for context · Why unscored"). Called
+   *  once per rendered band section with that band's key and the next rendered section's band key
+   *  (null on the last section); return null to render nothing for that band. */
+  sectionFoot?: (bandKey: UrgencyBandKey, nextBandKey: UrgencyBandKey | null) => ReactNode;
 
   /** Extra content rendered at the FOOT of the primary card column, below
    *  stateNote — restored this lane (UILISTS2, 2026-09-07) for Regulations'
@@ -323,6 +334,7 @@ export function ListSurfaceShell({
   itemCount,
   scope,
   onSearch,
+  searchPlaceholder,
   bandCounts,
   selectedBand,
   onSelectBand,
@@ -339,6 +351,7 @@ export function ListSurfaceShell({
   loadingMoreRows,
   emptyState,
   stateNote,
+  sectionFoot,
   belowRows,
   rail,
 }: ListSurfaceShellProps) {
@@ -352,7 +365,13 @@ export function ListSurfaceShell({
   return (
     <>
       <div style={{ padding: "20px 40px 0" }}>
-        <Masthead title={title} dek={dek ?? scopeLine} dateLabel={dateLabel} nowIso={nowIso} commandBar={{ itemCount, onSearch, scope }} />
+        <Masthead
+          title={title}
+          dek={dek ?? scopeLine}
+          dateLabel={dateLabel}
+          nowIso={nowIso}
+          commandBar={{ itemCount, onSearch, scope, placeholder: searchPlaceholder }}
+        />
       </div>
       <div
         style={{
@@ -429,7 +448,10 @@ export function ListSurfaceShell({
             <Card>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</Card>
           ) : !anyRows ? (
             <Card>
-              <div style={{ padding: 16 }}>{emptyState ?? <StateNote>Nothing matches these filters right now.</StateNote>}</div>
+              {/* A caller-supplied empty state carries its own padding (artboard 06/id="p6":
+                  28px 20px, centred, Anton title). The default StateNote gets the 16px inset it
+                  has always had. */}
+              {emptyState ?? <div style={{ padding: 16 }}><StateNote>Nothing matches these filters right now.</StateNote></div>}
             </Card>
           ) : flat ? (
             (() => {
@@ -458,7 +480,8 @@ export function ListSurfaceShell({
           ) : (
             rowsByBand
               .filter((section) => section.total > 0)
-              .map((section) => {
+              .map((section, sectionIndex, rendered) => {
+                const nextSection = rendered[sectionIndex + 1] ?? null;
                 const expanded = expandedBands?.has(section.band.key) ?? false;
                 const cap = expanded ? section.rows.length : perBandCap;
                 const visible = section.rows.slice(0, cap);
@@ -489,12 +512,32 @@ export function ListSurfaceShell({
                       })
                     )}
                     {loadingMoreRows && <SkeletonListRow />}
-                    {section.total > visible.length && onExpandBand && (
-                      <div style={{ padding: "10px 16px" }}>
-                        {/* law-2 (RD-60/F35): a bare underlined text link with no padding is well
-                            under the 24px small-target floor. min-height + vertical padding lifts
-                            it to a real target without changing its visual (still text + underline,
-                            no chip/pill chrome the artboard doesn't show). */}
+                    {/* Band-card foot row (artboards 02/04/06, id="p2"/"p4"/"p6": "All 15
+                        immediate →" left, "then Action · 13" right; "end of list" on the last
+                        rendered band). Values are the artboard's own: 10px 16px, 1px top rule,
+                        #FAFAF8 ground, 12px text, the link at weight 600. Built here once for
+                        every list surface this shell serves, the three artboards draw the same
+                        row. The link renders only when the band actually has more rows to reveal
+                        (a link that expands nothing would be a dead control, operator audit P0
+                        1.1); the "then <next band>" side is always stated. */}
+                    <div
+                      data-audit="band-foot"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "10px 16px",
+                        borderTop: "1px solid var(--line-2)",
+                        background: "var(--page)",
+                        fontSize: "var(--fs-12)",
+                      }}
+                    >
+                      {section.total > visible.length && onExpandBand ? (
+                        // law-2 (RD-60/F35): a bare underlined text link with no padding is well
+                        // under the 24px small-target floor. min-height + vertical padding lifts
+                        // it to a real target without changing its visual (still text + underline,
+                        // no chip/pill chrome the artboard doesn't show).
                         <button
                           type="button"
                           onClick={() => onExpandBand(section.band.key)}
@@ -502,8 +545,8 @@ export function ListSurfaceShell({
                             display: "inline-flex",
                             alignItems: "center",
                             minHeight: 24,
-                            fontSize: "var(--fs-11)",
-                            fontWeight: 700,
+                            fontSize: "var(--fs-12)",
+                            fontWeight: 600,
                             color: "var(--ink)",
                             background: "none",
                             border: "none",
@@ -514,10 +557,22 @@ export function ListSurfaceShell({
                             fontFamily: "inherit",
                           }}
                         >
-                          All {section.total} {section.band.label.toLowerCase()}
+                          All {section.total} {section.band.label.toLowerCase()} →
                         </button>
-                      </div>
-                    )}
+                      ) : (
+                        <span />
+                      )}
+                      <span style={{ color: "var(--ink-3)" }}>
+                        {nextSection ? `then ${nextSection.band.label} \u00b7 ${nextSection.total}` : "end of list"}
+                      </span>
+                    </div>
+                    {(() => {
+                      // The transition strip is per-band and often absent; only the band that has
+                      // one pays for its wrapper (an empty 14px-margin div under every band card
+                      // is dead space the artboard does not draw).
+                      const foot = sectionFoot?.(section.band.key, nextSection ? nextSection.band.key : null);
+                      return foot ? <div style={{ margin: "0 16px 14px" }}>{foot}</div> : null;
+                    })()}
                   </Card>
                 );
               })

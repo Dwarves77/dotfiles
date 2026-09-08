@@ -279,9 +279,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
               <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> regulations · {flat ? "flat" : "grouped by band"}
             </>
           }
-          flatToggleLabel={flat ? "Group by band" : "Show as one list"}
-          flat={flat}
-          onToggleFlat={() => setFlat((f) => !f)}
+          linkLabel={flat ? "Group by band" : "Show as one list"}
+          onLink={() => setFlat((f) => !f)}
           controlLabel="Sort"
           options={SORT_OPTIONS}
           active={sortKey}

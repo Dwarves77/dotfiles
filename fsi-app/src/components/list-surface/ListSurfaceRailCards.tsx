@@ -160,9 +160,14 @@ export function FiltersRailCard({
   /** README §"the band tiles above are the fourth facet" — shown once, at the card foot. */
   footnote?: ReactNode;
 }) {
-  const activeCount = useMemo(() => groups.filter((g) => g.selected !== null).length, [groups]);
-  const clearAll = () => groups.forEach((g) => g.onSelect(null));
-  if (groups.length === 0) return null;
+  // A facet group with no options has nothing to check and renders as a bare heading over empty
+  // space (seen live on /research's Workspace tags group in a workspace with no tags, lane
+  // comp-06 2026-09-08). None of the artboards draw an empty group; the group returns the moment
+  // its data does.
+  const shown = useMemo(() => groups.filter((g) => g.options.length > 0), [groups]);
+  const activeCount = useMemo(() => shown.filter((g) => g.selected !== null).length, [shown]);
+  const clearAll = () => shown.forEach((g) => g.onSelect(null));
+  if (shown.length === 0) return null;
   return (
     <div
       data-audit="filters-rail"
@@ -212,7 +217,7 @@ export function FiltersRailCard({
           )}
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-          {groups.map((group) => (
+          {shown.map((group) => (
             <FacetSection key={group.key} group={group} />
           ))}
         </div>
