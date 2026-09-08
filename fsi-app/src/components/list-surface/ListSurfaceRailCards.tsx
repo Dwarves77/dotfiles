@@ -105,6 +105,34 @@ export function RailCard({
 // disclosure, and the disclosure is what this cap exists to trigger.
 const VISIBLE_OPTIONS_CAP = 6;
 
+// FACET GROUP GEOMETRY (lane railfacets, 2026-09-08, operator items C1/C2/C3). Every measure below
+// is read off artboard 02/id="p2"'s FILTERS card markup, which artboards 04, 06 and 08 repeat
+// character for character:
+//
+//   group      `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`
+//   group label `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;
+//                font-weight:700;margin-bottom:6px`
+//   row        `display:flex;justify-content:space-between;align-items:center;padding:4px 0;
+//               font-size:12.5px;cursor:pointer`
+//   checkbox   `width:13px;height:13px` inside a `gap:8px` flex span
+//   count      `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`
+//
+// WHAT THIS REPLACED. The row was `minHeight: 44` with an 11px label and an unsized count, so it
+// stood ~44px tall against the artboard's 24px and the checkbox read as floating in a tall empty
+// band (the operator measured "~33px" on the rendered pages). The group label was 10.5px/800/.1em
+// and the groups were separated by a 14px flex gap with no rule at all.
+//
+// THE 24px ROW AND THE 44px TOUCH TARGET BOTH HOLD, in one element, so nothing is traded away:
+// 24px is the DESKTOP measure and lives here; `.cl-facet-row`/`.cl-facet-more` take min-height 44px
+// below 768px from globals.css, the same breakpoint LIST_SURFACE_MOBILE_CSS uses. The two never
+// contend because they never apply at the same width. (Below 768 the four list surfaces hide this
+// card entirely in favour of the mobile chip strip and the Filters sheet — MOBILE-60 — so the 44px
+// rule is what /watchlist, the one surface that keeps the rail card at 390, actually renders.)
+//
+// `line-height: 16px` is the one value here with no artboard source. The artboard leaves it
+// `normal`, which resolves per font and would put the row at 23-25px depending on the face that
+// loaded; pinning it to 16px makes 4px + 16px + 4px exactly the 24px the item list states, and is
+// the mechanism by which the stated number is reachable at all. Logged in DEVIATION-LOG.
 function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? group.options : group.options.slice(0, VISIBLE_OPTIONS_CAP);
@@ -112,12 +140,17 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
   return (
     // data-audit: a stable per-group selector so a compose-*.json spec can assert the rail's facet
     // ORDER (the operator's complaint was placement), not merely that a group exists.
-    <div data-audit={`facet-${group.key}`}>
+    <div
+      data-audit={`facet-${group.key}`}
+      className="cl-facet-group"
+      style={{ padding: "10px 0", borderBottom: "1px solid rgba(0,0,0,.06)" }}
+    >
       <p
+        className="cl-facet-group-label"
         style={{
-          fontSize: "var(--fs-105)",
-          fontWeight: 800,
-          letterSpacing: "0.1em",
+          fontSize: "var(--fs-10)",
+          fontWeight: 700,
+          letterSpacing: "0.12em",
           textTransform: "uppercase",
           color: "var(--ink-3)",
           margin: "0 0 6px",
@@ -131,48 +164,70 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
           return (
             <label
               key={opt.value}
+              className="cl-facet-row"
               style={{
                 display: "flex",
                 alignItems: "center",
+                justifyContent: "space-between",
                 gap: 8,
-                minHeight: 44,
+                padding: "4px 0",
+                lineHeight: "16px",
                 cursor: "pointer",
-                fontSize: "var(--fs-11)",
+                fontSize: "var(--fs-125)",
                 color: "var(--ink)",
               }}
             >
-              {/* Operator ruling 2026-09-07: the 44px hit-target law applies to the ROW (this whole
-                  label is the click target, minHeight 44 below), not to the glyph. Artboard 02/id="p2"
-                  draws the checkbox itself at 13x13px, restored here. */}
-              <input
-                type="checkbox"
-                checked={checked}
-                onChange={() => group.onSelect(checked ? null : opt.value)}
-                style={{ width: 13, height: 13, accentColor: "var(--brand)", flexShrink: 0 }}
-              />
-              <span style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {opt.label}
+              <span style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
+                <input
+                  type="checkbox"
+                  className="cl-facet-check"
+                  checked={checked}
+                  onChange={() => group.onSelect(checked ? null : opt.value)}
+                  style={{ width: 13, height: 13, accentColor: "var(--brand)", flexShrink: 0, margin: 0 }}
+                />
+                <span style={{ minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {opt.label}
+                </span>
               </span>
-              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.countLabel ?? formatNumber(opt.count)}</span>
+              <span
+                className="cl-facet-count"
+                style={{
+                  fontSize: "var(--fs-11)",
+                  color: "var(--ink-3)",
+                  flexShrink: 0,
+                  fontVariantNumeric: "tabular-nums",
+                }}
+              >
+                {opt.countLabel ?? formatNumber(opt.count)}
+              </span>
             </label>
           );
         })}
       </div>
       {hidden > 0 && (
+        // Item C3: a LINK row at the row height, 12px. The artboard draws this row with a checkbox
+        // square beside it like any other option, which would be a control with nothing behind it
+        // (there is no "+ N more" facet value to check); the operator's own wording for this round
+        // ("a link row at the same 24px height at 12px") settles it as a link, and ruling 1.1's
+        // class forbids drawing the dead square. No checkbox, no bullet, no left indent.
         <button
           type="button"
+          className="cl-facet-more"
           onClick={() => setExpanded(true)}
           style={{
-            marginTop: 4,
-            minHeight: 24,
-            display: "inline-flex",
+            display: "flex",
             alignItems: "center",
+            width: "100%",
             background: "none",
             border: "none",
-            padding: 0,
-            fontSize: "var(--fs-11)",
-            fontWeight: 700,
-            color: "var(--ink-2)",
+            padding: "4px 0",
+            lineHeight: "16px",
+            textAlign: "left",
+            fontSize: "var(--fs-12)",
+            fontWeight: 600,
+            color: "var(--ink)",
+            textDecoration: "underline",
+            textDecorationColor: "rgba(0,0,0,.3)",
             cursor: "pointer",
             fontFamily: "inherit",
           }}
@@ -245,13 +300,23 @@ export function FiltersRailCard({
             {activeCount === 0 ? "Clear" : `Clear ${activeCount}`}
           </button>
         </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        {/* gap 0, not 14 (lane railfacets, 2026-09-08, item C2): each group now carries the
+            artboard's own `padding:10px 0` and its `border-bottom:1px solid rgba(0,0,0,.06)`, so the
+            10px either side of the rule IS the separation. A flex gap on top of that would push the
+            groups 14px further apart than the image and leave the rule floating off-centre between
+            them. */}
+        <div style={{ display: "flex", flexDirection: "column" }}>
           {shown.map((group) => (
             <FacetSection key={group.key} group={group} />
           ))}
         </div>
+        {/* The foot line's own borderTop is gone with it: artboard 02/id="p2" ends the last facet
+            group with the same group rule as every other and follows it with a bare
+            `font-size:11px;color:#7A6E6C;padding-top:10px;line-height:1.5` line. Keeping the old
+            borderTop would have drawn a SECOND rule 10px under the last group's, a doubled edge this
+            lane's own C2 change would have introduced. */}
         {footnote && (
-          <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--line-3)" }}>
+          <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: 0, paddingTop: 10, lineHeight: 1.5 }}>
             {footnote}
           </p>
         )}

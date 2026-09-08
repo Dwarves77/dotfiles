@@ -588,3 +588,31 @@ body {
   .cl-table-cards td[data-label=""]::before { content: none; }
   .cl-table-cards td * { white-space: normal !important; }
 }
+
+
+/* ── RAIL FACET ROWS: the artboard's 24px desktop row and the 44px touch target, both ───────────
+   (lane railfacets, train 62, 2026-09-08, operator items C1/C2/C3.)
+
+   Artboard 02/id="p2"'s FILTERS card draws a facet row as `padding:4px 0;font-size:12.5px` around a
+   13px checkbox: 24px tall. A previous round read the product-wide 44px hit-target rule as applying
+   to this row and set `min-height: 44px` on it, which is why the built rails measured ~33-44px with
+   the checkbox adrift in an empty band.
+
+   Both rules are true; they are true at different widths. 24px is stated by the artboard, which is a
+   1440 desktop drawing where the pointer is a mouse. 44px is stated for touch. So the 24px measure
+   lives inline in FacetSection (ListSurfaceRailCards.tsx) and applies at every width the desktop rail
+   is drawn at, and this block restores the 44px target below 768px — the same breakpoint
+   LIST_SURFACE_MOBILE_CSS uses for the rest of the mobile list frame. The two can never contend in
+   the same element at the same width, so nothing here is a compromise between them.
+
+   The row's min-height is declared HERE rather than inline in the component precisely so this
+   breakpoint can override it by ordinary cascade; every other facet measure stays inline, with the
+   rest of that file's idiom. `!important` on the mobile line is belt-and-braces against a later
+   inline min-height reappearing on the same element and silently taking the target back to 24px.
+   Below 768 the five list surfaces hide this card entirely in favour
+   of the mobile chip strip and the Filters sheet (MOBILE-60), so the surface these rules actually
+   render on at 390 is /watchlist, which keeps the rail card as its only filter control. */
+.cl-facet-row, .cl-facet-more { min-height: 24px; }
+@media (max-width: 767px) {
+  .cl-facet-row, .cl-facet-more { min-height: 44px !important; }
+}
