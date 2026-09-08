@@ -3,12 +3,17 @@
  *
  * UI system handoff 2026-09-06, artboard 02 "Regulations list". Composes
  * <RegulationsLedger> (masthead + band tiles + facets + band-grouped rows +
- * rail — see that component's own header for the full assembly) plus the
- * pre-existing spec-09 panels this list surface is not redesigning
- * (UpcomingObligationsStrip, ObligationRegister, EudrCustodyPanel — none of
- * these duplicate list-row UI; they are separate tables/registers mounted
- * below the list, out of this lane's "list surface" scope, logged in
- * DEVIATION-LOG.md).
+ * rail — see that component's own header for the full assembly).
+ *
+ * PAGE SCOPE (UI fix round 2026-09-08, item D2). Artboard 02 defines the WHOLE page, and everything
+ * that used to sit below its last card has moved or gone:
+ *   - <UpcomingObligationsStrip variant="list"> — REMOVED. The rail card "Obligations · next 30 days"
+ *     (ListSurfaceRailCards.tsx, mounted by RegulationsLedger) is the design for that content, so the
+ *     horizontal card strip was a second rendering of the same thing.
+ *   - <ObligationRegister variant="list"> — MOVED to its own page, /regulations/register, reachable
+ *     from the rail card's own "Calendar →" link.
+ * <EudrCustodyPanel> is NOT named by that ruling and so stays exactly as it is (ruling R7: a feature
+ * no artboard draws is left alone and listed) — logged in DEVIATION-LOG.md.
  *
  * REWRITTEN this lane (UILISTS, 2026-09-06): the old <EditorialMasthead> is
  * gone — RegulationsLedger's own <Masthead> (src/components/ui/Masthead.tsx,
@@ -24,12 +29,10 @@
 
 import { Suspense } from "react";
 import { describeFallbackTrigger } from "@/lib/supabase-server";
-import { getPublicListingsOnly, getPublicSurfaceCounts, getPublicObligationRegisterFirstPage } from "@/lib/data";
+import { getPublicListingsOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
 import { toLedgerRowPayload, LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
-import { UpcomingObligationsStrip } from "@/components/regulations/UpcomingObligationsStrip";
-import { ObligationRegister } from "@/components/regulations/ObligationRegister";
 // Spec 09 §1.8 (lane SPEC-09, wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody, one
 // self-contained server component covering both tables — see its own header for the shared blocking-
 // severity classification and why they render as one block, not two.
@@ -62,11 +65,10 @@ export default async function RegulationsPage({
   // (get_surface_counts, or its scoped-aggregates fallback) — a real RPC,
   // independent of how many rows are loaded — so the header count stays
   // honest at 60, at 1,316, and everywhere in between.
-  const [{ sort: sortParam }, data, aggregates, obligationRegisterFirstPage] = await Promise.all([
+  const [{ sort: sortParam }, data, aggregates] = await Promise.all([
     searchParams,
     getPublicListingsOnly({ limit: LIST_FIRST_PAGE_SIZE, offset: 0, domain: REGULATIONS_DOMAIN }),
     getPublicSurfaceCounts("regulations"),
-    getPublicObligationRegisterFirstPage(),
   ]);
 
   const regulationResources = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
@@ -87,12 +89,6 @@ export default async function RegulationsPage({
           nowIso={renderNowIso()}
         />
       </Suspense>
-      {/* Lane SURF (2026-09-01): customer-facing top strip for item_forward_events ("what is due,
-          when") — see UpcomingObligationsStrip.tsx's own header. Self-contained server component. */}
-      <UpcomingObligationsStrip variant="list" />
-      {/* Lane OBLIG (2026-09-02): the obligation register section — spec-01 §2's atomic unit ("the
-          obligation, not the document"), migration 290's `obligations` table. */}
-      <ObligationRegister variant="list" initialResult={obligationRegisterFirstPage} />
       {/* Lane SPEC-09 (wave 3, 2026-09-03): EUDR geo-traceability + book-and-claim custody (spec 09 §1.8). */}
       <EudrCustodyPanel />
     </>

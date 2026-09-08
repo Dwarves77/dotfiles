@@ -25,6 +25,20 @@
  * — none live on this surface today — would still need it, matching the
  * regulations/market/research precedent of an honest record-grade path).
  *
+ * SPEC-09 SECTIONS (UI fix round 2026-09-08, item D3). The DQI, auxiliary-energy and grid-queue
+ * material used to render as three full-width strips below the /operations LIST, under artboard 08's
+ * last card. The operator's page-scope ruling moves it here, "as S-sections on the operations PROFILE
+ * page, in the same shape, with their existing data paths, so nothing is lost". They arrive as
+ * ReactNode props from the server route (the panels are async server components with their own
+ * org-scoped reads — see /operations/[slug]/page.tsx) and render through the SAME <DetailSection> every
+ * other section on this surface uses, with their own qualifier line in the section's `aside` slot. They
+ * sit after the item's own DB-driven sections and before Sources, and they carry index entries, so the
+ * sticky section index still names every section on the page.
+ *
+ * Their subject is the WORKSPACE's own shipment/asset/connection data (org-scoped), not this item —
+ * they read the same on every profile. That is what the ruling asks for and is logged in
+ * DEVIATION-LOG.md rather than quietly re-scoped.
+ *
  * KEPT, RELOCATED: the matrix eligibility gate (S3/S4 honest omit-note),
  * "Comparison coverage" status (folded into the rail's At-a-glance card),
  * related-items-by-region (closing section; the artboard's own "RELATED IN
@@ -32,7 +46,7 @@
  * RelevanceBadgeClient, WatchButton/Export/Share actions.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { joinMetaSegments } from "@/lib/detail/meta-line";
 import { formatDate } from "@/lib/format";
 import Link from "next/link";
@@ -71,6 +85,9 @@ import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
+import { DQI_SECTION_ASIDE } from "@/components/operations/DqiPanelView";
+import { AUXILIARY_ENERGY_SECTION_ASIDE } from "@/components/operations/AuxiliaryEnergyPanelView";
+import { GRID_QUEUE_SECTION_ASIDE } from "@/components/operations/GridQueuePanelView";
 import { scoreResource } from "@/lib/scoring";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { regionGroupForLabel } from "@/lib/constants";
@@ -97,7 +114,22 @@ interface Props {
   initialWatched?: boolean;
   initialTeamWatched?: boolean;
   initialTeamAvailable?: boolean;
+  /** Item D3 (2026-09-08): the three spec-09 panels, rendered by the server route and mounted here as
+   *  S-sections. Omitted by any caller that has no server tree to render them in (the audit mount
+   *  passes its own fixture-fed views), in which case the section is not drawn at all rather than
+   *  drawn empty. */
+  dqiSection?: ReactNode;
+  auxiliaryEnergySection?: ReactNode;
+  gridQueueSection?: ReactNode;
 }
+
+/** The three spec-09 sections' index labels and anchors, in the order they render. Declared once so
+ *  the sticky index and the sections themselves can never disagree about either. */
+const SPEC09_SECTIONS = [
+  { id: "sec-dqi", label: "Data quality", aside: DQI_SECTION_ASIDE, key: "dqiSection" },
+  { id: "sec-auxiliary-energy", label: "Auxiliary energy load", aside: AUXILIARY_ENERGY_SECTION_ASIDE, key: "auxiliaryEnergySection" },
+  { id: "sec-grid-queue", label: "Grid connection queue", aside: GRID_QUEUE_SECTION_ASIDE, key: "gridQueueSection" },
+] as const;
 
 const OPERATIONS_SECTION_HEADINGS: Record<string, string> = {
   "1": "Operational cost baseline",
@@ -150,7 +182,12 @@ export function OperationsDetailSurface({
   initialWatched,
   initialTeamWatched,
   initialTeamAvailable,
+  dqiSection,
+  auxiliaryEnergySection,
+  gridQueueSection,
 }: Props) {
+  const spec09Nodes: Record<string, ReactNode> = { dqiSection, auxiliaryEnergySection, gridQueueSection };
+  const spec09Shown = SPEC09_SECTIONS.filter((s) => spec09Nodes[s.key] != null);
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);
   // Artboard 09 (dc.html #p9): "Region" chip + At a glance row read "Asia" / "Asia · Singapore".
@@ -185,9 +222,14 @@ export function OperationsDetailSurface({
         ...knownSections
           .filter((s) => !MATRIX_GATED_KEYS.has(s.section_key) || (s.section_key === "3" ? matrixEligibility?.s3Eligible : matrixEligibility?.s4Eligible))
           .map((s) => ({ id: `sec-${s.section_key}`, label: OPERATIONS_SECTION_HEADINGS[s.section_key] })),
+        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
         { id: "sources", label: "Sources" },
       ]
-    : [{ id: "summary", label: "Summary" }, { id: "sources", label: "Sources" }];
+    : [
+        { id: "summary", label: "Summary" },
+        ...spec09Shown.map((s) => ({ id: s.id, label: s.label })),
+        { id: "sources", label: "Sources" },
+      ];
 
   return (
     <div style={{ fontFamily: "var(--font-sans)", color: "var(--ink)", paddingTop: 16 }}>
@@ -350,6 +392,12 @@ export function OperationsDetailSurface({
                 )}
               </DetailSection>
             )}
+
+          {spec09Shown.map((s) => (
+            <DetailSection key={s.id} id={s.id} title={s.label} aside={s.aside}>
+              {spec09Nodes[s.key]}
+            </DetailSection>
+          ))}
 
           <DetailSection id="sources" title="Sources" aside={sourceRows.length > 0 ? `${sourceRows.length} · tier = provenance, never urgency` : undefined}>
             {sourceRows.length > 0 ? <SourcesGrid rows={sourceRows} /> : <Absence reason="not in primary source" />}

@@ -19,15 +19,50 @@ test("a gapped corridor reports its gap count as 'pending', which is what artboa
     { label: "Shanghai (CN) → Rotterdam (NL), ocean", result: { ok: false, gaps: ["a", "b", "c", "d"] } },
   ]);
   assert.deepEqual(rows, [
-    { label: "Shanghai (CN) → Rotterdam (NL), ocean", pending: 4, point: null, currency: null },
+    {
+      label: "Shanghai (CN) → Rotterdam (NL), ocean",
+      fullLabel: "Shanghai (CN) → Rotterdam (NL), ocean",
+      pending: 4,
+      point: null,
+      currency: null,
+    },
   ]);
+});
+
+// ── the compact label (lane market63, 2026-09-08) ────────────────────────────────────────────────
+//
+// Artboard 04 prints the corridor as "Shanghai – Rotterdam · ocean" in this rail card, and the rail
+// is 300px wide: the full spine label needs three lines there. When the caller passes the parsed
+// corridor, /market already has it, it is what it feeds carbonCostPerFeu(), the row's VISIBLE
+// label is the artboard's compact form and the full one rides along on `fullLabel` for the title.
+
+test("a caller that passes the parsed corridor gets artboard 04's compact label, with the full one kept", () => {
+  const rows = summariseCarbonCorridors([
+    {
+      label: "Shanghai (CN) → Rotterdam (NL), ocean",
+      corridor: { origin: "CNSHA", dest: "NLRTM", mode: "ocean" },
+      result: { ok: false, gaps: ["a", "b", "c", "d"] },
+    },
+  ]);
+  assert.equal(rows[0].label, "Shanghai – Rotterdam · ocean");
+  assert.equal(rows[0].fullLabel, "Shanghai (CN) → Rotterdam (NL), ocean");
+});
+
+test("no parsed corridor means the full label is used in both slots, never a guessed short form", () => {
+  const rows = summariseCarbonCorridors([
+    { label: "Some corridor with no parse", result: { ok: false, gaps: ["a"] } },
+  ]);
+  assert.equal(rows[0].label, "Some corridor with no parse");
+  assert.equal(rows[0].fullLabel, "Some corridor with no parse");
 });
 
 test("a computed corridor reports pending 0 and carries its figure through", () => {
   const rows = summariseCarbonCorridors([
     { label: "A → B, ocean", result: { ok: true, gaps: [], point: 123.5, currency: "EUR" } },
   ]);
-  assert.deepEqual(rows, [{ label: "A → B, ocean", pending: 0, point: 123.5, currency: "EUR" }]);
+  assert.deepEqual(rows, [
+    { label: "A → B, ocean", fullLabel: "A → B, ocean", pending: 0, point: 123.5, currency: "EUR" },
+  ]);
 });
 
 test("caps at the artboard's two rows and drops malformed entries rather than rendering a blank label", () => {

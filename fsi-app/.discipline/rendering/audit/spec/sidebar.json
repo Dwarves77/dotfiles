@@ -3,16 +3,17 @@
   "mount": "page-frame-1440",
   "viewport": 1440,
   "artboards": [
-    "00-system-sheet \u00a70.3 'The frame'",
+    "00-system-sheet §0.3 'The frame'",
     "01-dashboard"
   ],
-  "source": "docs/design/handoff-2026-09-06/README.md \u00a70.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
+  "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' p1's nav-card block (section labels, active row, counts, footer)",
   "notes": [
-    "Sidebar.tsx's desktop nav card mixes inline style with Tailwind utility classes (`text-xl uppercase`, `text-[10px] font-bold tracking-[0.15em] uppercase`, etc. on the title/tagline). This harness injects `globals.css`/`theme.css` as RAW text without running Tailwind's build step (no PostCSS/Vite plugin \u2014 see mounts.mjs's STYLE_INJECT), so Tailwind's `@import \"tailwindcss\"` and its generated utility classes never resolve in this measured tree: a Tailwind-only property (e.g. the title's `text-xl` font-size) reads back as the browser's un-styled default, which is a HARNESS LIMITATION, not a product value \u2014 confirmed empirically (probed `aside.hidden > div:nth-child(2) h1` font-size: read 32px, the UA default h1 size, and text-transform: none, neither of which Sidebar.tsx's own inline style sets). This spec therefore asserts ONLY properties Sidebar.tsx sets via inline `style={}`, which bypass Tailwind entirely and are real regardless of this harness's raw-injection limitation. Title/tagline font-size, weight and text-transform (all Tailwind-class-driven in the desktop card) are NOT asserted here for that reason, not because they are known-correct.",
+    "Sidebar.tsx's desktop nav card mixes inline style with Tailwind utility classes (`text-xl uppercase`, `text-[10px] font-bold tracking-[0.15em] uppercase`, etc. on the title/tagline). This harness injects `globals.css`/`theme.css` as RAW text without running Tailwind's build step (no PostCSS/Vite plugin — see mounts.mjs's STYLE_INJECT), so Tailwind's `@import \"tailwindcss\"` and its generated utility classes never resolve in this measured tree: a Tailwind-only property (e.g. the title's `text-xl` font-size) reads back as the browser's un-styled default, which is a HARNESS LIMITATION, not a product value — confirmed empirically (probed `aside.hidden > div:nth-child(2) h1` font-size: read 32px, the UA default h1 size, and text-transform: none, neither of which Sidebar.tsx's own inline style sets). This spec therefore asserts ONLY properties Sidebar.tsx sets via inline `style={}`, which bypass Tailwind entirely and are real regardless of this harness's raw-injection limitation. Title/tagline font-size, weight and text-transform (all Tailwind-class-driven in the desktop card) are NOT asserted here for that reason, not because they are known-correct.",
     "The aside's own box model (width 252, margin, background, border, radius, band-gradient cap) is already covered by spec/page-frame.json's own top-level target on this same mount/selector; this spec adds the nav card's INTERNAL typography and active-state treatment, which page-frame.json does not touch.",
     "dc.html p1 nav card section label ('Brief'): font-size 9.5px, letter-spacing .14em, text-transform uppercase, color #7A6E6C, font-weight 700, padding 8px 8px 4px (the FIRST section only omits the divider/border-top the later two sections carry).",
-    "dc.html p1 nav card active row ('Dashboard'): background #F5F2EE, `box-shadow: inset 3px 0 0 #5A5552` (an inset spine, not a border), font-weight 700. FIXED by fix58-tokens (2026-09-07, B96-B98): Sidebar.tsx's active row now uses that box-shadow spine (not `border-left`) and fontWeight 700 (not 800). Section-label letter-spacing (0.14em) and font-weight (700) were also unified across the card/drawer variants \u2014 the drawer variant already carried the correct values, only the desktop card diverged.",
-    "The mount's `next/navigation` stub (../smoke/stub-next-navigation.mjs, shared guard code, reused as-is per its own header) fixes `usePathname()` to `/community/smoke-test` \u2014 so `Sidebar.isActive()` marks COMMUNITY active (prefix match), not Dashboard, in this measured tree. The active-row targets below therefore select the Network section's Community row, not Brief's Dashboard row; this is a mount artefact of which item ends up `aria-current`, not of the STYLING those properties measure (the active-row style rule itself is identical regardless of which row it lands on)."
+    "dc.html p1 nav card active row ('Dashboard'): background #F5F2EE, `box-shadow: inset 3px 0 0 #5A5552` (an inset spine, not a border), font-weight 700. FIXED by fix58-tokens (2026-09-07, B96-B98): Sidebar.tsx's active row now uses that box-shadow spine (not `border-left`) and fontWeight 700 (not 800). Section-label letter-spacing (0.14em) and font-weight (700) were also unified across the card/drawer variants — the drawer variant already carried the correct values, only the desktop card diverged.",
+    "The mount's `next/navigation` stub (../smoke/stub-next-navigation.mjs, shared guard code, reused as-is per its own header) fixes `usePathname()` to `/community/smoke-test` — so `Sidebar.isActive()` marks COMMUNITY active (prefix match), not Dashboard, in this measured tree. The active-row targets below therefore select the Network section's Community row, not Brief's Dashboard row; this is a mount artefact of which item ends up `aria-current`, not of the STYLING those properties measure (the active-row style rule itself is identical regardless of which row it lands on).",
+    "2026-09-08 (lane communitynav2): the footer rows asserted here were rewritten. The 2026-09-07 ruling collapsed the footer to ONE row (the logged-in person's name); the operator REVERSED that on 2026-09-08 and restored the artboard's two rows: 'Account' with the workspace name right-aligned, and 'Admin' with the OWNER badge, at dc.html p1's own measures (44px rows, the nav card's 10px horizontal padding, 8px gaps, badge 9.5px/700/.08em in a 1px rgba(0,0,0,.2) border at radius 4). NOT reversed: 'signout lives in account'. The Account row is still the UserMenuDropdown trigger (Workspace profile, Settings, Sign out), and the Admin row is a plain /admin link carrying its attention count, so the menu no longer repeats it. The forbid on a THIRD row is unchanged."
   ],
   "selector": "aside.hidden nav > div:nth-child(1) > p",
   "expect": {
@@ -31,7 +32,7 @@
       }
     },
     {
-      "name": "active nav row (Community, per the stub-path note above) \u2014 background",
+      "name": "active nav row (Community, per the stub-path note above) — background",
       "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
       "note": "dc.html p1's active-row markup (shown on 'Dashboard' there): background #F5F2EE.",
       "expect": {
@@ -39,7 +40,7 @@
       }
     },
     {
-      "name": "active nav row \u2014 font-weight",
+      "name": "active nav row — font-weight",
       "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
       "note": "dc.html p1: font-weight 700 on the active row.",
       "expect": {
@@ -47,9 +48,9 @@
       }
     },
     {
-      "name": "active nav row \u2014 spine technique",
+      "name": "active nav row — spine technique",
       "selector": "aside.hidden nav > div:nth-child(3) a[aria-current=\"page\"]",
-      "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). FIXED by fix58-tokens (2026-09-07, B98): Sidebar.tsx's active row now sets this box-shadow instead of `border-left`. SPEC CORRECTED in the same commit: `expect` is written in CSSOM's own canonical serialisation order (colour first, then offsets/blur/spread, then the `inset` keyword last), matching this file's own list-surface.json convention for box-shadow \u2014 the source-order string in this note is the design statement, not the literal getComputedStyle form.",
+      "note": "dc.html p1: `box-shadow: inset 3px 0 0 #5A5552` (an inset spine on the LEFT edge, drawn inside the row so it never shifts row content). FIXED by fix58-tokens (2026-09-07, B98): Sidebar.tsx's active row now sets this box-shadow instead of `border-left`. SPEC CORRECTED in the same commit: `expect` is written in CSSOM's own canonical serialisation order (colour first, then offsets/blur/spread, then the `inset` keyword last), matching this file's own list-surface.json convention for box-shadow — the source-order string in this note is the design statement, not the literal getComputedStyle form.",
       "expect": {
         "box-shadow": "rgb(90, 85, 82) 3px 0px 0px 0px inset"
       }
@@ -62,51 +63,67 @@
       }
     },
     {
-      "name": "nav card footer — row count (operator ruling 2026-09-07, superseding R2: ONE row, the logged-in person's name, opening Account/Admin/Settings/Sign out as menu options)",
+      "name": "nav card footer row count (operator ruling 2026-09-08, REVERSING the 2026-09-07 one-row ruling: the artboard's two rows are back)",
       "selector": "aside.hidden > div:last-child > *",
-      "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY) so the menu's role-gated Admin panel item is present to assert on in the dropdown spec below; the footer's own row count does not depend on role any more — it is always exactly 1.",
+      "note": "Mount sets userRole 'owner' (mounts.mjs PAGE_FRAME_ENTRY), so the role-gated Admin row renders and the badge reads the caller's real role. Exactly 2: the Account row (wrapped in its relative-positioned menu anchor) and the Admin row.",
       "expect": {
-        "count": "1"
+        "count": "2"
       }
     },
     {
-      "name": "nav card footer — the one row is the logged-in person's name (avatar glyph + name), workspace name right-aligned muted",
+      "name": "nav card footer row 1 reads 'Account' with the workspace name right-aligned",
       "selector": "aside.hidden > div:last-child > *:nth-child(1)",
-      "note": "Stub auth user is audit@smoke-guard.internal (../smoke/stub-auth-provider.mjs) — displayName is the email's local part, 'audit'. orgName is unset in this mount, so the Absence dash renders on the right.",
+      "note": "orgName is unset in this mount, so the Absence dash renders on the right (dc.html p1 draws the workspace name, 'Dietl / Rockit', in that slot).",
       "expect": {
-        "text": "audit—"
+        "text": "Account—"
       }
     },
     {
-      "name": "nav card footer row — button role (aria-haspopup menu trigger, not a Link)",
+      "name": "nav card footer row 1 is the menu trigger (aria-haspopup button, not a Link): 2026-09-07's 'signout lives in account' is NOT reversed",
       "selector": "aside.hidden > div:last-child button[aria-haspopup=\"menu\"]",
       "expect": {
-        "text": "audit—"
+        "text": "Account—"
+      }
+    },
+    {
+      "name": "nav card footer row 2 is Admin, linking to /admin",
+      "selector": "aside.hidden > div:last-child a[href=\"/admin\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Admin"
+    },
+    {
+      "name": "nav card footer row 2 carries the role badge (dc.html p1 draws OWNER)",
+      "selector": "aside.hidden > div:last-child a[href=\"/admin\"] > span:nth-child(2) > span:last-child",
+      "note": "dc.html p1 badge: 9.5px / 700 / .08em uppercase, 2px 6px inside a 1px rgba(0,0,0,.2) border at radius 4. The word is the caller's real role (mount: owner), never a hardcoded OWNER string.",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "0.08em",
+        "text-transform": "uppercase",
+        "border-radius": "4px",
+        "border-top-width": "1px"
+      }
+    },
+    {
+      "name": "nav card footer, both rows keep the 44px hit target",
+      "selector": "aside.hidden > div:last-child a[href=\"/admin\"]",
+      "expect": {
+        "min-height": "44px"
       }
     }
   ],
   "forbid": [
     {
-      "name": "a separate Account row/link",
-      "selector": "aside.hidden > div:last-child a",
-      "textMatch": "Account",
-      "reason": "Operator ruling 2026-09-07, superseding R2 and the coordinator default that preceded it: 'we don't need separate Account and Admin buttons visible if they pop up as options when you click the logged-in person's name.' Account is now a menu item inside UserMenuDropdown (Workspace profile), not its own footer row."
-    },
-    {
-      "name": "a separate Admin row/link or OWNER badge in the footer",
-      "selector": "aside.hidden > div:last-child a, aside.hidden > div:last-child *",
-      "textMatch": "OWNER",
-      "reason": "Same ruling: Admin (and its role badge) moves into the menu (Admin panel, role-gated, with its attention count) instead of its own footer row."
-    },
-    {
       "name": "a third footer row of any kind",
-      "selector": "aside.hidden > div:last-child > *:nth-child(2)",
-      "reason": "Exactly one row now — the name row. Nothing else is a direct child of the footer container."
+      "selector": "aside.hidden > div:last-child > *:nth-child(3)",
+      "reason": "Exactly two rows, Account and Admin. Production once shipped a third ('jasonlosh ▾' utility row) and that forbid survives the 2026-09-08 reversal unchanged."
     },
     {
       "name": "the old UserMenu trigger button (aria-label 'Open user menu', pre-coordinator-default component, deleted)",
       "selector": "aside.hidden button[aria-label=\"Open user menu\"]",
-      "reason": "UserMenu.tsx was deleted in the coordinator-default lane; the single name row (aria-label 'Open account menu') is the only menu trigger in the footer."
+      "reason": "UserMenu.tsx was deleted in the coordinator-default lane; the Account row (aria-label 'Open account menu') is the only menu trigger in the footer."
     }
   ]
 }

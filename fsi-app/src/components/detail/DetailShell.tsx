@@ -652,7 +652,25 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
   return (
     <SectionCard as="section" id={id} padding="16px 20px" style={{ marginBottom: 16, scrollMarginTop: 56 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        {/* data-guard-title (item D3, 2026-09-08): a section heading IS a title in the rendered tree,
+            and the squeezed-title detector (ux-assert.mjs) had nothing to measure on any detail
+            surface below the masthead. Marking it here, once, covers all four surfaces and lets a
+            section BODY component render rows only — which is what the three spec-09 panels moved
+            onto the Operations profile this round now do. */}
+        {/* data-guard-display="card-title" added FOLD 63 (2026-09-08). This h2 IS a card title, and
+            its type is SectionHeading.tsx's own, declaration for declaration: Anton via
+            --font-display, weight 400, 20px, 0.04em, uppercase, margin 0, --ink. SectionHeading
+            stamps `data-guard-display="card-title"`; this one did not, so the site-wide layout
+            guard's L7 (Anton display-type allowlist) reported every detail-surface section heading
+            on every detail route as unsanctioned Anton, against an allowlist entry that already
+            reads "card title (README type scale: display titles 20px)". The marker was missing, not
+            the sanction, so this closes a guard blind spot rather than widening the rule: L7 still
+            fails on Anton anywhere outside the seven named ids. Found because item D3 moved three
+            spec-09 panels onto the Operations profile and their three new headings joined the same
+            pre-existing class (h2[Summary], h2[Sources] were already in it). */}
         <h2
+          data-guard-title
+          data-guard-display="card-title"
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 400,

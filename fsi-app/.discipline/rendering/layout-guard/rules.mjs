@@ -250,6 +250,18 @@ export function checkL5(m) {
 export function checkL6(m) {
   const out = [];
   for (const c of m.cards || []) {
+    // FOLD 63 (2026-09-08). Ruling 5.2 (2026-09-07) names ONE card in the product that legitimately
+    // draws no dark-grey rule: the per-band grouping card, whose top edge is the band-coloured 3px
+    // border the band scale owns, because stacking both would put two 3px rules on one edge.
+    // `SectionCard` already identifies that card BY VALUE rather than by absence
+    // (`data-section-card="band-grouping"`, its own prop `suppressRuleForBandGrouping`), and the
+    // design audit's CLASS-CLOSURE forbid on every compose spec already excludes it by that
+    // identity. L6 did not, so it reported the four band cards on every list route as chrome
+    // defects: 28 of the 62 L6 findings on this tree were that one standing ruling, restated as a
+    // failure on seven routes. The two guards now agree on the same one exemption, read from the
+    // same stamp. Not a widening: a card that suppresses the rule without carrying that identity
+    // still fails here, and F42 is what stops any other caller passing the prop.
+    if (c.isBandGrouping) continue;
     const missing = [];
     if (!c.hasRule) missing.push(`3px top rule (measured ${c.ruleHeight === null ? 'none' : `${px(c.ruleHeight)}px`})`);
     if (px(c.borderWidth) !== 1) missing.push(`1px border (measured ${px(c.borderWidth)}px)`);

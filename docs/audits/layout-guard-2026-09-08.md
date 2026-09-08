@@ -6,7 +6,7 @@ GENERATED FILE. Regenerated in full by `node fsi-app/.discipline/rendering/layou
 - Routes: 18 (17 artboards; /login and /signup share artboard 16)
 - Widths: 1440, 1024
 - Measurements taken: 36
-- Findings: 792
+- Findings: 728
 
 `[CONFIRMED]`: every row below is a measurement taken this run in a real chromium against the
 real `src/components/**` modules, not a source read. The rules are the operator's L1-L12
@@ -22,10 +22,10 @@ stated in `rules.mjs` where his text needed one.
 | L3 | already covered (audit/overflow-sweep.mjs, ux-assert detectClippedOverflow) + new card-vs-column clause | 0 | - |
 | L4 | new | 1 | /admin@1024 |
 | L5 | new | 0 | - |
-| L6 | new | 62 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +12 more |
-| L7 | new | 222 | /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, /research@1440, /research@1024, +22 more |
+| L6 | new | 34 | /regulations/[slug]@1440, /regulations/[slug]@1024, /market/[slug]@1440, /market/[slug]@1024, /research/[slug]@1440, /research/[slug]@1024, /operations/[slug]@1440, /operations/[slug]@1024, +4 more |
+| L7 | new | 190 | /market@1440, /market@1024, /research@1440, /research@1024, /operations@1440, /operations@1024, /map@1440, /map@1024, +14 more |
 | L8 | new (rendered text, not source text) | 0 | - |
-| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 238 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
+| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 234 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
 | L10 | new | 93 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +21 more |
 | L11 | already covered (ux-assert detectClippedText, lane opsclip) - called, not restated | 0 | - |
 | L12 | new | 0 | - |
@@ -36,28 +36,28 @@ stated in `rules.mjs` where his text needed one.
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `/` | 1440 | · | · | · | · | · | · | · | · | · | 1 | · | · | 1 |
 | `/` | 1024 | · | · | · | · | · | · | · | · | · | 1 | · | · | 1 |
-| `/regulations` | 1440 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
-| `/regulations` | 1024 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
-| `/regulations/[slug]` | 1440 | 2 | · | · | · | · | 3 | 6 | · | 1 | 5 | · | · | 17 |
-| `/regulations/[slug]` | 1024 | · | · | · | · | · | 3 | 6 | · | 1 | 5 | · | · | 15 |
-| `/market` | 1440 | · | · | · | · | · | 4 | 6 | · | 6 | 5 | · | · | 21 |
-| `/market` | 1024 | · | · | · | · | · | 4 | 6 | · | 6 | 5 | · | · | 21 |
-| `/market/[slug]` | 1440 | 2 | · | · | · | · | 2 | 6 | · | 1 | 6 | · | · | 17 |
-| `/market/[slug]` | 1024 | · | · | · | · | · | 2 | 6 | · | 1 | 6 | · | · | 15 |
-| `/research` | 1440 | · | · | · | · | · | 3 | 8 | · | 4 | 4 | · | · | 19 |
-| `/research` | 1024 | · | · | · | · | · | 3 | 8 | · | 4 | 4 | · | · | 19 |
-| `/research/[slug]` | 1440 | 2 | · | · | · | · | 1 | 2 | · | 1 | 5 | · | · | 11 |
-| `/research/[slug]` | 1024 | · | · | · | · | · | 1 | 2 | · | 1 | 5 | · | · | 9 |
-| `/operations` | 1440 | · | · | · | · | · | 3 | 34 | · | 22 | 3 | · | · | 62 |
-| `/operations` | 1024 | · | · | · | · | · | 3 | 34 | · | 22 | 3 | · | · | 62 |
-| `/operations/[slug]` | 1440 | 2 | · | · | · | · | 1 | 2 | · | 4 | 7 | · | · | 16 |
-| `/operations/[slug]` | 1024 | · | · | · | · | · | 1 | 2 | · | 4 | 7 | · | · | 14 |
+| `/regulations` | 1440 | · | · | · | · | · | · | · | · | 6 | 4 | · | · | 10 |
+| `/regulations` | 1024 | · | · | · | · | · | · | · | · | 6 | 4 | · | · | 10 |
+| `/regulations/[slug]` | 1440 | 2 | · | · | · | · | 3 | · | · | 1 | 5 | · | · | 11 |
+| `/regulations/[slug]` | 1024 | · | · | · | · | · | 3 | · | · | 1 | 5 | · | · | 9 |
+| `/market` | 1440 | · | · | · | · | · | · | 6 | · | 6 | 5 | · | · | 17 |
+| `/market` | 1024 | · | · | · | · | · | · | 6 | · | 6 | 5 | · | · | 17 |
+| `/market/[slug]` | 1440 | 2 | · | · | · | · | 2 | · | · | 1 | 6 | · | · | 11 |
+| `/market/[slug]` | 1024 | · | · | · | · | · | 2 | · | · | 1 | 6 | · | · | 9 |
+| `/research` | 1440 | · | · | · | · | · | · | 8 | · | 4 | 4 | · | · | 16 |
+| `/research` | 1024 | · | · | · | · | · | · | 8 | · | 4 | 4 | · | · | 16 |
+| `/research/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 9 |
+| `/research/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 7 |
+| `/operations` | 1440 | · | · | · | · | · | · | 34 | · | 22 | 3 | · | · | 59 |
+| `/operations` | 1024 | · | · | · | · | · | · | 34 | · | 22 | 3 | · | · | 59 |
+| `/operations/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 14 |
+| `/operations/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 12 |
 | `/map` | 1440 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
 | `/map` | 1024 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
 | `/watchlist` | 1440 | · | · | · | · | · | 4 | · | · | 2 | 2 | · | · | 8 |
 | `/watchlist` | 1024 | · | · | · | · | · | 4 | · | · | 2 | 2 | · | · | 8 |
-| `/community` | 1440 | 1 | · | · | · | · | 6 | 8 | · | 8 | 1 | · | · | 24 |
-| `/community` | 1024 | 1 | · | · | · | · | 6 | 8 | · | 8 | · | · | · | 23 |
+| `/community` | 1440 | 1 | · | · | · | · | 6 | 8 | · | 6 | 1 | · | · | 22 |
+| `/community` | 1024 | 1 | · | · | · | · | 6 | 8 | · | 6 | · | · | · | 21 |
 | `/admin` | 1440 | · | · | · | · | · | · | 15 | · | 1 | 1 | · | · | 17 |
 | `/admin` | 1024 | · | · | · | 1 | · | · | 15 | · | 1 | 1 | · | · | 18 |
 | `/profile` | 1440 | · | · | · | · | · | · | 4 | · | 3 | 1 | · | · | 8 |
@@ -184,50 +184,22 @@ coordinator route it instead of two lanes editing one file.
 |---|---|---|---|
 | `/admin` | 1024 | div[Sources views] | 63px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 674) |
 
-### L6 - 62 finding(s)
+### L6 - 34 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
-| `/regulations` | 1440 | div[Immediate≤ 90 daysshowing 5 of] "IMMEDIATE" | 3px top rule (measured none) |
-| `/regulations` | 1440 | div[Action≤ 6 monthsshowing 5 of 9] "ACTION" | 3px top rule (measured none) |
-| `/regulations` | 1440 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/regulations` | 1440 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
-| `/regulations` | 1024 | div[Immediate≤ 90 daysshowing 5 of] "IMMEDIATE" | 3px top rule (measured none) |
-| `/regulations` | 1024 | div[Action≤ 6 monthsshowing 5 of 9] "ACTION" | 3px top rule (measured none) |
-| `/regulations` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/regulations` | 1024 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1440 | div[Owner & teamAssigneeUnassigned] "OWNER & TEAM" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1440 | div[Affected lanesModesOCEANJurisd] "AFFECTED LANES" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1024 | div[Owner & teamAssigneeUnassigned] "OWNER & TEAM" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1024 | div[Affected lanesModesOCEANJurisd] "AFFECTED LANES" | 3px top rule (measured none) |
-| `/market` | 1440 | div[Immediate≤ 90 daysshowing 5 of] "IMMEDIATE" | 3px top rule (measured none) |
-| `/market` | 1440 | div[Action≤ 6 monthsshowing 5 of 6] "ACTION" | 3px top rule (measured none) |
-| `/market` | 1440 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/market` | 1440 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
-| `/market` | 1024 | div[Immediate≤ 90 daysshowing 5 of] "IMMEDIATE" | 3px top rule (measured none) |
-| `/market` | 1024 | div[Action≤ 6 monthsshowing 5 of 6] "ACTION" | 3px top rule (measured none) |
-| `/market` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/market` | 1024 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
 | `/market/[slug]` | 1440 | div[Affected lanesModesOCEANAffect] "AFFECTED LANES" | 3px top rule (measured none) |
 | `/market/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/market/[slug]` | 1024 | div[Affected lanesModesOCEANAffect] "AFFECTED LANES" | 3px top rule (measured none) |
 | `/market/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
-| `/research` | 1440 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
-| `/research` | 1440 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/research` | 1440 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
-| `/research` | 1024 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
-| `/research` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
-| `/research` | 1024 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
 | `/research/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/research/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
-| `/operations` | 1440 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
-| `/operations` | 1440 | div[Monitor6–12 monthsshowing 2 of] "MONITOR" | 3px top rule (measured none) |
-| `/operations` | 1440 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
-| `/operations` | 1024 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
-| `/operations` | 1024 | div[Monitor6–12 monthsshowing 2 of] "MONITOR" | 3px top rule (measured none) |
-| `/operations` | 1024 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
 | `/operations/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/operations/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/watchlist` | 1440 | li.cl-row-card[Fixture entity 09/5/2026, 9:00] | 3px top rule (measured none) |
@@ -248,24 +220,13 @@ coordinator route it instead of two lanes editing one file.
 | `/community` | 1024 | button[US24Reporting · Emissions · Tr] "US" | 3px top rule (measured none) |
 | `/community` | 1024 | button[UK210Transport · Research · Em] "UK" | 3px top rule (measured none) |
 | `/community` | 1024 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
-| … | | 2 further findings, in results.json | |
+| `/community` | 1024 | button[LATAM1Emissionsno discussions ] "LATAM" | 3px top rule (measured none) |
+| `/community` | 1024 | button[MEAF0—no discussions yet] "MEAF" | 3px top rule (measured none) |
 
-### L7 - 222 finding(s)
+### L7 - 190 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
-| `/regulations/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/regulations/[slug]` | 1440 | h2[Obligations — issues requiring] | font-family resolves to Anton on "OBLIGATIONS — ISSUES REQUIRING ACTION" |
-| `/regulations/[slug]` | 1440 | h2[Compliance chain] | font-family resolves to Anton on "COMPLIANCE CHAIN" |
-| `/regulations/[slug]` | 1440 | h2[Substantive requirements] | font-family resolves to Anton on "SUBSTANTIVE REQUIREMENTS" |
-| `/regulations/[slug]` | 1440 | h2[Penalties] | font-family resolves to Anton on "PENALTIES" |
-| `/regulations/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/regulations/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/regulations/[slug]` | 1024 | h2[Obligations — issues requiring] | font-family resolves to Anton on "OBLIGATIONS — ISSUES REQUIRING ACTION" |
-| `/regulations/[slug]` | 1024 | h2[Compliance chain] | font-family resolves to Anton on "COMPLIANCE CHAIN" |
-| `/regulations/[slug]` | 1024 | h2[Substantive requirements] | font-family resolves to Anton on "SUBSTANTIVE REQUIREMENTS" |
-| `/regulations/[slug]` | 1024 | h2[Penalties] | font-family resolves to Anton on "PENALTIES" |
-| `/regulations/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/market` | 1440 | h2[Headline series] | font-family resolves to Anton on "HEADLINE SERIES" |
 | `/market` | 1440 | span[€1,217/1000L] | font-family resolves to Anton on "€1,217/1000L" |
 | `/market` | 1440 | span[€1,014/1000L] | font-family resolves to Anton on "€1,014/1000L" |
@@ -278,18 +239,6 @@ coordinator route it instead of two lanes editing one file.
 | `/market` | 1024 | span[€535/t] | font-family resolves to Anton on "€535/t" |
 | `/market` | 1024 | span[€646/t] | font-family resolves to Anton on "€646/t" |
 | `/market` | 1024 | span[$1.16] | font-family resolves to Anton on "$1.16" |
-| `/market/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/market/[slug]` | 1440 | h2[Drivers & trajectory] | font-family resolves to Anton on "DRIVERS & TRAJECTORY" |
-| `/market/[slug]` | 1440 | h2[Cost impact by mode] | font-family resolves to Anton on "COST IMPACT BY MODE" |
-| `/market/[slug]` | 1440 | h2[Do now] | font-family resolves to Anton on "DO NOW" |
-| `/market/[slug]` | 1440 | h2[Client talking points] | font-family resolves to Anton on "CLIENT TALKING POINTS" |
-| `/market/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/market/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/market/[slug]` | 1024 | h2[Drivers & trajectory] | font-family resolves to Anton on "DRIVERS & TRAJECTORY" |
-| `/market/[slug]` | 1024 | h2[Cost impact by mode] | font-family resolves to Anton on "COST IMPACT BY MODE" |
-| `/market/[slug]` | 1024 | h2[Do now] | font-family resolves to Anton on "DO NOW" |
-| `/market/[slug]` | 1024 | h2[Client talking points] | font-family resolves to Anton on "CLIENT TALKING POINTS" |
-| `/market/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
@@ -306,17 +255,41 @@ coordinator route it instead of two lanes editing one file.
 | `/research` | 1024 | span[14] | font-family resolves to Anton on "14" |
 | `/research` | 1024 | span[11] | font-family resolves to Anton on "11" |
 | `/research` | 1024 | span[3] | font-family resolves to Anton on "3" |
-| `/research/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/research/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/research/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/research/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/operations` | 1440 | h2[Regions side by side] | font-family resolves to Anton on "REGIONS SIDE BY SIDE" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| … | | 162 further findings, in results.json | |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[6] | font-family resolves to Anton on "6" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| … | | 130 further findings, in results.json | |
 
-### L9 - 238 finding(s)
+### L9 - 234 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -380,7 +353,7 @@ coordinator route it instead of two lanes editing one file.
 | `/operations` | 1440 | button[UAE] | 42.6×24px (long 42.6 < 44 or short 24 < 28) |
 | `/operations` | 1440 | button[All 19 awareness →] | 129.1×26px (long 129.1 < 44 or short 26 < 28) |
 | `/operations` | 1440 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
-| … | | 178 further findings, in results.json | |
+| … | | 174 further findings, in results.json | |
 
 ### L10 - 93 finding(s)
 

@@ -31,7 +31,6 @@ import { useState } from "react";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 import dynamic from "next/dynamic";
-import { User } from "lucide-react";
 import { APP_NAME, APP_TAGLINE } from "@/lib/constants";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
@@ -41,8 +40,8 @@ import { BandGradientRule } from "@/components/ui/BandGradientRule";
 import { formatNumber } from "@/lib/format";
 
 // Deferred so the drawer/mobile bundle doesn't pay for UserMenuDropdown's
-// chunk on first paint; the footer's single user row (both variants,
-// operator ruling 2026-09-07) mounts it only once opened.
+// chunk on first paint; the footer's Account row (both variants) mounts it
+// only once opened.
 const UserMenuDropdownLazy = dynamic(() => import("@/components/auth/UserMenuDropdown"), { ssr: false });
 
 interface NavItem {
@@ -119,10 +118,9 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
   const isAdmin = userRole === "owner" || userRole === "admin";
   const { data: bootstrap } = useWorkspaceBootstrap();
   const counts = bootstrap?.navCounts;
-  // Coordinator default (2026-09-07, resolving the third-footer-row defect
-  // confirmed against artboard 02 / ruling R2): the desktop card's Account
-  // row is itself the trigger for the menu the deleted third row used to
-  // open, so sign-out (and everything else that menu held) keeps a home.
+  // The Account row is itself the trigger for the menu the deleted third row
+  // used to open, so sign-out keeps a home (2026-09-07 ruling "signout lives
+  // in account", NOT reversed by the 2026-09-08 two-row ruling below).
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
   const { total: adminAttentionTotal } = useAdminAttention();
   const showAdminDot = isAdmin && adminAttentionTotal > 0;
@@ -234,24 +232,40 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
     ));
   };
 
-  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer). Operator
-  //    ruling 2026-09-07, superseding R2's two-row footer: "signout lives
-  //    in account, keep it there" / "we don't need separate Account and
-  //    Admin buttons visible if they pop up as options when you click the
-  //    logged-in person's name" / "too tight". ONE row now, on both the
-  //    desktop card and the mobile drawer (one implementation) — the
-  //    logged-in person's name (avatar glyph + name) with the workspace
-  //    name right-aligned, muted, in the old Account row's own style. It
-  //    opens the same UserMenuDropdown (Workspace profile, Admin panel —
-  //    role-gated, with its attention count — Settings, Sign out),
-  //    anchored above the row (it opens upward at the foot, per
-  //    production). Falls back to a plain link to /profile when there is
-  //    no signed-in user (nothing to open a menu about). ──
+  // ── Footer (README §0.3 nav card / mobile spec DRAWER footer).
+  //
+  //    Operator ruling 2026-09-08, which REVERSES the 2026-09-07 one-row
+  //    ruling: the footer is the artboard's TWO rows again (dc.html p1 and
+  //    every other artboard that draws the nav card): "Account" with the
+  //    workspace name right-aligned, then "Admin" with the OWNER badge.
+  //    Measures are the artboard markup's: 44px rows, the nav card's 10px
+  //    horizontal padding, 8px gaps, badge 9.5px / 700 / .08em inside a
+  //    1px rgba(0,0,0,.2) border at radius 4.
+  //
+  //    What the reversal does NOT touch: the 2026-09-07 ruling "signout
+  //    lives in account" stands. So the Account row is still the trigger
+  //    for UserMenuDropdown (Workspace profile, Settings, Sign out),
+  //    anchored above the row; the Admin row is a plain link to /admin
+  //    carrying its own attention count, and the menu no longer repeats it.
+  //    Both rows render on the desktop card and the mobile drawer, one
+  //    implementation. With no signed-in user the Account row falls back to
+  //    a plain link to /profile (nothing to open a menu about).
+  //
+  //    A THIRD row stays forbidden (the production defect that preceded
+  //    all of this shipped Account + Admin + a "jasonlosh ▾" utility row). ──
   const footer = (variant: "card" | "drawer") => {
     const drawer = variant === "drawer";
-    const displayName = user?.email?.split("@")[0] || "User";
+    const rowStyle: React.CSSProperties = {
+      minHeight: 44,
+      padding: "0 10px",
+      gap: 8,
+      color: "var(--ink)",
+    };
     return (
-      <div className="flex flex-col" style={{ borderTop: `1px solid ${drawer ? "var(--line-2)" : "var(--line-3)"}` }}>
+      <div
+        className="flex flex-col"
+        style={{ borderTop: `1px solid ${drawer ? "var(--line-2)" : "var(--line-3)"}`, gap: 8 }}
+      >
         {user ? (
           <div className="relative">
             <button
@@ -259,28 +273,16 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               onClick={() => setAccountMenuOpen((v) => !v)}
               aria-haspopup="menu"
               aria-expanded={accountMenuOpen}
-              aria-label={
-                showAdminDot
-                  ? `Open account menu (${adminAttentionTotal} admin item${adminAttentionTotal === 1 ? "" : "s"} need attention)`
-                  : "Open account menu"
-              }
+              aria-label="Open account menu"
               className="w-full flex items-center justify-between cursor-pointer"
               style={{
-                minHeight: 44,
-                padding: "0 10px",
-                gap: 8,
-                color: "var(--ink)",
+                ...rowStyle,
                 background: accountMenuOpen ? "var(--tag)" : "transparent",
                 border: "none",
                 textAlign: "left",
               }}
             >
-              <span className="flex items-center min-w-0" style={{ gap: 8 }}>
-                <User size={16} className="shrink-0" aria-hidden="true" />
-                <span className="truncate" style={{ fontSize: 14, fontWeight: 700 }}>
-                  {displayName}
-                </span>
-              </span>
+              <span style={{ fontSize: 14, fontWeight: 700 }}>Account</span>
               <span
                 className="truncate shrink-0"
                 style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 100, fontWeight: 600 }}
@@ -293,8 +295,6 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
                 user={user}
                 orgName={orgName}
                 isAdmin={isAdmin}
-                showAdminDot={showAdminDot}
-                adminAttentionTotal={adminAttentionTotal}
                 onClose={() => setAccountMenuOpen(false)}
                 onSignOut={signOut}
               />
@@ -307,7 +307,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
             onClick={drawer ? onDrawerClose : undefined}
             aria-current={isActive("/profile") ? "page" : undefined}
             className="flex items-center justify-between"
-            style={{ minHeight: 44, padding: "0 10px", gap: 8, color: "var(--ink)" }}
+            style={rowStyle}
           >
             <span style={{ fontSize: 14, fontWeight: 700 }}>Account</span>
             <span
@@ -315,6 +315,54 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", maxWidth: 140, fontWeight: 600 }}
             >
               {orgName || "—"}
+            </span>
+          </Link>
+        )}
+        {isAdmin && (
+          <Link
+            href="/admin"
+            prefetch={false}
+            onClick={drawer ? onDrawerClose : undefined}
+            aria-current={isActive("/admin") ? "page" : undefined}
+            aria-label={
+              showAdminDot
+                ? `Admin (${adminAttentionTotal} item${adminAttentionTotal === 1 ? "" : "s"} need attention)`
+                : "Admin"
+            }
+            className="flex items-center justify-between"
+            style={rowStyle}
+          >
+            <span style={{ fontSize: 14, fontWeight: 700 }}>Admin</span>
+            <span className="flex items-center shrink-0" style={{ gap: 8 }}>
+              {showAdminDot && (
+                <span
+                  style={{
+                    fontSize: "var(--fs-11)",
+                    fontWeight: 700,
+                    color: "var(--ink-3)",
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {formatNumber(adminAttentionTotal)}
+                </span>
+              )}
+              {/* dc.html p1 badge, verbatim: 9.5px / 700 / .08em, 2px 6px inside a
+                  1px rgba(0,0,0,.2) border at radius 4. The word is the caller's real
+                  role, never a hardcoded OWNER. */}
+              <span
+                style={{
+                  fontSize: 9.5,
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                  textTransform: "uppercase",
+                  padding: "2px 6px",
+                  border: "1px solid rgba(0,0,0,.2)",
+                  borderRadius: 4,
+                  color: "var(--ink)",
+                }}
+              >
+                {userRole}
+              </span>
             </span>
           </Link>
         )}

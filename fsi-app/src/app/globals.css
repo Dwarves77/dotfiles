@@ -580,7 +580,13 @@ body {
    from the cell's own `data-label`. Desktop unchanged. Usage: <table className="cl-table-cards">,
    <td data-label="Due">. */
 @media (max-width: 640px) {
-  .cl-table-cards, .cl-table-cards tbody, .cl-table-cards tr, .cl-table-cards td { display: block !important; width: 100% !important; min-width: 0 !important; }
+  /* box-sizing (item D2, 2026-09-08): these four selectors set `width: 100%` on elements the
+     stylesheet's own reset leaves at `content-box`, so a card row measured 100% of its container
+     PLUS its 12px side padding and 1px border — it overflowed whatever held it by 26px, always. The
+     36px page padding the obligation register used to sit inside hid it; moving the register into
+     the standard frame (which pads 16px at this width) exposed it. Fixed at the rule, so every
+     `.cl-table-cards` surface stops overflowing its container, not just this one. */
+  .cl-table-cards, .cl-table-cards tbody, .cl-table-cards tr, .cl-table-cards td { display: block !important; width: 100% !important; min-width: 0 !important; box-sizing: border-box; }
   .cl-table-cards thead { display: none !important; }
   .cl-table-cards tr { border: 1px solid var(--color-border-subtle, rgba(0,0,0,0.08)) !important; border-radius: 8px; padding: 10px 12px; margin: 0 0 10px; background: var(--color-bg-surface, #fff); }
   .cl-table-cards td { padding: 4px 0 !important; border: 0 !important; white-space: normal !important; overflow-wrap: anywhere; display: grid !important; grid-template-columns: 7.5em minmax(0, 1fr); column-gap: 10px; align-items: baseline; }

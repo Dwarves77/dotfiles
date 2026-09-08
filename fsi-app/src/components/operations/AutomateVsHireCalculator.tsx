@@ -19,6 +19,16 @@
  * admissibleFor() evaluates it exactly as it would a persisted row; a live, unstored preview cannot be
  * called MORE trustworthy than a persisted one, so it gets the same gate, not a bypass.
  *
+ * THE INSTANT COMES FROM THE SERVER, as `nowIso`, and is never read from the host clock here (lane
+ * regopscope, 2026-09-08). `makeSyntheticValue` runs inside a `useMemo` during render, so a
+ * `new Date()` in it is evaluated once by the SSR pass and again by the hydration pass with a
+ * different clock, the class `src/lib/render-clock.npmtest.mjs` exists to catch. Item D3's move of
+ * this file from `src/app/operations/` into `src/components/operations/` is what first brought it
+ * inside that guard's scope; the read was always a hazard, it was simply out of sight. The fix is the
+ * one that guard names: take the instant as a prop from the server (`renderNowIso()` in
+ * `/operations/calculator/page.tsx`), not an annotation. `nowIso` is REQUIRED rather than defaulted,
+ * because a fallback would be another host-clock read wearing a different name.
+ *
  * RecalculationNotice list underneath is fed by GET /api/notices via NoticesRail
  * (src/components/figures/NoticesRail.tsx, lane NOTICES 2026-09-05) — extracted from this file's own
  * former inline fetch-and-render copy once the Market index page and the four item detail surfaces needed
@@ -64,8 +74,7 @@ const FIELDS: Array<{ key: keyof FormState; label: string; step?: number; suffix
   { key: "horizonYears", label: "Horizon (years)", step: 1 },
 ];
 
-function makeSyntheticValue(scenario: ReturnType<typeof automateVsHire>): Value {
-  const now = new Date().toISOString();
+function makeSyntheticValue(scenario: ReturnType<typeof automateVsHire>, now: string): Value {
   return {
     valueId: "preview",
     entityId: null,
@@ -90,11 +99,17 @@ function makeSyntheticValue(scenario: ReturnType<typeof automateVsHire>): Value 
   };
 }
 
-export function AutomateVsHireCalculator() {
+export function AutomateVsHireCalculator({
+  /** The render instant, taken from the server by the page (`renderNowIso()`). Required: see this
+   *  module's header for why a default would reintroduce the hydration hazard it removes. */
+  nowIso,
+}: {
+  nowIso: string;
+}) {
   const [form, setForm] = useState<FormState>(INITIAL_STATE);
 
   const scenario = useMemo(() => automateVsHire(form), [form]);
-  const figure = useMemo(() => makeSyntheticValue(scenario), [scenario]);
+  const figure = useMemo(() => makeSyntheticValue(scenario, nowIso), [scenario, nowIso]);
 
   function update(key: keyof FormState, raw: string) {
     const n = Number(raw);

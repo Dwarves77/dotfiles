@@ -83,3 +83,30 @@ export function formatCorridorLabel({ origin, dest, mode }) {
   const modeLabel = String(mode ?? "").trim();
   return `${originLabel} → ${destLabel}${modeLabel ? `, ${modeLabel}` : ""}`;
 }
+
+/**
+ * The COMPACT corridor label artboard 04 (`id="p4"`) draws in the rail's CARBON COST PER FEU card,
+ * e.g. "Shanghai – Rotterdam · ocean" — the same UN/LOCODE pair and mode `formatCorridorLabel`
+ * renders, in the artboard's own separators and without the country parentheticals.
+ *
+ * WHY A SECOND FORM (lane market63, 2026-09-08). The rail is 300px wide and the card's content box
+ * is 266px. Measured in chromium: the full label ("Shanghai (CN) → Rotterdam (NL), ocean") needs
+ * three lines in that card and the artboard's own compact string needs two, which is the wrap the
+ * operator ruled out ("corridor name on one line, not two"). This form is what the artboard itself
+ * prints, so the rail row carries it and the FULL label stays on the row's `title`. Nothing else in
+ * the product changes form: `formatCorridorLabel` is still the one label for the overlay section,
+ * the detail surfaces and the spine.
+ *
+ * Pure, and it invents nothing: a code with no UNLOCODE_NAMES entry renders as the RAW CODE, the
+ * same graceful degradation `formatCorridorLabel` makes.
+ * @param {{ origin: string, dest: string, mode: string }} corridor
+ * @returns {string}
+ */
+export function formatCorridorLabelCompact({ origin, dest, mode }) {
+  const o = UNLOCODE_NAMES[String(origin ?? "").toUpperCase()];
+  const d = UNLOCODE_NAMES[String(dest ?? "").toUpperCase()];
+  const originLabel = o ? o.place : String(origin ?? "");
+  const destLabel = d ? d.place : String(dest ?? "");
+  const modeLabel = String(mode ?? "").trim();
+  return `${originLabel} – ${destLabel}${modeLabel ? ` · ${modeLabel}` : ""}`;
+}

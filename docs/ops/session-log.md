@@ -15157,3 +15157,492 @@ is introduced anywhere; every 44px minimum the lanes set is preserved and the St
 target grew from 24px to 28px. The rendering guard passes at every viewport including 375.
 
 2026-09-08, lane ci62: rotated DASHBOARD_DATA_CACHE_KEY from `app-data-7b3d90e4` to `app-data-e1ae7713`, the hash rule 021 computes on this tree, because this train changed the DashboardData payload shape (briefdata rows, the due-next read, and the reconciled complianceDeadline field) and the unstable_cache key must rotate so no old-shape cross-deployment entry can reach the new code.
+
+## 2026-09-08, lane regopscope (train 62): items D2 and D3, finishing pass
+
+**Where this picked up.** The branch `lane/regopscope-2026-09-08` already carried three commits
+(`f1020bf3` D2, `aa44a7b2` D3, `deeae1f6` the audit evidence) from a run the coordinator interrupted
+mid-flight, not a run that failed. The working tree also held a PARTIAL audit artefact: `results.json`
+and `AUDIT-2026-09-07.md` rewritten from a 5-spec run instead of the full 72, which is what an
+interrupted `audit:design` leaves behind. Those were reverted rather than committed, and the full
+audit was re-run at the end. That partial file is the one thing an interrupted lane can hand the next
+train that looks like evidence and is not.
+
+**What was already done, with the evidence rather than a redo.**
+- D2's removals and the move are landed. Artboard 02 (`screens/02-regulations-list.png`, read this
+  session) draws the rail's "Obligations · next 30 days" card with its own "Calendar →" link, and
+  draws no horizontal obligations strip and no register table below the band groups. The strip is
+  removed, the register lives at `/regulations/register`, and the rail card's Calendar link is the
+  route to it.
+- The next-due sort is a genuine READ-level ordering, not a page-local one. `NEXT_DUE_SEGMENTS` is
+  three ordered segments (upcoming ascending, past descending, undated), each exact-counted with
+  `head: true` so no rows cross the wire for the count, each given its own `.range()` cut by
+  `planRegisterPageSegments`, each with an `id` tiebreaker, and the results concatenated in segment
+  order with no post-fetch re-sort anywhere. `read-register.test.mjs:494` walks the page boundary
+  itself and asserts a one-row page at each offset returns the globally correct row, which a
+  page-local sort could not produce. This is the defect class train 61 closed for the 1000-row cap.
+- D3's moves are landed. Artboard 08 ends at "All 19 awareness · end of list" with no calculator, no
+  recalculations list, no footnotes and no by-state strip; artboard 09's S-section pattern (numbered
+  head, right-hand aside qualifier, sticky index) is the shape the three moved panels were given.
+
+**The operations matrix was NOT touched, and that was checked rather than assumed.** No added or
+removed line in `aa44a7b2` mentions `RegionDimensionMatrix`; the only matrix-adjacent lines the diff
+removes are prose comments describing where the deleted By-state sub-list sat relative to it. The
+frozen artboard-08 redesign is unaffected by this lane.
+
+**Two defects this pass found and fixed.**
+1. A REAL hydration hazard, [CONFIRMED] red-then-green. Item D3 renamed the calculator into
+   `src/components/operations/`, which is inside `render-clock.npmtest.mjs`'s scan scope for the
+   first time, and the guard went red: `makeSyntheticValue` read `new Date().toISOString()` inside a
+   `useMemo`, evaluated once by SSR and again at hydration with a different clock. Fixed the way that
+   guard's own header prescribes: the instant comes from the server as `nowIso` and threads through
+   `OperationsCalculatorPageView` as a REQUIRED prop on both hops, with no default, since a fallback
+   would be the same host-clock read wearing another name. Latent rather than live today
+   (`EstimatedFigure` reads neither `assertedAt` nor `computedAt`), and recorded that way so the fix
+   is not overstated.
+2. `formatFactStatus` deleted with its proofs. [CONFIRMED] dead at this round's own base commit, so
+   pre-existing rather than orphaned by the By-state removal, and deleted anyway under rule 13.
+   `STATE_LABELS` stays: `OperationsLedger` counts the Coverage-gaps roster against it.
+
+**Left alone deliberately.** The "Counts are live for the current selection" sentence is untouched in
+all five ledgers and `ListSurfaceShell`; lane communitynav2 owns its removal across every rail, and a
+`git log -S` over this branch's three commits confirms none of them moved it.
+
+**UX compliance**: this lane's whole range touches `.tsx` under `fsi-app/src`, so the block covers
+every screen it moves, not only the finishing pass.
+
+- `/regulations`: the reader's primary goal is to see what binds them and how soon. The path is the
+  band groups, which artboard 02 draws as the whole page. The one primary action is opening a
+  regulation row. The obligations rail card is the read-only companion to that goal, and its
+  "Calendar" head link is the single path onward to the register. Removing the strip removes a second
+  rendering of the rail card's own content, so no goal loses its path.
+- `/regulations/register` (new, no artboard): the goal is "what is due next, across everything".
+  The path is that Calendar link. The one primary action is the register's own "Load more", whose
+  async feedback is the button's pending label plus the honest "N of M" total, which is recomputed
+  from the database rather than from the loaded array. Facet changes re-read through the same route
+  and show the same pending state; a read that errors returns an empty page rather than a broken one.
+- `/operations`: the goal is to compare regions against dimensions. The path is the matrix, which is
+  FROZEN this round and untouched. The one primary action is opening a dimension cell. The calculator
+  link at the foot of the content column is a secondary path, given the band cards' own foot-link
+  geometry rather than an invented one, and it is the only route to the moved page.
+- `/operations/calculator` (new, no artboard): the goal is "what does this investment return". The
+  one primary action is editing any input. There is no asynchronous action to give feedback for: every
+  field recomputes locally and synchronously through `automate-vs-hire.mjs`, which is why the page
+  reads nothing for it. The one async region is the "Recent recalculations" rail, which keeps
+  `NoticesRail`'s existing loading and empty states unchanged.
+- `/operations/[slug]`: the three moved panels are S-sections rendered through the SAME
+  `DetailSection` every other section on that surface uses, so they inherit its heading, its aside
+  slot and its sticky-index entry rather than introducing a fourth section shape. Their data paths
+  are unchanged; each stays an async server component resolved before paint, so no new spinner or
+  skeleton state exists to specify.
+
+No interactive target moved below the 44px floor and none was introduced: the calculator link takes a
+24px minimum box inside a 44px row, and every other control on these pages is a part that already
+passed F35. The finishing pass itself changes no layout value at any viewport. It threads one string
+prop and deletes an unreachable helper, which is why the 72-spec audit is byte-stable across it at
+both 1440 and 390.
+
+**Gates.** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 fixture checks,
+97 SM smoke, 216 UX smoke); `audit:design` 72 specs / 2065 checks, 2065 MATCH and 0 MISMATCH at both
+1440 and 390; the CI npmtest glob 1039 pass / 0 fail (it was RED before fix 1 above);
+`run-test-suite.sh` 5973 tests / 0 fail; `next build --webpack` clean with both new routes present.
+## 2026-09-08, lane communitynav2 (branch `lane/communitynav2-2026-09-08`, off `train/wave61-2026-09-08`)
+
+Four operator rulings of 2026-09-08, two of them reversals of rulings landed earlier the same day.
+Every page touched was opened as its artboard PNG first (`screens/12-community.png`,
+`screens/01-dashboard.png`, `screens/16-auth.png`, `screens/17-onboarding.png`) and its dc.html
+section read before any prose.
+
+**Accomplished**
+
+1. **Artboard 12, /community.** The "<ROOM> REGION" card and its "Live in this region" rows are
+   removed: the thread table supersedes them, and the content column now ends at the NEW POST card
+   as the artboard draws it. The empty state moved out of the room card's body into that card's
+   FOOT, beside "Start a discussion", so there is one foot strip and never a second card. The
+   removed card's live join/leave action was NOT dropped with it (it is the only path to
+   `POST /api/community/groups/[id]/join` and gates the composer): it moved to the foot of the NEW
+   POST card, beside the "Join the room to post." sentence it answers. The four items already
+   closed by lane community60 (no REGIONAL ROOMS heading, tiles carry the room NAME, the artboard's
+   JURIS./DISCUSSION/REPLIES/LAST ACTIVITY table, the composer as its own card, the artboard rail
+   order) were verified still true against the image rather than re-done. Ruling R8 holds: the
+   thread page is not built.
+2. **Nav footer, two rows.** Reversing the 2026-09-07 one-row ruling: "Account" with the workspace
+   name right-aligned, and a role-gated "Admin" row with the OWNER badge, at dc.html p1's own
+   measures (44px rows, the nav card's 10px horizontal padding, 8px gaps, badge 9.5px/700/.08em in
+   a 1px rgba(0,0,0,.2) border at radius 4). The badge word is the caller's real role, never a
+   hardcoded OWNER. NOT reversed: "signout lives in account". The Account row still opens the menu
+   holding Workspace profile, Settings and Sign out, and the Admin row navigates to /admin carrying
+   its attention count, so the menu's own "Admin panel" item was removed as a duplicate destination.
+   One implementation drives the desktop card and the mobile drawer, so both moved together.
+3. **The disclaimer.** The page-wide "For informational purposes only" bar is gone from the in-app
+   pages entirely. It had exactly one mount (`AppShell.tsx`) and no page carried a copy, so it moved
+   once. No 10px line was added under the nav Admin row: the operator withdrew that suggestion.
+   Artboards 16 and 17 draw the line at the foot of the left panel and it stays there, in
+   `AuthFrame.tsx`, and only there. The approved wording is unchanged.
+4. **The auditor sentence.** "Counts are live for the current selection. Filters never hide behind a
+   button; the band tiles above are the fourth facet." is gone from every list rail, /regulations
+   included, reversing lane lists60's deliberate restore from artboard 02 earlier the same day. It
+   was one string on the shared `FiltersRailCard`, so one edit covers all five surfaces; the now
+   dormant `footnote` prop is deleted with it. The five COUNTS-61 comments that justified the live
+   facet counts by citing that caption were corrected in place rather than left asserting a string
+   that no longer exists.
+
+**Decisions**
+
+- The join/leave control's relocation is a coordinator default on top of the operator's ruling, not
+  a ruling: the operator removed a CARD, and dropping a live action that has no other entry point
+  would be a feature loss disguised as a composition change. Logged in DEVIATION-LOG with its
+  reasoning so it can be overruled cheaply.
+- Both reversals carry BOTH dates everywhere they are recorded (DEVIATION-LOG rows, the audit specs'
+  own notes, the source comments, the test headers), so a later session reads the reversal, not a
+  contradiction.
+- Specs made stale by these changes were updated to the new correct structure with the reason, never
+  weakened: `compose-12` lost its R7 region-card row and gained two forbids; `compose-02`'s verbatim
+  footnote assertion became a forbid on the same sentence; `sidebar.json` and `mobile-18-drawer.json`
+  went from one-row to two-row assertions, both keeping the forbid on a THIRD row.
+
+**Gates** (all from the worktree root, all green)
+
+`tsc --noEmit` clean · fitness runner 35 functions / 0 violations · rendering guard PASS (14
+fixtures, 12 viewports, 481 checks + 97 SM + 216 UX) · `npm run audit:design` 70 specs / 2029 checks
+/ 2029 MATCH, 0 otherwise, at 1440 and 390 · the CI npmtest glob plus the named list, 1045 tests /
+0 fail · `run-test-suite.sh` 5975 tests / 0 fail · `next build --webpack` clean.
+
+**Next steps**
+
+- The coordinator lands this branch; the container cannot push.
+- No blockers. Nothing in this lane depends on a live Supabase project.
+## Addendum, lane MARKET63 (2026-09-08): /market matched to artboard 04, and the seven shared parts verified on the base
+
+**Instruction.** "MARKET PAGE, MATCH THE ARTBOARD, NOT THE PROSE... Every value you need (px, hex,
+radius, grid columns) is inline in that markup. Copy values from it." So this lane opened
+`docs/design/handoff-2026-09-06/screens/04-market-list.png` and `id="p4"` inside
+`Caros Ledge UI System.dc.html` before reading any written ruling, and then rendered that p4 section
+itself in chromium so the artboard side of the region table is a MEASUREMENT and not a reading. Two
+of the brief's own numbers lost to the artboard and are recorded as such in DEVIATION-LOG.md: the
+headline card is 140.797px, not "~105px", and its value is Anton 17px, not "18px".
+
+**What this lane owns, and fixed.**
+
+1. HEADLINE SERIES (`MarketComparativeRibbon.tsx`, /market only). Was ten tall cards in a wrapping
+   `repeat(auto-fit, minmax(220px,1fr))` grid, each with a sparkline and three stacked delta rows,
+   card height 119px, title 26px. Is now p4's single row of compact cards: track
+   `calc((100% - 40px) / 5)` with `grid-auto-flow: column` and `overflow-x: auto` so the remainder
+   scrolls sideways rather than wrapping; card 10px 12px / radius 10; label 9.5px/700/0.1em on one
+   ellipsised line; the Anton 17px value and its 11px/700 ink delta on ONE baseline row in p4's
+   `▼1.7% 1w` form; "as of <date>" 10px muted. Card height 86.844px, which is p4's. No sparkline, no
+   1m row, no YoY row, no "N more headline series below". Head caption is p4's "10 of 16 · dated,
+   sourced observations · Series board →" at 10.5px/600.
+2. The rail FILTERS caption is removed from /market and DELIBERATELY KEPT on /regulations. It was a
+   string literal in the shared `ListSurfaceShell`; it is a prop now with the artboard-02 sentence
+   as its default, and /market passes `null`.
+3. CARBON COST PER FEU rows put the corridor name on ONE line without truncating it, by rendering
+   artboard 04's own compact label form and sizing the pending token's track to 64px. Every value in
+   that sentence was measured; see DEVIATION-LOG.md for the three candidates and why 64px won.
+
+**What this lane verified but did NOT edit,** because sibling lanes cardrule / listrow /
+communitynav are editing exactly these parts on this same base. Measured on the base, at 1440:
+
+- CARD TOP RULE, CLOSED. The 3px `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`
+  is present on Headline series, Filters, Carbon cost, Next data drops, Legend AND Sources tracked.
+  The list band cards carry p4's own band-coloured `border-top: 3px solid <band>` instead, which is
+  what p4 draws there.
+- "PENDING" IN THE DATE COLUMN, PRESENT. `ListRow.tsx` renders `<Absence reason="pending" />` in
+  the due cell of a row with no due date. Measured on a purpose-built fixture row: the cell's text
+  is literally "PENDING". p4's equivalent row draws "".
+- FLAT LINE IN THE TIMELINE, PRESENT. `MilestoneTimeline.tsx` renders a 76x1px rgba(0,0,0,.12) bar
+  when there are no entries. p4 draws "" and no track.
+- THE METER, structurally CLOSED, visually PRESENT. `ImpactMeter` always emits FOUR
+  `.cl-impact-bar` spans, sorted ascending, coloured by value, on a 1px rgba(0,0,0,.25) baseline,
+  with the sum beside them: measured 6/12/12/18px green/orange/orange/red and "8/12", which is
+  p4's first row exactly. The operator's "one bar and 2/12" is reachable and was reproduced: a row
+  scored on one dimension emits four bars at 0/0/0/12px, so three of them are invisible and the eye
+  sees one. That is the residual, and it belongs to lane listrow.
+- THE OVERFLOW CONTROL, half PRESENT. The 44px cell and its 1px rgba(0,0,0,.08) left divider are
+  p4's exactly. The control inside it is a 44x44 button with a 1px border and `border-radius: 999px`
+  where p4 draws a bare 28x28 glyph at radius 6 with no border. The 44px is law-2's hit target and
+  must survive; the border and the circle are the defect.
+- THE KIND CHIP, the stated defect is REFUTED, the residual is type. Measured `border-style: none`
+  on #F5F2EE, so the chip has NO border today. What still differs from p4 is size and weight:
+  10.5px/600 at radius 4 with 3px 8px padding in ink-2, against p4's 9.5px/700 at radius 3 with
+  1px 6px padding in #1A1A1A. The meta words after it are already plain 11px #7A6E6C, as p4 draws
+  them.
+- THE BAND-BLOCK HEADER, the row height is CLOSED, the phrasing is PRESENT. Row `min-height` is
+  56px, p4's value. The head renders `band.window` ("≤ 6 months") where p4 writes "material impact
+  within 6 months", and its dot is 6px against p4's 8px. The trap here is that `window` is the SAME
+  field the band TILES render, and the operator has ruled the tiles' short window correct, so the
+  fix needs a second field on the band and not an edit to `window`.
+- THE NAV FOOTER, PRESENT, and it contradicts a recorded ruling. `Sidebar.tsx` renders ONE row,
+  the email local-part beside the workspace name, under a comment citing an operator ruling of
+  2026-09-07 that explicitly superseded R2's two-row footer. The instruction for this train asks for
+  R2's two rows back. Both are the operator's; the later one wins, but the coordinator should know
+  the code is not merely stale, it is following a written later ruling.
+- THE PAGE DISCLAIMER, PRESENT. `AppShell.tsx` renders it as a page-wide footer bar on every
+  in-app route.
+
+**Two artboard facts, both checked independently and both CONFIRMED.** (a) p4 contains no "Counts
+are live for the current selection" text at all, and artboard 02 contains it verbatim, so the
+removal is /market-only and removing it from /regulations would regress against 02. (b) No artboard
+from 01 to 15 draws the disclaimer; artboards 16 and 17 both draw "For informational purposes only.
+Not legal advice. Privacy" at the foot of their left panel, so it leaves the in-app frame and stays
+on auth and onboarding.
+
+**Fixture.** compose-04's fixture scored no row and dated every row, so every assertion about the
+impact meter or a dateless row passed vacuously (rule 15), and it carried five observed series where
+p4's head says sixteen. It now carries all four row states and sixteen series.
+
+**Gates.** `npx tsc --noEmit` clean; fitness 35 functions / 0 violations; rendering guard PASS;
+`npm run audit:design` 70 specs / 2057 checks / 2057 MATCH at 1440 and 390; the CI npmtest glob
+1041 pass / 0 fail; `run-test-suite.sh` 5979 tests / 0 fail / 5 skipped; `next build --webpack` OK.
+The thirteen new compose-04 rows and four new forbids were proven by attack: reverting the track
+flow, the title size, the card padding and the carbon grid turned six of them MISMATCH, and
+restoring them returned 68/68.
+## 2026-09-08 LANE SERIESFAMILY: the headline-series selection on /market
+
+**Ruling implemented.** The /market headline row is no longer the first ten populated series. It is
+one card per distinct price signal: families, ordered fuels then carbon then FX then other indices,
+freight-relevant first inside a class, five visible, and no series that has no delta yet.
+
+**The live evidence, read before anything was designed** (Supabase MCP, project kwrsbpiseruzbfwjpvsp,
+read-only, 2026-09-08). `market_series` holds exactly 16 distinct `series_key` values:
+
+| Prefix | Series | Observations each | Latest | Delta today |
+|---|---|---|---|---|
+| eu-oil-bulletin | automotive-diesel, eurosuper-95, heating-gas-oil, heavy-fuel-oil-3-5pct, lpg-motor-fuel, residual-fuel-oil-1pct | 2 (2026-08-24, 2026-08-31) | 2026-08-31 | 1w only |
+| eia-v2 | brent-crude-rbrte, diesel-no2-low-sulfur-eer-epd2f-pf4-y35ny-dpg, gasoline-rbob-regular-eer-epmrr-pf4-y05la-dpg, jet-fuel-kerosene-eer-epjk-pf4-rgc-dpg, propane-mont-belvieu-eer-epllpa-pf4-y44mb-dpg, wti-crude-rwtc | 454 to 455, from 2017-12 | 2026-08-28 | 1w, 1m, YoY |
+| ecb-fx | eur-usd, eur-gbp, eur-cny, eur-jpy | 1 (2026-09-03) | 2026-09-03 | none |
+
+The EIA rows (2,727 in total) and the ECB rows both landed on 2026-09-04. The page fetcher reads the
+most recent 1,000 rows by reference period, and all 16 series are inside that window, so the board
+sees every series and the EIA ones keep roughly 164 points each.
+
+**The outcome differs from the operator's own stated row, and was not forced to match.** He expects
+Diesel, Euro-super 95, HFO, Residual fuel oil, EUR/USD. His rules over the live table give Diesel,
+Euro-Super 95, Heavy fuel oil 3.5%S, Residual fuel oil 1%S, Jet fuel. His first four are exactly
+right. The fifth differs for two independent reasons, both of them data:
+
+1. **Rule 4 excludes EUR/USD.** All four ECB rates hold one observation and no delta, so the FX family
+   has no eligible member and contributes no card at all. Artboard 04 draws that same card with a dash
+   for its delta and a BACKFILL chip, which IS the state rule 4 says is not a headline. The rule and
+   the image disagree about EUR/USD, and the rule is the later instruction.
+2. **Rule 2 plus rule 3 fill the row with fuels.** There are twelve fuel series today, not four, so
+   the five slots are taken before FX is reached. The fifth is jet fuel rather than a second diesel,
+   because the diesel and gasoline families fold their EIA quote onto the EU card.
+
+**A decision he may want to reverse**, stated plainly so it is his and not the lane's: if the row
+should show EUR/USD today, then either rule 4 has an exception for a class that would otherwise be
+absent from the row, or the FX card shows a level with an explicit "no delta yet" instead of being
+excluded. Both are one-line changes to `hasComputedDelta`'s caller. The lane did not choose either.
+
+**Where family lives.** `src/lib/market/series-family.mjs`, beside the series definitions, one home,
+applied once in `src/lib/market/headline-series-select.mjs` and nowhere else. Membership is data: a
+declared family claims members by exact `series_key`, and anything unclaimed becomes its own family
+with its ordering class read from its producer's registry entry (`familyClass`, new on each entry in
+`series-registry.mjs`). So a new series is a headline candidate in its correct class the day it lands,
+with nobody editing a switch. A column on `market_series` was considered and rejected: nothing
+populates it, and the rule would still need one written home to populate it from, which is two homes
+for one decision. Carbon is declared ahead of its data, so the day EEX EUA writes its first row the
+carbon slot opens with no code change, and an absent class closes up rather than leaving a hole.
+
+**The fold is computed, never a literal.** "+3 rates" is the FX family's own eligible-member count
+minus the one on show. A fifth tracked rate reads "+4 rates" with no edit, which is asserted.
+
+**Tests** (`src/__tests__/market-headline-series-select.test.mjs`, 12, all against a live-shaped
+16-series fixture): family grouping over the 16, ordering with and without a carbon family, the cap,
+the header count as families shown rather than cards or series, the delta exclusion including the
+two-observation unit-change case, and the fold count following family membership.
+
+**UX compliance.** No change to the card's anatomy, which lane market63 owns. The one new field is
+`fold: { count, noun }`, drawn as a small muted "+3 rates" after the card label; it has nowhere else
+to live. The audit mount fixture moved from stand-in series keys to the real ones so it measures the
+real family rule, and it now renders artboard 04's row exactly. Design audit 70 specs / 2018 MATCH at
+1440 and 390.
+
+**Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks); design
+audit 2018/2018 MATCH; run-test-suite 5,987 tests / 0 fail; `next build --webpack` clean.
+## LANE SHAREDREPORT (2026-09-08): shared-part presence/absence report, per route
+
+**Asked for by name.** "the presence/absence report per route with file:line is the right gate. Send
+it." A report, not a rewrite: no file under `fsi-app/src/**` was changed by this lane.
+
+**Deliverable:** `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md`. One table, 17
+route rows by 5 item columns, each cell PRESENT / ABSENT / NO MOUNT, plus a second table giving the
+deciding `file:line` per item and whether the part is correct there.
+
+**Method.** Every route was RENDERED at 1440 through the existing audit mounts
+(`.discipline/rendering/audit/mounts.mjs`) on the rendering guard's own esbuild + Playwright
+harness, and measured from `getComputedStyle` and RENDERED text (each text node's own computed
+`text-transform` applied, `display:none` subtrees skipped), never from source text. All 17 routes
+have a mount; nothing was reported as unmeasurable for items 2, 3, 5 or 6. Artboards 00, 03, 04, 11
+and 17 were opened as images before their prose was read, and two disagreements between the item
+prose and the image are recorded in DEVIATION-LOG with the image followed.
+
+**Results.** Item 2 PRESENT on 8 routes, item 3 on 3, item 5 on 5, item 6 on 0, item 10 on all 10
+routes that mount the nav.
+
+**The finding this report exists to surface: the parts were patched per page, twice.**
+
+1. Item 5 exists as TWO components. `ui/RowTable.tsx:280-319` is the design exactly, and the three
+   surfaces that use it (`/community`, `/admin`, `/profile`) render it right. The five list
+   surfaces mount `regulations/PriorityDropdown.tsx:222-236` instead, still a bordered pill at
+   `borderRadius: 999` in the wrong ink with no left divider, on every row of every list.
+2. Item 2 is correct where it is defined but hand-mounted at 31 call sites in 16 files, so it was
+   rolled out card by card: 12 of 16 cards ruled on `/regulations/[id]`, and exactly one card
+   missed on each of `/community`, `/admin`, `/profile`, `/settings`. The misses share a mechanical
+   tell, the older `--border-sub` / `--r-md` token pair, which also gives them the wrong border
+   colour.
+
+**Also exposed, not fixed here (rule 13, delivered decision-ready):** `ListRow.tsx:532` and `:542`
+pass the WIDE `Absence` variant into 88px and 84px cells while the narrow variant is applied only
+to the tier cell at `:556`; `TagChip` (`ui/Chips.tsx:101`) is the design's 10.5px neutral chip used
+where the row meta line calls for the 9.5px one; `/watchlist` renders each watched row as its own
+card where artboard 11 draws plain rows.
+
+**Caveat stated in the report, not buried:** `/regulations` and `/watchlist` show 0 unscored rows in
+their compose fixtures, so their item-3 ABSENT is the fixture's and not the part's. Item 10 is
+NO MOUNT on the five list routes because their compose mounts carry no `AppShell`, and is in flight
+on lane `communitynav2`.
+
+**Gates:** tsc clean; fitness 0 violations; rendering guard PASS; audit:design every spec MATCH at
+1440 and 390; npmtest glob 0 fail; run-test-suite 0 fail; `next build --webpack` clean.
+
+## 2026-09-08: FOLD 63, train/wave63-2026-09-08
+
+**Lane:** FOLD, train 63. **Base:** `train/wave62-2026-09-08` (`605413d9`). **Branch:**
+`train/wave63-2026-09-08`. Worktree `/root/work/lanes/fold63`. The container cannot push; the
+coordinator lands.
+
+**Accomplished.** Five lanes cherry-picked with `-x`, in the order the collision required:
+`regopscope` (5 commits, D2/D3 page moves, register sort, the moved calculator's hydration fix),
+`communitynav2` (artboard 12 amendment, the two-row nav footer G1, the disclaimer removal H1, the
+auditor sentence), `market63` (artboard 04 headline row, rail explainer, carbon corridor label),
+`seriesfamily` (the operator's HEADLINE SERIES FAMILY ruling), `sharedreport` (docs). Every lane
+branched from `9f549170`, so each range was cherry-picked as `9f549170..<branch>`.
+
+**The one known collision, resolved as ruled.** market63 and seriesfamily both rewrote the /market
+HEADLINE SERIES row. SELECTION and the header count are seriesfamily's (`selectHeadlineSeries` over
+declared families, N distinct families of M observed series); GEOMETRY and TYPE are market63's
+(`grid-auto-flow: column`, `calc((100% - 40px) / 5)`, no sparkline, no 1m or YoY row, Anton 17px
+value with the delta inline). The OVERFLOW takes market63's mechanism because overflow is geometry:
+families past the ruling's cap of five continue the same row into the horizontal scroller.
+seriesfamily's disclosure and market63's `MAX_METRICS = 10` are both gone; the cap is
+`HEADLINE_VISIBLE_CAP`, the ruling's own five. The compose-04 FIXTURE is seriesfamily's four REAL
+ECB keys, because family membership is by exact `series_key` and market63's twelve invented keys
+would each resolve to a family of their own, destroying the "+3 rates" fold the ruling states
+verbatim. Full hunk-by-hunk account in DEVIATION-LOG.md's FOLD 63 section.
+
+**Cross-lane overlaps that were measured rather than assumed.** communitynav2's sitewide removal of
+the auditor sentence supersedes market63's per-surface `filtersFootnote` prop, so the prop, its
+default and its one `null` caller are deleted rather than left dormant, and regopscope's new
+register page loses the same sentence. regopscope's new pages arrived with hand-built card shells
+because that lane branched before `SectionCard` existed; converted, never exempted.
+`OperationsLedger` now renders no card at all (item D3 removed its only one), so it leaves the card
+coverage test's FILES list and gains an assertion that it renders none.
+
+**Four BASE defects at `605413d9`, inherited and fixed here.** Each confirmed by checking the base
+out clean and running the gate on it: a duplicate `complianceDeadline` key from lanes duenext and
+briefdata both adding it in wave 62 (the base does not typecheck and does not build); two F42 card
+shells (`SourceHealthDashboard`, `SourceTierLegend`); and `compose-01-dashboard`'s Due-next row
+count, which expected 2 against a fixture that renders 3 because it counted only the
+`complianceDeadline` candidate and missed `dueInfo`'s timeline candidate. Ten inherited npmtest
+failures, all anchors pinned to shells wave 62 replaced, are re-pointed at the shells the tree has.
+
+**Two layout-guard defects found by this fold.** `collect.mjs` read a card's rule background off an
+unpainted wrapper, so every padded `SectionCard` reported a transparent rule (68 of 130 L6
+findings); and L6 held ruling 5.2's band-grouping card, the one card the ruling says draws no
+dark-grey rule, to the four-part chrome (another 28). Both now measure what the rule says.
+
+**UX compliance.** DP-1 / DP-2 and `docs/design/ux-laws.md` were read before the `.tsx` edits in
+this fold. Law 2 hit targets: the one interactive element this fold ADDS to a surface, the
+`/operations` calculator link, was measured at 217x26 by the layout guard and raised to a 28px
+minimum box to meet L9's site-wide floor, with its audit-spec row updated to match. Law 1 (one
+primary action per region) and the row laws are untouched: the fold moved regions between pages and
+resolved two rewrites of one row, and added no new control other than that link. RD-60: the
+headline row keeps market63's mobile reflow (the five-across track becomes a fixed 150px card that
+scrolls sideways below 768), which is the DP-1 reflow rule applied to it, not a second design.
+
+**Gates, all from the fold worktree, with the clean-base number beside each.**
+
+| Gate | Base `605413d9` (clean) | Fold `train/wave63-2026-09-08` |
+|---|---|---|
+| `npx tsc --noEmit` | FAIL, TS1117 | 0 errors |
+| `.discipline/fitness/runner.mjs` | 2 violations (F42) | 36 functions, 0 violations |
+| `.discipline/rendering/run-rendering-guard.mjs` | FAIL, 221 failures | FAIL, 218 failures, a strict SUBSET of the base's, 0 findings unique to the fold |
+| `npm run audit:design` | 2343 checks, 1 MISMATCH | 73 specs, 2407 checks, 2407 MATCH |
+| `npm run audit:overflow` | not re-run | 0px horizontal page overflow on every mount |
+| `npm run audit:layout` | 990 findings | 863 findings |
+| CI npmtest glob | 15 failing | 1109 tests, 1109 pass, 0 fail |
+| `.discipline/run-test-suite.sh` | not re-run | 6011 tests, 6006 pass, 0 fail, 5 skipped |
+| `npx next build --webpack` | FAIL at the TypeScript step | clean, one pre-existing `unpdf` node_modules warning identical on the base |
+
+**Blockers / next steps.** The rendering guard still FAILS, on 218 inherited findings the layout
+guard's wave-61 baseline does not cover; the guard is a non-blocking CI lane by operator policy
+(2026-07-11) until it has three consecutive green runs. Of the 218: 120 are L9 hit targets and EVERY ONE of
+them is the same element, `input.cl-facet-check` at 266x24, the rail facet row lane `railfacets`
+set to 24px from artboard C1. So operator L9 (a 28px site-wide short-axis floor) and operator item
+C1 (24px facet rows, the artboard's own value) contradict each other on one element, on six routes
+at two widths. That needs a ruling and no lane should pick a side on its own; it is also why the
+number is large without being 120 separate problems. The remaining 98: 83 L2 overlaps on
+`/settings` and `/profile`, 12 L10 manifest entries, 2 L1 and 1 L3, all owned by the surfaces they
+sit on rather than by any part this fold touched. The `Tile` primitive named in DEVIATION-LOG is the other
+piece of follow-up work, delivered decision-ready.
+
+## FOLD 63B (2026-09-08): wave 63 replayed onto the squashed master
+
+**Why this lane exists.** `train/wave63-2026-09-08` branched from `train/wave62-2026-09-08` at
+`605413d9` while wave 62 was still moving. Three commits landed on wave 62 after that point:
+`1940af3a` (the fold-62 reconciliation, which had been uncommitted in its worktree, which is also
+why fold 63 correctly reported its base as not green), `f6e46451` (the dashboard cache-key rotation
+rule 021 requires) and `01bc0120` (the fold-62 addendum, the regenerated design audit and the
+updated layout-guard baseline). Wave 62 then landed on master as ONE squash, `094957a3`. Wave 63 was
+therefore standing on a base that is not in master's ancestry and was missing those three commits'
+content, and its own report measured the consequence: the rendering guard FAILED on its tree with
+218 failures, where master's tree passes. This lane puts the wave-63 work on top of master instead.
+
+**Branch.** `train/wave63b-2026-09-08`, from `origin/master` (`094957a3`).
+
+**The replay.** Thirteen commits sat on wave 63 above `605413d9`. Eleven were cherry-picked with
+`-x`, in order: `5c869b9e`, `b7fa18be`, `f5935b30`, `f916628f`, `ca9953d2` (lane regopscope, items
+D2/D3); `ea8fe014` (lane communitynav2, artboard 12); `84b91cb5` (lane market63, artboard 04);
+`4014c86f` (lane seriesfamily, the headline family selection); `c61b59ad` (lane sharedreport, docs);
+`4f9917b5` and `acc4b2f1` (the fold-63 lane's own gate closures and corrected table). Two were
+SKIPPED as empty against master: `06740647`, the duplicate `complianceDeadline` key, which master
+already fixes in `1940af3a` and whose only remaining difference was comment prose; and `3758e136`,
+which is nothing but regenerated audit artefacts and would have been overwritten by this tree's own
+regeneration anyway.
+
+**The hazard, and how it was handled.** Commit `4f9917b5` is the fold-63 lane closing gate findings
+against a base missing master's three commits, so several of its closures are fixes for defects
+master had already fixed in its own way. Where a hunk conflicted with master's version of the same
+fix, master won. Every dropped hunk is named with its reason in the FOLD 63B section of
+`docs/design/handoff-2026-09-06/DEVIATION-LOG.md`: the `SourceHealthDashboard` registry-card
+conversion, the `SourceTierLegend` F42 marker, the layout-guard `collect.mjs` painted-rule descent,
+seven `*.npmtest.mjs` re-pointings, and the `compose-01-dashboard.json` row-2b note (expected count
+3 on both sides). The dashboard cache key was NOT reintroduced from any old literal: it reads
+`app-data-e1ae7713`, byte-identical to master's rotated value, and discipline rule 021 passes.
+`baseline.json` is master's, untouched. Every generated artefact was regenerated at the final tree
+rather than merged by hand (rule 2), which is what makes the numbers below measurements rather than
+reconciliations.
+
+**The one place the fold's version won** is `CommunityRooms.composition.npmtest.mjs`, because it
+encodes a design decision rather than a duplicated fix: the /community region card is gone and
+join/leave moved to the composer foot, so master's surviving R7 region-card assertions are what the
+operator's 2026-09-08 ruling retires. The fold's tests were kept and re-anchored on master's
+`SectionCard dataAudit=` prop spelling; 12 pass, 0 fail. No other fold-63 design decision was
+reopened.
+
+**Gates, all from this worktree.** `npx tsc --noEmit` exit 0 (exit code read, not output tail).
+Fitness runner 36 functions, 0 violations, exit 0. Rendering guard PASS, exit 0, and this is the
+gate that had to change: fold 63's tree FAILED with 218 failures. `audit:design` 73 specs, 2407
+checks, 2407 MATCH, 0 MISMATCH, exit 0. `audit:overflow` 0px horizontal page overflow on every
+mount, exit 0. `audit:layout` 728 findings against master's 792, at or below master on every rule
+(L1 11=11, L2 165=165, L4 1=1, L6 34 from 62, L7 190 from 222, L9 234 from 238, L10 93=93), exit 0.
+Discipline runner `--mode=ci --range=origin/master..HEAD` 0 FAIL with rule 021 passing, exit 0. The
+CI npmtest glob 1108 tests, 1108 pass, 0 fail, exit 0. `run-test-suite.sh` 6011 tests, 6006 pass, 0
+fail, exit 0. `npx next build` (Turbopack) exit 0 and `npx next build --webpack` exit 0, both with
+`/regulations/register` and `/operations/calculator` in the route table.
+
+**UX compliance.** No new `.tsx` or `.css` was authored in this lane; it is a replay of commits that
+carry their own UX compliance blocks (see the lane regopscope and communitynav2 entries above), plus
+regenerated evidence. The two guards that measure the shared parts, the rendering guard and the
+site-wide layout guard, both ran at 1440 and 390 on this tree and are recorded above.

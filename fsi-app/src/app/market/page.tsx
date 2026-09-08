@@ -128,6 +128,11 @@ function buildCarbonCostOverlays(
       const { origin, dest, mode } = c.parsed!;
       return {
         label: c.label,
+        // Lane market63 (2026-09-08): the parsed corridor, carried alongside the label so the rail's
+        // CARBON COST PER FEU card can render artboard 04's own compact one-line form from the SAME
+        // origin/dest/mode this entry already feeds carbonCostPerFeu(). No second read, no second
+        // parse, and the full label above is unchanged for the overlay section below.
+        corridor: { origin, dest, mode },
         entityId: c.entityId,
         jurisdictions: c.jurisdictions.map((j) => ({ code: j.code, name: j.name })),
         result: carbonCostPerFeu({

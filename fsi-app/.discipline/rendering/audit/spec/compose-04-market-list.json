@@ -9,9 +9,14 @@
   "notes": [
     "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real \u03941w/\u03941m percentages) \u2014 the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
     "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
-    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') \u2014 the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
-    "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED \u2014 an app feature no artboard draws \u2014 to after Legend, the last designed card of the column, per ruling R7.",
-    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
+    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
+    "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED, an app feature no artboard draws, to after Legend, the last designed card of the column, per ruling R7.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
+    "LANE MARKET63 (2026-09-08), HEADLINE SERIES was rebuilt off `id=\"p4\"` itself, opened in chromium and measured region by region, after the operator's instruction 'match the artboard, not the prose'. Two places where the brief's WORDS and the artboard's MARKUP disagree, both resolved to the artboard and recorded here so the divergence stays visible: the brief estimates each headline card at '~105px wide' where p4's own `repeat(5,1fr)` inside a 744px content box measures 140.797px; and the brief writes the value type as 'Anton 18px' where p4 measures 17px. The artboard wins in both, and both are what this spec now asserts.",
+    "THE ONE PLACE THIS PAGE DOES NOT FOLLOW p4. p4's HEADLINE SERIES head carries `border-bottom:1px solid rgba(0,0,0,.08)` under the title. Operator ruling 5.1 (2026-09-07, CLOSED) says in as many words that there is NO divider below a section title, and a standing ruling outranks the image it was written against. No divider is rendered. The artboard's value is recorded here, per this harness's own README convention.",
+    "TRACK ARITHMETIC. The headline row's track is authored as `calc((100% - 40px) / 5)`, five columns and four 10px gutters, p4's own grid, expressed as a formula so it holds at any content width. This MOUNT has no nav card (it is the page component, not the AppShell frame), so its content column is 998px and the formula resolves to 191.594px per card; in the real /market frame the same formula resolves to p4's measured 140.797px. Proved by attack this lane: forcing the card to the artboard's own 778px outer width re-resolved every track to 141.188px against a 746px content box, which is `(746-40)/5`. The px value asserted below is therefore the mount's, and the artboard relationship is this note.",
+    "THE FIXTURE NOW CONTAINS THE ROW STATES THE ARTBOARD DRAWS (mounts.mjs, this lane). It previously scored NO row and dated EVERY row, so every assertion about the impact meter or about a dateless row passed vacuously, CLAUDE.md rule 15's exact failure. It now carries fully scored rows (the artboard's four-bar meter), one row scored on a single dimension (index 7, the operator's 'one bar and 2/12' case), unscored rows (which mobile-04-market-list.json measures as the 30px dashed baseline and which must stay), and one row with no compliance deadline and no timeline (index 8, in AWARENESS so the next-date sort cannot push it past the per-band cap). It also carries SIXTEEN observed series, not five, so the headline card's 'N of 16' caption and its horizontal overflow are measurable instead of vacuous.",
+    "SHARED PARTS THIS LANE DOES NOT OWN are verified but NOT asserted here: the list row's date-column absence token, its timeline empty state, its overflow control chrome, its band-block header phrasing, the nav footer and the page disclaimer belong to sibling lanes editing the same base. Adding expectations for them here would make this spec red for work another lane is landing."
   ],
   "selector": "[data-audit=\"filters-rail\"]",
   "expect": {
@@ -178,6 +183,61 @@
       }
     },
     {
+      "name": "HEADLINE SERIES title is p4's Anton 20px / 0.04em (was 26px)",
+      "selector": "[data-audit=\"headline-series\"] h2",
+      "expect": {
+        "font-size": "20px",
+        "letter-spacing": "0.8px",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "HEADLINE SERIES head caption is p4's 10.5px / 600 / 0.12em, and states the cap over the corpus",
+      "selector": "[data-audit=\"headline-series\"] h2 + span",
+      "note": "p4's inline style sets font-weight twice (700 then 600); 600 is what a browser resolves and what p4 therefore draws. The build had 800. UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned: the caption reads \"5 of 8\" on the compose-04 mount, five distinct families (four fuels and the folded ECB FX family) over the fixture's eight observed series. The TYPE assertions in this row, which are p4's and are what market63 measured, are untouched. Not weakened: the caption is still anchored at the start of the string, so a card that reverts to counting SERIES rather than families, or that loses its denominator, still fails.",
+      "textMatch": "re:^5 of 8 \u00b7 dated, sourced observations",
+      "expect": {
+        "font-size": "10.5px",
+        "font-weight": "600",
+        "letter-spacing": "1.26px"
+      }
+    },
+    {
+      "name": "The headline cards are ONE ROW that scrolls sideways, never a wrapping grid",
+      "selector": "[data-audit=\"headline-track\"]",
+      "note": "`grid-auto-flow: column` is what makes the sixth card continue the row instead of starting a second one; `overflow-x: auto` is where the remainder lives. Reverting either to the previous `repeat(auto-fit, minmax(220px,1fr))` turns this row MISMATCH on three properties at once.",
+      "expect": {
+        "display": "grid",
+        "grid-auto-flow": "column",
+        "overflow-x": "auto",
+        "gap": "10px"
+      }
+    },
+    {
+      "name": "Every headline card sits on p4's five-across track (this mount's 998px content box; see the TRACK ARITHMETIC note)",
+      "selector": "[data-audit=\"headline-track\"]",
+      "note": "UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned:five resolved tracks, not ten, because the ruling's cap is five and this fixture holds exactly five families. The TRACK WIDTH is unchanged at 191.594px, which is the whole point: the same `calc((100% - 40px) / 5)` formula resolves to the same per-card width whatever the row is filled with, so this row still fails if the geometry reverts to `repeat(auto-fit, minmax(220px,1fr))`.",
+      "expect": {
+        "grid-template-columns": "191.594px 191.594px 191.594px 191.594px 191.594px"
+      }
+    },
+    {
+      "name": "The row is capped at the ruling's FIVE visible families, and every one of them is a card",
+      "selector": "[data-audit=\"headline-card\"]",
+      "note": "UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned:five cards. THE OVERFLOW IS NOT MEASURED HERE AND THAT IS DELIBERATE (rule 15: no vacuous assertion). market63 put twelve invented ECB FX series in the fixture so a ten-cap could overflow; those keys are claimed by no declared family (series-family.mjs names ecb-fx:eur-usd/-gbp/-cny/-jpy and no others), so under the ruling they would each become a singleton family and the row would lose the '+3 rates' fold the ruling states verbatim. The real four keys are kept, which gives exactly five families and a full visible track. The cap and the overflow ORDER are proven exhaustively, by attack, in src/__tests__/market-headline-series-select.test.mjs, which the npmtest glob runs; this row proves the DOM renders one card per selected family.",
+      "expect": {
+        "count": "5"
+      }
+    },
+    {
+      "name": "Headline card box: p4's 10px 12px padding and 10px radius (was 12px 14px 10px / 8px)",
+      "selector": "[data-audit=\"headline-card\"]",
+      "expect": {
+        "padding": "10px 12px",
+        "border-radius": "10px"
+      }
+    },
+    {
       "name": "A1 rule on the Carbon cost per FEU rail card: 3px, full card width, exact dark-grey gradation",
       "selector": "[data-audit=\"carbon-feu-rail\"] > .cl-section-rule",
       "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
@@ -248,6 +308,74 @@
         "height": "24px",
         "font-size": "12.5px"
       }
+    },
+    {
+      "name": "Headline card label is p4's 9.5px / 700 / 0.1em, ONE line, ellipsised",
+      "selector": "[data-audit=\"headline-card-label\"]",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "0.95px",
+        "white-space": "nowrap",
+        "text-overflow": "ellipsis"
+      }
+    },
+    {
+      "name": "Value and delta share ONE baseline row, p4's `flex / baseline / gap 2px 8px / margin-top 6px`",
+      "selector": "[data-audit=\"headline-card-value-row\"]",
+      "note": "This is the assertion that the delta is INLINE with the value rather than on rows of its own beneath it, which is how the build drew Δ1w / Δ1m / ΔYoY.",
+      "expect": {
+        "display": "flex",
+        "align-items": "baseline",
+        "gap": "2px 8px",
+        "margin-top": "6px"
+      }
+    },
+    {
+      "name": "The value is p4's Anton 17px / 1.05 (the brief's prose says 18px; the artboard measures 17px)",
+      "selector": "[data-audit=\"headline-card-value-row\"] > span",
+      "expect": {
+        "font-size": "17px",
+        "line-height": "17.85px"
+      }
+    },
+    {
+      "name": "The delta is p4's 11px / 700 ink, tabular, one line, in its ▼/▲ + magnitude + window form",
+      "selector": "[data-audit=\"headline-card-delta\"]",
+      "textMatch": "re:^[\\u25b2\\u25bc]\\d+\\.\\d% 1w$",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "700",
+        "color": "rgb(26, 26, 26)",
+        "white-space": "nowrap"
+      }
+    },
+    {
+      "name": "'as of <date>' is p4's 10px muted, 4px below the value row",
+      "selector": "[data-audit=\"headline-card-asof\"]",
+      "textMatch": "re:^as of \\d{4}-\\d{2}-\\d{2}$",
+      "expect": {
+        "font-size": "10px",
+        "color": "rgb(122, 110, 108)",
+        "margin-top": "4px"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU: the corridor name is ONE line and is not truncated",
+      "selector": "[data-audit=\"carbon-feu-corridor\"]",
+      "note": "Operator instruction: \"corridor name on one line ... not two\". 15px is a single 12.5px line; the row measured 45px (three lines) before this lane. Two changes together make it true and BOTH are proven by attack: the label is artboard 04's own compact form (formatCorridorLabelCompact, derived from the same parsed corridor the page already feeds carbonCostPerFeu), and the pending token's track is 64px so it wraps to the artboard's own two lines instead of taking its 125.4px max-content and squeezing the name. Reverting either one returns the row to two or three lines.",
+      "textMatch": "re:^[A-Za-z ]+ \\u2013 [A-Za-z ]+ · [a-z]+$",
+      "expect": {
+        "height": "15px",
+        "white-space": "nowrap"
+      }
+    },
+    {
+      "name": "CARBON COST PER FEU row grid gives the name the width and the token only what it needs",
+      "selector": "[data-audit=\"carbon-feu-rail\"] [style*=\"grid-template-columns\"]",
+      "expect": {
+        "grid-template-columns": "190px 64px"
+      }
     }
   ],
   "forbid": [
@@ -277,7 +405,30 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "no sparkline anywhere in the HEADLINE SERIES card",
+      "selector": "[data-audit=\"headline-series\"] svg",
+      "reason": "Artboard 04/id=\"p4\" draws no sparkline in this card, measured: zero <svg> elements in the whole card. The build drew one per series."
+    },
+    {
+      "name": "no 1m or YoY delta row in the HEADLINE SERIES card",
+      "selector": "[data-audit=\"headline-series\"]",
+      "textMatch": "re:\\u03941m|\\u0394YoY",
+      "reason": "p4's card carries ONE delta, inline with the value. The build stacked Δ1w, Δ1m and ΔYoY on rows of their own beneath it, which is what made the card 119px tall against p4's 86.84px."
+    },
+    {
+      "name": "no 'N more headline series below' disclosure",
+      "selector": "[data-audit=\"headline-series\"]",
+      "textMatch": "more headline series",
+      "reason": "p4 shows five and captions the head '10 of 16'; the remainder scrolls sideways in the same row and the rest is the Series board the head links to. A vertical 'more below' disclosure is not in the artboard."
+    },
+    {
+      "name": "no 'Counts are live for the current selection' caption under the rail FILTERS card on /market",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "textMatch": "Counts are live",
+      "reason": "Verified by rendering artboard 04 (id=\"p4\") itself in chromium and reading the FILTERS card's text: it draws NO caption. FOLD 63 (2026-09-08) rewrote this reason: lane market63 made the caption a per-surface `filtersFootnote` prop that /market passed `null`, and lane communitynav2, folded in the same train, removed the sentence and the prop SITEWIDE on the operator ruling of 2026-09-08 (\"gone everywhere ... Remove from /regulations too; the artboard is corrected\"). The forbid stands unchanged and is now true of every list surface, not of /market alone; the mechanism is that FiltersRailCard has no caption to render."
     },
     {
       "name": "CLASS CLOSURE (market list): a card element that renders no 3px rule",

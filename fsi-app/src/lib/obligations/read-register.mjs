@@ -6,7 +6,7 @@
 // UpcomingObligationsStrip's "what is due next" top strip); this module reads `obligations` (migration
 // 290's DENORMALIZED register — jurisdiction/mode/binding_position already attached, one row per
 // forward event) for the register SECTION spec-01 §2 calls for: filterable by jurisdiction / mode /
-// binding_position / due window, sorted by due date. Same underlying corpus, two different reads for
+// binding_position / due window, sorted by NEXT DUE (see nextDueSegment). Same underlying corpus, two different reads for
 // two different surface jobs — not a duplicate.
 //
 // RLS, NOT A SEPARATE GATE. Migration 290's own header: same posture as 274 — "the ONLY thing standing
@@ -77,6 +77,87 @@ const GENERIC_JURISDICTIONS = new Set(["global", "worldwide", "all"]);
 // never balloons regardless of how long a future extraction run's obligation_text gets — see this
 // lane's REPORT for the measured before/after bytes-per-page delta feeding perf-budget.mjs.
 export const OBLIGATION_TEXT_TRIM_LENGTH = 160;
+
+// The one column list every register read selects. Both fetchObligationRegister and
+// fetchObligationRegisterPage carried a byte-identical copy of this string; one definition means the
+// two reads can never diverge on the shape a joined row arrives in (CLAUDE.md rule 13).
+//
+// REG-GRAIN (2026-09-05): `item_forward_events(obligation_text)` follows the existing
+// forward_event_id FK (no extra round trip; PostgREST resolves an embed inside one request) so a
+// register row carries its own obligation's text, not just its item/kind/date.
+const REGISTER_SELECT =
+  "id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)";
+
+/**
+ * NEXT-DUE ORDER (UI fix round 2026-09-08, item D2; operator: the register is "sorted by next due,
+ * not by oldest"). The register used to order by `due_date` ascending outright, so its first page led
+ * with the OLDEST dated obligation in the corpus, a 1967 row, and a reader looking for what bites
+ * next had to page past every historical event first. "Next due" is three ordered segments:
+ *
+ *   0  still ahead  (due_date >= today)  soonest first
+ *   1  already past (due_date <  today)  most recently past first
+ *   2  undated      (due_date IS NULL)   last, by id
+ *
+ * Overdue rows are kept (an obligation that has already bitten is not less relevant than one that has
+ * not) but they sit behind the upcoming ones rather than in front of them.
+ *
+ * Pure. `todayIso` is the caller's own render date (buildRegisterQuerySpec supplies it), never a
+ * clock read inside the comparator. `id` is the tiebreak in every segment so two rows sharing a due
+ * date land in the same order on every call, which is what makes the paged read below stable.
+ */
+export function nextDueSegment(dueDate, todayIso) {
+  if (dueDate === null || dueDate === undefined) return 2;
+  return dueDate < todayIso ? 1 : 0;
+}
+
+function compareIds(a, b) {
+  const ia = String(a?.id ?? "");
+  const ib = String(b?.id ?? "");
+  return ia < ib ? -1 : ia > ib ? 1 : 0;
+}
+
+/** Pure: the comparator `nextDueSegment` implies, for an in-memory row array. */
+export function compareByNextDue(a, b, todayIso) {
+  const sa = nextDueSegment(a.due_date ?? null, todayIso);
+  const sb = nextDueSegment(b.due_date ?? null, todayIso);
+  if (sa !== sb) return sa - sb;
+  if (sa === 2 || a.due_date === b.due_date) return compareIds(a, b);
+  // segment 0 ascends (soonest first), segment 1 descends (most recently past first)
+  return sa === 0 ? (a.due_date < b.due_date ? -1 : 1) : (a.due_date > b.due_date ? -1 : 1);
+}
+
+/**
+ * Pure: which slice of each next-due segment a page [offset, offset+limit) needs.
+ *
+ * THE PAGING HALF OF THE SAME FIX. A three-segment order cannot be expressed as one PostgREST
+ * `.order()`, and applying the segment order in JS AFTER a page had already been fetched would sort
+ * only that page, which is the same class of defect as the 1000-row read cap train 61 closed. So the
+ * page is cut against the segments' own exact counts and each needed slice is fetched with its own
+ * `.range()`: the sequence a reader pages through is the true global one, at every offset.
+ *
+ * @param {number[]} sizes exact row count of each segment, in segment order
+ * @param {number} offset absolute offset into the concatenated sequence
+ * @param {number} limit page size
+ * @returns {{index:number, from:number, to:number}[]} per-segment inclusive ranges, in segment order
+ */
+export function planRegisterPageSegments(sizes, offset, limit) {
+  const out = [];
+  let skip = Math.max(0, Math.floor(offset) || 0);
+  let remaining = Math.max(0, Math.floor(limit) || 0);
+  for (let i = 0; i < sizes.length; i += 1) {
+    if (remaining <= 0) break;
+    const n = Math.max(0, Math.floor(sizes[i]) || 0);
+    if (skip >= n) {
+      skip -= n;
+      continue;
+    }
+    const take = Math.min(n - skip, remaining);
+    out.push({ index: i, from: skip, to: skip + take - 1 });
+    remaining -= take;
+    skip = 0;
+  }
+  return out;
+}
 
 /**
  * Pure: bound `text` to `max` characters, ellipsis-terminated when truncated. Never throws on a
@@ -200,12 +281,10 @@ function filterAndSortJoinedRows(joinedRows, spec) {
     if (!matchesDueWindow(row.due_date ?? null, spec.dueWindow, spec.todayIso)) continue;
     out.push(row);
   }
-  out.sort((a, b) => {
-    if (a.due_date === b.due_date) return 0;
-    if (a.due_date === null || a.due_date === undefined) return 1; // undated last
-    if (b.due_date === null || b.due_date === undefined) return -1;
-    return a.due_date < b.due_date ? -1 : 1;
-  });
+  // NEXT-DUE order (item D2, 2026-09-08) — see compareByNextDue's own docstring. One comparator for
+  // the in-memory path here and, expressed as segmented queries, for the paged DB path below, so the
+  // client-side re-filter in ObligationRegisterFilterBar can never disagree with the server's page.
+  out.sort((a, b) => compareByNextDue(a, b, spec.todayIso));
   return out;
 }
 
@@ -240,20 +319,16 @@ export function filterJoinedRowsPage(joinedRows, spec) {
  * @param {import("@supabase/supabase-js").SupabaseClient} supabase
  * @param {{ jurisdiction?: string|null, mode?: string|null, bindingPosition?: string|null,
  *           dueWindow?: string|null, limit?: number, itemId?: string|null }} [opts]
- * @returns {Promise<Array<object>>} register rows with `.item` attached, due-date-ascending (undated last)
+ * @returns {Promise<Array<object>>} register rows with `.item` attached, in next-due order (see compareByNextDue)
  */
 export async function fetchObligationRegister(supabase, opts = {}) {
   const spec = buildRegisterQuerySpec(opts);
 
   let q = supabase
     .from("obligations")
-    // REG-GRAIN (2026-09-05): the SAME query, one added embed — `item_forward_events(obligation_text)`
-    // follows the existing forward_event_id FK (no extra round trip; PostgREST resolves an embed inside
-    // one request) so a register row carries its own obligation's text, not just its item/kind/date.
-    // See this module's header ("the register renders one row per obligations row... a genuinely
-    // distinct obligation sharing the same date/kind/item is otherwise indistinguishable from its
-    // neighbour") and flattenObligationText below for the shape this produces.
-    .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)")
+    // REG-GRAIN (2026-09-05): see REGISTER_SELECT's own comment for why the embed is there, and
+    // flattenObligationText below for the shape it produces.
+    .select(REGISTER_SELECT)
     .eq("status", "active");
   q = spec.itemId ? q.eq("intelligence_item_id", spec.itemId) : q;
   // Overfetch before the app-side filter/window pass, same reasoning read-upcoming.mjs states for its
@@ -349,6 +424,18 @@ function applyRegisterFilters(qb, spec, jurisdictionCodes) {
 }
 
 /**
+ * The three next-due segments, in the order the register renders them (see nextDueSegment above),
+ * as PostgREST narrowings of the already-filtered query plus the direction `due_date` sorts inside
+ * each. `undated` sorts on `id` alone; `.order("due_date")` on a segment where every row is NULL is
+ * a no-op, so the same two `.order()` calls serve all three without a branch.
+ */
+const NEXT_DUE_SEGMENTS = Object.freeze([
+  { key: "upcoming", ascending: true, narrow: (q, spec) => q.gte("due_date", spec.todayIso) },
+  { key: "past", ascending: false, narrow: (q, spec) => q.lt("due_date", spec.todayIso) },
+  { key: "undated", ascending: true, narrow: (q) => q.is("due_date", null) },
+]);
+
+/**
  * PERF-11 (2026-09-04). PAGED sibling of fetchObligationRegister: same query/join, but the fixed overfetch
  * cap is no longer tied to the requested page size (see the OVERFETCH_CAP comment below) and the return
  * shape is `{ rows, total }` so a caller can page through the register (list-variant "Load more") without
@@ -368,8 +455,11 @@ function applyRegisterFilters(qb, spec, jurisdictionCodes) {
  * THE FIX: every filter now applies in the QUERY (applyRegisterFilters above, PostgREST operators, no
  * JS predicate over a fetched array), an `exactCount()` (paginate.mjs) over the SAME filtered query
  * gives the true total independent of any page size, and `.range()` fetches only the requested page —
- * no overfetch, no JS re-filter, no re-sort (the DB's own `.order("due_date", { ascending: true,
- * nullsFirst: false })` matches `filterAndSortJoinedRows`'s "soonest first, undated last" sort exactly).
+ * no overfetch, no JS re-filter, no re-sort. UI fix round 2026-09-08 (item D2) replaced the single
+ * `.order("due_date", { ascending: true, nullsFirst: false })` with the three NEXT_DUE_SEGMENTS
+ * below, each exact-counted and each ranged on its own, so the DB order still matches
+ * `filterAndSortJoinedRows`'s comparator exactly — now "upcoming soonest first, then past most
+ * recent first, then undated" rather than "oldest first".
  * `total` reflects the obligations-table-level filtered count (pre-item-verification-join) — the SAME
  * semantic OVERFETCH_CAP's `filterJoinedRowsPage` total already carried (it counted `joined`, i.e.
  * post-item-join, only insofar as its overfetched page had already survived the join before counting;
@@ -392,28 +482,40 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
     jurisdictionCodes = matchingJurisdictionCodes(facets.jurisdictions, spec.jurisdiction);
   }
 
-  const total = await exactCount(
-    applyRegisterFilters(
-      supabase.from("obligations").select("id", { count: "exact", head: true }),
-      spec,
-      jurisdictionCodes
+  // One exact count per next-due segment (head:true, so no rows cross the wire), summed for the
+  // honest "N of M". A separate whole-table count would be a fourth round trip stating the same
+  // number, and could disagree with the three the page is actually cut against.
+  const sizes = await Promise.all(
+    NEXT_DUE_SEGMENTS.map((seg) =>
+      exactCount(
+        seg.narrow(
+          applyRegisterFilters(
+            supabase.from("obligations").select("id", { count: "exact", head: true }),
+            spec,
+            jurisdictionCodes
+          ),
+          spec
+        )
+      )
     )
   );
+  const total = sizes.reduce((a, b) => a + b, 0);
   if (total === 0) return { rows: [], total: 0 };
 
-  const { data: rawRows, error } = await applyRegisterFilters(
-    supabase
-      .from("obligations")
-      // REG-GRAIN (2026-09-05): same embed as fetchObligationRegister above — one query shape for
-      // both the first-page and the paged/filtered path, per this module's header.
-      .select("id, intelligence_item_id, forward_event_id, jurisdiction, modes, binding_position, due_date, date_precision, event_kind, status, item_forward_events(obligation_text)"),
-    spec,
-    jurisdictionCodes
-  )
-    .order("due_date", { ascending: true, nullsFirst: false })
-    .range(spec.offset, spec.offset + spec.limit - 1);
-
-  if (error || !rawRows) return { rows: [], total };
+  const rawRows = [];
+  for (const slice of planRegisterPageSegments(sizes, spec.offset, spec.limit)) {
+    const seg = NEXT_DUE_SEGMENTS[slice.index];
+    const { data, error } = await seg
+      .narrow(
+        applyRegisterFilters(supabase.from("obligations").select(REGISTER_SELECT), spec, jurisdictionCodes),
+        spec
+      )
+      .order("due_date", { ascending: seg.ascending })
+      .order("id", { ascending: true })
+      .range(slice.from, slice.to);
+    if (error || !data) return { rows: [], total };
+    rawRows.push(...data);
+  }
   const rows = rawRows.map(flattenObligationText);
 
   const itemIds = [...new Set(rows.map((r) => r.intelligence_item_id))];
@@ -438,6 +540,16 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
   return { rows: joined, total };
 }
 
+/** The empty facet shape, so a failed read and a fresh tally agree on their keys. Defined here (not
+ *  inline in two catch blocks) because the register page destructures every one of these maps. */
+export function emptyRegisterFacets() {
+  return {
+    jurisdictions: [],
+    modes: [],
+    counts: { jurisdiction: {}, mode: {}, bindingPosition: {}, dueWindow: {} },
+  };
+}
+
 /**
  * PERF-11 (2026-09-04). The register's jurisdiction/mode filter DROPDOWN OPTIONS, sourced independently
  * of whatever page of rows is currently loaded — a first-page-only fetch (60 rows) would otherwise offer
@@ -457,29 +569,75 @@ export async function fetchObligationRegisterPage(supabase, opts = {}) {
  * options) must never depend on the corpus happening to stay small. Routed through the same
  * `fetchAllRows` helper this module's other reads now use.
  *
+ * LIVE COUNTS (UI fix round 2026-09-08, item D2). The register's four page-local `<select>` dropdowns
+ * are replaced by the standard rail Filters card, which is a checkbox facet list carrying a LIVE COUNT
+ * per option (README §"Facets always visible with live counts"). Those counts come from the rows this
+ * function already walks: the select adds `binding_position, due_date` and the same single pass tallies
+ * four maps. No extra query, no per-option count round trip, and the counts are corpus-wide rather than
+ * derived from whichever page happens to be loaded — the same independence the option lists already had.
+ *
  * @param {import("@supabase/supabase-js").SupabaseClient} supabase
- * @returns {Promise<{ jurisdictions: string[], modes: string[] }>}
+ * @param {{ todayIso?: string }} [opts] evaluation date for the due-window tallies; defaults to today
+ * @returns {Promise<{ jurisdictions: string[], modes: string[], counts: {
+ *            jurisdiction: Record<string, number>, mode: Record<string, number>,
+ *            bindingPosition: Record<string, number>, dueWindow: Record<string, number> } }>}
  */
-export async function fetchRegisterFacetOptions(supabase) {
+export async function fetchRegisterFacetOptions(supabase, opts = {}) {
+  const todayIso =
+    typeof opts.todayIso === "string" && /^\d{4}-\d{2}-\d{2}$/.test(opts.todayIso)
+      ? opts.todayIso
+      : new Date().toISOString().slice(0, 10);
   try {
     const rows = await fetchAllRows((from, to) =>
       supabase
         .from("obligations")
-        .select("jurisdiction, modes, id")
+        .select("jurisdiction, modes, binding_position, due_date, id")
         .eq("status", "active")
         .order("id")
         .range(from, to)
     );
-    const jurisdictions = new Set();
-    const modes = new Set();
-    for (const row of rows) {
-      for (const j of row.jurisdiction ?? []) jurisdictions.add(j);
-      for (const m of row.modes ?? []) modes.add(m);
-    }
-    return { jurisdictions: [...jurisdictions].sort(), modes: [...modes].sort() };
+    return tallyRegisterFacets(rows, todayIso);
   } catch {
-    return { jurisdictions: [], modes: [] };
+    return emptyRegisterFacets();
   }
+}
+
+/**
+ * Pure: the single pass over the facet projection that produces both the option lists and their live
+ * counts. Split out so the tally is testable without a client, and so the "one pass, four maps" claim
+ * in fetchRegisterFacetOptions's header is something a test can hold to.
+ *
+ * A row counts ONCE per distinct jurisdiction code and ONCE per distinct mode it carries (a row tagged
+ * ["EU","US-CA"] is one EU obligation and one US-CA obligation, which is what the facet filters
+ * themselves select on). `bindingPosition` counts NULL under the UNCLASSIFIED token, the same real,
+ * filterable state the filter side uses. Due-window counts use matchesDueWindow, so a window's count and
+ * the rows that window selects can never disagree.
+ */
+export function tallyRegisterFacets(rows, todayIso) {
+  const out = emptyRegisterFacets();
+  const jurisdictions = new Set();
+  const modes = new Set();
+  const bump = (map, key) => {
+    map[key] = (map[key] ?? 0) + 1;
+  };
+  for (const row of Array.isArray(rows) ? rows : []) {
+    for (const j of new Set(row.jurisdiction ?? [])) {
+      jurisdictions.add(j);
+      bump(out.counts.jurisdiction, j);
+    }
+    for (const m of new Set(row.modes ?? [])) {
+      modes.add(m);
+      bump(out.counts.mode, m);
+    }
+    bump(out.counts.bindingPosition, row.binding_position ?? UNCLASSIFIED);
+    for (const w of DUE_WINDOWS) {
+      if (w === "all") continue;
+      if (matchesDueWindow(row.due_date ?? null, w, todayIso)) bump(out.counts.dueWindow, w);
+    }
+  }
+  out.jurisdictions = [...jurisdictions].sort();
+  out.modes = [...modes].sort();
+  return out;
 }
 
 /**

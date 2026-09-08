@@ -274,6 +274,10 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
       clientWidth: el.clientWidth,
       width: r.width,
       columnClientWidth: column,
+      // Ruling 5.2's one sanctioned ruleless card, read from the stamp SectionCard already sets
+      // (FOLD 63, 2026-09-08). By identity, never by "it has no rule", so a card that drops its
+      // rule without being the band-grouping card is still a finding.
+      isBandGrouping: el.getAttribute('data-section-card') === 'band-grouping',
       isTableCard: Boolean(closestMatch(el, '[data-guard-table-card]')) || Boolean(el.querySelector('[data-guard-strip]')),
       inRail: Boolean(frameEl && frameEl.children[1] && frameEl.children[1].contains(el)),
     });

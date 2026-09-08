@@ -75,7 +75,9 @@ test("ObligationsRailCard applies the shared 30-day window and four-row cap, not
 });
 
 test("ObligationsRailCard carries the artboard's exact head label, Calendar link and audit hooks", () => {
-  assert.match(SOURCE, /<RailCard title="Obligations · next 30 days" dataAudit="obligations-rail" headLink=\{\{ label: "Calendar →", href: "#obligation-register" \}\}>/);
+  // Item D2 (2026-09-08): the register is its own page, so the head link is a route, not an in-page
+  // anchor to a section that no longer sits on /regulations.
+  assert.match(SOURCE, /<RailCard title="Obligations · next 30 days" dataAudit="obligations-rail" headLink=\{\{ label: "Calendar →", href: "\/regulations\/register" \}\}>/);
   assert.match(SOURCE, /data-audit="obligation-row"/);
 });
 

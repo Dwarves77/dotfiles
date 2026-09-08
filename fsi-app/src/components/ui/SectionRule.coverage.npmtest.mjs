@@ -82,7 +82,6 @@ test("every card component that used to mount the rule by hand now renders <Sect
     "components/community/CommunityRooms.tsx",
     "components/market/MarketComparativeRibbon.tsx",
     "components/operations/RegionDimensionMatrix.tsx",
-    "components/operations/OperationsLedger.tsx",
     "components/operations/OperationsDetailSurface.tsx",
     "components/research/ResearchFindingDetailSurface.tsx",
     "components/pages/MarketSignalDetailSurface.tsx",
@@ -91,7 +90,27 @@ test("every card component that used to mount the rule by hand now renders <Sect
     "components/admin/AdminDashboard.tsx",
     "components/admin/redesign/AdminIssuesRail.tsx",
     "components/admin/redesign/WorkspacesUsageRow.tsx",
+    // FOLD 63 (2026-09-08). Two files JOIN this list and one LEAVES it, and both moves are the
+    // structure changing, not the invariant.
+    //
+    // JOINED: `ObligationRegisterPageView.tsx` is the new /regulations/register page (item D2),
+    // built by a lane that branched from wave 61, before SectionCard existed, so it arrived with a
+    // hand-typed shell; `SourceHealthDashboard.tsx`'s registry card was a hand-typed shell at
+    // 605413d9 itself, with no box-shadow at all. Both are now SectionCard.
+    "components/regulations/ObligationRegisterPageView.tsx",
+    "components/sources/SourceHealthDashboard.tsx",
   ];
+  // LEFT: `components/operations/OperationsLedger.tsx`. Its ONLY card was the US By-state cost
+  // sub-list, and operator item D3 (2026-09-08) removed that sub-list outright, so the file renders
+  // no card at all any more and requiring it to import SectionCard would be requiring a dead
+  // import (rule 13). The check that the removal really happened lives where it belongs, in
+  // compose-08-operations-list.json's "no By-state disclosure below the rows (item D3)" forbid; if
+  // a card ever returns to this file, F42 is what makes it render SectionCard.
+  assert.doesNotMatch(
+    readFileSync(resolve(ROOT, "components/operations/OperationsLedger.tsx"), "utf8"),
+    /<SectionCard\b/,
+    "OperationsLedger renders a card again: add it back to FILES above"
+  );
   for (const rel of FILES) {
     const text = readFileSync(resolve(ROOT, rel), "utf8");
     assert.match(text, /from "@\/components\/ui\/SectionCard"/, `${rel}: does not import SectionCard`);

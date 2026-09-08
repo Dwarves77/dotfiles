@@ -30,23 +30,24 @@
  * severity-tile accordion shell — RegionDimensionMatrix replaces it) and the
  * ask bar.
  *
- * RESTORED (UILISTS2 lane, 2026-09-07, operator ruling: an app feature not
- * shown in the 17 artboards is restored exactly, not folded into the
- * artboard's own matrix): the US By-state cost sub-list (migration 152
- * `state_cost_facts`), placed below the matrix exactly where it sat before
- * — see ByStateSubList below, unchanged in look from the pre-rebuild
- * component (git show 45c22308^:.../OperationsLedger.tsx).
+ * REMOVED (UI fix round 2026-09-08, item D3): the US By-state cost sub-list
+ * and its `usStateForResource` matcher. It was restored in the UILISTS2 lane
+ * on ruling R7 ("a feature no artboard draws is left as it is"); item D3
+ * names the "By state · 13 states" strip for removal and a later operator
+ * ruling wins. `stateCosts` is still read and still passed in: the COVERAGE
+ * GAPS rail card artboard 08 does draw reports the sourced-state tally from
+ * it, so the prop is live, not a leftover.
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { OperationsCoverageData, OperationsFact, StateCostFactRow } from "@/lib/supabase-server";
-import { STATE_LABELS, buildStateRoster } from "@/lib/operations/state-roster.mjs";
+import { STATE_LABELS } from "@/lib/operations/state-roster.mjs";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
-import { SectionCard } from "@/components/ui/SectionCard";
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
@@ -103,33 +104,6 @@ const DIMENSIONS: Dimension[] = [
 // RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any
 // `state === 'absent'` cell (see that file's own header) — no fabricated count, no blank cell.
 const MATRIX_DIMENSIONS = DIMENSIONS;
-
-// ── US state matching (By-state sub-list, restored — unchanged from the pre-rebuild component) ──
-
-const US_STATE_MATCH: { code: string; patterns: RegExp[] }[] = [
-  { code: "US-CA", patterns: [/\bcalifornia\b/i, /\bCARB\b/i] },
-  { code: "US-NY", patterns: [/\bnew york\b/i] },
-  { code: "US-NC", patterns: [/north carolina/i, /\bNC DEQ\b/i, /\bNC Register\b/i] },
-  { code: "US-TX", patterns: [/\btexas\b/i, /\bTCEQ\b/i] },
-  { code: "US-AZ", patterns: [/\barizona\b/i] },
-  { code: "US-CO", patterns: [/\bcolorado\b/i] },
-  { code: "US-FL", patterns: [/\bflorida\b/i] },
-  { code: "US-GA", patterns: [/\bgeorgia\b/i] },
-  { code: "US-IL", patterns: [/\billinois\b/i] },
-  { code: "US-MA", patterns: [/\bmassachusetts\b/i] },
-  { code: "US-NJ", patterns: [/\bnew jersey\b/i] },
-  { code: "US-OH", patterns: [/\bohio\b/i] },
-  { code: "US-PA", patterns: [/\bpennsylvania\b/i] },
-  { code: "US-WA", patterns: [/\bwashington\b/i] },
-];
-
-function usStateForResource(r: Resource): { code: string; label: string } | null {
-  const text = `${r.jurisdiction || ""} ${r.title} ${r.note || ""}`;
-  for (const s of US_STATE_MATCH) {
-    for (const re of s.patterns) if (re.test(text)) return { code: s.code, label: STATE_LABELS[s.code] || s.code };
-  }
-  return null;
-}
 
 interface Region {
   key: string;
@@ -300,9 +274,11 @@ export function OperationsLedger({
     [initialResources, filter, tagsFacet.matchesSelectedTag]
   );
 
-  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so the
-  // Filters card's own caption ("Counts are live for the current selection") is true here too. See
-  // liveFacetCounts in list-surface-helpers.ts for the two regimes and why they are what they are.
+  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so every
+  // count in the rail moves with the selection here too. (The Filters card's caption that first
+  // stated this was removed sitewide later the same day; the behaviour it described is the
+  // artboard's and stands without it.) See liveFacetCounts in list-surface-helpers.ts for the two
+  // regimes and why they are what they are.
   const counts = useMemo(
     () =>
       liveFacetCounts(initialResources, filter, {
@@ -487,12 +463,37 @@ export function OperationsLedger({
          jurisdiction count this line restated are both in the masthead scope line already ("25
          active items · 18 jurisdictions · ..."). Removed with the same line on /regulations and
          /market, which share this shared slot (lane lists60, 2026-09-08). */
+      /* Item D3 (2026-09-08): the capacity-investment calculator moved to its own page, and a page
+         nothing links to is unreachable. This is the one link to it — the same text-link geometry the
+         band cards' own foot row uses (12px/600, underlined at rgba(0,0,0,.3), 24px minimum box), in
+         the slot the removed By-state disclosure vacated. Artboard 08 draws no such row; logged in
+         DEVIATION-LOG.md with the two new routes it belongs to. */
       belowRows={
-        /* R7: the US By-state cost sub-list is an app feature artboard 08 does not draw. It used to
-           sit between the matrix and the first band card — exactly where the artboard puts a band
-           card — so it moves to the disclosure position at the FOOT of the content column, closed
-           by default, unchanged in look and content. */
-        <ByStateSubList regs={regsByRegion["US"] ?? []} stateCosts={stateCostByCode} />
+        <div style={{ display: "flex", justifyContent: "flex-start" }}>
+          <Link
+            href="/operations/calculator"
+            data-audit="calculator-link"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              // FOLD 63 (2026-09-08): 28, not 24. This lane took its geometry from the band cards'
+              // own foot link, whose 24px box is below the site-wide layout guard's L9 floor
+              // (">= 44px in one dimension and >= 28px in the other"), and the guard measured this
+              // NEW link at 217x26 on /operations at both 1440 and 1024. An element this fold adds
+              // meets the floor rather than joining a baselined class: 28px of box, same type, same
+              // underline, one row taller by 2px.
+              minHeight: 28,
+              padding: "5px 0",
+              fontSize: "var(--fs-12)",
+              fontWeight: 600,
+              color: "var(--ink)",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(0,0,0,.3)",
+            }}
+          >
+            Capacity investment estimate →
+          </Link>
+        </div>
       }
       rail={
         <>
@@ -520,122 +521,5 @@ export function OperationsLedger({
         </>
       }
     />
-  );
-}
-
-// ── By-state sub-list (US), restored UILISTS2 lane 2026-09-07 ──
-//
-// Standalone card below the region x dimension matrix (README: "placed below the matrix as it
-// was"), not folded into the matrix itself — the artboard's matrix has no per-state drill-down
-// slot; this is real, sourced content (migration 152 state_cost_facts) with nowhere else on this
-// surface to live. Closed by default (CLAUDE.md accordion default-state rule, 2026-05-07). Look
-// is unchanged from the pre-rebuild component (git show 45c22308^:.../OperationsLedger.tsx),
-// only its mount point moved from a per-region accordion to its own card.
-
-function ByStateSubList({ regs, stateCosts }: { regs: Resource[]; stateCosts: Map<string, StateCostFactRow> }) {
-  const [open, setOpen] = useState(false);
-
-  // WO-10 fix (unchanged): the roster is the UNION of regulation-matched states and
-  // stateCosts' keys, so a state with a sourced cost fact but no matched regulation still gets a
-  // row (an honest "0 regs"), never dropped.
-  const states = useMemo(() => {
-    const map = new Map<string, { code: string; label: string; regs: Resource[] }>();
-    for (const r of regs) {
-      const s = usStateForResource(r);
-      if (!s) continue;
-      const entry = map.get(s.code) ?? { code: s.code, label: s.label, regs: [] };
-      entry.regs.push(r);
-      map.set(s.code, entry);
-    }
-    return buildStateRoster(Array.from(map.values()), stateCosts.keys()) as { code: string; label: string; regs: Resource[] }[];
-  }, [regs, stateCosts]);
-
-  if (states.length === 0) return null;
-
-  return (
-    // Operator item A1 (2026-09-08): the by-state disclosure is a card, so it is a `SectionCard` and
-    // gains the 3px rule every card carries. Ruling R7 keeps the FEATURE exactly as it is (no
-    // artboard draws it); A1 governs the SHELL it is drawn in, which is the point of moving the
-    // rule into the card component: a card that no artboard drew still cannot be built without it.
-    <SectionCard>
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-expanded={open}
-        style={{
-          width: "100%",
-          textAlign: "left",
-          fontFamily: "inherit",
-          padding: "11px 18px",
-          background: "var(--card)",
-          border: "none",
-          cursor: "pointer",
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 12,
-          minHeight: 44,
-        }}
-      >
-        <span style={{ fontSize: 12, fontWeight: 800, color: "var(--ink)" }}>
-          {open ? "Hide state breakdown" : `By state · ${states.length} states →`}
-        </span>
-        <span style={{ fontSize: 11, color: "var(--ink-3)" }}>state law is state-level data — never a national average</span>
-      </button>
-
-      {open && (
-        <div style={{ borderTop: "1px solid var(--line-2)" }}>
-          {states.map((st) => (
-            <div
-              key={st.code}
-              style={{ display: "grid", gridTemplateColumns: "150px 1fr auto auto", gap: 12, alignItems: "center", padding: "11px 18px", borderBottom: "1px solid var(--line-2)" }}
-            >
-              <span style={{ fontSize: 12.5, fontWeight: 800 }}>{st.label}</span>
-              <span style={{ fontSize: 11.5, color: "var(--ink-2)", lineHeight: 1.5 }}>
-                {st.regs.length > 0
-                  ? st.regs.slice(0, 2).map((r) => r.title).join(" · ")
-                  : "No regulations matched to this state yet"}
-              </span>
-              {(() => {
-                const fact = stateCosts.get(st.code);
-                if (!fact) {
-                  return (
-                    <span title="No sourced state cost fact yet" style={{ fontFamily: "var(--font-display)", fontSize: 17, color: "var(--ink-3)", whiteSpace: "nowrap" }}>
-                      —
-                    </span>
-                  );
-                }
-                const citation = [
-                  fact.factLabel,
-                  fact.statuteCitation,
-                  fact.sourceName ? `Source: ${fact.sourceName}` : null,
-                  fact.effectiveDate ? `Effective ${fact.effectiveDate}` : null,
-                ].filter(Boolean).join(" · ");
-                return (
-                  <span title={citation} style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 17, color: "var(--ink)" }}>{fact.value}</span>
-                    {fact.unit && <span style={{ fontSize: 10.5, color: "var(--ink-3)" }}>{fact.unit}</span>}
-                    <span style={{ display: "block", fontSize: 9, fontWeight: 700, letterSpacing: "0.04em", color: "var(--ink-3)" }}>
-                      {fact.factLabel}{fact.sourceName ? ` · ${fact.sourceName}` : ""}
-                    </span>
-                  </span>
-                );
-              })()}
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--ink-3)", whiteSpace: "nowrap" }}>{st.regs.length} regs</span>
-            </div>
-          ))}
-          <div style={{ padding: "11px 18px", background: "var(--bg)" }}>
-            <div style={{ border: "1px dashed var(--line-2)", borderRadius: 6, padding: "10px 13px" }}>
-              <p style={{ fontSize: 10.5, fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 4px" }}>
-                State-level cost facts — sourced where available
-              </p>
-              <p style={{ fontSize: 11.5, color: "var(--ink-2)", lineHeight: 1.55, margin: 0 }}>
-                Per-state figures (minimum wage first; labor rates and fuel taxes next) carry their own citation and source — hover a figure for it. A state with no sourced figure shows a dash, never a national average presented as state law.
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </SectionCard>
   );
 }

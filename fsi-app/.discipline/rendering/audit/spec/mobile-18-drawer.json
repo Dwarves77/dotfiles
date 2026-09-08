@@ -1,5 +1,5 @@
 {
-  "part": "Mobile 390 — the nav drawer, opened (288px, scrim, header block, 44px rows, one-row footer)",
+  "part": "Mobile 390 — the nav drawer, opened (288px, scrim, header block, 44px rows, two-row footer)",
   "mount": "mobile-drawer",
   "viewport": 390,
   "compiledCss": true,
@@ -11,7 +11,8 @@
     "The drawer's measures only exist while it is open, and AppShell owns that state (the hamburger opens it, never a prop). The `mobile-drawer` mount renders the SAME AppShell + DashboardBrief tree as `page-frame-1440` and clicks the real hamburger, so what is measured here is the drawer a reader actually opens — no test-only prop was added to product code.",
     "FOOTER: the mobile 390 spec's DRAWER section still describes 'two unlabelled 44px rows: Account with the workspace name, Admin with the OWNER badge'. That wording is SUPERSEDED by the operator's 2026-09-07 third-set ruling ('we dont need seperate account and admin buttons visable if they pop up as options when you clicked on the logged in person name there'), which makes the footer ONE row — the logged-in person's name with the workspace name right-aligned, opening the menu that holds Workspace profile, Admin panel, Settings and Sign out. The later ruling wins over the earlier text spec; this file asserts the one row, and the difference is logged in DEVIATION-LOG.md.",
     "Section labels and counts are the same SECTIONS table the desktop nav card uses (one table, two size variants inside Sidebar's own row builder), so they are not re-asserted here beyond the label's own type.",
-    "Row counts are not asserted here: they come from the workspace-bootstrap fetch, which this mount answers with nothing, so no count span renders. The count itself is one branch of the SAME renderNavItem builder the desktop card uses (11px on the drawer variant, --fs-11 on the card), and the card's is measured by sidebar.json."
+    "Row counts are not asserted here: they come from the workspace-bootstrap fetch, which this mount answers with nothing, so no count span renders. The count itself is one branch of the SAME renderNavItem builder the desktop card uses (11px on the drawer variant, --fs-11 on the card), and the card's is measured by sidebar.json.",
+    "2026-09-08 (lane communitynav2): the one-row footer rows were rewritten to two. The 2026-09-07 ruling that collapsed the footer to a single name row is REVERSED; the artboard's 'Account' (workspace name right-aligned) and 'Admin' (OWNER badge) rows are back, on the drawer as on the desktop card, from the one implementation in Sidebar.tsx. NOT reversed: 'signout lives in account'. The Account row is still the UserMenuDropdown trigger, and the menu no longer repeats Admin now that the row exists."
   ],
   "selector": "[role=\"dialog\"] aside",
   "expect": {
@@ -116,7 +117,7 @@
       "note": "Dashboard, Watchlist, Regulations, Market, Research, Operations, Map, Community — the SECTIONS table Sidebar shares between the card and the drawer."
     },
     {
-      "name": "Footer is ONE 44px row with the nav card's 10px horizontal padding and 8px gap",
+      "name": "Footer's Account row is a 44px row with the nav card's 10px horizontal padding and 8px gap",
       "selector": "[role=\"dialog\"] aside > div:last-child button",
       "expect": {
         "count": "1",
@@ -124,7 +125,7 @@
         "padding": "0px 10px",
         "gap": "8px"
       },
-      "note": "Operator ruling 2026-09-07, third set: one row, the logged-in person's name, opening the menu that holds Workspace profile, Admin panel, Settings and Sign out. Also 'too tight': the artboard's 44px row, 10px padding, 8px gap, which is what is measured here."
+      "note": "Operator ruling 2026-09-08, REVERSING the 2026-09-07 one-row ruling: the footer is the artboard's two rows again (Account, Admin). The Account row is still the menu trigger (2026-09-07's 'signout lives in account' is NOT reversed), so it stays the footer's only <button>. Measures are the artboard's: 44px row, 10px horizontal padding, 8px gap."
     },
     {
       "name": "The footer row opens a menu (it is the only footer control)",
@@ -139,19 +140,30 @@
       "expect": {
         "border-top": "1px solid rgba(0, 0, 0, 0.08)"
       }
+    },
+    {
+      "name": "Footer has TWO rows (2026-09-08 reversal): the Account trigger and the Admin link",
+      "selector": "[role=\"dialog\"] aside > div:last-child > *",
+      "expect": {
+        "count": "2"
+      },
+      "note": "One implementation drives both the desktop card and this drawer, so the reversal lands on both at once."
+    },
+    {
+      "name": "Footer row 2 is Admin, linking to /admin, at the same 44px measure",
+      "selector": "[role=\"dialog\"] aside > div:last-child a[href=\"/admin\"]",
+      "expect": {
+        "count": "1",
+        "min-height": "44px",
+        "padding": "0px 10px"
+      }
     }
   ],
   "forbid": [
     {
-      "name": "no separate Admin row in the drawer footer",
-      "selector": "[role=\"dialog\"] aside > div:last-child a",
-      "reason": "Operator ruling 2026-09-07, third set: Admin is an option inside the logged-in person's menu, not a second footer row. This supersedes both R2's two-row footer and the mobile 390 text spec's own DRAWER footer wording."
-    },
-    {
-      "name": "no OWNER badge as a standalone footer row",
-      "selector": "[role=\"dialog\"] aside > div:last-child",
-      "textMatch": "OWNER",
-      "reason": "Same ruling: the OWNER badge belonged to the removed Admin row."
+      "name": "no THIRD footer row in the drawer",
+      "selector": "[role=\"dialog\"] aside > div:last-child > *:nth-child(3)",
+      "reason": "Exactly two rows, Account and Admin (operator ruling 2026-09-08, restoring the artboard's footer). The forbid on a third row is the one part of the 2026-09-07 settlement that survives unchanged: production once shipped Account + Admin + a 'jasonlosh ▾' utility row."
     }
   ],
   "boundsCheck": [

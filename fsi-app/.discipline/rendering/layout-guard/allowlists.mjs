@@ -180,10 +180,23 @@ export const ABSENCE_ANYWHERE = /NOT IN PRIMARY SOURCE|UNSCORED|NOT SCORED/;
  *     band rule pinned to the card's BOTTOM edge - deliberately not a 3px top rule;
  *   - stat block / stat tile (§0.4): "label / Anton numeral / note ... never a band tile", a
  *     counter rather than a panel.
- * Both are excluded from the manifest by generate-manifests.mjs for the same reason, so the two
- * sides of L10's comparison agree on what a card is.
+ *   - the HEADLINE SERIES tile (added FOLD 63, 2026-09-08). Artboard 04's HEADLINE SERIES card is a
+ *     card and draws the 3px rule; the five tiles INSIDE it carry the same chrome and no rule. Read
+ *     off the artboard source itself, `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html`
+ *     id="p4": the enclosing card opens
+ *     `<div style="...border-radius:10px;box-shadow:..."><div style="height:3px;background:linear-gradient(90deg,#5A5552,...)">`
+ *     while each tile opens
+ *     `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:10px 12px;overflow:hidden`
+ *     with no rule child at all. Without this entry L6 reported five "3px top rule (measured none)"
+ *     findings and L10 five "not in the manifest" findings on /market, for five tiles the artboard
+ *     draws exactly as they are rendered.
+ * ALL THREE are excluded from the manifest by generate-manifests.mjs for the same reason, so the two
+ * sides of L10's comparison agree on what a card is. For the headline tile that exclusion is
+ * STRUCTURAL rather than by name: `cardsIn()` returns at the first card it meets and never descends
+ * into it, so a tile nested inside a card can never enter a manifest. This entry is what makes the
+ * BUILD side agree with the manifest side it was already being compared against.
  */
-export const NOT_A_CARD = '.cl-band-tile, .cl-admin-stat-tile, .cl-stat-tile, [data-guard-band-tile], [data-guard-stat-tile]';
+export const NOT_A_CARD = '.cl-band-tile, .cl-admin-stat-tile, .cl-stat-tile, [data-guard-band-tile], [data-guard-stat-tile], [data-guard-tile]';
 
 /**
  * L9. Hit targets, the operator's own numbers: ">= 44px in one dimension and >= 28px in the other;

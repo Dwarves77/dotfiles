@@ -1024,14 +1024,38 @@ window.__mount = () => {
 };
 `;
 
+// Item D3 (2026-09-08): the three spec-09 panels moved off the /operations LIST onto this profile as
+// S-sections. The real route passes the async SERVER components; this mount passes their sync VIEW
+// halves with populated fixture rows, which is the same subtree the server components render and the
+// only half that can run in a browser bundle (the fetch halves import supabase-server — see
+// DqiPanelView.tsx's own header for that split).
+const SPEC09_SECTION_FIXTURES = {
+  dqi: [
+    { dqi_id: 'd1', tce_id: 'TCE-SIN-001', reliability: 4, completeness: 3, temporal_correlation: 4, geographical_correlation: 5, technological_correlation: 3, primary_data_share: 0.72 },
+    { dqi_id: 'd2', tce_id: 'TCE-SIN-002', reliability: 2, completeness: 2, temporal_correlation: 3, geographical_correlation: 3, technological_correlation: 2, primary_data_share: 0.31 },
+  ],
+  aux: [
+    { profile_id: 'a1', load_type: 'reefer_plugin', kw_draw: 4.2, duty_cycle: 0.65, hours_typical: 24, setpoint_c: -18, setpoint_rh_pct: null, grid_intensity_source: 'SG EMA' },
+    { profile_id: 'a2', load_type: 'warehouse_chiller', kw_draw: 11, duty_cycle: 0.4, hours_typical: 12, setpoint_c: 4, setpoint_rh_pct: 85, grid_intensity_source: null },
+  ],
+  grid: [
+    { queue_id: 'g1', dso_name: 'SP PowerGrid', capacity_band_mw: '1-5 MW', queue_months_p50: 9, queue_months_p90: 18, as_of: '2026-08-01' },
+    { queue_id: 'g2', dso_name: 'TNB Distribution', capacity_band_mw: '5-20 MW', queue_months_p50: 22, queue_months_p90: 34, as_of: '2026-07-15' },
+  ],
+};
+
 const OPERATIONS_DETAIL_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppShell } from '@/components/AppShell';
 import { OperationsDetailSurface } from '@/components/operations/OperationsDetailSurface';
+import { DqiPanelView } from '@/components/operations/DqiPanelView';
+import { AuxiliaryEnergyPanelView } from '@/components/operations/AuxiliaryEnergyPanelView';
+import { GridQueuePanelView } from '@/components/operations/GridQueuePanelView';
 
 const F = ${JSON.stringify(OPERATIONS_FIXTURE)};
+const S9 = ${JSON.stringify(SPEC09_SECTION_FIXTURES)};
 
 let root = null;
 window.__mount = () => {
@@ -1040,7 +1064,12 @@ window.__mount = () => {
   root.render(
     React.createElement(AppShell, null,
       React.createElement('div', { 'data-audit': 'operations-detail' },
-        React.createElement(OperationsDetailSurface, F)),
+        React.createElement(OperationsDetailSurface, {
+          ...F,
+          dqiSection: React.createElement(DqiPanelView, { rows: S9.dqi }),
+          auxiliaryEnergySection: React.createElement(AuxiliaryEnergyPanelView, { rows: S9.aux }),
+          gridQueueSection: React.createElement(GridQueuePanelView, { rows: S9.grid }),
+        })),
     ),
   );
 };
@@ -1108,6 +1137,97 @@ const COMPOSE_REGULATIONS_API = [
     }),
   },
 ];
+
+// ── Item D2/D3 (UI fix round 2026-09-08): the two routes this round created ────────────────────────
+// Neither has an artboard (coordinator note N4), so these specs measure the STANDARD FRAME the pages
+// were required to be built in, and the structural facts the operator's items state: the register's
+// four page-local dropdowns are gone and its facets are the shared rail Filters card; the calculator
+// is on its own page with the frame around it.
+
+function composeRegisterRow(i) {
+  const dues = ['2026-10-01', '2026-11-14', '2027-01-09', '2026-03-02', null];
+  return {
+    id: `ob-${i}`,
+    intelligence_item_id: `item-${i % 3}`,
+    forward_event_id: `fe-${i}`,
+    jurisdiction: [['EU'], ['US', 'US-CA'], ['GB']][i % 3],
+    modes: [['ocean'], ['air'], ['road']][i % 3],
+    binding_position: ['direct_duty', 'carrier_passthrough', null][i % 3],
+    due_date: dues[i % dues.length],
+    date_precision: 'day',
+    event_kind: 'compliance_deadline',
+    status: 'active',
+    obligation_text: 'Report the prior calendar year\'s verified emissions to the administering authority.',
+    item: {
+      id: `item-${i % 3}`,
+      title: ['CountEmissions EU', 'FuelEU Maritime', 'EU Deforestation Regulation'][i % 3],
+      legacy_id: `reg-${i % 3}`,
+      jurisdiction_iso: ['EU'],
+    },
+  };
+}
+
+const COMPOSE_REGISTER_FIRST_PAGE = {
+  rows: Array.from({ length: 12 }, (_, i) => composeRegisterRow(i)),
+  total: 1141,
+  facetCounts: {
+    jurisdiction: { EU: 612, US: 208, 'US-CA': 41, GB: 96 },
+    mode: { ocean: 401, air: 233, road: 188, rail: 44 },
+    bindingPosition: { direct_duty: 502, carrier_passthrough: 244, customer_contract: 91, monitoring_only: 130, unclassified: 174 },
+    dueWindow: { overdue: 604, 30: 22, 90: 71, 365: 233, undated: 96 },
+  },
+};
+
+const COMPOSE_REGISTER_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { ObligationRegisterPageView } from '@/components/regulations/ObligationRegisterPageView';
+
+const F = ${JSON.stringify(COMPOSE_REGISTER_FIRST_PAGE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'register-page' },
+        React.createElement(ObligationRegisterPageView, {
+          initialResult: F,
+          dateLabel: 'Tuesday, September 8, 2026',
+          nowIso: '2026-09-08T00:00:00.000Z',
+        })),
+    ),
+  );
+};
+`;
+
+const COMPOSE_CALCULATOR_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { OperationsCalculatorPageView } from '@/components/operations/OperationsCalculatorPageView';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'calculator-page' },
+        React.createElement(OperationsCalculatorPageView, {
+          dateLabel: 'Tuesday, September 8, 2026',
+          nowIso: '2026-09-08T00:00:00.000Z',
+          itemCount: 25,
+        })),
+    ),
+  );
+};
+`;
+
 // ── Page composition mounts (lane compose-other, 2026-09-08) ───────────────────────────────────────
 // Full-page mounts (AppShell + Masthead + the page's real body component) for the seven pages this
 // lane owns (README screens 10/12/13/14/15/16/17). Same technique as PAGE_FRAME_ENTRY above: bundle
@@ -2271,8 +2391,31 @@ function composeMarketRow(i) {
     modes: modes[i % modes.length], sourceTier: (i % 6) + 1,
     severity: ['action_required', 'cost_alert', 'window_closing', 'competitive_edge', 'monitoring'][i % 5],
     tags: [], reasoning: '',
-    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
-    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+    // ROW STATES THIS FIXTURE MUST CONTAIN (lane market63, 2026-09-08). Artboard 04 draws four
+    // scored meters and one row with an em dash where its date and timeline would be, so a fixture
+    // in which EVERY row is unscored and EVERY row is dated cannot see either half of the row
+    // anatomy, every assertion about the meter or about a dateless row passes vacuously
+    // (CLAUDE.md rule 15). Three states are represented on purpose:
+    //   i % 4 === 0  unscored, which mobile-04-market-list.json measures as the 30px dashed
+    //                baseline and which must therefore stay present;
+    //   i === 7      scored on ONE dimension only ([0,0,0,2]), the case the operator describes as
+    //                "a meter with one bar and 2/12", four bars are emitted, three at 0 height;
+    //   otherwise    a fully scored row, the artboard's own four-bar meter.
+    impactScores:
+      i % 4 === 0
+        ? null
+        : i === 7
+          ? { cost: 0, compliance: 0, client: 0, operational: 2 }
+          : { cost: 1 + (i % 3), compliance: 1 + ((i + 1) % 3), client: 1 + ((i + 2) % 3), operational: 1 + (i % 2) },
+    // i === 8: no compliance deadline AND no timeline entry. This is artboard 04's own fourth
+    // ACTION row (The Loadstar feed), which draws "" in the date cell and "" where the timeline
+    // track would be. It exists here so the built row's treatment of that state is MEASURED rather
+    // than assumed; see this lane's report for what it currently renders. Index 8 specifically,
+    // and not an earlier one: the surface sorts by next date and pushes undated rows LAST, so a
+    // dateless row in a crowded band falls past the five-row per-band cap and renders nowhere.
+    // Index 8 lands in AWARENESS, which the fixture populates with two rows, so it is always drawn.
+    complianceDeadline: i === 8 ? null : `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: i === 8 ? [] : [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
   };
 }
 const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
@@ -2296,6 +2439,14 @@ function composeSeriesRow(key, label, displayValue, pct1w, referencePeriod = '20
     },
   };
 }
+// SERIES KEYS ARE THE REAL LIVE ONES (lane seriesfamily, 2026-09-08), not shortened stand-ins. The
+// headline row is now a family SELECTION (src/lib/market/headline-series-select.mjs) rather than the
+// first ten populated series, and families claim their members by exact series_key, so a stand-in key
+// like 'eu-oil-bulletin:diesel' would resolve to a family of its own and measure a grouping the page
+// never performs. With the real keys this fixture renders artboard 04's own row exactly: Diesel,
+// Euro-Super 95, HFO, Residual fuel oil, and one EUR/USD card carrying the other three ECB rates as
+// its "+3 rates" fold. All four rates carry a delta here, which is what the artboard's five-card row
+// requires and what the live table does NOT yet have (its four rates hold one observation each).
 // The two producer groups use REAL registry keyPrefixes ('eu-oil-bulletin', 'ecb-fx') and carry a
 // `referencePeriod` on each series row, because artboard 04's NEXT DATA DROPS card derives its rows
 // from exactly those two fields (latest observed period + that producer's own registered
@@ -2307,19 +2458,43 @@ const COMPOSE_SERIES_BOARD = {
       keyPrefix: 'eu-oil-bulletin', name: 'EU Weekly Oil Bulletin', implemented: true, cadence: 'weekly',
       sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
       series: [
-        composeSeriesRow('eu-oil-bulletin:diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
-        composeSeriesRow('eu-oil-bulletin:e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
-        composeSeriesRow('eu-oil-bulletin:hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
-        composeSeriesRow('eu-oil-bulletin:rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+        composeSeriesRow('eu-oil-bulletin:automotive-diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+        composeSeriesRow('eu-oil-bulletin:eurosuper-95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+        composeSeriesRow('eu-oil-bulletin:heavy-fuel-oil-3-5pct', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+        composeSeriesRow('eu-oil-bulletin:residual-fuel-oil-1pct', 'Residual Fuel Oil', '€646/t', 1.8),
       ],
     },
     {
       keyPrefix: 'ecb-fx', name: 'ECB euro foreign exchange reference rates', implemented: true, cadence: 'daily',
       sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
-      series: [composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04')],
+      // FOLD 63 (2026-09-08), the fixture half of this train's one collision. Lane market63 put
+      // TWELVE invented FX series here (`ecb-fx:eurusd`, `ecb-fx:eurgbp`, ...) so that a ten-card cap
+      // and its horizontal overflow could be measured rather than passing vacuously. That fixture
+      // cannot survive the later ruling, and not as a matter of taste: family membership is by EXACT
+      // series_key (src/lib/market/series-family.mjs declares `ecb-fx:eur-usd`, `-gbp`, `-cny`,
+      // `-jpy` and no others), so market63's unhyphenated keys are claimed by no family and each
+      // would resolve to a family of ITS OWN. The row would then be four fuels plus twelve singleton
+      // FX cards with no "+3 rates" fold anywhere, which is the exact shape the ruling exists to
+      // forbid. Lane seriesfamily's four REAL keys are kept, and they render the operator's own
+      // stated row verbatim: Diesel, Euro-Super 95, HFO, Residual fuel oil, and one EUR/USD card
+      // carrying "+3 rates".
+      //
+      // market63's NON-VACUITY concern is answered, not dropped. With the cap now the ruling's five
+      // and five families here, the visible track is full and the DOM audit measures the geometry
+      // (grid-auto-flow, grid-auto-columns, overflow-x, the resolved track width) on real cards
+      // rather than on an empty grid. The OVERFLOW BEHAVIOUR itself is proven where it can be proven
+      // exhaustively, by attack, in market-headline-series-select.test.mjs, which is execution-wired
+      // through the npmtest glob (CLAUDE.md rule 15). Inventing eleven more series here to make a
+      // scrollbar appear would have measured the fixture, not the product.
+      series: [
+        composeSeriesRow('ecb-fx:eur-usd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-gbp', 'EUR/GBP · ECB ref.', '£0.86', 0.2, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-cny', 'EUR/CNY · ECB ref.', '8.30 CNY', -0.3, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-jpy', 'EUR/JPY · ECB ref.', '172.10 JPY', 0.4, '2026-09-04'),
+      ],
     },
   ],
-  unregistered: [], totalObservedSeries: 5, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
+  unregistered: [], totalObservedSeries: 8, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
 };
 
 // Artboard 04's CARBON COST PER FEU rows, in the shape summariseCarbonCorridors() returns from the
@@ -2327,9 +2502,14 @@ const COMPOSE_SERIES_BOARD = {
 // formatCorridorLabel() plus the count of inputs still missing. Both entries carry the four-gap
 // state every LIVE corridor is in today (see carbon-cost-per-feu.mjs's header), which is the state
 // the artboard itself draws.
+// Lane market63 (2026-09-08): the shape summariseCarbonCorridors() returns NOW, artboard 04's own
+// compact one-line label ("Shanghai – Rotterdam · ocean") plus the full spine label the row carries
+// on its `title`. The pair is what makes the one-line assertion below measurable: the fixture holds
+// the exact strings the page produces, so a regression to the full label in the visible cell shows
+// up as a measured height, not as a fixture that was quietly shortened to fit.
 const COMPOSE_CARBON_CORRIDORS = [
-  { label: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
-  { label: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai – Rotterdam · ocean', fullLabel: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai – Genoa · ocean', fullLabel: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
 ];
 
 const COMPOSE_MARKET_ENTRY = `
@@ -2451,8 +2631,31 @@ function composeOpsRow(i) {
     added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
     modes: [['ocean'], ['air'], ['road'], ['ocean', 'air']][i % 4], sourceTier: 2,
     tags: [], reasoning: '',
-    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
-    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+    // ROW STATES THIS FIXTURE MUST CONTAIN (lane market63, 2026-09-08). Artboard 04 draws four
+    // scored meters and one row with an em dash where its date and timeline would be, so a fixture
+    // in which EVERY row is unscored and EVERY row is dated cannot see either half of the row
+    // anatomy, every assertion about the meter or about a dateless row passes vacuously
+    // (CLAUDE.md rule 15). Three states are represented on purpose:
+    //   i % 4 === 0  unscored, which mobile-04-market-list.json measures as the 30px dashed
+    //                baseline and which must therefore stay present;
+    //   i === 7      scored on ONE dimension only ([0,0,0,2]), the case the operator describes as
+    //                "a meter with one bar and 2/12", four bars are emitted, three at 0 height;
+    //   otherwise    a fully scored row, the artboard's own four-bar meter.
+    impactScores:
+      i % 4 === 0
+        ? null
+        : i === 7
+          ? { cost: 0, compliance: 0, client: 0, operational: 2 }
+          : { cost: 1 + (i % 3), compliance: 1 + ((i + 1) % 3), client: 1 + ((i + 2) % 3), operational: 1 + (i % 2) },
+    // i === 8: no compliance deadline AND no timeline entry. This is artboard 04's own fourth
+    // ACTION row (The Loadstar feed), which draws "" in the date cell and "" where the timeline
+    // track would be. It exists here so the built row's treatment of that state is MEASURED rather
+    // than assumed; see this lane's report for what it currently renders. Index 8 specifically,
+    // and not an earlier one: the surface sorts by next date and pushes undated rows LAST, so a
+    // dateless row in a crowded band falls past the five-row per-band cap and renders nowhere.
+    // Index 8 lands in AWARENESS, which the fixture populates with two rows, so it is always drawn.
+    complianceDeadline: i === 8 ? null : `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: i === 8 ? [] : [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
   };
 }
 const COMPOSE_OPS_ROWS = Array.from({ length: 25 }, (_, i) => composeOpsRow(i));
@@ -2851,13 +3054,18 @@ export const AUDIT_MOUNTS = {
   },
   'operations-detail-1440': {
     id: 'operations-detail-1440',
-    description: 'The real AppShell frame wrapping OperationsDetailSurface, fixture data drawn from artboard 09.',
+    description: 'The real AppShell frame wrapping OperationsDetailSurface, fixture data drawn from artboard 09, including the three spec-09 S-sections (item D3).',
     viewport: 1440,
     entry: OPERATIONS_DETAIL_ENTRY,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      // The three spec-09 views import a plain .css file; esbuild needs an output path for that in a
+      // JS bundle. Aliased away here and the REAL stylesheet put back at runtime via styleFiles below,
+      // the same two-step compose-map already uses for leaflet's stylesheet.
+      '@/components/market/spec09.css': `${SMOKE}stub-empty-css.mjs`,
     },
+    styleFiles: ['fsi-app/src/components/market/spec09.css'],
     apiRoutes: EMPTY_API,
   },
   'detail-shell': {
@@ -2945,6 +3153,30 @@ export const AUDIT_MOUNTS = {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
     },
     apiRoutes: COMPOSE_REGULATIONS_API,
+  },
+  'compose-regulations-register': {
+    id: 'compose-regulations-register',
+    description: 'The real /regulations/register page body (ObligationRegisterPageView, 12-row fixture, live facet counts): masthead, register card, rail Filters/Obligations/Legend — item D2, no artboard yet.',
+    viewport: 1440,
+    entry: COMPOSE_REGISTER_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    needsCompiledCss: true,
+    apiRoutes: COMPOSE_REGULATIONS_API,
+  },
+  'compose-operations-calculator': {
+    id: 'compose-operations-calculator',
+    description: 'The real /operations/calculator page body (OperationsCalculatorPageView): masthead, the capacity-investment calculator, rail Legend — item D3, no artboard yet.',
+    viewport: 1440,
+    entry: COMPOSE_CALCULATOR_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    needsCompiledCss: true,
+    apiRoutes: EMPTY_API,
   },
   'compose-06-research': {
     id: 'compose-06-research',
