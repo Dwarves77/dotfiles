@@ -33,6 +33,11 @@ import { measureUx, assertUxClean } from "./ux-assert.mjs";
 // pages + /map — see exemptions-375.mjs's own header for the full mechanism and why it is not a
 // global viewport relaxation.
 import { RENDERING_375_EXEMPTIONS, isExempt375, activeExemptions } from "./exemptions-375.mjs";
+import {
+  LAW2_DESKTOP_EXEMPTIONS,
+  isExemptLaw2Desktop,
+  activeLaw2Exemptions,
+} from "./exemptions-law2-desktop.mjs";
 import { latestTrainWave } from "../fitness/functions/F25-module-liveness.mjs";
 import { getRepoRoot } from "../lib/context.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
@@ -243,10 +248,20 @@ async function main() {
     latestWave = latestTrainWave(getRepoRoot());
   } catch { /* best-effort, same posture as F25's own oracle — an unreadable git history exempts nothing */ }
   const active = activeExemptions(RENDERING_375_EXEMPTIONS, latestWave);
+  // Operator item C1 (2026-09-08): the rail facet row is the artboard's 24px at desktop widths and
+  // the 44px touch target below 768px. See exemptions-law2-desktop.mjs for the full statement and
+  // both measurements — like the 375 list above it is dated, expires against the same
+  // `latestTrainWave()` oracle, and can only ever cover a law-2 line that names nothing else.
+  const activeLaw2 = activeLaw2Exemptions(LAW2_DESKTOP_EXEMPTIONS, latestWave);
   const exempted375 = [];
+  const exemptedLaw2 = [];
   const realFailures = failures.filter((f) => {
     if (isExempt375(f, active)) {
       exempted375.push(f);
+      return false;
+    }
+    if (isExemptLaw2Desktop(f, activeLaw2)) {
+      exemptedLaw2.push(f);
       return false;
     }
     return true;
@@ -266,6 +281,12 @@ async function main() {
       `\n${exempted375.length} failure(s) covered by a dated 375px per-page exemption (addendum item 8, latest landed wave: ${latestWave ?? "unknown"}, entries expire at wave58):`
     );
     for (const f of exempted375) console.log(`  ~ ${f}`);
+  }
+  if (exemptedLaw2.length) {
+    console.log(
+      `\n${exemptedLaw2.length} failure(s) covered by a dated law-2 desktop component exemption (operator item C1, latest landed wave: ${latestWave ?? "unknown"}, entries expire at wave${LAW2_DESKTOP_EXEMPTIONS.map((e) => e.expiryWave).join("/")}):`
+    );
+    for (const f of exemptedLaw2) console.log(`  ~ ${f}`);
   }
   if (realFailures.length === 0) {
     console.log(`\nALL fixtures pass: GREEN fixtures clean at every viewport; RED fixtures reproduced their defect (in-browser red-then-green).`);
