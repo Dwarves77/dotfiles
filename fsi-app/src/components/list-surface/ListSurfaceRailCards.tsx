@@ -504,7 +504,15 @@ export function NextDataDropsRailCard({ drops }: { drops: NextDataDropRow[] }) {
         ) : (
           drops.map((d) => (
             <div key={d.keyPrefix} data-audit="next-drop-row" style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: 10 }}>
-              <span data-audit="next-drop-date" style={{ fontWeight: 700, color: "var(--ink)", fontVariantNumeric: "tabular-nums" }}>
+              {/* nowrap: at the rail's 300px the artboard's 70px date column is a tight fit for a
+                  two-digit day ("Thu Sep 10"), and the first capture broke it across two lines with
+                  "10" orphaned on the second — exactly the wrap the operator's 2026-09-07 visual
+                  pass rules out. The column keeps the artboard's 70px; the date simply never wraps
+                  inside it. */}
+              <span
+                data-audit="next-drop-date"
+                style={{ fontWeight: 700, color: "var(--ink)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
+              >
                 {formatNextDropDate(d.dateIso)}
               </span>
               <span>{d.name}</span>

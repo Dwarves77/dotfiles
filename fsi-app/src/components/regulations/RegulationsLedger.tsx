@@ -255,7 +255,11 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     aggregates.lastUpdatedAt
       ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
       : null,
-    nextObligation ? `next obligation ${nextObligation.due!.label} · ${nextObligation.title}` : null,
+    // Artboard 02/id="p2" writes this segment as "next obligation Sep 25 · EU Net-Zero Industry
+    // Act" — a compact month+day, no year, because the scope line is one line beside the command
+    // bar and a full "Sep 8, 2026" pushed it wide enough to wrap the bar onto its own row (lane
+    // lists60, 2026-09-08, visual pass at 1440). Same date, the artboard's own form.
+    nextObligation ? `next obligation ${nextObligation.due!.label.replace(/, \d{4}$/, "")} · ${nextObligation.title}` : null,
   ].filter(Boolean);
 
   return (

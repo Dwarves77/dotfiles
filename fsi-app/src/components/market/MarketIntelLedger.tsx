@@ -245,6 +245,10 @@ export function MarketIntelLedger({
   // Artboard 04's NEXT DATA DROPS rows. Derived from the SAME `seriesBoard` prop the Headline
   // series card and the Sources tracked card already read, against the injected server instant —
   // no new read, no host-clock read (see market-rail-select.mjs's header).
+  // Artboard 04's scope line states the OBSERVED SERIES count beside the signal total. The board
+  // already carries it; `null` when no board was passed at all, so the segment drops rather than
+  // rendering a fabricated 0.
+  const observedSeriesCount = seriesBoard ? seriesBoard.totalObservedSeries : null;
   const nextDataDrops = useMemo(
     () => selectNextDataDrops(seriesBoard, { now: nowFrom(nowIso) }) as NextDataDropRow[],
     [seriesBoard, nowIso],
@@ -253,7 +257,27 @@ export function MarketIntelLedger({
   return (
     <ListSurfaceShell
       title="Market Intelligence"
-      dek="Signals are unverified by design — timely first, confirmed later."
+      /* Artboard 04/id="p4" scope line: "55 active signals · 16 observed series · signals are
+         unverified by design — timely first, confirmed later." The build stated only the standing
+         sentence and neither live count (lane lists60, 2026-09-08). Both counts are already in this
+         component's props: the signal total it renders, and the observed-series total the SAME
+         `seriesBoard` the Headline Series card reads carries. A segment whose figure is absent is
+         omitted, never invented. */
+      scopeLine={
+        <span data-audit="scope-line">
+          <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active signals
+          {observedSeriesCount !== null && (
+            <>
+              {" · "}
+              <b style={{ color: "var(--ink)" }}>{formatNumber(observedSeriesCount)}</b> observed series
+            </>
+          )}
+          {" · signals are unverified by design — timely first, confirmed later"}
+        </span>
+      }
+      /* Artboard 04's own command-bar placeholder. Pass-through: the ask surface is still the one
+         CommandBar in the Masthead (README §0.4). */
+      searchPlaceholder={'Search signals, series, producers — or ask "how does Brent affect my air freight?"'}
       dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
       nowIso={nowIso}
       itemCount={total}

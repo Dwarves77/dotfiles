@@ -2,16 +2,21 @@
   "part": "Page composition — Onboarding (17)",
   "mount": "compose-onboarding",
   "viewport": 1440,
-  "artboards": ["17-onboarding"],
+  "artboards": [
+    "17-onboarding"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
   "notes": [
     "Region-composition check for the real OnboardingWizard (its own `step` state defaults to 2, 'Modes & jurisdictions' — the artboard's own illustrated step, no forced navigation needed) inside AuthFrame, populated fixture aggregates via .discipline/rendering/audit/mounts.mjs['compose-onboarding'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
     "This lane found NO composition defects — the wizard was already built carefully by a prior lane (OnboardingWizard.tsx's own header explains the 5→4-step replacement and every deviation, already logged). Artboard order confirmed present and in order: 4-pill stepper (Workspace done / Modes & jurisdictions active / Sectors / Briefing) -> 'Where do you move freight?' heading + scope copy -> Modes chip row -> Home jurisdictions chip grid + '+N more' -> Preview·your workspace today 4-tile band strip -> Skip for now / Continue → Sectors footer.",
     "Step 4 'Briefing' has no artboard yet (operator ruling, dispatch instruction) — out of this mount's and this lane's scope, left as built.",
-    "This lane's own mount needed one infrastructure fix to show real counts: OnboardingWizard.tsx's profile-prefill effect awaits `supabase.from(\"profiles\")...` unconditionally on mount; the compose-login/signup `stub-supabase-browser-auth.mjs` (reused here) had no `.from` at all, which threw inside the effect before `setLoadingProfile(false)` ran, leaving the step-2 preview tiles stuck on their loading skeleton forever regardless of the `aggregates` fixture prop. Added the same empty-row `.from` shape the generic stub already carries — additive, does not change stub-supabase-browser-auth.mjs's signed-out `.auth` contract that /login and /signup depend on."
+    "This lane's own mount needed one infrastructure fix to show real counts: OnboardingWizard.tsx's profile-prefill effect awaits `supabase.from(\"profiles\")...` unconditionally on mount; the compose-login/signup `stub-supabase-browser-auth.mjs` (reused here) had no `.from` at all, which threw inside the effect before `setLoadingProfile(false)` ran, leaving the step-2 preview tiles stuck on their loading skeleton forever regardless of the `aggregates` fixture prop. Added the same empty-row `.from` shape the generic stub already carries — additive, does not change stub-supabase-browser-auth.mjs's signed-out `.auth` contract that /login and /signup depend on.",
+    "Same 900px frame and centred right column as artboard 16 — see that spec's note for why the capture, not the build, was what sat the panel low. Artboard 17 also draws a '← Back' link in the footer row of the step it renders. The build renders it from step 3 onward and an empty placeholder here at step 2, and that is correct composition: this wizard STARTS at step 2, because step 1 (Workspace) is a separate, already-completed flow the stepper marks with a ✓ and which has no route to return to. A Back at step 2 would navigate nowhere — the dead control operator audit P0 1.1 ruled a defect. The link's existence and its wiring to the wizard's own goBack are proven by OnboardingWizard.npmtest.mjs; the forbid below holds the other half, so a later lane cannot add a Back to the first step to 'match the image'. Logged in DEVIATION-LOG.md."
   ],
   "selector": "[data-audit=\"onboarding\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — 4-pill stepper, Modes & jurisdictions active",
@@ -22,7 +27,9 @@
     {
       "name": "region 2 — heading",
       "selector": "[data-audit=\"onboarding\"] h1",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Where do you move freight?"
     },
     {
@@ -48,6 +55,25 @@
       "selector": "[data-audit=\"onboarding\"] *",
       "expect": {},
       "textMatch": "Continue"
+    },
+    {
+      "name": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"onboarding\"] > div > div",
+      "expect": {
+        "min-height": "900px",
+        "display": "grid"
+      }
+    },
+    {
+      "name": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "expect": {
+        "display": "flex",
+        "align-items": "center",
+        "justify-content": "center",
+        "padding-top": "48px",
+        "padding-left": "48px"
+      }
     }
   ],
   "forbid": [
@@ -56,6 +82,12 @@
       "selector": "[data-audit=\"onboarding\"] button",
       "textMatch": "Ask AI",
       "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
+    },
+    {
+      "name": "no '← Back' control on the wizard's FIRST step",
+      "selector": "[data-audit=\"onboarding\"] button",
+      "textMatch": "Back",
+      "reason": "Step 2 is where this wizard starts; step 1 (Workspace) is a separate completed flow with no route back. A Back here would navigate nowhere (operator audit P0 1.1). The link itself exists and is wired from step 3 onward — OnboardingWizard.npmtest.mjs proves that half."
     }
   ]
 }

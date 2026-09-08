@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T08:03:17.460Z",
+  "runAt": "2026-09-08T08:20:37.816Z",
   "specs": [
     {
       "part": "Absence",
@@ -2448,7 +2448,8 @@
       "notes": [
         "Region-composition check for /login (the primary illustrated state on the artboard, 'Sign in' tab active). Full page: the real LoginPage (src/app/login/page.tsx) inside AuthFrame — no AppShell/Sidebar, matching the artboard's own full-1440px split-screen frame (left identity panel / right form panel), no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
         "This lane found NO composition defects on this page — it was already built carefully by a prior lane (AuthFrame.tsx/AuthPanel.tsx/LoginPage.tsx headers), including correctly-reasoned, already-logged deviations from the artboard's own placeholder content: the artboard's headline ('What is binding on you, when it bites, and what it costs.') and its fabricated '1,434 items...' copy are explicitly marked placeholder in README ('Fidelity') and are not shipped (CLAUDE.md rule 2, never fabricate numbers) — the real tagline + the real BAND_ORDER urgency-band scale render in that slot instead, both real vocabulary. The artboard's 'Keep me signed in' checkbox is not built because src/lib/supabase-browser.ts's client has no session-only mode wired and that file is outside this lane's write set (logged). This spec exists to LOCK this already-correct composition in place, not to fix anything.",
-        "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected."
+        "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected.",
+        "Artboards 16 and 17 draw a 900px-tall frame whose right column is vertically CENTRED (dc.html p16/p17: the grid is `min-height:900px` and the right column `display:flex;align-items:center;justify-content:center;padding:48px`). AuthFrame.tsx already builds exactly that. FOLD-59's visual pass read the built panel as sitting lower than the artboard's; that was the CAPTURE, whose 1400px viewport made AuthFrame's own `min-height:100vh` outer box 1400 tall so the panel centred at 700 instead of 450. The mount now pins its capture height to the artboard's 900. Asserted below so the geometry cannot drift silently again (lane lists60, 2026-09-08). The 'Keep me signed in' checkbox artboard 16 draws is still NOT built: it needs a session-persistence decision (Supabase session lifetime, not a checkbox), and it is logged in DEVIATION-LOG.md as the open item it already was. No forbid row is added for it, because it is deferred, not ruled out."
       ],
       "selector": "[data-audit=\"login\"]",
       "expect": {
@@ -2497,6 +2498,25 @@
           "selector": "[data-audit=\"login\"] *",
           "expect": {},
           "textMatch": "Invited to a workspace?"
+        },
+        {
+          "name": "the frame is the artboard's 900px-tall grid",
+          "selector": "[data-audit=\"login\"] > div > div",
+          "expect": {
+            "min-height": "900px",
+            "display": "grid"
+          }
+        },
+        {
+          "name": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+          "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+          "expect": {
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "padding-top": "48px",
+            "padding-left": "48px"
+          }
         }
       ],
       "forbid": [
@@ -2522,7 +2542,8 @@
         "Region-composition check for the real OnboardingWizard (its own `step` state defaults to 2, 'Modes & jurisdictions' — the artboard's own illustrated step, no forced navigation needed) inside AuthFrame, populated fixture aggregates via .discipline/rendering/audit/mounts.mjs['compose-onboarding'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
         "This lane found NO composition defects — the wizard was already built carefully by a prior lane (OnboardingWizard.tsx's own header explains the 5→4-step replacement and every deviation, already logged). Artboard order confirmed present and in order: 4-pill stepper (Workspace done / Modes & jurisdictions active / Sectors / Briefing) -> 'Where do you move freight?' heading + scope copy -> Modes chip row -> Home jurisdictions chip grid + '+N more' -> Preview·your workspace today 4-tile band strip -> Skip for now / Continue → Sectors footer.",
         "Step 4 'Briefing' has no artboard yet (operator ruling, dispatch instruction) — out of this mount's and this lane's scope, left as built.",
-        "This lane's own mount needed one infrastructure fix to show real counts: OnboardingWizard.tsx's profile-prefill effect awaits `supabase.from(\"profiles\")...` unconditionally on mount; the compose-login/signup `stub-supabase-browser-auth.mjs` (reused here) had no `.from` at all, which threw inside the effect before `setLoadingProfile(false)` ran, leaving the step-2 preview tiles stuck on their loading skeleton forever regardless of the `aggregates` fixture prop. Added the same empty-row `.from` shape the generic stub already carries — additive, does not change stub-supabase-browser-auth.mjs's signed-out `.auth` contract that /login and /signup depend on."
+        "This lane's own mount needed one infrastructure fix to show real counts: OnboardingWizard.tsx's profile-prefill effect awaits `supabase.from(\"profiles\")...` unconditionally on mount; the compose-login/signup `stub-supabase-browser-auth.mjs` (reused here) had no `.from` at all, which threw inside the effect before `setLoadingProfile(false)` ran, leaving the step-2 preview tiles stuck on their loading skeleton forever regardless of the `aggregates` fixture prop. Added the same empty-row `.from` shape the generic stub already carries — additive, does not change stub-supabase-browser-auth.mjs's signed-out `.auth` contract that /login and /signup depend on.",
+        "Same 900px frame and centred right column as artboard 16 — see that spec's note for why the capture, not the build, was what sat the panel low. Artboard 17 also draws a '← Back' link in the footer row of the step it renders. The build renders it from step 3 onward and an empty placeholder here at step 2, and that is correct composition: this wizard STARTS at step 2, because step 1 (Workspace) is a separate, already-completed flow the stepper marks with a ✓ and which has no route to return to. A Back at step 2 would navigate nowhere — the dead control operator audit P0 1.1 ruled a defect. The link's existence and its wiring to the wizard's own goBack are proven by OnboardingWizard.npmtest.mjs; the forbid below holds the other half, so a later lane cannot add a Back to the first step to 'match the image'. Logged in DEVIATION-LOG.md."
       ],
       "selector": "[data-audit=\"onboarding\"]",
       "expect": {
@@ -2566,6 +2587,25 @@
           "selector": "[data-audit=\"onboarding\"] *",
           "expect": {},
           "textMatch": "Continue"
+        },
+        {
+          "name": "the frame is the artboard's 900px-tall grid",
+          "selector": "[data-audit=\"onboarding\"] > div > div",
+          "expect": {
+            "min-height": "900px",
+            "display": "grid"
+          }
+        },
+        {
+          "name": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+          "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+          "expect": {
+            "display": "flex",
+            "align-items": "center",
+            "justify-content": "center",
+            "padding-top": "48px",
+            "padding-left": "48px"
+          }
         }
       ],
       "forbid": [
@@ -2574,6 +2614,12 @@
           "selector": "[data-audit=\"onboarding\"] button",
           "textMatch": "Ask AI",
           "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
+        },
+        {
+          "name": "no '← Back' control on the wizard's FIRST step",
+          "selector": "[data-audit=\"onboarding\"] button",
+          "textMatch": "Back",
+          "reason": "Step 2 is where this wizard starts; step 1 (Workspace) is a separate completed flow with no route back. A Back here would navigate nowhere (operator audit P0 1.1). The link itself exists and is wired from step 3 onward — OnboardingWizard.npmtest.mjs proves that half."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-17-onboarding.json",
@@ -11983,6 +12029,118 @@
       ],
       "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
       "viewport": 1440,
+      "target": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"login\"] > div > div",
+      "property": "min-height",
+      "expected": "900px",
+      "actual": "900px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"login\"] > div > div",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "property": "align-items",
+      "expected": "center",
+      "actual": "center",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "property": "justify-content",
+      "expected": "center",
+      "actual": "center",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "property": "padding-top",
+      "expected": "48px",
+      "actual": "48px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "property": "padding-left",
+      "expected": "48px",
+      "actual": "48px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
       "target": "no floating Ask AI button — auth pages are logged out, no assistant surface",
       "selector": "[data-audit=\"login\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
@@ -12031,6 +12189,118 @@
       ],
       "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
       "viewport": 1440,
+      "target": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"onboarding\"] > div > div",
+      "property": "min-height",
+      "expected": "900px",
+      "actual": "900px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"onboarding\"] > div > div",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "property": "align-items",
+      "expected": "center",
+      "actual": "center",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "property": "justify-content",
+      "expected": "center",
+      "actual": "center",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "property": "padding-top",
+      "expected": "48px",
+      "actual": "48px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "the step column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"onboarding\"] > div > div > div:nth-child(2)",
+      "property": "padding-left",
+      "expected": "48px",
+      "actual": "48px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
       "target": "no floating Ask AI button — onboarding renders no AppShell",
       "selector": "[data-audit=\"onboarding\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
@@ -12038,6 +12308,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
+    },
+    {
+      "spec": "compose-17-onboarding",
+      "part": "Page composition — Onboarding (17)",
+      "artboards": [
+        "17-onboarding"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
+      "viewport": 1440,
+      "target": "no '← Back' control on the wizard's FIRST step",
+      "selector": "[data-audit=\"onboarding\"] button [text contains \"Back\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Step 2 is where this wizard starts; step 1 (Workspace) is a separate completed flow with no route back. A Back here would navigate nowhere (operator audit P0 1.1). The link itself exists and is wired from step 3 onward — OnboardingWizard.npmtest.mjs proves that half."
     },
     {
       "spec": "detailheader",

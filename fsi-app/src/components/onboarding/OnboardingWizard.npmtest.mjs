@@ -34,3 +34,25 @@ test("the notification-defaults seed on entering step 4 is unchanged by the swap
 test("step 4 is still wired into the stepper at step === 4", () => {
   assert.match(SOURCE, /step === 4 && <StepBriefing \/>/);
 });
+
+// ── the artboard's "← Back" link (lane lists60, 2026-09-08) ─────────────────────────────────────
+// Artboard 17/id="p17" draws "← Back" in the footer row of the step it renders (step 2). The build
+// renders it from step 3 onward and renders an empty placeholder at step 2, and that is the correct
+// composition, not a missing region: this wizard STARTS at step 2, because step 1 (Workspace) is a
+// separate, already-completed flow with no route to return to — the stepper shows it with a ✓, not
+// as a place the reader can go. A "← Back" at step 2 would navigate nowhere, which is precisely the
+// dead control operator audit P0 1.1 ruled a defect. Logged in DEVIATION-LOG.md. Both halves of
+// that decision are asserted here so neither can drift: the link EXISTS and is wired wherever there
+// is a previous step, and it is withheld exactly where there is not.
+
+test("the artboard's '← Back' link exists and is wired to the wizard's own previous-step function", () => {
+  assert.match(SOURCE, /onClick=\{goBack\}/);
+  assert.match(SOURCE, /← Back/);
+});
+
+test("Back renders only where a previous step exists — step 2 is the wizard's first step", () => {
+  assert.match(SOURCE, /\{step > 2 \? \(/);
+  // goBack itself refuses to move below step 2, so even a stray caller cannot land on a step 1 the
+  // wizard does not render.
+  assert.match(SOURCE, /const goBack = \(\) => \{\s*\n\s*if \(step === 2\) return;/);
+});

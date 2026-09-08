@@ -2742,6 +2742,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-login': {
     id: 'compose-login',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real /login page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
     viewport: 1440,
     entry: COMPOSE_LOGIN_ENTRY,
@@ -2754,6 +2758,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-signup': {
     id: 'compose-signup',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real /signup page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
     viewport: 1440,
     entry: COMPOSE_SIGNUP_ENTRY,
@@ -2766,6 +2774,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-onboarding': {
     id: 'compose-onboarding',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real OnboardingWizard (AuthFrame + OnboardingStepper), step 2 (its own default), README screen 17 / dc.html p17.',
     viewport: 1440,
     entry: COMPOSE_ONBOARDING_ENTRY,

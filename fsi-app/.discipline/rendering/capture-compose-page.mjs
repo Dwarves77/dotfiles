@@ -34,7 +34,15 @@ async function main() {
   );
   const bundleJs = await bundleEntry(mount.entry, { alias: mount.alias || {} });
   const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
-  await page.setViewportSize({ width: mount.viewport || 1440, height: 1400 });
+  // A mount may pin its own capture height (`captureHeight` in AUDIT_MOUNTS). The auth and
+  // onboarding frames need it: AuthFrame's outer box is `min-height: 100vh` and its inner grid is
+  // `min-height: 900px` with a vertically CENTRED right column — exactly what artboards 16 and 17
+  // draw. Captured at the harness's default 1400px tall viewport, 100vh made the frame 1400 tall
+  // and the form centred at 700 instead of 450, which read as "the build centres the panel where
+  // the artboard sits it higher" in FOLD-59's visual pass. It is the capture that was off by 500px,
+  // not the build: the artboard's own frame IS 900 tall (lane lists60, 2026-09-08).
+  const captureHeight = mount.captureHeight || 1400;
+  await page.setViewportSize({ width: mount.viewport || 1440, height: captureHeight });
   if (mount.needsCompiledCss) {
     const css = await fullAppCssCompiled();
     await page.addStyleTag({ content: css });
@@ -53,7 +61,8 @@ async function main() {
     const el = document.querySelector(sel);
     return el ? Math.ceil(el.getBoundingClientRect().height) : 1400;
   }, `[data-audit="${mount.dataAudit || mountId.replace(/^compose-/, '')}"]`);
-  if (contentHeight > 1400) {
+  // A mount that pinned its height keeps it: growing to content would undo the pin.
+  if (!mount.captureHeight && contentHeight > 1400) {
     await page.setViewportSize({ width: mount.viewport || 1440, height: contentHeight + 40 });
     await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
   }
