@@ -1,7 +1,9 @@
 // Account-page-composition-only stub for @/lib/supabase-browser (lane compose-other, 2026-09-08).
 // UserProfilePage.tsx reads three tables directly via supabase.from(...).select(...).eq(...): the
 // profiles row (name/bio/verifier status/created_at), organizations.plan (rail "Plan" tile), and
-// org_memberships (head-count for the "Members & roles · N" tab label). The generic
+// org_memberships (head-count for the "Members & roles · N" tab label; 2, the same number the
+// mocked /api/orgs/org-1/members route returns, so the tab label and the card's own "2 members"
+// meta cannot disagree inside one capture, lane admin60, 2026-09-08). The generic
 // stub-supabase-browser.mjs always resolves null/empty, which is correct for a click-fires-callback
 // smoke proof but wrong here — this lane's mounts show POPULATED fixture data (no live Supabase
 // project reachable in this sandbox; see DEVIATION-LOG.md), so this stub answers each of those three
@@ -47,7 +49,7 @@ export function createSupabaseBrowserClient() {
       // directly (no maybeSingle) — make the chain itself thenable so `await` on it resolves.
       if (table === 'org_memberships') {
         chain.select = () => ({
-          eq: async () => ({ count: 12, error: null }),
+          eq: async () => ({ count: 2, error: null }),
         });
       }
       return chain;

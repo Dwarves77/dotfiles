@@ -2,16 +2,22 @@
   "part": "Page composition — Account (14)",
   "mount": "compose-account",
   "viewport": 1440,
-  "artboards": ["14-account"],
+  "artboards": [
+    "14-account"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
   "notes": [
     "Region-composition check for the full page: AppShell + the real UserProfilePage (its own internal Masthead + merged tab row), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-account'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md); this mount's org endpoints (/api/orgs/org-1, /members, /invitations) are mocked with dc.html p14's own illustrated fixture (2 members, both Owner; Dietl / Rockit, enterprise plan) instead.",
     "Artboard order: Masthead -> merged 8-entry tab row (Personal/Organization/Members & roles·2/Sector profile·6/Jurisdictions·30/Verifier badge/Activity/Settings) -> 2-column grid (content 1fr / 300px rail) -> left column: Members & roles card THEN Organization card stacked directly below it (dc.html's own illustrated tab is Members & roles, not Personal) -> rail: 2x2 stat grid (Sectors followed/Home jurisdictions/Member since/Plan) -> Admin card (owner/admin only) -> Quick links card (Dashboard / Settings / Watchlist, 3 items).",
     "This lane fixed four real defects: (1) the page used to render a single-column layout — an owner-banner strip above a `repeat(4,1fr)` stat row above the tab body, no rail — replaced with dc.html's own 2-column grid (minmax(0,1fr) 300px) with the stat grid / Admin card / Quick links card as a RAIL persistent across every tab, not stacked above the content in one column. (2) The rail's 4th stat tile used to be a conditional 'Admin attention'/'Account role' tile; dc.html's 4th tile is 'Plan' (org billing plan) — added an `organizations.plan` read and swapped the tile. (3) QuickLinksRail (persistent in the rail now) used to duplicate itself inside the Personal tab's own body AND carried 5-6 two-line entries (Dashboard/Regulations/Market intel/Map/Settings/Admin panel) that dc.html does not show; fixed to dc.html's own exact 3 single-line links (Dashboard / Settings · notifications, briefing schedule / Watchlist), rendered once, persistently, in the rail only. (4) The Members & roles tab used to render only MembersPanel; dc.html p14 illustrates Organization stacked directly below it on that same tab (Organization keeps its own separate tab too, unaffected) — added.",
-    "Not a composition defect, left as the real page's own behavior: the Masthead's dateLabel here is computed from the live current date (Intl formatLocaleDate(new Date())), not a passed-in fixture string like Map/Community/Admin's mounts use — UserProfilePage.tsx has never taken a dateLabel prop, unlike AdminDashboard; changing that is a component-level decision outside this composition-only pass, and the visual difference (today's real weekday/date vs the artboard's fixed 'Sunday 6 September 2026') is expected and not asserted by this spec."
+    "Not a composition defect, left as the real page's own behavior: the Masthead's dateLabel here is computed from the live current date (Intl formatLocaleDate(new Date())), not a passed-in fixture string like Map/Community/Admin's mounts use, UserProfilePage.tsx has never taken a dateLabel prop, unlike AdminDashboard; changing that is a component-level decision outside this composition-only pass, and the visual difference (today's real weekday/date vs the artboard's fixed 'Sunday 6 September 2026') is expected and not asserted by this spec.",
+    "Lane admin60 (2026-09-08) closed the five differences the train-59 fold listed against this artboard. (1) The invite row carries dc.html p14's own 'INVITE BY EMAIL' field label, its 'name@company.com' placeholder and its 'Send invite' button, laid out 1fr/auto to the field baseline. (2) The member list IS the artboard's table now: the shared RowTable under MEMBER / JOINED / ROLE headers on dc.html's own track list (1fr 120px 150px 44px), with the trailing 44px overflow cell; Remove and Ban moved off the row as text buttons into that overflow menu (R7's precedent; the overlay's own styling is left exactly as RowTable ships it, per 'overlays: unchanged and undesigned, do not invent'). The row's second line is the artboard's 'you · <email>' on the reader's own row, not a repeat of the ROLE column. (3) The seat foot strip is built as a neutral StateNote where the artboard draws one; the seat clause has NO data path (no seats / seat_limit / max_members column exists in the schema or in any /api/orgs payload, re-checked this lane), so it renders the Absence convention with reason 'connect data' and no 'Manage seats' link, there being no seats route and a dead control being a defect (ruling 1.1). (4) The identity table and workspace-scope footnote that used to sit ABOVE ORGANIZATION's two fields, where the artboard has nothing, moved BELOW them as a card-foot disclosure under ruling R7. (5) The rail's four stat blocks are ONE card with a 2x2 grid inside, as drawn, not four separate bordered cards.",
+    "Also this lane, both shared parts and both artboard-driven: AccountCard's head meta is 10.5px / .12em small caps (it read as body copy in sentence case), and the card head sits on the card's own white rather than a raised plate."
   ],
   "selector": "[data-audit=\"account\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — merged tab row, Members & roles present with count",
@@ -52,8 +58,96 @@
     {
       "name": "region 6b — Quick links has exactly 3 entries (Dashboard / Settings / Watchlist), no duplicate elsewhere",
       "selector": "[data-audit=\"account\"] a[href=\"/\"]",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "note": "Dashboard's own '/' link — used to appear twice (once in the Personal-tab-local QuickLinksRail, once in the rail's persistent one) before this lane deduplicated it."
+    },
+    {
+      "name": "region 2a, the invite row carries the artboard's INVITE BY EMAIL label",
+      "selector": "[data-audit=\"members-invite-row\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Invite by email"
+    },
+    {
+      "name": "region 2b, the invite field's placeholder is the artboard's",
+      "selector": "[data-audit=\"members-invite-row\"] input",
+      "expect": {
+        "count": "1",
+        "placeholder": "name@company.com"
+      }
+    },
+    {
+      "name": "region 2c, the invite action reads Send invite",
+      "selector": "[data-audit=\"members-invite-row\"] button",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Send invite"
+    },
+    {
+      "name": "region 2d, the member list is a table on dc.html p14's own track list",
+      "selector": "[data-audit=\"members-table\"] > div > div",
+      "expect": {
+        "grid-template-columns": "* 120px 150px 44px"
+      }
+    },
+    {
+      "name": "region 2e, its column headers are the artboard's three, in order",
+      "selector": "[data-audit=\"members-table\"] > div > div:first-child",
+      "expect": {
+        "text": "MemberJoinedRole"
+      }
+    },
+    {
+      "name": "region 2f, every member row ends in the 44px overflow control",
+      "selector": "[data-audit=\"members-table\"] button[aria-haspopup=\"menu\"]",
+      "expect": {
+        "count": "2",
+        "width": "44px",
+        "height": "44px"
+      }
+    },
+    {
+      "name": "region 2g, the seat foot strip, with the seat clause in the Absence convention",
+      "selector": "[data-audit=\"members-seat-strip\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "seat limit"
+    },
+    {
+      "name": "region 3a, ORGANIZATION's body is the artboard's two fields and Save on one row",
+      "selector": "[data-audit=\"org-fields-row\"]",
+      "expect": {
+        "count": "1",
+        "grid-template-columns": "* * *"
+      },
+      "note": "dc.html p14: 1fr 1fr auto. CSSOM reports used pixel widths for all three tracks, so each is matched as one token; the two equal 1fr tracks and a content-sized Save are what the artboard draws."
+    },
+    {
+      "name": "region 3b, the R7 disclosure carrying the org identity table sits AFTER those fields",
+      "selector": "[data-audit=\"org-fields-row\"] ~ [data-audit=\"org-record-disclosure\"]",
+      "expect": {
+        "count": "1"
+      },
+      "note": "Sibling combinator: matches only when the fields row's DOM node precedes the disclosure. Placement check, not a style check."
+    },
+    {
+      "name": "region 4a, the rail's four stat blocks are ONE card, 2x2 inside",
+      "selector": "[data-audit=\"account-stat-card\"]",
+      "expect": {
+        "count": "1",
+        "grid-template-columns": "* *"
+      }
+    },
+    {
+      "name": "region 4b, that one card holds all four of the artboard's stats",
+      "selector": "[data-audit=\"account-stat-card\"]",
+      "expect": {},
+      "textMatch": "re:Sectors followed[\\s\\S]*Home jurisdictions[\\s\\S]*Member since[\\s\\S]*Plan"
     }
   ],
   "forbid": [
@@ -62,6 +156,33 @@
       "selector": "[data-audit=\"account\"] button",
       "textMatch": "Ask AI",
       "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "name": "no Remove/Ban text buttons on the member row",
+      "selector": "[data-audit=\"members-table\"] button:not([aria-haspopup=\"menu\"])",
+      "textMatch": "Remove",
+      "reason": "dc.html p14's row ends in the overflow glyph; Remove and Ban live in that menu (R7)."
+    },
+    {
+      "name": "no Manage seats link",
+      "selector": "[data-audit=\"members-seat-strip\"] a",
+      "reason": "The artboard draws one, but no seats route or seat-limit data exists (re-checked 2026-09-08). A control with no function behind it is a dead control (ruling 1.1); logged in DEVIATION-LOG.md rather than drawn."
+    },
+    {
+      "name": "no separate bordered card per rail stat",
+      "selector": "[data-audit=\"account\"] [data-audit=\"account-stat-card\"] > div",
+      "matchStyle": {
+        "border-top-width": "1px"
+      },
+      "reason": "dc.html p14 groups the four stats in ONE bordered card with no per-tile border."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "MEMBERS & ROLES: every cell stays inside its own row and column",
+      "container": "[data-audit=\"members-table\"] > div > div",
+      "cells": ".cl-rowtable-cell, .cl-rowtable-headcell",
+      "reason": "Same containment rule ListRow and the ORGANIZATIONS table carry: no cell escapes its column or collides with a sibling."
     }
   ]
 }

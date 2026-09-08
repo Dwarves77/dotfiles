@@ -35,6 +35,7 @@ import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
+import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -427,6 +428,26 @@ async function main() {
       const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
       try {
         await page.setViewportSize({ width: spec.viewport, height: 1400 });
+        // TWO independent stylesheet mechanisms, both kept at the fold (train 60). They answer
+        // different questions and neither subsumes the other.
+        //
+        // `needsCompiledCss` (lane admin60) gives the mount the app's own compiled stylesheet,
+        // exactly as capture-compose-page.mjs gives it before shooting the same mount. Without it
+        // the eight AppShell page-composition mounts rendered with NO stylesheet at all: every
+        // `var(--fs-*)` fell back to the 16px default, so any measurement that depends on real type
+        // size (a bounds check, a wrapped header cell) was measuring a page the product never
+        // renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its 30px
+        // strip: real at 16px, impossible at the token's 9.5px.
+        //
+        // `styleFiles` (lane map60) adds a named stylesheet from node_modules, for a mount whose
+        // esbuild alias table drops a bare `.css` import. The compose-map mount aliases
+        // `leaflet/dist/leaflet.css` to an empty module, so leaflet built all four markers but
+        // nothing gave `.leaflet-pane` its absolute positioning and the canvas photographed empty.
+        //
+        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it.
+        if (mount.needsCompiledCss) {
+          await page.addStyleTag({ content: await fullAppCssCompiled() });
+        }
         const extraCss = mountExtraCss(mount);
         if (extraCss) await page.addStyleTag({ content: extraCss });
         await mountBundle(page, bundleCache.get(spec.mount), '__mount', null);

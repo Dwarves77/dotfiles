@@ -1061,6 +1061,14 @@ window.__mount = () => {
           userEmail: 'smoke@example.com',
           dateLabel: 'Sunday 6 September 2026',
           initialOrgs: [{ id: 'org-1', name: "Dietl / Rockit", slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-01-01' }],
+          // dc.html p13's own ORGANIZATIONS row reads "1 ORG · 2 MEMBERSHIPS" with a
+          // MEMBERS cell of "2 · owners", so the mount seeds those two memberships:
+          // without them the region rendered a bare 0 and the artboard's role summary
+          // could not be measured at all (lane admin60, 2026-09-08).
+          initialMembers: [
+            { id: 'mem-1', org_id: 'org-1', user_id: 'a0764ff3-0000-0000-0000-000000000001', role: 'owner', created_at: '2026-04-04T00:00:00Z' },
+            { id: 'mem-2', org_id: 'org-1', user_id: 'a0764ff3-0000-0000-0000-000000000002', role: 'owner', created_at: '2026-05-28T00:00:00Z' },
+          ],
           initialProvisionalSources: PROVISIONAL,
           initialEmissionFactorsLiveCount: 13,
         }),
