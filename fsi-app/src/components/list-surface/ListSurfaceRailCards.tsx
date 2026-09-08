@@ -503,19 +503,31 @@ export function NextDataDropsRailCard({ drops }: { drops: NextDataDropRow[] }) {
           <Absence reason="pending" />
         ) : (
           drops.map((d) => (
-            <div key={d.keyPrefix} data-audit="next-drop-row" style={{ display: "grid", gridTemplateColumns: "70px 1fr", gap: 10 }}>
+            <div
+              key={d.keyPrefix}
+              data-audit="next-drop-row"
+              style={{ display: "grid", gridTemplateColumns: "minmax(70px, auto) minmax(0, 1fr)", gap: 10 }}
+            >
               {/* nowrap: at the rail's 300px the artboard's 70px date column is a tight fit for a
                   two-digit day ("Thu Sep 10"), and the first capture broke it across two lines with
                   "10" orphaned on the second — exactly the wrap the operator's 2026-09-07 visual
-                  pass rules out. The column keeps the artboard's 70px; the date simply never wraps
-                  inside it. */}
+                  pass rules out.
+                  FOLD 60: `nowrap` alone traded that wrap for a 6px OVERFLOW. The track was a hard
+                  70px, "Thu Sep 10" measures 76px, and every box between here and the card is
+                  `overflow: visible`, so the date did not clip, it SPILLED into the producer-name
+                  column beside it. Measured, not guessed: clientWidth 70, scrollWidth 76. The track
+                  is now `minmax(70px, auto)`, so it IS the artboard's 70px for every date that fits
+                  (a single-digit day, which is what artboard 04 itself draws) and grows only by the
+                  few pixels a two-digit day needs. The name column takes `minmax(0, 1fr)` so it
+                  yields those pixels instead of pushing the row wider, the same `min-width: 0`
+                  containment RowTable carries. Neither wrap nor spill is reachable now. */}
               <span
                 data-audit="next-drop-date"
                 style={{ fontWeight: 700, color: "var(--ink)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
               >
                 {formatNextDropDate(d.dateIso)}
               </span>
-              <span>{d.name}</span>
+              <span style={{ minWidth: 0 }}>{d.name}</span>
             </div>
           ))
         )}

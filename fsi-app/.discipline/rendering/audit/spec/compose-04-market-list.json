@@ -139,6 +139,21 @@
       "expect": {
         "display": "block"
       }
+    },
+    {
+      "name": "region 7a, NEXT DATA DROPS row 1, a single-digit date keeps the artboard's exact 70px track",
+      "selector": "[data-audit=\"next-drop-row\"]:nth-child(1)",
+      "expect": {
+        "grid-template-columns": "70px 186px"
+      },
+      "note": "FOLD 60, and the reason this row is geometric rather than a bounds check. The date cell is `white-space: nowrap` in what was a HARD 70px track; 'Thu Sep 10' measures 75.7px, and every box up to the card is `overflow: visible`, so the date did not clip, its glyphs PAINTED 6px into the producer-name column beside it. A boundsCheck was written first and REFUTED BY ATTACK: restoring the hard 70px left it MATCH, because a bounds check compares element RECTS and the span's rect stays 70px while its text paints outside it. Text overflow is invisible to rect geometry. What does catch it is the resolved track list. The track is `minmax(70px, auto)`: row 1's single-digit date ('Sat Sep 5') still resolves to EXACTLY the artboard's 70px, and only row 2's two-digit date grows, by the 5.7px it actually needs, with the name column at `minmax(0, 1fr)` yielding them. Reverting to `70px 1fr` turns this row MISMATCH (measured 70px 186px)."
+    },
+    {
+      "name": "region 7b, NEXT DATA DROPS row 2, a two-digit date grows its track instead of painting over its sibling",
+      "selector": "[data-audit=\"next-drop-row\"]:nth-child(2)",
+      "expect": {
+        "grid-template-columns": "75.7031px 180.297px"
+      }
     }
   ],
   "forbid": [

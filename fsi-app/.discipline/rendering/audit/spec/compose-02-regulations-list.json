@@ -121,6 +121,13 @@
       "expect": {
         "text": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
       }
+    },
+    {
+      "name": "region 6a, the MODE facet reads the vocabulary's DISPLAY labels, title case as the artboard draws them",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "expect": {},
+      "textMatch": "Ocean",
+      "note": "Artboard 02/id=\"p2\" draws the FILTERS card's MODE rows as Air / Road / Ocean / Rail, title case, like its own JURISDICTION and TOPIC groups. The build printed the raw canonical token, so the group read 'air / ocean / road / rail' in lower case and was the only lower-case group in the card. Found by eye in train 60's visual pass; no spec measured it. The label now comes from TRANSPORT_MODES (the vocabulary that already owns it), and the option's `value` is untouched, so the stored/filtered token is still the canonical `ocean` of the 2026-08-12 ruling. This row asserts the DISPLAY form only. The match is a CASE-SENSITIVE substring, which is exactly the distinction under test: the lower-case token 'ocean' does not contain 'Ocean'. (Authoring note, fold 60: this row first used a `re:` regex with \\b word boundaries and reported NOT BUILT against a correct product, because in JSON \\b is the escape for BACKSPACE, so the parsed pattern searched for control characters. A regex in a spec file needs its backslashes doubled; a plain substring needs none, and is enough here.)"
     }
   ],
   "forbid": [
@@ -140,6 +147,12 @@
       "selector": "body",
       "textMatch": "regulations tracked across",
       "reason": "Artboard 02/id=\"p2\" draws nothing below the band cards. Both figures that line restated are already stated by regions the artboard DOES draw: the corpus total and the jurisdiction count in the masthead scope line, the total again in the sort row. Removed on all three surfaces that share this shared slot (/regulations, /market, /operations)."
+    },
+    {
+      "name": "the MODE facet never prints a bare lower-case canonical token as a label",
+      "selector": "[data-audit=\"facet-mode\"] label span",
+      "textMatch": "re:^(ocean|road|rail|air)$",
+      "reason": "The lower-case token is the storage form, not a label. Its reappearance here is exactly the regression this fold fixed, and it is invisible to every other row because the counts and the click behaviour are unchanged when only the case is wrong."
     }
   ]
 }
