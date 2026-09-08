@@ -76,6 +76,15 @@
         "count": "1"
       },
       "textMatch": "Legend"
+    },
+    {
+      "name": "region 1a — chip row order: band pill, Finding, type, theme, modes, then the TIER square last",
+      "selector": "[data-audit=\"research-detail\"] [data-audit=\"detail-chips\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "re:Finding[\\s\\S]*Emissions accounting[\\s\\S]*All modes[\\s\\S]*T3",
+      "note": "dc.html #p7: Awareness · Finding · Initiative · Emissions accounting · All modes · T3. The theme chip and the At a glance Theme row were absent because the fixture carried no `theme` key."
     }
   ],
   "forbid": [

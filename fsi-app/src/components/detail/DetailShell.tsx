@@ -117,8 +117,13 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, h
       <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
         <SectionRule />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ minWidth: 0 }}>
+      {/* All four detail artboards STACK this header: the chip row (ending in the tier square and
+          the stat), then the workspace tag row, then the action row, every one of them left-aligned
+          at the card's own padding. The build laid it out as a two-column space-between row, which
+          floated the action row to the right edge on 03/07/09 and only stacked on 05 when the chips
+          happened to be wide enough to force a wrap. */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ minWidth: 0, maxWidth: "100%" }}>
           <div data-audit="detail-chips" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
             {/* Artboard chip order, all four detail artboards (dc.html #p3/#p5/#p7/#p9): band pill,
                 then the item's own type/mode/topic chips, then the TIER square LAST, immediately
@@ -128,18 +133,16 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, h
             <BandChip band={band} />
             {extraChips}
             {typeof tier === "number" && <TierChip tier={tier} />}
-          </div>
-          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
-        </div>
-        {(actions || headerStat) && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, maxWidth: "100%" }}>
+            {/* The stat is the LAST child of the chip row on every detail artboard, not a
+                right-aligned line above the action row (which is where the build put it). */}
             {headerStat && (
               <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{headerStat}</span>
             )}
-            {actions && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
-            )}
           </div>
+          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
+        </div>
+        {actions && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", maxWidth: "100%" }}>{actions}</div>
         )}
       </div>
     </header>

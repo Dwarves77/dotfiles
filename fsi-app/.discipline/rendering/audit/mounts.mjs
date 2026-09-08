@@ -781,6 +781,11 @@ const RESEARCH_FIXTURE = {
     sourceName: 'Mission Innovation',
     sourceUrl: 'https://example.com/research-source',
     topic: 'Emissions accounting',
+    // Artboard 07's third header chip and its At a glance "Theme" row both read "Emissions
+    // accounting. `theme` is the intelligence_items THEME COLUMN value, which assignTheme maps to
+    // the canonical key through THEME_COLUMN_TO_KEY (src/lib/research/taxonomy.mjs); without it the
+    // classifier fell through to keyword matching, returned null, and both chip and row were absent.
+    theme: 'emissions_accounting',
     timeline: [
       { date: '2024-04-24', label: 'Mission announced', status: 'past' },
       { date: '2026-Q4', label: 'IMO MEPC extraordinary session', status: 'current' },
