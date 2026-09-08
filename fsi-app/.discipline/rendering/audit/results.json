@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T04:10:32.135Z",
+  "runAt": "2026-09-08T00:11:03.246Z",
   "specs": [
     {
       "part": "Absence",
@@ -733,205 +733,88 @@
       "__id": "community-table"
     },
     {
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "mount": "compose-02-regulations",
+      "part": "Page composition — Dashboard (01)",
+      "mount": "page-frame-1440",
       "viewport": 1440,
       "artboards": [
-        "02-regulations-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "notes": [
-        "The pre-existing list-surface.json spec measures ListSurfaceShell/ListSurfaceRailCards in isolation via the 'list-surface-1440' mount (a minimal fixture: one facetGroup, no sortRow, no topic/tier). This spec measures the REAL RegulationsLedger composition (24-row fixture, matching capture-compose-lists-screenshots.mjs), so the sort row, the Topic/Source-tier facets, and the rail's actual top-to-bottom order are all exercised end to end.",
-        "Fixture is invented sample data with the real shape (same helper as the evidence screenshot); the audit asserts geometry/placement/labels, never fixture values.",
-        "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) — asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence.",
-        "The rail's OBLIGATIONS · NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar →' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs."
+        "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
+        "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
+        "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
+        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text."
       ],
-      "selector": "[data-audit=\"filters-rail\"]",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "expect": {
-        "display": "block"
+        "display": "grid",
+        "grid-template-columns": "* 300px"
       },
       "children": [
         {
-          "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
-          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
-          "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check.",
+          "name": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
           "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Filters rail card carries checkbox rows (not chip pills) for every facet group",
-          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
-          "expect": {}
-        },
-        {
-          "name": "Filters rail card's facet groups include Topic (p2 rail: MODE / JURISDICTION / TOPIC / SOURCE TIER)",
-          "selector": "[data-audit=\"filters-rail\"] p",
-          "textMatch": "Topic",
-          "note": "Text-presence check narrowed to the group-heading paragraphs: confirms RegulationsLedger's facetGroups array actually includes the Topic group, not just Mode/Jurisdiction.",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Filters rail card's facet groups include Source tier",
-          "selector": "[data-audit=\"filters-rail\"] p",
-          "textMatch": "Source tier",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Sort/count row renders above the rows, with the count + 'grouped by band'/flat-toggle text and Sort control",
-          "selector": "[data-audit=\"sort-row\"]",
-          "expect": {
-            "display": "flex"
-          }
-        },
-        {
-          "name": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
-          "selector": "[data-audit=\"sort-row\"] button",
-          "textMatch": "My order",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Obligations rail card mounts AFTER the Filters card (rail order: Filters, Obligations, Legend)",
-          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"obligations-rail\"]",
-          "note": "Sibling-combinator placement check: only matches when filters-rail's DOM node precedes obligations-rail's.",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Obligations rail card mounts BEFORE the Legend card",
-          "selector": "[data-audit=\"obligations-rail\"] ~ [data-audit=\"legend-rail\"]",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Obligations rail card head carries the artboard's exact label",
-          "selector": "[data-audit=\"obligations-rail\"] p",
-          "expect": {
-            "text": "Obligations · next 30 days"
-          }
-        },
-        {
-          "name": "Obligations rail card head carries the artboard's 'Calendar →' link",
-          "selector": "[data-audit=\"obligations-rail\"] a",
-          "expect": {
-            "text": "Calendar →",
-            "display": "flex",
-            "font-size": "11px",
-            "font-weight": "600"
+            "display": "grid"
           },
-          "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
+          "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
         },
         {
-          "name": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
-          "selector": "[data-audit=\"obligations-rail\"] [data-audit=\"obligation-row\"]",
+          "name": "region 2 — Due next card, comes after band tiles, before What changed",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) h2[data-guard-title]",
+          "expect": {},
+          "note": "Text is 'Due next · N items' where N is the live due-next row count, not a fixed artboard string."
+        },
+        {
+          "name": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
           "expect": {
-            "count": "4",
-            "display": "grid",
-            "gap": "10px"
+            "count": "1"
           }
+        },
+        {
+          "name": "region 3 — What changed card, comes after Due next",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) h2[data-guard-title]",
+          "expect": {},
+          "text": "What changed"
+        },
+        {
+          "name": "region 4 — rail, 'Across the platform' card first",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) p:first-of-type",
+          "expect": {},
+          "text": "Across the platform"
+        },
+        {
+          "name": "region 5 — rail, Watchlist card second",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 6 — rail, Legend card third and last",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
+          "expect": {},
+          "text": "Legend"
         }
       ],
       "forbid": [
         {
-          "name": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
-          "selector": ".cl-facets-desktop",
-          "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
+          "name": "no floating Ask AI button (ruling 2.2)",
+          "selector": "[data-audit=\"dashboard\"] button",
+          "textMatch": "Ask AI",
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
         },
         {
-          "name": "the literal word UNSCORED anywhere in a row",
-          "selector": "body",
-          "textMatch": "UNSCORED",
-          "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+          "name": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span",
+          "textMatch": "0/12",
+          "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score."
         }
       ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-02-regulations-list.json",
-      "__id": "compose-02-regulations-list"
-    },
-    {
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "mount": "compose-04-market",
-      "viewport": 1440,
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "notes": [
-        "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
-        "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
-        "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage."
-      ],
-      "selector": "[data-audit=\"filters-rail\"]",
-      "expect": {
-        "display": "block"
-      },
-      "children": [
-        {
-          "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
-          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "Headline Series card is embedded in the content column (mounts, with the ruling-5.1 SectionRule as its first child)",
-          "selector": "[data-audit=\"headline-series\"] .cl-section-rule",
-          "note": "Presence of the SectionRule inside the headline-series card confirms the embedded=true path (card chrome, ruling 5.1), not the old standalone full-bleed section (which never set data-audit or mounted a SectionRule).",
-          "expect": {
-            "height": "3px"
-          }
-        },
-        {
-          "name": "Headline Series card title reads 'Headline series' (artboard copy, not the file's own 'Comparative ribbon' identity)",
-          "selector": "[data-audit=\"headline-series\"] h2",
-          "expect": {
-            "text": "Headline series"
-          }
-        },
-        {
-          "name": "Headline Series card mounts before the Sort row (p4 order: band tiles, Headline Series, Sort row, rows)",
-          "selector": "[data-audit=\"headline-series\"] ~ [data-audit=\"sort-row\"]",
-          "note": "Sibling-combinator selector only matches when headline-series precedes sort-row in the DOM.",
-          "expect": {
-            "display": "flex"
-          }
-        },
-        {
-          "name": "Sort/count row renders above the rows",
-          "selector": "[data-audit=\"sort-row\"]",
-          "expect": {
-            "display": "flex"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no content-column facet chip strip above the rows (the original defect)",
-          "selector": ".cl-facets-desktop",
-          "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
-        },
-        {
-          "name": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
-          "selector": "[data-audit=\"headline-series\"] h2",
-          "textMatch": "Comparative ribbon",
-          "reason": "Artboard 04/id=\"p4\" titles this card 'HEADLINE SERIES'. 'Comparative ribbon' is the component/file's own internal identity, kept as the export name but never the rendered copy."
-        },
-        {
-          "name": "the literal word UNSCORED anywhere in a row",
-          "selector": "body",
-          "textMatch": "UNSCORED",
-          "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json",
-      "__id": "compose-04-market-list"
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json",
+      "__id": "compose-01-dashboard"
     },
     {
       "part": "DetailHeader",
@@ -1704,8 +1587,8 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "notes": [
-        "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
-        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
+        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170): both cards now mount `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use. `.cl-facets-desktop` stays the OUTER (unpadded) div's class; its content padding now lives on an inner `<div>` (selector below updated to `.cl-facets-desktop > div`).",
+        "FIXED (fix58-lists, 2026-09-07, B164): the facets card's inner content wrapper is now `padding:'12px 16px 14px'`, matching p2's own stated value exactly.",
         "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
       ],
       "selector": "[data-audit=\"legend-rail\"] > div",
@@ -1737,29 +1620,23 @@
           }
         },
         {
-          "name": "Filters rail card — content padding",
-          "selector": "[data-audit=\"filters-rail\"] > div:last-child",
-          "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
+          "name": "facets card — padding",
+          "selector": ".cl-facets-desktop > div:last-child",
+          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more.",
           "expect": {
-            "padding-top": "14px",
+            "padding-top": "12px",
             "padding-right": "16px",
             "padding-bottom": "14px",
             "padding-left": "16px"
           }
         },
         {
-          "name": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
-          "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
-          "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide.",
+          "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
+          "selector": ".cl-facets-desktop .cl-section-rule",
+          "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child.",
           "expect": {
             "height": "3px"
           }
-        },
-        {
-          "name": "Filters rail card — checkbox rows carry live counts, not chip pills",
-          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
-          "note": "artboard 02/id=\"p2\" FILTERS card: MODE / JURISDICTION / TOPIC / WORKSPACE TAGS as checkbox lists with right-aligned counts, not the FilterChip pill rendering the content column used to carry.",
-          "expect": {}
         },
         {
           "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
@@ -6832,239 +6709,15 @@
       "note": "General rule (operator 2.1): the literal token never appears anywhere in the product, artboard-covered or not."
     },
     {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "02-regulations-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "selector": "[data-audit=\"filters-rail\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Filters rail card's facet groups include Topic (p2 rail: MODE / JURISDICTION / TOPIC / SOURCE TIER)",
-      "selector": "[data-audit=\"filters-rail\"] p",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": "Text-presence check narrowed to the group-heading paragraphs: confirms RegulationsLedger's facetGroups array actually includes the Topic group, not just Mode/Jurisdiction."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Filters rail card's facet groups include Source tier",
-      "selector": "[data-audit=\"filters-rail\"] p",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Sort/count row renders above the rows, with the count + 'grouped by band'/flat-toggle text and Sort control",
-      "selector": "[data-audit=\"sort-row\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
-      "selector": "[data-audit=\"sort-row\"] button",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card mounts AFTER the Filters card (rail order: Filters, Obligations, Legend)",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"obligations-rail\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": "Sibling-combinator placement check: only matches when filters-rail's DOM node precedes obligations-rail's."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card mounts BEFORE the Legend card",
-      "selector": "[data-audit=\"obligations-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card head carries the artboard's exact label",
-      "selector": "[data-audit=\"obligations-rail\"] p",
-      "property": "text",
-      "expected": "Obligations · next 30 days",
-      "actual": "Obligations · next 30 days",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card head carries the artboard's 'Calendar →' link",
-      "selector": "[data-audit=\"obligations-rail\"] a",
-      "property": "text",
-      "expected": "Calendar →",
-      "actual": "Calendar →",
-      "status": "MATCH",
-      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card head carries the artboard's 'Calendar →' link",
-      "selector": "[data-audit=\"obligations-rail\"] a",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card head carries the artboard's 'Calendar →' link",
-      "selector": "[data-audit=\"obligations-rail\"] a",
-      "property": "font-size",
-      "expected": "11px",
-      "actual": "11px",
-      "status": "MATCH",
-      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card head carries the artboard's 'Calendar →' link",
-      "selector": "[data-audit=\"obligations-rail\"] a",
-      "property": "font-weight",
-      "expected": "600",
-      "actual": "600",
-      "status": "MATCH",
-      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
-      "selector": "[data-audit=\"obligations-rail\"] [data-audit=\"obligation-row\"]",
-      "property": "count",
-      "expected": "4",
-      "actual": "4",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
-      "selector": "[data-audit=\"obligations-rail\"] [data-audit=\"obligation-row\"]",
+      "target": "Page composition — Dashboard (01)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "property": "display",
       "expected": "grid",
       "actual": "grid",
@@ -7072,196 +6725,100 @@
       "note": null
     },
     {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "02-regulations-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
-      "selector": "[data-audit=\"obligations-rail\"] [data-audit=\"obligation-row\"]",
-      "property": "gap",
-      "expected": "10px",
-      "actual": "10px",
+      "target": "Page composition — Dashboard (01)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "grid-template-columns",
+      "expected": "* 300px",
+      "actual": "730px 300px",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "02-regulations-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
-      "selector": ".cl-facets-desktop",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
-    },
-    {
-      "spec": "compose-02-regulations-list",
-      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "02-regulations-list"
-      ],
-      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
-      "viewport": 1440,
-      "target": "the literal word UNSCORED anywhere in a row",
-      "selector": "body [text contains \"UNSCORED\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "selector": "[data-audit=\"filters-rail\"]",
+      "target": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
       "property": "display",
-      "expected": "block",
-      "actual": "block",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
+      "target": "region 5 — rail, Watchlist card second",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Headline Series card is embedded in the content column (mounts, with the ruling-5.1 SectionRule as its first child)",
-      "selector": "[data-audit=\"headline-series\"] .cl-section-rule",
-      "property": "height",
-      "expected": "3px",
-      "actual": "3px",
-      "status": "MATCH",
-      "note": "Presence of the SectionRule inside the headline-series card confirms the embedded=true path (card chrome, ruling 5.1), not the old standalone full-bleed section (which never set data-audit or mounted a SectionRule)."
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "Headline Series card title reads 'Headline series' (artboard copy, not the file's own 'Comparative ribbon' identity)",
-      "selector": "[data-audit=\"headline-series\"] h2",
-      "property": "text",
-      "expected": "Headline series",
-      "actual": "Headline series",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "Headline Series card mounts before the Sort row (p4 order: band tiles, Headline Series, Sort row, rows)",
-      "selector": "[data-audit=\"headline-series\"] ~ [data-audit=\"sort-row\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": "Sibling-combinator selector only matches when headline-series precedes sort-row in the DOM."
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "Sort/count row renders above the rows",
-      "selector": "[data-audit=\"sort-row\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "no content-column facet chip strip above the rows (the original defect)",
-      "selector": ".cl-facets-desktop",
+      "target": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"dashboard\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
     },
     {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list"
+        "01-dashboard"
       ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
-      "selector": "[data-audit=\"headline-series\"] h2 [text contains \"Comparative ribbon\"]",
+      "target": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span [text contains \"0/12\"]",
       "property": "(forbidden element)",
       "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Artboard 04/id=\"p4\" titles this card 'HEADLINE SERIES'. 'Comparative ribbon' is the component/file's own internal identity, kept as the export name but never the rendered copy."
-    },
-    {
-      "spec": "compose-04-market-list",
-      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
-      "artboards": [
-        "04-market-list"
-      ],
-      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
-      "viewport": 1440,
-      "target": "the literal word UNSCORED anywhere in a row",
-      "selector": "body [text contains \"UNSCORED\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+      "actual": "3 present — \"10/12\"",
+      "status": "NOT IN SPEC",
+      "note": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score."
     },
     {
       "spec": "detailheader",
@@ -11053,13 +10610,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "Filters rail card — content padding",
-      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-top",
-      "expected": "14px",
-      "actual": "14px",
+      "expected": "12px",
+      "actual": "12px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -11070,13 +10627,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "Filters rail card — content padding",
-      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -11087,13 +10644,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "Filters rail card — content padding",
-      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-bottom",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -11104,13 +10661,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "Filters rail card — content padding",
-      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+      "target": "facets card — padding",
+      "selector": ".cl-facets-desktop > div:last-child",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
+      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
     },
     {
       "spec": "list-surface",
@@ -11121,13 +10678,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
-      "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
+      "target": "facets card — the 3px graduated rule above the card (ruling 5.1)",
+      "selector": ".cl-facets-desktop .cl-section-rule",
       "property": "height",
       "expected": "3px",
       "actual": "3px",
       "status": "MATCH",
-      "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide."
+      "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child."
     },
     {
       "spec": "list-surface",
