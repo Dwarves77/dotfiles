@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T19:54:46.464Z",
+  "runAt": "2026-09-08T22:35:20.337Z",
   "widths": [
     1440,
     1024
@@ -21,38 +21,6 @@
       "element": "/",
       "measured": "manifest cards not rendered: VOL IV",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1440,
-      "element": "div[Immediate≤ 90 daysshowing 5 of] \"IMMEDIATE\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1440,
-      "element": "div[Action≤ 6 monthsshowing 5 of 9] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1440,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1440,
-      "element": "div[Awarenessbackgroundshowing 2 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L9",
@@ -133,38 +101,6 @@
       "element": "card \"AWARENESS\"",
       "measured": "not in the manifest for /regulations (p2); manifest holds 4 cards",
       "message": "a card the artboard does not draw, with no dated deviation entry"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1024,
-      "element": "div[Immediate≤ 90 daysshowing 5 of] \"IMMEDIATE\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1024,
-      "element": "div[Action≤ 6 monthsshowing 5 of 9] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1024,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations",
-      "width": 1024,
-      "element": "div[Awarenessbackgroundshowing 2 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L9",
@@ -287,54 +223,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Obligations — issues requiring]",
-      "measured": "font-family resolves to Anton on \"OBLIGATIONS — ISSUES REQUIRING ACTION\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Compliance chain]",
-      "measured": "font-family resolves to Anton on \"COMPLIANCE CHAIN\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Substantive requirements]",
-      "measured": "font-family resolves to Anton on \"SUBSTANTIVE REQUIREMENTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Penalties]",
-      "measured": "font-family resolves to Anton on \"PENALTIES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/regulations/[slug]",
       "width": 1440,
@@ -407,54 +295,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Obligations — issues requiring]",
-      "measured": "font-family resolves to Anton on \"OBLIGATIONS — ISSUES REQUIRING ACTION\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Compliance chain]",
-      "measured": "font-family resolves to Anton on \"COMPLIANCE CHAIN\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Substantive requirements]",
-      "measured": "font-family resolves to Anton on \"SUBSTANTIVE REQUIREMENTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Penalties]",
-      "measured": "font-family resolves to Anton on \"PENALTIES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/regulations/[slug]",
       "width": 1024,
@@ -501,38 +341,6 @@
       "element": "/regulations/[slug]",
       "measured": "manifest cards not rendered: EU EMISSIONS TRADING SYSTEM ETS EXTENSION TO MARITIME TRANSPORT, ACTION, SUMMARY, OBLIGATIONS, PENALTIES, SOURCES, RELEVANCE TO DIETL ROCKIT",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1440,
-      "element": "div[Immediate≤ 90 daysshowing 5 of] \"IMMEDIATE\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1440,
-      "element": "div[Action≤ 6 monthsshowing 5 of 6] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1440,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1440,
-      "element": "div[Awarenessbackgroundshowing 2 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -669,38 +477,6 @@
       "element": "card \"SOURCES TRACKED\"",
       "measured": "not in the manifest for /market (p4); manifest holds 6 cards",
       "message": "a card the artboard does not draw, with no dated deviation entry"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1024,
-      "element": "div[Immediate≤ 90 daysshowing 5 of] \"IMMEDIATE\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1024,
-      "element": "div[Action≤ 6 monthsshowing 5 of 6] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1024,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market",
-      "width": 1024,
-      "element": "div[Awarenessbackgroundshowing 2 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -871,54 +647,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Drivers & trajectory]",
-      "measured": "font-family resolves to Anton on \"DRIVERS & TRAJECTORY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Cost impact by mode]",
-      "measured": "font-family resolves to Anton on \"COST IMPACT BY MODE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Do now]",
-      "measured": "font-family resolves to Anton on \"DO NOW\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Client talking points]",
-      "measured": "font-family resolves to Anton on \"CLIENT TALKING POINTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/market/[slug]",
       "width": 1440,
@@ -991,54 +719,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Drivers & trajectory]",
-      "measured": "font-family resolves to Anton on \"DRIVERS & TRAJECTORY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Cost impact by mode]",
-      "measured": "font-family resolves to Anton on \"COST IMPACT BY MODE\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Do now]",
-      "measured": "font-family resolves to Anton on \"DO NOW\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Client talking points]",
-      "measured": "font-family resolves to Anton on \"CLIENT TALKING POINTS\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/market/[slug]",
       "width": 1024,
@@ -1093,30 +773,6 @@
       "element": "/market/[slug]",
       "measured": "manifest cards not rendered: PACKAGING MATERIAL INPUT COSTS, SUMMARY, DRIVERS & TRAJECTORY, COST IMPACT BY MODE, DO NOW, RELEVANCE TO DIETL ROCKIT",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1440,
-      "element": "div[Action≤ 6 monthsshowing 4 of 4] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1440,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1440,
-      "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -1245,30 +901,6 @@
       "element": "/research",
       "measured": "manifest cards not rendered: FUELS & SAF, LAST MILE ELECTRIFICATION, DISCLOSURE REGIMES, NOTHING IN THE LAST DAYS",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1024,
-      "element": "div[Action≤ 6 monthsshowing 4 of 4] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1024,
-      "element": "div[Monitor6–12 monthsshowing 4 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research",
-      "width": 1024,
-      "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -1423,22 +1055,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/research/[slug]",
       "width": 1440,
@@ -1495,22 +1111,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/research/[slug]",
       "width": 1024,
@@ -1557,30 +1157,6 @@
       "element": "/research/[slug]",
       "measured": "manifest cards not rendered: MISSION INNOVATION SHIPPING MISSION NET ZERO INDUSTRIES AWARD AND MI GLOBAL COLLABORATION FRAMEWORK, WHAT THE RESEARCH FOUND, WHY IT MATTERS OPERATIONALLY, RELEVANCE TO DIETL ROCKIT",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[Action≤ 6 monthsshowing 4 of 4] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[Monitor6–12 monthsshowing 2 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -2053,30 +1629,6 @@
       "element": "card \"AWARENESS\"",
       "measured": "not in the manifest for /operations (p8); manifest holds 5 cards",
       "message": "a card the artboard does not draw, with no dated deviation entry"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[Action≤ 6 monthsshowing 4 of 4] \"ACTION\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[Monitor6–12 monthsshowing 2 of] \"MONITOR\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -2575,22 +2127,6 @@
       "message": "a card is missing part of its chrome"
     },
     {
-      "rule": "L7",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
       "rule": "L9",
       "route": "/operations/[slug]",
       "width": 1440,
@@ -2685,22 +2221,6 @@
       "element": "div[Connections0No connections on ] \"CONNECTIONS\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "h2[Summary]",
-      "measured": "font-family resolves to Anton on \"SUMMARY\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L7",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "h2[Sources]",
-      "measured": "font-family resolves to Anton on \"SOURCES\"",
-      "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
     },
     {
       "rule": "L9",
@@ -3362,22 +2882,6 @@
       "rule": "L9",
       "route": "/community",
       "width": 1440,
-      "element": "a[Regulations index]",
-      "measured": "106.6×12px (long 106.6 < 44 or short 12 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/community",
-      "width": 1440,
-      "element": "a[Map]",
-      "measured": "25.1×12px (long 25.1 < 44 or short 12 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/community",
-      "width": 1440,
       "element": "a[workspace invitation]",
       "measured": "129.8×13px (long 129.8 < 44 or short 13 < 28)",
       "message": "interactive target below the hit-target floor"
@@ -3549,22 +3053,6 @@
       "element": "span[1]",
       "measured": "font-family resolves to Anton on \"1\"",
       "message": "Anton only on: page-title, card-title, band-tile-numeral, stat-block-numeral, headline-figure, timeline-callout, nav-wordmark"
-    },
-    {
-      "rule": "L9",
-      "route": "/community",
-      "width": 1024,
-      "element": "a[Regulations index]",
-      "measured": "106.6×12px (long 106.6 < 44 or short 12 < 28)",
-      "message": "interactive target below the hit-target floor"
-    },
-    {
-      "rule": "L9",
-      "route": "/community",
-      "width": 1024,
-      "element": "a[Map]",
-      "measured": "25.1×12px (long 25.1 < 44 or short 12 < 28)",
-      "message": "interactive target below the hit-target floor"
     },
     {
       "rule": "L9",

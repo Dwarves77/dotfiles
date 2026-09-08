@@ -878,3 +878,46 @@ runs were made in `/root/work/lanes/train62`, whose working tree carries substan
 work including a fix for the duplicate key. Every one of the six is green or strictly improved on
 this fold; the rendering guard is the one that still fails, and its failure set is a strict SUBSET
 of the base's.
+
+## FOLD 63B (2026-09-08): the wave-63 work replayed onto the squashed master
+
+The fold-63 lane branched from `train/wave62-2026-09-08` at `605413d9` while that branch was still
+moving. Three commits landed on wave 62 afterwards: `1940af3a` (the fold-62 reconciliation that had
+been sitting uncommitted in its worktree, which is why fold 63 correctly measured its base as not
+green), `f6e46451` (the dashboard cache-key rotation rule 021 requires) and `01bc0120` (the fold-62
+addendum, the regenerated design audit and the updated layout-guard baseline). Wave 62 then landed
+on master as ONE squash, `094957a3`, so `train/wave63-2026-09-08` was built on a base that is not in
+master's ancestry and did not carry those three commits' content. Its own report shows the
+consequence: the rendering guard FAILED on its tree with 218 failures while master's tree passes.
+
+This branch, `train/wave63b-2026-09-08`, is `origin/master` (`094957a3`) with the wave-63 work
+cherry-picked onto it in order. Master is the truth; where the fold-63 lane had fixed a defect
+master has since fixed in its own way, master's version was kept.
+
+### Hunks dropped in favour of master's version
+
+| Date | File / hunk | Deviation | Reason | Who ruled |
+|---|---|---|---|---|
+| 2026-09-08 | `src/lib/supabase-server.ts`, commit `06740647` | The whole commit is SKIPPED (empty against master) | [CONFIRMED] Master already carries the single-key fix from `1940af3a`. The only difference left was the explanatory comment, and the conflict was comment prose alone. Verified after the fact: `mapWorkspaceItemRows`'s object literal holds exactly ONE `complianceDeadline` key (line 1005), and `npx tsc --noEmit` exits 0. | FOLD 63B; master wins |
+| 2026-09-08 | `src/components/sources/SourceHealthDashboard.tsx`, from `4f9917b5` | Master's `SectionCard` conversion of the registry card kept, fold 63's dropped | [CONFIRMED] Both convert the same hand-typed shell to the same `<SectionCard dataAudit="registry-card" style={{ minWidth: 0 }}>`; only the comment above it differs. Master's is the fold-62 record of operator items A1/A3, written where the card was actually built. F42 passes either way. | FOLD 63B; master wins |
+| 2026-09-08 | `src/components/sources/SourceTierLegend.tsx`, from `4f9917b5` | Master's `fitness-allow: F42` marker on the Tier definitions overlay kept | [CONFIRMED] Same marker, same named class (undesigned overlay), two prose justifications. Master's names the sibling overlays it matches. | FOLD 63B; master wins |
+| 2026-09-08 | `.discipline/rendering/layout-guard/collect.mjs`, from `4f9917b5` | Master's painted-rule descent kept, fold 63's dropped | [CONFIRMED] Both close the same collector defect: `SectionCard`'s padded layout wraps the rule in an unpainted absolutely positioned div, so the loop read `rgba(0, 0, 0, 0)` off a card whose rule is correct. Master descends to the first painted descendant; fold 63 descends only to a painted 2-4px descendant. Measured outcome on this tree: L6 falls to 34 findings from master's 62, so master's version is not weaker here. `acc4b2f1`'s four further lines on this file applied cleanly on top. | FOLD 63B; master wins |
+| 2026-09-08 | Six `*.npmtest.mjs` re-pointings from `acc4b2f1` (`AccountPrimitives`, `AdminIssuesRail`, `ListSurfaceRailCards`, `MarketComparativeRibbon`, `ResearchLedger`, `SourceStateStrips`, `due-next-read`) | Master's re-pointed assertions kept | [CONFIRMED] Both trees re-point the same tests at the same shared parts, because wave 62's `SectionCard` and `ListRow` moves are already in master. Master's versions were written by the fold that made the move. Every one of them passes on this tree; the CI npmtest glob is 1108 pass / 0 fail. | FOLD 63B; master wins |
+| 2026-09-08 | `.discipline/rendering/audit/spec/compose-01-dashboard.json` row 2b, from `acc4b2f1` | Master's note kept, expected count unchanged at 3 | [CONFIRMED] Both sides expect 3. The two notes explain the same number differently: master's from the merged three-read corpus, fold 63's from `dueInfo`'s timeline candidate. Master's is the one that matches the code master ships. The spec is not weakened either way, and the row measures MATCH. | FOLD 63B; master wins |
+| 2026-09-08 | `src/components/community/CommunityRooms.composition.npmtest.mjs`, from `ea8fe014` | Fold 63's tests KEPT, adapted to master's `dataAudit` prop spelling | [CONFIRMED] This is the one place the fold's version wins, because it encodes a DESIGN decision, not a duplicated fix: the /community region card is gone and join/leave moved to the composer foot. Master's tree still asserted the R7 region-card placement, which the operator's 2026-09-08 ruling retires. Master's `SectionCard dataAudit=` spelling was substituted for the fold's literal `data-audit=` anchors, or the assertions would have searched for markup this tree does not have. 12 pass / 0 fail. | Fold 63's own ruling, kept |
+| 2026-09-08 | Every generated artefact (`AUDIT-2026-09-07.md`, `audit/results.json`, `layout-guard/results.json`, `docs/audits/layout-guard-2026-09-08.md`) | Neither side of any merge taken; REGENERATED at this tree | [CONFIRMED] A generated file merged by hand is a fabricated measurement (rule 2). Master's copies were taken through the picks to keep them syntactically whole, then `npm run audit:design` and `npm run audit:layout` were run at the final tree and their output committed. Commit `3758e136`, which is nothing but regenerated artefacts, was SKIPPED for the same reason. | Rule 2; FOLD 63B |
+| 2026-09-08 | `.discipline/rendering/layout-guard/baseline.json` | Master's baseline kept, untouched | [CONFIRMED] It is byte-identical to `origin/master`'s and it covers all 728 findings this tree produces with none uncovered. The operator's ruling that the baseline may only shrink is met by the findings falling, not by the baseline growing. | Operator ruling; FOLD 63B |
+
+The fold-63 lane's design decisions were NOT reopened: the headline series row keeps seriesfamily's
+selection and header count with market63's geometry and card type, the FILTERS explainer sentence
+and its prop stay deleted everywhere including `/regulations`, and the /community region card stays
+gone with join and leave at the composer foot.
+
+### Measured at this tree
+
+| Gate | Master (094957a3) | This branch |
+|---|---|---|
+| Rendering guard | PASS | PASS (fold 63's own tree: FAIL, 218 failures) |
+| `audit:layout` findings | 792 | 728 (L1 11, L2 165, L4 1, L6 34, L7 190, L9 234, L10 93) |
+| `audit:design` | all MATCH | 73 specs, 2407 checks, 2407 MATCH, 0 MISMATCH |
+| `run-test-suite.sh` | 5992 pass, 0 fail | 6006 pass, 0 fail |

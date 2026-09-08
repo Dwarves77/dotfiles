@@ -15586,3 +15586,63 @@ number is large without being 120 separate problems. The remaining 98: 83 L2 ove
 `/settings` and `/profile`, 12 L10 manifest entries, 2 L1 and 1 L3, all owned by the surfaces they
 sit on rather than by any part this fold touched. The `Tile` primitive named in DEVIATION-LOG is the other
 piece of follow-up work, delivered decision-ready.
+
+## FOLD 63B (2026-09-08): wave 63 replayed onto the squashed master
+
+**Why this lane exists.** `train/wave63-2026-09-08` branched from `train/wave62-2026-09-08` at
+`605413d9` while wave 62 was still moving. Three commits landed on wave 62 after that point:
+`1940af3a` (the fold-62 reconciliation, which had been uncommitted in its worktree, which is also
+why fold 63 correctly reported its base as not green), `f6e46451` (the dashboard cache-key rotation
+rule 021 requires) and `01bc0120` (the fold-62 addendum, the regenerated design audit and the
+updated layout-guard baseline). Wave 62 then landed on master as ONE squash, `094957a3`. Wave 63 was
+therefore standing on a base that is not in master's ancestry and was missing those three commits'
+content, and its own report measured the consequence: the rendering guard FAILED on its tree with
+218 failures, where master's tree passes. This lane puts the wave-63 work on top of master instead.
+
+**Branch.** `train/wave63b-2026-09-08`, from `origin/master` (`094957a3`).
+
+**The replay.** Thirteen commits sat on wave 63 above `605413d9`. Eleven were cherry-picked with
+`-x`, in order: `5c869b9e`, `b7fa18be`, `f5935b30`, `f916628f`, `ca9953d2` (lane regopscope, items
+D2/D3); `ea8fe014` (lane communitynav2, artboard 12); `84b91cb5` (lane market63, artboard 04);
+`4014c86f` (lane seriesfamily, the headline family selection); `c61b59ad` (lane sharedreport, docs);
+`4f9917b5` and `acc4b2f1` (the fold-63 lane's own gate closures and corrected table). Two were
+SKIPPED as empty against master: `06740647`, the duplicate `complianceDeadline` key, which master
+already fixes in `1940af3a` and whose only remaining difference was comment prose; and `3758e136`,
+which is nothing but regenerated audit artefacts and would have been overwritten by this tree's own
+regeneration anyway.
+
+**The hazard, and how it was handled.** Commit `4f9917b5` is the fold-63 lane closing gate findings
+against a base missing master's three commits, so several of its closures are fixes for defects
+master had already fixed in its own way. Where a hunk conflicted with master's version of the same
+fix, master won. Every dropped hunk is named with its reason in the FOLD 63B section of
+`docs/design/handoff-2026-09-06/DEVIATION-LOG.md`: the `SourceHealthDashboard` registry-card
+conversion, the `SourceTierLegend` F42 marker, the layout-guard `collect.mjs` painted-rule descent,
+seven `*.npmtest.mjs` re-pointings, and the `compose-01-dashboard.json` row-2b note (expected count
+3 on both sides). The dashboard cache key was NOT reintroduced from any old literal: it reads
+`app-data-e1ae7713`, byte-identical to master's rotated value, and discipline rule 021 passes.
+`baseline.json` is master's, untouched. Every generated artefact was regenerated at the final tree
+rather than merged by hand (rule 2), which is what makes the numbers below measurements rather than
+reconciliations.
+
+**The one place the fold's version won** is `CommunityRooms.composition.npmtest.mjs`, because it
+encodes a design decision rather than a duplicated fix: the /community region card is gone and
+join/leave moved to the composer foot, so master's surviving R7 region-card assertions are what the
+operator's 2026-09-08 ruling retires. The fold's tests were kept and re-anchored on master's
+`SectionCard dataAudit=` prop spelling; 12 pass, 0 fail. No other fold-63 design decision was
+reopened.
+
+**Gates, all from this worktree.** `npx tsc --noEmit` exit 0 (exit code read, not output tail).
+Fitness runner 36 functions, 0 violations, exit 0. Rendering guard PASS, exit 0, and this is the
+gate that had to change: fold 63's tree FAILED with 218 failures. `audit:design` 73 specs, 2407
+checks, 2407 MATCH, 0 MISMATCH, exit 0. `audit:overflow` 0px horizontal page overflow on every
+mount, exit 0. `audit:layout` 728 findings against master's 792, at or below master on every rule
+(L1 11=11, L2 165=165, L4 1=1, L6 34 from 62, L7 190 from 222, L9 234 from 238, L10 93=93), exit 0.
+Discipline runner `--mode=ci --range=origin/master..HEAD` 0 FAIL with rule 021 passing, exit 0. The
+CI npmtest glob 1108 tests, 1108 pass, 0 fail, exit 0. `run-test-suite.sh` 6011 tests, 6006 pass, 0
+fail, exit 0. `npx next build` (Turbopack) exit 0 and `npx next build --webpack` exit 0, both with
+`/regulations/register` and `/operations/calculator` in the route table.
+
+**UX compliance.** No new `.tsx` or `.css` was authored in this lane; it is a replay of commits that
+carry their own UX compliance blocks (see the lane regopscope and communitynav2 entries above), plus
+regenerated evidence. The two guards that measure the shared parts, the rendering guard and the
+site-wide layout guard, both ran at 1440 and 390 on this tree and are recorded above.
