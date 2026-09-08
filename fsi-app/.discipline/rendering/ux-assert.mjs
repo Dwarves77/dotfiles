@@ -147,7 +147,12 @@ export async function measureUx(page) {
       const targets = [];
       for (const el of document.querySelectorAll(selector)) {
         if (!visible(el)) continue;
-        const r = el.getBoundingClientRect();
+        // A checkbox/radio wrapped in a <label> is activated anywhere in that label (native semantics),
+        // so the label IS the hit target, not the glyph — measure the label's box, not the input's, when
+        // one wraps it. Lets a page draw a small glyph (artboard-accurate) inside a full 44px label row.
+        const wrappingLabel =
+          (el.tagName === 'INPUT' && (el.type === 'checkbox' || el.type === 'radio')) ? el.closest('label') : null;
+        const r = (wrappingLabel || el).getBoundingClientRect();
         targets.push({ name: nameOf(el), x: r.x, y: r.y, width: r.width, height: r.height });
       }
       // Clipped overflow: every element whose right edge passes the viewport, unless an ancestor scrolls

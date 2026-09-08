@@ -103,23 +103,20 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
-                minHeight: 36,
+                minHeight: 44,
                 cursor: "pointer",
                 fontSize: "var(--fs-11)",
                 color: "var(--ink)",
               }}
             >
-              {/* DEVIATION (logged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md): artboard
-                  02/id="p2" draws this checkbox at 13x13px; law-2 (docs/design/ux-laws.md, the
-                  rendering guard's own floor) requires every interactive target be >=24px on its
-                  short axis (or >=44px), which a real <input type="checkbox"> at 13px never clears
-                  regardless of spacing. Sized to the law-2 floor instead — 24px, with row spacing
-                  (minHeight 36) giving >=8px clearance from every neighbouring checkbox. */}
+              {/* Operator ruling 2026-09-07: the 44px hit-target law applies to the ROW (this whole
+                  label is the click target, minHeight 44 below), not to the glyph. Artboard 02/id="p2"
+                  draws the checkbox itself at 13x13px, restored here. */}
               <input
                 type="checkbox"
                 checked={checked}
                 onChange={() => group.onSelect(checked ? null : opt.value)}
-                style={{ width: 24, height: 24, accentColor: "var(--brand)", flexShrink: 0 }}
+                style={{ width: 13, height: 13, accentColor: "var(--brand)", flexShrink: 0 }}
               />
               <span style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {opt.label}
