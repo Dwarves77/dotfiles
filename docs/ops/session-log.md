@@ -12588,6 +12588,15 @@ checks); the CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) **811/811 PASS*
 but no DB creds" failure did not reproduce; the `audit-finding-status` informational report on
 pre-existing archived audits is unchanged); `next build --webpack` **exit 0** with no `.env.local`.
 
+**One harness defect found by re-running a gate, and fixed rather than noted.** The design audit
+read 1030/1030 and 1026/1030 on two consecutive runs of the SAME commit, with `detailtagrow` the
+only difference: its region arrives from a client fetch resolved through the harness's routes, and
+the audit's fixed 80ms settle sometimes ran the probe before it painted, reporting NOT BUILT
+against a component that was correct. A flaky gate is worse than a slow one, because it teaches its
+readers to re-run rather than to believe it. Each target now gets a bounded wait to appear; a target
+that is genuinely absent still costs only that bound and still reports NOT BUILT, so a real
+regression is never waited into a pass. Four consecutive clean runs at 1030/1030 after the change.
+
 **Exit evidence**: six regenerated side-by-sides under `docs/design/handoff-2026-09-06/built/`
 (`compose-02-regulations-list.png`, `compose-04-market-list.png`, `compose-06-research-list.png`,
 `compose-08-operations-list.png`, `compose-11-watchlist.png`, `compose-16-login.png`,
