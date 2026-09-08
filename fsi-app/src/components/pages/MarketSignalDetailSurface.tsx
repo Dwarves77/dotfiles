@@ -355,6 +355,13 @@ export function MarketSignalDetailSurface({
               <TagChip>B{BAND_NUM[signalBand]} · {BAND_LABEL[signalBand]}</TagChip>
             </>
           }
+          headerStat={
+            sourceRows.length > 0
+              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+                  independentCiters !== null ? ` · ${independentCiters} corroborating` : ""
+                }`
+              : null
+          }
           actions={
             <ActionRow
               onExport={() =>
@@ -429,7 +436,7 @@ export function MarketSignalDetailSurface({
             </>
           }
         >
-          <DetailSection id="summary" title="Summary" aside="30-second read">
+          <DetailSection id="summary" title="Summary" aside="Generated · 30-second read">
             {isRecord ? (
               <RecordGradeSections r={r} sections={sections} claimTiers={claimTiers} />
             ) : (

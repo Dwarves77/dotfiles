@@ -659,6 +659,203 @@ window.__mount = () => {
 };
 `;
 
+// ── Market / research / operations detail — page-composition mounts ──────────────────────────────
+// Lane compose-dashboard-details (2026-09-08). Mirrors the regulation-detail fixture above,
+// populated from the same artboard examples this lane's compose specs check against
+// (05-market-detail.png / 07-research-detail.png / 09-operations-profile.png) rather than invented
+// generic data — the compose specs assert against real artboard strings, so the fixture carries them.
+
+const MARKET_FIXTURE = {
+  resource: {
+    id: 'm-detail-1',
+    cat: 'ocean',
+    sub: 'packaging',
+    title: 'Packaging material input costs',
+    url: 'https://example.com/market-source',
+    note: '',
+    type: 'market_signal',
+    priority: 'HIGH',
+    added: '2026-04-11',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'BLS WPU066 for plastic resins and materials rose sharply in four months.',
+    keyData: [],
+    modes: ['ocean'],
+    jurisdiction: null,
+    jurisdictionIso: [],
+    sourceTier: 1,
+    sourceName: 'U.S. Bureau of Labor Statistics / FRED',
+    sourceUrl: 'https://example.com/market-source',
+    topic: 'Packaging',
+    signalBand: 'B2',
+    severity: 'cost',
+    timeline: [
+      { date: '2026-01-26', label: 'January reading', status: 'past' },
+      { date: '2026-04-11', label: 'April reading published', status: 'current' },
+      { date: '2026-06-11', label: 'BLS PPI release', status: 'future' },
+    ],
+    impactScores: { cost: 3, compliance: 1, client: 2, operational: 2 },
+  },
+  relatedPool: [],
+  sections: [],
+  convergence: { independent_citers: 4, confirmation_count: 4 },
+  priceBoard: [],
+  carbonFactors: [],
+  groupLabel: 'Global',
+  deck: 'U.S. Bureau of Labor Statistics / FRED · published Apr 11 2026',
+  initialNote: '',
+  supersessions: [],
+  connections: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const RESEARCH_FIXTURE = {
+  resource: {
+    id: 'r-detail-1',
+    cat: 'ocean',
+    sub: 'emissions',
+    title: 'Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework',
+    url: 'https://example.com/research-source',
+    note: '',
+    type: 'research_finding',
+    priority: 'LOW',
+    added: '2026-05-10',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'Coalition goals for zero-emission shipping by 2030.',
+    keyData: [],
+    modes: [],
+    jurisdiction: null,
+    jurisdictionIso: [],
+    sourceTier: 3,
+    sourceName: 'Mission Innovation',
+    sourceUrl: 'https://example.com/research-source',
+    topic: 'Emissions accounting',
+    timeline: [
+      { date: '2024-04-24', label: 'Mission announced', status: 'past' },
+      { date: '2026-Q4', label: 'IMO MEPC extraordinary session', status: 'current' },
+      { date: '2028', label: 'GFI targets', status: 'future' },
+    ],
+    impactScores: { cost: 1, compliance: 1, client: 2, operational: 1 },
+  },
+  related: [],
+  relatedReason: 'none',
+  sections: [],
+  groupLabel: 'Global',
+  deck: 'Mission Innovation · published May 10 2026 · theme: Emissions accounting',
+  connections: [],
+  supersessions: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const OPERATIONS_FIXTURE = {
+  resource: {
+    id: 'o-detail-1',
+    cat: 'ocean',
+    sub: 'ports',
+    title: 'Singapore regional operations profile',
+    url: 'https://example.com/operations-source',
+    note: '',
+    type: 'operations_profile',
+    priority: 'LOW',
+    added: '2026-04-11',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'Singapore port dues concession for zero- and low-carbon fuels.',
+    keyData: [],
+    modes: ['ocean', 'air'],
+    jurisdiction: 'SG',
+    jurisdictionIso: ['SG'],
+    sourceTier: 2,
+    sourceName: 'Singapore Ministry of Transport (MOT)',
+    sourceUrl: 'https://example.com/operations-source',
+    topic: 'Corridors',
+    timeline: [
+      { date: '2025-01-01', label: 'MSGI window opens', status: 'past' },
+      { date: '2027-03-31', label: 'EEG base-tier window closes', status: 'current' },
+      { date: '2027-12-31', label: 'MSGI window closes', status: 'future' },
+    ],
+    impactScores: { cost: 1, compliance: 1, client: 1, operational: 2 },
+  },
+  related: [],
+  relatedReason: 'none',
+  sections: [],
+  groupLabel: 'Asia',
+  deck: 'Singapore Ministry of Transport (MOT) · Maritime and Port Authority · published Apr 11 2026 · Ocean · Air',
+  connections: [],
+  supersessions: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const MARKET_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { MarketSignalDetailSurface } from '@/components/pages/MarketSignalDetailSurface';
+
+const F = ${JSON.stringify(MARKET_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'market-detail' },
+        React.createElement(MarketSignalDetailSurface, F)),
+    ),
+  );
+};
+`;
+
+const RESEARCH_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { ResearchFindingDetailSurface } from '@/components/research/ResearchFindingDetailSurface';
+
+const F = ${JSON.stringify(RESEARCH_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'research-detail' },
+        React.createElement(ResearchFindingDetailSurface, F)),
+    ),
+  );
+};
+`;
+
+const OPERATIONS_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { OperationsDetailSurface } from '@/components/operations/OperationsDetailSurface';
+
+const F = ${JSON.stringify(OPERATIONS_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'operations-detail' },
+        React.createElement(OperationsDetailSurface, F)),
+    ),
+  );
+};
+`;
+
 /**
  * Every request the mounted tree issues is answered here, never by the network — the same
  * no-network posture as ../smoke/harness.mjs. A catch-all empty JSON body is correct for this
@@ -1864,6 +2061,39 @@ export const AUDIT_MOUNTS = {
     description: 'The real AppShell frame wrapping DashboardBrief and RegulationDetailSurface.',
     viewport: 1440,
     entry: PAGE_FRAME_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'market-detail-1440': {
+    id: 'market-detail-1440',
+    description: 'The real AppShell frame wrapping MarketSignalDetailSurface, fixture data drawn from artboard 05.',
+    viewport: 1440,
+    entry: MARKET_DETAIL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'research-detail-1440': {
+    id: 'research-detail-1440',
+    description: 'The real AppShell frame wrapping ResearchFindingDetailSurface, fixture data drawn from artboard 07.',
+    viewport: 1440,
+    entry: RESEARCH_DETAIL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'operations-detail-1440': {
+    id: 'operations-detail-1440',
+    description: 'The real AppShell frame wrapping OperationsDetailSurface, fixture data drawn from artboard 09.',
+    viewport: 1440,
+    entry: OPERATIONS_DETAIL_ENTRY,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
