@@ -12989,3 +12989,110 @@ but no DB creds" failure did not reproduce); `next build --webpack` **exit 0** w
 `compose-14-account.png`, both regenerated from this lane's code by
 `capture-compose-page.mjs` + `compose-composite.mjs` and read against their artboards by eye before
 this was written.
+
+## Addendum 86, postscript 15: lane DETAILS60, the four detail artboards' rail order, and the two "missing" cards that were never missing (2026-09-08, lane details60)
+
+Train 60 page-composition lane for artboards 03, 05, 07 and 09 (dc.html ids p3/p5/p7/p9). Its
+item came from the fold's own what-still-differs list: the rail order is inverted on all four, 09
+lacks RELATED IN ASIA, 07 lacks CLUSTER SYNTHESIS, 03 has no EXPOSURE content and no type/mode/
+topic chips.
+
+**The rail order, and what the artboards actually draw.** The fold report's phrasing was "the
+artboard puts AT A GLANCE first and IN THIS LIST after it on all four". Read out of the markup
+instead of out of the prose, the four rails' card heads in document order are:
+
+- 03: At a glance · Impact assessment · Relevance · Owner & team · In this list · Connections · 3 · Legend
+- 05: At a glance · Impact assessment · Relevance · Your notes · In this list · Legend
+- 07: At a glance · Impact assessment · Relevance · Connections · 24 · Cluster synthesis · Legend
+- 09: At a glance · Impact assessment · Relevance · Related in Asia · Legend
+
+Two things follow that the prose did not say. The shared invariant is not "At a glance then In this
+list" but AT A GLANCE, IMPACT ASSESSMENT, RELEVANCE, the page's own cards, LEGEND LAST. And 07 and
+09 do not draw the place-keeping card at all, so on those two it is an R7 card and goes after the
+last designed region of the column. The fix is `DetailRail` in DetailShell: six named slots
+(atAGlance, impact, relevance, designed, legend, undesigned) rendered in that order. A detail
+surface names its cards by slot; it cannot reorder them, and the next surface built on this shell
+gets the order for free. All four compose specs gained an order assertion and a forbid.
+
+**Two "missing" cards that were built all along [REFUTED, corrected in place].** 09's RELATED IN
+ASIA is `RelatedRegionCard` and 07's CLUSTER SYNTHESIS is `ThemeBriefCard`; both have existed since
+their own lanes, both return null on empty data, and both audit fixtures carried empty data. What
+the fold saw was the fixtures, not the product. Both fixtures now carry the artboards' own examples
+and both cards were rebuilt to the artboards' measures, which is where the real work was, because
+both had drifted: 07's carried a STALE pill, an italic lead sentence and the entire `brief_md` in a
+220px scroller inside a 300px rail, where the artboard draws head, title and one meta line; 09's
+carried an italic reason sentence and no band bars. Removed rather than left dormant, with the
+information each carried folded into what the artboard does draw (07's staleness into the meta
+line's small-caps clause, 09's reason into the card head, so a related-by-source list is never
+mislabelled as a regional one).
+
+**A logged deviation that was wrong [REFUTED].** 09's region reads "Asia" on the artboard, and an
+earlier lane logged that continental grouping as a field the Resource shape has no data for. It
+has one: `JURISDICTIONS` in src/lib/constants.ts has carried a `region` per jurisdiction all along.
+`regionGroupForLabel` reads it, and the breadcrumb, the region chip and the rail card head now say
+"Asia-Pacific", the app's own vocabulary, not the artboard's shorter word, which the build would
+have to fabricate. The helper lives in constants.ts and not in jurisdictions/iso.ts for a mechanical
+reason worth recording: iso.ts is imported by a test that runs under plain `node --test` with no
+bundler resolution, so it must stay import-free; adding `import { JURISDICTIONS } from "../constants"`
+to it turned that test red instantly (ERR_MODULE_NOT_FOUND on an extensionless specifier). Callers
+compose the two.
+
+**03's gap was the product, not its fixture.** The fold attributed 03's empty EXPOSURE and missing
+chips to the fixture, with the note "unless you find the product path differs between 03 and 09".
+It does: `DetailExposure` and `AtAGlanceCard` are shared parts 05/07/09 have mounted since lane
+uidetails2 and RegulationDetailSurface called NEITHER, and its `extraChips` carried only the
+priority control. All three are now built from the same shared parts. Its fixture separately gains
+`costMechanism` and `topic`, real Resource fields it left empty, so the audit measures live
+EXPOSURE cells instead of four Absences.
+
+**Two geometry defects found by READING the side-by-side, which no spec measured.** This is the
+lesson worth carrying: the specs were green on the rail order before either was found. (1) The
+header stat is the LAST CHILD OF THE CHIP ROW in every artboard's markup; the build rendered it as
+a right-aligned line above the action row. (2) The artboards STACK the header: chip row, workspace
+tag row, action row, all left-aligned at the card's padding, and the build used a two-column
+space-between row, so the action row floated to the card's right edge on 03/07/09 and only happened
+to stack on 05, where the chips were wide enough to force a wrap. A layout that is correct only
+when the content is wide enough to force it is not correct. Both fixed once in the shared
+DetailHeader, both now captured.
+
+**Shared parts changed** (named per the lane contract, because siblings share them):
+`DetailShell.tsx`: new `DetailRail` (additive component, no caller loses anything); `DetailHeader`
+chip order and header layout (the two fixes above); `data-audit` markers on the rail column, the
+chip row and the exposure value cell so the specs can measure composition rather than guess at
+nth-of-type positions. `src/lib/constants.ts`: new `regionGroupForLabel`. `src/lib/research/
+theme-brief.mjs`: `density` on the view model.
+
+**RELEVANCE TO DIETL / ROCKIT stays unbuilt** (ruling 3.4). `DetailRail` keeps the slot in the
+artboard's position holding exactly the existing `RelevanceBadgeClient`; nothing is invented into it.
+
+**Listed, not changed (R7).** Artboard 03 draws the priority affordance as a caret on the band pill;
+the build renders `HeroPriorityDropdown` as its own "···" chip beside it. Ruling 3.1 removed the
+band dropdown from the action row, which is done; restyling a live retag control was not this lane's
+item.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`DetailShell.tsx`,
+`RegulationDetailSurface.tsx`, `MarketSignalDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`,
+`OperationsDetailSurface.tsx`, `constants.ts`). No new interactive element is introduced except the
+RELATED IN <region> rows, which were already links: each keeps a 24px minimum box with the
+artboard's own 8px gap between rows, ux-laws law 2's small-target branch (>= 24px with >= 8px
+clearance), the same floor comp-06's band-card foot link and InThisListStat's own prev/next links
+use, and that is the one place the build is deliberately ~8px per row taller than the artboard,
+logged in DEVIATION-LOG rather than silently traded away. Removing the CLUSTER SYNTHESIS scroller
+removes a nested scroll region from a 300px rail, which is a law-4 improvement. The header stack
+moves the action row from the card's right edge to its left, under the chips, where every artboard
+draws it; the buttons themselves are unchanged and keep their 44px targets. Rendering guard PASS
+with no new failures, including law-2 targets at 375 and 1280 across the four detail surfaces'
+twelve states.
+
+**Gates** (this container; the coordinator lands): design audit **60 specs, 1012 checks, 1012
+MATCH, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC**; rendering guard **PASS** (11 fixtures, 431
+checks, 7 SM + 12 UX smoke specs, 83 + 216 checks); `tsc --noEmit` clean; fitness runner 33/33, **0
+violations**; the CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) **800/800 PASS** (798 before,
+plus two new files' worth of cases); `run-test-suite.sh` **5917 tests, 5912 pass, 0 fail, 5
+skipped, exit 0** (the known "kill switch ON but no DB creds" failure did not reproduce); `next
+build --webpack` **exit 0** with no `.env.local`.
+
+**Evidence**: `docs/design/handoff-2026-09-06/built/compose-03-regulation-detail.png`,
+`compose-05-market-detail.png`, `compose-07-research-detail.png`,
+`compose-09-operations-profile.png`, each regenerated from the folded code and read with the Read
+tool beside its artboard PNG before this was written.
