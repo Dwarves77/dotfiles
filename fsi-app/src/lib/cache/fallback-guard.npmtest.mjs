@@ -9,7 +9,7 @@
 // (`resources: []`, `auditDate: ""`, `_error: SEED_FALLBACK_ERROR`). That payload is RESOLVED, not
 // thrown, and `lib/data.ts` hands the fetcher to `unstable_cache`, which stores whatever the
 // callback resolves to. One transient Supabase timeout therefore poisoned the org's cache entry and
-// every subsequent request was answered from it without touching the database — which is also why
+// every subsequent request was answered from it without touching the database, which is also why
 // "Refresh to retry" could not retry.
 //
 // Test 1 reproduces that with a stand-in cache whose store-on-resolve semantics are taken from
@@ -90,7 +90,7 @@ test("guarded: the failure is not cached, and the next read is live data", async
   const cached = fakeUnstableCache(refuseToCacheFallback(fetcher), "app-data");
 
   const first = await readThroughFallbackGuard(() => cached("org-1"));
-  // The caller still sees the same fallback payload it always saw — byte for byte, sentinel included.
+  // The caller still sees the same fallback payload it always saw, byte for byte, sentinel included.
   assert.deepEqual(first, FALLBACK);
 
   const second = await readThroughFallbackGuard(() => cached("org-1"));

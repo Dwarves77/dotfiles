@@ -1,5 +1,5 @@
 /**
- * fallback-guard — a data fetcher's FAILURE payload must never be written
+ * fallback-guard: a data fetcher's FAILURE payload must never be written
  * into the Next.js data cache.
  *
  * THE DEFECT THIS REMOVES (lane rsc503, 2026-09-08, production).

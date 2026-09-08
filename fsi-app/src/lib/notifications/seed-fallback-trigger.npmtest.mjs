@@ -12,7 +12,7 @@
 //
 // The trigger is not decoration: `recordSeedFallbackFlag` writes it to the platform integrity_flag
 // queue, and `RECOMMENDED_ACTION` keys the operator's remediation off it. The admin queue was being
-// told the database had rejected a query when in fact the query never came back — a wrong number on
+// told the database had rejected a query when in fact the query never came back, a wrong number on
 // one screen sourced from a value the code could not produce. This test fails if any member of the
 // vocabulary loses its writer again, in either direction.
 
@@ -101,7 +101,7 @@ test("the failure state names a reason, and it is keyed on the same trigger the 
   const { describeFallbackTrigger } = await jiti.import("../supabase-server.ts");
 
   // THE DEFECT THIS WOULD HAVE CAUGHT: "Data temporarily unavailable. Refresh to retry." was the
-  // whole of what production told the reader — no reason, and no retry that could fire, because
+  // whole of what production told the reader: no reason, and no retry that could fire, because
   // the refresh was answered from the poisoned cache entry (see lib/cache/fallback-guard.ts).
   assert.match(describeFallbackTrigger("timeout"), /time limit/);
   assert.match(describeFallbackTrigger("rpc_error"), /no rows/);

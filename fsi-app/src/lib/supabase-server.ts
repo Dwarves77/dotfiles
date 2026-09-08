@@ -2237,13 +2237,13 @@ export const SEED_FALLBACK_ERROR =
  * The reason clause that sits under SEED_FALLBACK_ERROR on the surface that fell back.
  *
  * Lane rsc503 (2026-09-08): the production failure state said only "Data temporarily
- * unavailable. Refresh to retry." — no reason, and (until this lane's cache fix) no refresh
+ * unavailable. Refresh to retry.": no reason, and (until this lane's cache fix) no refresh
  * that could ever retry, because the refresh was answered from the poisoned cache entry. A
  * state note that names nothing and resolves to nothing is the Absence convention misused.
  * With the cache fix the retry is real; this names what the reader is retrying past.
  *
  * One map, read by every surface, keyed on the SAME `_fallbackTrigger` the platform
- * integrity_flag queue is keyed on — so what the reader is told and what the operator's queue
+ * integrity_flag queue is keyed on, so what the reader is told and what the operator's queue
  * records can never drift. `null_orgId` deliberately has no clause: it is an anonymous or
  * no-membership render of a public page, ruled NOT a degradation (operator ruling 2026-07-13),
  * and telling that reader the system failed would be false.
@@ -2270,7 +2270,7 @@ export function describeFallbackTrigger(trigger?: SeedFallbackTrigger): string |
  * meant every caller fell into its own `!resources.length` branch and reported the failure
  * as `_fallbackTrigger: "rpc_error"`. A timeout is not an RPC error, and the admin
  * platform-flags queue that reads the trigger was being told the wrong thing about every
- * one of them — which is also why the `"timeout"` member of SeedFallbackTrigger had no
+ * one of them, which is also why the `"timeout"` member of SeedFallbackTrigger had no
  * writer anywhere in the codebase.
  */
 export class ReadTimeoutError extends Error {
@@ -2285,7 +2285,7 @@ export function isReadTimeout(e: unknown): boolean {
   return e instanceof ReadTimeoutError;
 }
 
-// Timeout wrapper — prevents Supabase from hanging indefinitely on Vercel. Rejects with
+// Timeout wrapper. Prevents Supabase from hanging indefinitely on Vercel. Rejects with
 // ReadTimeoutError; every caller below already has a catch that returns the same empty +
 // `_error` payload it used to build from the fallback tuple, now with the right trigger.
 function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
