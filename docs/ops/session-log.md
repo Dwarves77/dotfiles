@@ -11994,3 +11994,48 @@ train 56's own uxaudit-harness lane and its four uxaudit-a/b/c/d spec lanes — 
 ahead of `origin/master`. Bundle: `git bundle create /tmp/train58.bundle
 origin/master..train/wave58-2026-09-07` at this container's own tip, 421 KB (well under the 9 MB
 split threshold, so one bundle), `git bundle verify` PASS.
+
+## 2026-09-08, lane comp-06: /research composed against artboard 06 (id="p6")
+
+Page-composition pass for one page, `/research`, using the region-table method: read artboard
+06's PNG and its `dc.html` id="p6" markup region by region, write the same table for the built
+page from a populated fixture mount, fix every row that differs, then re-measure.
+
+**Built / moved / deleted**
+- Theme cards (`src/components/research/ResearchThemeCards.tsx`), the artboard's four-across
+  theme facet row below the band tiles, mounted through `ListSurfaceShell`'s existing `aboveRows`
+  slot (the same slot Operations' matrix uses). The Theme group left the rail's Filters card: one
+  control per facet.
+- Window row, the SHARED `ListSurfaceSortRow` with `controlLabel="Window"` and the artboard's
+  7d/30d/90d/All buckets; its flat-toggle prop pair generalised to `linkLabel`/`onLink` so the
+  same row carries "Show as one list" on 02/04 and "Clear theme" on 06. Real filtering via
+  `filterByWindow` in the shared helpers.
+- Band-card foot row + transition strip, built once in `ListSurfaceShell` for all five list
+  surfaces (artboards 02/04/06 draw the identical row): "All N <band> →" left, "then <band> · N"
+  right, "end of list" last; the Awareness strip is a `StateNote` through a new optional
+  `sectionFoot` slot.
+- Masthead scope line and command-bar placeholder are now artboard 06's own strings; row chip
+  carries the row's SEVERITY with the theme in the meta text, as p6 draws it.
+- ThemeStrip and the credibility legend moved to the content column's foot (ruling R7).
+- Empty facet groups no longer render as bare headings in the rail (shared fix).
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`ResearchLedger.tsx`,
+`ResearchThemeCards.tsx`, `ListSurfaceShell.tsx`, `ListSurfaceRailCards.tsx`,
+`ListSurfaceSortRow.tsx`, `ImpactMeter.tsx`, `RegulationsLedger.tsx`, `MarketIntelLedger.tsx`,
+`app/research/page.tsx`). Every value applied is the artboard's own literal number/hex/string
+(p6's theme card 12px/14px padding, 10.5px/.1em/800 label, Anton 18px count, 11.5px description;
+the foot row's 10px 16px on #FAFAF8 under a 1px rule; the Window row's four buckets), never
+invented. Hit targets: each theme card is a `button` with `minHeight: 44`; the foot-row link keeps
+law-2's 24px small-target floor for a bare underlined text link. No imagery, no dark mode, no
+per-page ask panel, no floating control; the row stays the one click target. Rendering guard
+(below) confirms 0 unaccounted failures at every viewport including 375/390.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33
+functions, 0 violations; rendering guard PASS (11 fixtures, 392 checks; 6 SM smoke specs, 78
+checks; 11 UX smoke specs, 182 checks); design audit 46 specs / 830 checks, 830 MATCH (adds
+`compose-06-research-list.json`, 25 checks, over a real `ResearchLedger` mount); full test suite
+5899 tests, 0 fail; `next build --webpack` exit 0 with no `.env.local`.
+
+**Exit evidence**: `docs/design/handoff-2026-09-06/built/compose-06-research-list.png` (artboard |
+built at 1440 with populated fixture data). Eight deviations logged in DEVIATION-LOG.md, all
+data-driven or ruling-driven, none a page-local stylesheet.

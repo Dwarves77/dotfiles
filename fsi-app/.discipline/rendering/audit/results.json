@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T02:26:52.648Z",
+  "runAt": "2026-09-08T03:07:27.522Z",
   "specs": [
     {
       "part": "Absence",
@@ -889,6 +889,143 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json",
       "__id": "compose-04-market-list"
+    },
+    {
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "mount": "compose-06-research",
+      "viewport": 1440,
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "notes": [
+        "Written for the operator's own complaint ('you are NOT matching the images directly'): this spec measures COMPOSITION, which regions exist, in what document order, with which strings, not one part's pixel values, which the part-level specs (bandtile/listrow/masthead/railcards/statenote) already carry.",
+        "Placement is asserted with sibling-combinator selectors ('A ~ B' matches only when A's node precedes B's), because 'present but in the wrong place' was the original defect, not absence.",
+        "Fixture is invented sample data in the real Resource shape (mounts.mjs, compose-06-research); the audit asserts geometry/placement/labels, never fixture values. Its `added` dates are fixed, not clock-relative, so the Window row's buckets do not drift between runs.",
+        "Three artboard regions have no data path in this corpus and are logged in DEVIATION-LOG.md rather than invented: the rail's VERTICAL facet (no per-item vertical/sector field; workspace_settings.sector_profile is a workspace-level list), the rail's SOURCE CLASS facet, and the Source coverage card's source-class axis (getResearchSourceCoverage returns transport modes). The Source coverage card is asserted here for placement and its artboard geometry, not for the four class labels it cannot have."
+      ],
+      "selector": "[data-audit=\"theme-cards\"]",
+      "expect": {
+        "display": "grid",
+        "grid-template-columns": "* * * *",
+        "gap": "12px"
+      },
+      "children": [
+        {
+          "name": "theme cards precede the Window row in the content column (artboard order: band tiles, theme cards, Window row, band sections)",
+          "selector": "[data-audit=\"theme-cards\"] ~ [data-audit=\"sort-row\"]",
+          "note": "Sibling combinator: matches only when the theme card row's node precedes the Window row's.",
+          "expect": {
+            "display": "flex"
+          }
+        },
+        {
+          "name": "one theme card per theme present, each a real control (the theme facet IS this row)",
+          "selector": "[data-audit=\"theme-cards\"] > button",
+          "expect": {
+            "count": "4",
+            "border-radius": "10px",
+            "padding-top": "12px",
+            "padding-left": "14px"
+          }
+        },
+        {
+          "name": "the Window row's control label is WINDOW, not SORT (artboard 06 carries the window control where 02/04 carry sort)",
+          "selector": "[data-audit=\"sort-row\"] span",
+          "textMatch": "Window",
+          "expect": {
+            "text-transform": "uppercase",
+            "font-weight": "700"
+          }
+        },
+        {
+          "name": "the Window row offers exactly the artboard's four buckets",
+          "selector": "[data-audit=\"sort-row\"] button",
+          "expect": {
+            "count": "4"
+          }
+        },
+        {
+          "name": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+          "selector": "[data-audit=\"band-foot\"]",
+          "expect": {
+            "display": "flex",
+            "background-color": "#FAFAF8",
+            "border-top-width": "1px",
+            "padding-top": "10px",
+            "padding-left": "16px"
+          }
+        },
+        {
+          "name": "the last band's foot row says 'end of list'",
+          "selector": "[data-audit=\"band-foot\"] span",
+          "textMatch": "end of list",
+          "expect": {
+            "text": "end of list"
+          }
+        },
+        {
+          "name": "a foot row names the next band ('then <band> · N')",
+          "selector": "[data-audit=\"band-foot\"] span",
+          "textMatch": "then Awareness",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "masthead scope line states the live counts the artboard states ('N active findings · N themes · ...')",
+          "selector": ".cl-masthead-dek",
+          "textMatch": "active findings",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "rail order, Filters card first",
+          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"source-coverage-rail\"]",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "rail order, Source coverage sits between Filters and Legend (artboard 06 rail, top to bottom)",
+          "selector": "[data-audit=\"source-coverage-rail\"] ~ [data-audit=\"legend-rail\"]",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "Filters rail card carries checkbox rows, the artboard's own facet rendering",
+          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+          "expect": {}
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no Theme facet group in the rail, the theme cards ARE the theme facet",
+          "selector": "[data-audit=\"filters-rail\"] p",
+          "textMatch": "Theme",
+          "reason": "Artboard 06's own caption: 'themes are a second facet row, not a second tile system'. One control per facet: the theme card row selects the theme, so a duplicate Theme checkbox group in the rail would be a second control for the same state."
+        },
+        {
+          "name": "no content-column facet chip strip above the rows",
+          "selector": ".cl-facets-desktop",
+          "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The desktop facets live in the rail's Filters card on every list surface."
+        },
+        {
+          "name": "the literal word UNSCORED anywhere",
+          "selector": "body",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: the literal uppercase token never appears; Absence renders the fixed-vocabulary reason in lowercase text with small-caps/uppercase CSS, so textContent never reads the bare word."
+        },
+        {
+          "name": "no theme card row rendered as a second BandTile system",
+          "selector": "[data-audit=\"theme-cards\"] [data-audit=\"tile\"]",
+          "reason": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-06-research-list.json",
+      "__id": "compose-06-research-list"
     },
     {
       "part": "DetailHeader",
@@ -1961,7 +2098,7 @@
       "__id": "map-register"
     },
     {
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "mount": "market-research-rows",
       "viewport": 1440,
       "artboards": [
@@ -1970,9 +2107,10 @@
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "notes": [
-        "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text — README §0.4.",
-        "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly — closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
-        "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px` — the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all — confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip — read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file."
+        "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text, README §0.4.",
+        "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly, closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
+        "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px`, the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all, confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip, read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file.",
+        "SPEC CORRECTION, lane comp-06 (2026-09-08): this child previously expected the row chip to carry the THEME (\"Emissions accounting\"), which is what train 58 shipped. Artboard 06/id=\"p6\" puts the SEVERITY in the chip and the theme in the meta text; the artboard is the authority (HANDOFF: \"where README prose and a page artboard disagree, the artboard wins\"), so the product changed and this spec follows it. The theme did not disappear from the row, it moved to the meta line, where the artboard draws it."
       ],
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "expect": {
@@ -1981,20 +2119,20 @@
       },
       "children": [
         {
-          "name": "market row — signal-kind TagChip label text",
+          "name": "market row, signal-kind TagChip label text",
           "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
-          "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert' — matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
+          "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
           "expect": {
             "text": "Cost alert"
           }
         },
         {
-          "name": "research row — theme TagChip (fix58-lists, closed gap)",
+          "name": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
           "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
-          "note": "ResearchLedger.tsx now renders the fixture's theme ('emissions_accounting') through the same TagChip, labelled via THEME_LABELS ('Emissions accounting').",
+          "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\".",
           "expect": {
             "background-color": "#F5F2EE",
-            "text": "Emissions accounting"
+            "text": "Background"
           }
         }
       ],
@@ -7059,6 +7197,406 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "selector": "[data-audit=\"theme-cards\"]",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "selector": "[data-audit=\"theme-cards\"]",
+      "property": "grid-template-columns",
+      "expected": "* * * *",
+      "actual": "249px 249px 249px 249px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "selector": "[data-audit=\"theme-cards\"]",
+      "property": "gap",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "theme cards precede the Window row in the content column (artboard order: band tiles, theme cards, Window row, band sections)",
+      "selector": "[data-audit=\"theme-cards\"] ~ [data-audit=\"sort-row\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": "Sibling combinator: matches only when the theme card row's node precedes the Window row's."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "one theme card per theme present, each a real control (the theme facet IS this row)",
+      "selector": "[data-audit=\"theme-cards\"] > button",
+      "property": "count",
+      "expected": "4",
+      "actual": "4",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "one theme card per theme present, each a real control (the theme facet IS this row)",
+      "selector": "[data-audit=\"theme-cards\"] > button",
+      "property": "border-radius",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "one theme card per theme present, each a real control (the theme facet IS this row)",
+      "selector": "[data-audit=\"theme-cards\"] > button",
+      "property": "padding-top",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "one theme card per theme present, each a real control (the theme facet IS this row)",
+      "selector": "[data-audit=\"theme-cards\"] > button",
+      "property": "padding-left",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "the Window row's control label is WINDOW, not SORT (artboard 06 carries the window control where 02/04 carry sort)",
+      "selector": "[data-audit=\"sort-row\"] span",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "the Window row's control label is WINDOW, not SORT (artboard 06 carries the window control where 02/04 carry sort)",
+      "selector": "[data-audit=\"sort-row\"] span",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "the Window row offers exactly the artboard's four buckets",
+      "selector": "[data-audit=\"sort-row\"] button",
+      "property": "count",
+      "expected": "4",
+      "actual": "4",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+      "selector": "[data-audit=\"band-foot\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+      "selector": "[data-audit=\"band-foot\"]",
+      "property": "background-color",
+      "expected": "#FAFAF8",
+      "actual": "rgb(250, 250, 248)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+      "selector": "[data-audit=\"band-foot\"]",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+      "selector": "[data-audit=\"band-foot\"]",
+      "property": "padding-top",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+      "selector": "[data-audit=\"band-foot\"]",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "the last band's foot row says 'end of list'",
+      "selector": "[data-audit=\"band-foot\"] span",
+      "property": "text",
+      "expected": "end of list",
+      "actual": "end of list",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "a foot row names the next band ('then <band> · N')",
+      "selector": "[data-audit=\"band-foot\"] span",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "masthead scope line states the live counts the artboard states ('N active findings · N themes · ...')",
+      "selector": ".cl-masthead-dek",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "rail order, Filters card first",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"source-coverage-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "rail order, Source coverage sits between Filters and Legend (artboard 06 rail, top to bottom)",
+      "selector": "[data-audit=\"source-coverage-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "no Theme facet group in the rail, the theme cards ARE the theme facet",
+      "selector": "[data-audit=\"filters-rail\"] p [text contains \"Theme\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 06's own caption: 'themes are a second facet row, not a second tile system'. One control per facet: the theme card row selects the theme, so a duplicate Theme checkbox group in the rail would be a second control for the same state."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "no content-column facet chip strip above the rows",
+      "selector": ".cl-facets-desktop",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The desktop facets live in the rail's Filters card on every list surface."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED anywhere",
+      "selector": "body [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1: the literal uppercase token never appears; Absence renders the fixed-vocabulary reason in lowercase text with small-caps/uppercase CSS, so textContent never reads the bare word."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "no theme card row rendered as a second BandTile system",
+      "selector": "[data-audit=\"theme-cards\"] [data-audit=\"tile\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
     },
     {
       "spec": "detailheader",
@@ -12300,14 +12838,14 @@
     },
     {
       "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "artboards": [
         "04-market-list",
         "06-research-list"
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
-      "target": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "background-color",
       "expected": "#F5F2EE",
@@ -12317,14 +12855,14 @@
     },
     {
       "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "artboards": [
         "04-market-list",
         "06-research-list"
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
-      "target": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "border-radius",
       "expected": "4px",
@@ -12334,54 +12872,54 @@
     },
     {
       "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "artboards": [
         "04-market-list",
         "06-research-list"
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
-      "target": "market row — signal-kind TagChip label text",
+      "target": "market row, signal-kind TagChip label text",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "text",
       "expected": "Cost alert",
       "actual": "Cost alert",
       "status": "MATCH",
-      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert' — matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert')."
+      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert')."
     },
     {
       "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "artboards": [
         "04-market-list",
         "06-research-list"
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
-      "target": "research row — theme TagChip (fix58-lists, closed gap)",
+      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
       "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "background-color",
       "expected": "#F5F2EE",
       "actual": "rgb(245, 242, 238)",
       "status": "MATCH",
-      "note": "ResearchLedger.tsx now renders the fixture's theme ('emissions_accounting') through the same TagChip, labelled via THEME_LABELS ('Emissions accounting')."
+      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
     },
     {
       "spec": "market-research-rows",
-      "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
       "artboards": [
         "04-market-list",
         "06-research-list"
       ],
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
-      "target": "research row — theme TagChip (fix58-lists, closed gap)",
+      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
       "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "text",
-      "expected": "Emissions accounting",
-      "actual": "Emissions accounting",
+      "expected": "Background",
+      "actual": "Background",
       "status": "MATCH",
-      "note": "ResearchLedger.tsx now renders the fixture's theme ('emissions_accounting') through the same TagChip, labelled via THEME_LABELS ('Emissions accounting')."
+      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
     },
     {
       "spec": "masthead",

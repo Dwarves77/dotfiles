@@ -196,7 +196,75 @@ window.__mount = (props) => {
 };
 `;
 
+// Research fixture (lane comp-06, 2026-09-08, artboard 06/id="p6"). Real `Resource` shape as
+// getPublicResearchItems() returns it: a `theme` DB-column value (migration 102, mapped by
+// THEME_COLUMN_TO_KEY), a `severity` value, a `sub` kind label and an `added` date spread across
+// the Window row's own 7d/30d/90d buckets, so the theme cards, the Window row and the band
+// sections all have something true to render.
+const RESEARCH_THEMES = ['emissions_accounting', 'fuels_saf', 'last_mile_electrification', 'disclosure_regimes'];
+const RESEARCH_SUBS = ['initiative', 'think tank', 'active data platform', 'peer-reviewed journal'];
+const RESEARCH_BANDS = ['HIGH', 'MODERATE', 'LOW', 'LOW', 'LOW', 'LOW'];
+
+function researchRow(i, today) {
+  const jurisdiction = JURISDICTIONS[i % JURISDICTIONS.length];
+  const added = new Date(today.getTime() - (i * 6 + 1) * 86400000).toISOString().slice(0, 10);
+  return {
+    id: `res-${i}`,
+    domain: 7,
+    title: `Research finding fixture ${i}: measured abatement across the ocean leg`,
+    note: 'Short finding note.',
+    type: 'Finding',
+    sub: RESEARCH_SUBS[i % RESEARCH_SUBS.length],
+    priority: RESEARCH_BANDS[i % RESEARCH_BANDS.length],
+    added,
+    jurisdiction,
+    jurisdictionIso: [jurisdiction],
+    modes: MODES[i % MODES.length],
+    theme: RESEARCH_THEMES[i % RESEARCH_THEMES.length],
+    severity: ['cost_alert', 'monitoring', 'competitive_edge'][i % 3],
+    sourceTier: 3,
+    tags: [],
+    reasoning: '',
+    timeline: i % 3 === 0 ? [{ date: '2026-12-01', label: 'MEPC session', status: 'future' }] : undefined,
+  };
+}
+const RESEARCH_ROWS = Array.from({ length: 20 }, (_, i) => researchRow(i, new Date()));
+
+const RESEARCH_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ResearchLedger } from '@/components/research/ResearchLedger';
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(ResearchLedger, props));
+};
+`;
+
 const CAPTURES = [
+  {
+    out: 'compose-06-research-built.png',
+    entry: RESEARCH_ENTRY,
+    props: {
+      resources: RESEARCH_ROWS,
+      aggregates: {
+        ...EMPTY_AGGREGATES,
+        totalItems: RESEARCH_ROWS.length,
+        byPriority: byPriorityOf(RESEARCH_ROWS),
+        byJurisdiction: byJurisdictionOf(RESEARCH_ROWS),
+        totalJurisdictions: 4,
+        lastUpdatedAt: '2026-09-06T00:00:00Z',
+      },
+      sourceCoverage: [
+        { transportMode: 'ocean', jurisdictionIso: 'EU', sourceCount: 18 },
+        { transportMode: 'road', jurisdictionIso: 'US', sourceCount: 14 },
+        { transportMode: 'air', jurisdictionIso: 'UK', sourceCount: 11 },
+        { transportMode: 'rail', jurisdictionIso: 'Global', sourceCount: 3 },
+      ],
+    },
+  },
   {
     out: 'compose-02-regulations-list.png',
     entry: REGULATIONS_ENTRY,
@@ -236,7 +304,10 @@ async function main() {
   const browser = await chromium.launch(
     process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE } : {},
   );
-  for (const cap of CAPTURES) {
+  // Optional substring filter (argv[2]) so a lane re-capturing ONE page does not pay for all of
+  // them; no argument keeps the original behaviour (capture every entry).
+  const only = process.argv[2];
+  for (const cap of CAPTURES.filter((c) => !only || c.out.includes(only))) {
     const bundleJs = await bundleEntry(cap.entry);
     const page = await newSmokePage(browser, {
       apiRoutes: [{ urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ json: { resources: [], archived: [] } }) }],

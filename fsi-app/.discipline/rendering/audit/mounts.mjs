@@ -1442,6 +1442,70 @@ window.__mount = () => {
 };
 `;
 
+// ── /research page composition (lane comp-06, 2026-09-08, artboard 06/id="p6") ─────────────────────
+// The REAL ResearchLedger, fed a 20-row fixture in getPublicResearchItems()'s own `Resource` shape
+// (a migration-102 `theme` column value, a `severity` value, a `sub` kind label, an `added` date),
+// so the theme card row, the Window row, the band-card foot rows and the transition strip are all
+// measured as the page composes them, not as isolated parts fed invented props.
+const COMPOSE_RESEARCH_THEMES = ['emissions_accounting', 'fuels_saf', 'last_mile_electrification', 'disclosure_regimes'];
+const COMPOSE_RESEARCH_SUBS = ['initiative', 'think tank', 'active data platform', 'peer-reviewed journal'];
+const COMPOSE_RESEARCH_BANDS = ['HIGH', 'MODERATE', 'LOW', 'LOW', 'LOW', 'LOW'];
+
+function composeResearchRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `res-${i}`, domain: 7,
+    title: `Research finding fixture ${i}: measured abatement across the ocean leg`,
+    note: 'Short finding note.', type: 'Finding', sub: COMPOSE_RESEARCH_SUBS[i % COMPOSE_RESEARCH_SUBS.length],
+    priority: COMPOSE_RESEARCH_BANDS[i % COMPOSE_RESEARCH_BANDS.length],
+    // Fixed dates (never Date.now()): the audit is a measurement, and a fixture whose rows drift
+    // in and out of the Window row's buckets by wall clock is not reproducible. "all" is the
+    // default window, so every row is in view whatever today is.
+    added: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`,
+    jurisdiction, jurisdictionIso: [jurisdiction], modes: modes[i % modes.length],
+    theme: COMPOSE_RESEARCH_THEMES[i % COMPOSE_RESEARCH_THEMES.length],
+    severity: ['cost_alert', 'monitoring', 'competitive_edge'][i % 3],
+    sourceTier: 3, tags: [], reasoning: '',
+    timeline: i % 3 === 0 ? [{ date: '2026-12-01', label: 'MEPC session', status: 'future' }] : undefined,
+  };
+}
+const COMPOSE_RESEARCH_ROWS = Array.from({ length: 20 }, (_, i) => composeResearchRow(i));
+
+const COMPOSE_RESEARCH_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ResearchLedger } from '@/components/research/ResearchLedger';
+
+const RESEARCH_ROWS = ${JSON.stringify(COMPOSE_RESEARCH_ROWS)};
+const props = {
+  resources: RESEARCH_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: RESEARCH_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_RESEARCH_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_RESEARCH_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-06T00:00:00Z',
+  },
+  sourceCoverage: [
+    { transportMode: 'ocean', jurisdictionIso: 'EU', sourceCount: 18 },
+    { transportMode: 'road', jurisdictionIso: 'US', sourceCount: 14 },
+    { transportMode: 'air', jurisdictionIso: 'UK', sourceCount: 11 },
+    { transportMode: 'rail', jurisdictionIso: 'Global', sourceCount: 3 },
+  ],
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(ResearchLedger, props));
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -1658,6 +1722,13 @@ export const AUDIT_MOUNTS = {
     description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
     viewport: 1440,
     entry: COMPOSE_REGULATIONS_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-06-research': {
+    id: 'compose-06-research',
+    description: 'The real ResearchLedger page composition (20-row fixture): theme cards, Window row, band-foot rows + transition strip, rail Filters/Source coverage/Legend, artboard 06/id="p6".',
+    viewport: 1440,
+    entry: COMPOSE_RESEARCH_ENTRY,
     apiRoutes: COMPOSE_LEDGER_API,
   },
   'compose-04-market': {
