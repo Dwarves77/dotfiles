@@ -21,6 +21,7 @@ import type { Resource } from "@/types/resource";
 import { VERTICALS } from "@/lib/constants";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { formatLocaleDate } from "@/lib/format";
+import { renderNowIso } from "@/lib/render-now";
 
 export const dynamic = "force-dynamic";
 
@@ -329,6 +330,7 @@ export default async function CommunityPage() {
     )
   );
   const authorMap = new Map<string, ProfileRow>();
+  const orgNameById = new Map<string, string>();
   if (authorIds.length > 0) {
     const { data: authorRows } = await supabase
       .from("profiles")
@@ -338,6 +340,27 @@ export default async function CommunityPage() {
       // fitness-allow: F39 (scoped to one page/group render's own bounded row set, not corpus-scale)
       .in("id", authorIds);
     for (const row of (authorRows ?? []) as ProfileRow[]) authorMap.set(row.id, row);
+
+    // Artboard 12's discussion row reads "Opened by A. Weiss · Dietl": the author's
+    // ORGANIZATION, not their workspace. Resolved here, bounded by the same author set
+    // the profiles read above already produced (F39: one page render's own row set).
+    const orgIds = Array.from(
+      new Set(
+        Array.from(authorMap.values())
+          .map((a) => a.org_id)
+          .filter((id): id is string => Boolean(id))
+      )
+    );
+    if (orgIds.length > 0) {
+      const { data: orgRows } = await supabase
+        .from("organizations")
+        .select("id, name")
+        // fitness-allow: F39 (scoped to one page render's own bounded row set, not corpus-scale)
+        .in("id", orgIds);
+      for (const o of (orgRows ?? []) as Array<{ id: string; name: string | null }>) {
+        if (o.name) orgNameById.set(o.id, o.name);
+      }
+    }
   }
 
   const threadsByGroup = new Map<string, ThreadVM[]>();
@@ -350,6 +373,8 @@ export default async function CommunityPage() {
         ? memberDisplayName(author)
         : "Former member";
     const isOwner = (isYou ? me.workspace_role : author?.workspace_role) === "owner";
+    const authorOrgId = isYou ? me.org_id : author?.org_id ?? null;
+    const authorOrg = authorOrgId ? orgNameById.get(authorOrgId) ?? null : null;
     const req = signoffByPost.get(p.id) ?? null;
     const signoff = req
       ? {
@@ -375,6 +400,7 @@ export default async function CommunityPage() {
       lastActivityAt: p.last_reply_at ?? p.created_at,
       referencedItemIds: p.referenced_intelligence_item_ids ?? [],
       authorName,
+      authorOrg,
       isYou,
       isOwner,
       signedOff: Boolean(p.signed_off_at),
@@ -394,7 +420,6 @@ export default async function CommunityPage() {
   if (!rosterPool.some((r) => r.id === user.id)) {
     rosterPool.push({ ...me, email: me.email ?? user.email ?? null });
   }
-  const networkMemberCount = new Set(rosterPool.map((r) => r.id)).size;
 
   // ── Assemble per-room view models ──
   const rooms: RoomVM[] = [];
@@ -474,7 +499,8 @@ export default async function CommunityPage() {
     </span>
   );
 
-  const dateStr = formatLocaleDate(new Date(), {
+  const nowIso = renderNowIso();
+  const dateStr = formatLocaleDate(new Date(nowIso), {
     weekday: "long",
     year: "numeric",
     month: "long",
@@ -504,8 +530,8 @@ export default async function CommunityPage() {
         currentUserIsOwner={me.workspace_role === "owner"}
         currentUserIsVerifier={me.verifier_status === "active"}
         verifierStatus={me.verifier_status ?? "none"}
-        networkMemberCount={networkMemberCount}
         pendingPickups={pickupsRes.count ?? 0}
+        nowIso={nowIso}
         verticalGroups={verticalGroups}
         verticalOptions={verticalOptions}
       />
