@@ -145,8 +145,10 @@ export function DashboardBrief({
            documented --bp-mobile) — one column, 2x2 band tiles, gap 10px,
            container padding 14px 16px 16px. */
         @media (max-width: 767px) {
+          /* The .cl-band-tiles 2x2 rule that used to sit here moved to BandTile.tsx
+             (MOBILE-60, 2026-09-08): the list surfaces render the same row and were
+             missing it, and CLAUDE.md rule 13 forbids the second copy. */
           .cl-brief-outer { padding: 14px 16px 16px !important; }
-          .cl-band-tiles { grid-template-columns: repeat(2, 1fr) !important; gap: 10px !important; }
         }
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }} className="cl-brief-grid">

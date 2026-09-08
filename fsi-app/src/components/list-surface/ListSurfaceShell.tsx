@@ -161,6 +161,31 @@ export interface ListSurfaceShellProps {
 const MOBILE_FILTERS_CSS = `
   .cl-facets-mobile, .cl-filters-btn { display: none; }
   @media (max-width: 767px) {
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by the audit's mobile-*
+       specs]. Three page-level measures the five list surfaces were missing:
+
+       (a) PAGE PADDING. Both wrappers below carry a hardcoded 40px side padding with
+       no mobile escape, so at 390 the content column was 310px wide and the masthead,
+       whose own mobile rule already sets 14px 16px 0, sat 56px in from the page edge.
+       The mobile 390 spec states 14px 16px 0 for the masthead and 14px 16px 16px for
+       the tile/content container; those are now the values that actually apply.
+
+       (b) BAND TILES. The tile row here had no class at all, so the spec's "2x2 grid,
+       gap 10px" (which DashboardBrief got via .cl-band-tiles) never reached the five
+       list surfaces and they rendered four 67px tiles across. The rule itself lives in
+       BandTile.tsx with the rest of the tile's mobile measures — one definition, both
+       callers — and this row now carries that class.
+
+       (c) DUPLICATE FILTER SURFACE. Below 768 the rail's own FILTERS card rendered
+       UNDER the folded rail at the same time as the mobile chip strip and the Filters
+       sheet button: two live filter controls for one set of facets, from the same
+       facetGroups. The mobile 390 spec designs exactly one ("chip groups scroll
+       sideways as whole units"; "facet counts and the workspace-tag facet open in a
+       sheet from Filters"), so the desktop expression of it is not shown at this
+       width. The rest of the rail still folds under the content, as the spec says. */
+    .cl-list-surface-masthead { padding: 0 !important; }
+    .cl-list-surface-grid { padding: 14px 16px 16px !important; gap: 16px !important; }
+    .cl-list-surface-grid [data-audit="filters-rail"] { display: none !important; }
     .cl-facets-desktop { display: none !important; }
     .cl-facets-mobile {
       display: flex;
@@ -378,7 +403,8 @@ export function ListSurfaceShell({
 
   return (
     <>
-      <div style={{ padding: "20px 40px 0" }}>
+      <div className="cl-list-surface-masthead" style={{ padding: "20px 40px 0" }}>
+        <style>{MOBILE_FILTERS_CSS}</style>
         <Masthead
           title={title}
           dek={dek ?? scopeLine}
@@ -399,13 +425,16 @@ export function ListSurfaceShell({
       >
         <style>{`
           @media (max-width: 1280px) {
-            .cl-list-surface-grid { grid-template-columns: 1fr !important; }
+            /* minmax(0, ...), not a bare 1fr: a bare 1fr is minmax(auto, 1fr), whose auto
+               minimum is the item's min-content width, so the single track could grow past
+               the viewport (MOBILE-60, same defect class fixed in DashboardBrief). */
+            .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; }
           }
         `}</style>
         <style>{MOBILE_FILTERS_CSS}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           {/* Band tiles */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
             {BAND_ORDER.map((band) =>
               loadingFirstPage || !bandCounts ? (
                 <SkeletonBandTile key={band.key} />
