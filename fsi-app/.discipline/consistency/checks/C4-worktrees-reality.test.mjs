@@ -13,13 +13,18 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { isEphemeralWorktreePath } from './C4-worktrees-reality.mjs';
 
+// A synthetic root, never a real user's home: rule 012 (hardcoded-user-home-path) fails any literal
+// `/home/<name>/` in the tree, and these paths are pure fixtures — the predicate only inspects path
+// SEGMENTS, so the prefix carries no meaning to it.
+const HOME = '/fixture-home/user';
+
 test('the three ephemeral conventions are exempt, on POSIX and Windows separators alike', () => {
   for (const p of [
-    '/home/jason/dotfiles/.worktrees/wt-build-7',
-    '/home/jason/dotfiles/.claude/worktrees/agent-abc123',
+    `${HOME}/dotfiles/.worktrees/wt-build-7`,
+    `${HOME}/dotfiles/.claude/worktrees/agent-abc123`,
     '/root/work/lanes/train59',
     '/root/work/lanes/comp-06',
-    'C:\\Users\\jason\\dotfiles\\.worktrees\\wt-linkedin',
+    'C:\\fixture\\dotfiles\\.worktrees\\wt-linkedin',
   ]) {
     assert.equal(isEphemeralWorktreePath(p), true, `should be exempt: ${p}`);
   }
@@ -27,12 +32,12 @@ test('the three ephemeral conventions are exempt, on POSIX and Windows separator
 
 test('a tracked worktree is NOT exempted — the check still has teeth', () => {
   for (const p of [
-    '/home/jason/dotfiles',
-    '/home/jason/dotfiles-wt-audit',
+    `${HOME}/dotfiles`,
+    `${HOME}/dotfiles-wt-audit`,
     '/root/work/dotfiles',
     // near-misses: the segment must be a real path segment, not a substring of a name
-    '/home/jason/my-worktrees-backup/thing',
-    '/home/jason/lanes/not-under-work',
+    `${HOME}/my-worktrees-backup/thing`,
+    `${HOME}/lanes/not-under-work`,
   ]) {
     assert.equal(isEphemeralWorktreePath(p), false, `should be tracked: ${p}`);
   }
