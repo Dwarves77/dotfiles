@@ -110,6 +110,21 @@ export const THEME_LABELS = {
 };
 
 /**
+ * One-line description per theme, shown on the /research theme cards (artboard 06/id="p6": each
+ * theme card is "LABEL · count · +N new" over a one-line description). The four strings below are
+ * the artboard's own, verbatim; the three themes the artboard does not draw (packaging, carbon,
+ * cold-chain) carry no description rather than an invented one, and their card renders the head
+ * row alone, logged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md.
+ * @type {Partial<Record<ThemeKey, string>>}
+ */
+export const THEME_DESCRIPTIONS = {
+  emissions: "Methodology shifts that change how the workspace reports Scope 3.",
+  fuels: "Production capacity, feedstock constraints, price trajectory.",
+  "last-mile": "EV cargo capacity, charging rollout, zero-emission cargo bays.",
+  disclosure: "CSRD omnibus, ISSB S2, emerging frameworks.",
+};
+
+/**
  * Maps the migration-102 `theme` DB column's canonical values to a ThemeKey. Identical in both
  * former copies. When a row carries a live `theme` column value, this wins over the keyword
  * regexes below (see assignTheme).
