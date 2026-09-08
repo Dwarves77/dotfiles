@@ -1094,6 +1094,44 @@ window.__mount = () => {
 // ── Auth (16) full-page composition mounts (/login, /signup) ─────────────────────────────────────
 // Reuses the SAME real page components the routes mount (README screen 16 / dc.html p16), wrapped
 // in AppShell-free AuthFrame (both pages already render their own full-frame chrome, no Sidebar).
+// ── Onboarding (17) full-page composition mount ──────────────────────────────────────────────────
+// The real OnboardingWizard (README screen 17 / dc.html p17), inside AuthFrame. Its own `step` state
+// defaults to 2 ("Modes & jurisdictions") already — the artboard's own illustrated step — so no
+// forced navigation is needed. Step 4 "Briefing" has no artboard yet (operator ruling, dispatch) and
+// is out of this mount's scope.
+const ONBOARDING_AGGREGATES_FIXTURE = {
+  totalItems: 742,
+  byPriority: { CRITICAL: 12, HIGH: 21, MODERATE: 611, LOW: 98 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 58,
+  lastUpdatedAt: '2026-09-06T00:00:00Z',
+};
+
+const COMPOSE_ONBOARDING_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+
+const AGGREGATES = ${JSON.stringify(ONBOARDING_AGGREGATES_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'onboarding' },
+      React.createElement(OnboardingWizard, {
+        userId: 'audit-user',
+        userEmail: 'jason@dietl-rockit.example',
+        orgId: 'org-1',
+        aggregates: AGGREGATES,
+      }),
+    ),
+  );
+};
+`;
+
 const COMPOSE_LOGIN_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -2625,6 +2663,18 @@ export const AUDIT_MOUNTS = {
     needsCompiledCss: true,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation-signup.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-onboarding': {
+    id: 'compose-onboarding',
+    description: 'Full-page composition mount: the real OnboardingWizard (AuthFrame + OnboardingStepper), step 2 (its own default), README screen 17 / dc.html p17.',
+    viewport: 1440,
+    entry: COMPOSE_ONBOARDING_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-onboarding.mjs`,
       '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
     },
     apiRoutes: EMPTY_API,
