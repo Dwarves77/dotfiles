@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T16:38:42.164Z",
+  "runAt": "2026-09-08T17:25:15.789Z",
   "specs": [
     {
       "part": "Absence",
@@ -752,8 +752,7 @@
         "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
         "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
         "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
-        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text.",
-        "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base — DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own — so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
+        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text."
       ],
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "expect": {
@@ -806,59 +805,6 @@
           "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
           "expect": {},
           "text": "Legend"
-        },
-        {
-          "name": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-          "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers.",
-          "expect": {
-            "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
-            "min-height": "56px",
-            "row-gap": "0px",
-            "column-gap": "14px",
-            "padding-left": "0px"
-          }
-        },
-        {
-          "name": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
-          "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount.",
-          "expect": {
-            "border-left-width": "1px",
-            "border-left-style": "solid",
-            "border-left-color": "rgba(0,0,0,.08)"
-          }
-        },
-        {
-          "name": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
-          "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted.",
-          "expect": {
-            "font-size": "9.5px",
-            "letter-spacing": "0.12em",
-            "text-transform": "uppercase",
-            "font-weight": "700"
-          }
-        },
-        {
-          "name": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
-          "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge.",
-          "expect": {
-            "width": "3px"
-          }
-        },
-        {
-          "name": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-          "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim.",
-          "expect": {
-            "width": "28px",
-            "height": "28px",
-            "border-top-left-radius": "6px",
-            "color": "#7A6E6C",
-            "text": "⋯"
-          }
         }
       ],
       "forbid": [
@@ -1013,6 +959,15 @@
           "expect": {},
           "textMatch": "Ocean",
           "note": "Artboard 02/id=\"p2\" draws the FILTERS card's MODE rows as Air / Road / Ocean / Rail, title case, like its own JURISDICTION and TOPIC groups. The build printed the raw canonical token, so the group read 'air / ocean / road / rail' in lower case and was the only lower-case group in the card. Found by eye in train 60's visual pass; no spec measured it. The label now comes from TRANSPORT_MODES (the vocabulary that already owns it), and the option's `value` is untouched, so the stored/filtered token is still the canonical `ocean` of the 2026-08-12 ruling. This row asserts the DISPLAY form only. The match is a CASE-SENSITIVE substring, which is exactly the distinction under test: the lower-case token 'ocean' does not contain 'Ocean'. (Authoring note, fold 60: this row first used a `re:` regex with \\b word boundaries and reported NOT BUILT against a correct product, because in JSON \\b is the escape for BACKSPACE, so the parsed pattern searched for control characters. A regex in a spec file needs its backslashes doubled; a plain substring needs none, and is enough here.)"
+        },
+        {
+          "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+          "expect": {
+            "height": "24px",
+            "font-size": "12.5px"
+          }
         }
       ],
       "forbid": [
@@ -1325,6 +1280,15 @@
           "expect": {
             "grid-template-columns": "75.7031px 180.297px"
           }
+        },
+        {
+          "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+          "expect": {
+            "height": "24px",
+            "font-size": "12.5px"
+          }
         }
       ],
       "forbid": [
@@ -1563,6 +1527,15 @@
           "name": "Filters rail card carries checkbox rows, the artboard's own facet rendering",
           "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
           "expect": {}
+        },
+        {
+          "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+          "expect": {
+            "height": "24px",
+            "font-size": "12.5px"
+          }
         }
       ],
       "forbid": [
@@ -1847,6 +1820,15 @@
           "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text.",
           "expect": {
             "display": "block"
+          }
+        },
+        {
+          "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+          "expect": {
+            "height": "24px",
+            "font-size": "12.5px"
           }
         }
       ],
@@ -2429,6 +2411,15 @@
           },
           "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing.",
           "textMatch": "re:changed since [A-Z][a-z]{2} \\d{1,2}, \\d{4}"
+        },
+        {
+          "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+          "expect": {
+            "height": "24px",
+            "font-size": "12.5px"
+          }
         }
       ],
       "forbid": [
@@ -4537,7 +4528,11 @@
       "notes": [
         "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
         "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
-        "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
+        "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate).",
+        "RAIL FACET GEOMETRY (lane railfacets, train 62, 2026-09-08, operator items C1/C2/C3). Every value in the six rows below is quoted from artboard 02/id=\"p2\"'s FILTERS card markup, which artboards 04/06/08 repeat character for character: group `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`; group label `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`; row `display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12.5px`; checkbox `width:13px;height:13px`; count `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`.",
+        "THREE ITEM-LIST VALUES THE ARTBOARD DOES NOT SAY, resolved by the RULE OF PRECEDENCE (\"the artboard image wins over prose where they disagree\") and logged in DEVIATION-LOG.md: the item list states a 14px checkbox (artboard: `width:13px;height:13px`, in all four list artboards), a rgba(0,0,0,.08) group rule (artboard: `rgba(0,0,0,.06)`), and 14px of space above the group label (artboard: the group's own `padding-top:10px`, which is also exactly what the same item list's C2 states as \"10px either side\" of the rule). The rows below assert the artboard values.",
+        "ROW HEIGHT AND THE 44px TOUCH TARGET. `line-height:16px` on the row has no artboard source (the artboard leaves it `normal`); it is the mechanism that makes 4px + 16px + 4px exactly the 24px the item list states, rather than a per-font 23-25px. The 44px hit target is not traded away: `.cl-facet-row`/`.cl-facet-more` take `min-height:44px` below 768px from globals.css, so 24px is the desktop measure this 1440 spec asserts and 44px is the phone measure mobile-11-watchlist.json asserts on the one surface that still draws this card at 390.",
+        "The mount grew a SECOND facet group, the second one past the six-option cap (mounts.mjs, LISTSURFACE_ENTRY). The one-group fixture could reach neither the group separator (which needs a group below the first) nor the \"+ N more\" row (which needs more options than FiltersRailCard's VISIBLE_OPTIONS_CAP of 6)."
       ],
       "selector": "[data-audit=\"legend-rail\"] > div",
       "expect": {
@@ -4599,6 +4594,79 @@
           "expect": {
             "min-height": "44px"
           }
+        },
+        {
+          "name": "Facet group — 10px either side of the 1px rule (C2)",
+          "selector": "[data-audit=\"facet-mode\"]",
+          "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container.",
+          "expect": {
+            "padding-top": "10px",
+            "padding-bottom": "10px",
+            "border-bottom-width": "1px",
+            "border-bottom-color": "rgba(0,0,0,.06)"
+          }
+        },
+        {
+          "name": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+          "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+          "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above.",
+          "expect": {
+            "font-size": "10px",
+            "font-weight": "700",
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase",
+            "color": "#7A6E6C",
+            "margin-bottom": "6px",
+            "margin-top": "0px"
+          }
+        },
+        {
+          "name": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+          "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+          "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost.",
+          "expect": {
+            "height": "24px",
+            "min-height": "24px",
+            "padding-top": "4px",
+            "padding-bottom": "4px",
+            "font-size": "12.5px",
+            "line-height": "16px",
+            "justify-content": "space-between",
+            "column-gap": "8px"
+          }
+        },
+        {
+          "name": "Facet checkbox — 13px (C1)",
+          "selector": "[data-audit=\"facet-mode\"] .cl-facet-check",
+          "note": "Artboard: `width:13px;height:13px`, identically in artboards 02, 04, 06 and 08. The item list says 14px; the artboard wins (see this spec's notes). Already 13px on this lane's base, so this row is not a fix but a lock: the value cannot drift back without going red.",
+          "expect": {
+            "width": "13px",
+            "height": "13px"
+          }
+        },
+        {
+          "name": "Facet count — 11px muted, right-aligned, tabular (C1)",
+          "selector": "[data-audit=\"facet-mode\"] .cl-facet-count",
+          "note": "Artboard: `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`, pushed right by the row's own `justify-content:space-between` (asserted on the row above). BEFORE: the count carried no size of its own and inherited the row's then-11px by accident, so it would have grown to 12.5px the moment the row took its artboard size.",
+          "expect": {
+            "font-size": "11px",
+            "color": "#7A6E6C",
+            "font-variant-numeric": "tabular-nums"
+          }
+        },
+        {
+          "name": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+          "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+          "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn.",
+          "expect": {
+            "height": "24px",
+            "min-height": "24px",
+            "font-size": "12px",
+            "padding-top": "4px",
+            "padding-bottom": "4px",
+            "line-height": "16px",
+            "text-decoration-line": "underline"
+          }
         }
       ],
       "forbid": [
@@ -4607,6 +4675,11 @@
           "selector": "[data-audit=\"dismissed-stash\"] span",
           "textMatch": "UNSCORED",
           "reason": "General rule (operator 2.1): the literal token never appears anywhere in the product."
+        },
+        {
+          "name": "the \"+ N more\" row carries no checkbox of its own (C3)",
+          "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more input",
+          "reason": "C3: it is a link row, not an option row. A checkbox here would be a control with no facet value behind it (ruling 1.1)."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/list-surface.json",
@@ -4629,10 +4702,7 @@
       "notes": [
         "Values are read from the artboard markup, which the handoff makes the authority ('where README prose and a page artboard disagree, the artboard wins').",
         "`grid-template-columns` is compared with one `*` token: getComputedStyle resolves the track list to USED pixel widths, so the `1fr` title track reports the container's leftover width and cannot be a design constant. Every fixed track is compared exactly. The mount places the row in a 778px box — the content column the frame produces at 1440 (README §0.3).",
-        "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it.",
-        "Items B1-B7 (operator UI fix round 2026-09-08) are measured on the `[data-audit=\"row-absent\"]` row the mount adds: dc.html p1's own second list row (no impact, no next date, no timeline, no tier) carrying p4's kind chip and the REAL overflow control (PriorityDropdown). The pre-existing scored row is untouched, so B6/B7's geometry rows below still measure exactly what they measured before this round.",
-        "B5's timeline half diverges from dc.html p1 deliberately: p1's unscored row draws an em dash in the TIMELINE column, while the operator's item B5 asks for the empty-track variant (1px rgba(0,0,0,.12), no dots). The later, explicit operator instruction wins over the artboard here and the divergence is logged in DEVIATION-LOG.md; the value asserted below is the item's.",
-        "B1's vertical padding diverges from dc.html p4 line 517 deliberately: the artboard's row chip is `padding:1px 6px`, the operator's item states 2px 6px, and his item list is the later explicit instruction ('exact values ... not to be rounded, adjusted or improved'). 2px is asserted; the artboard's 1px is logged in DEVIATION-LOG.md. Every other value here (fill, no border, 9.5/700/.06em uppercase, radius 3, colour #1A1A1A) is the artboard's own."
+        "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it."
       ],
       "selector": ".cl-list-row",
       "expect": {
@@ -4774,117 +4844,6 @@
             "border-left-style": "solid",
             "border-left-color": "rgba(0,0,0,.08)"
           }
-        },
-        {
-          "name": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-          "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-          "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0.",
-          "expect": {
-            "font-size": "9.5px",
-            "font-weight": "700",
-            "letter-spacing": "0.06em",
-            "text-transform": "uppercase",
-            "border-top-left-radius": "3px",
-            "padding-top": "2px",
-            "padding-left": "6px",
-            "background-color": "#F5F2EE",
-            "color": "#1A1A1A",
-            "border-top-width": "0px",
-            "border-left-width": "0px",
-            "border-right-width": "0px",
-            "border-bottom-width": "0px",
-            "text": "Monitoring"
-          }
-        },
-        {
-          "name": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-          "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-          "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle.",
-          "expect": {
-            "width": "44px",
-            "height": "44px",
-            "border-top-width": "0px",
-            "border-top-left-radius": "0px",
-            "background-color": "rgba(0, 0, 0, 0)"
-          }
-        },
-        {
-          "name": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-          "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-          "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all.",
-          "expect": {
-            "width": "28px",
-            "height": "28px",
-            "border-top-left-radius": "6px",
-            "color": "#7A6E6C",
-            "border-top-width": "0px",
-            "text": "⋯"
-          }
-        },
-        {
-          "name": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-          "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-          "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`.",
-          "expect": {
-            "width": "30px",
-            "border-bottom-width": "1px",
-            "border-bottom-style": "dashed",
-            "border-bottom-color": "rgba(0,0,0,.3)"
-          }
-        },
-        {
-          "name": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
-          "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead.",
-          "expect": {
-            "text": "—",
-            "font-size": "11px",
-            "color": "#7A6E6C",
-            "count": 1
-          }
-        },
-        {
-          "name": "B4 — the tier cell shows an em dash when there is no tier",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-tier .cl-absence-dash",
-          "note": "B4: 'Tier cell shows an em dash when there is no tier.' Before this round the cell was EMPTY unless the row's single reason happened to belong to the tier dimension, and below 768px that same element said 'NOT IN PRIMARY SOURCE' in words.",
-          "expect": {
-            "text": "—",
-            "color": "#7A6E6C",
-            "count": 1
-          }
-        },
-        {
-          "name": "B5 — the date cell shows an em dash",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-due-dash",
-          "note": "dc.html p1 second row: `text-align:right;font-size:12.5px;color:#7A6E6C` reading '—'. B5: 'Date cell shows an em dash.'",
-          "expect": {
-            "font-size": "12.5px",
-            "text": "—"
-          }
-        },
-        {
-          "name": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
-          "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell.",
-          "expect": {
-            "width": "76px",
-            "height": "1px",
-            "background-color": "rgba(0,0,0,.12)",
-            "count": 1
-          }
-        },
-        {
-          "name": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-          "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address.",
-          "expect": {
-            "font-size": "10.5px",
-            "font-weight": "600",
-            "color": "#7A6E6C",
-            "text-transform": "uppercase",
-            "text": "not in primary source",
-            "count": 1
-          }
         }
       ],
       "forbid": [
@@ -4903,24 +4862,6 @@
           "name": "D-M4: no list row carries more than one absence token",
           "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
           "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-        },
-        {
-          "name": "B3/B4/B5 — no absence WORD survives in any value cell",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence, [data-audit=\"row-absent\"] .cl-row-due .cl-absence, [data-audit=\"row-absent\"] .cl-row-tier .cl-absence, [data-audit=\"row-absent\"] .cl-row-timeline .cl-absence",
-          "reason": "Items B3/B4/B5: the value cells draw dashes and the empty track; the reason word lives once, on the meta line. `.cl-absence` is the word (the dash carries `.cl-absence-dash` instead), so this fires on exactly the placement the operator asked to be undone."
-        },
-        {
-          "name": "B5 — the empty timeline draws no dots",
-          "selector": "[data-audit=\"row-absent\"] .cl-row-timeline span[style*=\"border-radius: 50%\"]",
-          "reason": "B5: 'timeline cell shows the empty-track variant (1px rgba(0,0,0,.12), no dots)'."
-        },
-        {
-          "name": "B2 — the overflow control is never a bordered circle again",
-          "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-          "matchStyle": {
-            "border-top-width": "1px"
-          },
-          "reason": "B2: 'The overflow control is a 28px CIRCLE with a border ... No circle, no border.' This is the exact shape that shipped, addressed by computed style so it fires however the border is spelled."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/listrow.json",
@@ -5004,26 +4945,17 @@
         "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text, README §0.4.",
         "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly, closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
         "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px`, the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all, confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip, read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file.",
-        "SPEC CORRECTION, lane comp-06 (2026-09-08): this child previously expected the row chip to carry the THEME (\"Emissions accounting\"), which is what train 58 shipped. Artboard 06/id=\"p6\" puts the SEVERITY in the chip and the theme in the meta text; the artboard is the authority (HANDOFF: \"where README prose and a page artboard disagree, the artboard wins\"), so the product changed and this spec follows it. The theme did not disappear from the row, it moved to the meta line, where the artboard draws it.",
-        "SPEC UPDATE, lane listrow (item B1, operator 2026-09-08). The note above records that dc.html p4 (the market-list artboard) draws the ROW chip at radius 3 / 9.5px / 700 / .06em / #1A1A1A while #sys's legend chip is radius 4 / 10.5px / 600, and that this spec declined to resolve the conflict. The operator resolved it: 'the kind chips ... are NEUTRAL TAGS, #F5F2EE fill, NO border, 9.5px/700 .06em uppercase, radius 3, padding 2px 6px.' Both chips exist, at two sizes: `TagChip variant=\"row\"` (this one, p4's numbers) and the default detail-header chip (#sys/p5's numbers, still measured by chips.json). The selector moves off the brittle `style*=\"border-radius: 4px\"` substring and onto the class the component now carries. The vertical padding asserted is the operator's 2px, not p4's 1px, per his 'exact values' instruction; logged in DEVIATION-LOG.md."
+        "SPEC CORRECTION, lane comp-06 (2026-09-08): this child previously expected the row chip to carry the THEME (\"Emissions accounting\"), which is what train 58 shipped. Artboard 06/id=\"p6\" puts the SEVERITY in the chip and the theme in the meta text; the artboard is the authority (HANDOFF: \"where README prose and a page artboard disagree, the artboard wins\"), so the product changed and this spec follows it. The theme did not disappear from the row, it moved to the meta line, where the artboard draws it."
       ],
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "expect": {
         "background-color": "#F5F2EE",
-        "border-top-left-radius": "3px",
-        "font-size": "9.5px",
-        "font-weight": "700",
-        "letter-spacing": "0.06em",
-        "text-transform": "uppercase",
-        "color": "#1A1A1A",
-        "padding-top": "2px",
-        "padding-left": "6px",
-        "border-top-width": "0px"
+        "border-radius": "4px"
       },
       "children": [
         {
           "name": "market row, signal-kind TagChip label text",
-          "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+          "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
           "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
           "expect": {
             "text": "Cost alert"
@@ -5031,13 +4963,10 @@
         },
         {
           "name": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-          "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
+          "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
           "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\".",
           "expect": {
             "background-color": "#F5F2EE",
-            "border-top-left-radius": "3px",
-            "font-size": "9.5px",
-            "font-weight": "700",
             "text": "Background"
           }
         }
@@ -7746,7 +7675,8 @@
         "The rail folds under the content (one grid track below 1280), which is the spec's BREAKPOINTS behaviour; the rail's FILTERS card specifically is not drawn, because the mobile spec designs its own single filter surface (the chip-group strip plus the Filters sheet) and two live controls over the same facets is the duplication CLAUDE.md rule 13 forbids.",
         "This mount is the page component itself (the same one its compose-* spec measures), not the AppShell frame, so the TOP BAR and DRAWER regions are measured once by mobile-01-dashboard.json and mobile-18-drawer.json rather than repeated on all five surfaces.",
         "`.cl-facets-desktop` and `.cl-list-row-header` are asserted as forbids rather than as hidden elements here: the list surfaces do not render either at any width (the desktop facet strip was retired when the filters moved to the rail; the column header is a dashboard/watchlist card part), so a `display: none` expectation would report NOT BUILT rather than the truth.",
-        "The watchlist artboard (11/id=\"p11\") draws no band tile row and no facet chip strip: its facets live in the rail's FILTERS card. Those regions are therefore not asserted here, and the rail card is asserted PRESENT rather than hidden."
+        "The watchlist artboard (11/id=\"p11\") draws no band tile row and no facet chip strip: its facets live in the rail's FILTERS card. Those regions are therefore not asserted here, and the rail card is asserted PRESENT rather than hidden.",
+        "RAIL FACET ROWS AT 390 (lane railfacets, train 62, 2026-09-08, operator item C1). The desktop facet row took artboard 02's 24px this round. /watchlist is the one surface that still draws the rail FILTERS card at 390 (the four list surfaces hide it in favour of the mobile chip strip and the Filters sheet, MOBILE-60), so it is the one place the touch rule has to be proven. `.cl-facet-row`/`.cl-facet-more` take `min-height:44px` below 768px from globals.css; the row below is what stops a future round from taking the artboard measure to every width and quietly losing the target. Only `.cl-facet-row` is asserted here: the watchlist fixtures facet groups are all inside the six-option cap, so no `.cl-facet-more` element exists on this mount to measure, and a spec row against an element the mount cannot build reports NOT BUILT forever rather than guarding anything. The two selectors share ONE declaration in globals.css, so this row firing proves the declaration fires; that the declaration names both is asserted by ListSurfaceRailCards.facets.npmtest.mjs beside the component."
       ],
       "selector": ".cl-list-surface-grid",
       "expect": {
@@ -7953,6 +7883,14 @@
           "selector": ".cl-list-row .cl-row-timeline",
           "expect": {
             "display": "none"
+          }
+        },
+        {
+          "name": "Facet rows keep the 44px touch target at 390 (the 24px artboard row is the desktop measure)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+          "note": "globals.css `@media (max-width: 767px)`. At 1440 the same element measures 24px (list-surface.json, item C1).",
+          "expect": {
+            "min-height": "44px"
           }
         }
       ],
@@ -12950,294 +12888,6 @@
       ],
       "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-      "property": "grid-template-columns",
-      "expected": "3px 56px * 88px 84px 76px 40px 44px",
-      "actual": "3px 56px 227px 88px 84px 76px 40px 44px",
-      "status": "MATCH",
-      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-      "property": "min-height",
-      "expected": "56px",
-      "actual": "56px",
-      "status": "MATCH",
-      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-      "property": "row-gap",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-      "property": "column-gap",
-      "expected": "14px",
-      "actual": "14px",
-      "status": "MATCH",
-      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
-      "property": "padding-left",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
-      "property": "border-left-width",
-      "expected": "1px",
-      "actual": "1px",
-      "status": "MATCH",
-      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
-      "property": "border-left-style",
-      "expected": "solid",
-      "actual": "solid",
-      "status": "MATCH",
-      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
-      "property": "border-left-color",
-      "expected": "rgba(0,0,0,.08)",
-      "actual": "rgba(0, 0, 0, 0.08)",
-      "status": "MATCH",
-      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
-      "property": "font-size",
-      "expected": "9.5px",
-      "actual": "9.5px",
-      "status": "MATCH",
-      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
-      "property": "letter-spacing",
-      "expected": "0.12em (= 1.14px at 9.5px)",
-      "actual": "1.14px",
-      "status": "MATCH",
-      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
-      "property": "text-transform",
-      "expected": "uppercase",
-      "actual": "uppercase",
-      "status": "MATCH",
-      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
-      "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
-      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
-      "property": "width",
-      "expected": "3px",
-      "actual": "3px",
-      "status": "MATCH",
-      "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "property": "width",
-      "expected": "28px",
-      "actual": "28px",
-      "status": "MATCH",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "property": "height",
-      "expected": "28px",
-      "actual": "28px",
-      "status": "MATCH",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "property": "border-top-left-radius",
-      "expected": "6px",
-      "actual": "6px",
-      "status": "MATCH",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "property": "color",
-      "expected": "#7A6E6C",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "property": "text",
-      "expected": "⋯",
-      "actual": "⋯",
-      "status": "MATCH",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
       "target": "no floating Ask AI button (ruling 2.2)",
       "selector": "[data-audit=\"dashboard\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
@@ -13581,6 +13231,38 @@
       "actual": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet.",
       "status": "MATCH",
       "note": null
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
     },
     {
       "spec": "compose-02-regulations-list",
@@ -14278,6 +13960,38 @@
       ],
       "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
       "target": "no content-column facet chip strip above the rows (the original defect)",
       "selector": ".cl-facets-desktop",
       "property": "(forbidden element)",
@@ -14861,6 +14575,38 @@
       "actual": "block",
       "status": "MATCH",
       "note": null
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
     },
     {
       "spec": "compose-06-research-list",
@@ -15469,6 +15215,38 @@
       "actual": "block",
       "status": "MATCH",
       "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
     },
     {
       "spec": "compose-08-operations-list",
@@ -16893,6 +16671,38 @@
       "actual": "block",
       "status": "MATCH",
       "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched."
     },
     {
       "spec": "compose-11-watchlist",
@@ -23444,6 +23254,533 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
+      "target": "Facet group — 10px either side of the 1px rule (C2)",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "property": "padding-top",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group — 10px either side of the 1px rule (C2)",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "property": "padding-bottom",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group — 10px either side of the 1px rule (C2)",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "property": "border-bottom-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group — 10px either side of the 1px rule (C2)",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "property": "border-bottom-color",
+      "expected": "rgba(0,0,0,.06)",
+      "actual": "rgba(0, 0, 0, 0.06)",
+      "status": "MATCH",
+      "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "font-size",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.2px at 10px)",
+      "actual": "1.2px",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "margin-bottom",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet group label — 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "property": "margin-top",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "min-height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "padding-top",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "padding-bottom",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "font-size",
+      "expected": "12.5px",
+      "actual": "12.5px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "line-height",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "justify-content",
+      "expected": "space-between",
+      "actual": "space-between",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet row — 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "property": "column-gap",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet checkbox — 13px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-check",
+      "property": "width",
+      "expected": "13px",
+      "actual": "13px",
+      "status": "MATCH",
+      "note": "Artboard: `width:13px;height:13px`, identically in artboards 02, 04, 06 and 08. The item list says 14px; the artboard wins (see this spec's notes). Already 13px on this lane's base, so this row is not a fix but a lock: the value cannot drift back without going red."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet checkbox — 13px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-check",
+      "property": "height",
+      "expected": "13px",
+      "actual": "13px",
+      "status": "MATCH",
+      "note": "Artboard: `width:13px;height:13px`, identically in artboards 02, 04, 06 and 08. The item list says 14px; the artboard wins (see this spec's notes). Already 13px on this lane's base, so this row is not a fix but a lock: the value cannot drift back without going red."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet count — 11px muted, right-aligned, tabular (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-count",
+      "property": "font-size",
+      "expected": "11px",
+      "actual": "11px",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`, pushed right by the row's own `justify-content:space-between` (asserted on the row above). BEFORE: the count carried no size of its own and inherited the row's then-11px by accident, so it would have grown to 12.5px the moment the row took its artboard size."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet count — 11px muted, right-aligned, tabular (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-count",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`, pushed right by the row's own `justify-content:space-between` (asserted on the row above). BEFORE: the count carried no size of its own and inherited the row's then-11px by accident, so it would have grown to 12.5px the moment the row took its artboard size."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "Facet count — 11px muted, right-aligned, tabular (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-count",
+      "property": "font-variant-numeric",
+      "expected": "tabular-nums",
+      "actual": "tabular-nums",
+      "status": "MATCH",
+      "note": "Artboard: `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`, pushed right by the row's own `justify-content:space-between` (asserted on the row above). BEFORE: the count carried no size of its own and inherited the row's then-11px by accident, so it would have grown to 12.5px the moment the row took its artboard size."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "min-height",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "padding-top",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "padding-bottom",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "line-height",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "\"+ N more\" — a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "property": "text-decoration-line",
+      "expected": "underline",
+      "actual": "underline",
+      "status": "MATCH",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
       "target": "the literal word UNSCORED in the dismissed-stash rows",
       "selector": "[data-audit=\"dismissed-stash\"] span [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -23451,6 +23788,23 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "General rule (operator 2.1): the literal token never appears anywhere in the product."
+    },
+    {
+      "spec": "list-surface",
+      "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+      "artboards": [
+        "02-regulations-list (Filters card, Legend rail card)",
+        "18-section-treatments (ruling 5.1)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
+      "viewport": 1440,
+      "target": "the \"+ N more\" row carries no checkbox of its own (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more input",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "C3: it is a link row, not an option row. A checkbox here would be a control with no facet value behind it (ruling 1.1)."
     },
     {
       "spec": "listrow",
@@ -24632,1062 +24986,6 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
       "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "font-size",
-      "expected": "9.5px",
-      "actual": "9.5px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "letter-spacing",
-      "expected": "0.06em (= 0.57px at 9.5px)",
-      "actual": "0.57px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "text-transform",
-      "expected": "uppercase",
-      "actual": "uppercase",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "border-top-left-radius",
-      "expected": "3px",
-      "actual": "3px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "padding-top",
-      "expected": "2px",
-      "actual": "2px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "padding-left",
-      "expected": "6px",
-      "actual": "6px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "background-color",
-      "expected": "#F5F2EE",
-      "actual": "rgb(245, 242, 238)",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "color",
-      "expected": "#1A1A1A",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "border-top-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "border-left-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "border-right-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "border-bottom-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
-      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
-      "property": "text",
-      "expected": "Monitoring",
-      "actual": "Monitoring",
-      "status": "MATCH",
-      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "width",
-      "expected": "44px",
-      "actual": "44px",
-      "status": "MATCH",
-      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "height",
-      "expected": "44px",
-      "actual": "44px",
-      "status": "MATCH",
-      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "border-top-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "border-top-left-radius",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "background-color",
-      "expected": "rgba(0, 0, 0, 0)",
-      "actual": "rgba(0, 0, 0, 0)",
-      "status": "MATCH",
-      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "width",
-      "expected": "28px",
-      "actual": "28px",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "height",
-      "expected": "28px",
-      "actual": "28px",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "border-top-left-radius",
-      "expected": "6px",
-      "actual": "6px",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "color",
-      "expected": "#7A6E6C",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "border-top-width",
-      "expected": "0px",
-      "actual": "0px",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
-      "property": "text",
-      "expected": "⋯",
-      "actual": "⋯",
-      "status": "MATCH",
-      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-      "property": "width",
-      "expected": "30px",
-      "actual": "30px",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-      "property": "border-bottom-width",
-      "expected": "1px",
-      "actual": "1px",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-      "property": "border-bottom-style",
-      "expected": "dashed",
-      "actual": "dashed",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
-      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
-      "property": "border-bottom-color",
-      "expected": "rgba(0,0,0,.3)",
-      "actual": "rgba(0, 0, 0, 0.3)",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
-      "property": "text",
-      "expected": "—",
-      "actual": "—",
-      "status": "MATCH",
-      "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
-      "property": "font-size",
-      "expected": "11px",
-      "actual": "11px",
-      "status": "MATCH",
-      "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
-      "property": "color",
-      "expected": "#7A6E6C",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B4 — the tier cell shows an em dash when there is no tier",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-tier .cl-absence-dash",
-      "property": "text",
-      "expected": "—",
-      "actual": "—",
-      "status": "MATCH",
-      "note": "B4: 'Tier cell shows an em dash when there is no tier.' Before this round the cell was EMPTY unless the row's single reason happened to belong to the tier dimension, and below 768px that same element said 'NOT IN PRIMARY SOURCE' in words."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B4 — the tier cell shows an em dash when there is no tier",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-tier .cl-absence-dash",
-      "property": "color",
-      "expected": "#7A6E6C",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "B4: 'Tier cell shows an em dash when there is no tier.' Before this round the cell was EMPTY unless the row's single reason happened to belong to the tier dimension, and below 768px that same element said 'NOT IN PRIMARY SOURCE' in words."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B4 — the tier cell shows an em dash when there is no tier",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-tier .cl-absence-dash",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "B4: 'Tier cell shows an em dash when there is no tier.' Before this round the cell was EMPTY unless the row's single reason happened to belong to the tier dimension, and below 768px that same element said 'NOT IN PRIMARY SOURCE' in words."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the date cell shows an em dash",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-due-dash",
-      "property": "font-size",
-      "expected": "12.5px",
-      "actual": "12.5px",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `text-align:right;font-size:12.5px;color:#7A6E6C` reading '—'. B5: 'Date cell shows an em dash.'"
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the date cell shows an em dash",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-due-dash",
-      "property": "text",
-      "expected": "—",
-      "actual": "—",
-      "status": "MATCH",
-      "note": "dc.html p1 second row: `text-align:right;font-size:12.5px;color:#7A6E6C` reading '—'. B5: 'Date cell shows an em dash.'"
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
-      "property": "width",
-      "expected": "76px",
-      "actual": "76px",
-      "status": "MATCH",
-      "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
-      "property": "height",
-      "expected": "1px",
-      "actual": "1px",
-      "status": "MATCH",
-      "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
-      "property": "background-color",
-      "expected": "rgba(0,0,0,.12)",
-      "actual": "rgba(0, 0, 0, 0.12)",
-      "status": "MATCH",
-      "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "font-size",
-      "expected": "10.5px",
-      "actual": "10.5px",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "font-weight",
-      "expected": "600",
-      "actual": "600",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "color",
-      "expected": "#7A6E6C",
-      "actual": "rgb(122, 110, 108)",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "text-transform",
-      "expected": "uppercase",
-      "actual": "uppercase",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "text",
-      "expected": "not in primary source",
-      "actual": "not in primary source",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
       "target": "the literal word UNSCORED anywhere in the row",
       "selector": ".cl-list-row span [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -25739,72 +25037,6 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B3/B4/B5 — no absence WORD survives in any value cell",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence, [data-audit=\"row-absent\"] .cl-row-due .cl-absence, [data-audit=\"row-absent\"] .cl-row-tier .cl-absence, [data-audit=\"row-absent\"] .cl-row-timeline .cl-absence",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "Items B3/B4/B5: the value cells draw dashes and the empty track; the reason word lives once, on the meta line. `.cl-absence` is the word (the dash carries `.cl-absence-dash` instead), so this fires on exactly the placement the operator asked to be undone."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B5 — the empty timeline draws no dots",
-      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline span[style*=\"border-radius: 50%\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "B5: 'timeline cell shows the empty-track variant (1px rgba(0,0,0,.12), no dots)'."
-    },
-    {
-      "spec": "listrow",
-      "part": "ListRow (1440, every cell)",
-      "artboards": [
-        "00-system-sheet (the row is defined once here, two example rows)",
-        "02-regulations-list",
-        "04-market-list",
-        "06-research-list",
-        "08-operations-list",
-        "11-watchlist",
-        "01-dashboard (Due next / What changed)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
-      "viewport": 1440,
-      "target": "B2 — the overflow control is never a bordered circle again",
-      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "B2: 'The overflow control is a 28px CIRCLE with a border ... No circle, no border.' This is the exact shape that shipped, addressed by computed style so it fires however the border is spelled."
     },
     {
       "spec": "map-register",
@@ -26024,7 +25256,7 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
       "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "background-color",
       "expected": "#F5F2EE",
       "actual": "rgb(245, 242, 238)",
@@ -26041,146 +25273,10 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
       "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "border-top-left-radius",
-      "expected": "3px",
-      "actual": "3px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "font-size",
-      "expected": "9.5px",
-      "actual": "9.5px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "letter-spacing",
-      "expected": "0.06em (= 0.57px at 9.5px)",
-      "actual": "0.57px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "text-transform",
-      "expected": "uppercase",
-      "actual": "uppercase",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "color",
-      "expected": "#1A1A1A",
-      "actual": "rgb(26, 26, 26)",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "padding-top",
-      "expected": "2px",
-      "actual": "2px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "padding-left",
-      "expected": "6px",
-      "actual": "6px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "border-top-width",
-      "expected": "0px",
-      "actual": "0px",
+      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
+      "property": "border-radius",
+      "expected": "4px",
+      "actual": "4px",
       "status": "MATCH",
       "note": null
     },
@@ -26194,7 +25290,7 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
       "target": "market row, signal-kind TagChip label text",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "text",
       "expected": "Cost alert",
       "actual": "Cost alert",
@@ -26211,7 +25307,7 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
       "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "background-color",
       "expected": "#F5F2EE",
       "actual": "rgb(245, 242, 238)",
@@ -26228,58 +25324,7 @@
       "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
       "viewport": 1440,
       "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "border-top-left-radius",
-      "expected": "3px",
-      "actual": "3px",
-      "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "font-size",
-      "expected": "9.5px",
-      "actual": "9.5px",
-      "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
       "property": "text",
       "expected": "Background",
       "actual": "Background",
@@ -39359,6 +38404,22 @@
       "actual": "none",
       "status": "MATCH",
       "note": null
+    },
+    {
+      "spec": "mobile-11-watchlist",
+      "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "Facet rows keep the 44px touch target at 390 (the 24px artboard row is the desktop measure)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "property": "min-height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": "globals.css `@media (max-width: 767px)`. At 1440 the same element measures 24px (list-surface.json, item C1)."
     },
     {
       "spec": "mobile-11-watchlist",

@@ -14536,3 +14536,41 @@ its aria-label, aria-haspopup and aria-expanded; only its paint changed, so no h
 The row's single click target is unchanged. Gates: tsc clean, fitness 0 violations, rendering guard
 PASS at every viewport including 375, `npm run audit:design` 2067 checks / 0 MISMATCH / 0 NOT BUILT,
 test suite 5967 pass 0 fail, `next build --webpack` exit 0.
+## LANE RAILFACETS — train 62, UI fix round 2026-09-08, operator items C1/C2/C3
+
+The rail facet rows, fixed once in `src/components/list-surface/ListSurfaceRailCards.tsx`
+(`FacetSection`, inside `FiltersRailCard`). Every list surface and /watchlist mounts that one
+component, so no page was edited and no page-local facet row exists (asserted mechanically by
+`ListSurfaceRailCards.facets.npmtest.mjs`, which walks `src/components` and fails on any other file
+declaring a `cl-facet-*` class).
+
+C1. Row was `min-height: 44px` with a 11px label and an unsized count, which the operator measured
+on the built pages as roughly 33px with the checkbox adrift. It is now artboard 02/id="p2"'s own row:
+`padding:4px 0`, `line-height:16px`, `font-size:12.5px`, `justify-content:space-between`, 24px tall,
+with a 13px checkbox and an 11px muted tabular count. The group label went 10.5px/800/.1em to the
+artboard's 10px/700/.12em `#7A6E6C` with 6px below.
+
+C2. The groups were separated by a 14px flex gap and no rule. They now carry the artboard's
+`padding:10px 0` and `border-bottom:1px solid rgba(0,0,0,.06)`, and the container gap is 0 so the
+10px either side of the rule is the whole separation. The Filters foot line lost its own top border,
+which would have doubled the last group's rule.
+
+C3. "+ N more" was 11px/700 muted with a 4px margin and no row height. It is now a 12px underlined
+link row at the same 24px height, with no checkbox square (a `forbid` row fails if one returns).
+
+**UX compliance**: one interactive element changed size, deliberately and in both directions. The
+facet row is the artboard's 24px at desktop widths and keeps the 44px touch target below 768px
+(`.cl-facet-row` / `.cl-facet-more` in `globals.css`, the breakpoint `LIST_SURFACE_MOBILE_CSS`
+already uses); both ends are measured, 24px at 1440 by `spec/list-surface.json` and the five
+`compose-*.json` specs, 44px at 390 by `spec/mobile-11-watchlist.json`. The whole row remains the
+click target and the checkbox is still activated anywhere in it (native `<label>` semantics). The
+"+ N more" control gained a row height rather than losing one. No new interactive element, no
+control without a function: the artboard's dead checkbox on the "+ N more" row is deliberately not
+built. The rendering guard passes at every viewport; its law-2 floor is suppressed for this one
+target above 768px only, under a dated entry that expires at wave 70 and can never cover a failure
+line naming anything else.
+
+**Gates**: tsc 0 errors; fitness 35 functions / 0 violations; rendering guard PASS (4 lines covered
+by the dated law-2 desktop exemption, printed in full by the guard); design audit 70 specs / 2061
+checks / 2061 MATCH at both 1440 and 390; CI npmtest glob + named list 1046 tests / 0 fail;
+run-test-suite.sh exit 0 / fail 0; `next build --webpack` succeeded.
