@@ -12459,4 +12459,20 @@ report on pre-existing archived audits is unchanged); `runner.mjs --mode=ci
 --range=origin/master..HEAD` exit 0 across all 44 commits; `override-check` **exit 0, no drift**;
 all 17 workflow YAML files parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119
 invariants + 63 doctrines wired); `next build --webpack` exit 0 with no `.env.local`;
-`coverage-report.json` regenerated (896 governed files, 858 COVERED, 38 EXEMPT, 0 GAPS).
+`coverage-report.json` regenerated (897 governed files, 859 COVERED, 38 EXEMPT, 0 GAPS); the
+CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) 798/798 PASS.
+
+**A late finding worth its own paragraph, because of HOW it was found.** `run-test-suite.sh` runs a
+NAMED list; the CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) is wider. The suite was green at
+0 fail while the glob was not, and what the glob caught was `render-clock.npmtest.mjs` —
+HYDRATION-59's own repo-wide scanner — reporting FOUR un-annotated clock reads the fold had carried
+in. All four are compose-lane code written before that rule existed, and all four are real:
+`ObligationsRailCard` read `new Date()` twice (the 30-day window's row selection and each row's day
+count, both feeding the urgency band hue, so SSR and hydration on opposite sides of a day boundary
+painted different colours for the same obligation); `ResearchLedger` derived its "+N new" theme
+cutoff from `Date.now()`; and `OperationsLedger` formatted its masthead date from `new Date()` — the
+one site this fold's own conflict resolution missed, because the clock read arrived attached to the
+`scopeLine` the compose side won. All four now take the server instant. THREADED, never annotated:
+an annotation would have been a claim they are hydration-safe, and none of them is. The lesson for
+the next train is the mechanism, not the four sites: a lane's guard only guards what the gate that
+runs it can see, and this fold's own gate list was the narrower of the two.
