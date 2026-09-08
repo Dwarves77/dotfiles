@@ -395,7 +395,7 @@ const DIMENSIONS = [
   { num: 3, key: 'labor', db: 'labor_markets', name: 'Labor markets' },
   { num: 4, key: 'materials', db: 'materials_sourcing', name: 'Materials sourcing' },
   { num: 5, key: 'infrastructure', db: 'infrastructure', name: 'Infrastructure capacity' },
-  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost data' },
+  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
 ];
 
 let root = null;
@@ -1506,6 +1506,107 @@ window.__mount = () => {
 };
 `;
 
+// ── Compose-08: the real OperationsLedger page composition (lane comp-08, 2026-09-08, artboard
+// 08/id="p8"). The `ops-matrix` mount above measures RegionDimensionMatrix ALONE, fed empty facts;
+// this one measures the COMPOSED /operations page — masthead scope line, band tiles, the matrix in
+// its artboard placement (first in the content column, above the band cards), the band-grouped
+// rows, the By-state disclosure's R7 placement at the card foot, and the rail's Region/Dimension
+// filters + Coverage gaps + Legend order. Fixture is populated (25 rows, 5 regions, real coverage/
+// fact row shapes) because an empty matrix cannot show a placement defect.
+function composeOpsRow(i) {
+  // 0 immediate / 4 action / 2 monitor / 19 awareness — the artboard's own band split.
+  const priority = i < 4 ? 'HIGH' : i < 6 ? 'MODERATE' : 'LOW';
+  const regions = ['EU', 'US', 'SG', 'GB', 'AE'];
+  const jurisdiction = regions[i % regions.length];
+  return {
+    id: `ops-${i}`, domain: 6,
+    title: `${jurisdiction} Regional Operations Profile ${i}`,
+    note: 'Regional profile note.', type: 'operations', priority,
+    added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: [['ocean'], ['air'], ['road'], ['ocean', 'air']][i % 4], sourceTier: 2,
+    tags: [], reasoning: '',
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+  };
+}
+const COMPOSE_OPS_ROWS = Array.from({ length: 25 }, (_, i) => composeOpsRow(i));
+
+const COMPOSE_OPS_REGIONS = [
+  { code: 'EU', label: 'European Union', severity: 'critical', isoCodes: ['EU', 'DE', 'NL'] },
+  { code: 'US', label: 'United States', severity: 'critical', isoCodes: ['US'] },
+  { code: 'ASIA', label: 'Asia · SG + HK', severity: 'high', isoCodes: ['SG', 'HK'] },
+  { code: 'UK', label: 'United Kingdom', severity: 'high', isoCodes: ['GB'] },
+  { code: 'UAE', label: 'UAE · Dubai', severity: 'moderate', isoCodes: ['AE'] },
+];
+
+// The artboard's own matrix body: EU/US hold facts on a couple of dimensions only, ASIA/UK/UAE are
+// sourced across the rest, D1 (regulatory_feasibility) is structurally empty everywhere.
+const COMPOSE_OPS_DIM_DBS = ['regional_resources', 'labor_markets', 'materials_sourcing', 'infrastructure', 'operational_cost'];
+const COMPOSE_OPS_COVERAGE = [];
+const COMPOSE_OPS_FACTS = [];
+for (const region of ['EU', 'US', 'ASIA', 'UK', 'UAE']) {
+  for (const db of COMPOSE_OPS_DIM_DBS) {
+    const sourced = region === 'EU' ? db === 'labor_markets' || db === 'operational_cost'
+      : region === 'US' ? db === 'labor_markets'
+      : true;
+    const factCount = sourced ? (db === 'labor_markets' && region === 'US' ? 6 : 5) : 0;
+    COMPOSE_OPS_COVERAGE.push({ region_code: region, dimension: db, state: sourced ? 'populated' : 'missing', fact_count: factCount, notes: null });
+    for (let n = 0; n < factCount; n += 1) {
+      COMPOSE_OPS_FACTS.push({
+        region_code: region, dimension: db,
+        fact_label: ['Labour cost, business economy, mean across member states', 'Warehouse worker monthly wage', 'Class 1 driver-handler with overtime', 'Private-sector salary growth, logistics', 'First-line supervisors, median'][n % 5],
+        value: ['€40.4 / hr', 'HKD 14,747 / mo', '£40–42k / yr', '3–6% / yr', '$60,000 / yr'][n % 5],
+        status: null, trend: null,
+        source_name: ['Eurostat lc_lci_lev', 'Indeed HK', 'Talent.com / Glassdoor UK', 'Hays GCC Salary Guide', 'BLS OEWS 53-1047'][n % 5],
+        source_url: 'https://example.com/fixture', source_note: null,
+        last_updated: '2026-05-28', freshness: region === 'EU' && db === 'operational_cost' ? 'ageing' : 'current',
+        value_numeric: null, unit: null, currency: null, derivation: null, origin_class: null,
+        source_key: null, source_ref: null, n_observations: null, method_version: null,
+        as_at_date: null, reference_period: null,
+      });
+    }
+  }
+}
+
+const COMPOSE_OPS_STATE_COSTS = [
+  { stateCode: 'US-CA', factLabel: 'Minimum wage', value: '$16.50', unit: '/hr', trend: null, statuteCitation: 'Cal. Lab. Code § 1182.12', sourceName: 'California DIR', effectiveDate: '2026-01-01' },
+  { stateCode: 'US-NY', factLabel: 'Minimum wage', value: '$16.00', unit: '/hr', trend: null, statuteCitation: 'NY Lab. Law § 652', sourceName: 'NY DOL', effectiveDate: '2026-01-01' },
+];
+
+const COMPOSE_OPERATIONS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { OperationsLedger } from '@/components/operations/OperationsLedger';
+
+const OPS_ROWS = ${JSON.stringify(COMPOSE_OPS_ROWS)};
+const props = {
+  initialResources: OPS_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: OPS_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_OPS_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_OPS_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 18,
+    lastUpdatedAt: '2026-09-06T00:00:00Z',
+  },
+  regulationsByRegion: [],
+  operationsCoverage: {
+    regions: ${JSON.stringify(COMPOSE_OPS_REGIONS)},
+    coverage: ${JSON.stringify(COMPOSE_OPS_COVERAGE)},
+    facts: ${JSON.stringify(COMPOSE_OPS_FACTS)},
+  },
+  stateCosts: ${JSON.stringify(COMPOSE_OPS_STATE_COSTS)},
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(OperationsLedger, props));
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -1736,6 +1837,13 @@ export const AUDIT_MOUNTS = {
     description: 'The real MarketIntelLedger page composition (20-row fixture): rail Filters/Legend, embedded Headline Series card, sort/count row, band-sectioned rows — artboard 04/id="p4".',
     viewport: 1440,
     entry: COMPOSE_MARKET_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-08-operations': {
+    id: 'compose-08-operations',
+    description: 'The real OperationsLedger page composition (25-row fixture, 5 regions, populated coverage/facts): masthead scope line, band tiles, "Regions side by side" matrix card, band-sectioned rows, By-state disclosure at the card foot, rail Filters/Coverage gaps/Legend — artboard 08/id="p8".',
+    viewport: 1440,
+    entry: COMPOSE_OPERATIONS_ENTRY,
     apiRoutes: COMPOSE_LEDGER_API,
   },
 };

@@ -11,11 +11,18 @@
 // route.
 //
 // Usage: PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node .discipline/rendering/capture-compose-lists-screenshots.mjs
+//
+// The committed evidence under built/ is the SIDE-BY-SIDE composite (artboard | built), not the raw
+// built PNG this script writes. Compose one from a `*-built.png` this script produced with:
+//   python3 -c "from PIL import Image,ImageDraw; a=Image.open(A); b=Image.open(B); \
+//     o=Image.new('RGB',(a.width+24+b.width,max(a.height,b.height)+44),(240,238,234)); \
+//     o.paste(a,(0,44)); o.paste(b,(a.width+24,44)); o.save(OUT)"
 
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
+import { AUDIT_MOUNTS } from './audit/mounts.mjs';
 import { fullAppCss } from './smoke/smoke-fixtures.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
 
@@ -296,6 +303,14 @@ const CAPTURES = [
         lastUpdatedAt: '2026-09-03T00:00:00Z',
       },
     },
+  },
+  {
+    // Artboard 08 (lane comp-08, 2026-09-08). Entry and fixture come from the audit mount registry
+    // rather than a third copy here, so the compose-08 spec and this evidence PNG measure the
+    // IDENTICAL mount: one fixture, two readers.
+    out: 'compose-08-operations-built.png',
+    entry: AUDIT_MOUNTS['compose-08-operations'].entry,
+    props: null,
   },
 ];
 
