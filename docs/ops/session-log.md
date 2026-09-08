@@ -14908,3 +14908,5 @@ guard PASS: 11 fixtures, 12 viewports, 445 checks, 97 SM smoke, 216 UX smoke. `n
 70 specs, 2,020 checks, 2,020 MATCH, 0 anything else. CI npmtest glob 996 tests, 996 pass, 0 fail
 (984 before this lane's 12). `run-test-suite.sh` 5,972 tests, 5,967 pass, 0 fail, exit 0.
 `npx next build --webpack` exit 0.
+
+2026-09-08, lane ci62: rotated DASHBOARD_DATA_CACHE_KEY from `app-data-7b3d90e4` to `app-data-e1ae7713`, the hash rule 021 computes on this tree, because this train changed the DashboardData payload shape (briefdata rows, the due-next read, and the reconciled complianceDeadline field) and the unstable_cache key must rotate so no old-shape cross-deployment entry can reach the new code.

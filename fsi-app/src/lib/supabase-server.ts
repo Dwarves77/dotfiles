@@ -2432,7 +2432,7 @@ interface RecentChangeRpcRow {
 // be optional fields, or rotate this key by hand in the same commit.
 // FOLD 62 (2026-09-08): rotated by hand, once, for the union of two lanes' shape changes
 // (briefdata's `briefResources` and duenext's `dueNext`), rather than either lane's own key.
-export const DASHBOARD_DATA_CACHE_KEY = "app-data-7b3d90e4";
+export const DASHBOARD_DATA_CACHE_KEY = "app-data-e1ae7713";
 
 export interface DashboardData {
   resources: Resource[];
