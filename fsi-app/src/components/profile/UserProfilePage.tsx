@@ -269,7 +269,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
             dateLabel={dateLabel}
             eyebrowSuffix="Personal"
             dek={`${email} · loading…`}
-            commandBar={{ itemCount: 0, scope: "account", placeholder: 'Search settings — or ask "how do I add a member…"' }}
+            commandBar={{ itemCount: 0, scope: "account", placeholder: 'Search settings — or ask "how do I add a member?"' }}
           />
         </div>
         <div style={{ padding: "16px 40px 0" }}>
@@ -301,7 +301,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
           commandBar={{
             itemCount: 0,
             scope: "account",
-            placeholder: 'Search settings — or ask "how do I add a member…"',
+            placeholder: 'Search settings — or ask "how do I add a member?"',
           }}
         />
       </div>

@@ -918,6 +918,76 @@ const COMPOSE_REGULATIONS_API = [
     }),
   },
 ];
+// ── Page composition mounts (lane compose-other, 2026-09-08) ───────────────────────────────────────
+// Full-page mounts (AppShell + Masthead + the page's real body component) for the seven pages this
+// lane owns (README screens 10/12/13/14/15/16/17). Same technique as PAGE_FRAME_ENTRY above: bundle
+// the REAL page-level components with populated fixture props, never a reproduction. Each mount's
+// `[data-audit="<page>"]` wrapper is what its compose-*.json spec selects into.
+
+const MAP_FIXTURE_RESOURCES = Array.from({ length: 6 }, (_, i) => ({
+  id: `map-r${i}`,
+  title: `Fixture regulation ${i}`,
+  priority: i < 2 ? 'CRITICAL' : i < 4 ? 'HIGH' : 'MODERATE',
+  jurisdiction: ['eu', 'eu', 'us', 'us', 'global', 'uk'][i],
+  jurisdictionIso: [['EU'], ['EU'], ['US'], ['US'], [], ['GB']][i],
+  sourceTier: 2,
+  complianceDeadline: '2027-01-01',
+  impactScores: { cost: 2, compliance: 2, client: 1, operational: 2 },
+  timeline: [],
+  domain: 1,
+  type: 'regulation',
+  modes: ['Ocean'],
+  topic: ['emissions', 'reporting', 'packaging', 'transport', 'reporting', 'transport'][i],
+  note: '',
+  tags: [],
+}));
+
+const MAP_COVERAGE_GAPS = [
+  { region: { id: 'us-sub', name: 'US sub-national' }, gap: 54, partial: 0, covered: 0, total: 54 },
+  { region: { id: 'canada', name: 'Canada' }, gap: 13, partial: 0, covered: 0, total: 13 },
+  { region: { id: 'australia', name: 'Australia' }, gap: 9, partial: 0, covered: 0, total: 9 },
+];
+
+// No STYLE_INJECT here (unlike every other ENTRY in this file): these page-composition mounts
+// render Tailwind-utility-styled components (Sidebar/TopBar), which STYLE_INJECT's raw globals.css
+// read cannot style (see fullAppCssCompiled's header in smoke-fixtures.mjs) — capture-compose-
+// page.mjs injects the compiled CSS itself via page.addStyleTag before mounting.
+const COMPOSE_MAP_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { Masthead } from '@/components/ui/Masthead';
+import { MapPageView } from '@/components/map/MapPageView';
+
+const RESOURCES = ${JSON.stringify(MAP_FIXTURE_RESOURCES)};
+const COVERAGE_GAPS = ${JSON.stringify(MAP_COVERAGE_GAPS)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'map' },
+        React.createElement('div', { style: { padding: '20px 40px 0' } },
+          React.createElement(Masthead, {
+            title: 'Regulatory map',
+            dateLabel: 'Sunday 6 September 2026',
+            dek: '3 jurisdictions live \\u00b7 6 active items \\u00b7 2 jurisdictions with immediate items \\u00b7 marker size = item count \\u00b7 colour = highest band present',
+            commandBar: { itemCount: 6, scope: 'map', placeholder: 'Search a jurisdiction \\u2014 or ask "where are my immediate items?"' },
+          }),
+        ),
+        React.createElement(MapPageView, {
+          resources: RESOURCES,
+          coverageGaps: COVERAGE_GAPS,
+          initialRegionFilter: null,
+          communityActivity: [],
+        }),
+      ),
+    ),
+  );
+};
+`;
 
 
 // ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
@@ -2207,5 +2277,18 @@ export const AUDIT_MOUNTS = {
     viewport: 1440,
     entry: COMPOSE_WATCHLIST_ENTRY,
     apiRoutes: COMPOSE_WATCHLIST_API,
+  },
+  'compose-map': {
+    id: 'compose-map',
+    description: 'Full-page composition mount: AppShell + Masthead + MapPageView, populated fixture data, README screen 10 / dc.html p10.',
+    viewport: 1440,
+    entry: COMPOSE_MAP_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-map.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      'leaflet/dist/leaflet.css': `${SMOKE}stub-empty-css.mjs`,
+    },
+    apiRoutes: EMPTY_API,
   },
 };

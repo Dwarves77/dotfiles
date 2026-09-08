@@ -161,7 +161,7 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
           commandBar={{
             itemCount: 0,
             scope: "settings",
-            placeholder: 'Search settings — or ask "how do I change my briefing…"',
+            placeholder: 'Search settings — or ask "how do I change my briefing day?"',
           }}
         />
       </div>

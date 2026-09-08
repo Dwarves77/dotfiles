@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T01:58:47.640Z",
+  "runAt": "2026-09-08T00:37:57.127Z",
   "specs": [
     {
       "part": "Absence",
@@ -733,375 +733,92 @@
       "__id": "community-table"
     },
     {
-      "part": "Page composition — Dashboard (01)",
-      "mount": "page-frame-1440",
+      "part": "Page composition — Map (10)",
+      "mount": "compose-map",
       "viewport": 1440,
       "artboards": [
-        "01-dashboard"
+        "10-map"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
       "notes": [
-        "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
-        "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
-        "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
-        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text."
+        "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + MapPageView, all real components, mounted with populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-map'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+        "Artboard order top to bottom: Masthead (VOL line, REGULATORY MAP title, dek, page-scoped command bar) -> Mode/Band/Region filter row (ABOVE the map, not beside it — operator audit item, closed) -> Regulatory map card (map canvas + in-card KEY legend) -> Jurisdiction register card (table: JURISDICTION / ACTIVE THEMES / HIGHEST BAND / ITEMS, one ListRow per jurisdiction) -> Immediate strip foot -> rail: Immediate jurisdictions card, Coverage gaps card, Legend card, in that order alongside the two left-column cards (not below them).",
+        "Command bar placeholder is page-scoped: 'Search a jurisdiction — or ask \"where are my immediate items?\"' (dc.html p10 exact text) — this lane added the missing `placeholder` prop to src/app/map/page.tsx's Masthead call; before this lane it fell back to the generic 'Search or ask across N items…' copy.",
+        "The KEY box's fixture rows are limited to the mount's fixture data (6 resources across 4 jurisdictions) — the artboard shows 7 jurisdictions / 976 items from example data, never shipped (README: sample data in the mock is never shipped)."
       ],
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "selector": "[data-audit=\"map\"]",
       "expect": {
-        "display": "grid",
-        "grid-template-columns": "* 300px"
+        "count": "1"
       },
       "children": [
         {
-          "name": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
-          "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
-          "expect": {
-            "display": "grid"
-          },
-          "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
-        },
-        {
-          "name": "region 2 — Due next card, comes after band tiles, before What changed",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) h2[data-guard-title]",
+          "name": "region 1 — Masthead title 'Regulatory map'",
+          "selector": "[data-audit=\"map\"] h1, [data-audit=\"map\"] [class*=masthead] p, [data-audit=\"map\"] div div p",
           "expect": {},
-          "note": "Text is 'Due next · N items' where N is the live due-next row count, not a fixed artboard string."
+          "note": "Checked precisely by the command-bar placeholder target below and by direct screenshot comparison — Masthead's own title element carries no stable hook here, so this row is evidence-only."
         },
         {
-          "name": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
+          "name": "region 1a — command bar page-scoped placeholder (dc.html p10 exact text)",
+          "selector": "[data-audit=\"map\"] input[placeholder^=\"Search a jurisdiction\"]",
           "expect": {
             "count": "1"
           }
         },
         {
-          "name": "region 3 — What changed card, comes after Due next",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) h2[data-guard-title]",
+          "name": "region 2 — filter row (Mode/Band/Region) comes before the map card",
+          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] > div:first-child",
           "expect": {},
-          "text": "What changed"
+          "note": "Mode/Band/Region FilterChipGroups — presence + position (first child of the content column, above the map card) is what artboard 10 requires; the operator's audit item named filters landing beside content on other pages as the defect this checks against."
         },
         {
-          "name": "region 4 — rail, 'Across the platform' card first",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) p:first-of-type",
-          "expect": {},
-          "text": "Across the platform"
-        },
-        {
-          "name": "region 5 — rail, Watchlist card second",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
+          "name": "region 3 — Regulatory map card canvas",
+          "selector": "[data-audit=\"map\"] [data-testid=\"map-canvas\"]",
           "expect": {
             "count": "1"
           }
         },
         {
-          "name": "region 6 — rail, Legend card third and last",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
+          "name": "region 4 — Jurisdiction register rows, after the map card",
+          "selector": "[data-audit=\"map\"] [data-testid=\"jurisdiction-register-rows\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 5 — rail, Immediate jurisdictions card first",
+          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
           "expect": {},
-          "text": "Legend"
+          "textMatch": "Immediate ·"
+        },
+        {
+          "name": "region 6 — rail, Coverage gaps card second",
+          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
+          "expect": {},
+          "textMatch": "Coverage gaps"
+        },
+        {
+          "name": "region 7 — rail, Legend card third and last",
+          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
+          "expect": {},
+          "textMatch": "Legend"
         }
       ],
       "forbid": [
         {
           "name": "no floating Ask AI button (ruling 2.2)",
-          "selector": "[data-audit=\"dashboard\"] button",
+          "selector": "[data-audit=\"map\"] button",
           "textMatch": "Ask AI",
-          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation."
         },
         {
-          "name": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
-          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span",
-          "textMatch": "0/12",
-          "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score."
+          "name": "no second per-page ask/search bar (README §0.3)",
+          "selector": "[data-audit=\"map\"] input[type=\"search\"]",
+          "reason": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input.",
+          "note": "Presence-only forbid; MapPageView's own filter chips are buttons, not inputs, so this never legitimately matches."
         }
       ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json",
-      "__id": "compose-01-dashboard"
-    },
-    {
-      "part": "Page composition — Regulation detail (03)",
-      "mount": "page-frame-1440",
-      "viewport": 1440,
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "notes": [
-        "Region-composition check inside [data-audit=\"regulation-detail\"] — RegulationDetailSurface mounted with fixture data matching the artboard's own EU ETS example (mounts.mjs PAGE_FRAME_FIXTURES.regulation).",
-        "Artboard order top to bottom: header (band pill, tier, header stat, action row) -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (In this list, Impact assessment, Affected lanes, Owner & team, Connections)."
-      ],
-      "selector": "[data-audit=\"regulation-detail\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-          "selector": "[data-audit=\"regulation-detail\"] .cl-action-row button",
-          "expect": {
-            "count": "4"
-          }
-        },
-        {
-          "name": "region 1a — header stat 'N source(s) · T# primary' present, before action row",
-          "selector": "[data-audit=\"regulation-detail\"] header span",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "source"
-        },
-        {
-          "name": "region 2 — sticky section index second entry is 'S2 Obligations — issues requiring action'",
-          "selector": "[data-audit=\"regulation-detail\"] nav[aria-label=\"Section index\"] a:nth-of-type(2)",
-          "expect": {
-            "text": "S2 Obligations — issues requiring action"
-          }
-        },
-        {
-          "name": "region 3 — Summary section aside 'Generated · 30-second read'",
-          "selector": "[data-audit=\"regulation-detail\"] section#summary span",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Generated"
-        },
-        {
-          "name": "region 4 — Sources section is the last section before the rail",
-          "selector": "[data-audit=\"regulation-detail\"] section#sources h2",
-          "expect": {
-            "text": "Sources"
-          }
-        },
-        {
-          "name": "region 5 — rail, 'In this list' card first",
-          "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-          "expect": {
-            "text": "In this list"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no per-item ask bar between workspace tags and the action row (ruling 2.3)",
-          "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) input[placeholder]",
-          "reason": "The masthead command bar (header.cl-masthead) is the only ask surface; a second scoped ask input inside DetailHeader (the OTHER <header>, excluded by :not(.cl-masthead)) is the item 2.3 defect."
-        },
-        {
-          "name": "no 'Immediate ▾' band dropdown in the action row (ruling 3.1)",
-          "selector": "[data-audit=\"regulation-detail\"] .cl-action-row",
-          "textMatch": "▾",
-          "reason": "The band pill states the band; changing it is not a reader action from the action row."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-03-regulation-detail.json",
-      "__id": "compose-03-regulation-detail"
-    },
-    {
-      "part": "Page composition — Market signal detail (05)",
-      "mount": "market-detail-1440",
-      "viewport": 1440,
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "notes": [
-        "Region-composition check inside [data-audit=\"market-detail\"] — MarketSignalDetailSurface mounted with fixture data matching artboard 05's Packaging material input costs example (mounts.mjs MARKET_FIXTURE).",
-        "Artboard order top to bottom: header (chips: Signal / severity / topic / band, header stat, action row) -> exposure grid -> timeline -> sticky section index S1..S6 -> Summary (Generated · 30-second read) -> rail (In this list, At a glance, Impact assessment, Your notes, Legend)."
-      ],
-      "selector": "[data-audit=\"market-detail\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — header chips include the artboard's Signal/severity/topic/band set",
-          "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead)",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Signal"
-        },
-        {
-          "name": "region 2 — action row, exactly Export brief / Share / Watch / + Tag",
-          "selector": "[data-audit=\"market-detail\"] .cl-action-row button",
-          "expect": {
-            "count": "4"
-          }
-        },
-        {
-          "name": "region 3 — Exposure grid renders before the timeline",
-          "selector": "[data-audit=\"market-detail\"] p",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Exposure"
-        },
-        {
-          "name": "region 4 — sticky section index carries all six entries, S1..S6",
-          "selector": "[data-audit=\"market-detail\"] nav[aria-label=\"Section index\"] a",
-          "expect": {
-            "count": "6"
-          }
-        },
-        {
-          "name": "region 5 — Summary section aside 'Generated · 30-second read'",
-          "selector": "[data-audit=\"market-detail\"] section#summary span",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Generated"
-        },
-        {
-          "name": "region 6 — rail, 'In this list' card first",
-          "selector": "[data-audit=\"market-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-          "expect": {
-            "text": "In this list"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no per-item ask bar in the header (ruling 2.3)",
-          "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead) input[placeholder]",
-          "reason": "The masthead command bar is the only ask surface."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-05-market-detail.json",
-      "__id": "compose-05-market-detail"
-    },
-    {
-      "part": "Page composition — Research finding detail (07)",
-      "mount": "research-detail-1440",
-      "viewport": 1440,
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "notes": [
-        "Region-composition check inside [data-audit=\"research-detail\"] — ResearchFindingDetailSurface mounted with fixture data matching artboard 07's Mission Innovation example (mounts.mjs RESEARCH_FIXTURE).",
-        "Artboard order top to bottom: header (chips, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Connections, Legend)."
-      ],
-      "selector": "[data-audit=\"research-detail\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-          "selector": "[data-audit=\"research-detail\"] .cl-action-row button",
-          "expect": {
-            "count": "4"
-          }
-        },
-        {
-          "name": "region 2 — Exposure grid renders before the timeline",
-          "selector": "[data-audit=\"research-detail\"] p",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Exposure"
-        },
-        {
-          "name": "region 3 — Summary section (id=summary) renders when no dynamic sections carry content",
-          "selector": "[data-audit=\"research-detail\"] section#summary h2",
-          "expect": {
-            "text": "Summary"
-          }
-        },
-        {
-          "name": "region 5 — rail, 'In this list' card first",
-          "selector": "[data-audit=\"research-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-          "expect": {
-            "text": "In this list"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no per-item ask bar in the header (ruling 2.3)",
-          "selector": "[data-audit=\"research-detail\"] header:not(.cl-masthead) input[placeholder]",
-          "reason": "The masthead command bar is the only ask surface."
-        },
-        {
-          "name": "At a glance 'Type' row never renders a raw snake_case enum",
-          "selector": "[data-audit=\"research-detail\"] div",
-          "textMatch": "research_finding",
-          "reason": "The Type row humanizes the enum (e.g. 'Research finding'), never the raw DB value."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-07-research-detail.json",
-      "__id": "compose-07-research-detail"
-    },
-    {
-      "part": "Page composition — Operations profile detail (09)",
-      "mount": "operations-detail-1440",
-      "viewport": 1440,
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "notes": [
-        "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
-        "Artboard order top to bottom: header (chips incl. trailing topic chip 'Corridors', header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Legend)."
-      ],
-      "selector": "[data-audit=\"operations-detail\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-          "selector": "[data-audit=\"operations-detail\"] .cl-action-row button",
-          "expect": {
-            "count": "4"
-          }
-        },
-        {
-          "name": "region 2 — header carries the trailing topic chip ('Corridors')",
-          "selector": "[data-audit=\"operations-detail\"] header span",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Corridors"
-        },
-        {
-          "name": "region 3 — Exposure grid renders before the timeline",
-          "selector": "[data-audit=\"operations-detail\"] p",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Exposure"
-        },
-        {
-          "name": "region 4 — Summary section (id=summary) renders when no dynamic sections carry content",
-          "selector": "[data-audit=\"operations-detail\"] section#summary h2",
-          "expect": {
-            "text": "Summary"
-          }
-        },
-        {
-          "name": "region 5 — At a glance 'Region' row is the humanized jurisdiction, not a raw ISO code",
-          "selector": "[data-audit=\"operations-detail\"] span",
-          "expect": {
-            "count": "3"
-          },
-          "textMatch": "Singapore"
-        },
-        {
-          "name": "region 6 — rail, 'In this list' card first",
-          "selector": "[data-audit=\"operations-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-          "expect": {
-            "text": "In this list"
-          }
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no per-item ask bar in the header (ruling 2.3)",
-          "selector": "[data-audit=\"operations-detail\"] header:not(.cl-masthead) input[placeholder]",
-          "reason": "The masthead command bar is the only ask surface."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-09-operations-profile.json",
-      "__id": "compose-09-operations-profile"
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-10-map.json",
+      "__id": "compose-10-map"
     },
     {
       "part": "DetailHeader",
@@ -6996,63 +6713,15 @@
       "note": "General rule (operator 2.1): the literal token never appears anywhere in the product, artboard-covered or not."
     },
     {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
       "artboards": [
-        "01-dashboard"
+        "10-map"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
       "viewport": 1440,
-      "target": "Page composition — Dashboard (01)",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
-      "property": "display",
-      "expected": "grid",
-      "actual": "grid",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "Page composition — Dashboard (01)",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
-      "property": "grid-template-columns",
-      "expected": "* 300px",
-      "actual": "730px 300px",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
-      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
-      "property": "display",
-      "expected": "grid",
-      "actual": "grid",
-      "status": "MATCH",
-      "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
+      "target": "Page composition — Map (10)",
+      "selector": "[data-audit=\"map\"]",
       "property": "count",
       "expected": "1",
       "actual": "1",
@@ -7060,15 +6729,15 @@
       "note": null
     },
     {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
       "artboards": [
-        "01-dashboard"
+        "10-map"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
       "viewport": 1440,
-      "target": "region 5 — rail, Watchlist card second",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
+      "target": "region 1a — command bar page-scoped placeholder (dc.html p10 exact text)",
+      "selector": "[data-audit=\"map\"] input[placeholder^=\"Search a jurisdiction\"]",
       "property": "count",
       "expected": "1",
       "actual": "1",
@@ -7076,548 +6745,68 @@
       "note": null
     },
     {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
       "artboards": [
-        "01-dashboard"
+        "10-map"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "viewport": 1440,
+      "target": "region 3 — Regulatory map card canvas",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-canvas\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
+      "artboards": [
+        "10-map"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "viewport": 1440,
+      "target": "region 4 — Jurisdiction register rows, after the map card",
+      "selector": "[data-audit=\"map\"] [data-testid=\"jurisdiction-register-rows\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
+      "artboards": [
+        "10-map"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
       "viewport": 1440,
       "target": "no floating Ask AI button (ruling 2.2)",
-      "selector": "[data-audit=\"dashboard\"] button [text contains \"Ask AI\"]",
+      "selector": "[data-audit=\"map\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation."
     },
     {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
+      "spec": "compose-10-map",
+      "part": "Page composition — Map (10)",
       "artboards": [
-        "01-dashboard"
+        "10-map"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
       "viewport": 1440,
-      "target": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span [text contains \"0/12\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "3 present — \"10/12\"",
-      "status": "NOT IN SPEC",
-      "note": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score."
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "Page composition — Regulation detail (03)",
-      "selector": "[data-audit=\"regulation-detail\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row button",
-      "property": "count",
-      "expected": "4",
-      "actual": "4",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 1a — header stat 'N source(s) · T# primary' present, before action row",
-      "selector": "[data-audit=\"regulation-detail\"] header span",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 2 — sticky section index second entry is 'S2 Obligations — issues requiring action'",
-      "selector": "[data-audit=\"regulation-detail\"] nav[aria-label=\"Section index\"] a:nth-of-type(2)",
-      "property": "text",
-      "expected": "S2 Obligations — issues requiring action",
-      "actual": "S2 Obligations — issues requiring action",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 3 — Summary section aside 'Generated · 30-second read'",
-      "selector": "[data-audit=\"regulation-detail\"] section#summary span",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 4 — Sources section is the last section before the rail",
-      "selector": "[data-audit=\"regulation-detail\"] section#sources h2",
-      "property": "text",
-      "expected": "Sources",
-      "actual": "Sources",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 5 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "property": "text",
-      "expected": "In this list",
-      "actual": "In this list",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "no per-item ask bar between workspace tags and the action row (ruling 2.3)",
-      "selector": "[data-audit=\"regulation-detail\"] header:not(.cl-masthead) input[placeholder]",
+      "target": "no second per-page ask/search bar (README §0.3)",
+      "selector": "[data-audit=\"map\"] input[type=\"search\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead command bar (header.cl-masthead) is the only ask surface; a second scoped ask input inside DetailHeader (the OTHER <header>, excluded by :not(.cl-masthead)) is the item 2.3 defect."
-    },
-    {
-      "spec": "compose-03-regulation-detail",
-      "part": "Page composition — Regulation detail (03)",
-      "artboards": [
-        "03-regulation-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
-      "viewport": 1440,
-      "target": "no 'Immediate ▾' band dropdown in the action row (ruling 3.1)",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row [text contains \"▾\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The band pill states the band; changing it is not a reader action from the action row."
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "Page composition — Market signal detail (05)",
-      "selector": "[data-audit=\"market-detail\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 1 — header chips include the artboard's Signal/severity/topic/band set",
-      "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead)",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 2 — action row, exactly Export brief / Share / Watch / + Tag",
-      "selector": "[data-audit=\"market-detail\"] .cl-action-row button",
-      "property": "count",
-      "expected": "4",
-      "actual": "4",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 3 — Exposure grid renders before the timeline",
-      "selector": "[data-audit=\"market-detail\"] p",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 4 — sticky section index carries all six entries, S1..S6",
-      "selector": "[data-audit=\"market-detail\"] nav[aria-label=\"Section index\"] a",
-      "property": "count",
-      "expected": "6",
-      "actual": "6",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 5 — Summary section aside 'Generated · 30-second read'",
-      "selector": "[data-audit=\"market-detail\"] section#summary span",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "region 6 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"market-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "property": "text",
-      "expected": "In this list",
-      "actual": "In this list",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-05-market-detail",
-      "part": "Page composition — Market signal detail (05)",
-      "artboards": [
-        "05-market-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/05-market-detail.png; dc.html id=\"p5\"; README §0.5 (\"identical architecture to the regulation detail\")",
-      "viewport": 1440,
-      "target": "no per-item ask bar in the header (ruling 2.3)",
-      "selector": "[data-audit=\"market-detail\"] header:not(.cl-masthead) input[placeholder]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The masthead command bar is the only ask surface."
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "Page composition — Research finding detail (07)",
-      "selector": "[data-audit=\"research-detail\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-      "selector": "[data-audit=\"research-detail\"] .cl-action-row button",
-      "property": "count",
-      "expected": "4",
-      "actual": "4",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 2 — Exposure grid renders before the timeline",
-      "selector": "[data-audit=\"research-detail\"] p",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 3 — Summary section (id=summary) renders when no dynamic sections carry content",
-      "selector": "[data-audit=\"research-detail\"] section#summary h2",
-      "property": "text",
-      "expected": "Summary",
-      "actual": "Summary",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 5 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"research-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "property": "text",
-      "expected": "In this list",
-      "actual": "In this list",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "no per-item ask bar in the header (ruling 2.3)",
-      "selector": "[data-audit=\"research-detail\"] header:not(.cl-masthead) input[placeholder]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The masthead command bar is the only ask surface."
-    },
-    {
-      "spec": "compose-07-research-detail",
-      "part": "Page composition — Research finding detail (07)",
-      "artboards": [
-        "07-research-detail"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
-      "viewport": 1440,
-      "target": "At a glance 'Type' row never renders a raw snake_case enum",
-      "selector": "[data-audit=\"research-detail\"] div [text contains \"research_finding\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The Type row humanizes the enum (e.g. 'Research finding'), never the raw DB value."
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "Page composition — Operations profile detail (09)",
-      "selector": "[data-audit=\"operations-detail\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
-      "selector": "[data-audit=\"operations-detail\"] .cl-action-row button",
-      "property": "count",
-      "expected": "4",
-      "actual": "4",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 2 — header carries the trailing topic chip ('Corridors')",
-      "selector": "[data-audit=\"operations-detail\"] header span",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 3 — Exposure grid renders before the timeline",
-      "selector": "[data-audit=\"operations-detail\"] p",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 4 — Summary section (id=summary) renders when no dynamic sections carry content",
-      "selector": "[data-audit=\"operations-detail\"] section#summary h2",
-      "property": "text",
-      "expected": "Summary",
-      "actual": "Summary",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 5 — At a glance 'Region' row is the humanized jurisdiction, not a raw ISO code",
-      "selector": "[data-audit=\"operations-detail\"] span",
-      "property": "count",
-      "expected": "3",
-      "actual": "3",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "region 6 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"operations-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "property": "text",
-      "expected": "In this list",
-      "actual": "In this list",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-09-operations-profile",
-      "part": "Page composition — Operations profile detail (09)",
-      "artboards": [
-        "09-operations-profile"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
-      "viewport": 1440,
-      "target": "no per-item ask bar in the header (ruling 2.3)",
-      "selector": "[data-audit=\"operations-detail\"] header:not(.cl-masthead) input[placeholder]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The masthead command bar is the only ask surface."
+      "note": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input."
     },
     {
       "spec": "detailheader",

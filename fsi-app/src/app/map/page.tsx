@@ -76,7 +76,11 @@ export default async function MapRoute({
               immediate items · marker size = item count · colour = highest band present
             </>
           }
-          commandBar={{ itemCount: data.resources.length, scope: "map" }}
+          commandBar={{
+            itemCount: data.resources.length,
+            scope: "map",
+            placeholder: 'Search a jurisdiction — or ask "where are my immediate items?"',
+          }}
         />
       </div>
       <MapPageView

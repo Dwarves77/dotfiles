@@ -368,7 +368,7 @@ export function AdminDashboard({
           commandBar={{
             itemCount: totalTileCount,
             scope: "admin",
-            placeholder: `Search sources, workspaces, flags — or ask "why…"`,
+            placeholder: `Search sources, workspaces, flags — or ask "which provisional sources are T1?"`,
           }}
         />
       </div>

@@ -22,6 +22,7 @@
     "capture:compose-11-watchlist": "node .discipline/rendering/capture-compose-11-watchlist.mjs",
     "capture:compose-dashboard": "node .discipline/rendering/capture-compose-dashboard.mjs",
     "capture:compose-details": "node .discipline/rendering/capture-compose-details.mjs",
+    "capture:compose-page": "node .discipline/rendering/capture-compose-page.mjs",
     "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs",
     "audit:design": "node .discipline/rendering/audit/run-audit.mjs"
   },
