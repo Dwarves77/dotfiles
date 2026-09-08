@@ -476,8 +476,14 @@ export function OperationsLedger({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              minHeight: 24,
-              padding: "4px 0",
+              // FOLD 63 (2026-09-08): 28, not 24. This lane took its geometry from the band cards'
+              // own foot link, whose 24px box is below the site-wide layout guard's L9 floor
+              // (">= 44px in one dimension and >= 28px in the other"), and the guard measured this
+              // NEW link at 217x26 on /operations at both 1440 and 1024. An element this fold adds
+              // meets the floor rather than joining a baselined class: 28px of box, same type, same
+              // underline, one row taller by 2px.
+              minHeight: 28,
+              padding: "5px 0",
               fontSize: "var(--fs-12)",
               fontWeight: 600,
               color: "var(--ink)",

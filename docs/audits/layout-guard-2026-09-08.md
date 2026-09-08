@@ -6,7 +6,11 @@ GENERATED FILE. Regenerated in full by `node fsi-app/.discipline/rendering/layou
 - Routes: 18 (17 artboards; /login and /signup share artboard 16)
 - Widths: 1440, 1024
 - Measurements taken: 36
+<<<<<<< HEAD
 - Findings: 792
+=======
+- Findings: 891
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 `[CONFIRMED]`: every row below is a measurement taken this run in a real chromium against the
 real `src/components/**` modules, not a source read. The rules are the operator's L1-L12
@@ -17,6 +21,7 @@ stated in `rules.mjs` where his text needed one.
 
 | Rule | Provenance | Findings | Routes |
 |---|---|---|---|
+<<<<<<< HEAD
 | L1 | new | 11 | /regulations/[slug]@1440, /market/[slug]@1440, /research/[slug]@1440, /operations/[slug]@1440, /community@1440, /community@1024, /settings@1440 |
 | L2 | extended (assertions.mjs detectBoundsViolations: row/cell containment → every layout-box pair) | 165 | /profile@1024, /settings@1440, /settings@1024 |
 | L3 | already covered (audit/overflow-sweep.mjs, ux-assert detectClippedOverflow) + new card-vs-column clause | 0 | - |
@@ -27,6 +32,18 @@ stated in `rules.mjs` where his text needed one.
 | L8 | new (rendered text, not source text) | 0 | - |
 | L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 238 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
 | L10 | new | 93 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +21 more |
+=======
+| L1 | new | 13 | /regulations/[slug]@1440, /market/[slug]@1440, /research/[slug]@1440, /operations/[slug]@1440, /community@1440, /community@1024, /admin@1440, /admin@1024, +1 more |
+| L2 | extended (assertions.mjs detectBoundsViolations: row/cell containment → every layout-box pair) | 165 | /profile@1024, /settings@1440, /settings@1024 |
+| L3 | already covered (audit/overflow-sweep.mjs, ux-assert detectClippedOverflow) + new card-vs-column clause | 1 | /@1024 |
+| L4 | new | 1 | /admin@1024 |
+| L5 | new | 0 | - |
+| L6 | new | 62 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +12 more |
+| L7 | new | 190 | /market@1440, /market@1024, /research@1440, /research@1024, /operations@1440, /operations@1024, /map@1440, /map@1024, +14 more |
+| L8 | new (rendered text, not source text) | 0 | - |
+| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 354 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
+| L10 | new | 105 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +22 more |
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 | L11 | already covered (ux-assert detectClippedText, lane opsclip) - called, not restated | 0 | - |
 | L12 | new | 0 | - |
 
@@ -35,6 +52,7 @@ stated in `rules.mjs` where his text needed one.
 | Route | Width | L1 | L2 | L3 | L4 | L5 | L6 | L7 | L8 | L9 | L10 | L11 | L12 | total |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | `/` | 1440 | · | · | · | · | · | · | · | · | · | 1 | · | · | 1 |
+<<<<<<< HEAD
 | `/` | 1024 | · | · | · | · | · | · | · | · | · | 1 | · | · | 1 |
 | `/regulations` | 1440 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
 | `/regulations` | 1024 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
@@ -64,6 +82,37 @@ stated in `rules.mjs` where his text needed one.
 | `/profile` | 1024 | · | 1 | · | · | · | · | 4 | · | 4 | 1 | · | · | 10 |
 | `/settings` | 1440 | 1 | 60 | · | · | · | · | 8 | · | 36 | 1 | · | · | 106 |
 | `/settings` | 1024 | · | 104 | · | · | · | · | 8 | · | 51 | 1 | · | · | 164 |
+=======
+| `/` | 1024 | · | · | 1 | · | · | · | · | · | · | 1 | · | · | 2 |
+| `/regulations` | 1440 | · | · | · | · | · | 4 | · | · | 24 | 4 | · | · | 32 |
+| `/regulations` | 1024 | · | · | · | · | · | 4 | · | · | 24 | 4 | · | · | 32 |
+| `/regulations/[slug]` | 1440 | 2 | · | · | · | · | 3 | · | · | 1 | 5 | · | · | 11 |
+| `/regulations/[slug]` | 1024 | · | · | · | · | · | 3 | · | · | 1 | 5 | · | · | 9 |
+| `/market` | 1440 | · | · | · | · | · | 4 | 6 | · | 19 | 5 | · | · | 34 |
+| `/market` | 1024 | · | · | · | · | · | 4 | 6 | · | 19 | 5 | · | · | 34 |
+| `/market/[slug]` | 1440 | 2 | · | · | · | · | 2 | · | · | 1 | 6 | · | · | 11 |
+| `/market/[slug]` | 1024 | · | · | · | · | · | 2 | · | · | 1 | 6 | · | · | 9 |
+| `/research` | 1440 | · | · | · | · | · | 3 | 8 | · | 12 | 4 | · | · | 27 |
+| `/research` | 1024 | · | · | · | · | · | 3 | 8 | · | 12 | 4 | · | · | 27 |
+| `/research/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 9 |
+| `/research/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 1 | 5 | · | · | 7 |
+| `/operations` | 1440 | · | · | · | · | · | 3 | 34 | · | 36 | 3 | · | · | 76 |
+| `/operations` | 1024 | · | · | · | · | · | 3 | 34 | · | 36 | 3 | · | · | 76 |
+| `/operations/[slug]` | 1440 | 2 | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 14 |
+| `/operations/[slug]` | 1024 | · | · | · | · | · | 1 | · | · | 4 | 7 | · | · | 12 |
+| `/map` | 1440 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
+| `/map` | 1024 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
+| `/watchlist` | 1440 | · | · | · | · | · | 4 | · | · | 9 | 2 | · | · | 15 |
+| `/watchlist` | 1024 | · | · | · | · | · | 4 | · | · | 9 | 2 | · | · | 15 |
+| `/community` | 1440 | 1 | · | · | · | · | 6 | 8 | · | 6 | 2 | · | · | 23 |
+| `/community` | 1024 | 1 | · | · | · | · | 6 | 8 | · | 6 | 1 | · | · | 22 |
+| `/admin` | 1440 | 1 | · | · | · | · | · | 15 | · | 1 | 1 | · | · | 18 |
+| `/admin` | 1024 | 1 | · | · | 1 | · | · | 15 | · | 1 | 1 | · | · | 19 |
+| `/profile` | 1440 | · | · | · | · | · | · | 4 | · | 3 | 1 | · | · | 8 |
+| `/profile` | 1024 | · | 1 | · | · | · | · | 4 | · | 4 | 1 | · | · | 10 |
+| `/settings` | 1440 | 1 | 60 | · | · | · | · | 8 | · | 36 | 6 | · | · | 111 |
+| `/settings` | 1024 | · | 104 | · | · | · | · | 8 | · | 51 | 6 | · | · | 169 |
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 | `/login` | 1440 | · | · | · | · | · | · | 1 | · | 2 | · | · | · | 3 |
 | `/login` | 1024 | · | · | · | · | · | · | 1 | · | 2 | · | · | · | 3 |
 | `/signup` | 1440 | · | · | · | · | · | · | 1 | · | 1 | · | · | · | 2 |
@@ -96,7 +145,11 @@ coordinator route it instead of two lanes editing one file.
 
 ## Findings
 
+<<<<<<< HEAD
 ### L1 - 11 finding(s)
+=======
+### L1 - 13 finding(s)
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -110,6 +163,11 @@ coordinator route it instead of two lanes editing one file.
 | `/operations/[slug]` | 1440 | div.cl-detail-layout[@media (max-width: 1280px) { .] | padding 0px 0px 0px, expected 20px 40px 40px |
 | `/community` | 1440 | div.cl-community-grid[@media (max-width: 1100px) { .] | padding 0px 0px 0px, expected 20px 40px 40px |
 | `/community` | 1024 | page frame | no grid container found inside <main> |
+<<<<<<< HEAD
+=======
+| `/admin` | 1440 | div[/* D2 fix (operator report 202] | width: 1092px |
+| `/admin` | 1024 | div[/* D2 fix (operator report 202] | width: 676px |
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 | `/settings` | 1440 | div.cl-settings-columns[@media (max-width: 1100px){ .c] | padding 18px 40px 0px, expected 18px 40px 40px |
 
 ### L2 - 165 finding(s)
@@ -178,12 +236,27 @@ coordinator route it instead of two lanes editing one file.
 | `/settings` | 1440 | button[WTO] × section[Data summary0Active0Archived0J] | overlap 53×28.5px (a at 1231.4,1762.7 53×28.5; b at 308,1723.2 1092×178.5) |
 | … | | 105 further findings, in results.json | |
 
+<<<<<<< HEAD
 ### L4 - 1 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
 | `/admin` | 1024 | div[Sources views] | 63px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 674) |
 
+=======
+### L3 - 1 finding(s)
+
+| Route | Width | Element | Measured |
+|---|---|---|---|
+| `/` | 1024 | div[@media (max-width: 767px) { .c] "DUE NEXT · 3 ITEMS" | card scrollWidth 740px vs its own clientWidth 674px (+66px) |
+
+### L4 - 1 finding(s)
+
+| Route | Width | Element | Measured |
+|---|---|---|---|
+| `/admin` | 1024 | div[Sources views] | 63px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 674) |
+
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 ### L6 - 62 finding(s)
 
 | Route | Width | Element | Measured |
@@ -250,22 +323,14 @@ coordinator route it instead of two lanes editing one file.
 | `/community` | 1024 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
 | … | | 2 further findings, in results.json | |
 
+<<<<<<< HEAD
 ### L7 - 222 finding(s)
+=======
+### L7 - 190 finding(s)
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
-| `/regulations/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/regulations/[slug]` | 1440 | h2[Obligations — issues requiring] | font-family resolves to Anton on "OBLIGATIONS — ISSUES REQUIRING ACTION" |
-| `/regulations/[slug]` | 1440 | h2[Compliance chain] | font-family resolves to Anton on "COMPLIANCE CHAIN" |
-| `/regulations/[slug]` | 1440 | h2[Substantive requirements] | font-family resolves to Anton on "SUBSTANTIVE REQUIREMENTS" |
-| `/regulations/[slug]` | 1440 | h2[Penalties] | font-family resolves to Anton on "PENALTIES" |
-| `/regulations/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/regulations/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/regulations/[slug]` | 1024 | h2[Obligations — issues requiring] | font-family resolves to Anton on "OBLIGATIONS — ISSUES REQUIRING ACTION" |
-| `/regulations/[slug]` | 1024 | h2[Compliance chain] | font-family resolves to Anton on "COMPLIANCE CHAIN" |
-| `/regulations/[slug]` | 1024 | h2[Substantive requirements] | font-family resolves to Anton on "SUBSTANTIVE REQUIREMENTS" |
-| `/regulations/[slug]` | 1024 | h2[Penalties] | font-family resolves to Anton on "PENALTIES" |
-| `/regulations/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/market` | 1440 | h2[Headline series] | font-family resolves to Anton on "HEADLINE SERIES" |
 | `/market` | 1440 | span[€1,217/1000L] | font-family resolves to Anton on "€1,217/1000L" |
 | `/market` | 1440 | span[€1,014/1000L] | font-family resolves to Anton on "€1,014/1000L" |
@@ -278,18 +343,6 @@ coordinator route it instead of two lanes editing one file.
 | `/market` | 1024 | span[€535/t] | font-family resolves to Anton on "€535/t" |
 | `/market` | 1024 | span[€646/t] | font-family resolves to Anton on "€646/t" |
 | `/market` | 1024 | span[$1.16] | font-family resolves to Anton on "$1.16" |
-| `/market/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/market/[slug]` | 1440 | h2[Drivers & trajectory] | font-family resolves to Anton on "DRIVERS & TRAJECTORY" |
-| `/market/[slug]` | 1440 | h2[Cost impact by mode] | font-family resolves to Anton on "COST IMPACT BY MODE" |
-| `/market/[slug]` | 1440 | h2[Do now] | font-family resolves to Anton on "DO NOW" |
-| `/market/[slug]` | 1440 | h2[Client talking points] | font-family resolves to Anton on "CLIENT TALKING POINTS" |
-| `/market/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/market/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/market/[slug]` | 1024 | h2[Drivers & trajectory] | font-family resolves to Anton on "DRIVERS & TRAJECTORY" |
-| `/market/[slug]` | 1024 | h2[Cost impact by mode] | font-family resolves to Anton on "COST IMPACT BY MODE" |
-| `/market/[slug]` | 1024 | h2[Do now] | font-family resolves to Anton on "DO NOW" |
-| `/market/[slug]` | 1024 | h2[Client talking points] | font-family resolves to Anton on "CLIENT TALKING POINTS" |
-| `/market/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
 | `/research` | 1440 | span[5] | font-family resolves to Anton on "5" |
@@ -306,17 +359,45 @@ coordinator route it instead of two lanes editing one file.
 | `/research` | 1024 | span[14] | font-family resolves to Anton on "14" |
 | `/research` | 1024 | span[11] | font-family resolves to Anton on "11" |
 | `/research` | 1024 | span[3] | font-family resolves to Anton on "3" |
-| `/research/[slug]` | 1440 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/research/[slug]` | 1440 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
-| `/research/[slug]` | 1024 | h2[Summary] | font-family resolves to Anton on "SUMMARY" |
-| `/research/[slug]` | 1024 | h2[Sources] | font-family resolves to Anton on "SOURCES" |
 | `/operations` | 1440 | h2[Regions side by side] | font-family resolves to Anton on "REGIONS SIDE BY SIDE" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
-| … | | 162 further findings, in results.json | |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[£40–42k / yr] | font-family resolves to Anton on "£40–42k / yr" |
+| `/operations` | 1440 | div[$60,000 / yr] | font-family resolves to Anton on "$60,000 / yr" |
+| `/operations` | 1440 | div[€40.4 / hr] | font-family resolves to Anton on "€40.4 / hr" |
+| `/operations` | 1440 | div[3–6% / yr] | font-family resolves to Anton on "3–6% / yr" |
+| `/operations` | 1440 | div[HKD 14,747 / mo] | font-family resolves to Anton on "HKD 14,747 / mo" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[6] | font-family resolves to Anton on "6" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
+| … | | 130 further findings, in results.json | |
 
+<<<<<<< HEAD
 ### L9 - 238 finding(s)
+=======
+### L9 - 354 finding(s)
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -325,12 +406,48 @@ coordinator route it instead of two lanes editing one file.
 | `/regulations` | 1440 | button[All 9 immediate →] | 120.4×26px (long 120.4 < 44 or short 26 < 28) |
 | `/regulations` | 1440 | button[All 9 action →] | 90.3×26px (long 90.3 < 44 or short 26 < 28) |
 | `/regulations` | 1440 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/regulations` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
 | `/regulations` | 1440 | a[Calendar →] | 68.3×24px (long 68.3 < 44 or short 24 < 28) |
 | `/regulations` | 1024 | button[Show as one list] | 114.9×24px (long 114.9 < 44 or short 24 < 28) |
 | `/regulations` | 1024 | button[A-Z] | 43×28px (long 43 < 44 or short 28 < 28) |
 | `/regulations` | 1024 | button[All 9 immediate →] | 120.4×26px (long 120.4 < 44 or short 26 < 28) |
 | `/regulations` | 1024 | button[All 9 action →] | 90.3×26px (long 90.3 < 44 or short 26 < 28) |
 | `/regulations` | 1024 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
+| `/regulations` | 1024 | input.cl-facet-check[] | 910×24px (long 910 < 44 or short 24 < 28) |
 | `/regulations` | 1024 | a[Calendar →] | 68.3×24px (long 68.3 < 44 or short 24 < 28) |
 | `/regulations/[slug]` | 1440 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
 | `/regulations/[slug]` | 1024 | a[Back to list] | 69.5×24px (long 69.5 < 44 or short 24 < 28) |
@@ -340,6 +457,7 @@ coordinator route it instead of two lanes editing one file.
 | `/market` | 1440 | button[All 8 immediate →] | 120.4×26px (long 120.4 < 44 or short 26 < 28) |
 | `/market` | 1440 | button[All 6 action →] | 90.3×26px (long 90.3 < 44 or short 26 < 28) |
 | `/market` | 1440 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
+<<<<<<< HEAD
 | `/market` | 1024 | a[Series board →] | 116.8×12px (long 116.8 < 44 or short 12 < 28) |
 | `/market` | 1024 | button[Show as one list] | 114.9×24px (long 114.9 < 44 or short 24 < 28) |
 | `/market` | 1024 | button[A-Z] | 43×28px (long 43 < 44 or short 28 < 28) |
@@ -383,6 +501,15 @@ coordinator route it instead of two lanes editing one file.
 | … | | 178 further findings, in results.json | |
 
 ### L10 - 93 finding(s)
+=======
+| `/market` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/market` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/market` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| `/market` | 1440 | input.cl-facet-check[] | 266×24px (long 266 < 44 or short 24 < 28) |
+| … | | 294 further findings, in results.json | |
+
+### L10 - 105 finding(s)
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -446,7 +573,11 @@ coordinator route it instead of two lanes editing one file.
 | `/research/[slug]` | 1024 | card "TIMELINE" | not in the manifest for /research/[slug] (p7); manifest holds 10 cards |
 | `/research/[slug]` | 1024 | card "IN THIS LIST" | not in the manifest for /research/[slug] (p7); manifest holds 10 cards |
 | `/research/[slug]` | 1024 | /research/[slug] | manifest cards not rendered: MISSION INNOVATION SHIPPING MISSION NET ZERO INDUSTRIES AWARD AND MI GLOBAL COLLABORATION FRAMEWORK,  |
+<<<<<<< HEAD
 | … | | 33 further findings, in results.json | |
+=======
+| … | | 45 further findings, in results.json | |
+>>>>>>> 4f9917b5 (fix(fold63): close every gate finding this fold introduced, at the shared part)
 
 ## Harness errors
 

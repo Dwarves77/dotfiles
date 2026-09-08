@@ -168,12 +168,12 @@
     {
       "name": "the single link to the calculator's own page sits at the foot of the content column (item D3)",
       "selector": "[data-audit=\"calculator-link\"]",
-      "note": "Artboard 08 draws no such row; /operations/calculator would otherwise be unreachable, which is the dead-page defect class. Geometry is the band-card foot link's own (12px/600, 24px minimum box), not an invented one.",
+      "note": "Artboard 08 draws no such row; /operations/calculator would otherwise be unreachable, which is the dead-page defect class. Geometry is the band-card foot link's own (12px/600), with ONE value changed. UPDATED BY FOLD 63 (2026-09-08), spec written 2026-09-08 by lane regopscope: the minimum box was 24px, copied from the band-card foot link, and the site-wide layout guard measured this NEW link at 217x26 on /operations at 1440 and at 1024, under its L9 floor of \">= 44px in one dimension and >= 28px in the other\". The row is UPDATED, not weakened: the asserted value rises to the floor the guard enforces, so a regression back to 24px now turns this row MISMATCH as well as adding two layout-guard findings.",
       "expect": {
         "count": "1",
         "font-size": "12px",
         "font-weight": "600",
-        "min-height": "24px"
+        "min-height": "28px"
       }
     }
   ],

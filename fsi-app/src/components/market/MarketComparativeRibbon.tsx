@@ -270,8 +270,34 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
 function RibbonCard({ row }: { row: RibbonRow }) {
   const d = row.deltas;
   return (
+    // fitness-allow: F42 (a TILE inside a card, not a section card. Measured against the artboard
+    // source itself, `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html`, id="p4": the
+    // enclosing HEADLINE SERIES card opens with
+    // `<div style="height:3px;background:linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))">`
+    // and each of the five tiles inside it opens with
+    // `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px
+    // rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:10px 12px;overflow:hidden` and NO
+    // rule child. Rendering this through SectionCard would therefore draw five 3px rules the image
+    // does not have, which is item A1 applied to the wrong object: A1 governs the CARD, and p4's own
+    // markup shows this is the same tile class as the four band tiles above it, which BandTile.tsx
+    // draws with identical chrome and no rule. The card this tile sits in IS a SectionCard, one line
+    // below in this file.
+    //
+    // THE SHARED PART THIS WANTS, delivered decision-ready rather than half-built (rule 13): there is
+    // no `Tile` primitive yet, so BandTile.tsx retypes the same five declarations and escapes F42
+    // only because its border is a template literal the gate's regex cannot see. Extracting a Tile
+    // shell and moving BandTile and this card onto it would close that hole properly, and it is a
+    // change to a component four surfaces mount with its own audit spec (bandtile.json), so it is
+    // named in DEVIATION-LOG.md as follow-up rather than landed inside a fold.
     <div
       data-audit="headline-card"
+      // The site-wide layout guard's own marker for "carries card chrome, is not a panel", the same
+      // class as the band tiles and the stat tiles (allowlists.mjs NOT_A_CARD). L6 would otherwise
+      // require a 3px rule p4 does not draw on this tile, and L10 would require a manifest entry the
+      // manifest generator structurally cannot produce for a tile nested inside a card.
+      data-guard-tile=""
+      // fitness-allow: F42 (a TILE inside a card, not a section card; the full reason, with the
+      // artboard bytes it was measured from, is the comment block directly above.)
       style={{
         border: "1px solid var(--line-1)",
         borderRadius: "var(--radius-card)",
