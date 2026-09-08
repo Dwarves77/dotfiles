@@ -53,8 +53,10 @@
  * invented (logged in DEVIATION-LOG.md): the row meta's "All modes ·
  * packaging" segments (WatchlistItem has no modes or topic field), and the
  * state note's "changed BAND" wording (no band-change history exists;
- * /api/notices is the app's only "what changed on watched items since your
- * last visit" feed, so the strip states what that feed actually reports).
+ * /api/notices is the app's only "what changed on watched items" feed, so the
+ * strip states what that feed actually reports, over the window the feed
+ * itself reports — COUNTS-61, 2026-09-08: that window is a fixed 30 days, not
+ * a last visit, which the product does not record).
  *
  * NO DRAG HERE, unchanged from the previous version.
  */

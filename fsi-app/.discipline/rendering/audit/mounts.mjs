@@ -2414,7 +2414,12 @@ const COMPOSE_WATCHLIST_TAGS = {
 
 const COMPOSE_WATCHLIST_API = [
   ...EMPTY_API,
-  { urlGlob: '**/api/notices**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ notices: COMPOSE_WATCHLIST_NOTICES }) }) },
+  // COUNTS-61 (2026-09-08): the route has always returned `since` alongside `notices` — the window
+  // start it actually applied. The stub returns it too, so this mount renders the real label the
+  // card now states ("Since Aug 9, 2026") instead of the "Since your last visit" the surface used to
+  // assert without any instant behind it. 30 days before the fixture's own instant, which is what
+  // GET /api/notices' own DEFAULT_WINDOW_DAYS produces for a caller that sends no ?since=.
+  { urlGlob: '**/api/notices**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ notices: COMPOSE_WATCHLIST_NOTICES, since: '2026-08-08T00:00:00.000Z' }) }) },
   { urlGlob: '**/api/workspace/tags**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(COMPOSE_WATCHLIST_TAGS) }) },
 ];
 

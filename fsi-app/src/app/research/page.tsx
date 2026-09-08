@@ -26,6 +26,21 @@ import { CredibilityChipEvidence } from "@/components/research/CredibilityChipEv
 import { CredibilityChipAuthority } from "@/components/research/CredibilityChipAuthority";
 import { getPublicResearchItems, getResearchSourceCoverage, getPublicSurfaceCounts } from "@/lib/data";
 
+/**
+ * COUNTS-61 (2026-09-08). This route was the ONE list surface still statically prerendered; its
+ * three siblings (/regulations, /market, /operations) already render per request. Once the ledger
+ * reads its facet state from the URL, a statically prerendered page cannot server-render it: Next
+ * defers the whole `useSearchParams` Suspense boundary to the client, and the build's own output
+ * proves it — the prerendered research.html carried the frame and none of the rows [CONFIRMED,
+ * this lane, by reading .next/server/app/research.html]. That is a first-paint regression, not a
+ * trade this lane gets to make silently, so the route joins its siblings and renders per request.
+ *
+ * The DATA reads are unaffected: getPublicResearchItems / getPublicSurfaceCounts /
+ * getResearchSourceCoverage are each `unstable_cache`-wrapped with their own TTL and tag, so what
+ * this gives up is the cached HTML, not the cached queries.
+ */
+export const dynamic = "force-dynamic";
+
 export default async function Research() {
   const t0 = Date.now();
   const [research, aggregates, sourceCoverage] = await Promise.all([

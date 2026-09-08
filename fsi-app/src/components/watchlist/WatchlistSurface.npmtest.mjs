@@ -51,8 +51,23 @@ test("the column header row uses artboard 11's own labels", () => {
 });
 
 test("the card foot carries the artboard's line and its Browse regulations link", () => {
-  assert.match(SRC, /left="Watch from any row's ⋯ menu or the Watch button on a detail page\."/);
+  // UPDATED, lane counts 2026-09-08 (COUNTS-61): the foot used to read "Watch from any row's ⋯
+  // menu", which reads as a control on THIS page. It now names where the menu is. The invariant
+  // this test holds is unchanged (the foot points the reader at the two ways to watch something,
+  // and carries the Browse link); only the copy it anchors on moved.
+  assert.match(SRC, /left="Watch an item from its ⋯ menu on any list page, or the Watch button on a detail page\."/);
   assert.match(SRC, /Browse regulations →/);
+});
+
+test("no region on this page claims a 'last visit' the product does not record", () => {
+  // COUNTS-61: GET /api/notices applies a fixed 30-day window (its own DEFAULT_WINDOW_DAYS) and no
+  // caller sends ?since=. The card used to print "SINCE YOUR LAST VISIT" twice and never a date.
+  // Comments are stripped first: this file's own prose explains the defect and would match itself.
+  const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+  assert.doesNotMatch(code, /last visit/i, "no rendered string claims a last visit");
+  // The window is stated ONCE, from the instant the feed itself reports, and mounted twice.
+  assert.equal(code.split("noticesWindowLabel").length - 1, 3, "one derivation, two mounts");
+  assert.match(code, /noticesSince/, "the label is derived from the feed's own since");
 });
 
 test("the masthead carries the scope line and the watchlist-scoped command-bar placeholder", () => {

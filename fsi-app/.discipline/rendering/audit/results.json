@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T13:02:54.062Z",
+  "runAt": "2026-09-08T13:24:41.771Z",
   "specs": [
     {
       "part": "Absence",
@@ -2256,8 +2256,8 @@
         {
           "name": "the card foot strip sits on the page tint with the header-weight divider above it",
           "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
-          "textMatch": "Watch from any row",
-          "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass.",
+          "textMatch": "Watch an item from its",
+          "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on.",
           "expect": {
             "background-color": "#FAFAF8",
             "font-size": "12px",
@@ -2294,7 +2294,8 @@
         {
           "name": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
           "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
-          "textMatch": "Since your last visit",
+          "textMatch": "Since ",
+          "note": "SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the aside used to be the literal \"Since your last visit\", printed a second time in the card's own empty line and never carrying a date. The product tracks no last visit -- GET /api/notices applies a fixed 30-day window and no caller sends ?since= -- so the aside now states the window the FEED reports, \"Since <date>\". The spec anchors on the invariant part of that label rather than on a claim the data never supported.",
           "expect": {
             "font-size": "10.5px",
             "letter-spacing": "0.12em"
@@ -13039,7 +13040,7 @@
       "expected": "#FAFAF8",
       "actual": "rgb(250, 250, 248)",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13055,7 +13056,7 @@
       "expected": "12px",
       "actual": "12px",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13071,7 +13072,7 @@
       "expected": "1px",
       "actual": "1px",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13087,7 +13088,7 @@
       "expected": "rgba(0,0,0,.08)",
       "actual": "rgba(0, 0, 0, 0.08)",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13103,7 +13104,7 @@
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13119,7 +13120,7 @@
       "expected": "10px",
       "actual": "10px",
       "status": "MATCH",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13183,7 +13184,7 @@
       "expected": "10.5px",
       "actual": "10.5px",
       "status": "MATCH",
-      "note": null
+      "note": "SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the aside used to be the literal \"Since your last visit\", printed a second time in the card's own empty line and never carrying a date. The product tracks no last visit -- GET /api/notices applies a fixed 30-day window and no caller sends ?since= -- so the aside now states the window the FEED reports, \"Since <date>\". The spec anchors on the invariant part of that label rather than on a claim the data never supported."
     },
     {
       "spec": "compose-11-watchlist",
@@ -13199,7 +13200,7 @@
       "expected": "0.12em (= 1.26px at 10.5px)",
       "actual": "1.26px",
       "status": "MATCH",
-      "note": null
+      "note": "SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the aside used to be the literal \"Since your last visit\", printed a second time in the card's own empty line and never carrying a date. The product tracks no last visit -- GET /api/notices applies a fixed 30-day window and no caller sends ?since= -- so the aside now states the window the FEED reports, \"Since <date>\". The spec anchors on the invariant part of that label rather than on a claim the data never supported."
     },
     {
       "spec": "compose-11-watchlist",
