@@ -16,6 +16,7 @@ import { Suspense, useMemo } from "react";
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { SectionHeading } from "@/components/ui/SectionHeading";
@@ -153,7 +154,7 @@ export function DashboardBrief({
       `}</style>
       <div style={{ display: "flex", flexDirection: "column", gap: 28, minWidth: 0 }} className="cl-brief-grid">
         {/* Band tiles */}
-        <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+        <BandTileRow>
           {BAND_ORDER.map((band) =>
             loadingCounts ? (
               <SkeletonBandTile key={band.key} />
@@ -173,7 +174,7 @@ export function DashboardBrief({
               />
             ),
           )}
-        </div>
+        </BandTileRow>
 
         {/* Due next */}
         <section>

@@ -41,6 +41,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { BandTile } from "@/components/ui/BandTile";
+import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
@@ -196,7 +197,6 @@ export const LIST_SURFACE_MOBILE_CSS = `
     .cl-list-surface-masthead { padding: 0 !important; }
     .cl-list-surface-grid { padding: 14px 16px 16px !important; gap: 16px !important; }
     .cl-list-surface-grid--mobile-facets [data-audit="filters-rail"] { display: none !important; }
-    .cl-facets-desktop { display: none !important; }
     .cl-facets-mobile {
       display: flex;
       gap: 8px;
@@ -444,7 +444,7 @@ export function ListSurfaceShell({
         <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           {/* Band tiles */}
-          <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>
+          <BandTileRow>
             {BAND_ORDER.map((band) =>
               loadingFirstPage || !bandCounts ? (
                 <SkeletonBandTile key={band.key} />
@@ -458,7 +458,7 @@ export function ListSurfaceShell({
                 />
               ),
             )}
-          </div>
+          </BandTileRow>
 
           {/* Facets — desktop: relocated to the rail's FILTERS card (operator audit 2026-09-07:
               "the filters were not above the regulations, they were on the right — same on every
