@@ -20,6 +20,8 @@ const jiti = createJiti(import.meta.url, {
 const {
   modeFacetOptions,
   regionFacetOptions,
+  topicFacetOptions,
+  tierFacetOptions,
   bandFacetOptions,
   filterRows,
   withListPosition,
@@ -94,6 +96,17 @@ test("filterRows band/mode/region/query compose (AND, order-preserving)", () => 
 test("filterRows with EMPTY_FILTER_STATE returns every row, unmodified order", () => {
   const rows = [res({ id: "a" }), res({ id: "b" })];
   assert.deepEqual(filterRows(rows, EMPTY_FILTER_STATE).map((r) => r.id), ["a", "b"]);
+});
+
+test("filterRows topic/tier compose with the pre-existing band/mode/region/query filters", () => {
+  const rows = [
+    res({ id: "a", topic: "ESG reporting", sourceTier: 1 }),
+    res({ id: "b", topic: "ESG reporting", sourceTier: 2 }),
+    res({ id: "c", topic: "Fuels", sourceTier: 1 }),
+  ];
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, topic: "ESG reporting" }).map((r) => r.id), ["a", "b"]);
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, tier: "1" }).map((r) => r.id), ["a", "c"]);
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, topic: "ESG reporting", tier: "1" }).map((r) => r.id), ["a"]);
 });
 
 test("withListPosition appends the detail-return contract (list/pos/of) to a bare href", () => {
@@ -194,4 +207,20 @@ test("sortResourceRows does not mutate the input array", () => {
   const original = rows.slice();
   sortResourceRows(rows, "az");
   assert.deepEqual(rows, original);
+});
+
+// Topic / Source-tier facets (artboard 02/id="p2" rail: MODE / JURISDICTION / TOPIC / SOURCE TIER).
+test("topicFacetOptions counts distinct topics, sorted by count desc then alpha, blank topics excluded", () => {
+  const rows = [res({ topic: "ESG reporting" }), res({ topic: "ESG reporting" }), res({ topic: "Fuels" }), res({ topic: "" }), res({})];
+  const opts = topicFacetOptions(rows);
+  assert.deepEqual(opts.map((o) => o.value), ["ESG reporting", "Fuels"]);
+  assert.equal(opts[0].count, 2);
+});
+
+test("tierFacetOptions returns one row per distinct tier present, T1 first, rows with no tier excluded", () => {
+  const rows = [res({ sourceTier: 3 }), res({ sourceTier: 1 }), res({ sourceTier: 1 }), res({ sourceTier: undefined })];
+  const opts = tierFacetOptions(rows);
+  assert.deepEqual(opts.map((o) => o.label), ["T1", "T3"]);
+  assert.equal(opts[0].count, 2);
+  assert.equal(opts[0].value, "1");
 });

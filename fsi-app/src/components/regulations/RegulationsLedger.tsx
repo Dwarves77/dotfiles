@@ -78,6 +78,8 @@ import {
   bandFacetOptions,
   modeFacetOptions,
   regionFacetOptions,
+  topicFacetOptions,
+  tierFacetOptions,
   filterRows,
   withListPosition,
   sortResourceRows,
@@ -157,6 +159,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
 
   const modeOptions = useMemo(() => modeFacetOptions(allRows), [allRows]);
   const regionOptions = useMemo(() => regionFacetOptions(allRows, aggregates.byJurisdiction), [allRows, aggregates.byJurisdiction]);
+  const topicOptions = useMemo(() => topicFacetOptions(allRows), [allRows]);
+  const tierOptions = useMemo(() => tierFacetOptions(allRows), [allRows]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
@@ -166,6 +170,20 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       options: regionOptions,
       selected: filter.region,
       onSelect: (v) => setFilter((f) => ({ ...f, region: v })),
+    },
+    {
+      key: "topic",
+      label: "Topic",
+      options: topicOptions,
+      selected: filter.topic ?? null,
+      onSelect: (v) => setFilter((f) => ({ ...f, topic: v })),
+    },
+    {
+      key: "tier",
+      label: "Source tier",
+      options: tierOptions,
+      selected: filter.tier ?? null,
+      onSelect: (v) => setFilter((f) => ({ ...f, tier: v })),
     },
   ];
 
