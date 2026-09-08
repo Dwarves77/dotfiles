@@ -23,14 +23,18 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("imports the shared TagChip, the same neutral tag every other surface uses", () => {
-  assert.match(SOURCE, /import \{ TagChip \} from "@\/components\/ui\/Chips";/);
-});
-
-test("each row's severity renders as a TagChip beside meta (artboard 06 row chip), not a second row", () => {
+// UPDATED (fold 62, 2026-09-08). This page no longer composes the chip itself, and that is
+// operator item B1: lane listrow moved the kind chip INTO `ListRow`, which renders it from the
+// `kind` prop at the artboard's row size and without the border the chip family had grown, so a
+// surface cannot drift from that family by composing its own. The invariant is unchanged, the
+// severity still comes from the shared classifier and still reaches the row as a chip; what moved
+// is where the chip is built. The rendered chip is measured by listrow.json and by compose-06.
+test("the severity chip reaches the row through ListRow's own `kind` prop, never composed here", () => {
   assert.match(SOURCE, /const severityLabel = \(SEVERITY_LABELS as Record<string, string>\)\[/);
   assert.match(SOURCE, /deriveSeverity\(/);
-  assert.match(SOURCE, /\{severityLabel && <TagChip>\{severityLabel\}<\/TagChip>\}/);
+  assert.match(SOURCE, /kind: severityLabel \|\| undefined,/);
+  // The page-local composition and its wrapper span are gone, not merely unused.
+  assert.doesNotMatch(SOURCE, /<TagChip>\{severityLabel\}<\/TagChip>/);
 });
 
 test("the theme sits in the row's meta text, in the artboard's own order (type · theme · kind)", () => {

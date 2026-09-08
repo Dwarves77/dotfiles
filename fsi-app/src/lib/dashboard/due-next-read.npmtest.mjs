@@ -176,15 +176,35 @@ test("a payload with rows but no future dates still populates the card once the 
   );
 });
 
-test("page.tsx unions the due-next read into the pool rather than replacing or ignoring it", () => {
-  assert.match(PAGE, /const dueNextPool = \[/, "the pool is built explicitly on the page");
-  assert.match(PAGE, /\.\.\.data\.resources,/, "it keeps the payload rows (What-changed needs them)");
-  assert.match(PAGE, /\.\.\.\(data\.dueNext \?\? \[\]\)\.filter\(\(r\) => !data\.resources\.some/, "and adds the due-next read, de-duplicated");
-  assert.match(PAGE, /buildDueNextRows\(dueNextPool, now\)/, "and the shared selection runs over the union");
+// UPDATED (fold 62, 2026-09-08), to the union the page actually builds. This lane wrote its own
+// `dueNextPool` (the priority slice plus `data.dueNext`); lane briefdata, dispatched an hour apart
+// on the same defect, wrote `corpus` (the priority slice plus `data.briefResources`, the by-id
+// backfill of the change rows). Both are needed and there is now ONE pool, `corpus`, built from
+// all three reads through briefdata's `mergeBriefCorpus` and handed to the same three selection
+// calls. The assertion is strictly stronger than it was: it checks that the due-next read reaches
+// the selection AND that the change-row backfill does, so neither lane's half can be dropped
+// without turning this test red.
+test("page.tsx unions the due-next read into ONE corpus rather than replacing or ignoring it", () => {
+  assert.match(PAGE, /const corpus = mergeBriefCorpus\(/, "the pool is built explicitly on the page");
+  assert.match(PAGE, /mergeBriefCorpus\(data\.resources, data\.briefResources\)/, "it keeps the payload rows (What-changed needs them) and briefdata's by-id backfill");
+  assert.match(PAGE, /data\.dueNext \?\? \[\]/, "and adds the due-next read, de-duplicated by mergeBriefCorpus");
+  assert.match(PAGE, /buildDueNextRows\(corpus, now\)/, "and the shared selection runs over the union");
   assert.ok(
     !/buildDueNextRows\(data\.resources, now\)/.test(PAGE),
     "the card must no longer be fed the priority slice alone",
   );
+});
+
+// FOLD 62: the second due-next read is GONE, and this is the check that keeps it gone. Lane
+// briefdata had resolved the nearest-dated ids in TypeScript (`fetchDueNextCandidateIds`, a
+// two-step scan of item_timelines + intelligence_items merged in date order, then re-read by id).
+// Migration 315's RPC answers the same question in one bounded date-ordered read, so the RPC is
+// the survivor and the id scan was removed with its caller. Two reads for one question is the
+// duplication rule 13 forbids, and a lane re-adding one would pass every other test in this file.
+test("there is exactly ONE due-next read in the server module", () => {
+  assert.doesNotMatch(SERVER, /fetchDueNextCandidateIds\s*\(/, "the deduplicated TypeScript candidate scan must not return");
+  assert.equal((SERVER.match(/get_workspace_due_next/g) ?? []).length >= 1, true);
+  assert.equal((SERVER.match(/async function fetchWorkspaceDueNext/g) ?? []).length, 1);
 });
 
 // ── 5. compliance_deadline actually reaches the UI ─────────────────────────────────────────────

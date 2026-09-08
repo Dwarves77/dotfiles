@@ -14,10 +14,16 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("mounts the shared SectionRule (ruling 5.1) as the card's own first child", () => {
-  assert.match(SOURCE, /import \{ SectionRule \} from "@\/components\/ui\/SectionRule"/);
-  const body = SOURCE.slice(SOURCE.indexOf("data-audit=\"rail-card\""));
-  assert.match(body.slice(0, 700), /<SectionRule \/>/);
+// UPDATED (fold 62, 2026-09-08): the rule is not mounted here any more, and that is the fix.
+// Lane cardrule made it a property of the card (operator item A1), so this rail card renders the
+// shared `SectionCard`, which mounts the rule unconditionally along with the border, the radius
+// and the shadow this card used to omit. Asserting a local `<SectionRule/>` would now assert the
+// structure the operator ruled wrong; asserting the card is the shared one is strictly stronger,
+// because a card that cannot be built without its rule cannot lose it.
+test("the card is the shared SectionCard, which mounts ruling 5.1's rule for it", () => {
+  assert.match(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard"/);
+  assert.doesNotMatch(SOURCE, /import \{ SectionRule \}/);
+  assert.match(SOURCE, /<SectionCard dataAudit="rail-card"/);
 });
 
 test("no wrong-direction border-bottom divider under the title (the exact bug ruling 4.1/5.1 removes)", () => {

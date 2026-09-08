@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
   checkL1, checkL2, checkL3, checkL4, checkL5, checkL6, checkL7, checkL8, checkL9, checkL10,
+  isL9DesktopExempt,
   checkL12, normaliseCardTitle, RULE_IDS, RULE_PROVENANCE,
 } from './rules.mjs';
 import {
@@ -230,6 +231,36 @@ test('L9 holds the operator\'s floor (44 long, 28 short) and catches overlapping
   assert.match(small[0].measured, /short 24 < 28/);
   const overlapping = checkL9(base({ targets: [t(0, 'button[Approve]', 700, 995, 89, 44), t(1, 'button[Refresh]', 700, 1021, 84, 44)] }));
   assert.ok(overlapping.some((h) => /adjacent targets overlap/.test(h.measured)));
+});
+
+// FOLD 62 (2026-09-08): L9's one dated, component-scoped desktop exemption, attacked from every
+// side that matters. It exists because lane railfacets' 24px desktop facet row (operator item C1,
+// artboard 02's own measure) and lane layoutguard's site-wide 28px short-axis floor first met in
+// one tree at this fold and produced 100 findings on ONE component. Both guards now read the same
+// entry, so it cannot expire in one and live in the other.
+test('L9\'s desktop exemption covers exactly the one named target, at desktop width, while dated', () => {
+  const t = (id, name, x, y, width, height) => ({ id, name, x, y, width, height, contains: [] });
+  const facet = t(0, 'input.cl-facet-check[]', 0, 0, 266, 24);
+
+  // Covered: the named target, at 1440, inside the entry's wave.
+  assert.deepEqual(checkL9(base({ width: 1440, targets: [facet] })), []);
+
+  // NOT covered at 390: below the entry's 768 floor the 44px touch target has to hold, and does.
+  assert.equal(checkL9(base({ width: 390, targets: [facet] })).length, 1);
+
+  // NOT covered: any other undersized control at the same width stays red.
+  assert.equal(checkL9(base({ width: 1440, targets: [t(0, 'a[Watchlist →]', 0, 0, 90.4, 24)] })).length, 1);
+
+  // NOT covered: a target whose name merely BEGINS like the exempt one is not the exempt one.
+  assert.equal(checkL9(base({ width: 1440, targets: [t(0, 'input.cl-facet-checkbox-other[]', 0, 0, 266, 24)] })).length, 1);
+
+  // NOT covered past the entry's expiry wave: the finding returns with no edit to this file.
+  assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 70), false);
+  assert.equal(isL9DesktopExempt('input.cl-facet-check[]', 1440, 69), true);
+
+  // The overlap half of L9 is never suppressed, for any target.
+  const stacked = checkL9(base({ width: 1440, targets: [t(0, 'input.cl-facet-check[]', 0, 0, 266, 24), t(1, 'input.cl-facet-check[]', 0, 10, 266, 24)] }));
+  assert.ok(stacked.some((h) => /adjacent targets overlap/.test(h.measured)));
 });
 
 // ── L10 ───────────────────────────────────────────────────────────────────────────────────────

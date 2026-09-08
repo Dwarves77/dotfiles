@@ -1,4 +1,4 @@
-# Site-wide layout guard — first full run (2026-09-08)
+# Site-wide layout guard - first full run (2026-09-08)
 
 GENERATED FILE. Regenerated in full by `node fsi-app/.discipline/rendering/layout-guard/run-layout-guard.mjs`
 (`npm run audit:layout`). Do not hand-edit: change the rule or the allowlist and rerun.
@@ -6,7 +6,7 @@ GENERATED FILE. Regenerated in full by `node fsi-app/.discipline/rendering/layou
 - Routes: 18 (17 artboards; /login and /signup share artboard 16)
 - Widths: 1440, 1024
 - Measurements taken: 36
-- Findings: 783
+- Findings: 792
 
 `[CONFIRMED]`: every row below is a measurement taken this run in a real chromium against the
 real `src/components/**` modules, not a source read. The rules are the operator's L1-L12
@@ -17,18 +17,18 @@ stated in `rules.mjs` where his text needed one.
 
 | Rule | Provenance | Findings | Routes |
 |---|---|---|---|
-| L1 | new | 16 | /regulations/[slug]@1440, /market/[slug]@1440, /research/[slug]@1440, /operations/[slug]@1440, /community@1440, /community@1024, /admin@1440, /admin@1024, +1 more |
-| L2 | extended (assertions.mjs detectBoundsViolations: row/cell containment → every layout-box pair) | 85 | /admin@1024, /settings@1440, /settings@1024 |
-| L3 | already covered (audit/overflow-sweep.mjs, ux-assert detectClippedOverflow) + new card-vs-column clause | 0 | — |
+| L1 | new | 11 | /regulations/[slug]@1440, /market/[slug]@1440, /research/[slug]@1440, /operations/[slug]@1440, /community@1440, /community@1024, /settings@1440 |
+| L2 | extended (assertions.mjs detectBoundsViolations: row/cell containment → every layout-box pair) | 165 | /profile@1024, /settings@1440, /settings@1024 |
+| L3 | already covered (audit/overflow-sweep.mjs, ux-assert detectClippedOverflow) + new card-vs-column clause | 0 | - |
 | L4 | new | 1 | /admin@1024 |
-| L5 | new | 0 | — |
-| L6 | new | 124 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +14 more |
+| L5 | new | 0 | - |
+| L6 | new | 62 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +12 more |
 | L7 | new | 222 | /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, /research@1440, /research@1024, +22 more |
-| L8 | new (rendered text, not source text) | 0 | — |
-| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 241 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
-| L10 | new | 94 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +22 more |
-| L11 | already covered (ux-assert detectClippedText, lane opsclip) — called, not restated | 0 | — |
-| L12 | new | 0 | — |
+| L8 | new (rendered text, not source text) | 0 | - |
+| L9 | extended (ux-assert detectSmallTargets is the law-2 mobile floor; L9 is the site-wide floor, reusing boxGap) | 238 | /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, /market/[slug]@1440, /market/[slug]@1024, +26 more |
+| L10 | new | 93 | /@1440, /@1024, /regulations@1440, /regulations@1024, /regulations/[slug]@1440, /regulations/[slug]@1024, /market@1440, /market@1024, +21 more |
+| L11 | already covered (ux-assert detectClippedText, lane opsclip) - called, not restated | 0 | - |
+| L12 | new | 0 | - |
 
 ## By route
 
@@ -38,32 +38,32 @@ stated in `rules.mjs` where his text needed one.
 | `/` | 1024 | · | · | · | · | · | · | · | · | · | 1 | · | · | 1 |
 | `/regulations` | 1440 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
 | `/regulations` | 1024 | · | · | · | · | · | 4 | · | · | 6 | 4 | · | · | 14 |
-| `/regulations/[slug]` | 1440 | 2 | · | · | · | · | 12 | 6 | · | 1 | 5 | · | · | 26 |
-| `/regulations/[slug]` | 1024 | · | · | · | · | · | 12 | 6 | · | 1 | 5 | · | · | 24 |
+| `/regulations/[slug]` | 1440 | 2 | · | · | · | · | 3 | 6 | · | 1 | 5 | · | · | 17 |
+| `/regulations/[slug]` | 1024 | · | · | · | · | · | 3 | 6 | · | 1 | 5 | · | · | 15 |
 | `/market` | 1440 | · | · | · | · | · | 4 | 6 | · | 6 | 5 | · | · | 21 |
 | `/market` | 1024 | · | · | · | · | · | 4 | 6 | · | 6 | 5 | · | · | 21 |
-| `/market/[slug]` | 1440 | 2 | · | · | · | · | 12 | 6 | · | 1 | 6 | · | · | 27 |
-| `/market/[slug]` | 1024 | · | · | · | · | · | 12 | 6 | · | 1 | 6 | · | · | 25 |
+| `/market/[slug]` | 1440 | 2 | · | · | · | · | 2 | 6 | · | 1 | 6 | · | · | 17 |
+| `/market/[slug]` | 1024 | · | · | · | · | · | 2 | 6 | · | 1 | 6 | · | · | 15 |
 | `/research` | 1440 | · | · | · | · | · | 3 | 8 | · | 4 | 4 | · | · | 19 |
 | `/research` | 1024 | · | · | · | · | · | 3 | 8 | · | 4 | 4 | · | · | 19 |
-| `/research/[slug]` | 1440 | 2 | · | · | · | · | 6 | 2 | · | 1 | 5 | · | · | 16 |
-| `/research/[slug]` | 1024 | · | · | · | · | · | 6 | 2 | · | 1 | 5 | · | · | 14 |
-| `/operations` | 1440 | · | · | · | · | · | 4 | 34 | · | 22 | 3 | · | · | 63 |
-| `/operations` | 1024 | · | · | · | · | · | 4 | 34 | · | 22 | 3 | · | · | 63 |
-| `/operations/[slug]` | 1440 | 2 | · | · | · | · | 6 | 2 | · | 4 | 7 | · | · | 21 |
-| `/operations/[slug]` | 1024 | · | · | · | · | · | 6 | 2 | · | 4 | 7 | · | · | 19 |
+| `/research/[slug]` | 1440 | 2 | · | · | · | · | 1 | 2 | · | 1 | 5 | · | · | 11 |
+| `/research/[slug]` | 1024 | · | · | · | · | · | 1 | 2 | · | 1 | 5 | · | · | 9 |
+| `/operations` | 1440 | · | · | · | · | · | 3 | 34 | · | 22 | 3 | · | · | 62 |
+| `/operations` | 1024 | · | · | · | · | · | 3 | 34 | · | 22 | 3 | · | · | 62 |
+| `/operations/[slug]` | 1440 | 2 | · | · | · | · | 1 | 2 | · | 4 | 7 | · | · | 16 |
+| `/operations/[slug]` | 1024 | · | · | · | · | · | 1 | 2 | · | 4 | 7 | · | · | 14 |
 | `/map` | 1440 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
 | `/map` | 1024 | · | · | · | · | · | · | 8 | · | 11 | 1 | · | · | 20 |
 | `/watchlist` | 1440 | · | · | · | · | · | 4 | · | · | 2 | 2 | · | · | 8 |
 | `/watchlist` | 1024 | · | · | · | · | · | 4 | · | · | 2 | 2 | · | · | 8 |
 | `/community` | 1440 | 1 | · | · | · | · | 6 | 8 | · | 8 | 1 | · | · | 24 |
-| `/community` | 1024 | 1 | · | · | · | · | 6 | 8 | · | 8 | 1 | · | · | 24 |
-| `/admin` | 1440 | 3 | · | · | · | · | · | 15 | · | 1 | 1 | · | · | 20 |
-| `/admin` | 1024 | 2 | 3 | · | 1 | · | · | 15 | · | 4 | 1 | · | · | 26 |
-| `/profile` | 1440 | · | · | · | · | · | 1 | 4 | · | 3 | 1 | · | · | 9 |
-| `/profile` | 1024 | · | · | · | · | · | 1 | 4 | · | 4 | 1 | · | · | 10 |
-| `/settings` | 1440 | 1 | 35 | · | · | · | · | 8 | · | 36 | 1 | · | · | 81 |
-| `/settings` | 1024 | · | 47 | · | · | · | · | 8 | · | 51 | 1 | · | · | 107 |
+| `/community` | 1024 | 1 | · | · | · | · | 6 | 8 | · | 8 | · | · | · | 23 |
+| `/admin` | 1440 | · | · | · | · | · | · | 15 | · | 1 | 1 | · | · | 17 |
+| `/admin` | 1024 | · | · | · | 1 | · | · | 15 | · | 1 | 1 | · | · | 18 |
+| `/profile` | 1440 | · | · | · | · | · | · | 4 | · | 3 | 1 | · | · | 8 |
+| `/profile` | 1024 | · | 1 | · | · | · | · | 4 | · | 4 | 1 | · | · | 10 |
+| `/settings` | 1440 | 1 | 60 | · | · | · | · | 8 | · | 36 | 1 | · | · | 106 |
+| `/settings` | 1024 | · | 104 | · | · | · | · | 8 | · | 51 | 1 | · | · | 164 |
 | `/login` | 1440 | · | · | · | · | · | · | 1 | · | 2 | · | · | · | 3 |
 | `/login` | 1024 | · | · | · | · | · | · | 1 | · | 2 | · | · | · | 3 |
 | `/signup` | 1440 | · | · | · | · | · | · | 1 | · | 1 | · | · | · | 2 |
@@ -79,7 +79,7 @@ coordinator route it instead of two lanes editing one file.
 
 | Rule / route | Owning part | Note |
 |---|---|---|
-| `L1@/admin` | the admin frame (AdminDashboard.tsx `admin-t08-grid`) | the operator's own root cause, 2026-09-08: gap 24 not 28, no frame padding, and an explicit width:768px on the content column. Do NOT fix here — the admin frame is being rewritten. |
+| `L1@/admin` | the admin frame (AdminDashboard.tsx `admin-t08-grid`) | the operator's own root cause, 2026-09-08: gap 24 not 28, no frame padding, and an explicit width:768px on the content column. Do NOT fix here - the admin frame is being rewritten. |
 | `L1@/regulations/[slug]` | the detail shell (DetailShell.tsx `.cl-detail-layout`) | gap 24 not 28 and no frame padding, on all four detail routes. Adopt <PageFrame/>. |
 | `L1@/market/[slug]` | the detail shell (DetailShell.tsx `.cl-detail-layout`) | same frame, same finding. |
 | `L1@/research/[slug]` | the detail shell (DetailShell.tsx `.cl-detail-layout`) | same frame, same finding. |
@@ -96,7 +96,7 @@ coordinator route it instead of two lanes editing one file.
 
 ## Findings
 
-### L1 — 16 finding(s)
+### L1 - 11 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -110,33 +110,51 @@ coordinator route it instead of two lanes editing one file.
 | `/operations/[slug]` | 1440 | div.cl-detail-layout[@media (max-width: 1280px) { .] | padding 0px 0px 0px, expected 20px 40px 40px |
 | `/community` | 1440 | div.cl-community-grid[@media (max-width: 1100px) { .] | padding 0px 0px 0px, expected 20px 40px 40px |
 | `/community` | 1024 | page frame | no grid container found inside <main> |
-| `/admin` | 1440 | div.admin-t08-grid[Workspaces1Organizations, memb] | column-gap 24px, expected 28px |
-| `/admin` | 1440 | div.admin-t08-grid[Workspaces1Organizations, memb] | padding 0px 0px 0px, expected 20px 40px 40px |
-| `/admin` | 1440 | div[Workspaces1Organizations, memb] | width: 768px |
-| `/admin` | 1024 | div.admin-t08-grid[Workspaces1Organizations, memb] | grid-template-columns: 352px 300px (2 tracks) |
-| `/admin` | 1024 | div[Workspaces1Organizations, memb] | width: 352px |
 | `/settings` | 1440 | div.cl-settings-columns[@media (max-width: 1100px){ .c] | padding 18px 40px 0px, expected 18px 40px 40px |
 
-### L2 — 85 finding(s)
+### L2 - 165 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
-| `/admin` | 1024 | button[Approve] × a[Account] | overlap 48.5×14px (a at 701,995.3 89×44; b at 701,995.4 48.5×14) |
-| `/admin` | 1024 | button[Approve] × button[Refresh] | overlap 84.5×17.9px (a at 701,995.3 89×44; b at 701,1021.4 84.5×44) |
-| `/admin` | 1024 | button[Approve] × button[Refresh] | overlap 84.5×21.6px (a at 701,1043.8 89×44; b at 701,1021.4 84.5×44) |
+| `/profile` | 1024 | div.cl-rowtable[NameSlugPlanMembersCreatedDiet] × div[Sectors followed33 highlighted] | overlap 674×49px (a at 309,944.7 674×78; b at 308,973.7 676×173.5) |
 | `/settings` | 1440 | button[Canada] × button[Save schedule] | overlap 16.4×24.3px (a at 1231.8,693.2 70×28.5; b at 1117,673.4 131.3×44) |
+| `/settings` | 1440 | button[Brazil] × div[AppearanceLight only. There is] | overlap 59.2×9.8px (a at 1117,727.7 59.2×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Argentina] × div[AppearanceLight only. There is] | overlap 85.4×9.8px (a at 1182.2,727.7 85.4×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Chile] × div[AppearanceLight only. There is] | overlap 54.9×9.8px (a at 1273.6,727.7 54.9×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Colombia] × div[AppearanceLight only. There is] | overlap 81.5×28.5px (a at 1117,762.2 81.5×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Peru] × div[AppearanceLight only. There is] | overlap 52.8×28.5px (a at 1204.5,762.2 52.8×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Latin America (other)] × div[AppearanceLight only. There is] | overlap 157.1×28.5px (a at 1117,796.7 157.1×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Caribbean] × div[AppearanceLight only. There is] | overlap 87.2×28.5px (a at 1280.1,796.7 87.2×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Central America] × div[AppearanceLight only. There is] | overlap 123.7×28px (a at 1117,831.2 123.7×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[EU] × div[AppearanceLight only. There is] | overlap 40.5×28px (a at 1246.7,831.2 40.5×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[Germany] × div[AppearanceLight only. There is] | overlap 79.8×28px (a at 1293.1,831.2 79.8×28.5; b at 1100,746.4 300×112.8) |
+| `/settings` | 1440 | button[France] × div[Data & supersessionsSaved sear] | overlap 65.5×21px (a at 1117,865.7 65.5×28.5; b at 1100,873.2 300×142.8) |
+| `/settings` | 1440 | button[Netherlands] × div[Data & supersessionsSaved sear] | overlap 100.1×21px (a at 1188.5,865.7 100.1×28.5; b at 1100,873.2 300×142.8) |
+| `/settings` | 1440 | button[Belgium] × div[Data & supersessionsSaved sear] | overlap 74.6×21px (a at 1294.6,865.7 74.6×28.5; b at 1100,873.2 300×142.8) |
+| `/settings` | 1440 | button[Italy] × div[Data & supersessionsSaved sear] | overlap 51.7×28.5px (a at 1117,900.2 51.7×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Italy] × a[Saved searches · 0] | overlap 51.7×11.8px (a at 1117,900.2 51.7×28.5; b at 1117,916.9 266×24) |
+| `/settings` | 1440 | button[Spain] × div[Data & supersessionsSaved sear] | overlap 58.8×28.5px (a at 1174.7,900.2 58.8×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Spain] × a[Saved searches · 0] | overlap 58.8×11.8px (a at 1174.7,900.2 58.8×28.5; b at 1117,916.9 266×24) |
+| `/settings` | 1440 | button[Poland] × div[Data & supersessionsSaved sear] | overlap 66.5×28.5px (a at 1239.5,900.2 66.5×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Poland] × a[Saved searches · 0] | overlap 66.5×11.8px (a at 1239.5,900.2 66.5×28.5; b at 1117,916.9 266×24) |
+| `/settings` | 1440 | button[Ireland] × div[Data & supersessionsSaved sear] | overlap 67.9×28.5px (a at 1312.1,900.2 67.9×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Ireland] × a[Saved searches · 0] | overlap 67.9×11.8px (a at 1312.1,900.2 67.9×28.5; b at 1117,916.9 266×24) |
+| `/settings` | 1440 | button[Greece] × div[Data & supersessionsSaved sear] | overlap 67.4×28.5px (a at 1117,934.7 67.4×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Greece] × a[Saved searches · 0] | overlap 67.4×6.3px (a at 1117,934.7 67.4×28.5; b at 1117,916.9 266×24) |
 | `/settings` | 1440 | button[Greece] × a[Data summary] | overlap 67.4×16.3px (a at 1117,934.7 67.4×28.5; b at 1117,946.9 266×24) |
+| `/settings` | 1440 | button[Portugal] × div[Data & supersessionsSaved sear] | overlap 77.2×28.5px (a at 1190.4,934.7 77.2×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Portugal] × a[Saved searches · 0] | overlap 77.2×6.3px (a at 1190.4,934.7 77.2×28.5; b at 1117,916.9 266×24) |
 | `/settings` | 1440 | button[Portugal] × a[Data summary] | overlap 77.2×16.3px (a at 1190.4,934.7 77.2×28.5; b at 1117,946.9 266×24) |
+| `/settings` | 1440 | button[Romania] × div[Data & supersessionsSaved sear] | overlap 77.9×28.5px (a at 1273.6,934.7 77.9×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Romania] × a[Saved searches · 0] | overlap 77.9×6.3px (a at 1273.6,934.7 77.9×28.5; b at 1117,916.9 266×24) |
 | `/settings` | 1440 | button[Romania] × a[Data summary] | overlap 77.9×16.3px (a at 1273.6,934.7 77.9×28.5; b at 1117,946.9 266×24) |
+| `/settings` | 1440 | button[United Kingdom] × div[Data & supersessionsSaved sear] | overlap 123.9×28.5px (a at 1117,969.2 123.9×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[United Kingdom] × a[Archive] | overlap 123.9×20.8px (a at 1117,969.2 123.9×28.5; b at 1117,976.9 266×24) |
+| `/settings` | 1440 | button[Nordic] × div[Data & supersessionsSaved sear] | overlap 64.4×28.5px (a at 1246.9,969.2 64.4×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Nordic] × a[Archive] | overlap 64.4×20.8px (a at 1246.9,969.2 64.4×28.5; b at 1117,976.9 266×24) |
+| `/settings` | 1440 | button[Switzerland] × div[Data & supersessionsSaved sear] | overlap 97.3×12.3px (a at 1117,1003.7 97.3×28.5; b at 1100,873.2 300×142.8) |
+| `/settings` | 1440 | button[Turkey] × div[Data & supersessionsSaved sear] | overlap 65.2×12.3px (a at 1220.3,1003.7 65.2×28.5; b at 1100,873.2 300×142.8) |
+| `/settings` | 1440 | button[Ukraine] × div[Data & supersessionsSaved sear] | overlap 72.2×12.3px (a at 1291.5,1003.7 72.2×28.5; b at 1100,873.2 300×142.8) |
 | `/settings` | 1440 | button[Morocco] × section[Saved searchesNamed filter com] | overlap 76.1×28.5px (a at 1117,1486.7 76.1×28.5; b at 308,1478.7 1092×220.5) |
 | `/settings` | 1440 | button[Tunisia] × section[Saved searchesNamed filter com] | overlap 67.5×28.5px (a at 1199.1,1486.7 67.5×28.5; b at 308,1478.7 1092×220.5) |
 | `/settings` | 1440 | button[Algeria] × section[Saved searchesNamed filter com] | overlap 68.3×28.5px (a at 1272.6,1486.7 68.3×28.5; b at 308,1478.7 1092×220.5) |
@@ -158,38 +176,15 @@ coordinator route it instead of two lanes editing one file.
 | `/settings` | 1440 | button[IMO] × section[Data summary0Active0Archived0J] | overlap 48.4×28.5px (a at 1117,1762.7 48.4×28.5; b at 308,1723.2 1092×178.5) |
 | `/settings` | 1440 | button[ICAO] × section[Data summary0Active0Archived0J] | overlap 54×28.5px (a at 1171.4,1762.7 54×28.5; b at 308,1723.2 1092×178.5) |
 | `/settings` | 1440 | button[WTO] × section[Data summary0Active0Archived0J] | overlap 53×28.5px (a at 1231.4,1762.7 53×28.5; b at 308,1723.2 1092×178.5) |
-| `/settings` | 1440 | button[United Nations] × section[Data summary0Active0Archived0J] | overlap 116.6×28.5px (a at 1117,1797.2 116.6×28.5; b at 308,1723.2 1092×178.5) |
-| `/settings` | 1024 | button[Canada] × button[Save schedule] | overlap 16.4×24.3px (a at 439.8,1907.2 70×28.5; b at 325,1887.4 131.3×44) |
-| `/settings` | 1024 | button[Pakistan] × a[Saved searches · 0] | overlap 77.3×13.3px (a at 325,2079.7 77.3×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Sri Lanka] × a[Saved searches · 0] | overlap 82×13.3px (a at 408.3,2079.7 82×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Singapore] × a[Saved searches · 0] | overlap 87.1×13.3px (a at 496.3,2079.7 87.1×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Malaysia] × a[Saved searches · 0] | overlap 78.1×13.3px (a at 589.4,2079.7 78.1×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Indonesia] × a[Saved searches · 0] | overlap 84.4×13.3px (a at 673.6,2079.7 84.4×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Thailand] × a[Saved searches · 0] | overlap 77.4×13.3px (a at 764,2079.7 77.4×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Vietnam] × a[Saved searches · 0] | overlap 75.5×13.3px (a at 847.4,2079.7 75.5×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Philippines] × a[Saved searches · 0] | overlap 92.6×4.8px (a at 325,2114.2 92.6×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Philippines] × a[Data summary] | overlap 92.6×17.8px (a at 325,2114.2 92.6×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[ASEAN (other)] × a[Saved searches · 0] | overlap 113.1×4.8px (a at 423.6,2114.2 113.1×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[ASEAN (other)] × a[Data summary] | overlap 113.1×17.8px (a at 423.6,2114.2 113.1×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[Asia (other)] × a[Saved searches · 0] | overlap 97.7×4.8px (a at 542.7,2114.2 97.7×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Asia (other)] × a[Data summary] | overlap 97.7×17.8px (a at 542.7,2114.2 97.7×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[Australia] × a[Saved searches · 0] | overlap 80×4.8px (a at 646.3,2114.2 80×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Australia] × a[Data summary] | overlap 80×17.8px (a at 646.3,2114.2 80×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[New Zealand] × a[Saved searches · 0] | overlap 104.4×4.8px (a at 732.3,2114.2 104.4×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[New Zealand] × a[Data summary] | overlap 104.4×17.8px (a at 732.3,2114.2 104.4×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[Pacific Islands] × a[Saved searches · 0] | overlap 112.1×4.8px (a at 842.7,2114.2 112.1×28.5; b at 325,2094.9 642×24) |
-| `/settings` | 1024 | button[Pacific Islands] × a[Data summary] | overlap 112.1×17.8px (a at 842.7,2114.2 112.1×28.5; b at 325,2124.9 642×24) |
-| `/settings` | 1024 | button[UAE] × a[Archive] | overlap 48.6×22.3px (a at 325,2148.7 48.6×28.5; b at 325,2154.9 642×24) |
-| `/settings` | 1024 | button[Saudi Arabia] × a[Archive] | overlap 103.1×22.3px (a at 379.6,2148.7 103.1×28.5; b at 325,2154.9 642×24) |
-| … | | 25 further findings, in results.json | |
+| … | | 105 further findings, in results.json | |
 
-### L4 — 1 finding(s)
+### L4 - 1 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
-| `/admin` | 1024 | div[Sources views] | 387px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 350) |
+| `/admin` | 1024 | div[Sources views] | 63px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 674) |
 
-### L6 — 124 finding(s)
+### L6 - 62 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -201,28 +196,10 @@ coordinator route it instead of two lanes editing one file.
 | `/regulations` | 1024 | div[Action≤ 6 monthsshowing 5 of 9] "ACTION" | 3px top rule (measured none) |
 | `/regulations` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
 | `/regulations` | 1024 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
-| `/regulations/[slug]` | 1440 | header[EU Emissions Trading System (ETS) extension to maritime transport] "IMMEDIATE" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | div[Timeline3 milestones @media (m] "TIMELINE" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#summary[SummaryGenerated · 30-second r] "SUMMARY" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#sec-3[Obligations — issues requiring] "OBLIGATIONS — ISSUES REQUIRING ACTION" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#sec-4[Compliance chainA long-form pa] "COMPLIANCE CHAIN" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#sec-8[Substantive requirementsA long] "SUBSTANTIVE REQUIREMENTS" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#penalties[PenaltiesFrom the regulatory b] "PENALTIES" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1440 | section#sources[Sources1 · tier = provenance, ] "SOURCES" | top rule background rgba(0, 0, 0, 0) |
 | `/regulations/[slug]` | 1440 | div[Owner & teamAssigneeUnassigned] "OWNER & TEAM" | 3px top rule (measured none) |
-| `/regulations/[slug]` | 1440 | div[In this listnot in primary sou] "IN THIS LIST" | top rule background rgba(0, 0, 0, 0) |
 | `/regulations/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1440 | div[Affected lanesModesOCEANJurisd] "AFFECTED LANES" | 3px top rule (measured none) |
-| `/regulations/[slug]` | 1024 | header[EU Emissions Trading System (ETS) extension to maritime transport] "IMMEDIATE" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | div[Timeline3 milestones @media (m] "TIMELINE" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#summary[SummaryGenerated · 30-second r] "SUMMARY" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#sec-3[Obligations — issues requiring] "OBLIGATIONS — ISSUES REQUIRING ACTION" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#sec-4[Compliance chainA long-form pa] "COMPLIANCE CHAIN" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#sec-8[Substantive requirementsA long] "SUBSTANTIVE REQUIREMENTS" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#penalties[PenaltiesFrom the regulatory b] "PENALTIES" | top rule background rgba(0, 0, 0, 0) |
-| `/regulations/[slug]` | 1024 | section#sources[Sources1 · tier = provenance, ] "SOURCES" | top rule background rgba(0, 0, 0, 0) |
 | `/regulations/[slug]` | 1024 | div[Owner & teamAssigneeUnassigned] "OWNER & TEAM" | 3px top rule (measured none) |
-| `/regulations/[slug]` | 1024 | div[In this listnot in primary sou] "IN THIS LIST" | top rule background rgba(0, 0, 0, 0) |
 | `/regulations/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
 | `/regulations/[slug]` | 1024 | div[Affected lanesModesOCEANJurisd] "AFFECTED LANES" | 3px top rule (measured none) |
 | `/market` | 1440 | div[Immediate≤ 90 daysshowing 5 of] "IMMEDIATE" | 3px top rule (measured none) |
@@ -233,29 +210,47 @@ coordinator route it instead of two lanes editing one file.
 | `/market` | 1024 | div[Action≤ 6 monthsshowing 5 of 6] "ACTION" | 3px top rule (measured none) |
 | `/market` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
 | `/market` | 1024 | div[Awarenessbackgroundshowing 2 o] "AWARENESS" | 3px top rule (measured none) |
-| `/market/[slug]` | 1440 | header[Packaging material input costs] "ACTION" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | div[Timeline3 milestones @media (m] "TIMELINE" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#summary[SummaryGenerated · 30-second r] "SUMMARY" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#drivers[Drivers & trajectory4 forces ·] "DRIVERS & TRAJECTORY" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#cost[Cost impact by modeAir · Ocean] "COST IMPACT BY MODE" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#donow[Do nowThe actions the workspac] "DO NOW" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#talking[Client talking pointsWhat the ] "CLIENT TALKING POINTS" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | section#sources[Sources1 · tier = provenance, ] "SOURCES" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1440 | div[Your notes · visible to worksp] "YOUR NOTES · visible to workspace" | 3px top rule (measured none) |
-| `/market/[slug]` | 1440 | div[In this listnot in primary sou] "IN THIS LIST" | top rule background rgba(0, 0, 0, 0) |
 | `/market/[slug]` | 1440 | div[Affected lanesModesOCEANAffect] "AFFECTED LANES" | 3px top rule (measured none) |
 | `/market/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
-| `/market/[slug]` | 1024 | header[Packaging material input costs] "ACTION" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | div[Timeline3 milestones @media (m] "TIMELINE" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#summary[SummaryGenerated · 30-second r] "SUMMARY" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#drivers[Drivers & trajectory4 forces ·] "DRIVERS & TRAJECTORY" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#cost[Cost impact by modeAir · Ocean] "COST IMPACT BY MODE" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#donow[Do nowThe actions the workspac] "DO NOW" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#talking[Client talking pointsWhat the ] "CLIENT TALKING POINTS" | top rule background rgba(0, 0, 0, 0) |
-| `/market/[slug]` | 1024 | section#sources[Sources1 · tier = provenance, ] "SOURCES" | top rule background rgba(0, 0, 0, 0) |
-| … | | 64 further findings, in results.json | |
+| `/market/[slug]` | 1024 | div[Affected lanesModesOCEANAffect] "AFFECTED LANES" | 3px top rule (measured none) |
+| `/market/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
+| `/research` | 1440 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
+| `/research` | 1440 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
+| `/research` | 1440 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
+| `/research` | 1024 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
+| `/research` | 1024 | div[Monitor6–12 monthsshowing 4 of] "MONITOR" | 3px top rule (measured none) |
+| `/research` | 1024 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
+| `/research/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
+| `/research/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
+| `/operations` | 1440 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
+| `/operations` | 1440 | div[Monitor6–12 monthsshowing 2 of] "MONITOR" | 3px top rule (measured none) |
+| `/operations` | 1440 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
+| `/operations` | 1024 | div[Action≤ 6 monthsshowing 4 of 4] "ACTION" | 3px top rule (measured none) |
+| `/operations` | 1024 | div[Monitor6–12 monthsshowing 2 of] "MONITOR" | 3px top rule (measured none) |
+| `/operations` | 1024 | div[Awarenessbackgroundshowing 5 o] "AWARENESS" | 3px top rule (measured none) |
+| `/operations/[slug]` | 1440 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
+| `/operations/[slug]` | 1024 | div[Connections0No connections on ] "CONNECTIONS" | 3px top rule (measured none) |
+| `/watchlist` | 1440 | li.cl-row-card[Fixture entity 09/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1440 | li.cl-row-card[Fixture entity 19/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1440 | li.cl-row-card[Fixture entity 29/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1440 | li.cl-row-card[Fixture entity 39/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1024 | li.cl-row-card[Fixture entity 09/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1024 | li.cl-row-card[Fixture entity 19/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1024 | li.cl-row-card[Fixture entity 29/5/2026, 9:00] | 3px top rule (measured none) |
+| `/watchlist` | 1024 | li.cl-row-card[Fixture entity 39/5/2026, 9:00] | 3px top rule (measured none) |
+| `/community` | 1440 | button[EU753Emissions · Reporting · P] "EU" | 3px top rule (measured none) |
+| `/community` | 1440 | button[US24Reporting · Emissions · Tr] "US" | 3px top rule (measured none) |
+| `/community` | 1440 | button[UK210Transport · Research · Em] "UK" | 3px top rule (measured none) |
+| `/community` | 1440 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
+| `/community` | 1440 | button[LATAM1Emissionsno discussions ] "LATAM" | 3px top rule (measured none) |
+| `/community` | 1440 | button[MEAF0—no discussions yet] "MEAF" | 3px top rule (measured none) |
+| `/community` | 1024 | button[EU753Emissions · Reporting · P] "EU" | 3px top rule (measured none) |
+| `/community` | 1024 | button[US24Reporting · Emissions · Tr] "US" | 3px top rule (measured none) |
+| `/community` | 1024 | button[UK210Transport · Research · Em] "UK" | 3px top rule (measured none) |
+| `/community` | 1024 | button[APAC2Reportingno discussions y] "APAC" | 3px top rule (measured none) |
+| … | | 2 further findings, in results.json | |
 
-### L7 — 222 finding(s)
+### L7 - 222 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -321,7 +316,7 @@ coordinator route it instead of two lanes editing one file.
 | `/operations` | 1440 | div[5] | font-family resolves to Anton on "5" |
 | … | | 162 further findings, in results.json | |
 
-### L9 — 241 finding(s)
+### L9 - 238 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -385,9 +380,9 @@ coordinator route it instead of two lanes editing one file.
 | `/operations` | 1440 | button[UAE] | 42.6×24px (long 42.6 < 44 or short 24 < 28) |
 | `/operations` | 1440 | button[All 19 awareness →] | 129.1×26px (long 129.1 < 44 or short 26 < 28) |
 | `/operations` | 1440 | button[Clear] | 32.2×24px (long 32.2 < 44 or short 24 < 28) |
-| … | | 181 further findings, in results.json | |
+| … | | 178 further findings, in results.json | |
 
-### L10 — 94 finding(s)
+### L10 - 93 finding(s)
 
 | Route | Width | Element | Measured |
 |---|---|---|---|
@@ -451,7 +446,7 @@ coordinator route it instead of two lanes editing one file.
 | `/research/[slug]` | 1024 | card "TIMELINE" | not in the manifest for /research/[slug] (p7); manifest holds 10 cards |
 | `/research/[slug]` | 1024 | card "IN THIS LIST" | not in the manifest for /research/[slug] (p7); manifest holds 10 cards |
 | `/research/[slug]` | 1024 | /research/[slug] | manifest cards not rendered: MISSION INNOVATION SHIPPING MISSION NET ZERO INDUSTRIES AWARD AND MI GLOBAL COLLABORATION FRAMEWORK,  |
-| … | | 34 further findings, in results.json | |
+| … | | 33 further findings, in results.json | |
 
 ## Harness errors
 

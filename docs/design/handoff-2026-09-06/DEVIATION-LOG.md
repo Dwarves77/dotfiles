@@ -718,3 +718,49 @@ now a full row, because the data is fetched rather than degraded.
 | 2026-09-08 | An empty result was being reported as a failed read | [CONFIRMED] `fetchDashboardData` ended `if (!resources.length) return { ...emptyFallback, _error, _fallbackTrigger: "rpc_error" }`. `fetchWorkspaceResources` collapsed "the RPC errored" and "the RPC returned nothing" into one empty return, so the caller could only guess, and it guessed "broken". That is what printed "Data temporarily unavailable. Refresh to retry." on a page that had not failed, and what put `Trigger: rpc_error` on the operator's platform-flags queue for events that were not RPC errors. The reader now reports `failed` explicitly; only a real failure returns the fallback, and a successful empty read returns the real payload with no `_error`, letting the surfaces render their own honest-empty states. This is the half about what the payload SAYS; lane rsc503's `refuseToCacheFallback` is the half about it not being CACHED. | Lane duenext; the Absence convention |
 | 2026-09-08 | The audit date was fabricated on BOTH code paths | [CONFIRMED, measured] `fetchDashboardData` seeded `auditDate` with TODAY and then raised it by any changelog entry later than today, which no entry can be, so the card asserted "Detection pass <today>" every day whatever the system had done. Live: `item_changelog` holds 9 rows, newest `change_date` 2026-03-01, and the scrape cadence is held OFF per CLAUDE.md rule 16. `data.ts`'s failure factory did the same with a constant baked into the bundle. Both now take the date from evidence: newest changelog entry, else newest `added_date` in the What-changed feed, else the empty string, which is the honest "No detection pass on record". `src/data/audit-date.ts` lost its last importer and was deleted rather than left dormant (F25 caught it). | Lane duenext, rules 2 and 13 |
 | 2026-09-08 | The audit specs measured that the cards EXIST, never that they have rows | [CONFIRMED] Every `compose-01-dashboard` row was a region-composition check, so a card whose read supplies nothing passed every assertion while rendering an empty state. That is exactly what shipped. Two rows added, one per card, asserting a non-zero row count against the populated fixture, and both proven by attack: with the fixture's future deadlines moved into the past the two rows go MATCH to NOT BUILT. | Lane duenext, rule 15 |
+
+## FOLD 62 (2026-09-08): the seven-lane fold's own decisions
+
+The union of the seven lanes' own sections above stands unchanged. These are the rows the FOLD
+decided, either because two lanes had built the same thing or because a defect was only visible
+once all seven were in one tree.
+
+### The R7 cards the site-wide layout guard's L10 asks to see named
+
+L10 fails any card the artboard does not draw unless a DATED deviation entry names it (rules.mjs;
+`manifests.mjs` reads this log's own five-column rows, so the log and the guard speak one
+vocabulary). These cards are the R7 placements trains 60 and 61 already recorded in prose, and the
+prose was not in a shape the guard could read. They are stated as rows here, unchanged in
+substance: each is an app feature no artboard draws, kept and moved below the artboard's own
+regions rather than deleted.
+
+| Date | Page | Deviation | Reason | Who ruled |
+|---|---|---|---|---|
+| 2026-09-08 | /settings | card "SAVED SEARCHES" is not in artboard p15 | R7: an app feature the artboard does not draw, kept and placed full width below the artboard's two columns (train 60, postscript 16). Deleting it would remove a working feature to match a drawing that predates it. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /settings | card "DATA SUMMARY" is not in artboard p15 | R7, same placement and reason as SAVED SEARCHES above. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /settings | card "UPLOAD OPERATIONAL DATA CSV" is not in artboard p15 | R7, same placement and reason. The CSV upload is a live operator path with no artboard region. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /settings | card "SUPERSESSION HISTORY" is not in artboard p15 | R7, same placement and reason. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /settings | card "ARCHIVE" is not in artboard p15 | R7, same placement and reason. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /community | card "VERTICAL GROUPS" is not in artboard p12 | R7: the vertical-groups rail card is an app feature p12 does not draw; train 60 placed it LAST in the rail, after every card the artboard does draw. | Ruling R7, restated at FOLD 62 for L10 |
+| 2026-09-08 | /community | card "GLOBAL REGION" is not in artboard p12 | R7: the room header card, placed below the artboard's own regions (train 60, postscript 16). | Ruling R7, restated at FOLD 62 for L10 |
+
+These seven rows became BLOCKING findings at this fold and not before for a reason worth stating:
+lane cardrule moved every card in the product onto one `SectionCard`, so cards the guard could not
+previously SEE as cards (a bare div, or an `<a>` with no chrome) now identify themselves. The rule
+did not change and the pages did not change; the guard's eyesight did, which is the outcome a
+shared part is supposed to produce.
+
+### The dedup: two due-next reads, one survivor
+
+| Date | Page | Deviation | Reason | Who ruled |
+|---|---|---|---|---|
+| 2026-09-08 | / | Two lanes built a due-next read; `fetchDueNextCandidateIds` (lane briefdata) is REMOVED and migration 315's `get_workspace_due_next` (lane duenext) is the survivor | Both answer "what is due soonest" and rule 13 forbids two. The RPC is one bounded date-ordered read where the id scan was three round trips; it computes the binding date in SQL the way `dueInfo` computes it in TypeScript, instead of adding a second definition; and it is already applied to production. Everything else lane briefdata built is kept and is not duplicated: the by-id backfill of change rows (`fetchBriefResourcesByIds`, `mergeBriefCorpus`, `splitBriefIdsByShape`, `mergeBriefOverrides`), the `compliance_deadline` mapper line, the `briefCardState` model, the widened due-next window label, the watchlist cache guard and the membership fix. `src/app/page.tsx` now merges all three reads into ONE corpus. | FOLD 62, rule 13 |
+| 2026-09-08 | (sitewide) | Two lanes built a shared card; `ui/Card.tsx` (lane layoutguard) is DELETED and `ui/SectionCard.tsx` (lane cardrule) is the survivor | Same day, same defect, same five declarations. SectionCard is the superset (polymorphic tag, padded layout with the rule still spanning the full width, audit hook, caller data attributes) and is the file fitness function F42 already names as the one legal home for a card shell. Card.tsx's callers moved to it, its `noRule` became `suppressRuleForBandGrouping`, and its `data-guard-card` attribute moved onto SectionCard so the layout guard's L6/L10 still name a card that came from the shared shell. | FOLD 62, rule 13 |
+| 2026-09-08 | /admin | The registry card was a hand-typed shell and shipped with NO box-shadow | [CONFIRMED by F42, which failed on it] Lane adminlayout built the card the same day lane cardrule made the card a component, so it typed the five declarations itself, on `--surface`/`--color-border` rather than the card tokens, with no shadow. That is operator item A3 exactly. It renders `SectionCard` now. The Tier definitions overlay in the same module carries a `fitness-allow: F42` marker with its reason, the convention the two other undesigned overlays already use. | FOLD 62, operator items A1/A3 |
+
+### Two guards, one operator ruling
+
+| Date | Page | Deviation | Reason | Who ruled |
+|---|---|---|---|---|
+| 2026-09-08 | (sitewide) | The layout guard's L9 hit-target floor now reads lane railfacets' dated desktop exemption | Operator item C1 puts the rail facet row at the artboard's 24px on desktop; the rendering guard's law-2 slot already carried a dated, component-scoped exemption for exactly that element above 768px, with the 44px touch target restored below 768 and measured at 390. L9 is a SECOND floor (44 long, 28 short) over the same element and fired 100 times on it the moment the two lanes met in one tree. Both guards read the SAME entry now, so the exemption cannot expire in one and live in the other, and the entry still covers only that one target, only at or above 768px, only until wave 70. Proven by attack in `layout-guard.test.mjs`: at 390, for any other control, for a name that merely begins the same way, and past the expiry wave, the finding returns. | FOLD 62, operator item C1 |
+| 2026-09-08 | (sitewide) | `SectionHeading`'s aside wraps below 1280 instead of overflowing its card | [CONFIRMED, measured in chromium: the Due-next head was clientWidth 674, scrollWidth 740 at 1024] Below 1280 the rail stacks, so the content column is NARROWEST there on a desktop (674px against 778px at 1440), and the head had no rule in that band at all. Lane briefdata's window label states the span the selected rows actually cover, which is longer than the fixed "week of <date>" it replaced. Only the ASIDE wraps; the Anton title keeps `nowrap` at every width. The same edit gives MOBILE-60's own 390 wrap rule the `!important` it always needed: the aside sets `white-space: nowrap` INLINE, which beat the stylesheet rule, so that fix had never applied at any width. Nothing moves at 1440. | FOLD 62, operator L3 |

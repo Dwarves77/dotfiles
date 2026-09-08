@@ -20,6 +20,8 @@
 // exactly that: "a guard that says only 'failed' costs more than it saves".
 
 import { boxGap } from '../ux-assert.mjs';
+import { LAW2_DESKTOP_EXEMPTIONS, activeLaw2Exemptions } from '../exemptions-law2-desktop.mjs';
+import { latestTrainWave } from '../../fitness/functions/F25-module-liveness.mjs';
 import {
   FRAME_SPEC,
   POSITION_ALLOWLIST,
@@ -301,6 +303,30 @@ export function checkL8(m) {
  * detector rather than a rewrite of the first: weakening law 2 to match this, or this to match law
  * 2, would drop a rule the product is already held to. `boxGap` is imported, not copied.
  */
+/**
+ * L9's ONE dated, component-scoped exemption, read from the SAME entries the rendering guard's
+ * law-2 slot reads (`.discipline/rendering/exemptions-law2-desktop.mjs`, lane railfacets, operator
+ * item C1). Added at FOLD 62, when railfacets' 24px desktop facet row and layoutguard's site-wide
+ * L9 floor first met in one tree and produced 100 findings on one component.
+ *
+ * It is not a relaxation of L9, and the shape is deliberately the narrow one:
+ *   - only the ONE named target, matched on the layout guard's own full name prefix;
+ *   - only at or above the entry's `minViewport` (768). At 390 the same element takes its 44px
+ *     min-height from globals.css and L9 still measures it, which is the width where a finger is
+ *     the pointer;
+ *   - only while the entry has not reached its expiry wave, against the same `latestTrainWave()`
+ *     oracle F25, exemptions-375.mjs and the layout-guard baseline all read. Past wave 70 this
+ *     covers nothing and the findings return.
+ * A lane that wants another exception adds a row to that file, in a diff a reviewer reads.
+ */
+export function isL9DesktopExempt(name, width, latestWave = latestTrainWave()) {
+  if (!name) return false;
+  const active = activeLaw2Exemptions(LAW2_DESKTOP_EXEMPTIONS, latestWave);
+  return active.some(
+    (e) => e.layoutGuardTargetName && width >= e.minViewport && String(name).startsWith(e.layoutGuardTargetName)
+  );
+}
+
 export function checkL9(m) {
   const out = [];
   const t = m.targets || [];
@@ -308,7 +334,7 @@ export function checkL9(m) {
     const b = t[i];
     const long = Math.max(b.width, b.height);
     const short = Math.min(b.width, b.height);
-    if (long < L9_LONG_AXIS_MIN || short < L9_SHORT_AXIS_MIN) {
+    if ((long < L9_LONG_AXIS_MIN || short < L9_SHORT_AXIS_MIN) && !isL9DesktopExempt(b.name, m.width)) {
       out.push(finding('L9', m, b.name, `${px(b.width)}×${px(b.height)}px (long ${px(long)} < ${L9_LONG_AXIS_MIN} or short ${px(short)} < ${L9_SHORT_AXIS_MIN})`,
         'interactive target below the hit-target floor'));
     }

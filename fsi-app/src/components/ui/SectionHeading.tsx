@@ -59,10 +59,30 @@ export function SectionHeading({ title, aside }: SectionHeadingProps) {
           aside is allowed to wrap. One rule on the shared part; the mobile 390 spec
           states no measure for this head, so nothing else about it changes and the
           deviation is logged. */}
+      {/* FOLD 62 (2026-09-08) [CONFIRMED, measured in chromium at 1024 on the / route: the Due-next
+          card's head had clientWidth 674 and scrollWidth 740, a 66px spill, and the site-wide layout
+          guard's L3 caught it]. The band between 768 and 1279 had no rule at all, and it is the band
+          where the content column is NARROWEST on a desktop: below 1280 the rail stacks (README
+          0.3), so the column is 674px at 1024 against 778px at 1440. Two lanes met there. Lane
+          briefdata replaced the Due-next aside's fixed "week of <date>" with the window the SELECTED
+          ROWS actually span, which is longer whenever those rows run past the week; lane layoutguard
+          brought the guard that measures it. Both are right and the head was simply sized for one
+          width. The ASIDE is allowed to wrap and to shrink in that band, and only the aside: the
+          Anton title keeps `nowrap` at every width, so the card's own name never breaks. At 1440
+          nothing moves, which the design audit's 1440 specs re-measure. Below 768 the existing
+          stack rule (MOBILE-60) still applies, and it gains the `!important` it always needed:
+          the aside sets `white-space: nowrap` as an INLINE style, which beats any stylesheet rule
+          without it, so MOBILE-60's own `white-space: normal` for this element had never applied at
+          any width. Measured before and after in chromium: the aside computed `nowrap` at 390 and at
+          1024, and computes `normal` at both now. That is a fix to the mobile rule as well, found
+          only because this fold's own 1024 measurement went looking for why nothing moved. */}
       <style>{`
+        @media (max-width: 1279px) {
+          .cl-section-heading .cl-section-heading-aside { white-space: normal !important; min-width: 0 !important; text-align: right; }
+        }
         @media (max-width: 767px) {
           .cl-section-heading { flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; }
-          .cl-section-heading .cl-section-heading-aside { white-space: normal; }
+          .cl-section-heading .cl-section-heading-aside { white-space: normal !important; text-align: left; }
         }
       `}</style>
       <h2

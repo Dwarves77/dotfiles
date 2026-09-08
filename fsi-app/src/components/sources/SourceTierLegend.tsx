@@ -181,6 +181,13 @@ export function TierDefinitionsOverlay({ onClose }: { onClose: () => void }) {
         padding: 24,
       }}
     >
+      {/* fitness-allow: F42 (undesigned OVERLAY, the Tier definitions modal lane adminlayout moved
+          the T1-T7 explainer into. Same reason CommunityRooms' and MembersPanel's overlays carry:
+          no artboard draws it, it is a floating dialog rather than a section card in a page
+          column, and a section rule at the top of a modal is not a shape the design system has. It
+          keeps the card's own border, radius and shadow values so it reads as one surface with the
+          cards behind it; the day an artboard draws it, it becomes a SectionCard and this marker
+          goes. */}
       <div
         ref={panelRef}
         tabIndex={-1}

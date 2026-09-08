@@ -28,9 +28,17 @@ function slice(fnName) {
   return SOURCE.slice(start, next === -1 ? SOURCE.length : next);
 }
 
-test("AccountCard shell: border-radius uses the shared 10px card token, not a page-local 8px", () => {
+// UPDATED (fold 62, 2026-09-08): the radius is not typed here any more. This assertion existed
+// because AccountCard had hand-typed an 8px radius against the artboard's 10; lane cardrule moved
+// the card shell into `SectionCard`, which owns the radius token (and the shadow this card was
+// also missing, operator item A3). The invariant is the artboard's 10px radius on this card, and
+// it is now unforgeable rather than merely asserted: the card cannot be constructed with any other
+// radius. The rendered value is measured at 1440 by compose-14-account.json.
+test("AccountCard shell: the radius comes from the shared card component, never a page-local 8px", () => {
   const body = slice("export function AccountCard");
-  assert.match(body, /borderRadius:\s*"var\(--radius-card\)"/);
+  assert.match(body, /<SectionCard\b/);
+  assert.doesNotMatch(body, /borderRadius:\s*"?8/);
+  assert.match(readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "..", "ui", "SectionCard.tsx"), "utf8"), /borderRadius: "var\(--radius-card\)"/);
 });
 
 test("AccountCard header row: dc.html p14/p15 padding 14px 16px 10px + border-bottom rgba(0,0,0,.08)", () => {

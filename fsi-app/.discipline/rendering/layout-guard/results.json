@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T18:32:37.880Z",
+  "runAt": "2026-09-08T19:54:46.464Z",
   "widths": [
     1440,
     1024
@@ -266,81 +266,9 @@
       "rule": "L6",
       "route": "/regulations/[slug]",
       "width": 1440,
-      "element": "header[EU Emissions Trading System (ETS) extension to maritime transport] \"IMMEDIATE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#summary[SummaryGenerated · 30-second r] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#sec-3[Obligations — issues requiring] \"OBLIGATIONS — ISSUES REQUIRING ACTION\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#sec-4[Compliance chainA long-form pa] \"COMPLIANCE CHAIN\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#sec-8[Substantive requirementsA long] \"SUBSTANTIVE REQUIREMENTS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#penalties[PenaltiesFrom the regulatory b] \"PENALTIES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
       "element": "div[Owner & teamAssigneeUnassigned] \"OWNER & TEAM\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1440,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L6",
@@ -458,81 +386,9 @@
       "rule": "L6",
       "route": "/regulations/[slug]",
       "width": 1024,
-      "element": "header[EU Emissions Trading System (ETS) extension to maritime transport] \"IMMEDIATE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#summary[SummaryGenerated · 30-second r] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#sec-3[Obligations — issues requiring] \"OBLIGATIONS — ISSUES REQUIRING ACTION\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#sec-4[Compliance chainA long-form pa] \"COMPLIANCE CHAIN\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#sec-8[Substantive requirementsA long] \"SUBSTANTIVE REQUIREMENTS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#penalties[PenaltiesFrom the regulatory b] \"PENALTIES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
       "element": "div[Owner & teamAssigneeUnassigned] \"OWNER & TEAM\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/regulations/[slug]",
-      "width": 1024,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L6",
@@ -1002,86 +858,6 @@
       "rule": "L6",
       "route": "/market/[slug]",
       "width": 1440,
-      "element": "header[Packaging material input costs] \"ACTION\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#summary[SummaryGenerated · 30-second r] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#drivers[Drivers & trajectory4 forces ·] \"DRIVERS & TRAJECTORY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#cost[Cost impact by modeAir · Ocean] \"COST IMPACT BY MODE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#donow[Do nowThe actions the workspac] \"DO NOW\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#talking[Client talking pointsWhat the ] \"CLIENT TALKING POINTS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "div[Your notes · visible to worksp] \"YOUR NOTES · visible to workspace\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1440,
       "element": "div[Affected lanesModesOCEANAffect] \"AFFECTED LANES\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
@@ -1197,86 +973,6 @@
       "element": "/market/[slug]",
       "measured": "manifest cards not rendered: PACKAGING MATERIAL INPUT COSTS, SUMMARY, DRIVERS & TRAJECTORY, COST IMPACT BY MODE, DO NOW, RELEVANCE TO DIETL ROCKIT",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "header[Packaging material input costs] \"ACTION\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#summary[SummaryGenerated · 30-second r] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#drivers[Drivers & trajectory4 forces ·] \"DRIVERS & TRAJECTORY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#cost[Cost impact by modeAir · Ocean] \"COST IMPACT BY MODE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#donow[Do nowThe actions the workspac] \"DO NOW\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#talking[Client talking pointsWhat the ] \"CLIENT TALKING POINTS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "div[Your notes · visible to worksp] \"YOUR NOTES · visible to workspace\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/market/[slug]",
-      "width": 1024,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L6",
@@ -1722,49 +1418,9 @@
       "rule": "L6",
       "route": "/research/[slug]",
       "width": 1440,
-      "element": "header[Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework] \"AWARENESS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "section#summary[SummaryCoalition goals for zer] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1440,
       "element": "div[Connections0No connections on ] \"CONNECTIONS\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1440,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L7",
@@ -1834,49 +1490,9 @@
       "rule": "L6",
       "route": "/research/[slug]",
       "width": 1024,
-      "element": "header[Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework] \"AWARENESS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "section#summary[SummaryCoalition goals for zer] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1024,
       "element": "div[Connections0No connections on ] \"CONNECTIONS\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/research/[slug]",
-      "width": 1024,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L7",
@@ -1963,14 +1579,6 @@
       "route": "/operations",
       "width": 1440,
       "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1440,
-      "element": "div[By state · 2 states →state law]",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
     },
@@ -2467,14 +2075,6 @@
       "route": "/operations",
       "width": 1024,
       "element": "div[Awarenessbackgroundshowing 5 o] \"AWARENESS\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations",
-      "width": 1024,
-      "element": "div[By state · 2 states →state law]",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
     },
@@ -2970,46 +2570,6 @@
       "rule": "L6",
       "route": "/operations/[slug]",
       "width": 1440,
-      "element": "header[Singapore regional operations profile] \"AWARENESS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "section#summary[SummarySingapore port dues con] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1440,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1440,
       "element": "div[Connections0No connections on ] \"CONNECTIONS\"",
       "measured": "3px top rule (measured none)",
       "message": "a card is missing part of its chrome"
@@ -3117,46 +2677,6 @@
       "element": "/operations/[slug]",
       "measured": "manifest cards not rendered: SINGAPORE REGIONAL OPERATIONS PROFILE, OPERATIONAL COST BASELINE, FEASIBILITY OF SPECIFIC OPERATIONAL CHOICES, RELEVANCE TO DIETL ROCKIT, RELATED IN ASIA",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "header[Singapore regional operations profile] \"AWARENESS\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "div[Timeline3 milestones @media (m] \"TIMELINE\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "section#summary[SummarySingapore port dues con] \"SUMMARY\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "section#sources[Sources1 · tier = provenance, ] \"SOURCES\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
-    },
-    {
-      "rule": "L6",
-      "route": "/operations/[slug]",
-      "width": 1024,
-      "element": "div[In this listnot in primary sou] \"IN THIS LIST\"",
-      "measured": "top rule background rgba(0, 0, 0, 0)",
-      "message": "a card rule is neither the band colour (band blocks) nor the grey gradient (all others)"
     },
     {
       "rule": "L6",
@@ -3907,7 +3427,7 @@
       "route": "/community",
       "width": 1440,
       "element": "/community",
-      "measured": "manifest cards not rendered: EU, US, UK, APAC, LATAM, MEAF, GLOBAL ROOM, NEW POST, WHO S HERE, VERIFIER SIGN OFF, WHY POST HERE",
+      "measured": "manifest cards not rendered: EU, US, UK, APAC, LATAM, MEAF, GLOBAL ROOM, NEW POST",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
     },
     {
@@ -4095,38 +3615,6 @@
       "message": "interactive target below the hit-target floor"
     },
     {
-      "rule": "L10",
-      "route": "/community",
-      "width": 1024,
-      "element": "/community",
-      "measured": "manifest cards not rendered: GLOBAL ROOM, NEW POST, WHO S HERE, VERIFIER SIGN OFF, WHY POST HERE",
-      "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L1",
-      "route": "/admin",
-      "width": 1440,
-      "element": "div.admin-t08-grid[Workspaces1Organizations, memb]",
-      "measured": "column-gap 24px, expected 28px",
-      "message": "frame gap"
-    },
-    {
-      "rule": "L1",
-      "route": "/admin",
-      "width": 1440,
-      "element": "div.admin-t08-grid[Workspaces1Organizations, memb]",
-      "measured": "padding 0px 0px 0px, expected 20px 40px 40px",
-      "message": "the artboard for this route (p13) draws this padding verbatim"
-    },
-    {
-      "rule": "L1",
-      "route": "/admin",
-      "width": 1440,
-      "element": "div[Workspaces1Organizations, memb]",
-      "measured": "width: 768px",
-      "message": "the content column takes its width from the frame track, never from itself"
-    },
-    {
       "rule": "L7",
       "route": "/admin",
       "width": 1440,
@@ -4259,55 +3747,15 @@
       "route": "/admin",
       "width": 1440,
       "element": "/admin",
-      "measured": "manifest cards not rendered: WORKSPACES, INGEST, COVERAGE, RESEARCH PIPELINE, COMMUNITY PICKUPS, RUNTIME, EMISSION FACTORS, SOURCES, ORGANIZATIONS, ISSUES QUEUE, COMPANIES, READ ONLY CONTROLS",
+      "measured": "manifest cards not rendered: WORKSPACES, INGEST, COVERAGE, RESEARCH PIPELINE, COMMUNITY PICKUPS, RUNTIME, EMISSION FACTORS, SOURCES, ORGANIZATIONS",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L1",
-      "route": "/admin",
-      "width": 1024,
-      "element": "div.admin-t08-grid[Workspaces1Organizations, memb]",
-      "measured": "grid-template-columns: 352px 300px (2 tracks)",
-      "message": "below 1280px the rail stacks under the content (README §0.3), so the frame must resolve to ONE track"
-    },
-    {
-      "rule": "L1",
-      "route": "/admin",
-      "width": 1024,
-      "element": "div[Workspaces1Organizations, memb]",
-      "measured": "width: 352px",
-      "message": "the content column takes its width from the frame track, never from itself"
-    },
-    {
-      "rule": "L2",
-      "route": "/admin",
-      "width": 1024,
-      "element": "button[Approve] × a[Account]",
-      "measured": "overlap 48.5×14px (a at 701,995.3 89×44; b at 701,995.4 48.5×14)",
-      "message": "two elements with visible content intersect and neither contains the other"
-    },
-    {
-      "rule": "L2",
-      "route": "/admin",
-      "width": 1024,
-      "element": "button[Approve] × button[Refresh]",
-      "measured": "overlap 84.5×17.9px (a at 701,995.3 89×44; b at 701,1021.4 84.5×44)",
-      "message": "two elements with visible content intersect and neither contains the other"
-    },
-    {
-      "rule": "L2",
-      "route": "/admin",
-      "width": 1024,
-      "element": "button[Approve] × button[Refresh]",
-      "measured": "overlap 84.5×21.6px (a at 701,1043.8 89×44; b at 701,1021.4 84.5×44)",
-      "message": "two elements with visible content intersect and neither contains the other"
     },
     {
       "rule": "L4",
       "route": "/admin",
       "width": 1024,
       "element": "div[Sources views]",
-      "measured": "387px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 350)",
+      "measured": "63px of content past the right edge of a horizontal scroller that is not a table card (scrollWidth 737, clientWidth 674)",
       "message": "content reachable only by horizontal swipe"
     },
     {
@@ -4434,30 +3882,6 @@
       "rule": "L9",
       "route": "/admin",
       "width": 1024,
-      "element": "button[Approve] × a[Account]",
-      "measured": "adjacent targets overlap by 48.5×14px",
-      "message": "adjacent interactive targets must not overlap"
-    },
-    {
-      "rule": "L9",
-      "route": "/admin",
-      "width": 1024,
-      "element": "button[Approve] × button[Refresh]",
-      "measured": "adjacent targets overlap by 84.5×17.9px",
-      "message": "adjacent interactive targets must not overlap"
-    },
-    {
-      "rule": "L9",
-      "route": "/admin",
-      "width": 1024,
-      "element": "button[Approve] × button[Refresh]",
-      "measured": "adjacent targets overlap by 84.5×21.6px",
-      "message": "adjacent interactive targets must not overlap"
-    },
-    {
-      "rule": "L9",
-      "route": "/admin",
-      "width": 1024,
       "element": "a[Account]",
       "measured": "48.5×14px (long 48.5 < 44 or short 14 < 28)",
       "message": "interactive target below the hit-target floor"
@@ -4467,16 +3891,8 @@
       "route": "/admin",
       "width": 1024,
       "element": "/admin",
-      "measured": "manifest cards not rendered: WORKSPACES, INGEST, COVERAGE, RESEARCH PIPELINE, COMMUNITY PICKUPS, RUNTIME, EMISSION FACTORS, SOURCES, ORGANIZATIONS, ISSUES QUEUE, COMPANIES, READ ONLY CONTROLS",
+      "measured": "manifest cards not rendered: WORKSPACES, INGEST, COVERAGE, RESEARCH PIPELINE, COMMUNITY PICKUPS, RUNTIME, EMISSION FACTORS, SOURCES, ORGANIZATIONS",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
-    },
-    {
-      "rule": "L6",
-      "route": "/profile",
-      "width": 1440,
-      "element": "div[Sectors followed33 highlighted] \"SECTORS FOLLOWED\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
     },
     {
       "rule": "L7",
@@ -4539,16 +3955,16 @@
       "route": "/profile",
       "width": 1440,
       "element": "/profile",
-      "measured": "manifest cards not rendered: MEMBERS & ROLES, ORGANIZATION, ADMIN, QUICK LINKS",
+      "measured": "manifest cards not rendered: MEMBERS & ROLES, ORGANIZATION",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
     },
     {
-      "rule": "L6",
+      "rule": "L2",
       "route": "/profile",
       "width": 1024,
-      "element": "div[Sectors followed33 highlighted] \"SECTORS FOLLOWED\"",
-      "measured": "3px top rule (measured none)",
-      "message": "a card is missing part of its chrome"
+      "element": "div.cl-rowtable[NameSlugPlanMembersCreatedDiet] × div[Sectors followed33 highlighted]",
+      "measured": "overlap 674×49px (a at 309,944.7 674×78; b at 308,973.7 676×173.5)",
+      "message": "two elements with visible content intersect and neither contains the other"
     },
     {
       "rule": "L7",
@@ -4619,7 +4035,7 @@
       "route": "/profile",
       "width": 1024,
       "element": "/profile",
-      "measured": "manifest cards not rendered: MEMBERS & ROLES, ORGANIZATION, ADMIN, QUICK LINKS",
+      "measured": "manifest cards not rendered: MEMBERS & ROLES, ORGANIZATION",
       "message": "reported for completeness; a card the artboard draws that the build has not built is a build gap, not an \"outside the artboard\" failure"
     },
     {
@@ -4642,8 +4058,128 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[Brazil] × div[AppearanceLight only. There is]",
+      "measured": "overlap 59.2×9.8px (a at 1117,727.7 59.2×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Argentina] × div[AppearanceLight only. There is]",
+      "measured": "overlap 85.4×9.8px (a at 1182.2,727.7 85.4×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Chile] × div[AppearanceLight only. There is]",
+      "measured": "overlap 54.9×9.8px (a at 1273.6,727.7 54.9×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Colombia] × div[AppearanceLight only. There is]",
+      "measured": "overlap 81.5×28.5px (a at 1117,762.2 81.5×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Peru] × div[AppearanceLight only. There is]",
+      "measured": "overlap 52.8×28.5px (a at 1204.5,762.2 52.8×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Latin America (other)] × div[AppearanceLight only. There is]",
+      "measured": "overlap 157.1×28.5px (a at 1117,796.7 157.1×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Caribbean] × div[AppearanceLight only. There is]",
+      "measured": "overlap 87.2×28.5px (a at 1280.1,796.7 87.2×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Central America] × div[AppearanceLight only. There is]",
+      "measured": "overlap 123.7×28px (a at 1117,831.2 123.7×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[EU] × div[AppearanceLight only. There is]",
+      "measured": "overlap 40.5×28px (a at 1246.7,831.2 40.5×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Germany] × div[AppearanceLight only. There is]",
+      "measured": "overlap 79.8×28px (a at 1293.1,831.2 79.8×28.5; b at 1100,746.4 300×112.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[France] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 65.5×21px (a at 1117,865.7 65.5×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Netherlands] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 100.1×21px (a at 1188.5,865.7 100.1×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Belgium] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 74.6×21px (a at 1294.6,865.7 74.6×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Italy] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 51.7×28.5px (a at 1117,900.2 51.7×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[Italy] × a[Saved searches · 0]",
       "measured": "overlap 51.7×11.8px (a at 1117,900.2 51.7×28.5; b at 1117,916.9 266×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Spain] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 58.8×28.5px (a at 1174.7,900.2 58.8×28.5; b at 1100,873.2 300×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -4658,6 +4194,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[Poland] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 66.5×28.5px (a at 1239.5,900.2 66.5×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[Poland] × a[Saved searches · 0]",
       "measured": "overlap 66.5×11.8px (a at 1239.5,900.2 66.5×28.5; b at 1117,916.9 266×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -4666,8 +4210,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[Ireland] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 67.9×28.5px (a at 1312.1,900.2 67.9×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[Ireland] × a[Saved searches · 0]",
       "measured": "overlap 67.9×11.8px (a at 1312.1,900.2 67.9×28.5; b at 1117,916.9 266×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Greece] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 67.4×28.5px (a at 1117,934.7 67.4×28.5; b at 1100,873.2 300×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -4690,6 +4250,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[Portugal] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 77.2×28.5px (a at 1190.4,934.7 77.2×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[Portugal] × a[Saved searches · 0]",
       "measured": "overlap 77.2×6.3px (a at 1190.4,934.7 77.2×28.5; b at 1117,916.9 266×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -4700,6 +4268,14 @@
       "width": 1440,
       "element": "button[Portugal] × a[Data summary]",
       "measured": "overlap 77.2×16.3px (a at 1190.4,934.7 77.2×28.5; b at 1117,946.9 266×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Romania] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 77.9×28.5px (a at 1273.6,934.7 77.9×28.5; b at 1100,873.2 300×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -4722,6 +4298,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[United Kingdom] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 123.9×28.5px (a at 1117,969.2 123.9×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[United Kingdom] × a[Archive]",
       "measured": "overlap 123.9×20.8px (a at 1117,969.2 123.9×28.5; b at 1117,976.9 266×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -4730,8 +4314,40 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1440,
+      "element": "button[Nordic] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 64.4×28.5px (a at 1246.9,969.2 64.4×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
       "element": "button[Nordic] × a[Archive]",
       "measured": "overlap 64.4×20.8px (a at 1246.9,969.2 64.4×28.5; b at 1117,976.9 266×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Switzerland] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 97.3×12.3px (a at 1117,1003.7 97.3×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Turkey] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 65.2×12.3px (a at 1220.3,1003.7 65.2×28.5; b at 1100,873.2 300×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1440,
+      "element": "button[Ukraine] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 72.2×12.3px (a at 1291.5,1003.7 72.2×28.5; b at 1100,873.2 300×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5282,8 +4898,248 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Latin America (other)] × div[AppearanceLight only. There is]",
+      "measured": "overlap 157.1×9.8px (a at 325,1941.7 157.1×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Caribbean] × div[AppearanceLight only. There is]",
+      "measured": "overlap 87.2×9.8px (a at 488.1,1941.7 87.2×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Central America] × div[AppearanceLight only. There is]",
+      "measured": "overlap 123.7×9.8px (a at 581.3,1941.7 123.7×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[EU] × div[AppearanceLight only. There is]",
+      "measured": "overlap 40.5×9.8px (a at 710.9,1941.7 40.5×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Germany] × div[AppearanceLight only. There is]",
+      "measured": "overlap 79.8×9.8px (a at 757.4,1941.7 79.8×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[France] × div[AppearanceLight only. There is]",
+      "measured": "overlap 65.5×9.8px (a at 843.2,1941.7 65.5×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Netherlands] × div[AppearanceLight only. There is]",
+      "measured": "overlap 100.1×28.5px (a at 325,1976.2 100.1×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Belgium] × div[AppearanceLight only. There is]",
+      "measured": "overlap 74.6×28.5px (a at 431.1,1976.2 74.6×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Italy] × div[AppearanceLight only. There is]",
+      "measured": "overlap 51.7×28.5px (a at 511.7,1976.2 51.7×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Spain] × div[AppearanceLight only. There is]",
+      "measured": "overlap 58.8×28.5px (a at 569.4,1976.2 58.8×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Poland] × div[AppearanceLight only. There is]",
+      "measured": "overlap 66.5×28.5px (a at 634.2,1976.2 66.5×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Ireland] × div[AppearanceLight only. There is]",
+      "measured": "overlap 67.9×28.5px (a at 706.7,1976.2 67.9×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Greece] × div[AppearanceLight only. There is]",
+      "measured": "overlap 67.4×28.5px (a at 780.6,1976.2 67.4×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Portugal] × div[AppearanceLight only. There is]",
+      "measured": "overlap 77.2×28.5px (a at 854,1976.2 77.2×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Romania] × div[AppearanceLight only. There is]",
+      "measured": "overlap 77.9×26.5px (a at 325,2010.7 77.9×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[United Kingdom] × div[AppearanceLight only. There is]",
+      "measured": "overlap 123.9×26.5px (a at 408.9,2010.7 123.9×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Nordic] × div[AppearanceLight only. There is]",
+      "measured": "overlap 64.4×26.5px (a at 538.8,2010.7 64.4×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Switzerland] × div[AppearanceLight only. There is]",
+      "measured": "overlap 97.3×26.5px (a at 609.2,2010.7 97.3×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Turkey] × div[AppearanceLight only. There is]",
+      "measured": "overlap 65.2×26.5px (a at 712.5,2010.7 65.2×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Ukraine] × div[AppearanceLight only. There is]",
+      "measured": "overlap 72.2×26.5px (a at 783.7,2010.7 72.2×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Balkans] × div[AppearanceLight only. There is]",
+      "measured": "overlap 72.7×26.5px (a at 861.8,2010.7 72.7×28.5; b at 308,1960.4 676×76.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[China] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 58.9×22.5px (a at 325,2045.2 58.9×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Japan] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 58.7×22.5px (a at 389.9,2045.2 58.7×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[South Korea] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 100.4×22.5px (a at 454.6,2045.2 100.4×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Taiwan] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 66.7×22.5px (a at 561,2045.2 66.7×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Hong Kong] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 91.9×22.5px (a at 633.7,2045.2 91.9×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[India] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 55×22.5px (a at 731.6,2045.2 55×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Bangladesh] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 96.4×22.5px (a at 792.6,2045.2 96.4×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Pakistan] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 77.3×28.5px (a at 325,2079.7 77.3×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Pakistan] × a[Saved searches · 0]",
       "measured": "overlap 77.3×13.3px (a at 325,2079.7 77.3×28.5; b at 325,2094.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Sri Lanka] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 82×28.5px (a at 408.3,2079.7 82×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5298,8 +5154,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Singapore] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 87.1×28.5px (a at 496.3,2079.7 87.1×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Singapore] × a[Saved searches · 0]",
       "measured": "overlap 87.1×13.3px (a at 496.3,2079.7 87.1×28.5; b at 325,2094.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Malaysia] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 78.1×28.5px (a at 589.4,2079.7 78.1×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5314,8 +5186,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Indonesia] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 84.4×28.5px (a at 673.6,2079.7 84.4×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Indonesia] × a[Saved searches · 0]",
       "measured": "overlap 84.4×13.3px (a at 673.6,2079.7 84.4×28.5; b at 325,2094.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Thailand] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 77.4×28.5px (a at 764,2079.7 77.4×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5330,8 +5218,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Vietnam] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 75.5×28.5px (a at 847.4,2079.7 75.5×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Vietnam] × a[Saved searches · 0]",
       "measured": "overlap 75.5×13.3px (a at 847.4,2079.7 75.5×28.5; b at 325,2094.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Philippines] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 92.6×28.5px (a at 325,2114.2 92.6×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5354,6 +5258,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[ASEAN (other)] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 113.1×28.5px (a at 423.6,2114.2 113.1×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[ASEAN (other)] × a[Saved searches · 0]",
       "measured": "overlap 113.1×4.8px (a at 423.6,2114.2 113.1×28.5; b at 325,2094.9 642×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -5364,6 +5276,14 @@
       "width": 1024,
       "element": "button[ASEAN (other)] × a[Data summary]",
       "measured": "overlap 113.1×17.8px (a at 423.6,2114.2 113.1×28.5; b at 325,2124.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Asia (other)] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 97.7×28.5px (a at 542.7,2114.2 97.7×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5386,6 +5306,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Australia] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 80×28.5px (a at 646.3,2114.2 80×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Australia] × a[Saved searches · 0]",
       "measured": "overlap 80×4.8px (a at 646.3,2114.2 80×28.5; b at 325,2094.9 642×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -5396,6 +5324,14 @@
       "width": 1024,
       "element": "button[Australia] × a[Data summary]",
       "measured": "overlap 80×17.8px (a at 646.3,2114.2 80×28.5; b at 325,2124.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[New Zealand] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 104.4×28.5px (a at 732.3,2114.2 104.4×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5418,6 +5354,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Pacific Islands] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 112.1×28.5px (a at 842.7,2114.2 112.1×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Pacific Islands] × a[Saved searches · 0]",
       "measured": "overlap 112.1×4.8px (a at 842.7,2114.2 112.1×28.5; b at 325,2094.9 642×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -5434,8 +5378,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[UAE] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 48.6×28.5px (a at 325,2148.7 48.6×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[UAE] × a[Archive]",
       "measured": "overlap 48.6×22.3px (a at 325,2148.7 48.6×28.5; b at 325,2154.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Saudi Arabia] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 103.1×28.5px (a at 379.6,2148.7 103.1×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5450,8 +5410,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Qatar] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 58.9×28.5px (a at 488.7,2148.7 58.9×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Qatar] × a[Archive]",
       "measured": "overlap 58.9×22.3px (a at 488.7,2148.7 58.9×28.5; b at 325,2154.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Kuwait] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 66.8×28.5px (a at 553.6,2148.7 66.8×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5466,8 +5442,24 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Bahrain] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 72.1×28.5px (a at 626.4,2148.7 72.1×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Bahrain] × a[Archive]",
       "measured": "overlap 72.1×22.3px (a at 626.4,2148.7 72.1×28.5; b at 325,2154.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Oman] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 60.1×28.5px (a at 704.5,2148.7 60.1×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {
@@ -5482,6 +5474,14 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[GCC (other)] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 96.6×28.5px (a at 770.6,2148.7 96.6×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[GCC (other)] × a[Archive]",
       "measured": "overlap 96.6×22.3px (a at 770.6,2148.7 96.6×28.5; b at 325,2154.9 642×24)",
       "message": "two elements with visible content intersect and neither contains the other"
@@ -5490,8 +5490,80 @@
       "rule": "L2",
       "route": "/settings",
       "width": 1024,
+      "element": "button[Israel] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 58.7×28.5px (a at 873.2,2148.7 58.7×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
       "element": "button[Israel] × a[Archive]",
       "measured": "overlap 58.7×22.3px (a at 873.2,2148.7 58.7×28.5; b at 325,2154.9 642×24)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Jordan] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 64.2×10.8px (a at 325,2183.2 64.2×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Iraq] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 48.8×10.8px (a at 395.2,2183.2 48.8×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Iran] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 48.8×10.8px (a at 450,2183.2 48.8×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Middle East (other)] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 143.7×10.8px (a at 504.8,2183.2 143.7×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Egypt] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 59.7×10.8px (a at 654.5,2183.2 59.7×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Morocco] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 76.1×10.8px (a at 720.2,2183.2 76.1×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Tunisia] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 67.5×10.8px (a at 802.3,2183.2 67.5×28.5; b at 308,2051.2 676×142.8)",
+      "message": "two elements with visible content intersect and neither contains the other"
+    },
+    {
+      "rule": "L2",
+      "route": "/settings",
+      "width": 1024,
+      "element": "button[Algeria] × div[Data & supersessionsSaved sear]",
+      "measured": "overlap 68.3×10.8px (a at 875.8,2183.2 68.3×28.5; b at 308,2051.2 676×142.8)",
       "message": "two elements with visible content intersect and neither contains the other"
     },
     {

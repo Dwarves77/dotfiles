@@ -32,6 +32,16 @@ export const LAW2_DESKTOP_EXEMPTIONS = [
     // an <input> has neither aria-label nor text. Confirmed by reading the guard's own failure
     // output verbatim, not guessed.
     targetName: "input[cl-facet-check]",
+    // FOLD 62 (2026-09-08): the SITE-WIDE layout guard's L9 is a second hit-target floor over the
+    // same element (>=44px long axis, >=28px short, allowlists.mjs), and it fired 100 times on this
+    // one component the moment lane railfacets' 24px row met lane layoutguard's guard in one tree.
+    // Two guards, one operator ruling, so they read ONE entry rather than growing a second list:
+    // this is the same element under the name the layout guard's own `nameOf` emits (tag.class,
+    // then the empty label bracket an <input> with no accessible name produces), read verbatim from
+    // its failure output. Everything else about the entry - the width floor, the date, the expiry
+    // wave, the reason - is shared, so the exemption cannot expire in one guard and live in the
+    // other.
+    layoutGuardTargetName: "input.cl-facet-check[",
     minViewport: 768,
     reason:
       "operator item C1, 2026-09-08: artboard 02/id=\"p2\" draws the desktop rail facet row at 24px with no clearance; the 44px touch target is restored below 768px in globals.css and measured at 390 by the design audit",

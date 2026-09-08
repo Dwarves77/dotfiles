@@ -958,16 +958,6 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       // read as unclassified, never as Regulations. `|| 1` made an unselected domain answer
       // domain=1: the laundering item-links.ts warns about (classifying off a coalesced value).
       domain: row.domain ?? undefined,
-      // Lane duenext (2026-09-08, production defect). This mapper never set
-      // `complianceDeadline`, even though every RPC it maps projects `ii.compliance_deadline`
-      // and `dueInfo` (src/lib/dashboard/row-fields.ts) reads `r.complianceDeadline` as one of
-      // its TWO date candidates. The field was therefore undefined on every list/dashboard
-      // Resource in the app; the only place it was ever populated was the single-item detail
-      // read further down this file. Measured live 2026-09-08: 5 of the workspace's 1,433
-      // active verified items carry a future compliance_deadline and no future timeline
-      // milestone, so those 5 could not reach the Due-next card no matter which rows the read
-      // returned. One line, and `dueInfo`'s stated rule and the data it can see finally agree.
-      complianceDeadline: row.compliance_deadline || undefined,
       timeline: (timelines || []).map((t: any) => ({
         date: t.milestone_date,
         label: t.label,
@@ -1008,7 +998,10 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       // the deadline half of "next binding date" was structurally invisible: only an item carrying
       // an `item_timelines` milestone could ever render a due cell. Measured against the live
       // corpus 2026-09-08: 1,518 active items, 5 with a future compliance_deadline, 69 with a
-      // future milestone.
+      // future milestone. FOLD 62: lane duenext added this SAME line, independently, with its own
+      // live measurement (5 of 1,433 active verified items carry a future compliance_deadline and
+      // no future milestone, so those 5 could not reach the Due-next card no matter which rows the
+      // read returned). One line, one copy; both lanes' measurements agree and both are recorded.
       complianceDeadline: row.compliance_deadline || undefined,
     };
 

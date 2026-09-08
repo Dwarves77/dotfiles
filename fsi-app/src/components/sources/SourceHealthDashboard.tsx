@@ -17,7 +17,7 @@ import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceRevie
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { ThemesView } from "@/components/sources/ThemesView";
 import { B2RegenerationNote } from "@/components/sources/B2RegenerationNote";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { TabRow } from "@/components/ui/TabRow";
 import {
   SourceTierLegend,
@@ -347,19 +347,17 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
   // strip (item 4); the "Source Tiers, how we rank authority" explainer and the T1-T7 summary
   // CARDS became the header legend, the Tier definitions overlay and the tier facet (item 3);
   // the full-width orange scraping box became the Action-band strip at the card foot (item 4).
+  //
+  // FOLD 62 (2026-09-08): this shell is the shared `SectionCard`, not five declarations typed
+  // here. Lane adminlayout built the card the same day lane cardrule made the card a component
+  // (operator item A1: "It is part of the card component, not a decoration"), so it hand-typed the
+  // background, the border, the radius, `overflow: hidden` and its own `<SectionRule/>` mount, and
+  // in doing so shipped the registry card with NO box-shadow and on `--surface`/`--color-border`
+  // rather than the card tokens the artboard draws, which is operator item A3 exactly. Rendering
+  // `SectionCard` supplies all five and mounts the rule itself; the audit hook and the `minWidth`
+  // containment adminlayout needs are passed through. F42 is what caught it.
   return (
-    <div
-      data-audit="registry-card"
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-        minWidth: 0,
-      }}
-    >
-      <SectionRule />
-
+    <SectionCard dataAudit="registry-card" style={{ minWidth: 0 }}>
       <div
         data-audit="registry-head"
         style={{
@@ -520,7 +518,7 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
       </div>
 
       {definitionsOpen && <TierDefinitionsOverlay onClose={() => setDefinitionsOpen(false)} />}
-    </div>
+    </SectionCard>
   );
 }
 

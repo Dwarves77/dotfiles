@@ -83,15 +83,53 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
     for (let p = frameEl.parentElement; p && p !== main && p !== document.body; p = p.parentElement) {
       if (isGrid(p)) ancestorGrids.push({ name: nameOf(p), gridTemplateColumns: cs(p).gridTemplateColumns });
     }
-    const contentCol = frameEl.children[0] || null;
+    // FOLD 62 (2026-09-08), a HARNESS defect found by running the guard over six lanes at once.
+    //
+    // `frameEl.children[0]` is not always the content column, and the property loop below it was
+    // reading a USED value as if it were an authored one.
+    //
+    //   * `PageFrame` renders a `<style>` element as its first child, so on every route that
+    //     adopted the shared frame `contentCol` WAS that style element: `display:none`, computed
+    //     width "auto", and the check passed vacuously. Rule 15's own failure mode - a guard that
+    //     is green because it is measuring nothing. /admin, which keeps its style block outside
+    //     the frame, was the only route where a real box reached the loop, and it failed there.
+    //   * getComputedStyle().width returns the USED width in px for every rendered box, always.
+    //     So "width is not auto" cannot mean "this element sets its own width"; it means "this
+    //     element is rendered". The one route that reached it therefore failed on a value every
+    //     route has.
+    //   * A child spanning all tracks (`grid-column: 1 / -1`, the /admin masthead) is not the
+    //     content column at all; it is a full-width band inside the frame.
+    //
+    // So: skip non-rendered children and full-span bands, and test what the rule actually says -
+    // the content column's box EQUALS the frame's content track, rather than being set from
+    // inside. `maxWidth`/`minWidth`/`flexBasis` keep their authored-value test, which is sound for
+    // those three (they are `none`/`auto`/`0px` unless someone sets them).
+    let contentCol = null;
+    for (const child of frameEl.children) {
+      if (!visible(child)) continue;
+      const gc = cs(child).gridColumnStart;
+      if (gc === '1' && cs(child).gridColumnEnd === '-1') continue;
+      contentCol = child;
+      break;
+    }
     let contentTrackHasWidth = null;
     if (contentCol) {
       const c = cs(contentCol);
-      for (const prop of ['width', 'maxWidth', 'minWidth', 'flexBasis']) {
+      for (const prop of ['maxWidth', 'minWidth', 'flexBasis']) {
         const v = c[prop];
         if (v && v !== 'auto' && v !== 'none' && v !== '0px' && !v.endsWith('%')) {
           contentTrackHasWidth = { name: nameOf(contentCol), property: prop, value: v };
           break;
+        }
+      }
+      if (!contentTrackHasWidth && t.length) {
+        const boxW = contentCol.getBoundingClientRect().width;
+        if (Math.abs(boxW - t[0]) > 1) {
+          contentTrackHasWidth = {
+            name: nameOf(contentCol),
+            property: 'width',
+            value: `${Math.round(boxW * 10) / 10}px against a ${Math.round(t[0] * 10) / 10}px content track`,
+          };
         }
       }
     }
@@ -186,7 +224,23 @@ const COLLECT = ({ renderedTextSrc, positionAllowlist, scrollerAllowlist, antonA
       if (cr.top - r.top > 3.5 || cr.height < 2 || cr.height > 4) continue;
       if (cr.width < r.width - 6) continue;
       ruleHeight = cr.height;
-      ruleBackground = cs(child).backgroundImage !== 'none' ? cs(child).backgroundImage : cs(child).backgroundColor;
+      // FOLD 62 (2026-09-08), a HARNESS defect: read the PAINTED element, not its wrapper. In
+      // `SectionCard`'s padded layout the rule is carried by an absolutely positioned wrapper at
+      // the card's top edge, so the child found here is a 3px box with a TRANSPARENT background
+      // and the real gradient one level down. Reading the wrapper reported "top rule background
+      // rgba(0, 0, 0, 0)" against a card whose rule is drawn correctly, which is a false L6. If
+      // the child paints nothing itself, descend to the element that does.
+      const paintOf = (n) => (cs(n).backgroundImage !== 'none' ? cs(n).backgroundImage : cs(n).backgroundColor);
+      let painter = child;
+      let paint = paintOf(child);
+      if (paint === 'none' || paint === 'rgba(0, 0, 0, 0)' || paint === 'transparent') {
+        for (const inner of child.querySelectorAll('*')) {
+          const ip = paintOf(inner);
+          if (ip !== 'none' && ip !== 'rgba(0, 0, 0, 0)' && ip !== 'transparent') { painter = inner; paint = ip; break; }
+        }
+      }
+      ruleHeight = painter === child ? cr.height : painter.getBoundingClientRect().height;
+      ruleBackground = paint;
       break;
     }
     // A card may also draw the rule as its own 3px top border.

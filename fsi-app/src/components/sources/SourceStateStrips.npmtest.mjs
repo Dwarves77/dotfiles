@@ -61,8 +61,17 @@ test("Cadence, Save and Emergency stop are one 44px action row (item 4)", () => 
   assert.match(CONTROLS, /import \{ ActionButton \} from "@\/components\/ui\/ActionRow"/);
 });
 
+// UPDATED (fold 62, 2026-09-08): the registry card's audit hook is `SectionCard`'s `dataAudit`
+// prop now, not a literal attribute on a hand-typed div. Lane adminlayout built this card the same
+// day lane cardrule made the card a component, so the fold moved it onto the shared shell (it was
+// shipping with no shadow, operator item A3) and the hook moved with it. It renders the identical
+// `data-audit="registry-card"` attribute, so the audit spec is unchanged; only this source slice
+// had to follow. Worth noting the trap: `indexOf` returning -1 here made `slice(-1)` a ONE-CHARACTER
+// string, so this test failed loudly rather than passing vacuously, which is the good outcome.
 test("the strips sit where the operator put them: regeneration under the tab row, scraping at the card foot", () => {
-  const card = DASHBOARD.slice(DASHBOARD.indexOf('data-audit="registry-card"'));
+  const cardStart = DASHBOARD.indexOf('dataAudit="registry-card"');
+  assert.notEqual(cardStart, -1, "the registry card was not found by its audit hook");
+  const card = DASHBOARD.slice(cardStart);
   const tabRow = card.indexOf("<TabRow");
   const regen = card.indexOf("<B2RegenerationNote");
   const scrape = card.indexOf("<GlobalPauseToggle");
