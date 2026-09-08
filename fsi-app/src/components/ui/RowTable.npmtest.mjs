@@ -56,3 +56,31 @@ test("menu items keep the 44px minimum row", () => {
   const block = SOURCE.slice(SOURCE.indexOf("export function RowTableOverflow"));
   assert.match(block, /minHeight:\s*44,/);
 });
+
+// --- Lane admin60's containment assertions, unioned in at the fold (train 60). ---
+//
+// The rule these guard is the one that failed on artboard 13's ORGANIZATIONS card: a grid item's
+// default `min-width: auto` lets its content push its track wider than the declared size, so a long
+// value escapes its column and either collides with the next cell or runs under the card's edge.
+// Only the FIRST cell used to carry `min-width: 0`; now every cell does, and every cell carries the
+// class the design audit's bounds check addresses it by.
+//
+// admin60's "one gridStyle helper" assertion counted the literal `gridStyle(columns)`. community60's
+// `metrics` prop gave the helper a second argument, so the call site now reads
+// `gridStyle(columns, paddingLeft)`. The INVARIANT is unchanged and is what is asserted here: header
+// and rows are laid out from the same columns array through ONE helper, so the header can never be a
+// different grid from its rows. Only its expression was updated for the merged signature.
+
+test("every row cell is min-width:0, not only the first", () => {
+  assert.match(SOURCE, /className="cl-rowtable-cell" style=\{\{ minWidth: 0 \}\}/);
+  assert.equal(/ci === 0 \? \{ minWidth: 0 \} : undefined/.test(SOURCE), false);
+});
+
+test("every header cell is min-width:0 too, so the header can never be the wider grid", () => {
+  assert.match(SOURCE, /className="cl-rowtable-headcell" style=\{\{ minWidth: 0 \}\}/);
+});
+
+test("header and rows are laid out from the SAME columns array, through one gridStyle helper", () => {
+  assert.equal((SOURCE.match(/gridStyle\(columns, paddingLeft\)/g) || []).length, 2);
+  assert.equal((SOURCE.match(/gridTemplateColumns:/g) || []).length, 1);
+});

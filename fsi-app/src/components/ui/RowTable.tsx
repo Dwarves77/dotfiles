@@ -112,7 +112,9 @@ export function RowTable({ columns, rows, metrics }: RowTableProps) {
         }}
       >
         {columns.map((c, i) => (
-          <span key={`${c.label}-${i}`}>{c.label}</span>
+          <span key={`${c.label}-${i}`} className="cl-rowtable-headcell" style={{ minWidth: 0 }}>
+            {c.label}
+          </span>
         ))}
       </div>
       {rows.map((r, i) => {
@@ -146,8 +148,13 @@ export function RowTable({ columns, rows, metrics }: RowTableProps) {
                 cursor: r.onActivate ? "pointer" : undefined,
               }}
             >
+              {/* Every cell wrapper is `min-width: 0`, not just the first: a grid
+                  item's default `min-width:auto` lets its content push the track
+                  wider than its declared size, which is how a long value escapes its
+                  column and collides with the next one. The same containment rule
+                  ListRow carries. Lane admin60, 2026-09-08. */}
               {r.cells.map((cell, ci) => (
-                <span key={ci} style={ci === 0 ? { minWidth: 0 } : undefined}>
+                <span key={ci} className="cl-rowtable-cell" style={{ minWidth: 0 }}>
                   {cell}
                 </span>
               ))}

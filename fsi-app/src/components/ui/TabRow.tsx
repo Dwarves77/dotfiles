@@ -39,19 +39,55 @@ export interface TabRowItem {
 export interface TabRowProps {
   tabs: TabRowItem[];
   ariaLabel: string;
+  /**
+   * Where this row sits (additive, lane admin60 2026-09-08).
+   *
+   * "page" (default) is artboard 14/15's row: it spans the frame above the
+   * two-column grid, gap 4, wrapping allowed because the eight account tabs
+   * are wider than a narrow frame.
+   *
+   * "card-head" is artboard 13's row, which dc.html p13 draws INSIDE the
+   * "SOURCES · PROVISIONAL REVIEW" card head: gap 2, inset by the card's own
+   * 16px horizontal padding, and NEVER wrapping, so the five Sources sub-tabs
+   * stay on one line at 1440 the way the artboard draws them.
+   */
+  placement?: "page" | "card-head";
+  /**
+   * Tab semantics (additive, lane admin60 2026-09-08). "nav" (default) is a
+   * <nav> of links/buttons. "tablist" renders role="tablist" / role="tab" /
+   * aria-selected for a row that switches an in-page panel rather than a
+   * route, which is what the Admin sub-nav has always been.
+   */
+  semantics?: "nav" | "tablist";
 }
 
-export function TabRow({ tabs, ariaLabel }: TabRowProps) {
+export function TabRow({ tabs, ariaLabel, placement = "page", semantics = "nav" }: TabRowProps) {
+  const cardHead = placement === "card-head";
+  const rowStyle: React.CSSProperties = {
+    display: "flex",
+    gap: cardHead ? 2 : 4,
+    flexWrap: cardHead ? "nowrap" : "wrap",
+    overflowX: cardHead ? "auto" : undefined,
+    padding: cardHead ? "0 16px" : undefined,
+    borderBottom: "1px solid var(--line-1)",
+  };
+  const body = renderTabs();
+  if (semantics === "tablist") {
+    return (
+      <div role="tablist" aria-label={ariaLabel} style={rowStyle}>
+        {body}
+      </div>
+    );
+  }
   return (
-    <nav
-      aria-label={ariaLabel}
-      style={{
-        display: "flex",
-        gap: 4,
-        flexWrap: "wrap",
-        borderBottom: "1px solid var(--line-1)",
-      }}
-    >
+    <nav aria-label={ariaLabel} style={rowStyle}>
+      {body}
+    </nav>
+  );
+
+  function renderTabs() {
+    return (
+      <>
       {tabs.map((t) => {
         const style: React.CSSProperties = {
           fontFamily: "inherit",
@@ -75,11 +111,20 @@ export function TabRow({ tabs, ariaLabel }: TabRowProps) {
           );
         }
         return (
-          <button key={t.key} type="button" aria-current={t.active ? "page" : undefined} onClick={t.onClick} style={style}>
+          <button
+            key={t.key}
+            type="button"
+            role={semantics === "tablist" ? "tab" : undefined}
+            aria-selected={semantics === "tablist" ? !!t.active : undefined}
+            aria-current={semantics === "tablist" ? undefined : t.active ? "page" : undefined}
+            onClick={t.onClick}
+            style={style}
+          >
             {t.label}
           </button>
         );
       })}
-    </nav>
-  );
+      </>
+    );
+  }
 }
