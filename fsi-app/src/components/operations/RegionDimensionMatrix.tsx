@@ -347,13 +347,17 @@ export function RegionDimensionMatrix({
                       if (!c || c.factCount === 0) {
                         return (
                           <td key={r.key} style={{ ...cell, color: "var(--color-text-muted)" }} title="No producer has written this cell">
-                            {/* Artboard 08 draws a bare em dash here and explains it in the foot
-                                strip. The product cannot: a bare dash where a value goes is a
-                                placeholder literal by the app's own source-entry-filter SoT
-                                (NO_DATA_TOKENS), and the rendering guard fails on it. The shared
-                                Absence part's fixed-vocabulary reason is the convention that
-                                stands (ruling 2.1's vocabulary); logged in DEVIATION-LOG.md. */}
-                            <Absence reason="not in primary source" />
+                            {/* DEFECT 3 (lane opsclip, train 61) resolves the deviation the
+                                comment here used to record. Artboard 08 draws a bare em dash and
+                                explains it in the foot strip; the earlier reading was that the app
+                                cannot render one because a bare dash is a placeholder literal by
+                                the source-entry-filter SoT. `variant="narrow"` is neither a bare
+                                dash nor a shouted phrase: it is the dash CARRYING its
+                                closed-vocabulary reason on `aria-label`/`title`, which is the
+                                artboard's presentation and ruling 2.1's vocabulary at the same
+                                time. Production shouted the phrase over three lines in every empty
+                                cell of a five-column matrix. */}
+                            <Absence reason="not in primary source" variant="narrow" />
                           </td>
                         );
                       }

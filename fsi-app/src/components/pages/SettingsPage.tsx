@@ -193,7 +193,12 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
                 <b>Applies workspace-wide</b> · changes here affect every member, not just you
               </>
             ),
-            linkLabel: "See audit log →",
+            // DEFECT 5 (lane opsclip, train 61): "See audit log →" shipped as <a href="#"> and did
+            // nothing. There is no audit-log route and no audit-log table in the product
+            // [CONFIRMED: src/app has no such route, and the only `audit` identifiers in src/ are
+            // admin-side verification helpers], so per ruling 1.1's class the link is removed and
+            // the notice text stands on its own. It comes back the day the surface exists, as a
+            // `linkHref`, which Masthead now requires before it will render any link at all.
           }}
         />
       </div>

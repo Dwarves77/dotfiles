@@ -31,7 +31,7 @@ import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
-import { BAND_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
+import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
 
 
 function Card({ children }: { children: ReactNode }) {
@@ -183,30 +183,16 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
-                  left={
-                    // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
-                    // nothing). Navigates to /regulations with the Immediate band facet applied,
-                    // via the same `?band=` contract RegulationsLedger now reads (see
-                    // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
-                    // inline expansion of the Immediate band built here on the dashboard.
-                    <Link
-                      href={`/regulations?${BAND_FACET_PARAM}=immediate`}
-                      style={{
-                        color: "inherit",
-                        textDecoration: "underline",
-                        textUnderlineOffset: 2,
-                        display: "inline-block",
-                        // Law-2's 24px-with-8px-clearance floor: the surrounding Card clips
-                        // overflow, so a negative-margin hit-area trick would be clipped along
-                        // with it — real padding instead, which grows the footer row itself by a
-                        // few px (not specified either way by the artboard; logged in
-                        // DEVIATION-LOG.md).
-                        padding: "8px 0",
-                      }}
-                    >
-                      All {formatNumber(immediateTotal)} immediate
-                    </Link>
-                  }
+                  // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
+                  // nothing). Navigates to /regulations with the Immediate band facet applied,
+                  // via the same `?band=` contract RegulationsLedger reads (see
+                  // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
+                  // inline expansion of the Immediate band built here on the dashboard.
+                  // Lane opsclip (train 61, defect 5): the anchor and its law-2 padding moved into
+                  // CardFoot's own `leftHref`, so the sibling foot below cannot be built without
+                  // them again.
+                  left={<>All {formatNumber(immediateTotal)} immediate</>}
+                  leftHref={`/regulations?${BAND_FACET_PARAM}=immediate`}
                   right={<>then {formatNumber(actionTotal)} action · {formatNumber(monitorTotal)} monitor</>}
                 />
               </>
@@ -265,7 +251,14 @@ export function DashboardBrief({
                   />
                 ))}
                 <CardFoot
+                  // DEFECT 5 (lane opsclip, train 61, 2026-09-08): this shipped as a bare <span>
+                  // while its counterpart on the Due Next card above was an anchor, and the
+                  // artboard draws both as links. "The changes" is the regulations list ordered
+                  // newest-first, so it links to that ordering through the `?sort=` contract added
+                  // beside `?band=` in list-surface-helpers.ts — a real target, not a link to an
+                  // unordered list that happens to navigate.
                   left={<>All {formatNumber(totalChanges)} changes in the last 7 days</>}
+                  leftHref={`/regulations?${SORT_FACET_PARAM}=newest`}
                   right="old band → new band · NEW = first seen this pass"
                 />
               </>

@@ -185,6 +185,27 @@ export function bandFromSearchParam(value: string | null | undefined): UrgencyBa
   return match ? match.key : null;
 }
 
+/**
+ * SORT_FACET_PARAM — the URL query-parameter name for deep-linking a list surface's SORT, the
+ * sibling of BAND_FACET_PARAM above and built for the same reason.
+ *
+ * DEFECT 5, lane opsclip (train 61, 2026-09-08). The dashboard's "All N changes in the last 7
+ * days" shipped as a bare <span> — `closest('a') === false`, `cursor: auto`, proven statically off
+ * production — while its counterpart "All N immediate" beside it is a real anchor and the artboard
+ * draws both as links. Wiring it needed a target that MEANS "the changes", and "the changes" is
+ * the regulations list ordered newest-first, which had no URL contract: `sortKey` was local
+ * `useState` in every ledger [CONFIRMED by reading all four]. This is that contract, in the same
+ * one home, so the fix is a link to a real ordering rather than a link to an unordered list.
+ */
+export const SORT_FACET_PARAM = "sort";
+
+/** Parses a `?sort=` value into a valid ListSurfaceSortKey, or null for anything else. Never
+ *  trusts the raw string past the sort vocabulary the surfaces already use. */
+export function sortFromSearchParam(value: string | null | undefined): ListSurfaceSortKey | null {
+  const keys: ListSurfaceSortKey[] = ["next-date", "newest", "az", "my-order"];
+  return keys.find((k) => k === value) ?? null;
+}
+
 function haystack(r: Resource): string {
   return [r.title, r.jurisdiction, r.topic, ...(r.tags ?? []), r.whatIsIt, r.whyMatters]
     .filter(Boolean)

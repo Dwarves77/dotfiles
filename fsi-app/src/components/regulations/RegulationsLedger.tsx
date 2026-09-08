@@ -84,6 +84,7 @@ import {
   withListPosition,
   sortResourceRows,
   type RowFilterState,
+  type ListSurfaceSortKey,
 } from "@/components/list-surface/list-surface-helpers";
 
 const PER_BAND_CAP = 5;
@@ -123,13 +124,16 @@ export interface RegulationsLedgerProps {
    *  2026-09-07) — see regulations/page.tsx's own header. Null when the URL carries no valid
    *  band, which is the pre-existing default (no facet applied). */
   initialBand?: UrgencyBandKey | null;
+  /** Additive (lane opsclip, train 61, defect 5): `?sort=` deep-link, the sibling of `initialBand`.
+   *  Undefined keeps the surface's own default ordering, so every existing caller is unaffected. */
+  initialSort?: ListSurfaceSortKey | null;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null, nowIso }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null, initialSort = null, nowIso }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
-  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az" | "my-order">("next-date");
+  const [sortKey, setSortKey] = useState<ListSurfaceSortKey>(initialSort ?? "next-date");
   const [flat, setFlat] = useState(false);
 
   // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
@@ -288,7 +292,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
           controlLabel="Sort"
           options={SORT_OPTIONS}
           active={sortKey}
-          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az" | "my-order")}
+          onSelect={(k) => setSortKey(k as ListSurfaceSortKey)}
         />
       }
       flat={flat}

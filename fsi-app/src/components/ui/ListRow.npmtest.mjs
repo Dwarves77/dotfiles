@@ -28,7 +28,11 @@ test("the list anatomy is the default: no variant means the original four cells"
   assert.match(SOURCE, /variant = "list"/, "the default must be the list anatomy, so every existing caller is unaffected");
   // The original four cells must still exist verbatim in the list branch.
   assert.match(SOURCE, /<ImpactMeter scores=\{impact\} \/>/);
-  assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> : <Absence reason="not in primary source" \/>/);
+  // UPDATED (lane opsclip, train 61, defect 3): the TIER cell's absence is unchanged in VOCABULARY
+  // and in which branch renders it; only its presentation in this 40px track moved to the Absence
+  // part's own `variant="narrow"` (the dash, reason on aria-label/title), because the spelled-out
+  // phrase wrapped over three lines here on production and doubled the row height.
+  assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> : <Absence reason="not in primary source" variant="narrow" \/>/);
 });
 
 // UPDATED (lane map60, 2026-09-08): `endStat` used to render inside the EIGHT-column list grid as

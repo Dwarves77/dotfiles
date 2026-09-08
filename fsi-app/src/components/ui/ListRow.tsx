@@ -434,7 +434,11 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
       <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center", minWidth: 0 }}>
-        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" />}
+        {/* DEFECT 3 (lane opsclip, train 61): the TIER column is a 40px fixed track, and
+            "NOT IN PRIMARY SOURCE" wrapped over three lines inside it, doubling the row's height
+            on the dashboard. `variant="narrow"` is the Absence part's own rule for a cell this
+            size — the dash, with the same closed-vocabulary reason on `aria-label`/`title`. */}
+        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" variant="narrow" />}
       </span>
     </>
   );
