@@ -67,12 +67,18 @@ const TONE_COLOR: Record<JurisdictionTone, string> = Object.fromEntries(
   BAND_ORDER.map((b) => [b.key, b.hex]),
 ) as Record<JurisdictionTone, string>;
 
-// Marker base sizes follow band severity, hottest band largest.
-function markerSize(tone: JurisdictionTone, count: number): number {
-  const base = tone === "immediate" ? 22 : tone === "action" ? 16 : tone === "monitor" ? 13 : 11;
-  // Count bonus capped to keep the biggest markers from overwhelming the map.
-  const bonus = Math.min(count, 80) * (tone === "immediate" ? 0.55 : tone === "action" ? 0.45 : 0.3);
-  return Math.round(base + bonus);
+// Marker size is COUNT, not band, the page's own masthead states the encoding in words ("marker
+// size = item count · colour = highest band present"), and dc.html p10 draws it that way: a 1-item
+// and a 2-item marker are both 22px, 3 items is 26px, 28 is 36px, and the two largest (392 and 549)
+// are both 56px. Before lane map60 the base size came from the BAND (immediate 22 down to
+// awareness 11), so a 1-item Monitor jurisdiction drew a 13px dot the artboard draws at 22 and the
+// size carried band information a second time. Square-root growth off the 22px floor reproduces
+// every value the artboard states, and the 56px cap is the artboard's own largest marker.
+export const MARKER_MIN = 22;
+export const MARKER_MAX = 56;
+export function markerSize(count: number): number {
+  const n = Math.max(0, count);
+  return Math.round(Math.min(MARKER_MAX, MARKER_MIN + Math.sqrt(Math.max(0, n - 2)) * 2.9));
 }
 
 // Region codes used by community_groups → approximate lat/lng for the dot
@@ -93,11 +99,10 @@ const COMMUNITY_REGION_CENTROIDS: Record<string, [number, number]> = {
 // ── Marker icon builders ──
 
 function createJurisdictionIcon(tone: JurisdictionTone, count: number): L.DivIcon {
-  const size = markerSize(tone, count);
+  const size = markerSize(count);
   const color = TONE_COLOR[tone];
-  // Label font size scales with the marker; cap so tiny markers don't
-  // overflow with 3-digit counts.
-  const fontSize = Math.max(9, Math.min(13, Math.round(size * 0.35)));
+  // dc.html p10: the two 56px markers carry a 16px numeral, every smaller one a 12px numeral.
+  const fontSize = size >= 48 ? 16 : 12;
   // The visible dot stays sized by count (the artboard's own encoding — "marker
   // size = item count"), but the CLICKABLE icon box is floored at 44px (README
   // §0.4's 44px control floor) so a low-count jurisdiction's marker is never
@@ -120,7 +125,9 @@ function createJurisdictionIcon(tone: JurisdictionTone, count: number): L.DivIco
         <div style="
           width:${size}px;height:${size}px;
           background:${color};
-          border:1.5px solid #fff;
+          /* dc.html p10: the white separation is a 3px OUTSET ring (box-shadow), not a border ,
+             a border would eat into the stated diameter. */
+          box-shadow:0 0 0 3px #fff;
           border-radius:999px;
           display:flex;align-items:center;justify-content:center;
           font-family:var(--font-display,Anton),system-ui,sans-serif;
@@ -281,29 +288,39 @@ export function MapView({
           bottom: 16,
           left: 16,
           background: "var(--card)",
-          padding: "12px 14px",
+          // dc.html p10's KEY box verbatim: padding 10px 12px, radius 8, 11px body, 5px row gap.
+          padding: "10px 12px",
           border: "1px solid var(--line-1)",
-          borderRadius: 6,
+          borderRadius: 8,
           fontSize: 11,
+          display: "flex",
+          flexDirection: "column",
+          gap: 5,
           zIndex: 500,
           pointerEvents: "none",
         }}
       >
         <div
           style={{
-            fontSize: 10,
-            fontWeight: 800,
-            letterSpacing: "0.14em",
+            fontSize: "var(--fs-95)",
+            fontWeight: 700,
+            letterSpacing: "0.12em",
             textTransform: "uppercase",
             color: "var(--ink-3)",
-            marginBottom: 8,
           }}
         >
           Key
         </div>
-        {BAND_ORDER.map((b, i) => (
-          <LegendRow key={b.key} size={14 - i * 1.5} color={b.hex} label={b.label} />
+        {/* p10 draws four entries, one per band, all four dots the SAME 8px (the pre-map60 build
+            graduated them 14/12.5/11/9.5, which read as a size scale the artboard does not have),
+            and labels them "<Band> present", the key states which bands are PRESENT on the map,
+            not what the marker sizes mean. */}
+        {BAND_ORDER.map((b) => (
+          <LegendRow key={b.key} size={8} color={b.hex} label={`${b.label} present`} />
         ))}
+        {/* R7 (a feature the artboard does not draw): the community-activity dot overlay is a real
+            map state, MapView renders a 7px black dot per region with live community threads, so
+            it is KEPT and logged rather than deleted, placed after the last designed entry. */}
         <LegendRow size={7} color="#1A1A1A" label="Community activity" />
       </div>
     </div>
@@ -312,7 +329,7 @@ export function MapView({
 
 function LegendRow({ size, color, label }: { size: number; color: string; label: string }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 4 }}>
+    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
       <span
         style={{
           display: "inline-block",

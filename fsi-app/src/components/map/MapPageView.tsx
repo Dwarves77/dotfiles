@@ -50,10 +50,12 @@ import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { buildRegulationsRegionHref } from "@/lib/url-params/regulations-region-link";
 import type { CommunityActivityRow, JurisdictionTone, MapJurisdiction } from "@/components/map/MapView";
 import { BAND_ORDER, bandFromPriority, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
-import { ListRow } from "@/components/ui/ListRow";
+import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { formatNumber } from "@/lib/format";
 
 const MapView = dynamic(
@@ -119,24 +121,6 @@ function Card({ children }: { children: React.ReactNode }) {
     </div>
   );
 }
-
-function CardHead({ title, aside }: { title: string; aside?: React.ReactNode }) {
-  return (
-    <div style={{ padding: "11px 16px", display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
-      <p style={{ fontFamily: "var(--font-display)", fontWeight: 400, fontSize: 15, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--ink)", margin: 0 }}>{title}</p>
-      {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
-    </div>
-  );
-}
-
-const railLabelStyle: React.CSSProperties = {
-  fontSize: "var(--fs-105)",
-  fontWeight: 800,
-  letterSpacing: "0.12em",
-  textTransform: "uppercase",
-  color: "var(--ink-3)",
-  margin: "0 0 10px",
-};
 
 export function MapPageView(props: MapPageViewProps) {
   const { resources, coverageGaps, initialRegionFilter = null, communityActivity = [] } = props;
@@ -295,45 +279,55 @@ export function MapPageView(props: MapPageViewProps) {
   const modeNote = mode !== "all";
 
   return (
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "16px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-map-outer">
+    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-map-outer">
       <style>{`
         @media (max-width: 1280px) {
           .cl-map-grid { grid-template-columns: 1fr !important; }
         }
       `}</style>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 20, minWidth: 0 }} className="cl-map-grid" data-testid="map-register-column">
-        {/* Filter row — Mode / Band / Region (README §0.4: grouped labelled sets). */}
-        <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-          <FilterChipGroup label="Mode">
-            {MODE_CHIP_ORDER.map((m) => (
-              <FilterChip key={m.key} active={mode === m.key} onClick={() => setMode(m.key)}>
-                {m.label}
-              </FilterChip>
-            ))}
-          </FilterChipGroup>
-          <FilterChipGroup label="Band">
-            <FilterChip active={bandFilter === null} onClick={() => setBandFilter(null)}>
-              All
+      {/* Filter row, Mode / Band / Region (README §0.4: grouped labelled sets). dc.html p10 puts
+          this row at `grid-column:1/-1` in the content grid, spanning the rail as well as the
+          content column, as ONE flex row with `gap:10px` and `flex-wrap:wrap` and `padding:0 4px`:
+          at 1440 that lands MODE and BAND on the first line and REGION on the second, which is
+          exactly what the artboard draws. Before lane map60 this row lived INSIDE the content
+          column at gap 20, so the three groups stacked on three lines (postscript 14's own
+          finding, "MODE/BAND/REGION are on three lines where the artboard puts MODE and BAND on
+          one"). */}
+      <div
+        data-audit="map-filter-row"
+        style={{ gridColumn: "1 / -1", display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap", padding: "0 4px" }}
+      >
+        <FilterChipGroup label="Mode">
+          {MODE_CHIP_ORDER.map((m) => (
+            <FilterChip key={m.key} active={mode === m.key} onClick={() => setMode(m.key)}>
+              {m.label}
             </FilterChip>
-            {BAND_ORDER.map((b) => (
-              <FilterChip key={b.key} active={bandFilter === b.key} onClick={() => setBandFilter(b.key)}>
-                {b.label}
-              </FilterChip>
-            ))}
-          </FilterChipGroup>
-          <FilterChipGroup label="Region">
-            <FilterChip active={regionChips.size === 0} onClick={() => setRegionChips(new Set())}>
-              All
+          ))}
+        </FilterChipGroup>
+        <FilterChipGroup label="Band">
+          <FilterChip active={bandFilter === null} onClick={() => setBandFilter(null)}>
+            All
+          </FilterChip>
+          {BAND_ORDER.map((b) => (
+            <FilterChip key={b.key} active={bandFilter === b.key} onClick={() => setBandFilter(b.key)}>
+              {b.label}
             </FilterChip>
-            {REGION_CHIP_ORDER.map((r) => (
-              <FilterChip key={r} active={regionChips.has(r)} onClick={() => toggleRegion(r)}>
-                {r}
-              </FilterChip>
-            ))}
-          </FilterChipGroup>
-        </div>
+          ))}
+        </FilterChipGroup>
+        <FilterChipGroup label="Region">
+          <FilterChip active={regionChips.size === 0} onClick={() => setRegionChips(new Set())}>
+            All
+          </FilterChip>
+          {REGION_CHIP_ORDER.map((r) => (
+            <FilterChip key={r} active={regionChips.has(r)} onClick={() => toggleRegion(r)}>
+              {r}
+            </FilterChip>
+          ))}
+        </FilterChipGroup>
+      </div>
 
+      <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }} className="cl-map-grid" data-testid="map-register-column">
         {modeNote && (
           <StateNote
             action={{ label: "Back to all modes", onClick: () => setMode("all") }}
@@ -348,11 +342,12 @@ export function MapPageView(props: MapPageViewProps) {
 
         {/* Regulatory map */}
         <Card>
-          <CardHead
+          <SectionHeading
             title="Regulatory map"
             aside={`${chartedRows.length} charted of ${liveJurisdictions} live · ${chartedItemCount} of ${totalActiveCount} items`}
           />
-          <div style={{ position: "relative", height: 460 }} data-testid="map-canvas">
+          {/* dc.html p10: the map canvas is 420px tall. */}
+          <div style={{ position: "relative", height: 420 }} data-testid="map-canvas">
             <div style={{ position: "absolute", inset: 0 }}>
               <MapView
                 jurisdictions={mapMarkers}
@@ -367,7 +362,7 @@ export function MapPageView(props: MapPageViewProps) {
 
         {/* Jurisdiction register — one ListRow per jurisdiction. */}
         <Card>
-          <CardHead
+          <SectionHeading
             title="Jurisdiction register"
             aside={
               <>
@@ -384,9 +379,13 @@ export function MapPageView(props: MapPageViewProps) {
             </div>
           ) : (
             <div data-testid="jurisdiction-register-rows">
+              {/* dc.html p10's own column header row over the register grid (lane map60:
+                  ListRowColumnHeader's additive `variant="register"`, not a page-local header). */}
+              <ListRowColumnHeader variant="register" />
               {registerRows.map((row) => (
                 <div key={row.id} onClick={() => focusJurisdiction(row.id)} style={{ cursor: "pointer" }}>
                   <ListRow
+                    variant="register"
                     href={buildRegulationsRegionHref([row.id])}
                     band={row.band}
                     jurisdiction={row.code}
@@ -409,8 +408,11 @@ export function MapPageView(props: MapPageViewProps) {
             </p>
           )}
           {immediateItemCount > 0 && (
-            <div style={{ padding: 12 }}>
-              <StateNote band={BAND_ORDER[0]} action={{ label: "Open the register", href: "/regulations" }}>
+            // dc.html p10: the foot strip sits at `margin:0 16px 14px` inside the card, and its
+            // link carries the arrow in its own label (the convention artboard 11's "Review
+            // changes →" uses, which WatchlistSurface already follows).
+            <div style={{ padding: "0 16px 14px" }}>
+              <StateNote band={BAND_ORDER[0]} action={{ label: "Open the register →", href: "/regulations" }}>
                 Immediate · {immediateItemCount} item{immediateItemCount === 1 ? "" : "s"} bind within 90
                 days across {immediateRows.length} jurisdiction{immediateRows.length === 1 ? "" : "s"}
               </StateNote>
@@ -419,99 +421,76 @@ export function MapPageView(props: MapPageViewProps) {
         </Card>
       </div>
 
-      {/* Rail */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Card>
-          <div style={{ padding: "14px 16px" }}>
-            <p style={railLabelStyle}>
-              Immediate · {immediateRows.length} jurisdiction{immediateRows.length === 1 ? "" : "s"}
+      {/* Rail, the SHARED RailCard/LegendRailCard (src/components/list-surface/
+          ListSurfaceRailCards.tsx), not a page-local card. Before lane map60 this file carried its
+          own card shell, its own rail title style and a verbatim copy of the Legend card's three
+          definitions: three duplications of shared parts, which CLAUDE.md rule 13 forbids. Order
+          per artboard 10: Immediate jurisdictions, Coverage gaps, Legend. */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <RailCard
+          dataAudit="map-immediate-rail"
+          title={`Immediate · ${immediateRows.length} jurisdiction${immediateRows.length === 1 ? "" : "s"}`}
+        >
+          {immediateRows.length === 0 ? (
+            <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0 }}>
+              No jurisdiction is in the Immediate band for the current filter.
             </p>
-            {immediateRows.length === 0 ? (
-              <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0 }}>
-                No jurisdiction is in the Immediate band for the current filter.
-              </p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                {immediateRows.slice(0, 6).map((row) => (
-                  <div key={row.id} style={{ display: "flex", justifyContent: "space-between", gap: 10, alignItems: "baseline" }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                      <span aria-hidden="true" style={{ width: 3, height: 14, background: "var(--immediate)", flexShrink: 0 }} />
-                      <span style={{ fontSize: "var(--fs-125)", fontWeight: 700, color: "var(--ink)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                        {row.label}
-                      </span>
-                    </span>
-                    <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>
-                      {row.count} immediate item{row.count === 1 ? "" : "s"}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
+          ) : (
+            // dc.html p10: rows are `grid-template-columns:3px 1fr auto`, gap 10, 8px between
+            // rows, 12px type; the name is weight 600 and the count is ink at weight 700.
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "var(--fs-12)" }}>
+              {immediateRows.slice(0, 6).map((row) => (
+                <div key={row.id} style={{ display: "grid", gridTemplateColumns: "3px 1fr auto", gap: 10, alignItems: "center" }}>
+                  <span aria-hidden="true" style={{ background: "var(--immediate)", borderRadius: 2, height: "100%" }} />
+                  <span style={{ fontWeight: 600, color: "var(--ink)", minWidth: 0, overflow: "hidden", whiteSpace: "nowrap", textOverflow: "ellipsis" }}>
+                    {row.label}
+                  </span>
+                  <span style={{ color: "var(--ink)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                    {row.count} immediate item{row.count === 1 ? "" : "s"}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </RailCard>
 
-        <Card>
-          <div style={{ padding: "14px 16px" }}>
-            <p style={railLabelStyle}>Coverage gaps</p>
-            {coverageGapsRanked.length === 0 ? (
-              <p style={{ fontSize: "var(--fs-115)", color: "var(--ink-2)", margin: 0 }}>Coverage snapshot unavailable.</p>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {coverageGapsRanked.map((row, idx) => (
-                  <Link
-                    key={row.region.id}
-                    href={`/map?region-filter=${encodeURIComponent(row.region.id)}`}
-                    aria-label={`Filter map to ${row.region.name} (${row.gap} gaps of ${row.total})`}
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      gap: 8,
-                      padding: "8px 0",
-                      borderBottom: idx === coverageGapsRanked.length - 1 ? "0" : "1px solid var(--line-3)",
-                      textDecoration: "none",
-                      color: "inherit",
-                    }}
-                  >
-                    <span style={{ fontSize: "var(--fs-12)", color: "var(--ink)" }}>{row.region.name}</span>
-                    <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>
-                      {row.covered} of {row.total}
-                    </span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        </Card>
+        <RailCard dataAudit="map-coverage-rail" title="Coverage gaps">
+          {coverageGapsRanked.length === 0 ? (
+            <p style={{ fontSize: "var(--fs-115)", color: "var(--ink-2)", margin: 0 }}>Coverage snapshot unavailable.</p>
+          ) : (
+            // dc.html p10: a 6px-gap list of 12px rows, name weight 600 left, "N of N" muted
+            // right, no dividers and no row padding. Each row stays the region link it already
+            // was (a real filter action, not decoration), sized to the 24px minimum box.
+            <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "var(--fs-12)" }}>
+              {coverageGapsRanked.map((row) => (
+                <Link
+                  key={row.region.id}
+                  href={`/map?region-filter=${encodeURIComponent(row.region.id)}`}
+                  aria-label={`Filter map to ${row.region.name} (${row.gap} gaps of ${row.total})`}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    minHeight: 24,
+                    alignItems: "center",
+                    textDecoration: "none",
+                    color: "inherit",
+                  }}
+                >
+                  <span style={{ fontWeight: 600, color: "var(--ink)" }}>{row.region.name}</span>
+                  <span style={{ color: "var(--ink-3)", whiteSpace: "nowrap" }}>
+                    {row.covered} of {row.total}
+                  </span>
+                </Link>
+              ))}
+            </div>
+          )}
+        </RailCard>
 
-        {/* Legend — the same content the dashboard's rail Legend card carries (README's shared
-            explanation of Impact/Timeline/Source tier, reused verbatim per artboard 10's own
-            rail, not a map-specific marker key — the marker/band key already lives inside the
-            map card's own "KEY" box). */}
-        <Card>
-          <div style={{ padding: "14px 16px" }}>
-            <p style={railLabelStyle}>Legend</p>
-            <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-              <div>
-                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Impact</dt>
-                <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  Four scored dimensions, sorted low to high: green left, red right. Height is the sum, score 1–3.
-                </dd>
-              </div>
-              <div>
-                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Timeline</dt>
-                <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  Passed · next · ahead.
-                </dd>
-              </div>
-              <div>
-                <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Source tier</dt>
-                <dd style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: "2px 0 0" }}>
-                  T1 binding law → T6 commentary.
-                </dd>
-              </div>
-            </dl>
-          </div>
-        </Card>
+        {/* Artboard 10's third rail card is the SAME Legend every list surface draws (Impact,
+            Timeline, Source tier), the shared card, not a copy. The marker/band key is a
+            different thing and lives inside the map card's own KEY box. */}
+        <LegendRailCard />
       </div>
     </div>
   );

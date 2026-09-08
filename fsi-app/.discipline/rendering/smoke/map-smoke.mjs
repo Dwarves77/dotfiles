@@ -13,9 +13,12 @@
 //   - `MapView` (src/components/map/MapView.tsx) — the real Leaflet basemap + urgency-band markers +
 //     the bottom-left marker legend (`data-map-legend`), fixture jurisdictions covering all four
 //     bands so every band's marker colour and every legend row renders.
-//   - `ListRow` (src/components/ui/ListRow.tsx) with the `endStat` prop — the real jurisdiction
-//     register row, exactly as MapPageView.tsx renders it (band spine, jurisdiction code, title +
-//     active-themes meta, band-coloured stat block), fixture rows across bands.
+//   - `ListRow` (src/components/ui/ListRow.tsx) with `variant="register"` + `endStat`, under its
+//     `ListRowColumnHeader variant="register"`, the real jurisdiction register, exactly as
+//     MapPageView.tsx renders it (band spine, name column, active-themes column, band + count stat
+//     cells, trailing → glyph), fixture rows across bands. Updated by lane map60 (2026-09-08) when
+//     the register moved to artboard 10's own six-column grid; a smoke spec describes the product,
+//     it does not preserve the shape the product has left behind.
 //
 // THE CSS ALIAS. Same technique as spec09-smoke.mjs's CSS_ALIAS_TARGET: `leaflet/dist/leaflet.css`
 // is aliased to the existing next/link stub (any valid ES module works as an import-for-side-effect
@@ -52,12 +55,14 @@ const ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MapView } from '@/components/map/MapView';
-import { ListRow } from '@/components/ui/ListRow';
+import { ListRow, ListRowColumnHeader } from '@/components/ui/ListRow';
 import { BAND_ORDER } from '@/lib/urgency/bands';
 
 function RegisterRow({ row }) {
   const band = BAND_ORDER.find((b) => b.key === row.bandKey);
   return React.createElement(ListRow, {
+    variant: 'register',
+    minHeight: 44,
     href: '/regulations?region=' + row.id.toUpperCase(),
     band,
     jurisdiction: row.code,
@@ -73,6 +78,9 @@ function MapSmokeRoot(props) {
       React.createElement(MapView, { jurisdictions: props.markers, communityActivity: [] }),
     ),
     React.createElement('div', { 'data-testid': 'jurisdiction-register-rows' },
+      props.registerRows.length > 0
+        ? React.createElement(ListRowColumnHeader, { key: 'head', variant: 'register' })
+        : null,
       props.registerRows.map((row) => React.createElement(RegisterRow, { key: row.id, row })),
     ),
   );
@@ -157,8 +165,9 @@ export async function runSmoke(browser) {
 
           checks += 1;
           const rowCount = await page.$$eval('[data-testid="jurisdiction-register-rows"] > *', (els) => els.length);
-          if (rowCount < REGISTER_ROWS.length) {
-            failures.push(`${label}: expected ${REGISTER_ROWS.length} jurisdiction register rows, found ${rowCount}.`);
+          // +1 for the column header, which is a child of the same container.
+          if (rowCount < REGISTER_ROWS.length + 1) {
+            failures.push(`${label}: expected ${REGISTER_ROWS.length} jurisdiction register rows plus a column header, found ${rowCount} children.`);
           }
 
           // Every register row is a real navigable Link (the whole row is the click target) —
