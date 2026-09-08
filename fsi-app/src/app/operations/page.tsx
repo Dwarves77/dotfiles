@@ -3,18 +3,23 @@
  *
  * UI system handoff 2026-09-06, artboard 08 "Operations list". Composes
  * <OperationsLedger> (masthead + band tiles + Mode/Region facets + region x
- * dimension matrix + band-grouped rows + rail) plus the pre-existing
- * DQI/auxiliary-energy/grid-queue panels and the automate-vs-hire
- * calculator, none of which duplicate list-row UI.
+ * dimension matrix + band-grouped rows + rail).
  *
  * REWRITTEN this lane (UILISTS, 2026-09-06): the old <EditorialMasthead> is
  * gone.
  *
- * RESTORED (UILISTS2 lane, 2026-09-07, operator ruling: an app feature not
- * shown in the 17 artboards is restored exactly): `fetchStateCostFacts()` is
- * read again here and passed to OperationsLedger, which renders the By-state
- * sub-list below the region x dimension matrix — see that component's own
- * header.
+ * PAGE SCOPE (UI fix round 2026-09-08, item D3). Artboard 08 defines the WHOLE page, and everything
+ * that used to sit below its last card has moved or gone:
+ *   - the "Capacity investment estimate" calculator, and with it the "Recent recalculations" list
+ *     that is its own foot, MOVED to /operations/calculator (the operator ruled that move earlier and
+ *     restated it this round).
+ *   - the DQI, auxiliary-energy and grid-queue panels MOVED onto the Operations PROFILE page as three
+ *     S-sections, with their existing data paths — see /operations/[slug]/page.tsx.
+ *   - the "By state" sub-list REMOVED. It was restored in the UILISTS2 lane on ruling R7 ("a feature
+ *     no artboard draws is left as it is"); item D3 names it for removal, and a later ruling wins.
+ *     The state cost facts it read are NOT orphaned: /api/ask still grounds Operations answers on
+ *     state_cost_facts, and the Coverage gaps rail card artboard 08 DOES draw still reports the
+ *     sourced-state tally, which is why `fetchStateCostFacts()` is still read here.
  */
 
 import { Suspense } from "react";
@@ -24,10 +29,6 @@ import { OperationsLedger } from "@/components/operations/OperationsLedger";
 import { renderNowIso } from "@/lib/render-now";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE, toLedgerRowPayload } from "@/lib/list-pagination";
-import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
-import { DqiPanel } from "@/components/operations/DqiPanel";
-import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
-import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 
 export default async function Operations() {
   const t0 = Date.now();
@@ -60,12 +61,6 @@ export default async function Operations() {
           nowIso={renderNowIso()}
         />
       </Suspense>
-      {/* Lane DP-SURF: the automate-vs-hire calculator. Pure client-side compute. */}
-      <AutomateVsHireCalculator />
-      {/* Spec 09 §1.4/§1.5/§1.6: DQI, auxiliary energy, grid queue. */}
-      <DqiPanel />
-      <AuxiliaryEnergyPanel />
-      <GridQueuePanel />
     </>
   );
 }

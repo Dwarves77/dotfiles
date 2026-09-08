@@ -40,6 +40,15 @@ import { getPublicSurfaceSlugs } from "@/lib/data";
 import { buildResourceLookup } from "@/lib/connections/resource-lookup";
 import { getServiceSupabase } from "@/lib/supabase-service";
 import { OperationsDetailSurface } from "@/components/operations/OperationsDetailSurface";
+// Item D3 (UI fix round 2026-09-08): the DQI / auxiliary-energy / grid-queue material moved off the
+// /operations LIST (it sat below artboard 08's last card) onto this profile as three S-sections. These
+// are async SERVER components with their own org-scoped reads; they are passed to the "use client"
+// surface as ReactNode props (the same server-component-as-prop shape the detail surfaces already use
+// for <UpcomingObligationsStrip variant="detail"> on /regulations/[slug]), so their data path is
+// untouched and none of it moves into the client bundle.
+import { DqiPanel } from "@/components/operations/DqiPanel";
+import { AuxiliaryEnergyPanel } from "@/components/operations/AuxiliaryEnergyPanel";
+import { GridQueuePanel } from "@/components/operations/GridQueuePanel";
 import { checkMatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import type { MatrixEligibility } from "@/lib/agent/formats/operations-matrix";
 import { NoticesRail } from "@/components/figures/NoticesRail";
@@ -286,6 +295,9 @@ export default async function OperationsDetailPage({
         connections={connections}
         relevance={relevance}
         resourceLookup={resourceLookup}
+        dqiSection={<DqiPanel />}
+        auxiliaryEnergySection={<AuxiliaryEnergyPanel />}
+        gridQueueSection={<GridQueuePanel />}
       />
       {/* Recalculation notices (complete-system build plan W4.3, lane NOTICES 2026-09-05): see
           NoticesRail's own header for scope (org-watchlist-wide, not narrowed to this item). This

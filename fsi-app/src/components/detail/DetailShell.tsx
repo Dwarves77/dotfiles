@@ -652,7 +652,13 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
   return (
     <SectionCard as="section" id={id} padding="16px 20px" style={{ marginBottom: 16, scrollMarginTop: 56 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+        {/* data-guard-title (item D3, 2026-09-08): a section heading IS a title in the rendered tree,
+            and the squeezed-title detector (ux-assert.mjs) had nothing to measure on any detail
+            surface below the masthead. Marking it here, once, covers all four surfaces and lets a
+            section BODY component render rows only — which is what the three spec-09 panels moved
+            onto the Operations profile this round now do. */}
         <h2
+          data-guard-title
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 400,
