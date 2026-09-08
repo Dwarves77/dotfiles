@@ -35,11 +35,23 @@
  * render as a real row: it structurally has zero rows in `regional_data_facts`, so every one of its
  * cells hits this same empty-cell branch and shows the one honest absence convention, never a blank and
  * never an invented count.
+ *
+ * COMPOSED TO ARTBOARD 08 (lane comp-08, 2026-09-08). This was a bare <section> with a 15px h2, a
+ * sentence-form dek, and the base-region control above the table; artboard 08/id="p8" draws it as a
+ * card: ruling 5.1's graduated top rule, an Anton "REGIONS SIDE BY SIDE" head with the coverage and
+ * affordance meta on the right, the table, then a foot strip carrying "Compare against:" (moved, not
+ * copied) and the dash convention. Cells are the artboard's Anton count over a 9.5px uppercase state
+ * word; an empty cell keeps the shared Absence part's fixed-vocabulary word, not the artboard's bare dash
+ * (a bare dash is a placeholder literal by the app's own source-entry-filter SoT and the rendering
+ * guard fails on it) — logged in DEVIATION-LOG.md. The dimension row carries the
+ * artboard's disclosure glyph, and the first fact-holding dimension opens by default per the
+ * artboard's own note ("the expanded Facts row is the whole point of this page").
  */
 
 import { Fragment, useMemo, useState } from "react";
 import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-server";
 import { Absence } from "@/components/ui/Absence";
+import { SectionRule } from "@/components/ui/SectionRule";
 import {
   buildRegionGrid,
   orderRegions,
@@ -80,9 +92,12 @@ const FRESHNESS_LABEL: Record<string, string> = {
   unknown: "date unknown",
 };
 
+// Artboard 08/id="p8" cell state word: "CURRENT" in ink (#1A1A1A), "AGEING" in muted (#7A6E6C).
+// The two states the artboard does NOT draw keep their warning/error hue — a feed that has STOPPED
+// updating ("frozen") is a signal the artboard had no example of, never quietened to grey here.
 const FRESHNESS_COLOR: Record<string, string> = {
-  current: "var(--color-success)",
-  ageing: "var(--color-warning)",
+  current: "var(--ink)",
+  ageing: "var(--ink-3)",
   stale: "var(--color-warning)",
   frozen: "var(--color-error)",
   unknown: "var(--color-text-muted)",
@@ -97,7 +112,12 @@ export function RegionDimensionMatrix({
   crossRefCountsPending = false,
 }: Props) {
   const [baseRegion, setBaseRegion] = useState<string | null>(null);
-  const [openDimension, setOpenDimension] = useState<string | null>(null);
+  // Artboard 08/id="p8"'s own note: "the expanded Facts row is the whole point of this page and is
+  // open by default" (and its own markup draws Labor markets open). The default is the first
+  // dimension that actually HOLDS facts, so the page never opens onto an empty Facts row; null
+  // (nothing open) only when no dimension holds any. `undefined` means "not chosen yet", so a
+  // reader who closes the opened row gets `null` and it stays closed.
+  const [openDimension, setOpenDimension] = useState<string | null | undefined>(undefined);
 
   const dbByKey = useMemo(() => Object.fromEntries(dimensions.map((d) => [d.db, d.key])), [dimensions]);
 
@@ -144,6 +164,12 @@ export function RegionDimensionMatrix({
     [regions, dimensions, facts, coverageRows, crossRefCountsByRegion]
   );
 
+  const defaultOpenDimension = useMemo(
+    () => dimensions.find((d) => facts.some((f) => f.dimension === d.db))?.db ?? null,
+    [dimensions, facts],
+  );
+  const resolvedOpen = openDimension === undefined ? defaultOpenDimension : openDimension;
+
   const orderedKeys: string[] = useMemo(
     () => orderRegions(regions.map((r) => r.key), baseRegion),
     [regions, baseRegion]
@@ -177,51 +203,57 @@ export function RegionDimensionMatrix({
   if (regions.length === 0 || dimensions.length === 0) return null;
 
   return (
-    <section style={{ margin: "0 0 24px" }}>
-      <header style={{ marginBottom: 10 }}>
-        <h2 style={{ fontSize: 15, fontWeight: 600, margin: 0, color: "var(--color-text-primary)" }}>
+    <section
+      data-audit="ops-matrix-card"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      {/* Artboard 08/id="p8" head strip: Anton section title left, the coverage/affordance meta
+          right, one hairline below. The prose paragraph that used to sit under the title carried
+          the same three facts in sentence form; it is gone, not duplicated. */}
+      <header
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 16,
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid var(--line-2)",
+        }}
+      >
+        <h2
+          style={{
+            fontFamily: "var(--font-display)",
+            textTransform: "uppercase",
+            letterSpacing: "0.04em",
+            fontSize: 20,
+            lineHeight: 1,
+            margin: 0,
+            color: "var(--ink)",
+          }}
+        >
           Regions side by side
         </h2>
-        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "4px 0 0", maxWidth: "78ch" }}>
-          Sourced facts per region and dimension. {grid.fillRate.filled} of {grid.fillRate.total} cells hold
-          data ({grid.fillRate.pct}%), counted from sourced facts only. Select a dimension row to compare
-          the regions on it.
-        </p>
-      </header>
-
-      {/* Base region: arrangement, and the control says so rather than implying an index. */}
-      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginBottom: 10, fontSize: 12 }}>
-        <span style={{ color: "var(--color-text-muted)" }}>Compare against:</span>
-        {regions.map((r) => (
-          <button
-            key={r.key}
-            onClick={() => setBaseRegion(baseRegion === r.key ? null : r.key)}
-            style={{
-              // Law-2 floor (docs/design/ux-laws.md #2): was `padding: "2px 8px"` at 12px text,
-              // ~21px tall — under the 24px+8px-clearance alternative to 44px even though the
-              // row's `gap: 8` already supplies the clearance. `minHeight: 24` + inline-flex/
-              // center closes the gap without changing type scale or colour.
-              display: "inline-flex",
-              alignItems: "center",
-              minHeight: 24,
-              padding: "2px 8px",
-              borderRadius: 4,
-              border: "1px solid",
-              borderColor: baseRegion === r.key ? "var(--color-primary)" : "var(--color-border)",
-              backgroundColor: baseRegion === r.key ? "var(--color-primary)20" : "var(--color-surface)",
-              color: "var(--color-text-primary)",
-              cursor: "pointer",
-            }}
-          >
-            {r.key}
-          </button>
-        ))}
-        <span style={{ color: "var(--color-text-muted)" }}>
-          {anyEnveloped
-            ? "(moves that column first; sourced numeric facts index against it — legacy free-text facts are still not indexed)"
-            : "(moves that column first; values are not indexed — the stored figures are free text, not numbers)"}
+        <span
+          style={{
+            fontSize: "var(--fs-105)",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 600,
+            textAlign: "right",
+          }}
+        >
+          {grid.fillRate.filled} of {grid.fillRate.total} cells sourced · {grid.fillRate.pct}% · click a
+          dimension to open its facts
         </span>
-      </div>
+      </header>
 
       {/* Lane MOBILE-2, 2026-09-03 (coordinator's round-2 probe, /operations, "United States 1/5
           dimensions sourced" clipped at the right edge on a growing live region roster): the wide
@@ -268,22 +300,18 @@ export function RegionDimensionMatrix({
               {orderedRegions.map((r) => {
                 const cov = coverageByRegion[r.key];
                 return (
-                  <th key={r.key} style={{ ...cell, minWidth: 130 }}>
+                  <th key={r.key} style={{ ...cell, minWidth: 130, verticalAlign: "top" }}>
                     <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{r.label}</div>
-                    <div style={{ fontSize: 11, fontWeight: 400, color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)" }}>
-                      {cov?.filled ?? 0}/{cov?.total ?? 0} dimensions sourced
+                    {/* Artboard 08/id="p8" column subhead: ONE 10px line, "2/5 sourced · 778 regs" —
+                        the coverage fraction and the cross-reference count on the same line, not two
+                        stacked lines with the word "dimensions"/"linked regulations" spelled out. */}
+                    <div style={{ fontSize: 10, fontWeight: 400, color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)" }}>
+                      {cov?.filled ?? 0}/{cov?.total ?? 0} sourced
+                      {/* FOLD-59: the cross-reference count arrives with the deferred rest-load
+                          (HYDRATION-59 defect D4). While it is pending the subhead says so rather
+                          than rendering a 0 that later jumps to its real value. */}
+                      {crossRefCountsPending ? " · counting regs…" : cov?.crossReferenceCount > 0 ? ` · ${cov.crossReferenceCount} regs` : ""}
                     </div>
-                    {crossRefCountsPending ? (
-                      <div style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-muted)" }}>
-                        counting linked regulations…
-                      </div>
-                    ) : (
-                      cov?.crossReferenceCount > 0 && (
-                        <div style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-muted)" }}>
-                          {cov.crossReferenceCount} linked regulations
-                        </div>
-                      )
-                    )}
                   </th>
                 );
               })}
@@ -291,7 +319,7 @@ export function RegionDimensionMatrix({
           </thead>
           <tbody>
             {dimensions.map((d) => {
-              const open = openDimension === d.db;
+              const open = resolvedOpen === d.db;
               return (
                 <Fragment key={d.db}>
                   <tr
@@ -306,14 +334,25 @@ export function RegionDimensionMatrix({
                         estimated lines and false-positives as "squeezed", confirmed by a raw
                         Range.getClientRects() count of 1 on the same markup. The inner span carries
                         no padding, so its measured height matches its actual (single) line. */}
-                    <td style={{ ...cell, textAlign: "left", fontWeight: 500, color: "var(--color-text-primary)" }}>
-                      <span data-guard-title style={{ display: "block", overflowWrap: "anywhere" }}>{d.name}</span>
+                    <td style={{ ...cell, textAlign: "left", fontWeight: 600, color: "var(--color-text-primary)" }}>
+                      {/* Artboard 08: the dimension name carries its own disclosure glyph, closed
+                          "▸" / open "▾" — the row is the click target (the whole <tr> already is). */}
+                      <span style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
+                        <span aria-hidden="true" style={{ color: "var(--ink-3)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
+                        <span data-guard-title style={{ display: "block", overflowWrap: "anywhere", minWidth: 0 }}>{d.name}</span>
+                      </span>
                     </td>
                     {orderedRegions.map((r) => {
                       const c = grid.byCell[`${r.key}|${d.db}`];
                       if (!c || c.factCount === 0) {
                         return (
                           <td key={r.key} style={{ ...cell, color: "var(--color-text-muted)" }} title="No producer has written this cell">
+                            {/* Artboard 08 draws a bare em dash here and explains it in the foot
+                                strip. The product cannot: a bare dash where a value goes is a
+                                placeholder literal by the app's own source-entry-filter SoT
+                                (NO_DATA_TOKENS), and the rendering guard fails on it. The shared
+                                Absence part's fixed-vocabulary reason is the convention that
+                                stands (ruling 2.1's vocabulary); logged in DEVIATION-LOG.md. */}
                             <Absence reason="not in primary source" />
                           </td>
                         );
@@ -321,8 +360,20 @@ export function RegionDimensionMatrix({
                       const fresh = c.facts[0]?.freshness ?? "unknown";
                       return (
                         <td key={r.key} style={{ ...cell, color: "var(--color-text-secondary)" }}>
-                          <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{c.factCount}</div>
-                          <div style={{ fontSize: 11, color: FRESHNESS_COLOR[fresh] }}>{FRESHNESS_LABEL[fresh]}</div>
+                          {/* Artboard 08 cell: Anton 16px count over a 9.5px uppercase state word. */}
+                          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, color: "var(--ink)" }}>{c.factCount}</div>
+                          <div
+                            style={{
+                              fontSize: 9.5,
+                              letterSpacing: "0.08em",
+                              textTransform: "uppercase",
+                              fontWeight: 700,
+                              marginTop: 2,
+                              color: FRESHNESS_COLOR[fresh],
+                            }}
+                          >
+                            {FRESHNESS_LABEL[fresh]}
+                          </div>
                         </td>
                       );
                     })}
@@ -330,13 +381,13 @@ export function RegionDimensionMatrix({
 
                   {open && (
                     <tr>
-                      <td style={{ ...cell, verticalAlign: "top", color: "var(--color-text-muted)", fontSize: 12 }}>
+                      <td style={{ ...cell, verticalAlign: "top", textAlign: "left", color: "var(--color-text-muted)", fontSize: 12 }}>
                         Facts
                       </td>
                       {orderedRegions.map((r) => {
                         const c = grid.byCell[`${r.key}|${d.db}`];
                         return (
-                          <td key={r.key} style={{ ...cell, verticalAlign: "top" }}>
+                          <td key={r.key} style={{ ...cell, verticalAlign: "top", textAlign: "left" }}>
                             {!c || c.factCount === 0 ? (
                               <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>
                                 No sourced fact for {r.key} on this dimension.
@@ -414,7 +465,7 @@ export function RegionDimensionMatrix({
               <div style={{ display: "flex", flexDirection: "column" }}>
                 {dimensions.map((d) => {
                   const c = grid.byCell[`${r.key}|${d.db}`];
-                  const open = openDimension === d.db;
+                  const open = resolvedOpen === d.db;
                   const hasData = !!c && c.factCount > 0;
                   const fresh = c?.facts[0]?.freshness ?? "unknown";
                   return (
@@ -481,22 +532,89 @@ export function RegionDimensionMatrix({
         })}
       </div>
 
-      {grid.emptyRegions.length > 0 && (
-        <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: "10px 0 0", maxWidth: "78ch" }}>
-          <strong style={{ color: "var(--color-error)" }}>
-            {grid.emptyRegions.join(" and ")} hold no sourced facts on any dimension.
-          </strong>{" "}
-          There is no live producer writing them. Regulation cross-references for those regions are counted
-          separately in the column header and are not part of the coverage figure.
-        </p>
+      {/* Ruling R7 (an app feature the artboard does not draw sits at the card FOOT, never where an
+          artboard region goes): the empty-region and coverage-reconciliation disclosures used to
+          hang below the card in the page's own column, between this card and the band cards, which
+          is where artboard 08 puts the first band card. They are unchanged in content — only their
+          mount point moved inside this card, above the foot strip. */}
+      {(grid.emptyRegions.length > 0 || grid.reconciliation.disagreed.length > 0) && (
+        <div style={{ padding: "10px 16px 0" }}>
+          {grid.emptyRegions.length > 0 && (
+            <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: 0, maxWidth: "78ch" }}>
+              <strong style={{ color: "var(--color-error)" }}>
+                {grid.emptyRegions.join(" and ")} hold no sourced facts on any dimension.
+              </strong>{" "}
+              There is no live producer writing them. Regulation cross-references for those regions are counted
+              separately in the column header and are not part of the coverage figure.
+            </p>
+          )}
+
+          {grid.reconciliation.disagreed.length > 0 && (
+            <p style={{ fontSize: 12, color: "var(--color-warning)", margin: "8px 0 0", maxWidth: "78ch" }}>
+              Coverage-table mismatch on {grid.reconciliation.disagreed.length} of {grid.reconciliation.checked} cells:
+              the stored coverage row and the facts present disagree. The counts above are computed from the facts.
+            </p>
+          )}
+        </div>
       )}
 
-      {grid.reconciliation.disagreed.length > 0 && (
-        <p style={{ fontSize: 12, color: "var(--color-warning)", margin: "8px 0 0", maxWidth: "78ch" }}>
-          Coverage-table mismatch on {grid.reconciliation.disagreed.length} of {grid.reconciliation.checked} cells:
-          the stored coverage row and the facts present disagree. The counts above are computed from the facts.
-        </p>
-      )}
+      {/* Foot strip (artboard 08/id="p8"): "Compare against: EU · US · ASIA · UK · UAE" left, the
+          dash convention stated right. The base-region control is the SAME control that used to sit
+          above the table — moved, not copied; its "moves that column first" explanation is now the
+          control's own title, since the artboard's strip carries the dash note in that position. */}
+      <div
+        data-audit="ops-matrix-foot"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: 16,
+          flexWrap: "wrap",
+          padding: "8px 16px",
+          borderTop: "1px solid var(--line-2)",
+          background: "var(--bg)",
+          fontSize: 12,
+        }}
+      >
+        <span
+          style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
+          title={
+            anyEnveloped
+              ? "Moves that column first; sourced numeric facts index against it — legacy free-text facts are still not indexed."
+              : "Moves that column first; values are not indexed — the stored figures are free text, not numbers."
+          }
+        >
+          <span style={{ color: "var(--ink-3)" }}>Compare against:</span>
+          {regions.map((r) => (
+            <button
+              key={r.key}
+              type="button"
+              onClick={() => setBaseRegion(baseRegion === r.key ? null : r.key)}
+              aria-pressed={baseRegion === r.key}
+              style={{
+                // Law-2 floor (docs/design/ux-laws.md #2): 24px minimum with the strip's own 6px
+                // gap supplying the clearance.
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 24,
+                padding: "2px 8px",
+                borderRadius: 4,
+                border: "1px solid",
+                borderColor: baseRegion === r.key ? "var(--ink)" : "var(--line-1)",
+                background: baseRegion === r.key ? "var(--tag)" : "var(--card)",
+                color: "var(--ink)",
+                fontFamily: "inherit",
+                fontSize: 12,
+                fontWeight: baseRegion === r.key ? 700 : 400,
+                cursor: "pointer",
+              }}
+            >
+              {r.key}
+            </button>
+          ))}
+        </span>
+        <span style={{ color: "var(--ink-3)" }}>An empty cell = no sourced fact yet, never an estimate</span>
+      </div>
     </section>
   );
 }
@@ -512,12 +630,16 @@ export function RegionDimensionMatrix({
 function LegacyFactRow({ fact: f }: { fact: any }) {
   const url = f.sourceUrl ?? sourceUrlFromNote(f.sourceNote);
   const name = f.sourceName ?? sourceNameFromNote(f.sourceNote);
+  // Artboard 08/id="p8" Facts-row block: 2px ink-muted left edge, the VALUE first in Anton 18px,
+  // then the fact label as the description line, then the source and date muted below.
   return (
-    <div>
-      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{f.factLabel}</div>
-      <div style={{ fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5 }}>{f.value}</div>
-      <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2 }}>
-        {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
+    <div style={{ borderLeft: "2px solid var(--ink-2)", paddingLeft: 10 }}>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", margin: "2px 0" }}>{f.value}</div>
+      <div style={{ fontSize: "var(--fs-115)", color: "var(--ink)", lineHeight: 1.45 }}>{f.factLabel}</div>
+      {/* law-2 (RD-60/F35): the source link is a real target — 24px tall with 8px clearance from
+          the description line above, which the 8px marginTop supplies. */}
+      <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 8 }}>
+        {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", minHeight: 24, color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
         {f.lastUpdated ? ` · row written ${String(f.lastUpdated).slice(0, 10)}` : " · no date on row"}
       </div>
     </div>

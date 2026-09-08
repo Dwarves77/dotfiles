@@ -88,7 +88,9 @@ const DIMENSIONS: Dimension[] = [
   { num: 3, key: "labor", db: "labor_markets", name: "Labor markets" },
   { num: 4, key: "materials", db: "materials_sourcing", name: "Materials sourcing" },
   { num: 5, key: "infrastructure", db: "infrastructure", name: "Infrastructure capacity" },
-  { num: 6, key: "cost", db: "operational_cost", name: "Operational cost data" },
+  // Artboard 08/id="p8" names this row "Operational cost" in the matrix and "D6 Operational cost"
+  // in the rail; "Operational cost data" was a longer name for the same dimension.
+  { num: 6, key: "cost", db: "operational_cost", name: "Operational cost" },
 ];
 
 // DEFECT-FIX (item 3.3, 2026-09-07): all six dimensions render in the "Regions side by side"
@@ -305,9 +307,37 @@ export function OperationsLedger({
   const modeOptions = useMemo(() => modeFacetOptions(initialResources), [initialResources]);
   const regionOptions = useMemo(() => regionFacetOptions(initialResources, aggregates?.byJurisdiction), [initialResources, aggregates?.byJurisdiction]);
 
+  // DIMENSION facet (artboard 08/id="p8" rail: REGION then DIMENSION, "D1 Regulatory feasibility
+  // 3/5 ... D6 Operational cost 4/5"). The count is REAL coverage, not a row count: how many of the
+  // matrix's regions hold at least one sourced fact on that dimension, over the region roster.
+  // Selecting one narrows the matrix to that dimension row; it does not filter the item rows, which
+  // are regional profiles and carry no dimension of their own.
+  const [dimensionFilter, setDimensionFilter] = useState<string | null>(null);
+  const dimensionOptions = useMemo(() => {
+    const sourcedRegions = new Map<string, Set<string>>();
+    for (const f of operationsCoverage?.facts ?? []) {
+      const set = sourcedRegions.get(f.dimension) ?? new Set<string>();
+      set.add(f.region_code);
+      sourcedRegions.set(f.dimension, set);
+    }
+    return MATRIX_DIMENSIONS.map((d) => {
+      const sourced = sourcedRegions.get(d.db)?.size ?? 0;
+      return {
+        value: d.db,
+        label: `D${d.num} ${d.name}`,
+        count: sourced,
+        countLabel: `${sourced}/${regions.length}`,
+      };
+    });
+  }, [operationsCoverage, regions.length]);
+
   const facetGroups: ListSurfaceFacetGroup[] = [
-    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
     { key: "region", label: "Region", options: regionOptions, selected: filter.region, onSelect: (v) => setFilter((f) => ({ ...f, region: v })) },
+    { key: "dimension", label: "Dimension", options: dimensionOptions, selected: dimensionFilter, onSelect: setDimensionFilter },
+    // R7: Mode is an app facet artboard 08's rail does not draw. Kept exactly as it was, listed in
+    // the lane report, and placed AFTER the two groups the artboard does draw so it never occupies
+    // an artboard region's position.
+    { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
   ];
 
   const workspaceTagFacetGroups: ListSurfaceFacetGroup[] = [
@@ -360,14 +390,62 @@ export function OperationsLedger({
 
   const total = aggregates?.totalItems || initialResources.length;
 
+  // Masthead scope line (artboard 08/id="p8": "25 active items · 18 jurisdictions · six dimensions
+  // per region · every fact carries a source and date"). Live fields only: the jurisdiction count is
+  // the aggregate the surface already receives, falling back to the distinct jurisdictions across
+  // the loaded rows — never a typed number.
+  const jurisdictionCount = useMemo(() => {
+    if (aggregates?.totalJurisdictions) return aggregates.totalJurisdictions;
+    return new Set(initialResources.map((r) => r.jurisdiction).filter(Boolean)).size;
+  }, [aggregates?.totalJurisdictions, initialResources]);
+
+  // The DIMENSION facet narrows the matrix, which is the only thing a dimension addresses.
+  const matrixDimensions = useMemo(
+    () => (dimensionFilter ? MATRIX_DIMENSIONS.filter((d) => d.db === dimensionFilter) : MATRIX_DIMENSIONS),
+    [dimensionFilter],
+  );
+
+  // COVERAGE GAPS rail rows, from the coverage this page already reads: every region holding no
+  // sourced fact on at least one dimension, plus the US sub-national roster the By-state sub-list
+  // draws from. Both figures are counted, never asserted.
+  const coverageGapRows = useMemo(() => {
+    const sourcedDims = new Map<string, Set<string>>();
+    for (const f of operationsCoverage?.facts ?? []) {
+      const set = sourcedDims.get(f.region_code) ?? new Set<string>();
+      set.add(f.dimension);
+      sourcedDims.set(f.region_code, set);
+    }
+    const rows: { label: string; figure: string }[] = [];
+    const stateRosterSize = Object.keys(STATE_LABELS).length;
+    if (stateRosterSize > 0) {
+      rows.push({
+        label: "US · sub-national",
+        figure: `${stateCostByCode.size} of ${stateRosterSize} priority jurisdictions`,
+      });
+    }
+    for (const r of regions) {
+      const filled = sourcedDims.get(r.key)?.size ?? 0;
+      if (filled < MATRIX_DIMENSIONS.length) {
+        rows.push({ label: r.label, figure: `${filled} of ${MATRIX_DIMENSIONS.length} sourced` });
+      }
+    }
+    return rows;
+  }, [operationsCoverage, regions, stateCostByCode]);
+
   return (
     <ListSurfaceShell
       title="Operations Intelligence"
-      dek="Six dimensions per region · every fact carries a source and date."
-      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
-      nowIso={nowIso}
+      scopeLine={
+        <>
+          <b style={{ color: "var(--ink)" }}>{total}</b> active items ·{" "}
+          <b style={{ color: "var(--ink)" }}>{jurisdictionCount}</b> jurisdictions · six dimensions per
+          region · every fact carries a source and date
+        </>
+      }
+      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
       itemCount={total}
       scope="operations"
+      searchPlaceholder={'Search regions and dimensions \u2014 or ask "warehouse labor rates, Singapore vs LA?"'}
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
       bandCounts={bandCounts}
       selectedBand={filter.band}
@@ -375,28 +453,47 @@ export function OperationsLedger({
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
       aboveRows={
-        <>
-          <RegionDimensionMatrix
-            regions={regions.map((r) => ({ key: r.key, label: r.label }))}
-            dimensions={MATRIX_DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
-            facts={operationsCoverage?.facts ?? []}
-            coverageRows={operationsCoverage?.coverage ?? []}
-            crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
-            crossRefCountsPending={!restLoaded}
-          />
-          <ByStateSubList regs={regsByRegion["US"] ?? []} stateCosts={stateCostByCode} />
-        </>
+        <RegionDimensionMatrix
+          regions={regions.map((r) => ({ key: r.key, label: r.label }))}
+          dimensions={matrixDimensions.map((d) => ({ key: d.key, db: d.db, name: d.name }))}
+          facts={operationsCoverage?.facts ?? []}
+          coverageRows={operationsCoverage?.coverage ?? []}
+          crossRefCountsByRegion={Object.fromEntries(regions.map((r) => [r.key, regsByRegion[r.key]?.length ?? 0]))}
+          crossRefCountsPending={!restLoaded}
+        />
       }
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
       onExpandBand={(key) => setExpanded((s) => new Set(s).add(key))}
       stateNote={<StateNote>{total} regional operations profiles across {regions.length} regions.</StateNote>}
+      belowRows={
+        /* R7: the US By-state cost sub-list is an app feature artboard 08 does not draw. It used to
+           sit between the matrix and the first band card — exactly where the artboard puts a band
+           card — so it moves to the disclosure position at the FOOT of the content column, closed
+           by default, unchanged in look and content. */
+        <ByStateSubList regs={regsByRegion["US"] ?? []} stateCosts={stateCostByCode} />
+      }
       rail={
         <>
-          <RailCard title="Coverage gaps">
+          <RailCard title="Coverage gaps" dataAudit="coverage-gaps-rail">
+            {/* Artboard 08/id="p8" COVERAGE GAPS card: one label/figure row per gap, then the note.
+                Every row here is computed from the SAME coverage the matrix renders (a region that
+                holds no sourced fact on a dimension) plus the sourced per-state cost facts — the
+                artboard's own example rows (EU member states, Canada, Australia) name rosters this
+                product has no table for, and an invented figure is never shown. */}
+            {coverageGapRows.length > 0 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 6, fontSize: "var(--fs-12)", marginBottom: 8 }}>
+                {coverageGapRows.map((row) => (
+                  <div key={row.label} style={{ display: "flex", justifyContent: "space-between", gap: 10 }}>
+                    <span style={{ fontWeight: 600 }}>{row.label}</span>
+                    <span style={{ color: "var(--ink-3)", textAlign: "right" }}>{row.figure}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>
-              A known gap, stated plainly. Sub-national and state-level cost facts are the first fills.
+              A known gap, stated plainly. State-level cost facts are the first fills.
             </p>
           </RailCard>
           <LegendRailCard />
