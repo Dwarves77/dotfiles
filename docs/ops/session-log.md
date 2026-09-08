@@ -12601,3 +12601,108 @@ regression is never waited into a pass. Four consecutive clean runs at 1030/1030
 (`compose-02-regulations-list.png`, `compose-04-market-list.png`, `compose-06-research-list.png`,
 `compose-08-operations-list.png`, `compose-11-watchlist.png`, `compose-16-login.png`,
 `compose-17-onboarding.png`), each read against its artboard before this entry was written.
+
+## Addendum 86, postscript 15: artboard 10 /map composed, the empty canvas diagnosed as the fixture (2026-09-08, lane map60)
+
+Train 60, the /map item from postscript 14's fold report. Four things were named; all four are
+closed, and the first one was not what it looked like.
+
+**(a) The empty canvas was the FIXTURE, and saying so is the point (rule 14).** [CONFIRMED by
+in-browser measurement, not by reading code.] The compose-map mount aliases
+`leaflet/dist/leaflet.css` to an empty module, because a bare `.css` import has no output path in
+this harness's `write:false` esbuild bundle, and nothing put the real stylesheet back afterwards.
+Leaflet still BUILT every marker: `document.querySelectorAll('.leaflet-marker-icon').length === 4`,
+each carrying its correct `translate3d` transform. What was missing was the rule set that gives
+`.leaflet-pane` and `.leaflet-marker-icon` their absolute positioning, so all four markers laid out
+in normal document flow at y ~ 3595 while the 420px card sits at y ~ 448. The canvas photographed
+empty while every DOM-presence check passed. `mounts.mjs` now carries a `styleFiles` field and a
+`mountExtraCss(mount)` reader, honoured by `run-audit.mjs` and `capture-compose-page.mjs`, pointed
+at the leaflet stylesheet already in `node_modules`, the same technique `smoke/map-smoke.mjs` has
+used since lane uimapcomm, so no dependency and no network is added. The basemap TILES are a
+separate and unfixable-here fact: the tile host is external and every request from this container
+is refused by the egress proxy, exactly as a read-only Playwright visit to production
+(https://carosledge.com/map, attempted for verification) is refused. No claim is made in either
+direction about the live basemap; the artboard itself draws a hatch captioned "BASEMAP · light,
+desaturated, no labels below country level" rather than a real map.
+
+**A refuted spec row, corrected in place.** The first version of the marker check asserted
+`[data-testid="map-canvas"] .leaflet-marker-icon` with count 4 and claimed that catching the
+regression. It does not: the attack (putting `styleFiles: []` back) left all 35 rows MATCH, because
+selector matching is DOM ancestry and the markers were still descendants of the canvas element
+while laid out 2700px below it. Replaced with a geometric `boundsCheck`, re-attacked, and that one
+row now goes MISMATCH ("extends outside its container") while nothing else moves. The check needed
+`containmentOnly`, a new explicit per-check option on `detectBoundsViolations` with its own
+adversarial test: marker positions come from DATA (jurisdiction centroids), so two geographically
+close jurisdictions overlap by geography, which artboard 10 itself draws with its 2 and 392 markers
+all but touching. Every grid and table caller leaves it unset and keeps both halves.
+
+**(b) MODE and BAND on one line.** p10 puts the filter row at `grid-column:1/-1` in the content
+grid, spanning the rail as well as the content column, as one flex row at `gap:10px` with
+`flex-wrap:wrap` and `padding:0 4px`. The build had it inside the content column at `gap:20`, which
+is why the three groups stacked on three lines. Moved and measured: full-grid width plus a 70px
+two-line height is what the spec asserts, which is the wrap after BAND stated in numbers.
+
+**(c) The register is p10's own table now.** `3px 1fr 1fr 110px 80px 40px`, 44px rows,
+JURISDICTION / ACTIVE THEMES / HIGHEST BAND / ITEMS headers, a trailing arrow glyph, and the
+jurisdiction NAME beside its THEMES in their own columns. The eight-column list grid could not
+express that (code in the 56px cell, themes on a second line under the title). Closed with an
+ADDITIVE `variant="register"` on the shared `ListRow` and `ListRowColumnHeader`, defaulting to
+"list", so all six existing callers are byte-identical. The whole row is still the one click
+target and the arrow is `aria-hidden`.
+
+**The dormant approximation is deleted, not left beside it.** `endStat` used to render inside the
+list grid as one merged `4 / span 4` cell, an approximation of this same region that
+`map-register.json`'s own note called "a genuine layout-strategy difference" from p10. With the
+variant reproducing p10 exactly, keeping both is two ways to render one row (rule 13). Everything
+wired to the old shape moved to the new one rather than being kept alive: `map-smoke.mjs`'s
+register mount, `ListRow.npmtest.mjs` (the one-click-target invariant is unchanged, counted per
+branch now), `AntonTitleLetterSpacing.npmtest.mjs` (the .04em invariant is unchanged, its mount
+follows the head onto the shared `SectionHeading`), `map-register.json` and its mount entry.
+
+**(d) The KEY.** p10's measures (`padding:10px 12px`, radius 8, 11px body, 5px gap, a 9.5/.12em
+label) and its four entries' exact wording, "<Band> present", on four IDENTICAL 8px dots. The
+build had bare band names on dots graduated 14/12.5/11/9.5, which read as a size scale the artboard
+does not have. The fifth entry, "Community activity", names a real map state (the 7px dot overlay
+fed by /map's own community-activity read), so R7 keeps it, after the last designed entry. Same
+ruling for Leaflet's zoom control, which p10 does not draw and which overlays no other region.
+
+**Two more real differences found while comparing, and closed.** Marker SIZE was taken from the
+BAND, so a 1-item Monitor jurisdiction drew a 13px dot where p10 draws 22, and the page's own
+masthead states the encoding in words, "marker size = item count · colour = highest band present".
+Now sqrt growth off a 22px floor capped at 56, which reproduces every value p10 states, with the
+16px/12px numerals and the 3px outset white ring (a border would have eaten into the stated
+diameter). And `MapPageView` carried three page-local duplications of shared parts: its own
+`CardHead`, its own rail label style, and a verbatim copy of `LegendRailCard`'s three definitions.
+All three now go through `SectionHeading`, `RailCard` and `LegendRailCard`, which also closes the
+card-head type difference against p10 in the same motion.
+
+**What still differs from artboard 10, after this lane.** The basemap (environment, above). The
+rail LEGEND card has no sample column: p10 lays each row out as `80px 1fr` with a drawn sample
+beside its sentence, and the shared `LegendRailCard` renders a definition list. The SAME card is
+drawn identically on artboards 02, 04, 06, 08 and 11, all owned by other lanes in this train, so it
+is named for one shared-parts lane rather than edited twice in one fold. Using the shared card on
+/map instead of the copy is what makes that single edit possible. Everything else is fixture data:
+4 jurisdictions and 6 items against the artboard's 7 and 976, so the register has 4 rows, the
+masthead reads 3 live, the markers read 1 and 2, and there is no "+ N more" remainder line under
+the 12-row cap. No figure on the page is anything but derived from the data it was given.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`ListRow.tsx`, `MapView.tsx`,
+`MapPageView.tsx`). No new interactive element is introduced. `ListRow`'s register variant keeps
+the one-click-target rule (exactly one `<Link>` per branch, asserted per branch by its npmtest) at
+a 44px minimum row height, and its trailing arrow is `aria-hidden` decoration inside the row's own
+link, never a second target. The register variant deliberately carries NO mobile reflow: /map at
+375 is exempt by operator ruling (2026-09-07, second set, item 2: "no mobile map spec exists and
+none should be invented"), so its media query is scoped away from the list row's, which is
+unchanged. Marker hit boxes keep their unconditional 44px floor while the visible dot follows the
+count; the coverage-gap rail links keep a 24px minimum box. Rendering guard PASS with no new
+failures, including law-2 targets at every viewport, the bounds/overlap assertions, and the
+`map-page` UX smoke spec, which now mounts the register exactly as the page renders it.
+
+**Gates** (this container; the coordinator lands): design audit 60 specs, **1024 checks, 1024
+MATCH**, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC (was 990/990; +34 rows, of which 29 are new /map
+composition rows); rendering guard **PASS** (11 fixtures, 431 checks, 7 SM + 12 UX smoke specs, 83
++ 216 checks); `tsc --noEmit` clean; fitness runner 33/33, **0 violations**; the CI npmtest glob
+(`git ls-files '**/*.npmtest.mjs'`) **799/799 PASS**; `run-test-suite.sh` 5918 tests, 5913 pass,
+**0 fail**, exit 0 (the known "kill switch ON but no DB creds" failure did not reproduce);
+`next build --webpack` exit 0 with no `.env.local`. Side-by-side regenerated from the folded code
+and READ beside the artboard: `docs/design/handoff-2026-09-06/built/compose-10-map.png`.
