@@ -15460,3 +15460,48 @@ real family rule, and it now renders artboard 04's row exactly. Design audit 70 
 
 **Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks); design
 audit 2018/2018 MATCH; run-test-suite 5,987 tests / 0 fail; `next build --webpack` clean.
+## LANE SHAREDREPORT (2026-09-08): shared-part presence/absence report, per route
+
+**Asked for by name.** "the presence/absence report per route with file:line is the right gate. Send
+it." A report, not a rewrite: no file under `fsi-app/src/**` was changed by this lane.
+
+**Deliverable:** `docs/design/handoff-2026-09-06/SHARED-PART-REPORT-2026-09-08.md`. One table, 17
+route rows by 5 item columns, each cell PRESENT / ABSENT / NO MOUNT, plus a second table giving the
+deciding `file:line` per item and whether the part is correct there.
+
+**Method.** Every route was RENDERED at 1440 through the existing audit mounts
+(`.discipline/rendering/audit/mounts.mjs`) on the rendering guard's own esbuild + Playwright
+harness, and measured from `getComputedStyle` and RENDERED text (each text node's own computed
+`text-transform` applied, `display:none` subtrees skipped), never from source text. All 17 routes
+have a mount; nothing was reported as unmeasurable for items 2, 3, 5 or 6. Artboards 00, 03, 04, 11
+and 17 were opened as images before their prose was read, and two disagreements between the item
+prose and the image are recorded in DEVIATION-LOG with the image followed.
+
+**Results.** Item 2 PRESENT on 8 routes, item 3 on 3, item 5 on 5, item 6 on 0, item 10 on all 10
+routes that mount the nav.
+
+**The finding this report exists to surface: the parts were patched per page, twice.**
+
+1. Item 5 exists as TWO components. `ui/RowTable.tsx:280-319` is the design exactly, and the three
+   surfaces that use it (`/community`, `/admin`, `/profile`) render it right. The five list
+   surfaces mount `regulations/PriorityDropdown.tsx:222-236` instead, still a bordered pill at
+   `borderRadius: 999` in the wrong ink with no left divider, on every row of every list.
+2. Item 2 is correct where it is defined but hand-mounted at 31 call sites in 16 files, so it was
+   rolled out card by card: 12 of 16 cards ruled on `/regulations/[id]`, and exactly one card
+   missed on each of `/community`, `/admin`, `/profile`, `/settings`. The misses share a mechanical
+   tell, the older `--border-sub` / `--r-md` token pair, which also gives them the wrong border
+   colour.
+
+**Also exposed, not fixed here (rule 13, delivered decision-ready):** `ListRow.tsx:532` and `:542`
+pass the WIDE `Absence` variant into 88px and 84px cells while the narrow variant is applied only
+to the tier cell at `:556`; `TagChip` (`ui/Chips.tsx:101`) is the design's 10.5px neutral chip used
+where the row meta line calls for the 9.5px one; `/watchlist` renders each watched row as its own
+card where artboard 11 draws plain rows.
+
+**Caveat stated in the report, not buried:** `/regulations` and `/watchlist` show 0 unscored rows in
+their compose fixtures, so their item-3 ABSENT is the fixture's and not the part's. Item 10 is
+NO MOUNT on the five list routes because their compose mounts carry no `AppShell`, and is in flight
+on lane `communitynav2`.
+
+**Gates:** tsc clean; fitness 0 violations; rendering guard PASS; audit:design every spec MATCH at
+1440 and 390; npmtest glob 0 fail; run-test-suite 0 fail; `next build --webpack` clean.
