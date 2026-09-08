@@ -13483,3 +13483,94 @@ Recorded in the lane REPORT with their exact lines. tsc 0 errors; fitness 34 fun
 (F40 included); rendering guard PASS with the new smoke registered; `npm run audit:design` 61 specs
 1193/1193 MATCH, no spec made stale; the CI npmtest glob 113 files, 901 tests, 0 fail;
 `run-test-suite.sh`; `next build --webpack`.
+
+---
+
+## Lane rsc503 (train 61, 2026-09-08): the dashboard failure state, and what the 503s actually were
+
+**The measurement came first, because the coordinator's competing hypothesis had to be settled
+before anything was changed.** All figures below are from the operator's signed-in browser against
+production `dpl_2XNMopUYSiPUYMwrrTeKvwtyUZJN` (the SAME deployment the audit ran against),
+2026-09-08, roughly 73 to 90 minutes after the cut-over to 69b1374.
+
+**Finding 1: the 503s are NOT deployment skew.** [CONFIRMED] They reproduced today, long after the
+cut-over, on the same deployment: 17 of 19 real Next.js router RSC requests returned 503 during one
+contiguous window, bracketed by all-200 traffic before and after. The coordinator's hypothesis is
+refuted on its central claim.
+
+**Finding 2: the 503s are produced at the Vercel edge, before the function runs.** [CONFIRMED]
+Vercel runtime logs for the 90 minutes covering that burst, grouped by status: 764 200, 32 401, 2
+204, 2 304, 2 307, zero 503. The coordinator's supporting evidence was right about the layer even
+though it was wrong about the cause. No application code can produce these responses, and no
+application code change can remove them.
+
+**Finding 3: the trigger is not the URL, the header set, the volume or concurrency.** [CONFIRMED]
+170 synthetic RSC-shaped requests were fired from the page: sequential, 16 concurrent, 80 in a
+rapid burst, with and without `RSC`, `Next-Router-Prefetch`, `Next-Router-State-Tree` and
+`Next-Url`, and including verbatim replays of six URLs that had just 503'd. All 170 returned 200
+with `x-vercel-cache=MISS`. [HYPOTHESIS] The remaining difference is that the failing requests are
+browser-issued speculative prefetches carrying `Sec-Purpose`, a header `fetch()` is forbidden to
+set. Confirming that needs the `x-vercel-error` header off a real 503, which needs CDP request
+interception or Vercel edge/firewall logs; neither was available to a read-only lane. Handed to the
+coordinator as a platform question, not a product one.
+
+**Finding 4, and the one that mattered: the dashboard failure state is NOT caused by the 503s.**
+[CONFIRMED] Ten server renders of `/` measured today showed the healthy page every time, `DUE NEXT ·
+5 ITEMS`, no sentinel. The failure state has its own root cause, in this repository, and it is
+fixed here.
+
+**Root cause** [CONFIRMED, by reading next@16.1.6's own source]. `fetchDashboardData` and its four
+siblings never throw. On a Supabase timeout, an empty RPC result or any caught exception they
+RESOLVE an all-empty payload carrying `_error: SEED_FALLBACK_ERROR`. `lib/data.ts` hands the fetcher
+to `unstable_cache`, whose implementation
+(`dist/server/web/spec-extension/unstable-cache.js`) passes the callback's resolved value straight
+to `cacheNewResult`, which `incrementalCache.set`s it under the entry's key and tags,
+unconditionally. One transient failure therefore wrote the failure into the cache, and every later
+request was answered from it without touching the database. That is the audit's whole symptom: all
+three strings (`0 ITEMS`, `no detection pass on record`, `Data temporarily unavailable`) are three
+surfaces of one empty payload, on repeated cold loads, still there at 79 seconds. `revalidate: 60`
+made it worse rather than better, being a stale-while-revalidate window: past 60s the STALE failure
+is served immediately while the refresh runs behind it, and a refresh that also fails rewrites the
+poison. It also made the copy untrue, since the refresh the note asks for was itself answered from
+the poisoned entry.
+
+**The fix, once, for the class.** The same source line shows a REJECTED callback skips
+`cacheNewResult` entirely. `lib/cache/fallback-guard.ts` turns a fallback into a rejection on the
+way out of the cache callback and back into the same payload on the way in to the caller. Callers
+see byte-identical behaviour; the cache sees only healthy payloads. Applied to all five
+`_error`-capable cached fetchers. An honestly empty workspace is not a fallback and stays cacheable:
+the guard reads the sentinel, not the emptiness.
+
+**Two further defects surfaced by the same trace.** (1) `SeedFallbackTrigger` has named `"timeout"`
+since SF-2 and nothing in `src/` ever wrote it: `withTimeout` resolved a stand-in tuple so every
+timeout was recorded as `"rpc_error"`, and `lib/data.ts`'s races threw a bare `Error("timeout")` so
+they were recorded as `"exception"`. The admin platform-flags queue was being told the database had
+rejected a query when in fact the query never came back. `withTimeout` now rejects with a typed
+`ReadTimeoutError` (and clears its losing timer, which it never did), the stand-in tuples are
+deleted, and every catch names the trigger. Running the new vocabulary test also surfaced
+`service_role_missing` as a second memberless trigger; that one is ruled unwritable by a caller
+(2026-07-13) and is asserted as an exemption tied to the `[UNRECORDABLE]` branch that detects it.
+(2) The failure state named no reason; it now carries one, from `describeFallbackTrigger`, keyed on
+the same trigger the flag queue records so the two cannot drift.
+
+**The audit's second finding is corrected, not fixed.** [CONFIRMED, reproduced live] The 11 row
+anchors with empty `innerHTML` are correct: `a.cl-row-link` is the `position:absolute; inset:0`
+overlay that makes the whole row one click target, and it is childless by design. Measured today,
+11 of 11 empty with every row rendering correctly around them. The guard added instead asserts the
+invariant the audit was reaching for: every `.cl-list-row` renders content, and its overlay's
+accessible name is the title it covers.
+
+**UX compliance**: no new interactive element anywhere in this lane. The two UI changes are both
+additive optional props on EXISTING shared parts (`SystemErrorBanner.reason`,
+`DashboardBrief.fetchErrorReason`), each rendering one non-interactive text line inside the note
+that was already there; no page-local panel, no second alert surface, no floating control. The
+operator-locked sentence is unchanged. Every 44px target is untouched, and the row-content
+invariant added to `dashboard-brief-smoke.mjs` strengthens the whole-row click-target rule rather
+than competing with it. Design audit re-run over the changed tree: 61 specs, 1193 checks, 1193
+MATCH, no spec weakened or restated.
+
+**Gates** (this container; the coordinator lands): `npx tsc --noEmit` clean; fitness runner 33
+functions, **0 violations**; rendering guard **PASS** (11 fixtures, 433 checks; 7 SM smoke specs, 85
+checks; 12 UX smoke specs, 216 checks); `npm run audit:design` **61 specs, 1193 checks, 1193 MATCH**;
+CI npmtest glob **121 files, 948 tests, 0 fail**; `run-test-suite.sh` **5921 tests, 0 fail**, exit 0,
+no known-failure line reached; `npx next build --webpack` succeeded with no `.env.local`.
