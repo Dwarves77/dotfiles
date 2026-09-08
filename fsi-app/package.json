@@ -19,6 +19,7 @@
     "capture:defect-fix-screenshots": "node .discipline/rendering/capture-defect-fix-screenshots.mjs",
     "capture:dashrow-screenshot": "node .discipline/rendering/capture-dashrow-screenshot.mjs",
     "capture:compose-lists-screenshots": "node .discipline/rendering/capture-compose-lists-screenshots.mjs",
+    "capture:compose-11-watchlist": "node .discipline/rendering/capture-compose-11-watchlist.mjs",
     "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs",
     "audit:design": "node .discipline/rendering/audit/run-audit.mjs"
   },

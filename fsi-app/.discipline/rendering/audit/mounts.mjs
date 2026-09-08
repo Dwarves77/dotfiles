@@ -1653,7 +1653,11 @@ const COMPOSE_WATCHLIST_API = [
 function composeWatchRow(i) {
   const jurisdictions = ['EU', 'US', 'UK', 'Global'];
   const priorities = ['CRITICAL', 'HIGH', 'HIGH', 'MODERATE', 'LOW'];
-  const types = ['regulation', 'regulation', 'research', 'operations'];
+  // The real WatchlistItemType vocabulary (src/lib/watchlist-links.ts) — 'reg', not 'regulation'.
+  // An unknown type resolves to a null href and drops the row into the surface's Absence fallback,
+  // which is the correct behaviour for a type the app has no route for and the WRONG fixture for
+  // measuring the composed row.
+  const types = ['reg', 'reg', 'research', 'operations'];
   return {
     id: `wl-${i}`,
     type: types[i % types.length],
@@ -1667,6 +1671,11 @@ function composeWatchRow(i) {
     impactScores: { cost: 3, compliance: 3, client: 2, operational: 2 },
     sourceTier: (i % 6) + 1,
     complianceDeadline: `2026-12-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [
+      { date: '2026-03-01', status: 'past' },
+      { date: '2026-12-10', status: 'current' },
+      { date: '2027-06-01', status: 'ahead' },
+    ],
   };
 }
 const COMPOSE_WATCH_ROWS = Array.from({ length: 6 }, (_, i) => composeWatchRow(i));

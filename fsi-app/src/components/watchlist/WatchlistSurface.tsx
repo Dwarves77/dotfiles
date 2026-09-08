@@ -81,7 +81,7 @@ import { formatLocaleDate } from "@/lib/format";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
-import type { Resource } from "@/types/resource";
+import type { Resource, TimelineEntry } from "@/types/resource";
 
 type ScopeFilterValue = "all" | WatchlistScope;
 type TypeFilterValue = "all" | WatchlistItemType;
@@ -116,6 +116,28 @@ function dueInfo(deadline: string | null | undefined, now: Date): { label: strin
   const diff = Math.round((ms - today) / 86400000);
   const label = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" }).format(ms);
   return { label, days: `${diff} day${diff === 1 ? "" : "s"}` };
+}
+
+/**
+ * WatchlistItem's timeline in the shape ListRow's `MilestoneTimeline` takes.
+ * The artboard's row carries a populated TIMELINE cell (dc.html p11 lines
+ * 96-105) and the read has carried this field all along; the surface was
+ * passing a hardcoded `null` and drawing an empty track.
+ *
+ * Two real differences between the two shapes, neither invented over:
+ * an entry with no date is dropped (it cannot be placed on a track), and the
+ * read's extra "ahead" status maps to `TimelineEntry`'s "future", the same
+ * thing said in the row vocabulary. `label` is empty because this read
+ * genuinely carries no milestone labels — the row variant never renders them,
+ * and an empty one stays visibly absent anywhere else rather than becoming a
+ * fabricated milestone name.
+ */
+function rowTimeline(entries: WatchlistItem["timeline"]): TimelineEntry[] | null {
+  if (!entries || entries.length === 0) return null;
+  const mapped = entries
+    .filter((e): e is { date: string; status?: "past" | "current" | "future" | "ahead" } => typeof e.date === "string" && e.date.length > 0)
+    .map((e) => ({ date: e.date, label: "", status: e.status === "ahead" ? ("future" as const) : e.status }));
+  return mapped.length > 0 ? mapped : null;
 }
 
 /** The section card both content-column regions sit in — the shared card
@@ -315,7 +337,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                           }
                           impact={impact}
                           due={due}
-                          timeline={null}
+                          timeline={rowTimeline(item.timeline)}
                           tier={item.sourceTier ?? null}
                           tags={tagsFacet.tagsForItem(item.id)}
                           overflow={
