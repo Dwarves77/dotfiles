@@ -12,7 +12,7 @@
     "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
     "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) \u2014 checked below as an <a>/Link element, not plain text.",
     "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
-    "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base — DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own — so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
+    "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base \u2014 DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own \u2014 so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
   ],
   "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
   "expect": {
@@ -172,7 +172,7 @@
       }
     },
     {
-      "name": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "name": "F2 \u2014 the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row",
       "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers.",
       "expect": {
@@ -184,7 +184,7 @@
       }
     },
     {
-      "name": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+      "name": "F2 \u2014 and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
       "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount.",
       "expect": {
@@ -194,7 +194,7 @@
       }
     },
     {
-      "name": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "name": "F2 \u2014 the column header row is unchanged, 9.5px uppercase .12em",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
       "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted.",
       "expect": {
@@ -205,24 +205,40 @@
       }
     },
     {
-      "name": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
+      "name": "B7 \u2014 the band spine is 3px, full-bleed, flush to the card's left edge",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
-      "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge.",
+      "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge \u2014 correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge.",
       "expect": {
         "width": "3px"
       }
     },
     {
-      "name": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "name": "F2 \u2014 the dashboard's rows end in the same bare 28px \u22ef glyph the list surfaces use",
       "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
-      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim.",
+      "note": "Artboard 1 draws the \u22ef on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim.",
       "expect": {
         "width": "28px",
         "height": "28px",
         "border-top-left-radius": "6px",
         "color": "#7A6E6C",
-        "text": "⋯"
+        "text": "\u22ef"
       }
+    },
+    {
+      "name": "BRIEFDATA: the Due next card renders rows against the populated fixture, never zero",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
+      "expect": {
+        "count": "3"
+      },
+      "note": "Operator ruling 2026-09-08, verbatim: \"do next and whats changed need to stay populated.\" The production state was DUE NEXT with 0 ITEMS. A card that can render zero rows against a fixture that HAS matching data is the defect; against this fixture, which carries both the 50-row payload and the by-id backfill the route now merges (mounts.mjs's PAGE_FRAME_FIXTURES.dashboard), zero rows can only mean the selection or the merge broke."
+    },
+    {
+      "name": "BRIEFDATA: the What changed card renders rows against the populated fixture, never zero",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
+      "expect": {
+        "count": "1"
+      },
+      "note": "Same ruling, other card. The fixture's change feed deliberately names an item OUTSIDE the 50-row payload (c0) \u2014 the live ratio measured 2026-09-08 was 6 of 6 \u2014 so this row also proves the backfill is what fills the card, not a coincidental overlap."
     }
   ],
   "forbid": [
@@ -247,6 +263,11 @@
       "name": "CLASS CLOSURE (dashboard): a card element that renders no 3px rule",
       "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
       "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
+    },
+    {
+      "name": "BRIEFDATA: no What-changed row renders the Absence token in its tier cell",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row .cl-row-tier .cl-absence",
+      "reason": "The photographed defect, pinned at its narrowest point. The fixture's change feed names an item OUTSIDE the LIMIT-50 payload (c0) \u2014 the live ratio measured 2026-09-08 was 6 of 6 \u2014 and its row must still resolve to a real tier chip, because the corpus the card selects from now includes the bounded by-id backfill (src/app/page.tsx, mounts.mjs's PAGE_FRAME_FIXTURES.dashboard.briefResources). Before this lane the same cell rendered NOT IN PRIMARY SOURCE on every change row. A match here means the backfill stopped reaching the card and the degrade path is the whole card again."
     }
   ]
 }

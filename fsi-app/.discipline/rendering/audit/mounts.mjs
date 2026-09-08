@@ -619,10 +619,40 @@ const PAGE_FRAME_FIXTURES = {
         tags: [],
       },
     ],
-    // Non-empty so the "What changed" card renders its ListRow rows (always `impact={null}` —
-    // DashboardBrief.tsx — i.e. always the unscored branch) instead of the empty-state StateNote.
+    // Non-empty so the "What changed" card renders its ListRow rows instead of the empty-state
+    // StateNote.
+    //
+    // Lane BRIEFDATA (2026-09-08): the note that used to sit here said these rows are "always
+    // `impact={null}` ... always the unscored branch". That was true, and it was the DEFECT, not a
+    // property of the card: the changed item is never in the LIMIT-50 payload, so every change row
+    // took brief-rows.ts's degrade branch. Measured live the same day, 6 of 6 production change
+    // rows were in that state. The route now merges a bounded by-id backfill into the corpus
+    // before selecting rows (src/app/page.tsx), so this fixture carries that backfill too — a
+    // fixture that keeps modelling the degrade path is a fixture that proves the defect passes.
     recentChanges: [
       { id: 'c0', title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods', priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 },
+    ],
+    // DashboardData.briefResources: the changed item, read back by id precisely because it is
+    // outside the 50-row payload. Same shape as `resources` above, because it comes back through
+    // the same mapper.
+    briefResources: [
+      {
+        id: 'c0',
+        title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods',
+        priority: 'HIGH',
+        jurisdiction: 'EU',
+        jurisdictionIso: ['EU'],
+        sourceTier: 3,
+        complianceDeadline: '2027-03-15',
+        impactScores: { cost: 2, compliance: 3, client: 1, operational: 2 },
+        timeline: [],
+        domain: 1,
+        type: 'regulation',
+        modes: ['Ocean'],
+        topic: 'monitoring',
+        note: '',
+        tags: [],
+      },
     ],
     auditDate: '2026-09-07',
     aggregates: {
@@ -720,7 +750,7 @@ import { AppShell } from '@/components/AppShell';
 import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+import { buildDueNextRows, buildChangedRows, mergeBriefCorpus, dueNextWindowLabel } from '@/lib/dashboard/brief-rows';
 
 // 'owner' so Sidebar's nav-card footer renders BOTH rows (Account + the
 // role-gated Admin row, R2) — sidebar.json's footer assertions need both
@@ -755,8 +785,19 @@ window.__mount = () => {
           // through the SAME derivation the route runs (src/lib/dashboard/brief-rows.ts) against
           // one fixed instant, so this mount measures the real shape rather than rows hand-shaped
           // to match it.
-          dueNextRows: buildDueNextRows(F.dashboard.resources, new Date(NOW_ISO)),
-          changedRows: buildChangedRows(F.dashboard.recentChanges, F.dashboard.resources, new Date(NOW_ISO)),
+          // Lane BRIEFDATA (2026-09-08): ONE corpus, assembled exactly as src/app/page.tsx
+          // assembles it — the route's own payload plus the bounded by-id backfill — so this mount
+          // measures the rows the route really produces rather than the degrade path.
+          ...(() => {
+            const now = new Date(NOW_ISO);
+            const corpus = mergeBriefCorpus(F.dashboard.resources, F.dashboard.briefResources);
+            const dueNextRows = buildDueNextRows(corpus, now);
+            return {
+              dueNextRows,
+              changedRows: buildChangedRows(F.dashboard.recentChanges, corpus, now),
+              dueNextWindow: dueNextWindowLabel(dueNextRows, 'Sep 7'),
+            };
+          })(),
           totalChanges: F.dashboard.recentChanges.length,
           aggregates: F.dashboard.aggregates,
           // COUNTS-61: the band tiles read the regulations surface's own counts, because that is

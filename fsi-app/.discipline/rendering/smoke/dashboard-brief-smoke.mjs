@@ -39,10 +39,20 @@
 //     Small-target (law-2) and BandTile counts are asserted at BOTH viewports; a live regression
 //     there fails this spec.
 
+import { join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { MOBILE_VIEWPORT, DESKTOP_VIEWPORT } from './ux-harness.mjs';
 import { measureUx, assertUxClean } from '../ux-assert.mjs';
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, detectOverflows, findPlaceholderLiterals } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
+
+// Lane BRIEFDATA (2026-09-08): <DashboardBrief/> calls `useRouter()` — the failure state's Retry
+// is a real `router.refresh()`, not a sentence telling the reader to refresh. The real hook reads
+// the App Router context this bundle has none of and throws "invariant expected app router to be
+// mounted" for EVERY state, so the mount takes the same `next/navigation` stub the audit's
+// page-frame mount already uses.
+const NEXT_NAVIGATION_STUB = join(fileURLToPath(new URL('.', import.meta.url)), 'stub-next-navigation.mjs');
+const BUNDLE_ALIAS = { alias: { 'next/navigation': NEXT_NAVIGATION_STUB } };
 
 const STYLE_INJECT = `
 (() => {
@@ -84,16 +94,21 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
-import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+import { buildDueNextRows, buildChangedRows, mergeBriefCorpus, dueNextWindowLabel } from '@/lib/dashboard/brief-rows';
 
 let root = null;
 window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
   const now = new Date(props.nowIso);
+  // Lane BRIEFDATA (2026-09-08): ONE corpus, assembled the way src/app/page.tsx assembles it —
+  // this route's payload plus the bounded by-id backfill (DashboardData.briefResources).
+  const corpus = mergeBriefCorpus(props.resources, props.briefResources ?? []);
+  const dueNextRows = buildDueNextRows(corpus, now);
   root.render(React.createElement(DashboardBrief, {
-    dueNextRows: buildDueNextRows(props.resources, now),
-    changedRows: buildChangedRows(props.recentChanges, props.resources, now),
+    dueNextRows,
+    dueNextWindow: dueNextWindowLabel(dueNextRows, props.weekOfLabel ?? 'Sep 7'),
+    changedRows: buildChangedRows(props.recentChanges, corpus, now),
     totalChanges: props.totalChanges ?? props.recentChanges.length,
     aggregates: props.aggregates,
     // COUNTS-61 (2026-09-08): the band tiles read the REGULATIONS surface counts, because that is
@@ -163,6 +178,11 @@ function briefRow(i, { long = false, changed = false, unscored = false } = {}) {
     meta: 'regulation · Ocean · reporting',
     impact: unscored ? null : { cost: 3, compliance: 2, client: 3, operational: 2 },
     due: { label: 'Jan 1, 2027', days: '116 days' },
+    // Lane BRIEFDATA (2026-09-08): the whole-day distance the window label is computed from. 116
+    // days is well past the week the aside names, which is the live case (the nearest five binding
+    // dates measured 2026-09-08 were Sep 8, Sep 30, Sep 30, Sep 30, Oct 1) and the reason the
+    // label has to say how far the card reaches.
+    dueDays: 116,
     timeline: [],
     tier: (i % 7) + 1,
     ...(changed ? { isNew: true } : {}),
@@ -172,6 +192,15 @@ function briefRow(i, { long = false, changed = false, unscored = false } = {}) {
 function baseProps(dueNextRows, changedRows = []) {
   return {
     dueNextRows,
+    // Lane BRIEFDATA (2026-09-08): the card's aside is SERVER-BUILT now (brief-rows.ts's
+    // `dueNextWindowLabel`, called from src/app/page.tsx), because it states which window the
+    // selected rows actually SPAN. This module is plain .mjs and cannot import the TS helper, so
+    // the fixture states the two forms literally — and `dueNextWindowLabel`'s own output for the
+    // same input is pinned in src/lib/dashboard/brief-rows.npmtest.mjs (BRIEFDATA/2, /2b), so the
+    // literal here cannot drift from the function without that proof going red.
+    dueNextWindow: dueNextRows.length
+      ? 'By next binding date · week of Sep 7, reaching to Jan 1, 2027'
+      : 'By next binding date · week of Sep 7',
     changedRows,
     totalChanges: changedRows.length,
     auditDate: '2026-09-06',
@@ -205,6 +234,42 @@ const STATES = [
     expectTitles: 2,
   },
 ];
+
+// Lane BRIEFDATA (2026-09-08). Two states the spec had no way to reach before, each one a fact the
+// operator's ruling turns on:
+//
+//   'populated'  BOTH cards full, every row carrying its score, date and tier. The spec asserted
+//                row COUNT and row CONTENT but never that the two cards are simultaneously
+//                non-empty, which is the ruling's actual demand.
+//   'failed'     the fetch failed RIGHT NOW. Before this lane both cards rendered their
+//                honest-empty copy in this state and the failure note sat on one of them, so
+//                "nothing is due" and "we could not look" were the same card. `fetchError` is the
+//                real sentinel string (supabase-server.ts's SEED_FALLBACK_ERROR) and the reason
+//                clause is a real `describeFallbackTrigger` output.
+const FETCH_ERROR = 'Data temporarily unavailable. Refresh to retry.';
+const FETCH_ERROR_REASON = 'The intelligence read did not return within its time limit.';
+
+STATES.push(
+  {
+    label: 'populated',
+    props: {
+      ...baseProps(
+        Array.from({ length: 5 }, (_, i) => briefRow(i)),
+        Array.from({ length: 6 }, (_, i) => briefRow(i, { changed: true })),
+      ),
+      aggregates: POPULATED_AGGREGATES,
+      bandCounts: POPULATED_BAND_COUNTS,
+    },
+    expectTitles: 2,
+    bothCardsPopulated: true,
+  },
+  {
+    label: 'failed',
+    props: { ...baseProps([]), fetchError: FETCH_ERROR, fetchErrorReason: FETCH_ERROR_REASON },
+    expectTitles: 2,
+    expectFailureState: true,
+  },
+);
 
 const KNOWN_SAFE_PLACEHOLDER_LITERALS = new Set(['Action', 'Title', 'Tier', '—']);
 
@@ -279,7 +344,7 @@ function assertRowContent(label, rows, expectedRows) {
 export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
-  const bundleJs = await bundleEntry(ENTRY);
+  const bundleJs = await bundleEntry(ENTRY, BUNDLE_ALIAS);
   for (const vp of [MOBILE_VIEWPORT, DESKTOP_VIEWPORT]) {
     const mobile = vp.width === MOBILE_VIEWPORT.width;
     for (const state of STATES) {
@@ -297,6 +362,59 @@ export async function runSmoke(browser) {
         // What-changed row in this state is one .cl-list-row.
         const expectedRows = state.props.dueNextRows.length + state.props.changedRows.length;
         failures.push(...assertRowContent(label, await measureRowContent(page), expectedRows));
+
+        // Lane BRIEFDATA (2026-09-08): the operator's ruling, asserted rather than assumed.
+        if (state.bothCardsPopulated) {
+          const perCard = await page.evaluate(() =>
+            [...document.querySelectorAll('.cl-brief-grid > section')].map(
+              (sec) => sec.querySelectorAll('.cl-list-row').length,
+            ),
+          );
+          checks += 1;
+          if (perCard.length < 2 || perCard[0] === 0 || perCard[1] === 0) {
+            failures.push(
+              `${label}: a brief card rendered ZERO rows against a populated fixture (per-card counts: [${perCard}]). ` +
+                'The operator ruling is that Due next and What changed stay populated.',
+            );
+          }
+          // One absence token per row at most — the shared model's whole allowance. The degrade
+          // path put four in a single row.
+          const worst = await page.evaluate(() =>
+            Math.max(0, ...[...document.querySelectorAll('.cl-list-row')].map(
+              (r) => r.querySelectorAll('.cl-absence').length,
+            )),
+          );
+          checks += 1;
+          if (worst > 1) {
+            failures.push(`${label}: a row carried ${worst} absence tokens; the shared model allows one.`);
+          }
+        }
+
+        if (state.expectFailureState) {
+          const text = (await page.textContent('.cl-brief-grid')) || '';
+          const retries = await page.$$eval('.cl-brief-grid button', (els) =>
+            els.filter((e) => (e.textContent || '').trim() === 'Retry').length,
+          );
+          checks += 1;
+          if ((text.match(/Data temporarily unavailable/g) || []).length < 2) {
+            failures.push(
+              `${label}: a failed fetch must say so on BOTH cards; found ${(text.match(/Data temporarily unavailable/g) || []).length}. ` +
+                'An empty card and a failed fetch must not look the same.',
+            );
+          }
+          checks += 1;
+          if (retries < 2) {
+            failures.push(`${label}: found ${retries} Retry control(s); each failed card must offer a retry that re-requests.`);
+          }
+          checks += 1;
+          if (!text.includes(FETCH_ERROR_REASON)) {
+            failures.push(`${label}: the failure state did not name WHAT failed (the describeFallbackTrigger clause).`);
+          }
+          checks += 1;
+          if (text.includes('Nothing added or updated in the last detection pass')) {
+            failures.push(`${label}: a FAILED fetch rendered the honest-empty copy, which is the defect this state exists to catch.`);
+          }
+        }
 
         const placeholders = filteredPlaceholders(guard.texts);
         if (placeholders.length > 0) {
