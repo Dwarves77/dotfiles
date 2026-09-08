@@ -318,6 +318,19 @@
       "status": "COVERED"
     },
     {
+      "path": "fsi-app/src/app/.well-known/workflow/v1/step/route.js",
+      "kinds": [
+        "WRITES"
+      ],
+      "skills": [
+        "caros-ledge-platform-intent",
+        "environmental-policy-and-innovation",
+        "remediation-discipline"
+      ],
+      "proofWired": null,
+      "status": "COVERED"
+    },
+    {
       "path": "fsi-app/src/app/admin/page.tsx",
       "kinds": [
         "ROUTING"
@@ -9666,8 +9679,8 @@
     }
   ],
   "summary": {
-    "governed_files": 896,
-    "covered": 858,
+    "governed_files": 897,
+    "covered": 859,
     "exempt": 38,
     "gaps": 0,
     "orphaned_proofs": 0,

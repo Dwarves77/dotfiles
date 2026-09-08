@@ -12232,3 +12232,231 @@ absent rather than passing vacuously.
 card head per p13 and is a page-shell restructure across all seven admin sections; the nav card's
 footer rows and its full-height stretch are lane navfoot59's; `OrganizationsTable`'s row anatomy is
 still its pre-handoff one (fix58-account's standing entry).
+
+## Addendum 86, postscript 14: train 59, the eleven-lane fold, the composition audit closed to 990/990, the visual pass (2026-09-08, coordinator, lane FOLD-59)
+
+Train 58 landed as PR #607 (`3230c7d2`). The operator's click-through demand and the production
+audit that followed it produced ELEVEN lanes, dispatched in parallel against overlapping write sets
+(`ListSurfaceShell`, `ListSurfaceRailCards`, `ListRow`, `DetailShell`, `Masthead`, `Sidebar`,
+`mounts.mjs`, `DEVIATION-LOG`, the AUDIT doc and results, the capture scripts). This is their fold:
+39 cherry-picks, the largest of the programme.
+
+**Why cherry-pick and not merge.** The eight compose branches were cut from train 58's tip
+`20564575`, whose TREE is byte-identical to master `3230c7d2` but which is NOT its ancestor (master
+carries the squash). A merge would have conflicted on ancestry for every file; `git cherry-pick -x`
+applies by content and keeps each origin commit traceable in the landed trailer.
+
+**Order applied.** The three fix lanes off master first, because everything downstream renders
+through what they changed: navfoot59 (`f8c47dc6`, `1ef1d89e`) — the nav footer is ONE user row, the
+operator ruling that supersedes R2's own two rows; dashrow59 (`0636ec3f`) — ListRow cell
+containment, header nowrap, masthead text-wrap balance, bounds assertions; hydration59 (`5991d1a7`)
+— render-now, BandTile hrefs, the dashboard's brief rows selected and shaped ON THE SERVER, the
+operations matrix pending count. Then compose-lists (7), comp-06 (3), comp-08 (3), comp-11 (4),
+comp-oblig (2), compose-dashboard-details (5), compose-other (7), comp-admin (4, skipping its first
+two, which were cherry-picks of compose-other commits already applied).
+
+**Every conflict, and how it was resolved.** The rule throughout was to keep EVERY additive change
+from both sides; a conflict was a merge artifact, not a disagreement, unless two lanes had built the
+same thing.
+
+- `dashboard-brief-smoke.mjs` (dashrow59 vs hydration59): hydration59 replaces the fixture's
+  `Resource[]` with ready `BriefRow[]`. Took the new shape and carried dashrow59's D1 coverage
+  forward onto it as an `unscored` option, so ImpactMeter's unscored branch is still mounted.
+- `ListSurfaceShell.tsx` / `RegulationsLedger.tsx` / `MarketIntelLedger.tsx` / `ResearchLedger.tsx` /
+  `OperationsLedger.tsx` / `WatchlistSurface.tsx` / `Masthead.tsx` (hydration59's injected clock vs
+  every compose lane's new props): kept BOTH — `nowIso` and `nowFrom(nowIso)` alongside `scopeLine`,
+  `searchPlaceholder`, `headlineSeries`, `belowRows`, `notice`, `dek`. No `new Date()` survived.
+- `market/page.tsx`: kept compose-lists' relocation of the Headline Series card into the `aboveRows`
+  slot AND hydration59's `renderNowIso()` threading.
+- `research/page.tsx`: kept comp-06's R7 relocation of ThemeStrip and the credibility legend into
+  `belowRows`, plus the `nowIso` prop.
+- `OperationsLedger.tsx` / `RegionDimensionMatrix.tsx`: kept comp-08's `aboveRows`/`belowRows`
+  placement of the matrix and the by-state list AND hydration59's `crossRefCountsPending`; the
+  desktop column subhead gained the same pending affordance the mobile branch already had, so a
+  count that has not arrived says so instead of rendering a 0 that later jumps.
+- `ListRow.tsx`: kept dashrow59's containment comment AND comp-11's additive `titleLabel` prop.
+- `DEVIATION-LOG.md`, `package.json`, `session-log.md` (many): pure chronological/additive unions.
+- `mounts.mjs` (four times): each pair of lanes inserted an ENTRY const at the same anchor with the
+  same trailing boilerplate, so git interleaved them. Emitted each lane's block whole, in order.
+- `AUDIT-2026-09-07.md` / `results.json`: never hand-merged; regenerated at the end, as instructed.
+
+**Dedup decisions (two commits building the same thing).**
+
+1. **The band-card foot strip**, built independently by comp-06 (`01d44f83`) and comp-08
+   (`00198433`). Kept comp-06's implementation, which is the more complete — it carries the per-band
+   `sectionFoot` transition slot — extended with comp-08's named `transitionLabel` helper and its
+   24px spacer, on the canonical `--page` token rather than the `--bg` legacy alias, under a single
+   `data-audit="band-foot"` marker. compose-08's spec was repointed from `band-foot-strip` to that
+   marker, so both artboards' specs now measure the same element.
+2. **`SectionRule.coverage.npmtest.mjs`**, rewritten by comp-11, comp-oblig and comp-admin for the
+   same assertion that had been red since the filters moved to the rail. Unioned: comp-11's version
+   (which also asserts `<FiltersRailCard` and adds a SectionHeading test) plus comp-oblig's
+   rail-mounts-twice test.
+3. **`run-audit.mjs`'s textMatch fix**: already deduped at train 58's fold; one copy, untouched.
+4. **`DashboardBrief`**: comp-11 promotes its local `SectionHeading`/`CardFoot` to shared parts;
+   hydration59 moves its row selection to the server. Reconciled so it uses the shared parts AND the
+   server rows, with the local `DUE_NEXT_CAP`/`CHANGED_CAP` comp-11 re-introduced dropped —
+   `brief-rows.ts` owns them now, and a second copy is dead code (rule 13).
+
+**The fold's own defect, and its class.** `list-surface-helpers.ts` contained ONE literal NUL byte,
+the separator its search haystack joins fields with. Git therefore classified the module as BINARY,
+and a binary file has no line-level merge: comp-06's Window additions replaced comp-08's
+`countLabel` addition WHOLESALE instead of conflicting, silently, and `tsc` caught the loss only
+downstream. Both additions are restored, and all three literal NULs under `src/` (this file plus
+`slot-forcing.mjs` and `write-market-series.mjs`, whose NUL map-key separators are deliberate) are
+now written as escape sequences: runtime strings are byte-identical, the files are text, and the
+next train gets a real conflict instead of a silent overwrite.
+
+Two more losses found and restored the same way: comp-admin had removed the `compose-account`
+AUDIT_MOUNTS block (its own branch had no fixture for it; after compose-other the fixture exists),
+and the mounts interleave dropped `COMPOSE_MAP_ENTRY` and `COMPOSE_COMMUNITY_ENTRY`. Every one of
+the 60 specs now names a mount that exists, checked mechanically rather than by eye.
+
+**The composition audit: 60 specs, 990 checks, 990 MATCH.** 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC,
+compose-01..17 included. Reaching it needed two harness repairs. Both were harness defects; neither
+was a product defect, and saying so is the point (rule 14).
+
+- The `page-frame-1440` mount still fed `<DashboardBrief/>` the pre-HYDRATION-59 contract
+  (`resources` + `recentChanges`). The component takes server-selected `BriefRow[]` now, so the
+  mount THREW and rendered nothing, and 33 checks across four specs (sidebar, page-frame,
+  compose-01, compose-03) reported NOT BUILT against pages that were correct. The fixture keeps its
+  `Resource[]` and runs it through the SAME derivation the route runs, against one fixed instant.
+- compose-01's "an unscored row never renders a fabricated 0/12" forbid was the plain substring
+  `0/12`, which also matches the legitimate `10/12` — so a correctly scored row reported NOT IN
+  SPEC. The invariant is right and is kept; its expression was not. `textMatch` now also accepts
+  `re:<regex>`, through ONE shared `textFilter` used by targets and forbids alike (they had two
+  copies), and the forbid uses a boundary pattern. Documented beside the other value forms.
+
+**C4, fixed rather than recorded for the tenth time.** `override-check` has failed on this
+container since train 50, and it was failing on `origin/master` itself here. The check exempts
+worktrees under `.worktrees/` and `.claude/worktrees/` as ephemeral, for a reason it states: forcing
+inventory tracking on transient local state creates the local-vs-CI drift the migration 067 incident
+taught. This container puts its lane worktrees under `work/lanes/`, the convention
+TRAIN-ASSEMBLY-RUNBOOK.md itself prescribes, which postdates the rule — so all eleven lanes of this
+fold read as untracked worktrees. The convention is the exempt kind; the list was out of date. The
+three conventions now live in one exported predicate with the adversarial test it never had
+(`C4-worktrees-reality.test.mjs`: every exempt path on both separators, plus near-misses that must
+still be tracked), wired into the suite's named list. Separately, the `wt-audit` row was a genuine
+ORPHAN CLAIM — it promised "keep until the audit doc lands", the doc landed, the worktree is gone —
+and is removed. override-check now exits 0 with no drift.
+
+**The visual pass.** All seventeen side-by-sides were regenerated from the folded code and read by
+eye. Regenerating them is what found the following, none of which any spec measured.
+
+- `composite()` lived INSIDE `capture-compose-lists-screenshots.mjs`, reachable only from that
+  script's four entries, so the eight pages captured through `capture-compose-page.mjs` had their
+  side-by-sides assembled BY HAND. Extracted to `compose-composite.mjs` with a CLI; the lists script
+  imports it, behaviour unchanged.
+- `capture-compose-lists-screenshots.mjs` THREW on its first entry and wrote nothing: two entries
+  (research from comp-06, operations from comp-08) lost their `artboard` key in the fold.
+- `capture-compose-dashboard.mjs` fed the same stale contract as the audit mount, so compose-01's
+  built half was BLANK. Fixed with a second exported entry that derives through `brief-rows`; the
+  smoke spec's own entry is untouched, since a spec asserting row rendering wants literal rows.
+- The four detail captures wrote a bare shot with no artboard beside it; injected raw globals.css
+  rather than the compiled CSS, so Tailwind's `md:hidden` had no rule and every one showed the
+  MOBILE top bar at 1440 with no nav card; and clipped against AppShell's `height:100vh` frame
+  (compose-05 was cut through its IMPACT ASSESSMENT card with the page disclaimer across the seam).
+  All three fixed.
+
+One REAL product defect, found by eye: `<BandTile/>` rendered its count raw, so a four-digit band
+read `1135` where artboard 01 draws `1,135`. It now passes through `format.ts`'s locale-pinned
+`formatNumber` (F36). The audit could not have caught it — every tile in the bandtile mount carried
+a two-digit count — so the mount's MONITOR tile now carries 1135 and the spec asserts the separated
+text. Proven by attack: reverting the one-line fix turns that row MISMATCH (expected 1,135, got
+1135).
+
+**What still differs from the artboard, per page, after the fold.** Listed verbatim; geometry and
+type differences that were fixable were fixed above, the rest are data-driven or named scope.
+
+- **01 Dashboard**: band tiles, Due-next and What-changed cards, foot lines and rail order all
+  match. The capture mounts `DashboardBrief` alone, so the masthead is out of frame (page-frame
+  covers it). What-changed rows render UNSCORED / PENDING / NOT IN PRIMARY SOURCE — the Absence
+  convention firing correctly for change rows outside the loaded corpus slice, per `brief-rows.ts`'s
+  documented degrade path, never a fabricated 0. The Watchlist rail card can shoot before its
+  Suspense promise resolves. All Due-next rows share one date and an empty TIMELINE cell: fixture.
+- **02 Regulations**: masthead, band tiles, sort row, band cards, foot strips, rail order (Filters,
+  Obligations, Legend) all match. The rail Filters card has no "Clear" link where the artboard draws
+  one. The band-to-band transition strip does not appear (`sectionFoot` is wired and DOES render on
+  /research, so this is the fixture not warranting one). A trailing "N regulations tracked across N
+  jurisdictions" line sits below the cards where the artboard has none.
+- **04 Market**: the Headline Series card is correctly embedded between the band tiles and the sort
+  row. The rail has SOURCES TRACKED where the artboard has CARBON COST PER FEU and NEXT DATA DROPS.
+  Rows show UNSCORED, correct for an unscored fixture. Same trailing count line.
+- **06 Research**: theme cards, Window row, band foot rows, the Awareness transition strip and the
+  rail (Filters, Source coverage, Legend) all match. The rail lacks the artboard's VERTICAL and
+  SOURCE CLASS facet groups — the known open item, no data behind them.
+- **08 Operations**: the matrix sits first in the content column above the band cards, with its
+  Anton head, sourced ratio and foot strip; all six D1-D6 rows present; rail facet order Region then
+  Dimension; the D-row ratio counts render through `countLabel`. The expanded facts cell is far
+  taller than the artboard's (7 facts per region vs 1): fixture. A "Facts" label appears in the
+  expanded row's left column where the artboard has none. The by-state disclosure and a trailing
+  count line sit below the cards (R7 placement; artboard 08 has no region for them).
+- **11 Watchlist**: flat, no band tiles, correct. Card head, column header including the TIMELINE
+  column and the `titleLabel` extension, rows, foot, the changed-since-last-visit strip, the
+  Recalculation notices card and the rail order (Filters, Share, Legend) all match. The SHARE WITH
+  WORKSPACE card has the prose but not the artboard's "Create shared watchlist" button. Rows end in
+  a star where the artboard draws the overflow glyph.
+- **03 / 05 / 07 / 09 Details**: masthead, chip row, EXPOSURE with its Absence cells, TIMELINE,
+  section index with the depth switch on the same row, and the section cards all match. Consistently
+  across all four, the rail puts IN THIS LIST FIRST where the artboard puts AT A GLANCE first, and
+  the artboard's RELEVANCE TO DIETL/ROCKIT card is absent (05 also lacks nothing else; 09 lacks
+  RELATED IN ASIA; 07 lacks CLUSTER SYNTHESIS). 03 additionally has no EXPOSURE card content and no
+  type/mode/topic chips — that is its fixture, since 09 renders both. Section bodies are thin
+  because the fixtures are.
+- **10 Map**: rail order (Immediate, Coverage gaps, Legend) matches. THE MAP CANVAS RENDERS EMPTY —
+  no basemap, no markers — where the artboard draws band-coloured bubbles. MODE/BAND/REGION are on
+  three lines where the artboard puts MODE and BAND on one. The jurisdiction register is a row list
+  without the artboard's column headers and per-row arrow. The KEY carries a fifth entry.
+- **12 Community**: the least-composed page. An extra "REGIONAL ROOMS" heading above the tiles; room
+  tiles show the 3-char key ("GLO") not the name; an extra region card between the tiles and the
+  discussions; the discussion list is a stacked card list where the artboard draws a table with
+  JURIS/DISCUSSION/REPLIES/LAST ACTIVITY columns and tag chips; the composer sits inside the
+  discussions card rather than as its own NEW POST card at the foot; the rail swaps WHY POST HERE
+  and VERIFIER SIGN-OFF and adds a VERTICAL GROUPS card.
+- **13 Admin**: masthead, the eight stat tiles, the Provisional review table card and the rail order
+  all match, and the nav card's ONE footer row is correct per the ruling (artboard 13 still draws
+  the superseded two rows). The sub-tab row sits ABOVE the card instead of inside its head, and
+  wraps to two lines — the named open item. ORGANIZATIONS carries an extra ROLES column and its
+  last-activity value is CLIPPED at the card's right edge. READ-ONLY CONTROLS has Refresh but not
+  the artboard's Export queue.
+- **14 Account**: tabs, cards and the two-column rail all match. The invite row has no "INVITE BY
+  EMAIL" label; the member list has no column headers and uses Remove/Ban text buttons where the
+  artboard has a table and an overflow glyph; the "3 of 5 seats used / Manage seats" foot strip is
+  absent; ORGANIZATION carries an extra table above its two fields; the rail's four stat blocks are
+  four cards where the artboard groups them in one.
+- **15 Settings**: the second least-composed. The artboard is TWO COLUMNS (defaults, sectors and
+  notifications left; briefing schedule, appearance and data right); the build is one full-width
+  column. Freight sectors shows all 36 with no "Show all" disclosure. An S1-S6 section index appears
+  below the tabs where the artboard has none, and Saved searches, Data summary, CSV upload,
+  Supersession history and Archive are present with no artboard region.
+- **16 Auth / 17 Onboarding**: stepper, headline, modes, jurisdictions, the band-scale preview and
+  the buttons all match. The left panel omits the artboard's marketing headline and its "1,434
+  items" paragraph — NOT a defect: that is a logged deviation citing the README's own Fidelity note
+  ("copy inside the auth artboard is placeholder and will be replaced by the client") plus rule 2,
+  since the paragraph states a count the build would have to fabricate. 16 also lacks the "Keep me
+  signed in" checkbox and 17 the "Back" link, and both centre their panel vertically where the
+  artboard sits it higher.
+
+**UX compliance**: this fold touched `.tsx` under `fsi-app/src` (`BandTile.tsx`,
+`ListSurfaceShell.tsx`, `ListSurfaceRailCards.tsx`, `ListRow.tsx`, `Masthead.tsx`,
+`DashboardBrief.tsx`, `WatchlistSurface.tsx`, `RegionDimensionMatrix.tsx`, `OperationsLedger.tsx`,
+plus the four ledgers and the two page files), almost all of it reconciliation of changes the eleven
+lanes had each already justified against the artboard in their own addenda. The two values this fold
+ORIGINATED are the band tile's thousands separator (artboard 01's own literal, `1,135`) and the
+operations column subhead's pending affordance (text, no new target). No new interactive element is
+introduced: the band-card foot link keeps the 24px minimum box comp-06 gave it, the nav footer's one
+row keeps its 44px minimum, and every dedup kept the implementation whose targets were already
+measured. Rendering guard PASS with no new failures, including law-2 targets at 375 and 1280, the
+bounds/overlap assertions dashrow59 added, the hydration smoke and the masthead-balance spec.
+
+**Gates** (this container; the coordinator lands): design audit 60 specs, 990 checks, **990 MATCH,
+0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC**; rendering guard PASS (11 fixtures, 431 checks, 7 SM +
+12 UX smoke specs, 83 + 216 checks); `tsc --noEmit` clean; fitness runner 33/33, 0 violations;
+`node --test` over the rendering, rendering/audit and rules globs 121/121 PASS; closure-gate PASS on
+all four checks; `run-test-suite.sh` 5917 tests, 5912 pass, **0 fail**, 5 skipped, exit 0 (the known
+"kill switch ON but no DB creds" failure did not reproduce; the `audit-finding-status` informational
+report on pre-existing archived audits is unchanged); `runner.mjs --mode=ci
+--range=origin/master..HEAD` exit 0 across all 44 commits; `override-check` **exit 0, no drift**;
+all 17 workflow YAML files parse under `yaml.safe_load`; `invariant-coverage.mjs` PASS (119
+invariants + 63 doctrines wired); `next build --webpack` exit 0 with no `.env.local`;
+`coverage-report.json` regenerated (896 governed files, 858 COVERED, 38 EXEMPT, 0 GAPS).
