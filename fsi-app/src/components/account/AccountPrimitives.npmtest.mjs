@@ -14,10 +14,18 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-function slice(fnName, len = 2200) {
+// Bounded to the NAMED FUNCTION, from its `export function` to the next top-level `export`, rather
+// than to a fixed character count. It was a flat 2200-char window, which is a silent tripwire: lanes
+// settings60 and admin60 each added a comment inside AccountCard at train 60's fold, and the two
+// together pushed the head meta's `fontWeight: 600` to offset 2275 from the function start. The
+// component was correct and the assertion still described it correctly; the WINDOW had fallen short,
+// so a green test went red on prose alone. Every caller's invariant is unchanged, and the slice is
+// still scoped to ONE function, so a value from a sibling can never satisfy it. (Fold 60.)
+function slice(fnName) {
   const start = SOURCE.indexOf(fnName);
   assert.notEqual(start, -1, `${fnName} not found in source`);
-  return SOURCE.slice(start, start + len);
+  const next = SOURCE.indexOf("\nexport ", start + 1);
+  return SOURCE.slice(start, next === -1 ? SOURCE.length : next);
 }
 
 test("AccountCard shell: border-radius uses the shared 10px card token, not a page-local 8px", () => {
