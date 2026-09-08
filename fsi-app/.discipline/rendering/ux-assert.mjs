@@ -86,12 +86,17 @@ export function detectSqueezedTitles(titles, ratio = TITLE_MIN_RATIO) {
  * (2026-09-03, second phone report: the regional matrix table and a detail-page breadcrumb were CLIPPED
  * at the right edge; scrollWidth never moved because an `overflow: hidden` ancestor swallowed the
  * overflow, so the existing detector stayed green while words ran off the page). Input:
- * [{ name, right, viewportWidth, scrollable }] where `scrollable` is true only when a DECLARED strip
- * ancestor (`data-guard-strip` + overflow-x auto/scroll) carries the element. Pure.
+ * [{ name, right, viewportWidth, scrollable, inClipViewport }] where `scrollable` is true only when a
+ * DECLARED strip ancestor (`data-guard-strip` + overflow-x auto/scroll) carries the element, and
+ * `inClipViewport` true only when a DECLARED clipping viewport ancestor (`data-guard-clip` + an
+ * overflow that actually clips, and itself inside the viewport) carries it. See measureUx below for
+ * why a slippy map's tile grid is the one thing that legitimately declares itself that way. Pure.
  */
 export function detectClippedOverflow(boxes, tolerance = 2) {
   if (!Array.isArray(boxes)) return [];
-  return boxes.filter((b) => b && !b.scrollable && Number(b.right) > Number(b.viewportWidth) + tolerance);
+  return boxes.filter(
+    (b) => b && !b.scrollable && !b.inClipViewport && Number(b.right) > Number(b.viewportWidth) + tolerance,
+  );
 }
 
 /**
@@ -221,7 +226,30 @@ export async function measureUx(page) {
             if (ox === 'auto' || ox === 'scroll') { scrollable = true; break; }
           }
         }
-        clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable });
+        // A DECLARED CLIPPING VIEWPORT (`data-guard-clip`) carries its descendants, the same way a
+        // declared strip does (lane mapclip, 2026-09-08, train 61 PR #610's one CI-only red).
+        // WHY A MAP TILE IS NOT A TEXT RUN: a slippy map lays a tile grid deliberately wider than its
+        // own frame and clips it with that frame's overflow, so getBoundingClientRect reports a tile's
+        // UNCLIPPED rect and a tile at the frame's right edge can report a right edge past the viewport
+        // while nothing the reader is meant to read is cut off. A tile is rendering substrate, drawn
+        // to be panned over, not a run of words that must be readable where it sits. That is the whole
+        // width of this exemption: it never excuses a text run, a control or a table, which are still
+        // failures anywhere, INCLUDING inside a declared clipping viewport's own box if they overflow
+        // the page. Two conditions keep it from becoming a way to hide any overflow: the element must
+        // ACTUALLY clip (an `overflow` of hidden/clip, not merely the attribute), and it must ITSELF
+        // sit inside the viewport. A declaring element whose own right edge runs past the edge carries
+        // nothing and is reported here like any other box.
+        let inClipViewport = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (!p.hasAttribute('data-guard-clip')) continue;
+          const pcs = getComputedStyle(p);
+          const clips = (o) => o === 'hidden' || o === 'clip';
+          if (!clips(pcs.overflowX) && !clips(pcs.overflow)) continue;
+          if (p.getBoundingClientRect().right > vw + 2) continue;
+          inClipViewport = true;
+          break;
+        }
+        clipped.push({ name: nameOf(el), right: r.right, viewportWidth: vw, scrollable, inClipViewport });
         if (clipped.length >= 40) break;
       }
       const titles = [];

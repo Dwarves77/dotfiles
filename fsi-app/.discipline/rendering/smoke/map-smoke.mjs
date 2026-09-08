@@ -74,7 +74,11 @@ function RegisterRow({ row }) {
 
 function MapSmokeRoot(props) {
   return React.createElement(React.Fragment, null,
-    React.createElement('div', { style: { height: 460, width: '100%', position: 'relative', overflow: 'hidden' } },
+    // This div is the spec's stand-in for MapPageView's map canvas (its data-testid="map-canvas"
+    // frame), so it carries the same data-guard-clip declaration the product carries: a smoke spec
+    // describes the product. See MapPageView.tsx and ux-assert.mjs's measureUx for why a tile inside a
+    // declared clipping viewport is carried and a text run never is.
+    React.createElement('div', { 'data-guard-clip': '', style: { height: 460, width: '100%', position: 'relative', overflow: 'hidden' } },
       React.createElement(MapView, { jurisdictions: props.markers, communityActivity: [] }),
     ),
     React.createElement('div', { 'data-testid': 'jurisdiction-register-rows' },
@@ -138,9 +142,15 @@ export async function runSmoke(browser) {
         await page.addStyleTag({ content: LEAFLET_CSS });
         await mountBundle(page, bundleJs, '__mount', state.props);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
-        // Tiles load async even against the intercepted same-origin (no network — page.route
-        // answers everything, including the OSM tile URLs, with a 404, which is enough for
-        // leaflet to finish laying out the DOM); one more frame lets that settle.
+        // CORRECTED 2026-09-08 (lane mapclip), the previous note here was wrong and the error was
+        // load-bearing: `newSmokePage` routes only the smoke base URL, so the OSM tile requests this
+        // mount issues are NOT intercepted and go to the real network. A container whose egress blocks
+        // the tile host gets 18 <img class="leaflet-tile"> elements with naturalWidth 0 and no
+        // `leaflet-tile-loaded` class (measured this lane); CI, which can reach the host, gets loaded
+        // tiles and a wider settled grid. The tile grid is therefore the one part of this spec whose
+        // geometry differs between a blocked container and CI, and the data-guard-clip declaration on
+        // the canvas frame above is what makes both measure the same rule. One more frame lets the
+        // DOM layout settle either way.
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => r())));
 
         const guard = await measureGuard(page);

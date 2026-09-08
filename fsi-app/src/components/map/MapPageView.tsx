@@ -365,8 +365,18 @@ export function MapPageView(props: MapPageViewProps) {
             title="Regulatory map"
             aside={`${chartedRows.length} charted of ${liveJurisdictions} live · ${chartedItemCount} of ${totalActiveCount} items`}
           />
-          {/* dc.html p10: the map canvas is 420px tall. */}
-          <div style={{ position: "relative", height: 420 }} data-testid="map-canvas">
+          {/* dc.html p10: the map canvas is 420px tall.
+              `data-guard-clip` DECLARES this box a clipping viewport to the rendering guard: Leaflet
+              lays a tile grid deliberately wider than this frame and pans it inside the frame's own
+              overflow, so a tile's unclipped rect can read as past the page's right edge while nothing
+              the reader is meant to read is cut off. A tile is rendering substrate, not a run of words.
+              The declaration is narrow by construction: it carries only this frame's descendants, and
+              only while the frame itself sits inside the viewport (ux-assert.mjs, measureUx). */}
+          <div
+            style={{ position: "relative", height: 420, overflow: "hidden" }}
+            data-testid="map-canvas"
+            data-guard-clip
+          >
             <div style={{ position: "absolute", inset: 0 }}>
               <MapView
                 jurisdictions={mapMarkers}

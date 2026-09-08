@@ -125,9 +125,21 @@ async function main() {
       // UX detectors on fixture legs that opt in (`ux: true`): hand-reproduced fixtures only prove a
       // layout contract, so the law-2 / squeezed-title measurement is meaningful only where the fixture
       // carries real control sizes. Real components are measured unconditionally in the UX smoke slot.
-      if (!fx.red && fx.ux) {
+      // A RED fixture may opt in too, with `expectUxFailure` (a regex): the UX detectors MUST fire on
+      // it and MUST say the expected thing, which is how a UX rule is proven by attack in a real
+      // browser rather than only against hand-fed measurements (lane mapclip, 2026-09-08).
+      if (fx.ux) {
         const ux = await measureUxOn(browser, fx.html, width);
-        failures.push(...assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux));
+        const uxFailures = assertUxClean(`${fx.id}@${width} [${fx.cls}]`, ux);
+        if (fx.expectUxFailure) {
+          if (!uxFailures.some((f) => fx.expectUxFailure.test(f))) {
+            failures.push(
+              `${fx.id}@${width}: RED ux fixture did NOT reproduce ${fx.expectUxFailure} (detector or fixture broken)`,
+            );
+          }
+        } else if (!fx.red) {
+          failures.push(...uxFailures);
+        }
       }
 
       if (fx.red) {

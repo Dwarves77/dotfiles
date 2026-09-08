@@ -14312,3 +14312,45 @@ only. Every 44px minimum the lanes set is preserved and one that had been lost w
 register row's click overlay, which this fold's own reflow had cut to 24px and the guard caught at
 375. The rendering guard passes at every viewport including 375, and the overflow sweep is 0px at both
 1440 and 390.
+
+## Addendum, lane mapclip (2026-09-08): train 61's CI-only rendering-guard red, closed by declaration
+
+**The defect.** PR #610 passed nine checks and failed the rendering guard in CI only:
+`map-page:populated@1280`, one `img[leaflet-tile leaflet-tile-loaded]` measured at right=1408px on a
+1280px viewport. It passes in this container.
+
+**Diagnosis, verified rather than accepted.** [CONFIRMED, measured this lane] The container's egress
+blocks the OSM tile host, so all 18 `<img class="leaflet-tile">` elements the map mounts have
+`naturalWidth: 0` and never gain the `leaflet-tile-loaded` class (Leaflet adds it only on the no-error
+path, `leaflet-src.js` `_tileReady`). The fold's report said no tile element exists here; that is
+[REFUTED] and the correction matters, the tiles ARE in the DOM, they are simply laid out in a grid
+that fits, while CI's loaded tiles settle one column wider. Also [REFUTED]: `map-smoke.mjs`'s own
+comment claimed `page.route` answers the OSM URLs with a 404. `newSmokePage` routes only the smoke
+base URL; the tile requests go to the real network. That wrong comment is what let a CI/local
+divergence sit unexamined, and it is corrected in place.
+
+**The fix.** `data-guard-clip`, a DECLARED clipping viewport, in the same language the harness already
+uses for `data-guard-strip`. Set on the map canvas in `MapPageView.tsx` (which now also states
+`overflow: hidden`, so the declaration matches the CSS) and on the smoke spec's stand-in for it;
+`measureUx` carries a box whose ancestor declares it, ACTUALLY clips, and itself sits inside the
+viewport. `overflow: hidden` on the canvas was refused as the fix: it would leave the guard red and it
+is the swallowing this detector exists to catch. Why a tile is not a text run is stated in all three
+files so the next reader does not widen it.
+
+**UX compliance.** No visual change at any viewport: the map canvas already clipped its tile grid
+through `.leaflet-container`; the added `overflow: hidden` restates that on the frame and the design
+audit is 2018/2018 MATCH.
+
+**Proven by attack**, all twelve viewports, in a real browser: `map-clip-declared` (a box past the edge
+inside a declared clip viewport, 0 failures), `map-clip-undeclared-PREFIX` (same geometry, no
+declaration, fires), `map-clip-self-overflow-PREFIX` (the declaring element itself past the edge,
+fires on the frame AND its content). A red fixture can now opt into the UX detectors with
+`expectUxFailure`, which is what makes cases 2 and 3 a proof rather than an assertion. Mutation control:
+deleting the attribute from the green fixture makes it fail.
+
+**Not proven here:** the CI half. This container cannot reach the tile host, so the exact CI failure
+cannot be reproduced locally and is not claimed to be; the coordinator confirms it on the re-run.
+
+**Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks, up from
+445); node --test rendering globs 82 pass / 0 fail; audit:design 70 specs / 2018 MATCH; run-test-suite
+5975 tests / 0 fail.

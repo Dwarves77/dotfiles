@@ -81,6 +81,41 @@ test('RED: an element past the right edge with no scrolling ancestor is clipped;
   assert.match(assertUxClean('ops@390', { clipped: hits })[0], /clipped past the viewport/);
 });
 
+// ── The declared clipping viewport (lane mapclip, 2026-09-08) ─────────────────
+// Train 61's PR #610 was red in CI on exactly this geometry: a Leaflet tile whose unclipped rect ran
+// 128px past a 1280px viewport inside a 420px map card. The three cases below are the same rule
+// attacked from three directions; the browser half (that `inClipViewport` is set only for descendants
+// of a declared, actually-clipping, itself-inside-the-viewport ancestor) is proven by the MAP-CLIP
+// fixture trio in fixtures.mjs, which run through the real collector at all twelve viewports.
+
+test('GREEN: a box past the right edge INSIDE a declared clipping viewport is carried (the map tile)', () => {
+  assert.deepEqual(
+    detectClippedOverflow([
+      { name: 'img[leaflet-tile leaflet-tile-loaded]', right: 1408, viewportWidth: 1280, scrollable: false, inClipViewport: true },
+    ]),
+    [],
+  );
+});
+
+test('RED: the SAME box outside any declared clipping viewport still fails', () => {
+  const hits = detectClippedOverflow([
+    { name: 'img[leaflet-tile leaflet-tile-loaded]', right: 1408, viewportWidth: 1280, scrollable: false, inClipViewport: false },
+  ]);
+  assert.equal(hits.length, 1);
+  assert.match(assertUxClean('map-page:populated@1280', { clipped: hits })[0], /clipped past the viewport/);
+});
+
+test('RED: the declaring element itself past the right edge fails (the attribute never carries itself)', () => {
+  // The collector walks from el.parentElement, so a declaring element is never exempted by its own
+  // attribute, and it refuses to carry descendants at all while its own right edge is past the edge, so
+  // both boxes arrive here with inClipViewport false and both must be reported.
+  const hits = detectClippedOverflow([
+    { name: 'div[map-canvas]', right: 1408, viewportWidth: 1280, scrollable: false, inClipViewport: false },
+    { name: 'img[leaflet-tile]', right: 1500, viewportWidth: 1280, scrollable: false, inClipViewport: false },
+  ]);
+  assert.deepEqual(hits.map((h) => h.name), ['div[map-canvas]', 'img[leaflet-tile]']);
+});
+
 // ── detectClippedText (opsclip, train 61, defects 2 and 6) ────────────────────
 // RED: each shape below is one of the five production clippings the operator's own click-through
 // found on 2026-09-08. Nothing in the suite failed on any of them before this lane.
