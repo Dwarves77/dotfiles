@@ -989,6 +989,70 @@ window.__mount = () => {
 };
 `;
 
+// ── Community (12) full-page composition mount ──────────────────────────────────────────────────
+const COMMUNITY_ROOMS_FIXTURE = [
+  {
+    key: 'GLOBAL', name: 'Global', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
+    itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
+    liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
+    threads: [
+      { id: 't1', groupId: 'g-global', title: 'How are you handling the CH4 and N2O scope changes?', body: '', replyCount: 14, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-06T14:00:00Z', referencedItemIds: [], authorName: 'A. Weiss', isYou: false, isOwner: false, signedOff: false },
+      { id: 't2', groupId: 'g-global', title: 'Ocean rate spike: what your clients are asking this week', body: '', replyCount: 23, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-04T09:00:00Z', referencedItemIds: [], authorName: 'S. Patel', isYou: false, isOwner: false, signedOff: false },
+      { id: 't3', groupId: 'g-global', title: 'Template: customer letter for the CBAM cost pass-through', body: '', replyCount: 5, createdAt: '2026-09-02T09:00:00Z', lastActivityAt: '2026-09-02T09:00:00Z', referencedItemIds: [], authorName: 'M. Ruiz', isYou: false, isOwner: false, signedOff: false },
+    ],
+  },
+  { key: 'EU', name: 'EU', short: 'EU', groupId: 'g-eu', joined: false, youHere: false, itemCount: 753, itemCountKnown: true, hue: 'critical', themes: ['Emissions', 'Reporting', 'Packaging'], liveItems: [], roster: [],
+    threads: [{ id: 't4', groupId: 'g-eu', title: 'FuelEU pooling — anyone modelled the 2027 penalty exposure?', body: '', replyCount: 8, createdAt: '2026-09-05T09:12:00Z', lastActivityAt: '2026-09-05T09:12:00Z', referencedItemIds: [], authorName: 'J. Nowak', isYou: false, isOwner: false, signedOff: false }] },
+  { key: 'US', name: 'US', short: 'US', groupId: 'g-us', joined: false, youHere: false, itemCount: 24, itemCountKnown: true, hue: 'high', themes: ['Reporting', 'Emissions', 'Transport'], liveItems: [], roster: [], threads: [] },
+  { key: 'UK', name: 'UK', short: 'UK', groupId: 'g-uk', joined: false, youHere: false, itemCount: 210, itemCountKnown: true, hue: 'moderate', themes: ['Transport', 'Research', 'Emissions'], liveItems: [], roster: [], threads: [] },
+  { key: 'APAC', name: 'APAC', short: 'APAC', groupId: 'g-apac', joined: false, youHere: false, itemCount: 2, itemCountKnown: true, hue: 'low', themes: ['Reporting'], liveItems: [], roster: [], threads: [] },
+  { key: 'LATAM', name: 'LATAM', short: 'LATAM', groupId: 'g-latam', joined: false, youHere: false, itemCount: 1, itemCountKnown: true, hue: 'low', themes: ['Emissions'], liveItems: [], roster: [], threads: [] },
+  { key: 'MEAF', name: 'MEAF', short: 'MEAF', groupId: 'g-meaf', joined: false, youHere: false, itemCount: 0, itemCountKnown: true, hue: 'low', themes: [], liveItems: [], roster: [], threads: [] },
+];
+
+const COMPOSE_COMMUNITY_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { Masthead } from '@/components/ui/Masthead';
+import { CommunityRooms } from '@/components/community/CommunityRooms';
+
+const ROOMS = ${JSON.stringify(COMMUNITY_ROOMS_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'community' },
+        React.createElement('div', { style: { padding: '20px 40px 0' } },
+          React.createElement(Masthead, {
+            title: 'Community',
+            dateLabel: 'Sunday 6 September 2026',
+            dek: '7 regional rooms \\u00b7 999 active items across them \\u00b7 you are in 1 \\u00b7 peer signal is unverified until a verifier signs off',
+            commandBar: { itemCount: 999, scope: 'community', placeholder: 'Search posts, groups, members \\u2014 or ask "what did the EU room flag this week?"' },
+          }),
+        ),
+        React.createElement(CommunityRooms, {
+          rooms: ROOMS,
+          seeded: true,
+          currentUserId: 'u1',
+          currentUserName: 'Jason',
+          currentUserIsOwner: true,
+          currentUserIsVerifier: false,
+          verifierStatus: 'none',
+          networkMemberCount: 1,
+          pendingPickups: 0,
+          verticalGroups: [],
+          verticalOptions: [],
+        }),
+      ),
+    ),
+  );
+};
+`;
+
 
 // ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
 // The real logged-out identity frame plus the Sign in / Create account tab strip both /login and
@@ -2288,6 +2352,19 @@ export const AUDIT_MOUNTS = {
       'next/navigation': `${SMOKE}stub-next-navigation-map.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
       'leaflet/dist/leaflet.css': `${SMOKE}stub-empty-css.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-community': {
+    id: 'compose-community',
+    description: 'Full-page composition mount: AppShell + Masthead + CommunityRooms, populated fixture data, README screen 12 / dc.html p12.',
+    viewport: 1440,
+    entry: COMPOSE_COMMUNITY_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-community.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser.mjs`,
     },
     apiRoutes: EMPTY_API,
   },

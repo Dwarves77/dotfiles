@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T00:37:57.127Z",
+  "runAt": "2026-09-08T00:54:15.076Z",
   "specs": [
     {
       "part": "Absence",
@@ -819,6 +819,92 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-10-map.json",
       "__id": "compose-10-map"
+    },
+    {
+      "part": "Page composition — Community (12)",
+      "mount": "compose-community",
+      "viewport": 1440,
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "notes": [
+        "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + CommunityRooms, real components, populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-community'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+        "Artboard order top to bottom: Masthead (VOL line, COMMUNITY title, dek, page-scoped command bar) -> 'Regional rooms' section (aside stat line) -> room tile grid, FIXED 4 columns (dc.html: grid-template-columns:repeat(4,1fr)), 7 room tiles + a dashed '+ New vertical group' tile as the grid's own 8th slot -> selected-room panel (GLOBAL header, Live-in-region ledger, Discussions card with composer + thread rows, foot) -> rail: Who's here, Why post here, Verifier sign-off, Vertical groups, in that order.",
+        "This lane fixed two real defects here: the room-tile grid used `repeat(auto-fit,minmax(165px,1fr))` (6 columns at 1440px, truncating theme text) instead of the artboard's fixed `repeat(4,1fr)`; and the dashed '+ New vertical group' tile — part of the SAME grid in the artboard — did not exist in the room grid at all (only a same-named trigger in the rail's Vertical groups card, kept, same handler reused).",
+        "Command bar placeholder is page-scoped: 'Search posts, groups, members — or ask \"what did the EU room flag this week?\"' (dc.html p12 exact text) — previously missing (generic 'Search or ask across N items…' fallback)."
+      ],
+      "selector": "[data-audit=\"community\"]",
+      "expect": {
+        "count": "1"
+      },
+      "children": [
+        {
+          "name": "region 1 — command bar page-scoped placeholder (dc.html p12 exact text)",
+          "selector": "[data-audit=\"community\"] input[placeholder^=\"Search posts, groups, members\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 2 — 'Regional rooms' section heading",
+          "selector": "[data-audit=\"community\"] h2",
+          "expect": {},
+          "textMatch": "Regional rooms"
+        },
+        {
+          "name": "region 3 — room tile grid is fixed 4 columns, not auto-fit",
+          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 3a — '+ New vertical group' dashed tile is the grid's own 8th cell",
+          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] button",
+          "expect": {},
+          "textMatch": "New vertical group"
+        },
+        {
+          "name": "region 4 — selected-room 'Discussions' card, after the tile grid",
+          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] ~ div",
+          "expect": {},
+          "textMatch": "Discussions ·"
+        },
+        {
+          "name": "region 5 — rail, 'Who's here' card",
+          "selector": "[data-audit=\"community\"] p",
+          "expect": {},
+          "textMatch": "here ·"
+        },
+        {
+          "name": "region 6 — rail, 'Verifier sign-off' card",
+          "selector": "[data-audit=\"community\"] p",
+          "expect": {},
+          "textMatch": "Verifier sign-off"
+        },
+        {
+          "name": "region 7 — rail, 'Vertical groups' card, last",
+          "selector": "[data-audit=\"community\"] p",
+          "expect": {},
+          "textMatch": "Vertical groups"
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no floating Ask AI button (ruling 2.2)",
+          "selector": "[data-audit=\"community\"] button",
+          "textMatch": "Ask AI",
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+        },
+        {
+          "name": "no second per-page ask/search bar (README §0.3)",
+          "selector": "[data-audit=\"community\"] input[type=\"search\"]",
+          "reason": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-12-community.json",
+      "__id": "compose-12-community"
     },
     {
       "part": "DetailHeader",
@@ -6807,6 +6893,86 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input."
+    },
+    {
+      "spec": "compose-12-community",
+      "part": "Page composition — Community (12)",
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "viewport": 1440,
+      "target": "Page composition — Community (12)",
+      "selector": "[data-audit=\"community\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-12-community",
+      "part": "Page composition — Community (12)",
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "viewport": 1440,
+      "target": "region 1 — command bar page-scoped placeholder (dc.html p12 exact text)",
+      "selector": "[data-audit=\"community\"] input[placeholder^=\"Search posts, groups, members\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-12-community",
+      "part": "Page composition — Community (12)",
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "viewport": 1440,
+      "target": "region 3 — room tile grid is fixed 4 columns, not auto-fit",
+      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-12-community",
+      "part": "Page composition — Community (12)",
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "viewport": 1440,
+      "target": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"community\"] button [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "spec": "compose-12-community",
+      "part": "Page composition — Community (12)",
+      "artboards": [
+        "12-community"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "viewport": 1440,
+      "target": "no second per-page ask/search bar (README §0.3)",
+      "selector": "[data-audit=\"community\"] input[type=\"search\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
     },
     {
       "spec": "detailheader",

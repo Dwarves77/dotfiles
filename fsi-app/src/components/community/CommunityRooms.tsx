@@ -537,11 +537,14 @@ export function CommunityRooms({
         <NotSeededState pendingPickups={pendingPickups} verifierStatus={verifierStatus} />
       ) : (
         <>
-          {/* ══ Rooms grid ══ */}
+          {/* ══ Rooms grid — fixed 4 columns (dc.html p12: grid-template-columns:repeat(4,1fr)),
+              never auto-fit: auto-fit's minmax(165px,1fr) packed 6 tiles per row at 1440px width,
+              truncating theme text ("Trans...", "Emissi...") the artboard's 4-column layout never
+              needs to. */}
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "repeat(auto-fit,minmax(165px,1fr))",
+              gridTemplateColumns: "repeat(4,1fr)",
               gap: 12,
               margin: "0 0 22px",
             }}
@@ -633,6 +636,30 @@ export function CommunityRooms({
                 </button>
               );
             })}
+            {/* Dashed "+ New vertical group" tile, the grid's own 8th slot (dc.html p12) — same
+                create-group action the rail's "Vertical groups" card's own "+ New group" trigger
+                opens, not a second implementation. */}
+            <button
+              type="button"
+              onClick={() => setCreateOpen(true)}
+              style={{
+                fontFamily: "inherit",
+                cursor: "pointer",
+                background: "transparent",
+                borderRadius: 8,
+                padding: "12px 14px",
+                border: "1px dashed var(--color-border-strong, rgba(0,0,0,.25))",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 12,
+                fontWeight: 600,
+                color: "var(--color-text-secondary)",
+                minHeight: 44,
+              }}
+            >
+              + New vertical group
+            </button>
           </div>
 
           {/* ══ Selected room ══ */}
