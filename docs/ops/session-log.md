@@ -14665,3 +14665,137 @@ audit:design 71 specs / 2068 MATCH (up from 70 / 2060, and the six rows this lan
 updated to the new values with the artboard's own recorded beside them); overflow sweep 0px page
 overflow on every mount at 1440, 1024 and 390, both admin mounts clean; npmtest glob 1041 pass / 0
 fail; run-test-suite 5975 tests / 0 fail; `next build --webpack` exit 0.
+## Addendum — lane briefdata (train 61, 2026-09-08): the two brief cards' data path, and why the watchlist is empty
+
+Operator, today, verbatim: **"do next and whats changed need to stay populated"**, and mid-flight,
+**"watchlist also not populated"**. Write set: the data path only (`src/lib/dashboard/brief-rows.ts`,
+`src/app/page.tsx`, `src/lib/supabase-server.ts`, `src/lib/data.ts`, their proofs), because the
+sibling lane listrow is rewriting the dashboard's row rendering at the same time. Every prop threaded
+into `DashboardBrief.tsx` is declared in DEVIATION-LOG.md.
+
+### Cause 1 — the degrade path. [CONFIRMED, live query]
+
+`get_workspace_intelligence_dashboard` is `LIMIT 50` ordered by priority band (migration 077);
+`get_workspace_recent_changes` is date-windowed and NOT priority-capped (migration 232).
+`buildChangedRows` resolved each changed item against the 50-row slice and, where it was absent,
+degraded to what the change feed carries: id, title, priority, classification. Measured against the
+live workspace (org a0000000-…-0001, 1,518 active items, 1,109 added in the last seven days):
+**6 of the 6 rendered change rows were absent from the slice**, so the degrade branch was not an
+edge case, it was the entire card. That is the state the operator photographed.
+
+Fixed by reading the missing ids back: one bounded `.in()` per id shape over `intelligence_items`,
+the dashboard RPC's own column list, the workspace scope predicate `_workspace_active_items` applies
+(`NOT COALESCE(override.is_archived, ii.is_archived)` and `provenance_status = 'verified'`), and the
+org override merged from the override rows the request already read. It arrives as
+`DashboardData.briefResources` and `src/app/page.tsx` merges it with `data.resources` into ONE
+corpus, so a change row is now built from the same `Resource` through the same `toListRowFields` the
+list ledgers use. The degrade branch stays as the last resort for an id the corpus genuinely cannot
+resolve; it still invents nothing.
+
+### Cause 2 — Due next could legitimately empty, and had a second cause nobody had named.
+
+The widening was needed and is done: the card no longer draws from the priority-capped slice at all.
+`fetchDueNextCandidateIds` reads the nearest future dates corpus-wide from BOTH sources `dueInfo`
+consults (`item_timelines.milestone_date` and `intelligence_items.compliance_deadline`), bounded and
+date-ordered, and those items are resolved through the same by-id read. No item without a date is
+ever admitted.
+
+The card's stated window is its own aside, "By next binding date · week of Sep 8". Widening makes
+that sentence false, so the label now says how far the card reaches:
+
+> `By next binding date · week of Sep 7, reaching to Jan 1, 2027`
+
+The base form is unchanged when every row is inside the week. Live, the extension is the real case:
+the nearest five binding dates on 2026-09-08 are Sep 8, Sep 30, Sep 30, Sep 30, Oct 1.
+
+**The second cause, not in the dispatch and the most valuable thing in this report.**
+`mapWorkspaceItemRows` — the mapper behind the dashboard, listings, slim and full workspace RPCs —
+never mapped `compliance_deadline` onto `Resource.complianceDeadline`, although every one of those
+RPCs has projected the column since migration 077. `dueInfo` reads `r.complianceDeadline` FIRST and
+then timeline milestones, so on the dashboard AND on every list surface the deadline half of "next
+binding date" was structurally invisible: only an item carrying an `item_timelines` milestone could
+ever render a due cell. [CONFIRMED by code read plus live counts: 5 active items carry a future
+compliance_deadline, 69 carry a future milestone, and none of the 5 was in the dashboard's slice.]
+One line in the mapper closes it.
+
+Due next was NOT empty at the moment of the report (23 of the 50 loaded items carried a future
+milestone), so cause 2 was latent rather than live. Reported that way rather than claimed as a fix
+for what the operator saw.
+
+### Cause 3 — an infrastructure failure must not look like an empty corpus.
+
+Lane rsc503's cache guard is on this base and the dashboard path IS guarded: `cachedAppData` wraps
+`refuseToCacheFallback` and `getAppData` reads through `readThroughFallbackGuard` [CONFIRMED by
+read]. The other half was open: on a live failure both cards rendered their honest-empty copy, the
+Due-next card carried the failure note beside its empty state, and the What-changed card carried no
+failure signal at all. `briefCardState(rowCount, fetchError)` now decides `rows | empty | failed`
+once, for both cards; `failed` renders the sentinel, the `describeFallbackTrigger` reason clause and
+a **Retry** that calls `router.refresh()` — a retry that re-reads, because rsc503 removed the
+poisoned entry that used to answer it. The one honest empty state now says which corpus it looked
+at ("No item in this workspace's corpus carries a future binding date") instead of borrowing the
+failure copy.
+
+**A fourth path to an empty card, found while doing cause 3.** `cachedWatchlist` /
+`cachedWatchlistFull` are `unstable_cache` entries whose body returned `[]` on ANY read error, and
+`unstable_cache` stores what resolves — so one transient Supabase failure cached an empty watchlist
+for the entry's whole TTL, indistinguishable from watching nothing. It is the same class
+fallback-guard.ts exists for, in a fetcher the guard was never applied to. `readPersonalWatchRows`,
+`readTeamWatchRows` and `fetchWatchlist` now RAISE on a failed read; the callers in `lib/data.ts`
+still degrade to `[]` for the render, so behaviour on a failure is unchanged and only the caching of
+it is removed.
+
+### Item 4 — the watchlist. The write path verdict, plainly.
+
+**Was watching broken? Yes.** [CONFIRMED, git read.] Before train 61's lane TAGS-401, WatchButton
+built its own header as `Bearer ${session?.access_token || ""}` (859bbe5b). Sent before the browser
+session resolves, that is a well-formed-looking header carrying no identity: `requireAuth`'s
+`startsWith("Bearer ")` passes, `getClaims()` fails, the write 401s and nothing is written. One
+correction to the coordinator's hypothesis: the old button did REVERT its optimistic star and set
+`failed`, so it did not look like it worked — the failure was visible only as a tooltip.
+
+**Does the base fix it? Yes**, and this lane proves it rather than assuming it. WatchButton now goes
+through `authHeaders()`, which makes NO REQUEST without a token. The proof is
+`.discipline/rendering/smoke/watchlist-write-smoke.mjs`, built on workspace-tags-smoke.mjs's shape:
+the route stub replicates `requireAuth`'s contract AND keeps a row store, so the assertions are "did
+the row land", not "did the star change colour". A second leg mounts the same button against a
+no-session Supabase stub and asserts that nothing is written and the control does not claim
+otherwise.
+
+**Is the read path splitting scopes? No.** [REFUTED.] `fetchWatchlist` reads `user_watchlist` AND
+`org_watchlist` and merges them; the route writes personal to the first and team to the second. The
+surface reads the scope the button writes. The one live row (user 2b7d21eb…, `reg`/`g2`, EU PPWR
+2025/40, verified and unarchived) resolves through that path.
+
+**But the smoke spec found a THIRD defect, unreported anywhere, and it is the one that would have
+kept the operator's watchlist looking broken even after the auth fix.** [CONFIRMED in a real
+chromium.] `src/lib/watchlist/membership.ts` called `options.fetchImpl(url, init)` — a method call,
+so the real `fetch` ran with `this === options`, and Chrome refuses it: *"Failed to execute 'fetch'
+on 'Window': Illegal invocation"*. The function's own catch swallowed the TypeError and resolved an
+empty map, so every WatchButton falling back to the client path (the four detail-page surfaces)
+rendered "Watch" for an item the reader IS watching, on every load since PERF-3 landed the cache on
+2026-09-03. No unit test could catch it: every test injects a plain function as `fetchImpl`, and only
+the real `fetch` cares what `this` is. All three shapes were measured in the shipped bundle:
+`opts.fetchImpl(url)` throws, `const f = opts.fetchImpl; f(url)` returns 200, `f.bind(globalThis)`
+returns 200. Destructuring first is the fix, and it is the shape `authed-fetch.ts` already used.
+
+**What "populated" means here.** A watchlist with nothing watched is legitimately empty and nothing
+was pre-populated, seeded or auto-watched. The empty state artboard 11 draws was already honest and
+useful ("Nothing watched yet. Watch an item from its ⋯ menu on any list page, or the Watch button on
+a detail page" plus "Browse what to watch →") and is unchanged. If the operator wants a starting set,
+that is a data decision, not a code one.
+
+### The proofs that bite
+
+The reason this shipped is that every existing proof mounted these cards against a fixture that
+already contained matching items, so the degrade path never fired in a test — and the audit mount's
+own fixture comment described that path as a property of the card ("always `impact={null}`") rather
+than as the defect. Added: `brief-rows.npmtest.mjs` gains a fixture whose change feed names items
+OUTSIDE the loaded slice and asserts the pre-backfill rows really are degraded before asserting the
+post-backfill rows are full; a fewer-than-five-in-the-week fixture asserting the card still fills and
+the label says so; an absence budget (no brief row may carry more than one absent cell); and the
+failed-vs-empty distinction. `supabase-server-brief-backfill.npmtest.mjs` proves the id split by
+shape and the override merge, including the COALESCE direction that a naive `override || item` gets
+wrong. The rendering guard gains `dashboard-brief`'s `populated` and `failed` states (both cards
+non-empty; a failed fetch named on BOTH cards with a real Retry) and the `watchlist-write` SM spec.
+compose-01-dashboard.json gains two count rows and one forbid: neither card renders zero rows against
+the populated fixture, and no What-changed row renders the Absence token in its tier cell.

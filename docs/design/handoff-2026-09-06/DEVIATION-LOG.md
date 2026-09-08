@@ -674,3 +674,36 @@ where it is a claim about what the codebase contains. Before-and-after evidence:
 | 2026-09-08 | Admin (13), the registry state had never been measured | [CONFIRMED] `compose-13-admin.json` measures artboard 13's DEFAULT landing state (Sources / Provisional review) and nothing measured the Source-registry state, which is why a region that overflowed its column by 336px at 1024 and painted under the rail went unseen by a green audit. A second mount (`compose-admin-registry`, the same real tree seeded with three real Source records, activating the sub-tab by clicking it) and a second spec (`compose-13-admin-registry.json`, 27 checks) now measure it, and the mount joins the overflow sweep automatically. Attack-tested: a wrong facet count reports NOT BUILT and a forbid on the card itself fires, so the spec is proven to be reading the state it claims. | Rule 15: a proof is proven by attack, and a spec that measures one state of a page is not coverage of the page. | lane adminlayout, 2026-09-08 |
 | 2026-09-08 | Harness, `measure-admin-frame.mjs` written then deleted in the same lane | [CONFIRMED] The root-cause measurement ran through a purpose-written script; `overflow-sweep.mjs` already sweeps every `AUDIT_MOUNTS` page mount at any width and answers the same question, and F25 reported the new script as an unwired module. It is deleted rather than allowlisted, and the registry mount it was written to measure is swept by the existing script instead. | Rule 13 (no duplication) and F25 (no dormant module), in one move. | lane adminlayout, 2026-09-08 |
 | 2026-09-08 | Not this lane's route: `/onboarding` clipped text at 1024 | [CONFIRMED] The overflow sweep reports five clipped text runs on `compose-onboarding` at 1024. Untouched by this lane, on a route it does not own, and 1024 is not a designed viewport (ruling R10). Handed to lane layoutguard, which is building the site-wide guard at these widths, rather than fixed blind here. | Rule 13's corollary: a flag is work, and the work is handed to the lane whose scope it is, named, not left in a comment. | lane adminlayout, 2026-09-08 |
+## lane briefdata (train 61, 2026-09-08): the two brief cards' data path, and the watch write
+
+Operator ruling, verbatim: "do next and whats changed need to stay populated", plus a mid-flight
+addition, "watchlist also not populated". This lane owns the DATA PATH only; the sibling lane
+listrow is rewriting the dashboard's row RENDERING at the same time, so nothing here restyles a card
+or touches `ListRow`.
+
+**Threaded props (declared, because they touch `DashboardBrief.tsx`).** Two, both server-computed:
+
+- `dueNextWindow` — the Due-next card's aside. It was built inside the client component from
+  `nowIso`; it now states which window the SELECTED ROWS span, so it is built where the rows are
+  selected (`dueNextWindowLabel`, src/lib/dashboard/brief-rows.ts). The component's `weekOfLabel`
+  `useMemo` and its `formatLocaleDate`/`nowFrom` imports are deleted with it rather than left
+  unreferenced (rule 13). HYDRATION-59's reasoning is preserved verbatim on the new prop's doc.
+- the two cards' state branch — `briefCardState(rows.length, fetchError)`, one decision in
+  brief-rows.ts, read by both cards. The Due-next card's `fetchError` foot note is removed because
+  it is now that card's `failed` state rather than a second thing rendered beside an empty card, and
+  the What-changed card gains the same state (it had none: a failed read rendered "Nothing added or
+  updated in the last detection pass"). Copy and chrome are otherwise unchanged.
+
+**Shared part touched: `StateNote`'s action target.** Both branches of the action rendered with
+`padding: 0` and no height of their own, so the hit target was the text's ~13px line box, under
+law-2's floor. Nothing had caught it because no ux smoke spec had ever mounted a StateNote CARRYING
+an action; this lane's failure and empty states are the first, and they failed the rendering guard
+at 375 and 1280 on their first run. The box is now `inline-flex`, `minHeight: 24` (law-2's small
+branch, since a 44px control would be taller than the one-line strip the artboard draws). The type
+treatment statenote.json pins (11px / 600) is untouched. This changes every StateNote action
+sitewide, by ~11px of height on the strips that have one.
+
+**Absence budget.** Unchanged, and now proven from the other side: mobfix61's one-token-per-row
+precedence stays exactly as it is, and this lane adds the assertion that a brief row does not NEED
+it — a change row that was carrying its one allowed token in four cells' worth of missing data is
+now a full row, because the data is fetched rather than degraded.
