@@ -105,9 +105,12 @@ const SECTIONS: SectionDef[] = [
   {
     name: "Sources",
     sub: "Source registry, bulk add, provisional candidate review and tier classification.",
+    // Provisional review leads (dc.html p13: "Provisional review · Source registry · Bulk add ·
+    // Tier disagreements · Spot-check") — it is the actionable queue (489 pending), not an
+    // alphabetical/creation-order list.
     tabs: [
-      "Source registry",
       "Provisional review",
+      "Source registry",
       "Bulk add sources",
       "Tier disagreements",
       "Spot-check",
@@ -160,16 +163,33 @@ export function AdminDashboard({
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
   // a direct /admin entry.
-  const { setSources, setProvisionalSources } = useSourceStore();
+  const { setSources, setProvisionalSources, setActiveView } = useSourceStore();
   useEffect(() => {
     if (initialSources.length > 0) setSources(initialSources);
     if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const [section, setSection] = useState<SectionName>("Workspaces");
-  const [sub, setSub] = useState<string>("Organizations");
+  // dc.html p13's default landing view is Sources · Provisional review (the actionable
+  // queue), not Workspaces · Organizations — the Sources tile carries the selected-tile
+  // border treatment in the artboard.
+  const [section, setSection] = useState<SectionName>("Sources");
+  const [sub, setSub] = useState<string>("Provisional review");
   const [issueFilter, setIssueFilter] = useState<string | null>(null);
+
+  // Sync SourceHealthDashboard's own internal tab (a zustand store field, not a prop it accepts)
+  // to this page's Sources sub-tab — the comment at its call site below has always claimed "the
+  // sub-tab scopes the operator's intent" but nothing here ever set it, so the shared surface
+  // always opened on its own default ("Registry") regardless of which Sources sub-tab the operator
+  // picked. dc.html p13's default landing state is Sources · Provisional review, which needs this
+  // to actually show the provisional queue rather than the registry.
+  useEffect(() => {
+    if (section !== "Sources") return;
+    const view =
+      sub === "Provisional review" ? "provisional" : sub === "Spot-check" ? "provisional" : "registry";
+    setActiveView(view);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [section, sub]);
 
   const [members, setMembers] = useState<any[]>(initialMembers);
   const [orgs, setOrgs] = useState<any[]>(initialOrgs);

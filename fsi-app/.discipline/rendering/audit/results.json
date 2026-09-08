@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T00:54:15.076Z",
+  "runAt": "2026-09-08T01:12:01.765Z",
   "specs": [
     {
       "part": "Absence",
@@ -290,9 +290,9 @@
       "notes": [
         "Train 58, step 2: StatBlock gained an additive `size=\"tile\"` variant (11px label / 16px Anton numeral / 11.5px note) for exactly this grid; AdminDashboard.tsx's 8 tiles (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors) now use it with the artboard's wrapper geometry, a new `.cl-admin-stat-tile` class.",
         "None of the 8 tiles in this grid carries a separate title line above the label/numeral row (unlike some other admin cards) — no SectionRule is mounted on these tiles, per the artboard's own markup, which shows no top rule inside any tile.",
-        "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. `AdminDashboard`'s default `section` state is 'Workspaces' (tile 1), so this spec measures tile 2 ('Sources', inactive on mount) for base border/shadow/padding, confirmed by a direct debug read this session."
+        "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. Lane compose-other (2026-09-08) changed `AdminDashboard`'s default `section` state from 'Workspaces' to 'Sources' (dc.html p13's own default landing state — see DEVIATION-LOG 2026-09-08), which made tile 2 ('Sources') the ACTIVE tile on mount, breaking this spec's prior tile-2 measurement (it started reading the active border colour, `rgb(90,85,82)`, against the base-style expectation). Re-pointed to tile 3 ('Ingest'), inactive on mount both before and after that change, confirmed by a direct debug read this session."
       ],
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "expect": {
         "background-color": "#FFFFFF",
         "border-top-width": "1px",
@@ -315,7 +315,7 @@
         },
         {
           "name": "tile — label",
-          "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+          "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
           "expect": {
             "font-size": "11px",
             "letter-spacing": "0.1em",
@@ -325,7 +325,7 @@
         },
         {
           "name": "tile — numeral",
-          "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(2)",
+          "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(2)",
           "expect": {
             "font-family": "contains:Anton",
             "font-size": "16px"
@@ -333,7 +333,7 @@
         },
         {
           "name": "tile — note",
-          "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+          "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
           "note": "The note span is a direct sibling of the label/numeral row div, not nested inside it — the row div is the only other child, so `> span` (not `:nth-of-type(2)`, which counts among span siblings only and there is exactly one) reaches it. line-height 1.45 resolves to 16.675px at 11.5px font-size (getComputedStyle always reports a resolved px value, per this audit's own convention — see factcard.json/listrow.json).",
           "expect": {
             "font-size": "11.5px",
@@ -905,6 +905,62 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-12-community.json",
       "__id": "compose-12-community"
+    },
+    {
+      "part": "Page composition — Admin (13)",
+      "mount": "compose-admin",
+      "viewport": 1440,
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "notes": [
+        "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+        "Artboard order: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED (bordered, no shadow) -> breadcrumb strip ('Admin / <selected section>') -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the provisional-review table -> Organizations section -> rail: Issues queue, Companies/Individuals/Newest join/Active this month tiles, read-only-controls note.",
+        "This lane fixed two real defects: (1) AdminDashboard defaulted to Workspaces/Organizations, not the artboard's default Sources/Provisional-review landing state — fixed by changing the initial section/sub state. (2) The Sources tab order was [Source registry, Provisional review, ...]; dc.html p13 lists Provisional review first — reordered. Also wired AdminDashboard to sync SourceHealthDashboard's own internal `activeView` (a zustand-store field the component never previously received from its caller, despite AdminDashboard's own comment claiming 'the sub-tab scopes the operator's intent') so picking 'Provisional review' actually opens SourceHealthDashboard's Provisional tab instead of always landing on Registry.",
+        "NOT FIXED, logged instead (DEVIATION-LOG 2026-09-08): SourceHealthDashboard itself — the component the Provisional-review tab renders — is a much larger, differently-composed surface than dc.html p13's simple 'SOURCES · PROVISIONAL REVIEW' table (SOURCE/TIER/STATUS/DISCOVERED columns, one Approve button per row). The shipped component renders its own 'Source Intelligence' header, a B.2 regeneration-progress bar, a Source Tiers legend block, a T1-T7 tile grid, and its own second Registry/Health/Provisional/Canonical/Intersections/Themes/Obligations tab bar — none of which the artboard shows for this region. Rebuilding SourceHealthDashboard's Provisional view to match the artboard is a component-level effort (the surface is shared beyond this one entry point) out of this page-composition pass's reach; this spec does not assert a fabricated match for that region's content, only for what the mount actually renders identically to the artboard (masthead, tile grid, tab selection/order, Organizations section, rail).",
+        "OrganizationsTable — no artboard region (fix58-account's own 2026-09-07 DEVIATION-LOG entry already established this; unaudited, left as-is, listed again here for this lane's own record)."
+      ],
+      "selector": "[data-audit=\"admin\"]",
+      "expect": {
+        "count": "1"
+      },
+      "children": [
+        {
+          "name": "region 1 — 8-tile stat grid present",
+          "selector": "[data-audit=\"admin\"] .cl-admin-stat-tile",
+          "expect": {},
+          "textMatch": "Workspaces"
+        },
+        {
+          "name": "region 2 — Sources sub-tab bar, 'Provisional review' first and active",
+          "selector": "[data-audit=\"admin\"] button, [data-audit=\"admin\"] div",
+          "expect": {},
+          "textMatch": "Provisional review"
+        },
+        {
+          "name": "region 3 — Organizations section, after the Sources tab body",
+          "selector": "[data-audit=\"admin\"] *",
+          "expect": {},
+          "textMatch": "Organizations"
+        },
+        {
+          "name": "region 4 — rail, Issues queue card",
+          "selector": "[data-audit=\"admin\"] *",
+          "expect": {},
+          "textMatch": "Issues queue"
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no floating Ask AI button (ruling 2.2)",
+          "selector": "[data-audit=\"admin\"] button",
+          "textMatch": "Ask AI",
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-13-admin.json",
+      "__id": "compose-13-admin"
     },
     {
       "part": "DetailHeader",
@@ -4497,7 +4553,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "background-color",
       "expected": "#FFFFFF",
       "actual": "rgb(255, 255, 255)",
@@ -4513,7 +4569,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "border-top-width",
       "expected": "1px",
       "actual": "1px",
@@ -4529,7 +4585,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "border-top-color",
       "expected": "rgba(0,0,0,.12)",
       "actual": "rgba(0, 0, 0, 0.12)",
@@ -4545,7 +4601,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "border-radius",
       "expected": "10px",
       "actual": "10px",
@@ -4561,7 +4617,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "box-shadow",
       "expected": "rgba(26,26,26,.04) 0px 1px 2px 0px, rgba(26,26,26,.06) 0px 4px 14px 0px",
       "actual": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
@@ -4577,7 +4633,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "padding-top",
       "expected": "0px",
       "actual": "0px",
@@ -4593,7 +4649,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "padding-right",
       "expected": "14px",
       "actual": "14px",
@@ -4609,7 +4665,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "padding-bottom",
       "expected": "12px",
       "actual": "12px",
@@ -4625,7 +4681,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "Admin stat tiles (8-tile summary grid)",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3)",
       "property": "padding-left",
       "expected": "14px",
       "actual": "14px",
@@ -4657,7 +4713,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — label",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
       "property": "font-size",
       "expected": "11px",
       "actual": "11px",
@@ -4673,7 +4729,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — label",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
       "property": "letter-spacing",
       "expected": "0.1em (= 1.1px at 11px)",
       "actual": "1.1px",
@@ -4689,7 +4745,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — label",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
       "property": "text-transform",
       "expected": "uppercase",
       "actual": "uppercase",
@@ -4705,7 +4761,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — label",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
       "property": "font-weight",
       "expected": "800",
       "actual": "800",
@@ -4721,7 +4777,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — numeral",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(2)",
       "property": "font-family",
       "expected": "contains:Anton",
       "actual": "Anton, system-ui, sans-serif",
@@ -4737,7 +4793,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — numeral",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(2)",
       "property": "font-size",
       "expected": "16px",
       "actual": "16px",
@@ -4753,7 +4809,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — note",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
       "property": "font-size",
       "expected": "11.5px",
       "actual": "11.5px",
@@ -4769,7 +4825,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — note",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
       "property": "color",
       "expected": "#5A6B67",
       "actual": "rgb(90, 107, 103)",
@@ -4785,7 +4841,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — note",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
       "property": "margin-top",
       "expected": "4px",
       "actual": "4px",
@@ -4801,7 +4857,7 @@
       "source": "'Caros Ledge UI System.dc.html' id=\"p13\" (Platform admin), the 4-up tile grid directly under the masthead — each tile: `background:#fff;border:1px solid rgba(0,0,0,.12);border-radius:10px;box-shadow:0 1px 2px rgba(26,26,26,.04),0 4px 14px rgba(26,26,26,.06);padding:0 14px 12px 14px`; label `font-size:11px;letter-spacing:.1em;text-transform:uppercase;font-weight:800`; numeral `font-family:'Anton';font-size:16px`; note `font-size:11.5px;color:#5A6B67;margin-top:4px;line-height:1.45`.",
       "viewport": 1440,
       "target": "tile — note",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
       "property": "line-height",
       "expected": "16.675px",
       "actual": "16.675px",
@@ -6973,6 +7029,38 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition — Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "Page composition — Admin (13)",
+      "selector": "[data-audit=\"admin\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition — Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"admin\"] button [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
     },
     {
       "spec": "detailheader",

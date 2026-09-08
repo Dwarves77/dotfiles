@@ -1010,6 +1010,39 @@ const COMMUNITY_ROOMS_FIXTURE = [
   { key: 'MEAF', name: 'MEAF', short: 'MEAF', groupId: 'g-meaf', joined: false, youHere: false, itemCount: 0, itemCountKnown: true, hue: 'low', themes: [], liveItems: [], roster: [], threads: [] },
 ];
 
+// ── Admin (13) full-page composition mount ───────────────────────────────────────────────────────
+// Reuses the SAME real AdminDashboard mount ADMIN_STAT_TILES_ENTRY already proved out (it needs no
+// STYLE_INJECT of its own here — the compiled-CSS path supplies it), wrapped in AppShell for the
+// nav card + Masthead's frame position, exactly as compose-map/compose-community do.
+const COMPOSE_ADMIN_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setUserRole('owner');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'admin' },
+        React.createElement(AdminDashboard, {
+          userId: 'smoke-user',
+          userEmail: 'smoke@example.com',
+          dateLabel: 'Sunday 6 September 2026',
+          initialOrgs: [{ id: 'org-1', name: "Dietl / Rockit", slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-01-01' }],
+          initialEmissionFactorsLiveCount: 13,
+        }),
+      ),
+    ),
+  );
+};
+`;
+
 const COMPOSE_COMMUNITY_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -2367,5 +2400,17 @@ export const AUDIT_MOUNTS = {
       '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser.mjs`,
     },
     apiRoutes: EMPTY_API,
+  },
+  'compose-admin': {
+    id: 'compose-admin',
+    description: 'Full-page composition mount: AppShell + the real AdminDashboard (own internal Masthead), populated fixture data, README screen 13 / dc.html p13.',
+    viewport: 1440,
+    entry: COMPOSE_ADMIN_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
   },
 };
