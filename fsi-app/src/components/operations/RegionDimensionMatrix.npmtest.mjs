@@ -34,10 +34,17 @@ test("both empty-cell branches (desktop table cell, mobile card summary) render 
 // keyed by region, both asserted below). While the row set is incomplete the line must say it is
 // counting, never name a figure — README §0.6's own rule for a count still loading.
 
+// FOLD-59 (2026-09-08): the INVARIANT is unchanged and is what this test still enforces — BOTH
+// branches are gated on the pending flag, and each one NAMES the loading state instead of printing
+// a figure. What changed is the desktop branch's copy. comp-08 rebuilt that branch as artboard
+// 08/id="p8"'s compact one-line column subhead ("2/5 sourced · 778 regs"), where the mobile card's
+// full "counting linked regulations…" sentence does not fit; it says "counting regs…" in the same
+// slot the figure would occupy. Matching either phrasing keeps the rule (never a figure mid-flight)
+// without pinning copy the artboard itself sets differently in the two places.
 test("D4: both 'linked regulations' branches are gated on the pending flag", () => {
   const gated = SOURCE.match(/crossRefCountsPending \?/g) ?? [];
   assert.equal(gated.length, 2, "one in the desktop <th> branch, one in the mobile card branch");
-  const pendingText = SOURCE.match(/counting linked regulations/g) ?? [];
+  const pendingText = SOURCE.match(/counting (?:linked regulations|regs)/g) ?? [];
   assert.equal(pendingText.length, 2, "each branch names the loading state rather than a number");
 });
 

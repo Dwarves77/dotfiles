@@ -442,7 +442,8 @@ export function OperationsLedger({
           region · every fact carries a source and date
         </>
       }
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="operations"
       searchPlaceholder={'Search regions and dimensions \u2014 or ask "warehouse labor rates, Singapore vs LA?"'}

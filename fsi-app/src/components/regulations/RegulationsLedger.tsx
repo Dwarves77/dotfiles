@@ -308,7 +308,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
          itself), then "Obligations · next 30 days", then Legend. */
       rail={
         <>
-          <ObligationsRailCard />
+          <ObligationsRailCard nowIso={nowIso} />
           <LegendRailCard />
         </>
       }

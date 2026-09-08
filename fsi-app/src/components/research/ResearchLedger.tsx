@@ -143,7 +143,10 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
   const themeCards = useMemo(() => {
     const counts = new Map<string, number>();
     const fresh = new Map<string, number>();
-    const cutoff = Date.now() - NEW_WINDOW_DAYS * 86400000;
+    // FOLD-59: from the SERVER instant, not Date.now(). This cutoff decides which theme cards
+    // carry the "+N new" badge, so reading the host clock made the badge differ between the SSR
+    // and hydration passes for any finding added within a render of the boundary.
+    const cutoff = nowFrom(nowIso).getTime() - NEW_WINDOW_DAYS * 86400000;
     for (const r of beforeTheme) {
       const key = themeKeyOf(r);
       if (!key) continue;
@@ -154,7 +157,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
     return (THEME_KEYS as string[])
       .filter((k) => counts.has(k))
       .map((k) => ({ key: k, count: counts.get(k) ?? 0, newCount: fresh.get(k) ?? 0 }));
-  }, [beforeTheme]);
+  }, [beforeTheme, nowIso]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },

@@ -57,8 +57,15 @@ test("ObligationsRailCard reads the EXISTING bounded obligations route, never a 
   assert.doesNotMatch(SOURCE, /from "@\/lib\/supabase/);
 });
 
+// FOLD-59 (2026-09-08): the INVARIANT is unchanged — the window and the cap come from the shared
+// pure module, never a local slice. The INSTANT it is given changed: comp-06 built this card before
+// HYDRATION-59's rule landed and passed `new Date()`, this component's own clock. Both of the card's
+// clock reads decide a row's urgency band and its day count, so an SSR pass and a hydration pass on
+// opposite sides of a day boundary painted different colours for the same row. It now takes the
+// server instant as a prop, and `render-clock.npmtest.mjs`'s scanner enforces that repo-wide.
 test("ObligationsRailCard applies the shared 30-day window and four-row cap, not a local slice", () => {
-  assert.match(SOURCE, /selectObligationRailRows\(state\.events, new Date\(\)\)/);
+  assert.match(SOURCE, /selectObligationRailRows\(state\.events, now\)/);
+  assert.match(SOURCE, /const now = nowFrom\(nowIso\);/);
   assert.match(SOURCE, /OBLIGATION_RAIL_ROW_CAP/);
   assert.doesNotMatch(SOURCE, /\.slice\(0, 4\)/);
 });

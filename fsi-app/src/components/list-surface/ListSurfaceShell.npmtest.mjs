@@ -76,9 +76,18 @@ test("every band section card carries the foot row, with the artboard's own grou
   assert.match(SHELL_SOURCE, /borderTop: "1px solid var\(--line-2\)"/);
 });
 
+// FOLD-59 (2026-09-08): the INVARIANT is unchanged — the foot row's right side names the next
+// populated band and its count, or says "end of list" on the last one. What changed is where that
+// string is built. comp-06 and comp-08 built the foot strip independently; the fold kept ONE
+// implementation, and the string now comes from the named `transitionLabel(sections, index)` helper
+// (comp-08's, documented and reusable) rather than being interpolated inline at the call site. The
+// test follows the product; it does not preserve the old shape.
 test("the foot row names the next band, or says 'end of list' on the last rendered section", () => {
-  assert.match(SHELL_SOURCE, /then \$\{nextSection\.band\.label\}/);
+  assert.match(SHELL_SOURCE, /function transitionLabel\(/);
+  assert.match(SHELL_SOURCE, /`then \$\{next\.band\.label\} \\u00b7 \$\{next\.total\}`/);
   assert.match(SHELL_SOURCE, /"end of list"/);
+  // and it is the helper the foot row actually calls, not a dead function
+  assert.match(SHELL_SOURCE, /\{transitionLabel\(populatedSections, sectionIndex\)\}/);
 });
 
 test("the 'All N <band>' link renders only when the band has rows left to reveal, never a dead control", () => {

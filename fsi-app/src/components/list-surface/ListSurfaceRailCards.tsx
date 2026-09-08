@@ -21,6 +21,7 @@ import {
   OBLIGATION_RAIL_ROW_CAP,
 } from "@/lib/forward-events/obligation-rail-select.mjs";
 import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
+import { nowFrom } from "@/lib/render-now";
 
 /** The card-head label type, shared by RailCard's title and FiltersRailCard's own head. */
 const RAIL_CARD_TITLE_STYLE: React.CSSProperties = {
@@ -306,7 +307,13 @@ export interface ObligationRailEvent {
   item: { id: string; title: string; legacy_id: string | null; jurisdiction_iso: string[] | null };
 }
 
-export function ObligationsRailCard() {
+// FOLD-59 (2026-09-08): the instant comes from the SERVER (src/lib/render-now.ts), never from this
+// client component's own clock. Both reads below decide which URGENCY BAND a date falls in and how
+// many days away it is, so an SSR pass and a hydration pass on different sides of a day boundary
+// would paint different colours and different day counts for the same row (the React #418 class
+// HYDRATION-59 root-caused). comp-oblig built this card before that rule landed.
+export function ObligationsRailCard({ nowIso }: { nowIso?: string }) {
+  const now = nowFrom(nowIso);
   const [state, setState] = useState<{ loading: boolean; events: ObligationRailEvent[] }>({
     loading: true,
     events: [],
@@ -328,8 +335,8 @@ export function ObligationsRailCard() {
   }, []);
 
   const rows = useMemo(
-    () => selectObligationRailRows(state.events, new Date()) as ObligationRailEvent[],
-    [state.events]
+    () => selectObligationRailRows(state.events, now) as ObligationRailEvent[],
+    [state.events, now]
   );
 
   return (
@@ -344,7 +351,7 @@ export function ObligationsRailCard() {
           <Absence reason="not in primary source" />
         ) : (
           rows.map((ev) => {
-            const days = daysFrom(ev.event_date, new Date()) as number | null;
+            const days = daysFrom(ev.event_date, now) as number | null;
             return (
               <div key={ev.id} data-audit="obligation-row" style={{ display: "grid", gridTemplateColumns: "3px 48px 1fr", gap: 10, alignItems: "start" }}>
                 <span aria-hidden="true" style={{ background: classifyByDays(days).hex, borderRadius: 2, alignSelf: "stretch" }} />
