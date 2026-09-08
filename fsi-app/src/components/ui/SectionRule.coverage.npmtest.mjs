@@ -65,16 +65,28 @@ test("ListSurfaceShell's per-band Card skips SectionRule (noRule) to avoid stack
   assert.match(text, /<Card key=\{section\.band\.key\} noRule>/);
 });
 
-// Was 3 (the per-ledger Card plus a primary and a secondary facets card). The desktop facets cards
-// are gone — lane compose-lists (2026-09-07/08) relocated every list surface's facets to the rail's
-// FiltersRailCard on the operator's own audit ("the filters were not above the regulations, they
-// were on the right"), and that card carries its own SectionRule (asserted above, and by
-// list-surface.json). The INVARIANT is unchanged: every card this shell renders with a title gets
-// ruling 5.1's rule, and the per-band Card deliberately opts out (noRule, asserted above). Only the
-// count of cards this file owns changed.
-test("ListSurfaceShell.tsx mounts SectionRule once (the per-ledger Card; the facets moved to the rail's own card)", () => {
+// UPDATED (lane comp-11, 2026-09-08). This assertion had been RED on the branch since the
+// filters-to-the-rail relocation (operator audit 2026-09-07, "the filters were not above the
+// regulations, they were on the right"): that change deleted ListSurfaceShell's two content-column
+// facets cards, so the file's three mounts became one — the per-ledger Card — and the two the
+// facets cards used to carry now live on FiltersRailCard in ListSurfaceRailCards.tsx, which the
+// list above already locks. The test described the old structure; it now describes the product.
+test("ListSurfaceShell.tsx mounts SectionRule once (the per-ledger Card; the facets cards' rules moved to FiltersRailCard when filters moved to the rail)", () => {
   const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceShell.tsx"), "utf8");
   assert.equal(countRealMounts(text), 1);
+  // The relocation is what makes 1 correct rather than a regression: the shell mounts the rail card
+  // that carries the facets, and that card mounts its own rule.
+  assert.match(text, /<FiltersRailCard/);
+});
+
+// Lane comp-11 (2026-09-08): the two card heads on artboard 11 are the shared SectionHeading, and
+// the cards around them are WatchlistSurface's own `Card` helper — ONE `<SectionRule />` mount
+// serving both, which is why the count above stays 1 for that file rather than rising to 2.
+test("SectionHeading emits no rule of its own (the card mounts SectionRule; the heading sits under it)", () => {
+  const text = readFileSync(resolve(ROOT, "components/ui/SectionHeading.tsx"), "utf8");
+  assert.equal(countRealMounts(text), 0);
+  // Ruling 4.1/5.1: no divider below a section title, in the shared component this time.
+  assert.doesNotMatch(text, /borderBottom:/);
 });
 
 const NO_BORDER_BOTTOM_UNDER_TITLE = [

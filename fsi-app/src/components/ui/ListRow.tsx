@@ -95,7 +95,16 @@ const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
  * a fork — every page assembling a ListRow list uses this for its header
  * row instead of a page-local one.
  */
-export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string }) {
+export function ListRowColumnHeader({
+  dueLabel = "Due",
+  titleLabel = "Title",
+}: {
+  dueLabel?: string;
+  /** Additive extension (lane comp-11, 2026-09-08): artboard 11 (id="p11")
+   *  labels this column "Title · type · modes" where artboard 1 labels it
+   *  "Title". Default is unchanged, so every existing caller is unaffected. */
+  titleLabel?: string;
+}) {
   // Every header cell is a grid item in the same fixed GRID the rows use (88px impact, 84px due,
   // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
   // auto`, which otherwise refuses to shrink below its content's intrinsic width — the exact
@@ -124,15 +133,25 @@ export function ListRowColumnHeader({ dueLabel = "Due" }: { dueLabel?: string })
         gridTemplateColumns: GRID,
         gap: "0 14px",
         height: 30,
-        padding: "8px 0",
+        // dc.html p1 line 116 / p11 line 55, identical on both: `padding:0 12px 0 0`.
+        // The 12px right pad is what puts this header's last grid line on the SAME
+        // x as ListRow's own (the row carries paddingRight 12); the prior "8px 0"
+        // left the header's ⋯ column 12px wider than the rows beneath it.
+        padding: "0 12px 0 0",
         borderBottom: "1px solid var(--line-2)",
       }}
     >
       <style>{RESPONSIVE_CSS}</style>
       <span aria-hidden="true" />
       <span style={cellStyle}>Juris.</span>
-      <span style={cellStyle}>Title</span>
-      <span style={cellStyle}>Impact low → high</span>
+      <span style={cellStyle}>{titleLabel}</span>
+      {/* dc.html p1 line 121 / p11 line 60: "low → high" is a nested span at
+          weight 400 / letter-spacing .04em inside the 700/.12em "Impact" label,
+          not one uniform run. */}
+      <span style={cellStyle}>
+        Impact&nbsp;
+        <span style={{ fontWeight: 400, letterSpacing: "0.04em" }}>low → high</span>
+      </span>
       <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>{dueLabel}</span>
       <span style={cellStyle}>Timeline</span>
       <span style={cellStyle}>Tier</span>

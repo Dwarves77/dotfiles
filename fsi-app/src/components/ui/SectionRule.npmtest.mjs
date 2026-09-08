@@ -41,10 +41,10 @@ test("DashboardBrief's Card mounts exactly one <SectionRule /> JSX element at th
   assert.equal(matches.length, 1);
 });
 
-test("DashboardBrief's SectionHeading no longer sets a borderBottom style on its own div (item 4.1)", () => {
-  const headingBody = DASHBOARD_SOURCE.slice(
-    DASHBOARD_SOURCE.indexOf("function SectionHeading("),
-    DASHBOARD_SOURCE.indexOf("/** The foot line")
-  );
+// UPDATED (lane comp-11, 2026-09-08): SectionHeading moved to the shared ui/ layer, so this
+// assertion follows it there. Reading DashboardBrief for a function it no longer defines made the
+// old slice empty, which passes vacuously — exactly the kind of proof rule 15 calls a lie.
+test("the shared SectionHeading sets no borderBottom on its own div (item 4.1)", () => {
+  const headingBody = readFileSync(resolve(here, "SectionHeading.tsx"), "utf8");
   assert.doesNotMatch(headingBody, /borderBottom:\s*"/);
 });

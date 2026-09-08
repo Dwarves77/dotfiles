@@ -185,9 +185,21 @@ export function WatchButton({
    * control; team watching stays reachable from the default variant
    * elsewhere, e.g. list rows). Default ("default") is the pre-existing
    * dual personal+team pill, unchanged.
+   *
+   * "icon" (lane comp-11, 2026-09-08, dc.html p11): the glyph-only toggle a
+   * ListRow's 44px trailing cell can actually hold. The artboard draws a
+   * 28x28 rounded glyph inside that cell; law-2's 44px floor applies to this
+   * control (it is a target beside the row link, not the row itself), so the
+   * BUTTON is 44x44 and the 28x28 rounded box is what is painted inside it.
+   * Label-free by construction, which is how ruling 3.5 ("a watched row must
+   * never read Watch") holds here: the state is the filled star, and the
+   * action verb lives in the accessible name and the tooltip.
    */
-  variant?: "default" | "row";
+  variant?: "default" | "row" | "icon";
 }): React.JSX.Element {
+  if (variant === "icon") {
+    return <IconWatchButton itemType={itemType} itemId={itemId} initialWatched={initialWatched} />;
+  }
   return variant === "row" ? (
     <RowWatchButton itemType={itemType} itemId={itemId} initialWatched={initialWatched} />
   ) : (
@@ -425,5 +437,86 @@ function RowWatchButton({
       <span aria-hidden="true">{watched ? "★" : "☆"}</span>
       {watched ? (showUnwatch ? "Unwatch" : "Watching") : "Watch"}
     </ActionButton>
+  );
+}
+
+/**
+ * IconWatchButton — the "icon" variant (lane comp-11, 2026-09-08, dc.html
+ * p11's 44px trailing row cell holding a 28x28 rounded glyph). Same
+ * `useWatchMembership` state and toggle as the other two variants, no third
+ * copy of that logic; only the chrome differs.
+ *
+ * Ruling 3.5 is satisfied without a label: the filled ink star IS the watched
+ * state, and the accessible name plus tooltip carry the action ("Unwatch"),
+ * so the control never says "Watch" about something already watched.
+ */
+function IconWatchButton({
+  itemType,
+  itemId,
+  initialWatched,
+}: {
+  itemType: WatchlistItemType;
+  itemId: string;
+  initialWatched?: boolean;
+}) {
+  const { watched, loaded, failed, toggle } = useWatchMembership(itemType, itemId, initialWatched);
+  const [hovered, setHovered] = useState(false);
+  const label = failed
+    ? "Save failed — click to retry"
+    : watched
+      ? "Watching — click to unwatch"
+      : "Watch this item on your dashboard watchlist";
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      aria-pressed={watched}
+      disabled={!loaded}
+      title={label}
+      onClick={() => toggle("personal")}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onFocus={() => setHovered(true)}
+      onBlur={() => setHovered(false)}
+      style={{
+        // law-2 (RD-60/F35): 44x44 real target, the size of the cell it sits in. `flexShrink: 0`
+        // is load-bearing, not decoration: ListRow's trailing cell is a 44px grid column carrying
+        // a 1px left divider, so its content box is 43px and a shrinkable child measured 43px —
+        // one pixel under the floor. The button keeps its 44 and the extra pixel lands in the
+        // row's own 12px right padding.
+        width: 44,
+        minWidth: 44,
+        height: 44,
+        flexShrink: 0,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        border: "none",
+        background: "none",
+        padding: 0,
+        cursor: loaded ? "pointer" : "default",
+        opacity: loaded ? 1 : 0.6,
+        fontFamily: "inherit",
+      }}
+    >
+      <span
+        aria-hidden="true"
+        style={{
+          // dc.html p11: 28x28, radius 6, --tag ground on hover.
+          width: 28,
+          height: 28,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          borderRadius: 6,
+          fontSize: 15,
+          lineHeight: 1,
+          color: watched ? "var(--ink)" : "var(--ink-3)",
+          background: hovered ? "var(--tag)" : "transparent",
+        }}
+      >
+        {watched ? "★" : "☆"}
+      </span>
+    </button>
   );
 }

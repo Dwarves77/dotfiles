@@ -44,7 +44,11 @@ export const ROW_COMPONENTS = Object.freeze({
   'src/components/regulations/RegulationsLedger.tsx': 'same row shape as MarketIntelLedger (read)',
   'src/components/regulations/UpcomingObligationsStripView.tsx': 'screenshot 05-regulations-upcoming (narrow title column, icon-only control); the View half of the async server component (lane MOBILE split)',
   'src/components/regulations/ObligationRegister.tsx': 'table rows; must scroll inside its own container',
-  'src/components/dashboard/DashboardBrief.tsx': 'UI system handoff 2026-09-06 dashboard (README screen 1) — supersedes HomeSurface.tsx (deleted, no route rendered it); Due next / What changed SectionHeadings carry data-guard-title.',
+  // lane comp-11 (2026-09-08): the Due next / What changed heads are now the SHARED
+  // `ui/SectionHeading`, promoted out of this file so artboard 11's identical heads mount the same
+  // component. The entry STAYS here (the smoke-spec coverage half of F35 is the valuable half and
+  // must not be dropped); the attribute half is satisfied by delegation — see TITLE_DELEGATES.
+  'src/components/dashboard/DashboardBrief.tsx': 'UI system handoff 2026-09-06 dashboard (README screen 1) — supersedes HomeSurface.tsx (deleted, no route rendered it); Due next / What changed heads render the shared SectionHeading, which carries data-guard-title.',
   'src/components/community/PostList.tsx': 'community rows (COMMUNITY-B surface)',
   'src/components/community/Post.tsx': 'community post row (COMMUNITY-B surface)',
   // Spec 09 panels (lane SPEC-09, Wave 3): the *View halves carry the markup; the Panel halves fetch.
@@ -115,6 +119,38 @@ export function specMounts(specSrc, componentPath) {
   return re.test(specSrc);
 }
 
+/**
+ * Shared components that OWN a `data-guard-title` element (verified below by TITLE_DELEGATES'
+ * own live test). Lane comp-11, 2026-09-08.
+ *
+ * WHY. The per-file rule below asks a row component to carry the attribute so the squeezed-title
+ * detector has something to measure. That is right about the RENDERED TREE and wrong about the
+ * FILE the moment a page composes its titles from a shared part: `DashboardBrief.tsx` renders
+ * every one of its titles through `SectionHeading` and `ListRow`, both of which carry the
+ * attribute, so its rendered tree is fully measurable while its own source text contains the
+ * string zero times. This file had already hit that wall twice (see the DetailShell and Masthead
+ * comments above) and resolved it by DELETING the page's entry — which silently dropped the
+ * smoke-spec coverage half of F35 for that page, the more valuable half.
+ *
+ * So the check delegates instead of dropping: a tracked row component passes the attribute half
+ * by rendering a tracked title component, and keeps the coverage half. A page that renders no
+ * title element at all, directly or by delegation, still fails.
+ */
+export const TITLE_DELEGATES = Object.freeze({
+  'src/components/ui/SectionHeading.tsx': 'SectionHeading',
+  'src/components/ui/ListRow.tsx': 'ListRow',
+  'src/components/ui/Masthead.tsx': 'Masthead',
+});
+
+/** True when `content` mounts one of the TITLE_DELEGATES (imports it AND renders it). Pure. */
+export function delegatesTitle(content) {
+  const clean = stripComments(content);
+  return Object.entries(TITLE_DELEGATES).some(([path, name]) => {
+    if (!specMounts(clean, path)) return false;
+    return new RegExp(`<${name}[\\s/>]`).test(clean);
+  });
+}
+
 /** Components with no active spec mounting them. Pure over the loaded texts. */
 export function uncoveredComponents(registrySrc, readSpec, components = Object.keys(ROW_COMPONENTS)) {
   const specs = activeSpecFiles(registrySrc);
@@ -151,6 +187,12 @@ export const fitnessFunction = {
     const rel = file.replace(`${FSI}/`, '');
     if (!ROW_COMPONENTS[rel]) return PASS;
     if (/data-guard-title/.test(content)) return PASS;
-    return [violation(1, `${rel} carries no data-guard-title attribute: the squeezed-title detector has nothing to measure`)];
+    if (delegatesTitle(content)) return PASS;
+    return [
+      violation(
+        1,
+        `${rel} carries no data-guard-title attribute and mounts no tracked title component (${Object.values(TITLE_DELEGATES).join('/')}): the squeezed-title detector has nothing to measure`,
+      ),
+    ];
   },
 };
