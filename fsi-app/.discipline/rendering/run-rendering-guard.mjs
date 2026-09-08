@@ -48,6 +48,11 @@ import { runSmoke as runAuthOnboardingSmoke } from "./smoke/auth-onboarding-smok
 // `$RS ... parentNode` follow-on a #418 produces on a streamed route). Red-then-green inside the
 // spec — see its header.
 import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
+// lane TAGS-401, 2026-09-08: the workspace-tags feature end to end against a route stub that
+// ENFORCES the Authorization header the way requireAuth does. The only api fixture in this engine
+// that inspects the request, which is why the 401 that killed the feature in production was
+// invisible to every other leg.
+import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -161,6 +166,7 @@ async function main() {
     { name: "settings-section-index", run: runSettingsSectionIndexSmoke },
     { name: "auth-onboarding", run: runAuthOnboardingSmoke },
     { name: "hydration", run: runHydrationSmoke },
+    { name: "workspace-tags", run: runWorkspaceTagsSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];
