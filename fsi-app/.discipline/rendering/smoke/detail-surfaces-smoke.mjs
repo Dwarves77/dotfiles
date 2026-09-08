@@ -49,7 +49,17 @@ import { fullAppCss } from './smoke-fixtures.mjs';
 // regulations-rows-smoke.mjs's own ALIAS note documents — reusing that spec's
 // stub-next-navigation.mjs here rather than duplicating it.
 const HERE = fileURLToPath(new URL('.', import.meta.url));
-const ALIAS = { 'next/navigation': `${HERE}stub-next-navigation.mjs` };
+// The spec-09 CSS alias (item D3, 2026-09-08): the Operations profile now mounts the DQI,
+// auxiliary-energy and grid-queue views as S-sections, and each imports `@/components/market/
+// spec09.css`. esbuild cannot put a plain .css import into a JS bundle without an output path, and
+// its `alias` option only accepts non-relative specifiers — which is exactly why those Views import
+// the stylesheet through the `@/` alias. Same alias spec09-smoke.mjs already uses, same target: a
+// harmless empty module. The stylesheet only carries the panels' own header/mobile rules, none of
+// which this spec measures.
+const ALIAS = {
+  'next/navigation': `${HERE}stub-next-navigation.mjs`,
+  '@/components/market/spec09.css': `${HERE}stub-empty-css.mjs`,
+};
 
 const STYLE_INJECT = `
 (() => {

@@ -1,0 +1,90 @@
+{
+  "part": "Page composition — Obligation register (/regulations/register), item D2",
+  "mount": "compose-regulations-register",
+  "viewport": 1440,
+  "artboards": [],
+  "source": "UI fix round 2026-09-08, operator item D2, verbatim: \"'Obligation register' with four dropdowns and a 1967-first table -> its own page /regulations/register in the frame with the standard facet bar, sorted by next due, not by oldest.\" Coordinator note N4: this route has NO artboard, so the values measured here are the STANDARD FRAME's own (README §0.3: 20px 40px 40px padding, minmax(0,1fr) 300px, 28px gap, 300px rail) plus the structural facts the item states.",
+  "notes": [
+    "No artboard exists for this route. Every expectation below is either a README §0.3 frame value or a fact the operator's own item states, never an invented one; when the artboard lands this spec is re-derived from it.",
+    "The four page-local <select> dropdowns are the shape the item names for removal. The forbid on `select` is the attack surface for that half of the item: restoring the dropdown row makes this spec report NOT IN SPEC.",
+    "The facets are the SHARED rail Filters card (FiltersRailCard, ListSurfaceRailCards.tsx), the same component the five list surfaces mount, carrying live per-option counts from read-register.mjs's own corpus-wide tally.",
+    "Sort order is a query fact, not a rendered one — it is proven by src/lib/obligations/read-register.test.mjs (planRegisterPageSegments and the page-walk test), not here.",
+    "764px is the content column this harness's 1440 mount produces (nav 252 + page padding + 28px gap + 300px rail), the same value every other compose-*.json spec measures since fold 60 — see compose-10-map.json's own note. The artboards' own column is 778; the 14px difference is the harness's frame, not a product deviation."
+  ],
+  "selector": "[data-audit=\"register-page\"] .cl-list-surface-grid",
+  "expect": {
+    "display": "grid",
+    "grid-template-columns": "764px 300px",
+    "gap": "28px",
+    "padding": "20px 40px 40px"
+  },
+  "children": [
+    {
+      "name": "the page carries the shared masthead, once",
+      "selector": "[data-audit=\"register-page\"] h1",
+      "expect": {
+        "count": "1",
+        "text": "Obligation register"
+      }
+    },
+    {
+      "name": "the register renders inside one section card with the dark-grey 3px section rule",
+      "selector": "[data-audit=\"register-card\"]",
+      "expect": {
+        "count": "1",
+        "border-top-left-radius": "10px",
+        "background-color": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "the register's own table is present (the implementation moved across, not rebuilt)",
+      "selector": "[data-audit=\"register-card\"] table",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "the facets are the SHARED rail Filters card, not a page-local control",
+      "selector": "[data-audit=\"register-page\"] [data-audit=\"filters-rail\"]",
+      "expect": {
+        "count": "1",
+        "display": "block"
+      }
+    },
+    {
+      "name": "all four register facet groups render in the rail (jurisdiction, mode, binding position, due)",
+      "selector": "[data-audit=\"filters-rail\"] [data-audit^=\"facet-\"]",
+      "expect": {
+        "count": "4"
+      }
+    },
+    {
+      "name": "facet rows are checkboxes with a live count each, as on every other list surface",
+      "selector": "[data-audit=\"facet-due\"] input[type=\"checkbox\"]",
+      "expect": {
+        "count": "5"
+      },
+      "note": "The fixture's dueWindow tally carries all five non-'all' windows; 'all' is the no-filter state and is never a row."
+    },
+    {
+      "name": "the rail order is Filters, then Obligations, then Legend",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"obligations-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "expect": {
+        "display": "block"
+      },
+      "note": "Sibling-combinator placement check: matches only when the three rail cards are in that DOM order."
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no page-local dropdown control anywhere on the register page",
+      "selector": "[data-audit=\"register-page\"] select",
+      "reason": "Operator item D2 names the register's \"four dropdowns\" as the shape it leaves behind; its facets are the standard rail Filters card. A restored <Select> row matches here."
+    },
+    {
+      "name": "the register never renders a second search or ask control beside the command bar",
+      "selector": "[data-audit=\"register-card\"] input[type=\"search\"]",
+      "reason": "README §0.3: the command bar in the masthead is the only search/ask surface."
+    }
+  ]
+}

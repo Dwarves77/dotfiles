@@ -135,7 +135,15 @@ function extremeState() {
 
 const STATES = [
   { label: 'empty', props: EMPTY_STATE, expectTitles: 0 },
-  { label: 'extreme', props: extremeState(), expectTitles: 8 },
+  // 8 -> 5 (UI fix round 2026-09-08, item D3): the three OPERATIONS panels (DQI, auxiliary energy,
+  // grid queue) moved off the /operations list onto the Operations profile as S-sections, and a
+  // section body does not carry its own heading — <DetailSection> supplies it, and DetailShell.tsx's
+  // h2 is what carries `data-guard-title` for them now. The five MARKET/REGULATIONS panels still
+  // render their own heading and are still counted here. This is the spec following the product, not
+  // a weakened floor: it is still an exact minimum, and it still fails if any of the five stops
+  // rendering. The three moved sections' titles are measured on the profile instead, by
+  // .discipline/rendering/audit/spec/compose-09-operations-profile.json.
+  { label: 'extreme', props: extremeState(), expectTitles: 5 },
 ];
 
 export async function runSmoke(browser) {

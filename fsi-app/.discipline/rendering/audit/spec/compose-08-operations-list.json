@@ -10,9 +10,10 @@
     "This spec measures the COMPOSED page, region by region, in document order \u2014 the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
     "Fixture (mounts.mjs 'compose-08-operations') is invented sample data with the real prop shapes: 25 rows split 0/4/2/19 across the bands, 5 regions, populated region_dimension_coverage + regional_data_facts rows. The audit asserts geometry, placement and the components' own literals, never fixture values.",
     "The runner reads computed STYLE and textContent only: an `expect` key naming an HTML attribute (e.g. an input's placeholder) measures as null and reports a false MATCH, so no such key appears here. The page-scoped command-bar prompt artboard 08 states is verified in the side-by-side evidence PNG (docs/design/handoff-2026-09-06/built/compose-08-operations-list.png), not by this spec.",
-    "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's \u2014 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
-    "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the US By-state cost sub-list moved from between the matrix and the first band card to the disclosure position at the foot of the content column; the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups. Both are checked below.",
-    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
+    "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's — 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
+    "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups, and is checked below. R7's other case on this page, the US By-state cost sub-list, is SUPERSEDED by operator item D3 (2026-09-08), which names it for removal; a later ruling wins, so the sub-list is gone and the forbid row below is its attack surface. Fold 63 (2026-09-08) rewrote this note, which described the sub-list's moved position as still present.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
+    "Item D3 (UI fix round 2026-09-08): everything below artboard 08's last card moved or went. The forbid rows below are the attack surface for the removals (the By-state disclosure, the calculator and its Recent recalculations, and the three spec-09 panels), and the calculator-link child row is the attack surface for the one thing that replaced them: a page nothing links to is unreachable, so the link is part of the fix, not decoration."
   ],
   "selector": "[data-audit=\"ops-matrix-card\"]",
   "expect": {
@@ -163,6 +164,17 @@
         "height": "24px",
         "font-size": "12.5px"
       }
+    },
+    {
+      "name": "the single link to the calculator's own page sits at the foot of the content column (item D3)",
+      "selector": "[data-audit=\"calculator-link\"]",
+      "note": "Artboard 08 draws no such row; /operations/calculator would otherwise be unreachable, which is the dead-page defect class. Geometry is the band-card foot link's own (12px/600, 24px minimum box), not an invented one.",
+      "expect": {
+        "count": "1",
+        "font-size": "12px",
+        "font-weight": "600",
+        "min-height": "24px"
+      }
     }
   ],
   "forbid": [
@@ -197,7 +209,29 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "no By-state disclosure below the rows (item D3)",
+      "selector": "body",
+      "textMatch": "By state ·",
+      "reason": "Operator item D3 names the \"By state · 13 states\" strip for removal. It was restored earlier under ruling R7 and a later ruling wins. Restoring ByStateSubList makes this row report NOT IN SPEC."
+    },
+    {
+      "name": "no calculator input fields on the list page (item D3)",
+      "selector": "input[type=\"number\"]",
+      "reason": "The capacity-investment calculator moved to /operations/calculator. Its ten number inputs are the unambiguous marker of it; the foot LINK to that page carries the same words as the calculator's heading, so the inputs are what this forbid tests, not the text."
+    },
+    {
+      "name": "no 'Recent recalculations' list on the list page (item D3)",
+      "selector": "body",
+      "textMatch": "Recent recalculations",
+      "reason": "That list is the calculator's own foot and moved with it; compose-operations-calculator.json asserts it arrived there."
+    },
+    {
+      "name": "no spec-09 DQI / auxiliary-energy / grid-queue panel on the list page (item D3)",
+      "selector": "[data-guard-container=\"dqi\"], [data-guard-container=\"auxiliary-energy\"], [data-guard-container=\"grid-queue\"]",
+      "reason": "Item D3 moves all three onto the Operations PROFILE page as S-sections; compose-09-operations-profile.json asserts they arrived there."
     },
     {
       "name": "CLASS CLOSURE (operations list): a card element that renders no 3px rule",

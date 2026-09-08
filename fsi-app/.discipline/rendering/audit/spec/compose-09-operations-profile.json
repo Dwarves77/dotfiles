@@ -8,7 +8,8 @@
   "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
   "notes": [
     "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
-    "Artboard order top to bottom: header (chips incl. the region-group chip and trailing topic chip 'Corridors', TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Related in <region>, Legend)."
+    "Artboard order top to bottom: header (chips incl. the region-group chip and trailing topic chip 'Corridors', TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (At a glance, Impact assessment, Relevance, Related in <region>, Legend).",
+    "Item D3 (UI fix round 2026-09-08): the DQI, auxiliary-energy and grid-queue material moved off the /operations LIST onto this profile as three S-sections, \"in the same shape, with their existing data paths\". The rows below measure that they render through the SAME <DetailSection> every other section uses (the shared card, its 3px rule, its Anton 20px heading, its aside qualifier) and that the sticky section index names them, so a move that dropped one from the index would be caught."
   ],
   "selector": "[data-audit=\"operations-detail\"]",
   "expect": {
@@ -101,6 +102,46 @@
       },
       "textMatch": "re:Regional profile[\\s\\S]*Asia-Pacific[\\s\\S]*OCEAN[\\s\\S]*AIR[\\s\\S]*Corridors[\\s\\S]*T2",
       "note": "dc.html #p9: Regional profile · Asia · Ocean · Air · Corridors · T2. The build rendered the tier chip straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages."
+    },
+    {
+      "name": "the three spec-09 sections render, each as a real DetailSection anchor (item D3)",
+      "selector": "#sec-dqi, #sec-auxiliary-energy, #sec-grid-queue",
+      "expect": {
+        "count": "3"
+      }
+    },
+    {
+      "name": "each spec-09 section carries the shared section card head, Anton 20px uppercase, not a page-local 15px h2",
+      "selector": "#sec-dqi h2",
+      "expect": {
+        "count": "1",
+        "text": "Data quality",
+        "font-size": "20px",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "the section's own qualifier line renders in the section aside, not as a second heading",
+      "selector": "#sec-grid-queue span",
+      "textMatch": "a gate, not a cost line",
+      "expect": {
+        "font-size": "10.5px"
+      }
+    },
+    {
+      "name": "the rows themselves moved across (the DQI section renders its per-element rows, not a placeholder)",
+      "selector": "#sec-dqi [data-guard-container=\"dqi\"] > div > div",
+      "expect": {
+        "count": "2"
+      }
+    },
+    {
+      "name": "the sticky section index names all three new sections",
+      "selector": "a[href=\"#sec-dqi\"], a[href=\"#sec-auxiliary-energy\"], a[href=\"#sec-grid-queue\"]",
+      "note": "A section that renders but is missing from the index is the defect this row exists for: the index is how a reader knows the page has it.",
+      "expect": {
+        "count": "3"
+      }
     }
   ],
   "forbid": [
@@ -114,6 +155,11 @@
       "selector": "[data-audit=\"operations-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1)",
       "textMatch": "In this list",
       "reason": "Every detail artboard opens its rail with AT A GLANCE; IN THIS LIST comes after it (03/05) or is an R7 undesigned card placed after LEGEND (07/09)."
+    },
+    {
+      "name": "no spec-09 panel renders its own page-frame wrapper inside the section",
+      "selector": "#sec-dqi .spec09-panel-header, #sec-auxiliary-energy .spec09-panel-header, #sec-grid-queue .spec09-panel-header",
+      "reason": "Item D3: the section supplies the heading. A view that kept its own spec09-panel-header would render two titles for one section."
     }
   ]
 }

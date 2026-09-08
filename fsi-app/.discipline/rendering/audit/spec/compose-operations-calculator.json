@@ -1,0 +1,66 @@
+{
+  "part": "Page composition — Capacity investment estimate (/operations/calculator), item D3",
+  "mount": "compose-operations-calculator",
+  "viewport": 1440,
+  "artboards": [],
+  "source": "UI fix round 2026-09-08, operator item D3, verbatim: \"'Capacity investment estimate' calculator -> its own page /operations/calculator (ruled earlier)\", and \"'Recent recalculations' ... REMOVE from the list\". Coordinator note N4: this route has NO artboard, so the values measured here are the STANDARD FRAME's own (README §0.3) plus the structural facts the item states.",
+  "notes": [
+    "No artboard exists for this route. Every expectation below is either a README §0.3 frame value or a fact the operator's item states.",
+    "'Recent recalculations' is the calculator's own foot (NoticesRail, inside AutomateVsHireCalculator), so it moves WITH the calculator rather than being deleted; the row below asserts it arrived here, and compose-08-operations-list.json's forbid asserts it left the list page.",
+    "The calculator is pure client-side compute (automate-vs-hire.mjs), so the mount needs no data fixture: the component's own DEFAULT_SCENARIO is the real product default a reader lands on.",
+    "764px is the content column this harness's 1440 mount produces (nav 252 + page padding + 28px gap + 300px rail), the same value every other compose-*.json spec measures since fold 60 — see compose-10-map.json's own note. The artboards' own column is 778; the 14px difference is the harness's frame, not a product deviation."
+  ],
+  "selector": "[data-audit=\"calculator-page\"] .cl-list-surface-grid",
+  "expect": {
+    "display": "grid",
+    "grid-template-columns": "764px 300px",
+    "gap": "28px",
+    "padding": "20px 40px 40px"
+  },
+  "children": [
+    {
+      "name": "the page carries the shared masthead, once, titled as the operator names the tool",
+      "selector": "[data-audit=\"calculator-page\"] h1",
+      "expect": {
+        "count": "1",
+        "text": "Capacity investment estimate"
+      }
+    },
+    {
+      "name": "the calculator itself renders in the content column",
+      "selector": "[data-audit=\"calculator-column\"] section",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "all ten scenario inputs moved across, none dropped",
+      "selector": "[data-audit=\"calculator-column\"] input[type=\"number\"]",
+      "expect": {
+        "count": "10"
+      }
+    },
+    {
+      "name": "'Recent recalculations' travelled with the calculator (it is the calculator's own foot)",
+      "selector": "[data-audit=\"calculator-column\"] [data-notices-rail] .cl-section-label",
+      "expect": {
+        "count": "1",
+        "text": "Recent recalculations"
+      }
+    },
+    {
+      "name": "the rail carries the Legend card",
+      "selector": "[data-audit=\"calculator-page\"] [data-audit=\"legend-rail\"]",
+      "expect": {
+        "count": "1"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "the calculator page renders no list rows",
+      "selector": "[data-audit=\"calculator-page\"] [data-audit=\"list-row\"]",
+      "reason": "The calculator is a tool page, not a list surface; a row here would mean the move dragged list machinery with it."
+    }
+  ]
+}
