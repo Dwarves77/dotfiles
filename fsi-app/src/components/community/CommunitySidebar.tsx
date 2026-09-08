@@ -405,6 +405,24 @@ function SidebarSection({
   actionHref?: string;
   children: React.ReactNode;
 }) {
+  // R2/R3 BOUNDARY, REPORTED TO THE OPERATOR, NOT DECIDED BY THIS LANE.
+  //
+  // The operator's 2026-09-08 ruling is "no items expanded when first navigtaing to a page", and the
+  // coordinator's R2 scopes it to CONTENT disclosure while R3 exempts the FILTERS rail as "a control
+  // surface the reader filters with, not page content that opened itself". R3 ends: "If the lane
+  // finds a case where that reading breaks down, it reports the case rather than deciding."
+  //
+  // This is that case. These are the /community left-rail NAVIGATION groups (Rooms, Groups, Direct
+  // messages and their siblings), not page content: they are the same kind of thing as the filters
+  // rail, a standing control surface, and closing them would leave a reader arriving at /community
+  // looking at a column of bare section headings with no way to see where they can go. But unlike
+  // the filters rail, no written ruling states their default, so R3 does not cover them by name.
+  //
+  // Left as it stands, deliberately, and reported. The change if the operator rules the other way is
+  // this one line: `useState(true)` becomes `useState(false)`, and this marker comes out with it.
+  //
+  // fitness-allow: F42 (R2/R3 boundary: a navigation control surface, not page content; reported to
+  // the operator for a ruling, per R3's own "reports the case rather than deciding")
   const [open, setOpen] = useState(true);
   return (
     <div style={{ marginTop: 10 }}>

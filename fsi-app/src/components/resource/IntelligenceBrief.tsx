@@ -452,7 +452,11 @@ function preprocessMarkdown(md: string): string {
 }
 
 export function IntelligenceBrief({ markdown, stripSources = false }: IntelligenceBriefProps) {
-  const [tocOpen, setTocOpen] = useState(true);
+  // CLOSED on first render (operator ruling 2026-09-08: "no items expanded when first navigtaing to
+  // a page"; coordinator reading R2, content disclosure). This was `useState(true)`, so the
+  // "Contents (N sections)" nav panel was open the moment a brief rendered, with nobody having
+  // clicked its own toggle. The toggle is unchanged; only its starting state moved.
+  const [tocOpen, setTocOpen] = useState(false);
   const briefId = useId().replace(/:/g, "");
   const processed = useMemo(() => {
     const pre = preprocessMarkdown(markdown);
