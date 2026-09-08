@@ -12797,3 +12797,110 @@ and reports a MISMATCH against a correct product. Two of this lane's first-draft
 The rows now assert the literal values the same elements carry and say why the size is not among
 them; the alternative (injecting the CSS into the audit page) would change what all 60 specs measure
 and is a harness decision, not a lane's.
+
+## Addendum 86, postscript 15: lane settings60, artboard 15 /settings composed into two columns (2026-09-08, train 60)
+
+Train 59's fold report named /settings "the second least-composed" page: artboard 15 draws two
+columns and the build was one. This lane composed it, and found three shared-part defects and one
+gate defect on the way.
+
+**The page.** dc.html p15's grid is `minmax(0,1fr) 300px`, gap 28, content padding `18px 40px`.
+Left column (gap 18): Dashboard defaults, Freight sectors, Notifications. Right column (gap 14):
+Briefing schedule, Appearance, Data & supersessions. Every card is a shared part: `AccountCard`
+for the left plates, the list surfaces' own `RailCard` for the right, `SegmentedControl` and
+`ToggleSwitch` for the controls. Ruling R9's S1..S6 section index stays directly under the tab row
+(operator ruling 1, second set: "keep as built"), and R7's six undesigned sections (Saved searches,
+Data summary, CSV upload, Supersession history, Archive, Help) stay reachable as anchored sections
+BELOW the two designed columns.
+
+**The rename, and why it is not a relabel.** dc.html p15's toggle grid reads Band tiles / Due next /
+What changed / Watchlist rail / Across the platform / Supersessions, which is exactly what
+`DashboardBrief` renders. `settingsStore`'s fields were `showSummaryStrip / showWeeklyBriefing /
+showTopUrgency / showDueThisQuarter`, naming regions the rebuilt dashboard no longer has. Pasting
+the artboard's six words onto those four would have produced a label that lies about its field, so
+the fields carry the region names instead, with the legacy `home_sections` JSON keys read as
+fallbacks on load so no saved workspace loses state. Same motion for `defaultSort`, which is now
+the list surfaces' own `ListSurfaceSortKey` (`next-date` / `newest` / `az` - the artboard's own
+three words) with every pre-rebuild value migrated. Nothing outside the store consumed either
+field, verified by grep; this is a rename, not a behaviour change, and `settingsStore.npmtest.mjs`
+asserts the migration table both as text and as behaviour.
+
+**Three shared parts changed, none forked.** `SegmentedControl` is new in `AccountPrimitives` -
+dc.html p15 uses that one form five times, so it is one part with a `multiple` flag for the single
+multi-select group. `AccountCard` gained additive `bodyPadding` and `foot` props and LOST the
+tinted plate behind its head: dc.html p14 and p15 both draw that head on the card's own white,
+which makes this a correction on `/profile` too. `Masthead`'s title/command-bar row became the grid
+dc.html declares on 15 of the 17 artboards; as a wrapping flex row it had been pushing the whole
+command bar onto a second line whenever the dek's max-content ran past the space beside it.
+
+**Two defects found by eye that no spec measured, and both now have one.** First, at dc.html's
+literal `6px 12px` segment padding the Alert bands group ran 10px past its own third of the
+Dashboard-defaults card and the word "Monitor" was clipped by the card's right edge - the
+operator's 2026-09-07 report ("your text is too right and it overlays different areas"), reproduced
+on a page nobody had checked for it. Padding is 10px, the grid columns are `minmax(0,1fr)`, a group
+that still cannot fit wraps rather than clipping, and compose-15's `boundsCheck` measures every
+control cell against its siblings and its card from now on. Second, the scope line broke "Dietl /
+Rockit" across two lines leaving "Rockit" alone, which is precisely the orphan the operator ruled
+out; the workspace name now wraps as one unit.
+
+**The masthead grid's own honest scope.** Applying dc.html's flat `420px` command-bar track at
+every width turned eight detail legs of the rendering guard RED: at 1280 a long detail title
+dropped to 55% of its card, the law-2 squeeze the guard exists to catch. The grid is therefore
+applied at `min-width: 1440px` and not below it. That is not an invented breakpoint: every artboard
+is drawn at 1440, none of them defines a narrower layout (ruling R10 forbids inventing one), and
+420px is a 1440 value. Below 1440 the pre-existing shrink-then-wrap behaviour is untouched, so
+nothing that was passing starts failing.
+
+**A gate that was wrong, fixed rather than allowlisted.** F36 flagged
+`Intl.DateTimeFormat().resolvedOptions().timeZone` in `BriefingScheduleSection` as an unpinned date
+format. It is not one: it returns an IANA zone NAME, produces no date string, and pinning
+`timeZone` on it would make it echo the pinned value back and destroy its only purpose (artboard
+15's time field reads "08:00 · Europe/London" - the reader's own zone, which only the browser
+knows). The rule gained a narrow carve-out with the attack in its own test: a real formatter, a
+formatter built then queried later, and both `toLocale*` calls must all still be caught. It was
+NOT added to `PRE_EXISTING_ALLOWLIST`, which would have been a claim of pre-existing debt about
+code written this session.
+
+**What still differs from artboard 15, all data-driven, all logged.** "Show all 40 sectors" not 36
+(`ALL_SECTORS` has 40; 36 is the mock's corpus). No PDF export segment and no "Export my data"
+link: a repo-wide grep found NO export path of any kind, and a control with nothing behind it is
+defect class 1.1. Day segments Mon..Fri, not the artboard's Mon | Sun: `briefingDay`'s stored union
+has no Sunday. A Biweekly cadence segment the artboard does not draw, kept under R7. The
+jurisdiction-weighting chips kept as a card-foot disclosure, and the artboard's line pointing at
+"Account → Jurisdictions" NOT rendered, because no weighting control exists there and the sentence
+would have been false. The merged Account tab row still carries no live counts - the open item lane
+compose-other logged on 2026-09-08, still needing a shared count-fetch both `/profile` and
+`/settings` call.
+
+**Removed rather than left dormant** (rule 13): the Notifications card's intro paragraph and its
+"Channel: in-app" foot line (the card's own meta already states the channel), `NotifRow`'s
+`lockedSuffix` prop once its only caller stopped passing it, and `DataSummary`'s own heading, which
+printed the card's title a second time.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` - `SettingsPage.tsx`,
+`AccountPrimitives.tsx`, `Masthead.tsx`, `BriefingScheduleSection.tsx`,
+`NotificationPreferences.tsx`, `DataSummary.tsx`. Every interactive element it introduced carries a
+measured target: the six dashboard toggle rows are the artboard's own 44px rows, each sector chip
+is a 44px button, the briefing time field and Save schedule button are 44px, and the
+`SegmentedControl` segments and the rail's own links carry the 24px minimum box the list surfaces'
+sort options and the band-card foot link already use - the artboard draws those controls at ~30px
+and inflating them to 44 would have lost its geometry. No new element overflows its column: the
+Dashboard-defaults control row is measured by compose-15's `boundsCheck`, added because this lane
+found a real clip there by eye. No floating control, no per-page ask panel, no imagery, no dark
+mode. Rendering guard PASS with no new failures, including law-2 targets at 375 and 1280 and the
+masthead-balance spec.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33, **0
+violations**, no allowlist expiries; rendering guard **PASS** (11 fixtures, 431 checks, 7 SM + 12 UX
+smoke specs, 83 + 216 checks); design audit **60 specs, 1012 checks, 1012 MATCH**, 0 MISMATCH / 0
+NOT BUILT / 0 NOT IN SPEC (990 before this lane; compose-15 went 7 checks to 24); the CI npmtest
+glob (`git ls-files '**/*.npmtest.mjs'`) **825/825 PASS**; `run-test-suite.sh` **5920 tests, 5915
+pass, 0 fail, 5 skipped, exit 0** (the known "kill switch ON but no DB creds" failure did not
+reproduce; the `audit-finding-status` informational report on pre-existing archived audits is
+unchanged); `next build --webpack` **exit 0** with no `.env.local`.
+
+**Evidence**: `docs/design/handoff-2026-09-06/built/compose-15-settings.png` (artboard | built at
+1440, regenerated from this code and read against the artboard PNG before this entry was written)
+and `compose-15-settings-built.png`. No auth bypass was needed: the composition mount renders the
+real `SettingsPage` inside `AppShell` through the audit harness, so nothing temporary was added to
+`src/proxy.ts` or any page file, and `grep -rn "UI_SCREENSHOT_BYPASS" fsi-app/src/` returns nothing.
