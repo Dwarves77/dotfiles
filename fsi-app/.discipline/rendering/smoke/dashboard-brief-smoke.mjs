@@ -193,6 +193,70 @@ function filteredPlaceholders(texts) {
   return findPlaceholderLiterals(texts).filter((p) => !KNOWN_SAFE_PLACEHOLDER_LITERALS.has(p));
 }
 
+/**
+ * ROW-CONTENT INVARIANT (lane rsc503, 2026-09-08, click-through audit "Blocking finding").
+ *
+ * The audit measured 11 row anchors on production at 657x55 with correct aria-labels and
+ * `innerHTML.length === 0`, and read that as "the client painted empty boxes". Reading
+ * ListRow.tsx settles it the other way: `a.cl-row-link` is `position:absolute; inset:0`,
+ * `gridColumn: 2 / -1`, `aria-label={title}` and DELIBERATELY childless — it is the stretched
+ * overlay that makes the WHOLE ROW one click target (README §0.4). An empty anchor is the design.
+ *
+ * So the invariant worth guarding is not "the anchor has children" (that would fail on a correct
+ * row) but the one the audit was actually reaching for: a row that exists must RENDER something,
+ * and the overlay's accessible name must be the title the sighted reader sees. This fails on a
+ * genuinely empty row, on a row whose content stopped rendering beside its anchor, and on an
+ * overlay whose label drifts from the row it covers — none of which the placeholder, overflow or
+ * target checks above can see.
+ */
+async function measureRowContent(page) {
+  return page.evaluate(() => {
+    return [...document.querySelectorAll('.cl-list-row')].map((row, i) => {
+      const link = row.querySelector('a.cl-row-link');
+      const title = row.querySelector('.cl-row-title-text');
+      const box = row.getBoundingClientRect();
+      return {
+        i,
+        text: (row.textContent || '').replace(/\s+/g, ' ').trim(),
+        hasLink: Boolean(link),
+        label: link ? (link.getAttribute('aria-label') || '') : '',
+        titleText: title ? (title.textContent || '').replace(/\s+/g, ' ').trim() : '',
+        width: Math.round(box.width),
+        height: Math.round(box.height),
+      };
+    });
+  });
+}
+
+function assertRowContent(label, rows, expectedRows) {
+  const failures = [];
+  if (rows.length !== expectedRows) {
+    failures.push(`${label}: expected ${expectedRows} .cl-list-row element(s), found ${rows.length}`);
+  }
+  for (const row of rows) {
+    if (!row.hasLink) {
+      failures.push(`${label}: row ${row.i} has no overlay anchor — the whole row is the click target`);
+      continue;
+    }
+    if (row.text.length === 0) {
+      failures.push(
+        `${label}: row ${row.i} rendered ${row.width}x${row.height} with NO content — an empty box carrying an aria-label`,
+      );
+    }
+    if (row.label.length === 0) {
+      failures.push(`${label}: row ${row.i}'s overlay anchor has no accessible name`);
+    }
+    if (row.titleText.length === 0) {
+      failures.push(`${label}: row ${row.i} rendered no title text`);
+    } else if (row.label !== row.titleText) {
+      failures.push(
+        `${label}: row ${row.i}'s overlay label "${row.label}" is not the title it covers "${row.titleText}"`,
+      );
+    }
+  }
+  return failures;
+}
+
 export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
@@ -209,6 +273,11 @@ export async function runSmoke(browser) {
         const guard = await measureGuard(page);
         const ux = await measureUx(page);
         checks += 1;
+
+        // Row-content invariant — see measureRowContent's header. Every Due-next row and every
+        // What-changed row in this state is one .cl-list-row.
+        const expectedRows = state.props.dueNextRows.length + state.props.changedRows.length;
+        failures.push(...assertRowContent(label, await measureRowContent(page), expectedRows));
 
         const placeholders = filteredPlaceholders(guard.texts);
         if (placeholders.length > 0) {
