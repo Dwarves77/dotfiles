@@ -2,7 +2,17 @@
 
 /**
  * ObligationRegisterFilterBar — the interactive half of ObligationRegister (Lane OBLIG, 2026-09-02).
- * "use client": owns the jurisdiction / mode / binding-position / due-window filter state.
+ * "use client": owns the register's paging and network state.
+ *
+ * FILTER STATE MOVED OUT (UI fix round 2026-09-08, item D2). The operator named this section's "four
+ * dropdowns" as the shape to leave behind: the register is now its own page (/regulations/register) in
+ * the standard frame, and its facets render through the SAME rail Filters card every list surface uses
+ * (FiltersRailCard, ListSurfaceRailCards.tsx) with live per-option counts, instead of four page-local
+ * `<select>` controls this file used to define itself. So the four filter values arrive as ONE
+ * `filters` prop from the page that owns the rail, and the `<Select>` component, the filter row and the
+ * jurisdiction/mode option props that fed them are deleted rather than left dormant (CLAUDE.md rule
+ * 13). Everything below the filters — the fetch-on-change contract, the honest-loading rule, "Load
+ * more", the table and the detail variant — is unchanged.
  *
  * PERF-11 (2026-09-04) REWRITE OF THE DATA MODEL. Was: the parent fetched up to 500 rows (in practice the
  * WHOLE live register — 1,141 rows [CONFIRMED, live SQL, 2026-09-04] is under 500 for the itemId-less
@@ -58,11 +68,11 @@
  * unambiguously correct at its origin, not just accidentally inert.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { UNCLASSIFIED, DUE_WINDOWS } from "@/lib/obligations/read-register.mjs";
+
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
-import { BINDING_POSITION, TRANSPORT_MODES, orderedValues } from "@/lib/contracts/vocabularies.mjs";
+import { BINDING_POSITION, TRANSPORT_MODES } from "@/lib/contracts/vocabularies.mjs";
 import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 import { itemDetailHref } from "@/lib/item-links";
 import { formatNumber } from "@/lib/format";
@@ -111,15 +121,6 @@ const EVENT_KIND_LABELS: Record<string, string> = {
   other: "Other",
 };
 
-const DUE_WINDOW_LABELS: Record<string, string> = {
-  all: "All",
-  overdue: "Overdue",
-  "30": "Next 30 days",
-  "90": "Next 90 days",
-  "365": "Next 12 months",
-  undated: "No date on file",
-};
-
 const ALL = "__all__";
 
 const PAGE_SIZE = 60; // mirrors LIST_FIRST_PAGE_SIZE (list-pagination.ts) — kept as a local literal so
@@ -140,19 +141,27 @@ interface Props {
    *  when not fetched (detail variant, or non-empty rows) or when the count read itself failed; the
    *  empty-state copy degrades to the generic message in either case, never a fabricated number. */
   sourceEventCount?: number | null;
-  /** Complete jurisdiction/mode option lists (ObligationRegister.tsx's fetchRegisterFacetOptions),
-   *  sourced independently of the loaded page so the dropdowns stay complete even on a first-page-only
-   *  load. Falls back to deriving from `rows` when omitted/empty. */
-  jurisdictionOptions?: string[];
-  modeOptions?: string[];
+  /** The active facet selection, owned by the page that renders the rail Filters card (item D2,
+   *  2026-09-08). Changing it refetches from offset 0. The detail variant ignores it entirely and
+   *  falls back to the unfiltered token set. */
+  filters?: RegisterFilters;
 }
 
-interface RegisterFilters {
+export interface RegisterFilters {
   jurisdiction: string;
   mode: string;
   bindingPosition: string;
   dueWindow: string;
 }
+
+/** The "no facet selected" token for each group — exported so the page that owns the filter state
+ *  uses the SAME sentinel the request builder below tests against, never its own copy. */
+export const REGISTER_FILTERS_NONE: RegisterFilters = {
+  jurisdiction: ALL,
+  mode: ALL,
+  bindingPosition: ALL,
+  dueWindow: "all",
+};
 
 async function fetchRegisterPage(
   filters: RegisterFilters,
@@ -174,13 +183,9 @@ export function ObligationRegisterFilterBar({
   total: initialTotal,
   variant = "list",
   sourceEventCount = null,
-  jurisdictionOptions: jurisdictionOptionsProp,
-  modeOptions: modeOptionsProp,
+  filters = REGISTER_FILTERS_NONE,
 }: Props) {
-  const [jurisdiction, setJurisdiction] = useState<string>(ALL);
-  const [mode, setMode] = useState<string>(ALL);
-  const [bindingPosition, setBindingPosition] = useState<string>(ALL);
-  const [dueWindow, setDueWindow] = useState<string>("all");
+  const { jurisdiction, mode, bindingPosition, dueWindow } = filters;
 
   // The set of rows currently on screen, the total behind the active filter set, and network state.
   // `rows`/`total` start from what the server rendered (the honest first paint) and are only ever
@@ -242,20 +247,6 @@ export function ObligationRegisterFilterBar({
       });
   }, [jurisdiction, mode, bindingPosition, dueWindow, rows.length]);
 
-  const jurisdictionOptions = useMemo(() => {
-    if (jurisdictionOptionsProp && jurisdictionOptionsProp.length > 0) return jurisdictionOptionsProp;
-    const set = new Set<string>();
-    for (const r of rows) for (const j of r.jurisdiction ?? []) set.add(j);
-    return [...set].sort();
-  }, [jurisdictionOptionsProp, rows]);
-
-  const modeOptions = useMemo(() => {
-    if (modeOptionsProp && modeOptionsProp.length > 0) return modeOptionsProp;
-    const set = new Set<string>();
-    for (const r of rows) for (const m of r.modes ?? []) set.add(m);
-    return [...set].sort((a, b) => (MODE_META[a]?.order ?? 99) - (MODE_META[b]?.order ?? 99));
-  }, [modeOptionsProp, rows]);
-
   if (total === 0 && rows.length === 0 && !loading) {
     return variant === "detail" ? null : (
       <section id="obligation-register" style={sectionStyle}>
@@ -283,45 +274,8 @@ export function ObligationRegisterFilterBar({
     // `id` is the target of the rail card's own "Calendar →" head link (artboard 02/id="p2",
     // "Obligations · next 30 days"): the rail card shows the next four inside 30 days, this register
     // is the full schedule it hands off to. R7 keeps this section exactly as it is otherwise.
-    <section id="obligation-register" style={sectionStyle}>
+    <section id="obligation-register" style={variant === "detail" ? detailSectionStyle : sectionStyle}>
       <Header total={total} shown={rows.length} />
-      {variant === "list" && (
-        <div style={filterRowStyle}>
-          <Select label="Jurisdiction" value={jurisdiction} onChange={setJurisdiction}>
-            <option value={ALL}>All jurisdictions</option>
-            {jurisdictionOptions.map((j) => (
-              <option key={j} value={j.toLowerCase()}>
-                {isoToDisplayLabel(j)}
-              </option>
-            ))}
-          </Select>
-          <Select label="Mode" value={mode} onChange={setMode}>
-            <option value={ALL}>All modes</option>
-            {modeOptions.map((m) => (
-              <option key={m} value={m}>
-                {MODE_META[m]?.label ?? m}
-              </option>
-            ))}
-          </Select>
-          <Select label="Binding position" value={bindingPosition} onChange={setBindingPosition}>
-            <option value={ALL}>All positions</option>
-            {orderedValues("binding_position").map((v: { code: string; label: string }) => (
-              <option key={v.code} value={v.code}>
-                {v.label}
-              </option>
-            ))}
-            <option value={UNCLASSIFIED}>Not classified</option>
-          </Select>
-          <Select label="Due" value={dueWindow} onChange={setDueWindow}>
-            {DUE_WINDOWS.map((w: string) => (
-              <option key={w} value={w}>
-                {DUE_WINDOW_LABELS[w] ?? w}
-              </option>
-            ))}
-          </Select>
-        </div>
-      )}
-
       {error && (
         <p role="status" style={{ ...emptyTextStyle, color: "var(--accent, #E8610A)" }}>
           {error}
@@ -438,31 +392,6 @@ function Header({ total, shown }: { total: number; shown?: number }) {
   );
 }
 
-function Select({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  children: React.ReactNode;
-}) {
-  return (
-    <label style={{ display: "flex", flexDirection: "column", gap: 3, fontSize: 10.5, fontWeight: 700, color: "var(--color-text-muted, #7A6E6C)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
-      {label}
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{ fontFamily: "var(--font-sans)", fontSize: 12.5, fontWeight: 600, padding: "6px 8px", borderRadius: 6, border: "1px solid var(--color-border, rgba(0,0,0,0.18))", background: "var(--color-surface, #fff)", color: "var(--color-text-primary, #1A1A1A)", textTransform: "none" }}
-      >
-        {children}
-      </select>
-    </label>
-  );
-}
-
 function Th({ children }: { children: React.ReactNode }) {
   return (
     <th style={{ textAlign: "left", fontSize: 9.5, fontWeight: 800, letterSpacing: "0.09em", textTransform: "uppercase", color: "var(--color-text-muted, #7A6E6C)", padding: "8px 12px", whiteSpace: "nowrap" }}>
@@ -471,9 +400,13 @@ function Th({ children }: { children: React.ReactNode }) {
   );
 }
 
-const sectionStyle: React.CSSProperties = { maxWidth: 1180, margin: "24px auto 0", padding: "0 36px" };
+// The register is no longer a strip mounted below a page's own content column: it IS the content
+// column of /regulations/register (item D2, 2026-09-08), so the page frame supplies the width and the
+// side padding and this section adds none of its own. The detail-page mount keeps the inset it has
+// always had, since it still sits inside a page whose column it does not define.
+const sectionStyle: React.CSSProperties = { margin: 0 };
+const detailSectionStyle: React.CSSProperties = { maxWidth: 1180, margin: "24px auto 0", padding: "0 36px" };
 const headingStyle: React.CSSProperties = { fontSize: 13, fontWeight: 800, textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--color-text-primary, #1A1A1A)", margin: 0 };
-const filterRowStyle: React.CSSProperties = { display: "flex", gap: 14, flexWrap: "wrap", margin: "0 0 14px" };
 const emptyTextStyle: React.CSSProperties = { fontSize: 12.5, color: "var(--color-text-muted, #7A6E6C)", margin: 0 };
 const tableStyle: React.CSSProperties = { width: "100%", borderCollapse: "collapse", minWidth: 720 };
 const tdStyle: React.CSSProperties = { fontSize: 12.5, padding: "9px 12px", color: "var(--color-text-primary, #1A1A1A)", verticalAlign: "top" };

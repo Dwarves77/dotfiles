@@ -70,7 +70,11 @@
  */
 
 import { useEffect, useState } from "react";
-import { ObligationRegisterFilterBar, type ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
+import {
+  ObligationRegisterFilterBar,
+  type ObligationRow,
+  type RegisterFilters,
+} from "@/components/regulations/ObligationRegisterFilterBar";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 
 interface Props {
@@ -86,19 +90,20 @@ interface Props {
    *  that predates this prop, which falls back to the original client-fetch-on-mount behavior exactly
    *  as before. */
   initialResult?: ApiResult;
+  /** The active facet selection, owned by the page that renders the rail Filters card (item D2,
+   *  2026-09-08). Passed straight through; this component still owns only the first-page seed. */
+  filters?: RegisterFilters;
 }
 
 interface ApiResult {
   rows: ObligationRow[];
   total: number;
   sourceEventCount?: number | null;
-  jurisdictionOptions?: string[];
-  modeOptions?: string[];
 }
 
 const EMPTY_RESULT: ApiResult = { rows: [], total: 0 };
 
-export function ObligationRegister({ itemId, variant = "list", initialResult }: Props) {
+export function ObligationRegister({ itemId, variant = "list", initialResult, filters }: Props) {
   const hasSsrSeed = variant === "list" && !itemId && !!initialResult;
   const [state, setState] = useState<{ loading: boolean; result: ApiResult | null }>(
     hasSsrSeed ? { loading: false, result: initialResult! } : { loading: true, result: null }
@@ -149,7 +154,7 @@ export function ObligationRegister({ itemId, variant = "list", initialResult }: 
   if (state.loading) {
     if (variant === "detail") return null; // see this file's header — matches the eventual empty state
     return (
-      <section style={{ maxWidth: 1180, margin: "0 auto", padding: "18px 36px 0" }}>
+      <section style={{ margin: 0 }}>
         <p style={{ fontSize: 12.5, color: "var(--color-text-muted)", margin: 0 }}>
           Loading obligation register…
         </p>
@@ -166,8 +171,7 @@ export function ObligationRegister({ itemId, variant = "list", initialResult }: 
       total={result.total}
       variant={variant}
       sourceEventCount={result.sourceEventCount ?? null}
-      jurisdictionOptions={result.jurisdictionOptions}
-      modeOptions={result.modeOptions}
+      filters={filters}
     />
   );
 }

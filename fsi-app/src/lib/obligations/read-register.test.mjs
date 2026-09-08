@@ -7,6 +7,11 @@ import {
   filterJoinedRows,
   filterJoinedRowsPage,
   matchingJurisdictionCodes,
+  tallyRegisterFacets,
+  emptyRegisterFacets,
+  nextDueSegment,
+  compareByNextDue,
+  planRegisterPageSegments,
   fetchObligationRegister,
   fetchObligationRegisterPage,
   fetchRegisterFacetOptions,
@@ -123,14 +128,43 @@ test("selectRegisterRows: drops a row whose item did not survive the verified-ga
   assert.equal(out.length, 0);
 });
 
-test("selectRegisterRows: sorts due-date ascending with undated rows last", () => {
+test("selectRegisterRows: sorts by NEXT DUE — upcoming soonest first, then past most-recent first, undated last", () => {
   const rows = [
-    { intelligence_item_id: "item-a", due_date: null, binding_position: null, jurisdiction: [], modes: [] },
-    { intelligence_item_id: "item-b", due_date: "2026-06-01", binding_position: null, jurisdiction: [], modes: [] },
-    { intelligence_item_id: "item-a", due_date: "2026-03-01", binding_position: null, jurisdiction: [], modes: [] },
+    { id: "r1", intelligence_item_id: "item-a", due_date: null, binding_position: null, jurisdiction: [], modes: [] },
+    { id: "r2", intelligence_item_id: "item-b", due_date: "2026-06-01", binding_position: null, jurisdiction: [], modes: [] },
+    { id: "r3", intelligence_item_id: "item-a", due_date: "2026-03-01", binding_position: null, jurisdiction: [], modes: [] },
+    { id: "r4", intelligence_item_id: "item-a", due_date: "1967-01-01", binding_position: null, jurisdiction: [], modes: [] },
   ];
-  const out = selectRegisterRows(rows, itemsMap(ITEM_A, ITEM_B), buildRegisterQuerySpec());
-  assert.deepEqual(out.map((r) => r.due_date), ["2026-03-01", "2026-06-01", null]);
+  const out = selectRegisterRows(rows, itemsMap(ITEM_A, ITEM_B), buildRegisterQuerySpec({ todayIso: "2026-04-01" }));
+  // Item D2 (2026-09-08): the 1967 row no longer leads the register. `todayIso` is passed rather
+  // than read from the clock so this assertion means the same thing on every future run date.
+  assert.deepEqual(out.map((r) => r.due_date), ["2026-06-01", "2026-03-01", "1967-01-01", null]);
+});
+
+test("compareByNextDue/nextDueSegment: the three segments, and the id tiebreak inside each", () => {
+  assert.equal(nextDueSegment("2026-10-01", "2026-04-01"), 0);
+  assert.equal(nextDueSegment("2026-04-01", "2026-04-01"), 0, "due today is still ahead, never overdue");
+  assert.equal(nextDueSegment("2026-03-31", "2026-04-01"), 1);
+  assert.equal(nextDueSegment(null, "2026-04-01"), 2);
+  const tieA = { id: "a", due_date: "2026-10-01" };
+  const tieB = { id: "b", due_date: "2026-10-01" };
+  assert.ok(compareByNextDue(tieA, tieB, "2026-04-01") < 0);
+  assert.ok(compareByNextDue(tieB, tieA, "2026-04-01") > 0);
+});
+
+test("planRegisterPageSegments: a page that spans a segment boundary takes the right slice of each", () => {
+  // 2 upcoming, 3 past, 1 undated. Page [1,4) crosses the upcoming/past boundary.
+  assert.deepEqual(planRegisterPageSegments([2, 3, 1], 1, 3), [
+    { index: 0, from: 1, to: 1 },
+    { index: 1, from: 0, to: 1 },
+  ]);
+  // A page entirely past the first two segments reaches the third with a shifted offset.
+  assert.deepEqual(planRegisterPageSegments([2, 3, 1], 5, 10), [{ index: 2, from: 0, to: 0 }]);
+  // Past the end: no query is issued at all.
+  assert.deepEqual(planRegisterPageSegments([2, 3, 1], 6, 10), []);
+  assert.deepEqual(planRegisterPageSegments([2, 3, 1], 0, 0), []);
+  // An empty segment is skipped without consuming any of the offset.
+  assert.deepEqual(planRegisterPageSegments([0, 2, 0], 0, 5), [{ index: 1, from: 0, to: 1 }]);
 });
 
 test("selectRegisterRows: jurisdiction filter matches a subnational code by prefix", () => {
@@ -174,7 +208,7 @@ test("selectRegisterRows: respects the spec limit after sorting", () => {
     { intelligence_item_id: "item-a", due_date: "2026-01-01", binding_position: null, jurisdiction: [], modes: [] },
     { intelligence_item_id: "item-a", due_date: "2026-04-01", binding_position: null, jurisdiction: [], modes: [] },
   ];
-  const out = selectRegisterRows(rows, itemsMap(ITEM_A), buildRegisterQuerySpec({ limit: 2 }));
+  const out = selectRegisterRows(rows, itemsMap(ITEM_A), buildRegisterQuerySpec({ limit: 2, todayIso: "2025-01-01" }));
   assert.deepEqual(out.map((r) => r.due_date), ["2026-01-01", "2026-04-01"]);
 });
 
@@ -183,8 +217,8 @@ test("filterJoinedRows: same predicate/sort as selectRegisterRows, but skips the
     { intelligence_item_id: "item-a", due_date: "2026-06-01", binding_position: "direct_duty", jurisdiction: ["EU"], modes: ["ocean"], item: ITEM_A },
     { intelligence_item_id: "item-b", due_date: "2026-01-01", binding_position: null, jurisdiction: ["EU", "US-CA"], modes: ["air"], item: ITEM_B },
   ];
-  const all = filterJoinedRows(joined, buildRegisterQuerySpec());
-  assert.deepEqual(all.map((r) => r.intelligence_item_id), ["item-b", "item-a"]); // sorted by due date
+  const all = filterJoinedRows(joined, buildRegisterQuerySpec({ todayIso: "2025-12-01" }));
+  assert.deepEqual(all.map((r) => r.intelligence_item_id), ["item-b", "item-a"]); // next due first
 
   const eu = filterJoinedRows(joined, buildRegisterQuerySpec({ jurisdiction: "eu" }));
   assert.equal(eu.length, 2);
@@ -234,7 +268,7 @@ test("fetchObligationRegister: end-to-end against a fake client, soonest-first",
     ],
     itemsRows: [ITEM_A, ITEM_B],
   });
-  const out = await fetchObligationRegister(supabase, {});
+  const out = await fetchObligationRegister(supabase, { todayIso: "2026-01-01" });
   assert.equal(out.length, 2);
   assert.equal(out[0].id, "o2");
   assert.equal(out[0].item.title, "CountEmissions EU");
@@ -338,11 +372,11 @@ test("filterJoinedRowsPage: total is the filtered count BEFORE the page slice, n
     { intelligence_item_id: "item-a", due_date: "2026-02-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
     { intelligence_item_id: "item-a", due_date: "2026-03-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
   ];
-  const page1 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 0 }));
+  const page1 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 0, todayIso: "2025-12-01" }));
   assert.equal(page1.total, 3);
   assert.deepEqual(page1.rows.map((r) => r.due_date), ["2026-01-01", "2026-02-01"]);
 
-  const page2 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 2 }));
+  const page2 = filterJoinedRowsPage(joined, buildRegisterQuerySpec({ limit: 2, offset: 2, todayIso: "2025-12-01" }));
   assert.equal(page2.total, 3);
   assert.deepEqual(page2.rows.map((r) => r.due_date), ["2026-03-01"]);
 });
@@ -362,7 +396,7 @@ test("filterJoinedRows and filterJoinedRowsPage agree on the same first page (of
     { intelligence_item_id: "item-a", due_date: "2026-05-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_A },
     { intelligence_item_id: "item-b", due_date: "2026-01-01", binding_position: null, jurisdiction: [], modes: [], item: ITEM_B },
   ];
-  const spec = buildRegisterQuerySpec({ limit: 1, offset: 0 });
+  const spec = buildRegisterQuerySpec({ limit: 1, offset: 0, todayIso: "2025-12-01" });
   const viaOld = filterJoinedRows(joined, spec);
   const viaNew = filterJoinedRowsPage(joined, spec).rows;
   assert.deepEqual(viaOld, viaNew);
@@ -378,7 +412,7 @@ function makeFakeObligationsTable(rows) {
   function build() {
     const filters = [];
     let countMode = false;
-    let orderSpec = null;
+    const orderSpec = [];
     const chain = {
       select(_cols, opts) {
         countMode = !!(opts && opts.count === "exact" && opts.head === true);
@@ -390,20 +424,28 @@ function makeFakeObligationsTable(rows) {
       gte(col, val) { filters.push((r) => r[col] != null && r[col] >= val); return chain; },
       lte(col, val) { filters.push((r) => r[col] != null && r[col] <= val); return chain; },
       lt(col, val) { filters.push((r) => r[col] != null && r[col] < val); return chain; },
-      order(col, opt) { orderSpec = { col, nullsFirst: !!(opt && opt.nullsFirst) }; return chain; },
+      // Multi-key, direction-aware (item D2, 2026-09-08): the register's page query now issues
+      // `.order("due_date", {ascending})` followed by `.order("id", {ascending:true})`, so a fake
+      // that kept only the last call and ignored `ascending` would silently measure a different
+      // order than the product builds.
+      order(col, opt) { orderSpec.push({ col, ascending: !opt || opt.ascending !== false, nullsFirst: !!(opt && opt.nullsFirst) }); return chain; },
       range(from, to) { return Promise.resolve(resolve(from, to)); },
       then(res, rej) { return Promise.resolve(resolve()).then(res, rej); },
     };
     function matched() { return rows.filter((r) => filters.every((f) => f(r))); }
     function ordered(list) {
-      if (!orderSpec) return list;
-      const { col, nullsFirst } = orderSpec;
+      if (orderSpec.length === 0) return list;
       return [...list].sort((a, b) => {
-        const av = a[col], bv = b[col];
-        if (av == null && bv == null) return 0;
-        if (av == null) return nullsFirst ? -1 : 1;
-        if (bv == null) return nullsFirst ? 1 : -1;
-        return av < bv ? -1 : av > bv ? 1 : 0;
+        for (const { col, ascending, nullsFirst } of orderSpec) {
+          const av = a[col], bv = b[col];
+          if (av == null && bv == null) continue;
+          if (av == null) return nullsFirst ? -1 : 1;
+          if (bv == null) return nullsFirst ? 1 : -1;
+          if (av === bv) continue;
+          const cmp = av < bv ? -1 : 1;
+          return ascending ? cmp : -cmp;
+        }
+        return 0;
       });
     }
     function resolve(from, to) {
@@ -438,24 +480,38 @@ const REG_ROWS = [
   { id: "o4", intelligence_item_id: "item-b", forward_event_id: "e4", due_date: "2020-01-01", date_precision: "day", event_kind: "compliance_deadline", binding_position: "monitoring_only", jurisdiction: ["GB"], modes: ["rail"], status: "active", item_forward_events: null },
 ];
 
-test("fetchObligationRegisterPage: no filter — exact DB count, ordered chronologically (not lexicographically) with undated last", async () => {
+test("fetchObligationRegisterPage: NEXT DUE order — the still-ahead obligation leads, the 2020 row does not, undated last", async () => {
   const supabase = fakeRegisterPageClient({ obligationsRows: REG_ROWS, itemsRows: [ITEM_A, ITEM_B] });
-  const page = await fetchObligationRegisterPage(supabase, { limit: 60, offset: 0, todayIso: "2026-09-05" });
-  assert.equal(page.total, 4);
-  // o4=2020-01-01 sorts FIRST despite the string "2020..." < "2026..." only coincidentally agreeing here —
-  // the point is the DB's own date-typed ORDER BY, not a JS string compare; o3 (null) is always last.
-  assert.deepEqual(page.rows.map((r) => r.id), ["o4", "o2", "o1", "o3"]);
-  assert.deepEqual(page.rows.map((r) => r.due_date), ["2020-01-01", "2026-03-01", "2026-06-01", null]);
+  // todayIso splits the fixture: o1 (2026-06-01) is still ahead; o2 (2026-03-01) and o4 (2020-01-01)
+  // are past; o3 is undated. Item D2 (2026-09-08): before the fix this read led with o4, which on the
+  // live corpus was a 1967 row — the operator's own complaint about this table.
+  const page = await fetchObligationRegisterPage(supabase, { limit: 60, offset: 0, todayIso: "2026-04-01" });
+  assert.equal(page.total, 4, "total is the sum of the three segment counts, not a page length");
+  assert.deepEqual(page.rows.map((r) => r.id), ["o1", "o2", "o4", "o3"]);
+  assert.deepEqual(page.rows.map((r) => r.due_date), ["2026-06-01", "2026-03-01", "2020-01-01", null]);
 });
 
-test("fetchObligationRegisterPage: offset/limit slices the ALREADY-FILTERED, already-ordered set — no JS re-slice of an overfetch", async () => {
+test("fetchObligationRegisterPage: paging cuts the GLOBAL next-due sequence, including across a segment boundary", async () => {
   const supabase = fakeRegisterPageClient({ obligationsRows: REG_ROWS, itemsRows: [ITEM_A, ITEM_B] });
-  const page1 = await fetchObligationRegisterPage(supabase, { limit: 2, offset: 0, todayIso: "2026-09-05" });
+  const page1 = await fetchObligationRegisterPage(supabase, { limit: 2, offset: 0, todayIso: "2026-04-01" });
   assert.equal(page1.total, 4);
-  assert.deepEqual(page1.rows.map((r) => r.id), ["o4", "o2"]);
-  const page2 = await fetchObligationRegisterPage(supabase, { limit: 2, offset: 2, todayIso: "2026-09-05" });
+  assert.deepEqual(page1.rows.map((r) => r.id), ["o1", "o2"]);
+  const page2 = await fetchObligationRegisterPage(supabase, { limit: 2, offset: 2, todayIso: "2026-04-01" });
   assert.equal(page2.total, 4);
-  assert.deepEqual(page2.rows.map((r) => r.id), ["o1", "o3"]);
+  assert.deepEqual(page2.rows.map((r) => r.id), ["o4", "o3"]);
+  // The boundary itself: a one-row page at offset 1 must return the LAST upcoming row, and at
+  // offset 3 the undated one — a sort applied after the page boundary could not produce either.
+  const at1 = await fetchObligationRegisterPage(supabase, { limit: 1, offset: 1, todayIso: "2026-04-01" });
+  assert.deepEqual(at1.rows.map((r) => r.id), ["o2"]);
+  const at3 = await fetchObligationRegisterPage(supabase, { limit: 1, offset: 3, todayIso: "2026-04-01" });
+  assert.deepEqual(at3.rows.map((r) => r.id), ["o3"]);
+  // Every page concatenated is the whole sequence, with no row seen twice and none skipped.
+  const walked = [];
+  for (let offset = 0; offset < 4; offset += 1) {
+    const p = await fetchObligationRegisterPage(supabase, { limit: 1, offset, todayIso: "2026-04-01" });
+    walked.push(...p.rows.map((r) => r.id));
+  }
+  assert.deepEqual(walked, ["o1", "o2", "o4", "o3"]);
 });
 
 test("fetchObligationRegisterPage: jurisdiction filter pushes into the query as an exact .overlaps() set resolved from the facet pool (subnational prefix match preserved)", async () => {
@@ -509,7 +565,7 @@ test("fetchObligationRegisterPage: dueWindow 'overdue' is .lt(today); 'undated' 
 
 test("fetchObligationRegisterPage: the obligation-text embed, flattening, and item join still apply exactly as before", async () => {
   const supabase = fakeRegisterPageClient({ obligationsRows: REG_ROWS, itemsRows: [ITEM_A, ITEM_B] });
-  const page = await fetchObligationRegisterPage(supabase, { limit: 1, offset: 0, todayIso: "2026-09-05" });
+  const page = await fetchObligationRegisterPage(supabase, { limit: 1, offset: 2, todayIso: "2026-04-01" });
   assert.equal(page.rows[0].id, "o4");
   assert.equal(page.rows[0].item_forward_events, undefined); // flattened, never leaked
   assert.equal(page.rows[0].obligation_text, null); // o4 carries no item_forward_events row
@@ -523,11 +579,23 @@ test("fetchObligationRegisterPage: an item that fails the verified-gate join is 
   assert.deepEqual(new Set(page.rows.map((r) => r.id)), new Set(["o2", "o3"])); // only item-a's rows survive
 });
 
-test("fetchObligationRegisterPage: an error on the count query returns { rows: [], total } via the fail-closed exactCount contract", async () => {
+test("fetchObligationRegisterPage: an error on a segment count query fails closed via the exactCount contract", async () => {
   const supabase = {
     from(table) {
       if (table === "obligations") {
-        return { select: () => ({ eq: () => Promise.resolve({ count: null, error: { message: "boom" } }) }) };
+        // A chain that accepts every builder call the segment counts make (.eq/.gte/.lt/.is) and
+        // resolves to the error, so the failure surfaces from exactCount rather than from a
+        // TypeError on a stub that stopped one call short.
+        const chain = {
+          select: () => chain,
+          eq: () => chain,
+          gte: () => chain,
+          lt: () => chain,
+          is: () => chain,
+          overlaps: () => chain,
+          then: (res, rej) => Promise.resolve({ count: null, error: { message: "boom" } }).then(res, rej),
+        };
+        return chain;
       }
       throw new Error(`unexpected table ${table}`);
     },
@@ -567,9 +635,55 @@ test("fetchRegisterFacetOptions: dedupes and sorts jurisdiction/mode values acro
     { jurisdiction: ["EU"], modes: ["air", "ocean"] },
     { jurisdiction: null, modes: null },
   ]);
-  const facets = await fetchRegisterFacetOptions(supabase);
+  const facets = await fetchRegisterFacetOptions(supabase, { todayIso: "2026-04-01" });
   assert.deepEqual(facets.jurisdictions, ["EU", "US-CA"]);
   assert.deepEqual(facets.modes, ["air", "ocean"]);
+});
+
+// ── Item D2 (2026-09-08): the rail Filters card that replaced the four page-local dropdowns needs a
+// live count per option. tallyRegisterFacets is the one pass that produces both. ──
+
+test("tallyRegisterFacets: counts a row once per distinct jurisdiction and once per distinct mode", () => {
+  const facets = tallyRegisterFacets(
+    [
+      { jurisdiction: ["EU", "US-CA"], modes: ["ocean"], binding_position: "direct_duty", due_date: "2026-10-01" },
+      { jurisdiction: ["EU", "EU"], modes: ["air", "ocean"], binding_position: null, due_date: null },
+    ],
+    "2026-04-01"
+  );
+  assert.deepEqual(facets.counts.jurisdiction, { EU: 2, "US-CA": 1 }, "a repeated code on one row counts once");
+  assert.deepEqual(facets.counts.mode, { ocean: 2, air: 1 });
+});
+
+test("tallyRegisterFacets: an unclassified binding position counts under the UNCLASSIFIED token, never dropped", () => {
+  const facets = tallyRegisterFacets(
+    [
+      { jurisdiction: [], modes: [], binding_position: "direct_duty", due_date: null },
+      { jurisdiction: [], modes: [], binding_position: null, due_date: null },
+    ],
+    "2026-04-01"
+  );
+  assert.equal(facets.counts.bindingPosition.direct_duty, 1);
+  assert.equal(facets.counts.bindingPosition[UNCLASSIFIED], 1);
+});
+
+test("tallyRegisterFacets: due-window counts use the same predicate the window filter selects on", () => {
+  const rows = [
+    { jurisdiction: [], modes: [], binding_position: null, due_date: "2026-03-01" }, // overdue at 2026-04-01
+    { jurisdiction: [], modes: [], binding_position: null, due_date: "2026-04-15" }, // inside 30
+    { jurisdiction: [], modes: [], binding_position: null, due_date: "2026-06-15" }, // inside 90, not 30
+    { jurisdiction: [], modes: [], binding_position: null, due_date: null },
+  ];
+  const facets = tallyRegisterFacets(rows, "2026-04-01");
+  assert.equal(facets.counts.dueWindow.overdue, 1);
+  assert.equal(facets.counts.dueWindow["30"], 1);
+  assert.equal(facets.counts.dueWindow["90"], 2);
+  assert.equal(facets.counts.dueWindow.undated, 1);
+  assert.equal(facets.counts.dueWindow.all, undefined, "'all' is not a tallied window — it is the no-filter state");
+});
+
+test("tallyRegisterFacets: a non-array input degrades to the empty shape, never throws", () => {
+  assert.deepEqual(tallyRegisterFacets(null, "2026-04-01"), emptyRegisterFacets());
 });
 
 test("fetchRegisterFacetOptions: walks past the 1000-row PostgREST cap via fetchAllRows, not a single .limit(5000) call", async () => {
@@ -583,8 +697,8 @@ test("fetchRegisterFacetOptions: walks past the 1000-row PostgREST cap via fetch
 
 test("fetchRegisterFacetOptions: an error or throw degrades to empty arrays, never breaks the page", async () => {
   const supabase = { from: () => ({ select: () => ({ eq: () => ({ order: () => ({ range: async () => ({ data: null, error: { message: "boom" } }) }) }) }) }) };
-  assert.deepEqual(await fetchRegisterFacetOptions(supabase), { jurisdictions: [], modes: [] });
+  assert.deepEqual(await fetchRegisterFacetOptions(supabase), emptyRegisterFacets());
 
   const throwing = { from: () => { throw new Error("boom"); } };
-  assert.deepEqual(await fetchRegisterFacetOptions(throwing), { jurisdictions: [], modes: [] });
+  assert.deepEqual(await fetchRegisterFacetOptions(throwing), emptyRegisterFacets());
 });

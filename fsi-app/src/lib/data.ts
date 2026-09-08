@@ -56,6 +56,7 @@ import {
   fetchObligationRegisterPage,
   fetchForwardEventCount,
   fetchRegisterFacetOptions,
+  emptyRegisterFacets,
 } from "@/lib/obligations/read-register.mjs";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import type { ObligationRow } from "@/components/regulations/ObligationRegisterFilterBar";
@@ -1610,8 +1611,17 @@ export interface PublicObligationRegisterFirstPage {
   rows: ObligationRow[];
   total: number;
   sourceEventCount?: number | null;
-  jurisdictionOptions: string[];
-  modeOptions: string[];
+  /** Live per-option counts for the register page's rail Filters card (item D2, 2026-09-08) —
+   *  tallied by the SAME corpus-wide pass that produces the option lists above
+   *  (read-register.mjs's tallyRegisterFacets), never derived from the loaded page. */
+  facetCounts: RegisterFacetCounts;
+}
+
+export interface RegisterFacetCounts {
+  jurisdiction: Record<string, number>;
+  mode: Record<string, number>;
+  bindingPosition: Record<string, number>;
+  dueWindow: Record<string, number>;
 }
 
 const cachedPublicObligationRegisterFirstPage = unstable_cache(
@@ -1631,8 +1641,7 @@ const cachedPublicObligationRegisterFirstPage = unstable_cache(
       rows: rows as ObligationRow[],
       total,
       sourceEventCount,
-      jurisdictionOptions: facets.jurisdictions,
-      modeOptions: facets.modes,
+      facetCounts: facets.counts,
     };
   },
   ["public-obligation-register-first-page-reconcile"],
@@ -1644,6 +1653,6 @@ export async function getPublicObligationRegisterFirstPage(): Promise<PublicObli
     return await cachedPublicObligationRegisterFirstPage();
   } catch (e) {
     console.error("getPublicObligationRegisterFirstPage failed, returning empty:", e);
-    return { rows: [], total: 0, jurisdictionOptions: [], modeOptions: [] };
+    return { rows: [], total: 0, facetCounts: emptyRegisterFacets().counts };
   }
 }

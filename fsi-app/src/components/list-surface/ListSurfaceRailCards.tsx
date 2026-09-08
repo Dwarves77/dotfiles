@@ -393,10 +393,12 @@ export function ObligationsRailCard({ nowIso }: { nowIso?: string }) {
   );
 
   return (
-    // "Calendar →" points at the Obligation Register section already mounted lower on /regulations
+    // "Calendar →" points at the Obligation Register, which is its OWN PAGE as of the UI fix round
+    // 2026-09-08 (item D2) — it used to be an in-page anchor to a section mounted lower on
+    // /regulations, and that section moved. This link is what keeps the new route reachable.
     // (ruling R7: the register is the app's real full obligation schedule and stays exactly as it
     // is; there is no calendar route to invent, and the artboard's own link is a self-anchor).
-    <RailCard title="Obligations · next 30 days" dataAudit="obligations-rail" headLink={{ label: "Calendar →", href: "#obligation-register" }}>
+    <RailCard title="Obligations · next 30 days" dataAudit="obligations-rail" headLink={{ label: "Calendar →", href: "/regulations/register" }}>
       <div style={{ display: "flex", flexDirection: "column", gap: 9, fontSize: "var(--fs-12)" }}>
         {state.loading ? (
           Array.from({ length: OBLIGATION_RAIL_ROW_CAP }, (_, i) => <SkeletonRailDateRow key={i} />)

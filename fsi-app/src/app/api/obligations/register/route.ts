@@ -32,7 +32,7 @@ import { withErrorCapture } from "@/lib/telemetry/capture-error";
  * correctness is never approximated client-side and a fetch in flight never blanks what is already
  * shown.
  *
- * META FIELDS (`jurisdictionOptions`, `modeOptions`, `sourceEventCount`) ride along ONLY on the true
+ * META FIELDS (`facetCounts`, `sourceEventCount`) ride along ONLY on the true
  * "first ever load" shape — list variant, offset 0, no filters applied — since that is the one call
  * ObligationRegister.tsx makes itself; every subsequent FilterBar-driven call (a filter change or "Load
  * more") omits them (`undefined` in the JSON body — cheaper than re-running two extra queries a caller
@@ -104,17 +104,18 @@ async function handleGET(request: NextRequest) {
     });
 
     let sourceEventCount: number | null | undefined;
-    let jurisdictionOptions: string[] | undefined;
-    let modeOptions: string[] | undefined;
+    let facetCounts: Awaited<ReturnType<typeof fetchRegisterFacetOptions>>["counts"] | undefined;
     if (isFirstLoad) {
       if (total === 0) sourceEventCount = await fetchForwardEventCount(supabase);
-      const facets = await fetchRegisterFacetOptions(supabase);
-      jurisdictionOptions = facets.jurisdictions;
-      modeOptions = facets.modes;
+      // Item D2 (2026-09-08): the register page's rail Filters card carries a LIVE COUNT per option,
+      // so the flat `jurisdictionOptions`/`modeOptions` arrays this route used to ship (the four
+      // page-local dropdowns' only consumer) are replaced by the counted maps — the option list is
+      // the maps' own keys, so nothing is lost and the two can never disagree.
+      facetCounts = (await fetchRegisterFacetOptions(supabase)).counts;
     }
 
     return NextResponse.json(
-      { rows, total, sourceEventCount, jurisdictionOptions, modeOptions },
+      { rows, total, sourceEventCount, facetCounts },
       {
         headers: {
           // Same trade-off /api/listings/rest states for itself: this is per-viewer content (RLS-scoped
