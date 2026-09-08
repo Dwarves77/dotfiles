@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { ProvisionalSource } from "@/types/source";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 import { formatLocaleDateTime } from "@/lib/format";
@@ -44,7 +44,6 @@ interface Props {
 }
 
 export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = false }: Props) {
-  const supabase = createSupabaseBrowserClient();
   const [expanded, setExpanded] = useState(initiallyExpanded);
   const [rec, setRec] = useState<Recommendation | null>(ps.recommended_classification || null);
   const [recLoading, setRecLoading] = useState(false);
@@ -67,12 +66,10 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
       setRecLoading(true);
       setRecError(null);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch("/api/admin/sources/recommend-classification", {
+        const res = await authedFetch("/api/admin/sources/recommend-classification", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ provisionalSourceId: ps.id }),
         });
@@ -102,7 +99,6 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
     if (decision !== "defer" && decision === "approve" && !tier) return;
     setSubmitting(decision);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const body: any = { provisionalSourceId: ps.id, decision, reviewerNotes: notes };
       if (decision === "approve") {
         // Phase 1.5 + F8 (Sprint Architecture): client must not write
@@ -117,11 +113,10 @@ export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = fa
         body.transport_modes = modes;
         body.topic_tags = topics;
       }
-      const res = await fetch("/api/admin/sources/promote", {
+      const res = await authedFetch("/api/admin/sources/promote", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(body),
       });

@@ -15,8 +15,8 @@
 // for one-by-one review.
 
 import { useEffect, useMemo, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, ExternalLink, AlertTriangle, CheckCircle2, XCircle, Filter, Layers } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { formatLocaleDateTime } from "@/lib/format";
 
 interface Candidate {
@@ -87,7 +87,6 @@ const ALL_DOMAINS = [
 ];
 
 export function CanonicalSourceReview() {
-  const supabase = createSupabaseBrowserClient();
   const [groups, setGroups] = useState<Group[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -112,10 +111,7 @@ export function CanonicalSourceReview() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/canonical-sources/pending", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
+      const res = await authedFetch("/api/admin/canonical-sources/pending");
       const payload = await res.json();
       if (!res.ok) {
         setError(payload.error || "Failed to load");
@@ -130,7 +126,7 @@ export function CanonicalSourceReview() {
     }
   }
 
-  useEffect(() => { load(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, []);
 
   // Filter groups & candidates client-side for snappy UI
   const visibleGroups = useMemo(() => {
@@ -203,17 +199,15 @@ export function CanonicalSourceReview() {
     setPrecacheError(null);
     setPrecacheProgress({ done: 0, total: precacheCandidates.length });
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const ids = precacheCandidates.map((c) => c.id);
       const CHUNK = 25;
       let done = 0;
       for (let i = 0; i < ids.length; i += CHUNK) {
         const slice = ids.slice(i, i + CHUNK);
-        const res = await fetch("/api/admin/canonical-sources/bulk-classify", {
+        const res = await authedFetch("/api/admin/canonical-sources/bulk-classify", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ candidateIds: slice }),
         });
@@ -239,12 +233,10 @@ export function CanonicalSourceReview() {
     setBulkRunning(true);
     setBulkResult(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/canonical-sources/bulk-approve", {
+      const res = await authedFetch("/api/admin/canonical-sources/bulk-approve", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           candidateIds: bulkEligible.map((c) => c.id),
@@ -603,7 +595,6 @@ function ItemGroup({
 }
 
 function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: () => void }) {
-  const supabase = createSupabaseBrowserClient();
   const [expanded, setExpanded] = useState(false);
   const [submitting, setSubmitting] = useState<null | "approve" | "reject" | "defer">(null);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -634,12 +625,10 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
     (async () => {
       setRecLoading(true);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch("/api/admin/canonical-sources/recommend-classification", {
+        const res = await authedFetch("/api/admin/canonical-sources/recommend-classification", {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({ candidateId: cand.id }),
         });
@@ -673,7 +662,6 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
     setSubmitting(decision);
     setErrMsg(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const body: any = { candidateId: cand.id, decision, reviewerNotes: notes };
       if (editing) {
         body.editedFields = {
@@ -699,11 +687,10 @@ function CandidateRow({ cand, onActionDone }: { cand: Candidate; onActionDone: (
           body.topic_tags = topics;
         }
       }
-      const res = await fetch("/api/admin/canonical-sources/decide", {
+      const res = await authedFetch("/api/admin/canonical-sources/decide", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(body),
       });

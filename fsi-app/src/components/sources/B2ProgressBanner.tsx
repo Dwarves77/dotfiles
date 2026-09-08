@@ -9,8 +9,8 @@
 // lists.
 
 import { useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Loader2, Activity, RefreshCw } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface Progress {
   contract_version: string;
@@ -36,7 +36,6 @@ interface Progress {
 }
 
 export function B2ProgressBanner() {
-  const supabase = createSupabaseBrowserClient();
   const [data, setData] = useState<Progress | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -44,10 +43,7 @@ export function B2ProgressBanner() {
 
   async function load() {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/b2-progress", {
-        headers: { Authorization: `Bearer ${session?.access_token}` },
-      });
+      const res = await authedFetch("/api/admin/b2-progress");
       const payload = await res.json();
       if (!res.ok) {
         setError(payload.error || "Failed to load progress");
@@ -67,7 +63,7 @@ export function B2ProgressBanner() {
     load();
     const t = setInterval(load, 30000); // refresh every 30s
     return () => clearInterval(t);
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   if (loading && !data) {
     return (

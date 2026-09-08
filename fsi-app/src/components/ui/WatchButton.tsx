@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authHeaders } from "@/lib/api/authed-fetch";
 import type { WatchlistItemType } from "@/lib/data";
 import { isTeamOnlyWatchType } from "@/lib/watchlist-scope";
 import { getClientWatchMembership, lookupWatchMembership } from "@/lib/watchlist/membership";
@@ -101,9 +101,11 @@ function useWatchMembership(
     let cancelled = false;
     (async () => {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const authHeader = { Authorization: `Bearer ${session?.access_token || ""}` };
+        // lane TAGS-401 (2026-09-08): the header comes from the one shared builder, which
+        // returns null (rather than a `Bearer ` carrying no identity) before the session
+        // resolves, so an unauthenticated first render skips the read instead of 401ing.
+        const authHeader = await authHeaders();
+        if (!authHeader) { if (!cancelled) setLoaded(true); return; }
         // PERF-3: routed through the shared per-item_type membership cache instead of an ad hoc
         // fetch — N WatchButton instances of the same itemType on one page now share ONE network
         // request between them (see membership.ts's header for the "six fetches" defect this
@@ -134,9 +136,8 @@ function useWatchMembership(
       setState(next); // optimistic
       setFailedState(false);
       try {
-        const supabase = createSupabaseBrowserClient();
-        const { data: { session } } = await supabase.auth.getSession();
-        const authHeader = { Authorization: `Bearer ${session?.access_token || ""}` };
+        const authHeader = await authHeaders();
+        if (!authHeader) { setState(!next); setFailedState(true); busy.current[scope] = false; return; }
         const resp = next
           ? await fetch("/api/watchlist", {
               method: "POST",

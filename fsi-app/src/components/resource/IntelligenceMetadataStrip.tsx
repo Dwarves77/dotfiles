@@ -12,8 +12,8 @@
 // when ready, ~50-200ms.
 
 import { useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Tag, Building, Layers, Clock, Link as LinkIcon } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { toDisplaySeverity } from "@/lib/agent/metadata-vocab";
 import { formatLocaleDate } from "@/lib/format";
 
@@ -67,7 +67,6 @@ interface Props {
 }
 
 export function IntelligenceMetadataStrip({ itemId }: Props) {
-  const supabase = createSupabaseBrowserClient();
   const [meta, setMeta] = useState<ItemMetadata | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -75,10 +74,7 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
     let cancelled = false;
     (async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`/api/intelligence-items/${itemId}/metadata`, {
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
+        const res = await authedFetch(`/api/intelligence-items/${itemId}/metadata`);
         if (cancelled) return;
         if (!res.ok) {
           const payload = await res.json();
@@ -92,7 +88,7 @@ export function IntelligenceMetadataStrip({ itemId }: Props) {
       }
     })();
     return () => { cancelled = true; };
-  }, [itemId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [itemId]);
 
   // While loading, render nothing — strip materialises when ready
   if (error || !meta) return null;

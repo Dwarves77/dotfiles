@@ -20,8 +20,8 @@
  *   - All interactive targets (select, buttons) are >=44px tall.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { useCallback, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { InkButton, FieldLabel } from "@/components/account/AccountPrimitives";
 
 // Mirrors src/lib/spec09/csv-upload-contract.mjs's UPLOAD_TABLES/TABLE_CONTRACTS keys and labels — kept as
@@ -61,7 +61,6 @@ export function Spec09CsvUpload() {
   const [result, setResult] = useState<UploadResponse | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const supabase = useMemo(() => createSupabaseBrowserClient(), []);
   const activeTable = UPLOAD_TABLES.find((t) => t.key === tableKey) ?? UPLOAD_TABLES[0];
 
   const handleFile = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -86,12 +85,10 @@ export function Spec09CsvUpload() {
     setStatus("uploading");
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/workspace/spec09-upload", {
+      const resp = await authedFetch("/api/workspace/spec09-upload", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ table: tableKey, csv: csvText }),
       });
@@ -107,7 +104,7 @@ export function Spec09CsvUpload() {
       setStatus("failure");
       setError(err instanceof Error ? err.message : "Network error — the upload did not complete.");
     }
-  }, [csvText, tableKey, supabase]);
+  }, [csvText, tableKey]);
 
   return (
     <div style={{ display: "grid", gap: 14 }}>

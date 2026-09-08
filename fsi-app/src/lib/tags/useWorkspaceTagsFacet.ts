@@ -9,9 +9,15 @@
  * `tagsForItem(id)` for ListRow's `tags` prop — so the same shared hook
  * covers both "filter the list by tag" and "show this row's tags", the two
  * things every one of the five list ledgers needs.
+ *
+ * AUTH (lane TAGS-401, 2026-09-08): via `authedFetch`, for the same reason
+ * client.ts's header gives: this read sent `credentials: "include"` only
+ * and 401'd for every signed-in user, so the facet group and every row's
+ * tag list were empty in production from the day they landed.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import type { WorkspaceTag } from "./types";
 
 export interface WorkspaceTagsFacet {
@@ -34,7 +40,7 @@ export function useWorkspaceTagsFacet(): WorkspaceTagsFacet {
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch("/api/workspace/tags?withItemTags=1", { credentials: "include" });
+        const res = await authedFetch("/api/workspace/tags?withItemTags=1");
         if (!res.ok || cancelled) return;
         const body = (await res.json()) as { tags?: WorkspaceTag[]; itemTags?: Record<string, string[]> };
         if (cancelled) return;

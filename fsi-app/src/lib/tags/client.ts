@@ -17,8 +17,18 @@
  * page's own top-level layout, which the "assemble from shared parts"
  * constraint does not require here since none of the three consumers is
  * itself a shared UI part that needs prop-driven data).
+ *
+ * AUTH (lane TAGS-401, 2026-09-08). Every fetch below goes through
+ * `authedFetch` (src/lib/api/authed-fetch.ts), which attaches the browser
+ * session's `Authorization: Bearer <jwt>` header. These six calls
+ * previously sent `credentials: "include"` and nothing else, and
+ * `/api/workspace/tags`'s requireAuth reads the token ONLY from that
+ * header, so every one of them returned 401 for every signed-in user from
+ * the day the feature landed. See authed-fetch.ts's header for the
+ * production evidence and F40 for the gate that stops it recurring.
  */
 
+import { authedFetch } from "@/lib/api/authed-fetch";
 import type { WorkspaceTag } from "./types";
 
 let cache: WorkspaceTag[] | null = null;
@@ -47,7 +57,7 @@ export async function fetchWorkspaceTags(opts: { force?: boolean } = {}): Promis
   if (inflight && !opts.force) return inflight;
 
   inflight = (async () => {
-    const res = await fetch("/api/workspace/tags", { credentials: "include" });
+    const res = await authedFetch("/api/workspace/tags");
     if (!res.ok) {
       // Fail soft: keep the previous cache (if any) rather than throwing —
       // callers render the rail/popover with whatever they last had, per
@@ -73,9 +83,7 @@ export async function fetchWorkspaceTags(opts: { force?: boolean } = {}): Promis
 export async function fetchItemWorkspaceTags(
   itemId: string
 ): Promise<{ tags: WorkspaceTag[]; appliedTagIds: string[] }> {
-  const res = await fetch(`/api/workspace/tags?itemId=${encodeURIComponent(itemId)}`, {
-    credentials: "include",
-  });
+  const res = await authedFetch(`/api/workspace/tags?itemId=${encodeURIComponent(itemId)}`);
   if (!res.ok) return { tags: cache ?? [], appliedTagIds: [] };
   const body = (await res.json()) as { tags?: WorkspaceTag[]; appliedTagIds?: string[] };
   cache = body.tags ?? [];
@@ -84,9 +92,8 @@ export async function fetchItemWorkspaceTags(
 }
 
 export async function createWorkspaceTag(name: string): Promise<WorkspaceTag | null> {
-  const res = await fetch("/api/workspace/tags", {
+  const res = await authedFetch("/api/workspace/tags", {
     method: "POST",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ name }),
   });
@@ -97,9 +104,8 @@ export async function createWorkspaceTag(name: string): Promise<WorkspaceTag | n
 }
 
 export async function deleteWorkspaceTag(tagId: string): Promise<boolean> {
-  const res = await fetch("/api/workspace/tags", {
+  const res = await authedFetch("/api/workspace/tags", {
     method: "DELETE",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ tagId }),
   });
@@ -108,9 +114,8 @@ export async function deleteWorkspaceTag(tagId: string): Promise<boolean> {
 }
 
 export async function applyWorkspaceTag(tagId: string, itemId: string): Promise<boolean> {
-  const res = await fetch(`/api/workspace/tags/${encodeURIComponent(tagId)}/items`, {
+  const res = await authedFetch(`/api/workspace/tags/${encodeURIComponent(tagId)}/items`, {
     method: "PUT",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemId }),
   });
@@ -119,9 +124,8 @@ export async function applyWorkspaceTag(tagId: string, itemId: string): Promise<
 }
 
 export async function removeWorkspaceTag(tagId: string, itemId: string): Promise<boolean> {
-  const res = await fetch(`/api/workspace/tags/${encodeURIComponent(tagId)}/items`, {
+  const res = await authedFetch(`/api/workspace/tags/${encodeURIComponent(tagId)}/items`, {
     method: "DELETE",
-    credentials: "include",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ itemId }),
   });

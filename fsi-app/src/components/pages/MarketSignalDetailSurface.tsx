@@ -42,8 +42,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { formatMonthDay, formatShortDate } from "@/components/regulations/format-fixed-date";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
@@ -681,11 +681,9 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
   async function save(value: string) {
     setStatus("saving");
     try {
-      const supabase = createSupabaseBrowserClient();
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/workspace/overrides", {
+      const resp = await authedFetch("/api/workspace/overrides", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        headers: { "Content-Type": "application/json", },
         body: JSON.stringify({ itemId, notes: value }),
       });
       if (!resp.ok) throw new Error(`save failed (${resp.status})`);

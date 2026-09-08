@@ -31,7 +31,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import { formatLocaleDate, formatLocaleDateTime } from "@/lib/format";
 import {
@@ -170,21 +170,14 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
   const [groupByCountry, setGroupByCountry] = useState<boolean>(false);
   const [selectedIso, setSelectedIso] = useState<string | null>(null);
 
-  const supabase = createSupabaseBrowserClient();
-
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
       // We always pull the full set and filter client-side for tier; the API
       // accepts a tier query param too, but client-side filtering keeps the
       // UI snappy when toggling chips.
-      const resp = await fetch("/api/admin/coverage", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const resp = await authedFetch("/api/admin/coverage");
       const payload = await resp.json();
       if (!resp.ok) {
         setError(payload?.error || `Failed to load (${resp.status})`);
@@ -197,7 +190,7 @@ export function CoverageMatrixView({ onAction }: CoverageMatrixViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     load();

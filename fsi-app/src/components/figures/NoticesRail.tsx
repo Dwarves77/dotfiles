@@ -21,13 +21,13 @@
  * server-side item->entity filter the route does not offer today (a real, separately-scoped future
  * enhancement, not silently faked here).
  *
- * AUTH: Bearer-token via the browser session, the exact idiom WatchButton.tsx and
+ * AUTH: via authedFetch (src/lib/api/authed-fetch.ts), the one shared builder WatchButton.tsx and
  * AutomateVsHireCalculator.tsx already establish for this codebase's client-side authenticated fetches —
  * reused, not reinvented.
  */
 
 import { useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { RecalculationNotice } from "./RecalculationNotice";
 import type { RecalculationNoticeItem } from "./RecalculationNotice";
 
@@ -62,13 +62,8 @@ export function useRecalculationNotices(): { notices: RecalculationNoticeItem[];
     let cancelled = false;
     (async () => {
       try {
-        const supabase = createSupabaseBrowserClient();
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const res = await fetch("/api/notices", {
-          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-          cache: "no-store",
+        const res = await authedFetch("/api/notices", {
+          cache: "no-store"
         });
         if (!res.ok) return;
         const json = await res.json();

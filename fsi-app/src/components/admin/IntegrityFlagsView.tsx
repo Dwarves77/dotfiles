@@ -20,8 +20,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { Button } from "@/components/ui/Button";
 import { formatLocaleDate } from "@/lib/format";
 import {
@@ -64,8 +64,6 @@ export function IntegrityFlagsView() {
   const [replaceUrlState, setReplaceUrlState] = useState<Record<string, string>>({});
   const [toast, setToast] = useState("");
 
-  const supabase = createSupabaseBrowserClient();
-
   const showToast = (msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(""), 3500);
@@ -75,10 +73,7 @@ export function IntegrityFlagsView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const resp = await fetch("/api/admin/integrity-flags", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const resp = await authedFetch("/api/admin/integrity-flags");
       const payload = await resp.json();
       if (!resp.ok) {
         setError(payload?.error || `Failed to load (${resp.status})`);
@@ -91,7 +86,7 @@ export function IntegrityFlagsView() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -104,17 +99,15 @@ export function IntegrityFlagsView() {
   ) {
     setPendingId(id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const path =
         action === "regenerate"
           ? `/api/admin/integrity-flags/${encodeURIComponent(id)}/regenerate`
           : `/api/admin/integrity-flags/${encodeURIComponent(id)}/resolve`;
 
-      const resp = await fetch(path, {
+      const resp = await authedFetch(path, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify(action === "regenerate" ? {} : { action, ...extra }),
       });

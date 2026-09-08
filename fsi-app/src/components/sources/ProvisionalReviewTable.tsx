@@ -36,7 +36,7 @@
  */
 
 import React, { useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import type { ProvisionalSource } from "@/types/source";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { RowTable, RowTableAction, RowTableOverflow } from "@/components/ui/RowTable";
@@ -110,7 +110,6 @@ export function ProvisionalReviewTable({
   onOpenQueue,
   headTabs,
 }: ProvisionalReviewTableProps) {
-  const supabase = createSupabaseBrowserClient();
   const [busy, setBusy] = useState<string | null>(null);
   const [picked, setPicked] = useState<Record<string, number>>({});
   const [error, setError] = useState<string | null>(null);
@@ -124,7 +123,6 @@ export function ProvisionalReviewTable({
     setBusy(ps.id);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const body: Record<string, unknown> = {
         provisionalSourceId: ps.id,
         decision,
@@ -132,9 +130,9 @@ export function ProvisionalReviewTable({
           decision === "defer" ? `Re-tier: T${tier} (queue view)` : `${decision} at T${tier} (queue view)`,
       };
       if (decision === "approve") body.assignedTier = tier;
-      const res = await fetch("/api/admin/sources/promote", {
+      const res = await authedFetch("/api/admin/sources/promote", {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token}` },
+        headers: { "Content-Type": "application/json", },
         body: JSON.stringify(body),
       });
       const payload = await res.json();

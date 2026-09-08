@@ -13,8 +13,8 @@
 //   strong >= 0.9 · medium >= 0.5 · weak < 0.5 · explicit = curated edge, no engine score.
 
 import { useEffect, useMemo, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Loader2, ArrowLeftRight, Link2 } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 
 interface BasisEntry {
   signal: string;
@@ -64,7 +64,6 @@ const SIGNAL_COLORS: Record<string, string> = {
 const THRESHOLDS = [0.3, 0.5, 0.7, 0.9];
 
 export function IntersectionDetectionView() {
-  const supabase = createSupabaseBrowserClient();
   const [data, setData] = useState<Intersection[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -75,10 +74,9 @@ export function IntersectionDetectionView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(
+      const res = await authedFetch(
         `/api/admin/intersections?minScore=${score}&limit=200`,
-        { headers: { Authorization: `Bearer ${session?.access_token}` } }
+        { }
       );
       const payload = await res.json();
       if (!res.ok) {
@@ -94,7 +92,7 @@ export function IntersectionDetectionView() {
     }
   }
 
-  useEffect(() => { load(minScore); }, [minScore]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { load(minScore); }, [minScore]);
 
   const grouped = useMemo(() => ({
     strong: data.filter((d) => d.band === "strong"),

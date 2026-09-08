@@ -14,8 +14,8 @@
 // inventing a href that would 404.
 
 import { useEffect, useMemo, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { ChevronDown, ChevronUp, Loader2, Network } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { formatLocaleDateTime } from "@/lib/format";
 
@@ -72,7 +72,6 @@ function band(c: number): "high" | "medium" | "low" {
 }
 
 export function ThemesView() {
-  const supabase = createSupabaseBrowserClient();
   const [data, setData] = useState<Theme[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [lastRun, setLastRun] = useState<LastRun | null>(null);
@@ -84,10 +83,7 @@ export function ThemesView() {
       setLoading(true);
       setError(null);
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const res = await fetch(`/api/admin/themes?limit=200`, {
-          headers: { Authorization: `Bearer ${session?.access_token}` },
-        });
+        const res = await authedFetch(`/api/admin/themes?limit=200`);
         const payload = await res.json();
         if (!res.ok) {
           setError(payload.error || "Failed to load themes");
@@ -102,7 +98,7 @@ export function ThemesView() {
         setLoading(false);
       }
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const grouped = useMemo(() => {
     const high = data.filter((t) => band(t.convergence) === "high");

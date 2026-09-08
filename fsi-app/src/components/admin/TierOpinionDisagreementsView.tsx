@@ -28,7 +28,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Button } from "@/components/ui/Button";
 import {
   RefreshCw,
@@ -58,7 +58,6 @@ interface DisagreementsResponse {
 }
 
 export function TierOpinionDisagreementsView() {
-  const supabase = createSupabaseBrowserClient();
   const [items, setItems] = useState<DisagreementItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -75,10 +74,7 @@ export function TierOpinionDisagreementsView() {
     setLoading(true);
     setError(null);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/sources/tier-opinions", {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const res = await authedFetch("/api/admin/sources/tier-opinions");
       const payload = (await res.json()) as DisagreementsResponse | { error?: string };
       if (!res.ok) {
         setError((payload as { error?: string }).error || `HTTP ${res.status}`);
@@ -91,7 +87,7 @@ export function TierOpinionDisagreementsView() {
     } finally {
       setLoading(false);
     }
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     load();
@@ -104,14 +100,12 @@ export function TierOpinionDisagreementsView() {
       `Disagreement review: ${row.opinion_count} analyst opinions, modal T${row.analyst_tier} vs base T${row.base_tier}`;
     setPendingId(row.source_id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const overrideRes = await fetch(
+      const overrideRes = await authedFetch(
         `/api/admin/sources/${row.source_id}/tier-override`,
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token || ""}`,
+            "Content-Type": "application/json"
           },
           body: JSON.stringify({
             tier_override: row.analyst_tier,
@@ -126,11 +120,10 @@ export function TierOpinionDisagreementsView() {
       }
 
       // Now dismiss the underlying opinions so the row leaves the queue.
-      const dismissRes = await fetch("/api/admin/sources/tier-opinions", {
+      const dismissRes = await authedFetch("/api/admin/sources/tier-opinions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           source_id: row.source_id,
@@ -156,12 +149,10 @@ export function TierOpinionDisagreementsView() {
     const reason = (reasonByRow[row.source_id] || "").trim() || null;
     setPendingId(row.source_id);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch("/api/admin/sources/tier-opinions", {
+      const res = await authedFetch("/api/admin/sources/tier-opinions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           source_id: row.source_id,

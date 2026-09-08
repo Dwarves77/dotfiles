@@ -1,8 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { authedFetch } from "@/lib/api/authed-fetch";
 import { Pause, Play, Download, RefreshCw, Loader2, Shield, RotateCcw, Check } from "lucide-react";
-import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface ToastState { kind: "ok" | "err"; message: string }
@@ -22,24 +22,21 @@ interface ScheduleState {
 }
 
 export function GlobalPauseToggle() {
-  const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<ScheduleState | null>(null);
   const [cadence, setCadence] = useState<"off" | "weekly" | "monthly">("off");
   const [startDate, setStartDate] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [toast, setToast] = useState<ToastState | null>(null);
 
-  async function authedFetch(init?: RequestInit) {
-    const { data: { session } } = await supabase.auth.getSession();
-    return fetch("/api/admin/sources/pause-global", {
-      ...init,
-      headers: { ...(init?.headers || {}), Authorization: `Bearer ${session?.access_token}` },
-    });
+  // The one pause-global call shape this panel reuses (GET state, POST cadence/paused), on the
+  // shared authenticated fetcher. Named off "authedFetch" so it does not shadow the import.
+  async function pauseGlobalFetch(init?: RequestInit) {
+    return authedFetch("/api/admin/sources/pause-global", init);
   }
 
   useEffect(() => {
     (async () => {
-      const res = await authedFetch();
+      const res = await pauseGlobalFetch();
       if (res.ok) {
         const p: ScheduleState = await res.json();
         setState(p);
@@ -47,7 +44,7 @@ export function GlobalPauseToggle() {
         setStartDate(p.start_date ?? "");
       }
     })();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   function flash(kind: "ok" | "err", message: string) {
     setToast({ kind, message });
@@ -59,7 +56,7 @@ export function GlobalPauseToggle() {
     try {
       const body: Record<string, unknown> = { cadence };
       if (cadence !== "off") body.start_date = startDate || new Date().toISOString().slice(0, 10);
-      const res = await authedFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      const res = await pauseGlobalFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
       const p = await res.json();
       if (res.ok) {
         setState(p); setCadence(p.cadence); setStartDate(p.start_date ?? "");
@@ -74,7 +71,7 @@ export function GlobalPauseToggle() {
     setSubmitting(true);
     const next = !state.paused;
     try {
-      const res = await authedFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: next }) });
+      const res = await pauseGlobalFetch({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ paused: next }) });
       const p = await res.json();
       if (res.ok) { setState(p); flash("ok", next ? "EMERGENCY STOP engaged — saved schedule preserved." : "Emergency stop released."); }
       else flash("err", p.error || "Toggle failed");
@@ -186,7 +183,6 @@ interface SourceRowControlsProps {
 }
 
 export function SourceRowControls({ sourceId, initialPaused = false, initialAdminOnly = false }: SourceRowControlsProps) {
-  const supabase = createSupabaseBrowserClient();
   const [paused, setPaused] = useState(initialPaused);
   const [adminOnly, setAdminOnly] = useState(initialAdminOnly);
   const [pausing, setPausing] = useState(false);
@@ -203,12 +199,10 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
   async function togglePause() {
     setPausing(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/pause`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/pause`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ paused: !paused }),
       });
@@ -229,12 +223,10 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
   async function fetchNow() {
     setFetching(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/fetch-now`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/fetch-now`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({}),
       });
@@ -254,12 +246,10 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
   async function regenerateBrief() {
     setRegenerating(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/regenerate-brief`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/regenerate-brief`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({}),
       });
@@ -288,13 +278,11 @@ export function SourceRowControls({ sourceId, initialPaused = false, initialAdmi
   async function toggleVisibility() {
     setTogglingVisibility(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
       const next = !adminOnly;
-      const res = await fetch(`/api/admin/sources/${sourceId}/visibility`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/visibility`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({ admin_only: next }),
       });
@@ -422,7 +410,6 @@ export function SourceTierOverrideControl({
   initialTierOverride,
   initialEffectiveTier,
 }: SourceTierOverrideControlProps) {
-  const supabase = createSupabaseBrowserClient();
   const [state, setState] = useState<TierOverrideState>({
     base_tier: initialBaseTier,
     tier_override: initialTierOverride,
@@ -448,10 +435,7 @@ export function SourceTierOverrideControl({
 
   const load = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
-        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
-      });
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/tier-override`);
       if (!res.ok) return;
       const payload = (await res.json()) as TierOverrideState;
       setState(payload);
@@ -461,7 +445,7 @@ export function SourceTierOverrideControl({
       // Silent fail: keep the initial props-derived view rather than
       // erroring loudly. The operator can retry by toggling expanded.
     }
-  }, [sourceId, supabase, initialBaseTier]);
+  }, [sourceId, initialBaseTier]);
 
   // Lazy-load the GET state + audit only when the operator expands the
   // panel. Avoids one fetch-per-row on dashboard render.
@@ -481,12 +465,10 @@ export function SourceTierOverrideControl({
     }
     setSubmitting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/tier-override`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           tier_override: selectedTier,
@@ -520,12 +502,10 @@ export function SourceTierOverrideControl({
   async function revertOverride() {
     setReverting(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const res = await fetch(`/api/admin/sources/${sourceId}/tier-override`, {
+      const res = await authedFetch(`/api/admin/sources/${sourceId}/tier-override`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
           tier_override: null,
