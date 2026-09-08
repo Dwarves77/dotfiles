@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T17:25:46.382Z",
+  "runAt": "2026-09-08T17:49:07.706Z",
   "specs": [
     {
       "part": "Absence",
@@ -752,7 +752,8 @@
         "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
         "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
         "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
-        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text."
+        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text.",
+        "Lane duenext (2026-09-08): regions 2b and 3b assert a NON-ZERO row count in each of the two cards. Every spec here was a composition check, so a card whose read supplies nothing still passed every region assertion while rendering an empty state, which is exactly what shipped."
       ],
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "expect": {
@@ -782,10 +783,26 @@
           }
         },
         {
+          "name": "region 2b, Due next renders a NON-ZERO row count against the populated fixture (lane duenext, production defect 2026-09-08)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
+          "expect": {
+            "count": "2"
+          },
+          "note": "THE PROOF THAT BITES. On production this card read \"0 ITEMS\" while the corpus held 45 future-dated items, because the read feeding it (get_workspace_intelligence_dashboard) is ordered by PRIORITY with LIMIT 50 and that slice contained no future date at all. Every existing spec here checked that the card's REGIONS exist; none checked that it renders any ROWS, so the whole class was invisible to the audit. The fixture carries two resources with a future complianceDeadline (2027-01-01 and 2026-12-30), so two rows is the correct count, and any drop to zero (a starved read, a broken dueInfo, a lost complianceDeadline mapping) fails here."
+        },
+        {
           "name": "region 3 — What changed card, comes after Due next",
           "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) h2[data-guard-title]",
           "expect": {},
           "text": "What changed"
+        },
+        {
+          "name": "region 3b, What changed renders a NON-ZERO row count against the populated fixture (lane duenext)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
+          "expect": {
+            "count": "1"
+          },
+          "note": "Same class as 2b for the other card. The fixture carries one recentChanges entry, so one row. On production this card rendered \"no detection pass on record\" with an empty feed while get_workspace_recent_changes returned 500 rows against the live DB: the payload was the empty fallback, and no spec asked whether the card had rows."
         },
         {
           "name": "region 4 — rail, 'Across the platform' card first",
@@ -805,22 +822,6 @@
           "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
           "expect": {},
           "text": "Legend"
-        },
-        {
-          "name": "BRIEFDATA: the Due next card renders rows against the populated fixture, never zero",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
-          "expect": {
-            "count": "3"
-          },
-          "note": "Operator ruling 2026-09-08, verbatim: \"do next and whats changed need to stay populated.\" The production state was DUE NEXT with 0 ITEMS. A card that can render zero rows against a fixture that HAS matching data is the defect; against this fixture, which carries both the 50-row payload and the by-id backfill the route now merges (mounts.mjs's PAGE_FRAME_FIXTURES.dashboard), zero rows can only mean the selection or the merge broke."
-        },
-        {
-          "name": "BRIEFDATA: the What changed card renders rows against the populated fixture, never zero",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
-          "expect": {
-            "count": "1"
-          },
-          "note": "Same ruling, other card. The fixture's change feed deliberately names an item OUTSIDE the 50-row payload (c0) — the live ratio measured 2026-09-08 was 6 of 6 — so this row also proves the backfill is what fills the card, not a coincidental overlap."
         }
       ],
       "forbid": [
@@ -840,11 +841,6 @@
           "name": "D-M4: no list row carries more than one absence token",
           "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
           "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-        },
-        {
-          "name": "BRIEFDATA: no What-changed row renders the Absence token in its tier cell",
-          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row .cl-row-tier .cl-absence",
-          "reason": "The photographed defect, pinned at its narrowest point. The fixture's change feed names an item OUTSIDE the LIMIT-50 payload (c0) — the live ratio measured 2026-09-08 was 6 of 6 — and its row must still resolve to a real tier chip, because the corpus the card selects from now includes the bounded by-id backfill (src/app/page.tsx, mounts.mjs's PAGE_FRAME_FIXTURES.dashboard.briefResources). Before this lane the same cell rendered NOT IN PRIMARY SOURCE on every change row. A match here means the backfill stopped reaching the card and the degrade path is the whole card again."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json",
@@ -12757,6 +12753,38 @@
       ],
       "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
+      "target": "region 2b, Due next renders a NON-ZERO row count against the populated fixture (lane duenext, production defect 2026-09-08)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
+      "property": "count",
+      "expected": "2",
+      "actual": "2",
+      "status": "MATCH",
+      "note": "THE PROOF THAT BITES. On production this card read \"0 ITEMS\" while the corpus held 45 future-dated items, because the read feeding it (get_workspace_intelligence_dashboard) is ordered by PRIORITY with LIMIT 50 and that slice contained no future date at all. Every existing spec here checked that the card's REGIONS exist; none checked that it renders any ROWS, so the whole class was invisible to the audit. The fixture carries two resources with a future complianceDeadline (2027-01-01 and 2026-12-30), so two rows is the correct count, and any drop to zero (a starved read, a broken dueInfo, a lost complianceDeadline mapping) fails here."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "region 3b, What changed renders a NON-ZERO row count against the populated fixture (lane duenext)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Same class as 2b for the other card. The fixture carries one recentChanges entry, so one row. On production this card rendered \"no detection pass on record\" with an empty feed while get_workspace_recent_changes returned 500 rows against the live DB: the payload was the empty fallback, and no spec asked whether the card had rows."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
       "target": "region 5 — rail, Watchlist card second",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
       "property": "count",
@@ -12764,38 +12792,6 @@
       "actual": "1",
       "status": "MATCH",
       "note": null
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "BRIEFDATA: the Due next card renders rows against the populated fixture, never zero",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
-      "property": "count",
-      "expected": "3",
-      "actual": "3",
-      "status": "MATCH",
-      "note": "Operator ruling 2026-09-08, verbatim: \"do next and whats changed need to stay populated.\" The production state was DUE NEXT with 0 ITEMS. A card that can render zero rows against a fixture that HAS matching data is the defect; against this fixture, which carries both the 50-row payload and the by-id backfill the route now merges (mounts.mjs's PAGE_FRAME_FIXTURES.dashboard), zero rows can only mean the selection or the merge broke."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "BRIEFDATA: the What changed card renders rows against the populated fixture, never zero",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "Same ruling, other card. The fixture's change feed deliberately names an item OUTSIDE the 50-row payload (c0) — the live ratio measured 2026-09-08 was 6 of 6 — so this row also proves the backfill is what fills the card, not a coincidental overlap."
     },
     {
       "spec": "compose-01-dashboard",
@@ -12844,22 +12840,6 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-    },
-    {
-      "spec": "compose-01-dashboard",
-      "part": "Page composition — Dashboard (01)",
-      "artboards": [
-        "01-dashboard"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
-      "viewport": 1440,
-      "target": "BRIEFDATA: no What-changed row renders the Absence token in its tier cell",
-      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row .cl-row-tier .cl-absence",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "The photographed defect, pinned at its narrowest point. The fixture's change feed names an item OUTSIDE the LIMIT-50 payload (c0) — the live ratio measured 2026-09-08 was 6 of 6 — and its row must still resolve to a real tier chip, because the corpus the card selects from now includes the bounded by-id backfill (src/app/page.tsx, mounts.mjs's PAGE_FRAME_FIXTURES.dashboard.briefResources). Before this lane the same cell rendered NOT IN PRIMARY SOURCE on every change row. A match here means the backfill stopped reaching the card and the degrade path is the whole card again."
     },
     {
       "spec": "compose-02-regulations-list",
@@ -26750,7 +26730,7 @@
       "selector": "[data-audit=\"dashboard\"] .cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
       "expected": "no cell overlaps a sibling or exceeds its row",
-      "actual": "clean across 4 row(s)",
+      "actual": "clean across 3 row(s)",
       "status": "MATCH",
       "note": "Same defect class at the narrowest supported width: 375 must not clip, so 390 must have headroom."
     },
@@ -39802,7 +39782,7 @@
       "selector": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header > .cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
       "property": "(cell containment)",
       "expected": "no cell overlaps a sibling or exceeds its row",
-      "actual": "clean across 6 row(s)",
+      "actual": "clean across 5 row(s)",
       "status": "MATCH",
       "note": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
     },

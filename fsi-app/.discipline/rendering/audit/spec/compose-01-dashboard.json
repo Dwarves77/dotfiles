@@ -12,7 +12,8 @@
     "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
     "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) \u2014 checked below as an <a>/Link element, not plain text.",
     "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
-    "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base \u2014 DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own \u2014 so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
+    "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base \u2014 DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own \u2014 so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here.",
+    "Lane duenext (2026-09-08): regions 2b and 3b assert a NON-ZERO row count in each of the two cards. Every spec here was a composition check, so a card whose read supplies nothing still passed every region assertion while rendering an empty state, which is exactly what shipped."
   ],
   "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
   "expect": {
@@ -239,6 +240,22 @@
         "count": "1"
       },
       "note": "Same ruling, other card. The fixture's change feed deliberately names an item OUTSIDE the 50-row payload (c0) \u2014 the live ratio measured 2026-09-08 was 6 of 6 \u2014 so this row also proves the backfill is what fills the card, not a coincidental overlap."
+    },
+    {
+      "name": "region 2b, Due next renders a NON-ZERO row count against the populated fixture (lane duenext, production defect 2026-09-08)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) .cl-list-row",
+      "expect": {
+        "count": "2"
+      },
+      "note": "THE PROOF THAT BITES. On production this card read \"0 ITEMS\" while the corpus held 45 future-dated items, because the read feeding it (get_workspace_intelligence_dashboard) is ordered by PRIORITY with LIMIT 50 and that slice contained no future date at all. Every existing spec here checked that the card's REGIONS exist; none checked that it renders any ROWS, so the whole class was invisible to the audit. The fixture carries two resources with a future complianceDeadline (2027-01-01 and 2026-12-30), so two rows is the correct count, and any drop to zero (a starved read, a broken dueInfo, a lost complianceDeadline mapping) fails here."
+    },
+    {
+      "name": "region 3b, What changed renders a NON-ZERO row count against the populated fixture (lane duenext)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) .cl-list-row",
+      "expect": {
+        "count": "1"
+      },
+      "note": "Same class as 2b for the other card. The fixture carries one recentChanges entry, so one row. On production this card rendered \"no detection pass on record\" with an empty feed while get_workspace_recent_changes returned 500 rows against the live DB: the payload was the empty fallback, and no spec asked whether the card had rows."
     }
   ],
   "forbid": [
