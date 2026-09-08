@@ -1043,6 +1043,48 @@ window.__mount = () => {
 };
 `;
 
+// ── Account (14) full-page composition mount ─────────────────────────────────────────────────────
+// Reuses the SAME real UserProfilePage the /profile route mounts (README screen 14 / dc.html p14),
+// wrapped in AppShell for the nav card + Masthead's frame position. Seeds workspaceStore's
+// orgId/orgName/userRole (UserProfilePage reads these directly, same as COMPOSE_ADMIN_ENTRY seeds
+// userRole for AdminDashboard) so the rail's isOwner/isAdmin gate and the Organization tab have a
+// real org to key off; the three direct supabase.from(...) reads (profiles / organizations.plan /
+// org_memberships count) are answered by stub-supabase-browser-account.mjs's fixture rows, and
+// getWorkspaceProfile (Sector-profile tab + "Sectors followed" tile) by
+// stub-workspace-profile-account.mjs — no live Supabase project reachable in this sandbox
+// (DEVIATION-LOG.md).
+const COMPOSE_ACCOUNT_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { UserProfilePage } from '@/components/profile/UserProfilePage';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setWorkspace('org-1', 'Dietl / Rockit');
+useWorkspaceStore.getState().setUserRole('owner');
+// dc.html p14's own illustrated tab is "Members & roles" (with Organization stacked below it,
+// its own artboard-matched behavior — see UserProfilePage.tsx's "members" tab branch); the initial
+// tab reads from the URL's ?tab= param on first render (UserProfilePage.tsx / initial-tab.ts),
+// which this mount's page has none of by default, so set it before mounting.
+window.history.replaceState(null, '', '/profile?tab=members');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'account' },
+        React.createElement(UserProfilePage, {
+          userId: 'audit-user',
+          userEmail: 'jason@dietl-rockit.example',
+        }),
+      ),
+    ),
+  );
+};
+`;
+
 const COMPOSE_COMMUNITY_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -1620,6 +1662,43 @@ const ADMIN_ISSUES_RAIL_FIXTURE = {
 
 const ADMIN_ISSUES_RAIL_API = [
   { urlGlob: '**/api/admin/attention', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(ADMIN_ISSUES_RAIL_FIXTURE) }) },
+];
+
+// Account (14) — /api/orgs/org-1 fixture responses (lane compose-other, 2026-09-08). MembersPanel
+// and OrganizationPanel (the "Members & roles" and "Organization" tabs) both fetch these directly —
+// values match dc.html p14's own illustrated Members & roles state exactly (2 members, both Owner;
+// org name/slug/plan).
+const ACCOUNT_ORG_API = [
+  {
+    urlGlob: '**/api/orgs/org-1/members',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        members: [
+          { id: 'm-1', user_id: 'audit-user', role: 'owner', joined_at: '2026-04-04T00:00:00Z', display_name: 'Jason', avatar_url: null },
+          { id: 'm-2', user_id: 'u-2', role: 'owner', joined_at: '2026-05-28T00:00:00Z', display_name: 'jasonlosh@gmail.com', avatar_url: null },
+        ],
+        caller_role: 'owner',
+        caller_membership_id: 'm-1',
+      }),
+    }),
+  },
+  {
+    urlGlob: '**/api/orgs/org-1/invitations',
+    handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ invitations: [] }) }),
+  },
+  {
+    urlGlob: '**/api/orgs/org-1',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        org: { id: 'org-1', name: 'Dietl / Rockit', slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-04-04T00:00:00Z' },
+        caller_role: 'owner',
+        owner: { user_id: 'audit-user', display_name: 'Jason', owner_since: '2026-04-04T00:00:00Z' },
+        member_count: 2,
+      }),
+    }),
+  },
 ];
 
 const ADMIN_ISSUES_RAIL_ENTRY = `
@@ -2412,5 +2491,19 @@ export const AUDIT_MOUNTS = {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
     },
     apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'compose-account': {
+    id: 'compose-account',
+    description: 'Full-page composition mount: AppShell + the real UserProfilePage (own internal Masthead), populated fixture data, README screen 14 / dc.html p14.',
+    viewport: 1440,
+    entry: COMPOSE_ACCOUNT_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-account.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-account.mjs`,
+      '@/lib/workspace/profile': `${SMOKE}stub-workspace-profile-account.mjs`,
+    },
+    apiRoutes: [...ADMIN_ISSUES_RAIL_API, ...ACCOUNT_ORG_API],
   },
 };

@@ -128,8 +128,29 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
   const [profile, setProfile] = useState<ProfileRow>({ ...EMPTY_PROFILE, id: userId });
   const [workspaceSectors, setWorkspaceSectors] = useState<string[]>([]);
   const [memberCount, setMemberCount] = useState<number | null>(null);
+  const [orgPlan, setOrgPlan] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Rail's "Plan" stat tile (README screen 14 / dc.html p14: Sectors followed /
+  // Home jurisdictions / Member since / Plan — a real db.organizations.plan
+  // read, not a placeholder; OrganizationPanel.tsx's own tab body fetches the
+  // same column separately since it needs the full org row, not just this one
+  // field).
+  useEffect(() => {
+    if (!orgId) {
+      setOrgPlan(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data, error } = await supabase.from("organizations").select("plan").eq("id", orgId).maybeSingle();
+      if (!cancelled) setOrgPlan(error || !data ? null : (data as { plan: string }).plan);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [orgId, supabase]);
 
   // Real count for the merged tab row's "Members & roles · N" (README screen
   // 14) — MembersPanel owns its own member list state for the tab body; this
@@ -308,139 +329,118 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
       <div style={{ padding: "16px 40px 0" }}>
         <TabRow tabs={accountTabs} ariaLabel="Account sections" />
       </div>
-      <div style={{ padding: "16px 40px 80px" }}>
-        {/* Owner banner */}
-        {isOwner && (
-          <div
-            style={{
-              background: "var(--color-bg-ai-strip)",
-              border: "1px solid var(--color-active-border)",
-              borderLeft: "3px solid var(--color-primary)",
-              borderRadius: 8,
-              padding: "13px 18px",
-              margin: "0 0 16px",
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              gap: 14,
-              flexWrap: "wrap",
-            }}
-          >
-            <p style={{ fontSize: "12.5px", margin: 0, color: "var(--color-text-primary)" }}>
-              <b>You are Owner of {orgName || "this workspace"}.</b>{" "}
-              <span style={{ color: "var(--color-text-secondary)" }}>
-                Owners control workspace settings, invitations, billing, and platform admin access.
-              </span>
-            </p>
-            <a
-              href="/admin"
+      {/* Content + 300px rail (dc.html p14: grid-template-columns:minmax(0,1fr) 300px) — the
+          rail's stat grid / Admin card / Quick links card are PERSISTENT across every tab, not
+          stacked above the tab body in a single column the way this page used to render them
+          (lane compose-other, 2026-09-08: the artboard has no owner banner strip either — its
+          info moved into the rail's own Admin card below, dc.html's exact copy). */}
+      <div
+        className="cl-account-grid"
+        style={{ padding: "16px 40px 80px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
+      >
+        <style>{`
+          @media (max-width: 1100px) { .cl-account-grid { grid-template-columns: minmax(0,1fr) !important; } }
+        `}</style>
+        <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
+          {error && (
+            <div
               style={{
-                fontSize: "11.5px",
-                fontWeight: 800,
-                color: "var(--color-primary)",
-                textDecoration: "none",
-                whiteSpace: "nowrap",
+                display: "flex",
+                gap: 8,
+                padding: 12,
+                borderRadius: 6,
+                fontSize: 13,
+                background: "rgba(220,38,38,0.06)",
+                border: "1px solid rgba(220,38,38,0.15)",
+                color: "var(--color-error)",
               }}
             >
-              Admin panel →
-            </a>
-          </div>
-        )}
+              {error}
+            </div>
+          )}
 
-        {/* Stat blocks (README screen 14: "statistics are stat blocks, never
-            band tiles" — replaces the page-local StatTile, a duplicate of
-            the shared StatBlock). */}
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(4, 1fr)",
-            gap: 12,
-            margin: "0 0 18px",
-          }}
-          className="cl-acct-stats"
-        >
-          <style>{`
-            @media (max-width: 900px) { .cl-acct-stats { grid-template-columns: repeat(2, 1fr) !important; } }
-            @media (max-width: 520px) { .cl-acct-stats { grid-template-columns: 1fr !important; } }
-          `}</style>
-          <StatTileCard>
-            <StatBlock
-              label="Sectors followed"
-              value={formatNumber(stats.sectorCount)}
-              note={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
-            />
-          </StatTileCard>
-          <StatTileCard>
-            <StatBlock
-              label="Home jurisdictions"
-              value={formatNumber(stats.jurisCount)}
-              note={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
-            />
-          </StatTileCard>
-          <StatTileCard>
-            <StatBlock
-              label="Member since"
-              value={memberSince ?? "—"}
-              note={
-                orgName
-                  ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
-                  : memberSince
-                    ? "Not in a workspace"
-                    : "Join date not recorded"
-              }
-            />
-          </StatTileCard>
-          {isAdmin ? (
-            <StatTileCard alarm={adminAttentionTotal > 0}>
+          {tab === "personal" && (
+            <PersonalTab profile={profile} userEmail={userEmail} onSave={persist} />
+          )}
+          {tab === "organization" && <OrganizationPanel orgId={orgId} />}
+          {tab === "members" && (
+            <>
+              {/* dc.html p14 illustrates "Members & roles" with Organization stacked directly
+                  below in the same left column (lane compose-other, 2026-09-08) — Organization
+                  keeps its own separate tab too, this is in addition to that, not instead. */}
+              <MembersPanel orgId={orgId} callerUserId={userId} />
+              <OrganizationPanel orgId={orgId} />
+            </>
+          )}
+          {tab === "sectors" && <SectorProfileTab sectorIds={workspaceSectors} />}
+          {tab === "jurisdictions" && <JurisdictionsTab jurisIds={profile.jurisdiction_overrides ?? []} />}
+          {tab === "verifier" && <VerifierTab status={profile.verifier_status ?? "none"} onApply={() => persist({ verifier_status: "pending" })} />}
+          {tab === "activity" && <ActivityTab />}
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {/* Stat blocks (README screen 14: "statistics are stat blocks, never band tiles" —
+              replaces the page-local StatTile, a duplicate of the shared StatBlock). Fixed
+              2x2 grid, dc.html p14's own rail width (300px), not the prior 4-across row that
+              only fit above a much wider single content column. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
+            <StatTileCard>
               <StatBlock
-                label="Admin attention"
-                value={formatNumber(adminAttentionTotal)}
-                tone={adminAttentionTotal > 0 ? "critical" : "default"}
+                label="Sectors followed"
+                value={formatNumber(stats.sectorCount)}
+                note={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
+              />
+            </StatTileCard>
+            <StatTileCard>
+              <StatBlock
+                label="Home jurisdictions"
+                value={formatNumber(stats.jurisCount)}
+                note={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
+              />
+            </StatTileCard>
+            <StatTileCard>
+              <StatBlock
+                label="Member since"
+                value={memberSince ?? "—"}
                 note={
-                  <a href="/admin" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
-                    items for review →
-                  </a>
+                  orgName
+                    ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
+                    : memberSince
+                      ? "Not in a workspace"
+                      : "Join date not recorded"
                 }
               />
             </StatTileCard>
-          ) : (
             <StatTileCard>
               <StatBlock
-                label="Account role"
-                value={userRole ? capitalize(userRole) : "—"}
-                note={orgName ? `In ${orgName}` : "No workspace role"}
+                label="Plan"
+                value={orgPlan ? capitalize(orgPlan) : "—"}
+                note="Billing, owner only"
               />
             </StatTileCard>
-          )}
-        </div>
-
-        {error && (
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              padding: 12,
-              borderRadius: 6,
-              fontSize: 13,
-              margin: "0 0 16px",
-              background: "rgba(220,38,38,0.06)",
-              border: "1px solid rgba(220,38,38,0.15)",
-              color: "var(--color-error)",
-            }}
-          >
-            {error}
           </div>
-        )}
 
-        {tab === "personal" && (
-          <PersonalTab profile={profile} userEmail={userEmail} isAdmin={isAdmin} onSave={persist} />
-        )}
-        {tab === "organization" && <OrganizationPanel orgId={orgId} />}
-        {tab === "members" && <MembersPanel orgId={orgId} callerUserId={userId} />}
-        {tab === "sectors" && <SectorProfileTab sectorIds={workspaceSectors} />}
-        {tab === "jurisdictions" && <JurisdictionsTab jurisIds={profile.jurisdiction_overrides ?? []} />}
-        {tab === "verifier" && <VerifierTab status={profile.verifier_status ?? "none"} onApply={() => persist({ verifier_status: "pending" })} />}
-        {tab === "activity" && <ActivityTab />}
+          {/* Admin card (dc.html p14 exact copy) — replaces the prior owner banner strip, which
+              sat above the tab content in the main column and had no artboard counterpart. */}
+          {isAdmin && (
+            <AccountCard title="Admin">
+              <p style={{ fontSize: 12, color: "var(--color-text-secondary)", lineHeight: 1.5, margin: "0 0 10px" }}>
+                You are {isOwner ? "an owner" : "an admin"}. Platform-wide controls, the issues queue and source
+                review live in the admin console.
+              </p>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12.5px" }}>
+                <a href="/admin" style={{ fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}>
+                  Open admin →
+                </a>
+                <span style={{ color: "var(--color-text-muted)" }}>
+                  {formatNumber(adminAttentionTotal)} items in queue
+                </span>
+              </div>
+            </AccountCard>
+          )}
+
+          <QuickLinksRail />
+        </div>
       </div>
     </div>
   );
@@ -468,17 +468,15 @@ function StatTileCard({ children, alarm = false }: { children: React.ReactNode; 
   );
 }
 
-// ── Personal tab (form + quick-links rail) ──────────────────────────────────
+// ── Personal tab (profile form) ──────────────────────────────────────────────
 
 function PersonalTab({
   profile,
   userEmail,
-  isAdmin,
   onSave,
 }: {
   profile: ProfileRow;
   userEmail: string;
-  isAdmin: boolean;
   onSave: (patch: Partial<ProfileRow>) => Promise<boolean>;
 }) {
   const [fullName, setFullName] = useState(profile.full_name ?? "");
@@ -504,91 +502,62 @@ function PersonalTab({
   };
 
   return (
-    <div id="cl-acct-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 18, alignItems: "start" }}>
-      <style>{`@media (max-width: 1100px) { #cl-acct-grid { grid-template-columns: minmax(0,1fr) !important; } }`}</style>
-      <AccountCard title="Personal profile" meta="Visible to your workspace">
-        <form onSubmit={submit}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "0 0 14px" }}>
-            <div>
-              <FieldLabel>Full name</FieldLabel>
-              <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" />
-            </div>
-            <div>
-              <FieldLabel>Headshot URL</FieldLabel>
-              <TextInput value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…" />
-            </div>
+    <AccountCard title="Personal profile" meta="Visible to your workspace">
+      <form onSubmit={submit}>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "0 0 14px" }}>
+          <div>
+            <FieldLabel>Full name</FieldLabel>
+            <TextInput value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="Your name" />
           </div>
-          <div style={{ margin: "0 0 14px" }}>
-            <FieldLabel>Work email</FieldLabel>
-            <TextInput value={userEmail} readOnly disabled />
+          <div>
+            <FieldLabel>Headshot URL</FieldLabel>
+            <TextInput value={avatarUrl} onChange={(e) => setAvatarUrl(e.target.value)} placeholder="https://…" />
           </div>
-          <div style={{ margin: "0 0 16px" }}>
-            <FieldLabel>Bio</FieldLabel>
-            <TextArea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short bio for the community" />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <InkButton type="submit" disabled={saving}>
-              {saving ? "Saving…" : "Save personal profile"}
-            </InkButton>
-            {saved && (
-              <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)" }}>Saved.</span>
-            )}
-          </div>
-        </form>
-      </AccountCard>
-
-      <QuickLinksRail isAdmin={isAdmin} />
-    </div>
+        </div>
+        <div style={{ margin: "0 0 14px" }}>
+          <FieldLabel>Work email</FieldLabel>
+          <TextInput value={userEmail} readOnly disabled />
+        </div>
+        <div style={{ margin: "0 0 16px" }}>
+          <FieldLabel>Bio</FieldLabel>
+          <TextArea rows={4} value={bio} onChange={(e) => setBio(e.target.value)} placeholder="A short bio for the community" />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <InkButton type="submit" disabled={saving}>
+            {saving ? "Saving…" : "Save personal profile"}
+          </InkButton>
+          {saved && (
+            <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)" }}>Saved.</span>
+          )}
+        </div>
+      </form>
+    </AccountCard>
   );
 }
 
-function QuickLinksRail({ isAdmin }: { isAdmin: boolean }) {
+// dc.html p14's own Quick links card is exactly three single-line links — Dashboard, "Settings ·
+// notifications, briefing schedule", Watchlist (lane compose-other, 2026-09-08: this used to be a
+// 5-6 entry list with a two-line label+sub row per link, none of which the artboard shows).
+function QuickLinksRail() {
   const links = [
-    { href: "/", label: "Dashboard", sub: "Today's intelligence and weekly briefing" },
-    { href: "/regulations", label: "Regulations", sub: "The regulatory intelligence index" },
-    { href: "/market", label: "Market intel", sub: "Carbon prices, fuel mandates, market signals" },
-    { href: "/map", label: "Map", sub: "Geographic view of regulations and sources" },
-    { href: "/settings", label: "Settings", sub: "Notifications, briefings, dashboard sections" },
-    ...(isAdmin ? [{ href: "/admin", label: "Admin panel", sub: "Issues queue, flags, staged updates" }] : []),
+    { href: "/", label: "Dashboard" },
+    { href: "/settings", label: "Settings · notifications, briefing schedule" },
+    { href: "/watchlist", label: "Watchlist" },
   ];
   return (
-    <div style={{ background: "var(--surface)", border: "1px solid var(--color-border)", borderRadius: 8, overflow: "hidden" }}>
-      <div style={{ padding: "11px 16px", borderBottom: "1px solid var(--color-border-subtle)" }}>
-        <p
-          style={{
-            fontSize: "9.5px",
-            fontWeight: 800,
-            letterSpacing: "0.13em",
-            textTransform: "uppercase",
-            color: "var(--color-text-muted)",
-            margin: 0,
-          }}
-        >
-          Quick links
-        </p>
-      </div>
-      {links.map((l, i) => (
-        <a
-          key={l.href}
-          href={l.href}
-          style={{
-            display: "block",
-            padding: "11px 16px",
-            borderBottom: i < links.length - 1 ? "1px solid var(--color-border-subtle)" : "none",
-            textDecoration: "none",
-          }}
-          onMouseEnter={(e) => (e.currentTarget.style.background = "var(--color-surface-overlay)")}
-          onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
-        >
-          <span style={{ display: "block", fontSize: "12.5px", fontWeight: 800, color: "var(--color-text-primary)" }}>
+    <AccountCard title="Quick links">
+      <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+        {links.map((l, i) => (
+          <a
+            key={`${l.href}-${i}`}
+            href={l.href}
+            style={{ fontSize: "12.5px", fontWeight: 600, color: "var(--color-primary)", textDecoration: "none" }}
+          >
             {l.label}
-          </span>
-          <span style={{ display: "block", fontSize: "10.5px", color: "var(--color-text-muted)", margin: "2px 0 0" }}>
-            {l.sub}
-          </span>
-        </a>
-      ))}
-    </div>
+          </a>
+        ))}
+      </div>
+    </AccountCard>
   );
 }
 

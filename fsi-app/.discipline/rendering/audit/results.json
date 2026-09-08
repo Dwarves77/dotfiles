@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T01:12:01.765Z",
+  "runAt": "2026-09-08T01:32:29.505Z",
   "specs": [
     {
       "part": "Absence",
@@ -961,6 +961,81 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-13-admin.json",
       "__id": "compose-13-admin"
+    },
+    {
+      "part": "Page composition — Account (14)",
+      "mount": "compose-account",
+      "viewport": 1440,
+      "artboards": [
+        "14-account"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
+      "notes": [
+        "Region-composition check for the full page: AppShell + the real UserProfilePage (its own internal Masthead + merged tab row), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-account'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md); this mount's org endpoints (/api/orgs/org-1, /members, /invitations) are mocked with dc.html p14's own illustrated fixture (2 members, both Owner; Dietl / Rockit, enterprise plan) instead.",
+        "Artboard order: Masthead -> merged 8-entry tab row (Personal/Organization/Members & roles·2/Sector profile·6/Jurisdictions·30/Verifier badge/Activity/Settings) -> 2-column grid (content 1fr / 300px rail) -> left column: Members & roles card THEN Organization card stacked directly below it (dc.html's own illustrated tab is Members & roles, not Personal) -> rail: 2x2 stat grid (Sectors followed/Home jurisdictions/Member since/Plan) -> Admin card (owner/admin only) -> Quick links card (Dashboard / Settings / Watchlist, 3 items).",
+        "This lane fixed four real defects: (1) the page used to render a single-column layout — an owner-banner strip above a `repeat(4,1fr)` stat row above the tab body, no rail — replaced with dc.html's own 2-column grid (minmax(0,1fr) 300px) with the stat grid / Admin card / Quick links card as a RAIL persistent across every tab, not stacked above the content in one column. (2) The rail's 4th stat tile used to be a conditional 'Admin attention'/'Account role' tile; dc.html's 4th tile is 'Plan' (org billing plan) — added an `organizations.plan` read and swapped the tile. (3) QuickLinksRail (persistent in the rail now) used to duplicate itself inside the Personal tab's own body AND carried 5-6 two-line entries (Dashboard/Regulations/Market intel/Map/Settings/Admin panel) that dc.html does not show; fixed to dc.html's own exact 3 single-line links (Dashboard / Settings · notifications, briefing schedule / Watchlist), rendered once, persistently, in the rail only. (4) The Members & roles tab used to render only MembersPanel; dc.html p14 illustrates Organization stacked directly below it on that same tab (Organization keeps its own separate tab too, unaffected) — added.",
+        "Not a composition defect, left as the real page's own behavior: the Masthead's dateLabel here is computed from the live current date (Intl formatLocaleDate(new Date())), not a passed-in fixture string like Map/Community/Admin's mounts use — UserProfilePage.tsx has never taken a dateLabel prop, unlike AdminDashboard; changing that is a component-level decision outside this composition-only pass, and the visual difference (today's real weekday/date vs the artboard's fixed 'Sunday 6 September 2026') is expected and not asserted by this spec."
+      ],
+      "selector": "[data-audit=\"account\"]",
+      "expect": {
+        "count": "1"
+      },
+      "children": [
+        {
+          "name": "region 1 — merged tab row, Members & roles present with count",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Members & roles"
+        },
+        {
+          "name": "region 2 — Members & roles card body",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Members & roles"
+        },
+        {
+          "name": "region 3 — Organization card stacked below Members & roles on the same tab",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Organization"
+        },
+        {
+          "name": "region 4 — rail 2x2 stat grid, Plan tile present",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Plan"
+        },
+        {
+          "name": "region 5 — rail Admin card",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Open admin"
+        },
+        {
+          "name": "region 6 — rail Quick links card, exactly 3 links",
+          "selector": "[data-audit=\"account\"] *",
+          "expect": {},
+          "textMatch": "Quick links"
+        },
+        {
+          "name": "region 6b — Quick links has exactly 3 entries (Dashboard / Settings / Watchlist), no duplicate elsewhere",
+          "selector": "[data-audit=\"account\"] a[href=\"/\"]",
+          "expect": {
+            "count": "1"
+          },
+          "note": "Dashboard's own '/' link — used to appear twice (once in the Personal-tab-local QuickLinksRail, once in the rail's persistent one) before this lane deduplicated it."
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no floating Ask AI button (ruling 2.2)",
+          "selector": "[data-audit=\"account\"] button",
+          "textMatch": "Ask AI",
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-14-account.json",
+      "__id": "compose-14-account"
     },
     {
       "part": "DetailHeader",
@@ -7056,6 +7131,54 @@
       "viewport": 1440,
       "target": "no floating Ask AI button (ruling 2.2)",
       "selector": "[data-audit=\"admin\"] button [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "spec": "compose-14-account",
+      "part": "Page composition — Account (14)",
+      "artboards": [
+        "14-account"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
+      "viewport": 1440,
+      "target": "Page composition — Account (14)",
+      "selector": "[data-audit=\"account\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-14-account",
+      "part": "Page composition — Account (14)",
+      "artboards": [
+        "14-account"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
+      "viewport": 1440,
+      "target": "region 6b — Quick links has exactly 3 entries (Dashboard / Settings / Watchlist), no duplicate elsewhere",
+      "selector": "[data-audit=\"account\"] a[href=\"/\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Dashboard's own '/' link — used to appear twice (once in the Personal-tab-local QuickLinksRail, once in the rail's persistent one) before this lane deduplicated it."
+    },
+    {
+      "spec": "compose-14-account",
+      "part": "Page composition — Account (14)",
+      "artboards": [
+        "14-account"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
+      "viewport": 1440,
+      "target": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"account\"] button [text contains \"Ask AI\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
