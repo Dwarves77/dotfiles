@@ -12904,3 +12904,88 @@ unchanged); `next build --webpack` **exit 0** with no `.env.local`.
 and `compose-15-settings-built.png`. No auth bypass was needed: the composition mount renders the
 real `SettingsPage` inside `AppShell` through the audit harness, so nothing temporary was added to
 `src/proxy.ts` or any page file, and `grep -rn "UI_SCREENSHOT_BYPASS" fsi-app/src/` returns nothing.
+
+## Addendum 86, postscript 15: lane admin60, artboards 13 (/admin) and 14 (/account) composed to the drawing (2026-09-08, lane ADMIN60)
+
+Train 60, page-composition lane. The eight items Addendum 86 postscript 14 listed under "13 Admin"
+and "14 Account" are closed; every one of them now has a compose-spec row, so the design audit
+measures it from here on rather than a later eye catching it again.
+
+**The region tables.** Read the artboard PNG and the dc.html section (`id="p13"`, `id="p14"`) first,
+then the same page mounted with populated fixture data, region by region. The rows that differed:
+
+| # | Region | Before | After |
+|---|---|---|---|
+| 13.1 | Sources sub-tab row | above the card, WRAPPED to two lines at 1440, counts in a red pill, tab "Bulk add sources" | inside the card head, ONE line (38.75px measured), counts as the artboard's inline "· N", tab "Bulk add" |
+| 13.2 | ORGANIZATIONS grid | header and rows on DIFFERENT track lists, row minimum ~858px in a ~780px column, LAST ACTIVITY clipped at the card edge | one track list, dc.html p13's own `1fr 120px 110px 100px 120px 44px`, every cell contained (bounds-checked) |
+| 13.3 | ORGANIZATIONS columns | six, including a ROLES column the artboard does not draw | five, the artboard's, with the roles data in its MEMBERS cell: "2 · owners" |
+| 13.4 | READ-ONLY CONTROLS | Refresh only | Refresh only, deliberately: no queue-export function exists (re-grepped), so Export queue stays unbuilt and a forbid row keeps a dead one out |
+| 13.5 | Stat tile sub-lines / ISSUES QUEUE order / PlateCard head | engineering prose, store order, a 12.5px bold plate header | the artboard's strings verbatim, the artboard's order, the artboard's Anton-20 head over a SectionRule |
+| 14.1 | Invite row | unlabelled, "Email address", "Invite" | "INVITE BY EMAIL", "name@company.com", "Send invite" |
+| 14.2 | Member list | flex rows, no headers, Remove/Ban as text buttons | the artboard's RowTable, MEMBER/JOINED/ROLE headers, 44px overflow cell holding Remove and Ban |
+| 14.3 | Seat foot strip | absent | built as a neutral StateNote, seat clause in the Absence convention ("connect data"), no Manage seats link |
+| 14.4 | ORGANIZATION | an identity table above the two fields, where the artboard has nothing | the artboard's single field row; the table moved below as a card-foot disclosure (R7) |
+| 14.5 | Rail stat blocks | four separately bordered cards | ONE card, 2x2 inside, as drawn |
+
+**Shared parts extended, additively, and named because they are shared.** `TabRow` gained
+`placement="card-head"` and `semantics="tablist"`, both defaulting to the previous behaviour.
+`RowTable` gained `min-width: 0` on EVERY cell (only the first had it) plus per-cell classes the
+audit's bounds check addresses. `ProvisionalReviewTable` and `SourceHealthDashboard` gained a
+`headTabs` slot. `AccountCard`, shared with Settings, took two artboard corrections: a small-caps
+head meta and no raised plate behind the head. `WorkspacesUsageRow`'s figures are all ink now.
+
+**Two things decided rather than asked, both logged with the data path checked.** Export queue and
+Manage seats are NOT built: no queue-export function exists under `src/app/api` or `src/lib`, and no
+`seats` / `seat_limit` / `max_members` column exists in `src/` or `supabase/migrations`. A region the
+artboard draws whose data does not exist renders the Absence convention when it is a data display
+(the seat strip does), and is not built at all when it is a control with no function behind it
+(ruling 1.1). The ORGANIZATIONS row's ⋯ glyph is the same case: the 44px column is held open at the
+artboard's width and left empty.
+
+**A harness defect found by measuring, not by reading.** `run-audit.mjs` never injected the compiled
+stylesheet, though the eight AppShell page-composition mounts declare `needsCompiledCss` and
+`capture-compose-page.mjs` honours it. Those eight specs were being measured against a page with NO
+stylesheet: every `var(--fs-*)` fell back to 16px. It surfaced as a bounds row claiming an
+ORGANIZATIONS header cell escaped its 30px strip, which is true at 16px and impossible at the token's
+9.5px, a harness defect, not a product defect, and saying which is the point (rule 14). The audit
+injects the same CSS the capture does now, and all 60 specs stay green with it, which is the evidence
+that no existing row depended on the unstyled render.
+
+**Fixtures.** `compose-admin` seeded one org and zero memberships, so ORGANIZATIONS rendered a bare 0
+and the artboard's role summary could not be measured at all; it seeds dc.html p13's own two owner
+memberships now. `compose-account`'s supabase stub answered the `org_memberships` head-count with 12
+while its mocked members route returned 2, so a capture showed "Members & roles · 12" beside a card
+reading "2 members". Both are fixture corrections; in production both numbers read one table under
+one RLS policy.
+
+**What still differs from artboards 13 and 14, listed.** Admin: the foot's "All 489 provisional" is
+text, not a link (the built card IS the whole queue, so the link would be dead, ruling 1.1); the
+COVERAGE tile renders its live gap count where the artboard's tile carries no numeral at all. Account:
+the "Workspace record" R7 disclosure the artboard has no region for; the masthead date and the stat
+figures are the live/fixture values, not the artboard's samples. Nothing geometric or typographic
+remains open on either page.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src`, `TabRow.tsx`, `RowTable.tsx`,
+`AdminDashboard.tsx`, `OrganizationsTable.tsx`, `AdminIssuesRail.tsx`, `WorkspacesUsageRow.tsx`,
+`ProvisionalReviewTable.tsx`, `SourceHealthDashboard.tsx`, `AccountPrimitives.tsx`,
+`MembersPanel.tsx`, `OrganizationPanel.tsx`, `UserProfilePage.tsx`. Every interactive element it
+introduced or moved keeps a 44px minimum box: the member row's overflow control is the same 44x44
+`RowTableOverflow` the provisional table already uses (asserted at 44x44 in compose-14), its menu
+items are `min-height: 44`, the role `<select>` moved into the ROLE column at `min-height: 44`, and
+the R7 disclosure's summary is a 44px row. Two controls were REMOVED rather than restyled (Remove and
+Ban as bare text buttons, which were 11px targets), and two were not built at all because nothing
+sits behind them. No control shrank. The sub-tab row's targets are unchanged in size and only moved.
+Rendering guard PASS with no new failures, including law-2 targets at 375 and 1280 and the bounds
+assertions; the design audit's own bounds checks over both tables are new and green.
+
+**Gates** (this container; the coordinator lands): design audit 60 specs, **1019 checks, 1019 MATCH**,
+0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC; `tsc --noEmit` clean; fitness runner 33/33, **0
+violations**; rendering guard **PASS** (11 fixtures, 431 checks, 7 SM + 12 UX smoke specs, 83 + 216
+checks); the CI npmtest glob **818/818 PASS** (798 before, plus this lane's three new files);
+`run-test-suite.sh` 5917 tests, 5912 pass, **0 fail**, 5 skipped, exit 0 (the known "kill switch ON
+but no DB creds" failure did not reproduce); `next build --webpack` **exit 0** with no `.env.local`.
+
+**Evidence.** `docs/design/handoff-2026-09-06/built/compose-13-admin.png` and
+`compose-14-account.png`, both regenerated from this lane's code by
+`capture-compose-page.mjs` + `compose-composite.mjs` and read against their artboards by eye before
+this was written.
