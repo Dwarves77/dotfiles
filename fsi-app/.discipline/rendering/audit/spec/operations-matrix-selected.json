@@ -1,0 +1,178 @@
+{
+  "part": "Operations region x dimension scoreboard, ONE CELL SELECTED: RegionDimensionMatrix after a click on ASIA x D3",
+  "mount": "ops-matrix-selected",
+  "viewport": 1440,
+  "artboards": [
+    "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+  "notes": [
+    "WHY THIS SPEC EXISTS AS A SECOND FILE. The design states values that only exist once a cell is selected: the selection tint, the inset, the panel and everything in it. Until 2026-09-08 those were measured on the component's own DEFAULT SELECTION, because the audit runner reads one rendered state and cannot click. The operator then ruled that a page may not open anything before the reader acts (\"no items expanded when first navigtaing to a page\"), so there is no default selection left to measure them on. Rather than delete assertions the design still states, the MOUNT performs the click: `ops-matrix-selected` (mounts.mjs) renders the same component with the same fixture and then clicks the ASIA x D3 cell by its accessible name, two animation frames after mount. Every row below is therefore measured on a cell selected through the real click handler.",
+    "THIS IS STRICTLY STRONGER THAN WHAT IT REPLACES. The rows are verbatim the ones that stood in `operations-matrix.json`. What changed is the state they are measured in: a default selection is produced by the component regardless of whether its click path works, so these values passed even if clicking a cell did nothing. Here they pass only if a click selects, tints and opens the panel. The at-rest half of the contract, and the regression guard against the default selection returning, is in `operations-matrix.json`.",
+    "THE CELL IS ASIA x D3 Labor markets, chosen because the fixture gives it FOUR facts, which is what exercises the panel's \"max 3, then N more facts on the profile\" cap in a single render, and because ASIA is the only fixture region carrying a profile href, which is what makes the 'Open profile' link real rather than a dead one.",
+    "ALL THREE OF THE OPERATOR'S HEX VALUES ARE ALREADY CANONICAL TOKENS in src/app/theme.css, so the component names tokens and this spec measures the resolved colours: #DCE7FB is `--selection` (interaction states), #2563EB is `--monitor` (the band scale), #FAFAF8 is `--page`. No new token was introduced and no raw hex was written into the component.",
+    "THE FIXTURE IS AN ATTACK, not a sample (mounts.mjs `OPSMATRIX_ENTRY`). D1 and D2 hold no facts on any region and EU and US hold no facts on any dimension: the shape of the live corpus, where regulatory_feasibility is structurally empty and 75 of 75 rows are ASIA/UK/UAE. The default selection must therefore skip two empty rows AND two empty columns to land on ASIA x D3, which is what the panel-heading row below asserts by naming the exact string that cell produces. A default of row 0 / column 0, or of row 0's first sourced cell, or of a column-first scan, fails that row. ASIA x D3 carries FOUR facts, so the same at-rest render also proves the three-card cap and the 'N more facts on the profile' remainder line, with no interaction to script.",
+    "WHAT THIS SPEC CANNOT MEASURE, stated rather than faked: the audit runner reads computed style and textContent of a single rendered state and cannot click or send keys, so the SELECTION MOVING (arrow keys, click-to-select, compare mode on a row header) is proven in RegionDimensionMatrix.npmtest.mjs against the component's own source, and the selected-state STYLING is measured here on the default selection, which is a real selected cell rendered by the real code path. An `expect` key naming an HTML attribute measures as null and reports a false MATCH, so no row below reads one: `aria-selected` and `tabindex` appear only inside SELECTORS, where they are real CSS attribute matches."
+  ],
+  "selector": "[data-audit=\"ops-matrix-panel\"]",
+  "expect": {
+    "background-color": "#FAFAF8",
+    "border-top-width": "1px",
+    "count": "1"
+  },
+  "children": [
+    {
+      "name": "exactly ONE cell is selected after the click, never two",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "the click selected the cell it named: ASIA x D3",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "expect": {
+        "text": "4"
+      }
+    },
+    {
+      "name": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "expect": {
+        "background-color": "#DCE7FB",
+        "count": "1"
+      }
+    },
+    {
+      "name": "2px #2563EB INSET on the selected cell (`--monitor`), as a box-shadow so selecting a cell cannot change the 40px row height",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "matchStyle": {
+        "box-shadow": "contains:rgb(37, 99, 235)"
+      },
+      "expect": {
+        "box-shadow": "contains:inset"
+      }
+    },
+    {
+      "name": "the panel is BELOW the table in DOM order, never inside it (nothing expands in the table)",
+      "selector": ".cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
+      "selector": "[data-audit=\"ops-panel-heading\"]",
+      "expect": {
+        "text": "Asia · SG + HK · D3 Labor markets · 4 sourced facts"
+      }
+    },
+    {
+      "name": "PANEL LINK 'Compare across regions' (operator spec)",
+      "selector": "[data-audit=\"ops-matrix-panel\"] button",
+      "textMatch": "Compare across regions",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "PANEL LINK 'Open profile' (operator spec), drawn only for a region that has a profile row",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "textMatch": "Open profile",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "expect": {
+        "count": "3"
+      }
+    },
+    {
+      "name": "'N more facts on the profile' closes the capped list (operator spec): one fact remains of the four",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "textMatch": "more fact",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
+      "selector": "[data-audit=\"ops-fact-figure\"]",
+      "expect": {
+        "font-size": "18px",
+        "font-family": "contains:Anton"
+      }
+    },
+    {
+      "name": "the headline figure sits INLINE with its 12.5px quote (operator spec): one baseline row, not a figure stacked over prose",
+      "selector": "[data-audit=\"ops-fact-quote\"]",
+      "expect": {
+        "font-size": "12.5px"
+      }
+    },
+    {
+      "name": "FACT CARD SOURCE LINE is 10.5px (operator spec)",
+      "selector": "[data-audit=\"ops-fact-source\"]",
+      "expect": {
+        "font-size": "10.5px"
+      }
+    },
+    {
+      "name": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
+      "selector": "[data-audit=\"ops-fact-source\"] a",
+      "expect": {
+        "text-decoration-line": "underline",
+        "count": "3"
+      }
+    },
+    {
+      "name": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "expect": {
+        "border-left-width": "2px",
+        "border-top-width": "1px",
+        "border-radius": "0px 8px 8px 0px",
+        "background-color": "#FFFFFF"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+      "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+      "reason": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+    },
+    {
+      "name": "no fact card is rendered inside the table",
+      "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+      "reason": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+    },
+    {
+      "name": "no disclosure glyph on a dimension row",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "textMatch": "▸",
+      "reason": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+    },
+    {
+      "name": "no freshness state word beside a cell score",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "textMatch": "CURRENT",
+      "reason": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+    },
+    {
+      "name": "no 'Compare against:' base-region control",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "textMatch": "Compare against",
+      "reason": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+    },
+    {
+      "name": "the literal word UNSCORED as component text",
+      "selector": "[data-audit=\"ops-matrix\"]",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    }
+  ]
+}

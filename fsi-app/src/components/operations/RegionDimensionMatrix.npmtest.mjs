@@ -6,13 +6,22 @@
 // cards` mobile reflow: every one of which is now DELETED from the product. Keeping them would
 // have been a suite passing against markup that no longer exists.
 //
-// THE DIVISION OF LABOUR between this file and operations-matrix.json is deliberate and is stated
-// in that spec's own notes: the audit runner renders ONE state and reads computed style, so it
-// measures everything visible at rest (the 40px row, the Anton 16 cell, the selection tint and
-// inset, the panel's background and rule, the fact card's type sizes, the sticky column, the hint,
-// the legend, and the default selection via the exact panel heading it produces). What it cannot
-// do is press a key. The KEYBOARD MODEL and the DELETIONS are therefore proven here, against the
-// component's source text: the same no-JSX-harness constraint WatchButton.npmtest.mjs records.
+// AMENDED 2026-09-08 (lane noexpand) for the operator's "no items expanded when first navigtaing to
+// a page" ruling. Two tests here asserted the DEFAULT SELECTION -- its scan order, and the fallback
+// that re-pointed a stale selection at it. That whole mechanism is deleted from the product, so both
+// were re-pointed rather than dropped: the scan-order test became a test that NO default is computed
+// at all, which is a strictly stronger statement about the same lines (it forbids the construct
+// instead of constraining it), and the stale-selection test now asserts the fallback is `null`, so
+// the panel CLOSES rather than jumping to a cell the reader never chose. Two tests were ADDED for
+// the focus/selection split ruling R5 requires. Nothing was weakened.
+//
+// THE DIVISION OF LABOUR between this file and the two audit specs is deliberate and is stated in
+// their own notes: the audit runner renders ONE state and reads computed style. `operations-matrix
+// .json` measures the state a reader ARRIVES at (nothing selected, no panel, one tab stop) and
+// `operations-matrix-selected.json` measures the state after its mount CLICKS a cell (the tint, the
+// inset, the panel and everything in it). What neither can do is press a key. The KEYBOARD MODEL and
+// the DELETIONS are therefore proven here, against the component's source text: the same
+// no-JSX-harness constraint WatchButton.npmtest.mjs records.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -31,9 +40,11 @@ const GLOBALS = readFileSync(resolve(HERE, "../../app/globals.css"), "utf8");
 const LEDGER = readFileSync(resolve(HERE, "OperationsLedger.tsx"), "utf8");
 
 // ── The keyboard model ──────────────────────────────────────────────────────────────────────────
-// "Arrow keys move the selection; panel follows" (operator spec). That is a focus model, not a
-// hover: the grid has one tab stop, the four arrows move it, and the panel renders FROM the
-// selection so it cannot fall out of step with it.
+// The operator's matrix spec said "Arrow keys move the selection; panel follows". His LATER ruling
+// (2026-09-08, "no items expanded when first navigtaing to a page") splits that in two, because a
+// reader arrowing across the scoreboard must not have panels opening under him: arrows move FOCUS,
+// and a click, Enter or Space commits. So the grid has one tab stop, the four arrows move it, and
+// the panel renders FROM the committed selection, which starts empty.
 
 test("the table is a grid with explicit row/cell roles, so aria-selected is valid on its cells", () => {
   assert.match(SOURCE, /role="grid"/);
@@ -43,7 +54,7 @@ test("the table is a grid with explicit row/cell roles, so aria-selected is vali
   assert.match(SOURCE, /role="columnheader"/);
 });
 
-test("all four arrows move the selection, plus Home and End along the row", () => {
+test("all four arrows move the FOCUS, plus Home and End along the row", () => {
   for (const key of ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", "Home", "End"]) {
     assert.match(SOURCE, new RegExp(`${key}: \\[`), `${key} is a movement`);
   }
@@ -51,15 +62,43 @@ test("all four arrows move the selection, plus Home and End along the row", () =
   // edge must be a no-op, never a jump to the opposite corner.
   assert.match(SOURCE, /Math\.max\(0, Math\.min\(dimensions\.length - 1, r\)\)/);
   assert.match(SOURCE, /Math\.max\(0, Math\.min\(regions\.length, c\)\)/);
+  // An arrow calls moveFocus, NOT selectAt. This is ruling R5's whole content: a reader who arrows
+  // across the scoreboard reading scores never makes a panel appear under him.
+  assert.match(SOURCE, /moveFocus\(moves\[e\.key\]\[0\], moves\[e\.key\]\[1\]\)/);
+  assert.doesNotMatch(SOURCE, /selectAt\(moves\[e\.key\]/, "an arrow must not select");
 });
 
-test("roving tabindex: the selected cell is the only tab stop, and every other cell is -1", () => {
+test("Enter and Space are the only KEYS that select, and they select the focused cell", () => {
+  assert.match(SOURCE, /if \(e\.key === "Enter" \|\| e\.key === " "\) \{\s*\n\s*e\.preventDefault\(\);\s*\n\s*selectAt\(r, c\);/);
+});
+
+test("FOCUS AND SELECTION ARE TWO STATES, and only one of them paints (ruling R5)", () => {
+  // The whole defect the operator found was one state doing both jobs: the component computed a
+  // selection so the grid would have a tab stop, and the selection painted a panel. Two states, so
+  // the grid can be reachable with nothing chosen.
+  assert.match(SOURCE, /const \[selection, setSelection\] = useState<Selection \| null>\(null\)/);
+  assert.match(SOURCE, /const \[focusPos, setFocusPos\] = useState<\{ r: number; c: number \}>\(\{ r: 0, c: 0 \}\)/);
+  // tabIndex reads the FOCUS position; aria-selected reads the SELECTION. Crossing those two wires
+  // is exactly how a preselected cell comes back.
+  assert.match(SOURCE, /tabIndex=\{headerFocused \? 0 : -1\}/);
+  assert.match(SOURCE, /tabIndex=\{isFocusCell \? 0 : -1\}/);
+  assert.match(SOURCE, /aria-selected=\{headerSelected\}/);
+  assert.match(SOURCE, /aria-selected=\{isSelected\}/);
+});
+
+test("roving tabindex: the FOCUSED cell is the only tab stop, and every other cell is -1", () => {
   // Two cells render tabIndex: the row header (column 0) and the region cell, and BOTH are
-  // conditional on being the selected one. A literal `tabIndex={0}` on either would put every cell
-  // in the tab order, which is the anti-pattern the grid role exists to avoid.
-  const stops = SOURCE.match(/tabIndex=\{\w+Selected \? 0 : -1\}/g) ?? [];
+  // conditional on holding the roving FOCUS position. A literal `tabIndex={0}` on either would put
+  // every cell in the tab order, which is the anti-pattern the grid role exists to avoid.
+  // AMENDED (lane noexpand): the condition was `\w+Selected` while a default selection guaranteed
+  // one cell was selected on mount. With no default selection that spelling would leave the grid
+  // with NO tab stop at all and make it unreachable by keyboard, which is precisely what ruling R5
+  // forbids. Same count, same shape, read off focus instead of selection.
+  const stops = SOURCE.match(/tabIndex=\{(headerFocused|isFocusCell) \? 0 : -1\}/g) ?? [];
   assert.equal(stops.length, 2, "the row header and the region cell, each a conditional tab stop");
   assert.doesNotMatch(SOURCE, /tabIndex=\{0\}/, "no unconditional tab stop inside the grid");
+  // The roving position starts at the FIRST cell, so Tab always lands somewhere real.
+  assert.match(SOURCE, /useState<\{ r: number; c: number \}>\(\{ r: 0, c: 0 \}\)/);
 });
 
 test("column 0 is IN the grid, so the row header is reachable by arrow and not only by pointer", () => {
@@ -70,7 +109,7 @@ test("column 0 is IN the grid, so the row header is reachable by arrow and not o
   assert.match(SOURCE, /regionKey: cc === 0 \? null : regions\[cc - 1\]\.key/, "column 0 maps to compare mode");
 });
 
-test("the panel FOLLOWS the selection by construction, not by a second effect that could drift", () => {
+test("the panel FOLLOWS the committed selection by construction, not by a second effect that could drift", () => {
   // `resolved` is derived from the selection; the panel renders from `resolved`. There is no
   // setState that copies the selection into a panel-specific piece of state, which is the shape
   // that lets two things disagree.
@@ -78,11 +117,11 @@ test("the panel FOLLOWS the selection by construction, not by a second effect th
   assert.match(SOURCE, /selectedDimension = rowIndex >= 0 \? dimensions\[rowIndex\] : null/);
 });
 
-test("focus follows a MOVE but never the initial default render", () => {
+test("focus follows a MOVE but never the initial render", () => {
   // Focusing on mount would yank a keyboard reader who has not reached the matrix yet. The flag is
-  // set only inside `select`, which is the click/key path; the default selection sets no flag.
+  // set only inside `moveFocus`, which is the arrow/click path; the initial render sets no flag.
   assert.match(SOURCE, /const moveRef = useRef\(false\)/);
-  assert.match(SOURCE, /moveRef\.current = true;\n\s+setSelection\(next\)/);
+  assert.match(SOURCE, /moveRef\.current = true;\n\s+setFocusPos\(/);
   assert.match(SOURCE, /if \(!moveRef\.current\) return;/);
 });
 
@@ -102,26 +141,50 @@ test("the panel is announced as the selected cell's content", () => {
   assert.match(SOURCE, /aria-label=\{panelHeading\(/, "the live region names what it now holds");
 });
 
-// ── The default selection ───────────────────────────────────────────────────────────────────────
+// ── NO default selection (operator ruling 2026-09-08) ───────────────────────────────────────────
+// These two tests REPLACE the two that stood here. The first asserted the default selection's scan
+// order ("rows outer, regions inner"); the second asserted that a stale selection fell back TO that
+// default. Both described a mechanism the operator ruled out: he navigated to /operations and found
+// Infrastructure capacity already open, and wrote "no items expanded when first navigtaing to a
+// page". A test of how a defect chooses its victim is not worth keeping once the defect is deleted;
+// what replaces it forbids the construct outright, which is a strictly stronger statement about the
+// same lines, and pins the fallback to `null` so the panel CLOSES instead of jumping.
 
-test("the default selection scans ROWS outer, REGIONS inner: first sourced cell in the first sourced row", () => {
-  // Loop ORDER is the whole rule. Regions outer would return the first sourced cell of the first
-  // sourced COLUMN, which is a different cell whenever the earliest sourced row and the earliest
-  // sourced column do not intersect. The audit proves the same rule by outcome (its fixture leaves
-  // two rows and two columns empty and asserts the resulting panel heading); this asserts the
-  // mechanism, so a refactor that happened to keep the fixture's answer still fails here.
-  const block = SOURCE.slice(SOURCE.indexOf("const defaultSelection"), SOURCE.indexOf("// A selection the props"));
-  assert.match(block, /for \(const d of dimensions\) \{\s*\n\s*for \(const r of regions\) \{/);
-  assert.match(block, /if \(c && c\.factCount > 0\) return \{ regionKey: r\.key, dimDb: d\.db \}/);
-  // The fallback is compare mode on row 0, never a cell asserted to hold facts it does not have.
-  assert.match(block, /return dimensions\.length > 0 \? \{ regionKey: null, dimDb: dimensions\[0\]\.db \} : null/);
+test("there is NO default selection: the component never computes one, in any spelling", () => {
+  assert.doesNotMatch(CODE, /defaultSelection/, "the defaultSelection memo is deleted, not dormant");
+  // The scan that produced it: a rows-outer/regions-inner walk returning the first sourced cell.
+  // Forbidden by shape as well as by name, so reintroducing it under another identifier still fails.
+  assert.doesNotMatch(CODE, /factCount > 0\) return \{ regionKey/, "no first-sourced-cell scan");
+  assert.doesNotMatch(CODE, /openDimension|resolvedOpen|defaultOpenDimension|defaultOpen/, "and none of the older spellings either");
+  // The selection state starts null and nothing else initialises it.
+  assert.match(SOURCE, /useState<Selection \| null>\(null\)/);
 });
 
-test("a selection the props no longer carry falls back to the default rather than pointing off-screen", () => {
-  // The rail scopes columns, so a selected region can vanish under the reader.
+test("a selection the props no longer carry CLOSES the panel rather than pointing somewhere else", () => {
+  // The rail scopes columns, so a selected region can vanish under the reader. The validity check
+  // is unchanged, verbatim; only its else-branch moved from `defaultSelection` to `null`. Falling
+  // back to a computed default would be the page choosing what to open, one step removed.
   assert.match(SOURCE, /const dimOk = dimensions\.some\(\(d\) => d\.db === selection\.dimDb\)/);
   assert.match(SOURCE, /const regionOk = selection\.regionKey === null \|\| regions\.some/);
-  assert.match(SOURCE, /return dimOk && regionOk \? selection : defaultSelection/);
+  assert.match(SOURCE, /return dimOk && regionOk \? selection : null/);
+  assert.match(SOURCE, /if \(!selection\) return null;/);
+});
+
+test("the panel renders ONLY from a committed selection, so no selection means no panel", () => {
+  assert.match(SOURCE, /\{selectedDimension && \(/, "the panel is gated on there being a selected dimension");
+  assert.match(SOURCE, /selectedDimension = rowIndex >= 0 \? dimensions\[rowIndex\] : null/);
+});
+
+test("the foot legend lives on the CARD, not inside the panel, so it survives the closed state", () => {
+  // It used to sit inside the panel, which was safe only while a default selection guaranteed the
+  // panel existed. With nothing open on arrival, the strip explaining the dashes and how to open a
+  // cell is exactly what the reader needs, so it moved out with the default.
+  // Read off CODE, not SOURCE: this file's own header explains at length that the strip MOVED and
+  // quotes the wording it replaced, so a raw-text assertion would fail on the explanation.
+  const panelBlock = CODE.slice(CODE.indexOf('data-audit="ops-matrix-panel"'), CODE.indexOf('data-audit="ops-matrix-foot"'));
+  assert.doesNotMatch(panelBlock, /ops-matrix-foot/, "the foot is not inside the panel block");
+  assert.match(CODE, /arrow keys move between cells/, "and its wording states what arrows now do");
+  assert.doesNotMatch(CODE, /arrow keys move the\s+selection/, "not what they used to do");
 });
 
 // ── The absence convention ──────────────────────────────────────────────────────────────────────

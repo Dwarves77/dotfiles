@@ -1,5 +1,5 @@
 {
-  "part": "Operations region x dimension scoreboard: RegionDimensionMatrix (table card + selection panel)",
+  "part": "Operations region x dimension scoreboard AT REST: RegionDimensionMatrix as a reader arrives at it (table card, no selection, no panel)",
   "mount": "ops-matrix",
   "viewport": 1440,
   "artboards": [
@@ -7,7 +7,11 @@
   ],
   "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
   "notes": [
-    "THIS SPEC REPLACES THE ONE THAT STOOD HERE BEFORE, AND THE REASON IS THAT THE OLD ONE MEASURED A DESIGN THAT NO LONGER EXISTS. The previous spec asserted the expand-a-dimension matrix: `table > tbody > tr > td:first-child` counted at 6 on the reading that an OPEN dimension inserts a second `<tr>` the count must not conflate with a dimension row, and the surrounding contract (a disclosure glyph per row, a `<td colspan>` facts row, per-region fact blocks inside it) was the thing under measurement. The operator redesigned artboard 08 on 2026-09-08: his words, 'the expand-a-dimension matrix does not survive real data', and nothing expands in the table any more. Keeping the old rows would have left the audit green against markup the product had deleted, which is the failure mode CLAUDE.md rule 15 exists to prevent. The two assertions that survived the redesign (six D1-D6 rows, D1 first) are re-stated below against the new selectors, so ruling 3.3 is still enforced.",
+    "SPEC UPDATED 2026-09-08 (lane noexpand), superseding the 2026-09-08 (lane opsmatrix3) revision that stood here. REASON, and it is a product ruling, not a spec weakening: the operator navigated to /operations and the page had already opened a dimension, Infrastructure capacity, without him clicking anything. Verbatim: \"the ops page opend to a sub category not just the main page, infastructure capacity and other items should be closed, no items expanded when first navigtaing to a page\". The DEFAULT SELECTION this spec used to measure (\"first sourced cell in the first sourced row\", which painted a tinted cell and an open fact panel on mount) is the defect he found, and it is deleted from the product.",
+    "WHAT MOVED, AND WHY EVERY MOVED ASSERTION IS AT LEAST AS STRONG WHERE IT LANDED. Fourteen rows measured the SELECTED state and the PANEL: the #DCE7FB tint, the 2px #2563EB inset, the panel's background and top rule, its DOM position below the table, its heading string, its two links, the three-card cap, the remainder line, and the five fact-card values. None is deleted and none is weakened. All fourteen moved verbatim to `operations-matrix-selected.json`, whose mount is the SAME component and the SAME fixture with ONE CLICK on the ASIA x D3 cell performed by the mount itself. They are measured on a cell selected through the real click handler, which is a stricter proof than the one they replace: before, they were measured on a state the component produced for itself, so a broken click path could not have failed them. Now it does.",
+    "ONE ROW WAS REPHRASED RATHER THAN MOVED. 'the selected cell is the grid's single TAB STOP' asserted `[tabindex=\"0\"]` count 1. That count still holds and is still asserted here, at rest, where there is no selection at all: it is now the proof of ruling R5 (\"the first cell is FOCUSABLE without being SELECTED\"), and a second row pins the tab stop to the first row's header. Same count, harder state.",
+    "THREE FORBIDS AND THREE TARGETS ARE NEW, and they are the regression guard for the defect itself: no `aria-selected` cell, no panel, no fact card, no cell painted with the selection tint, exactly one tab stop, the tab stop is the first cell, and the foot legend survives with no panel to sit in. A default selection reintroduced in any of those forms fails this spec. Proven by attack on 2026-09-08: the default-selection block was pasted back into RegionDimensionMatrix.tsx and the rendering guard's `no-default-open` leg went red on six assertions; restoring the file returned it to green.",
+    "THE FOOT STRIP MOVED IN THE PRODUCT, and this spec follows it. It used to render INSIDE the panel, which was safe only while a default selection guaranteed a panel existed. With no default selection the panel is absent on arrival, so the strip that carries the absence legend, the click affordance and the column-scoping count now sits on the CARD, below the panel slot. Its three assertions are unchanged except for the arrow-key clause, which is `arrow keys move between cells` because that is what arrows now do: they move focus and select nothing (R5). The old wording, `arrow keys move the selection`, described behaviour this lane removed, so keeping it would have been the audit staying green against markup the product deleted.",
     "THE OPERATOR'S SPEC, verbatim, which every row below traces to: 'Matrix rows 40px. Cell = Anton 16 score or em dash. Nothing expands in the table. / Click a cell, it gets selection tint #DCE7FB + 2px #2563EB inset; a panel opens under the table (bg #FAFAF8, 1px top rule): header \"Region · Dn Dimension · N sourced facts\", links \"Compare across regions\" and \"Open profile\", facts as fact cards (headline figure Anton 18 inline with 12.5px quote, source line 10.5px), max 3, then \"N more facts on the profile\". / Click a row header, same panel in compare mode: one headline card per region, stacked, region label on each. / Arrow keys move the selection; panel follows. Default selection: first sourced cell in the first sourced row. / First column sticky; regions beyond five scroll horizontally inside the card; header hint \"18 regions · scroll\". Footer legend: \"not in primary source\". / Rail filters scope columns.'",
     "ALL THREE OF THE OPERATOR'S HEX VALUES ARE ALREADY CANONICAL TOKENS in src/app/theme.css, so the component names tokens and this spec measures the resolved colours: #DCE7FB is `--selection` (interaction states), #2563EB is `--monitor` (the band scale), #FAFAF8 is `--page`. No new token was introduced and no raw hex was written into the component.",
     "THE FIXTURE IS AN ATTACK, not a sample (mounts.mjs `OPSMATRIX_ENTRY`). D1 and D2 hold no facts on any region and EU and US hold no facts on any dimension: the shape of the live corpus, where regulatory_feasibility is structurally empty and 75 of 75 rows are ASIA/UK/UAE. The default selection must therefore skip two empty rows AND two empty columns to land on ASIA x D3, which is what the panel-heading row below asserts by naming the exact string that cell produces. A default of row 0 / column 0, or of row 0's first sourced cell, or of a column-first scan, fails that row. ASIA x D3 carries FOUR facts, so the same at-rest render also proves the three-card cap and the 'N more facts on the profile' remainder line, with no interaction to script.",
@@ -65,26 +69,29 @@
       }
     },
     {
-      "name": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
-      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "name": "the selected cell is the grid's single TAB STOP (roving tabindex): every other cell is reachable from it by arrow, which is what makes the reachability rule hold without a mouse",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
       "expect": {
-        "background-color": "#DCE7FB",
         "count": "1"
       }
     },
     {
-      "name": "2px #2563EB INSET on the selected cell (`--monitor`), as a box-shadow so selecting a cell cannot change the 40px row height",
-      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
-      "matchStyle": {
-        "box-shadow": "contains:rgb(37, 99, 235)"
-      },
+      "name": "AT REST, THE GRID IS ONE TAB STOP AND IT IS THE FIRST CELL (ruling R5: reachable without being chosen). This REPLACES the row that read 'the selected cell is the grid's single TAB STOP': the count assertion is identical, and it is now measured with NOTHING selected, which is strictly the harder state to satisfy.",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
       "expect": {
-        "box-shadow": "contains:inset"
+        "count": "1"
       }
     },
     {
-      "name": "the selected cell is the grid's single TAB STOP (roving tabindex): every other cell is reachable from it by arrow, which is what makes the reachability rule hold without a mouse",
-      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+      "name": "AT REST, that tab stop is the FIRST dimension row's header cell, so Tab lands at the top-left of the grid rather than wherever a previous reader left it",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child > th[tabindex=\"0\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "AT REST, the card still carries its foot legend: with no panel to hold it, the strip that explains the dashes and says how to open a cell moved onto the CARD, which is where a reader who has just arrived needs it",
+      "selector": "[data-audit=\"ops-matrix-card\"] > [data-audit=\"ops-matrix-foot\"]",
       "expect": {
         "count": "1"
       }
@@ -131,103 +138,9 @@
       }
     },
     {
-      "name": "PANEL OPENS UNDER THE TABLE: bg #FAFAF8 (`--page`) with a 1px top rule [system sheet: the rule is `--line-2`, the header-divider weight every card-internal strip in the app uses]",
-      "selector": "[data-audit=\"ops-matrix-panel\"]",
-      "expect": {
-        "background-color": "#FAFAF8",
-        "border-top-width": "1px",
-        "count": "1"
-      }
-    },
-    {
-      "name": "the panel is BELOW the table in DOM order, never inside it (nothing expands in the table)",
-      "selector": ".cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
-      "selector": "[data-audit=\"ops-panel-heading\"]",
-      "expect": {
-        "text": "Asia · SG + HK · D3 Labor markets · 4 sourced facts"
-      }
-    },
-    {
-      "name": "PANEL LINK 'Compare across regions' (operator spec)",
-      "selector": "[data-audit=\"ops-matrix-panel\"] button",
-      "textMatch": "Compare across regions",
-      "expect": {
-        "count": "1"
-      }
-    },
-    {
-      "name": "PANEL LINK 'Open profile' (operator spec), drawn only for a region that has a profile row",
-      "selector": "[data-audit=\"ops-matrix-panel\"] a",
-      "textMatch": "Open profile",
-      "expect": {
-        "count": "1"
-      }
-    },
-    {
-      "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
-      "selector": "[data-audit=\"ops-fact-card\"]",
-      "expect": {
-        "count": "3"
-      }
-    },
-    {
-      "name": "'N more facts on the profile' closes the capped list (operator spec): one fact remains of the four",
-      "selector": "[data-audit=\"ops-matrix-panel\"] a",
-      "textMatch": "more fact",
-      "expect": {
-        "count": "1"
-      }
-    },
-    {
-      "name": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
-      "selector": "[data-audit=\"ops-fact-figure\"]",
-      "expect": {
-        "font-size": "18px",
-        "font-family": "contains:Anton"
-      }
-    },
-    {
-      "name": "the headline figure sits INLINE with its 12.5px quote (operator spec): one baseline row, not a figure stacked over prose",
-      "selector": "[data-audit=\"ops-fact-quote\"]",
-      "expect": {
-        "font-size": "12.5px"
-      }
-    },
-    {
-      "name": "FACT CARD SOURCE LINE is 10.5px (operator spec)",
-      "selector": "[data-audit=\"ops-fact-source\"]",
-      "expect": {
-        "font-size": "10.5px"
-      }
-    },
-    {
-      "name": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
-      "selector": "[data-audit=\"ops-fact-source\"] a",
-      "expect": {
-        "text-decoration-line": "underline",
-        "count": "3"
-      }
-    },
-    {
-      "name": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
-      "selector": "[data-audit=\"ops-fact-card\"]",
-      "expect": {
-        "border-left-width": "2px",
-        "border-top-width": "1px",
-        "border-radius": "0px 8px 8px 0px",
-        "background-color": "#FFFFFF"
-      }
-    },
-    {
       "name": "FOOTER LEGEND carries the dash convention, the click affordance and the arrow-key affordance, all three (redesigned artboard, panel foot, left half)",
       "selector": "[data-audit=\"ops-matrix-foot\"]",
-      "textMatch": "arrow keys move the selection",
+      "textMatch": "arrow keys move between cells",
       "expect": {
         "display": "flex",
         "count": "1"
@@ -283,6 +196,29 @@
       "selector": "[data-audit=\"ops-matrix\"]",
       "textMatch": "UNSCORED",
       "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    },
+    {
+      "name": "NOTHING IS SELECTED ON FIRST RENDER (operator ruling 2026-09-08; coordinator reading R2)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "reason": "The operator navigated to /operations and found a dimension already open: \"no items expanded when first navigtaing to a page\". The component used to compute a default selection on mount and tint that cell. A tinted cell here means the default selection came back."
+    },
+    {
+      "name": "NO PANEL ON FIRST RENDER",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "reason": "R2 covers 'any default selection whose visible effect is an opened panel'. The panel is the visible effect. On arrival the card is the table plus its foot legend, nothing else."
+    },
+    {
+      "name": "NO FACT CARD ANYWHERE ON FIRST RENDER",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "reason": "The second-order tell: even if the panel wrapper were renamed or restyled, a fact card on screen before the reader clicked means the page opened itself. Measured on the whole mount, not just inside the table."
+    },
+    {
+      "name": "no cell carries the selection tint at rest",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "matchStyle": {
+        "background-color": "rgb(220, 231, 251)"
+      },
+      "reason": "The tint (#DCE7FB, `--selection`) by its computed value rather than by the aria attribute, so a build that paints a preselected cell without setting aria-selected is caught too."
     }
   ]
 }

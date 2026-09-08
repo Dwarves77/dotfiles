@@ -445,7 +445,13 @@ window.__mount = () => {
 // removed from the product when ruling 3.3 landed. This mount was left pointed at that retired
 // 5-item shape, which made the audit measure a prop the product no longer passes; corrected to
 // mirror the real `MATRIX_DIMENSIONS = DIMENSIONS` (all six, in order).
-const OPSMATRIX_ENTRY = `
+// The entry is a FACTORY, because this component now needs TWO mounts and they must differ in
+// exactly one way: what the reader did. `ops-matrix` mounts it and touches nothing, which is the
+// state a reader arrives at (operator ruling 2026-09-08, "no items expanded when first navigtaing to
+// a page"); `ops-matrix-selected` mounts the SAME fixture and then CLICKS one cell, so the
+// selected-state values the design states are still measured on a real selected cell, selected by
+// the real code path. Two copies of this fixture would have let the two drift; one factory cannot.
+const opsMatrixEntry = (afterMount = '') => `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -475,19 +481,23 @@ const DIMENSIONS = [
   { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
 ];
 
-// THE FIXTURE IS AN ATTACK ON THE DEFAULT-SELECTION RULE, not a convenience sample. It reproduces
-// the shape of the live corpus that makes the rule necessary:
+// THE FIXTURE IS THE SHAPE OF THE LIVE CORPUS, not a convenience sample:
 //   - D1 regulatory_feasibility has ZERO rows, structurally, on every region (it always has);
 //   - EU and US hold zero facts on every dimension (measured live 2026-08-18: 75 rows, all
 //     ASIA/UAE/UK).
-// D2 is left empty here as well, so the default must skip TWO empty rows and TWO empty columns.
-// A default of "row 0, column 0", of "row 0's first sourced cell", or of "the first sourced cell
-// scanning COLUMNS first" (which would reach UK on D3 before ASIA only if the scan order were
-// wrong) each opens the page onto the wrong cell or an empty panel. Only "the first sourced cell
-// in the first sourced row" lands on ASIA x D3 Labor markets, and the spec asserts that cell by
-// naming the panel heading it produces.
-// ASIA x D3 carries FOUR facts, so the same default render also exercises the panel's "max 3, then
-// N more facts on the profile" cap -- the cap is proven at rest, with no interaction to script.
+// D2 is left empty here as well, so two rows and two columns are empty and the grid is sparse the
+// way the real one is.
+//
+// WHAT THIS FIXTURE USED TO PROVE, AND WHY IT NO LONGER DOES. Until 2026-09-08 the component picked
+// a DEFAULT SELECTION on mount -- "the first sourced cell in the first sourced row" -- and this
+// fixture was built to attack that rule: only a correct rows-outer/regions-inner scan skips the two
+// empty rows and two empty columns and lands on ASIA x D3. The operator then ruled that a page may
+// not open ANYTHING before the reader acts ("no items expanded when first navigtaing to a page"), so
+// the default selection is gone and there is no scan order left to attack. The fixture is kept
+// unchanged, and both mounts still use it, because the sparse shape is what the live table looks
+// like and because ASIA x D3's FOUR facts still exercise the panel's "max 3, then N more facts on
+// the profile" cap -- now on the cell \`ops-matrix-selected\` CLICKS, rather than on one the product
+// chose for the reader.
 const F = (region, dimension, factLabel, value, opts = {}) => ({
   region_code: region,
   dimension,
@@ -545,7 +555,23 @@ window.__mount = () => {
       }),
     ),
   );
+  ${afterMount}
 };
+`;
+
+// The click `ops-matrix-selected` performs. It runs after two animation frames, so React has
+// committed the first render and the cell exists; run-audit.mjs then waits two more frames plus 80ms
+// plus a per-target settle before it probes, so the post-click render is painted by the time
+// anything is measured. It addresses the cell by its own accessible name, which is the same string
+// a screen-reader user hears, rather than by a positional selector that a column reorder would
+// silently repoint.
+const OPSMATRIX_CLICK_ASIA_D3 = `
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const target = Array.from(document.querySelectorAll('td[role="gridcell"]'))
+      .find((c) => (c.getAttribute('aria-label') || '').startsWith('Asia · SG + HK, D3 Labor markets'));
+    if (!target) throw new Error('ops-matrix-selected: no ASIA x D3 cell to click');
+    target.click();
+  }));
 `;
 
 // ── Community peer-org directory table ─────────────────────────────────────────────────────────
@@ -3032,9 +3058,22 @@ export const AUDIT_MOUNTS = {
   },
   'ops-matrix': {
     id: 'ops-matrix',
-    description: 'RegionDimensionMatrix, fed OperationsLedger.tsx\'s own MATRIX_DIMENSIONS (all 6 DIMENSIONS, ruling 3.3).',
+    description:
+      'RegionDimensionMatrix AT REST, fed OperationsLedger.tsx\'s own MATRIX_DIMENSIONS (all 6 ' +
+      'DIMENSIONS, ruling 3.3). Mounted and left alone: this is the state a reader arrives at, with ' +
+      'no cell selected and no panel (operator ruling 2026-09-08).',
     viewport: 1440,
-    entry: OPSMATRIX_ENTRY,
+    entry: opsMatrixEntry(),
+  },
+  'ops-matrix-selected': {
+    id: 'ops-matrix-selected',
+    description:
+      'The SAME RegionDimensionMatrix and the SAME fixture, after ONE CLICK on the ASIA x D3 cell. ' +
+      'Every selected-state and panel value the design states is measured here, on a cell the test ' +
+      'selected through the real click path, rather than on a default selection the product used to ' +
+      'make for the reader.',
+    viewport: 1440,
+    entry: opsMatrixEntry(OPSMATRIX_CLICK_ASIA_D3),
   },
   'list-surface-virtualized': {
     id: 'list-surface-virtualized',

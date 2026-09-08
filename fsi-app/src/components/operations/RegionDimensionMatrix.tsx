@@ -4,8 +4,8 @@
  * RegionDimensionMatrix: the Operations surface's region x dimension scoreboard.
  *
  * WHAT IT IS. Six dimension rows (D1-D6) against the region columns, one compact score per cell,
- * and ONE panel under the table that holds the facts for whichever cell is selected. Nothing
- * expands inside the table.
+ * and ONE panel under the table that holds the facts for whichever cell the reader selected.
+ * Nothing expands inside the table, and NOTHING IS SELECTED until the reader acts.
  *
  * WHY IT LOOKS NOTHING LIKE THE VERSION BEFORE IT. The operator redesigned this artboard on
  * 2026-09-08, in his words: "the expand-a-dimension matrix does not survive real data". The prior
@@ -57,10 +57,25 @@
  * attribute plus the `stickyCell` / `bodyCell` / `headCell` style objects and the two column floors
  * at the foot of this file, and not one of those reads this component's state.
  *
- * SELECTION IS A FOCUS MODEL, NOT A HOVER. The table is a `role="grid"` with roving tabindex: the
- * selected cell is the single tab stop, arrow keys move the selection and the panel follows, and
- * column 0 (the dimension row header) is part of the same grid, so ArrowLeft off the first region
- * column lands on the row header and opens compare mode. Every selectable cell is therefore
+ * NOTHING IS OPEN ON FIRST RENDER, AND FOCUS IS NOT SELECTION (operator ruling 2026-09-08, verbatim:
+ * "no items expanded when first navigtaing to a page"; coordinator readings R2 and R5). This
+ * component used to compute a DEFAULT SELECTION on mount -- "the first sourced cell in the first
+ * sourced row" -- and render the fact panel for it. Under R2 that is the page opening itself: the
+ * reader arrived at /operations and a dimension's facts were already on screen. It is gone. On first
+ * render there is no selection, no panel, and no tinted cell: the table alone.
+ *
+ * The grid stays fully keyboard reachable (R5: "keyboard reachability is not an excuse to
+ * preselect"), which needs TWO pieces of state where the old build had one:
+ *   `focusPos`   the roving-tabindex position. Starts at the first cell (row 0, column 0), so the
+ *                grid is ONE tab stop from the first render and Tab lands there. Arrow keys, Home
+ *                and End move it. Moving it moves DOM focus and nothing else -- no tint, no panel.
+ *   `selection`  what the reader COMMITTED to, with a click, Enter or Space. Starts null. The panel
+ *                renders from this and only from this.
+ * The `useEffect` that pulls DOM focus to the roving cell is gated on `moveRef`, set only inside
+ * `moveFocus`, so the initial render never steals focus from the top of the page.
+ *
+ * Column 0 (the dimension row header) is part of the same grid, so ArrowLeft off the first region
+ * column lands on the row header, and committing there opens compare mode. Every selectable cell is
  * reachable from the first by arrow alone, with no pointer.
  */
 
@@ -136,10 +151,14 @@ export function RegionDimensionMatrix({
   profileHrefByRegion = {},
 }: Props) {
   const panelId = useId();
+  /** What the reader COMMITTED to. Null on first render, and null is the whole point (ruling R2). */
   const [selection, setSelection] = useState<Selection | null>(null);
-  // Focus follows the selection only when the reader MOVED it (a click or an arrow key), never on
-  // mount: the default selection paints the panel, and stealing page focus for it on load would
-  // yank a reader who arrived by keyboard past the masthead.
+  /** The roving-tabindex position. NOT the selection: it decides which single cell is the grid's tab
+   *  stop and where an arrow key goes next, and it paints nothing. It starts on the first cell so a
+   *  reader who tabs into the table lands somewhere real (ruling R5). */
+  const [focusPos, setFocusPos] = useState<{ r: number; c: number }>({ r: 0, c: 0 });
+  // DOM focus follows the roving position only when the reader MOVED it, never on mount: pulling
+  // focus into the table on load would yank a reader who arrived by keyboard past the masthead.
   const moveRef = useRef(false);
   const cellRefs = useRef(new Map<string, HTMLTableCellElement | null>());
 
@@ -190,34 +209,17 @@ export function RegionDimensionMatrix({
     [grid]
   );
 
-  /**
-   * DEFAULT SELECTION: "the first sourced cell in the first sourced row" (operator spec), computed
-   * from the DATA, not hardcoded to row 0. D1 Regulatory feasibility structurally holds zero rows
-   * in `regional_data_facts` and EU/US hold zero facts on every dimension, so a first-row/
-   * first-column default would open the page onto an empty panel every single time. This scans in
-   * reading order and takes the first cell that actually carries a fact; only a workspace with NO
-   * sourced cell anywhere falls back to the first row header (compare mode), which is the honest
-   * view of a matrix that has nothing in it.
-   */
-  const defaultSelection = useMemo<Selection | null>(() => {
-    for (const d of dimensions) {
-      for (const r of regions) {
-        const c = cellAt(r.key, d.db);
-        if (c && c.factCount > 0) return { regionKey: r.key, dimDb: d.db };
-      }
-    }
-    return dimensions.length > 0 ? { regionKey: null, dimDb: dimensions[0].db } : null;
-  }, [dimensions, regions, cellAt]);
-
   // A selection the props no longer contain (the rail scoped its column away, or its dimension
-  // away) is dropped back to the default rather than leaving the panel pointed at a column that is
-  // not on screen.
+  // away) is DROPPED, and the panel closes with it. The build before this one re-pointed such a
+  // selection at a computed default; under ruling R2 that is the page choosing what to open, so the
+  // honest answer to "the cell you were reading is no longer on screen" is to show nothing until the
+  // reader picks again.
   const resolved: Selection | null = useMemo(() => {
-    if (!selection) return defaultSelection;
+    if (!selection) return null;
     const dimOk = dimensions.some((d) => d.db === selection.dimDb);
     const regionOk = selection.regionKey === null || regions.some((r) => r.key === selection.regionKey);
-    return dimOk && regionOk ? selection : defaultSelection;
-  }, [selection, defaultSelection, dimensions, regions]);
+    return dimOk && regionOk ? selection : null;
+  }, [selection, dimensions, regions]);
 
   const rowIndex = resolved ? dimensions.findIndex((d) => d.db === resolved.dimDb) : -1;
   const colIndex = resolved
@@ -226,24 +228,42 @@ export function RegionDimensionMatrix({
       : regions.findIndex((r) => r.key === resolved.regionKey) + 1
     : -1;
 
-  const select = useCallback((next: Selection) => {
-    moveRef.current = true;
-    setSelection(next);
-  }, []);
+  const clampR = useCallback(
+    (r: number) => Math.max(0, Math.min(dimensions.length - 1, r)),
+    [dimensions.length]
+  );
+  const clampC = useCallback((c: number) => Math.max(0, Math.min(regions.length, c)), [regions.length]);
 
-  const selectAt = useCallback(
+  /** The roving cell, clamped every render so a rail that scopes columns away cannot leave the tab
+   *  stop pointing past the end of the grid. */
+  const focusR = clampR(focusPos.r);
+  const focusC = clampC(focusPos.c);
+
+  /** MOVE, not select: this is the arrow-key path and it paints nothing. */
+  const moveFocus = useCallback(
     (r: number, c: number) => {
-      const row = dimensions[Math.max(0, Math.min(dimensions.length - 1, r))];
-      if (!row) return;
-      const cc = Math.max(0, Math.min(regions.length, c));
-      select({ regionKey: cc === 0 ? null : regions[cc - 1].key, dimDb: row.db });
+      moveRef.current = true;
+      setFocusPos({ r: clampR(r), c: clampC(c) });
     },
-    [dimensions, regions, select]
+    [clampR, clampC]
   );
 
-  // Roving tabindex + arrow movement. The panel follows the selection by construction (it renders
-  // from `resolved`), so there is no second "activate" step for a reader to discover; Enter and
-  // Space are still honoured for a reader who tabbed in and expects them to commit.
+  /** COMMIT: the click / Enter / Space path, and the ONLY thing that opens the panel. */
+  const selectAt = useCallback(
+    (r: number, c: number) => {
+      const row = dimensions[clampR(r)];
+      if (!row) return;
+      const cc = clampC(c);
+      moveFocus(r, c);
+      setSelection({ regionKey: cc === 0 ? null : regions[cc - 1].key, dimDb: row.db });
+    },
+    [dimensions, regions, clampR, clampC, moveFocus]
+  );
+
+  // Roving tabindex + arrow movement. Arrows, Home and End move the tab stop and DOM focus and do
+  // NOT select: a reader arrowing across the scoreboard to read the scores never makes a panel
+  // appear under them (ruling R5). Enter and Space on the focused cell commit it, which is the same
+  // act as a click on it.
   const onCellKeyDown = useCallback(
     (e: React.KeyboardEvent, r: number, c: number) => {
       const moves: Record<string, [number, number]> = {
@@ -256,7 +276,7 @@ export function RegionDimensionMatrix({
       };
       if (moves[e.key]) {
         e.preventDefault();
-        selectAt(moves[e.key][0], moves[e.key][1]);
+        moveFocus(moves[e.key][0], moves[e.key][1]);
         return;
       }
       if (e.key === "Enter" || e.key === " ") {
@@ -264,14 +284,14 @@ export function RegionDimensionMatrix({
         selectAt(r, c);
       }
     },
-    [selectAt, regions.length]
+    [moveFocus, selectAt, regions.length]
   );
 
   useEffect(() => {
     if (!moveRef.current) return;
     moveRef.current = false;
-    cellRefs.current.get(`${rowIndex}:${colIndex}`)?.focus();
-  }, [rowIndex, colIndex]);
+    cellRefs.current.get(`${focusR}:${focusC}`)?.focus();
+  }, [focusR, focusC]);
 
   if (regions.length === 0 || dimensions.length === 0) return null;
 
@@ -397,6 +417,7 @@ export function RegionDimensionMatrix({
           <tbody>
             {dimensions.map((d, ri) => {
               const headerSelected = ri === rowIndex && colIndex === 0;
+              const headerFocused = ri === focusR && focusC === 0;
               return (
                 <tr role="row" key={d.db}>
                   {/* Column 0 is a rowheader AND a grid cell: selecting it opens the panel in
@@ -407,7 +428,7 @@ export function RegionDimensionMatrix({
                     role="rowheader"
                     scope="row"
                     ref={(el) => { cellRefs.current.set(`${ri}:0`, el as unknown as HTMLTableCellElement); }}
-                    tabIndex={headerSelected ? 0 : -1}
+                    tabIndex={headerFocused ? 0 : -1}
                     aria-selected={headerSelected}
                     aria-controls={panelId}
                     aria-label={`${dimensionLabel(d)}, compare across every region`}
@@ -455,12 +476,13 @@ export function RegionDimensionMatrix({
                     const c = cellAt(r.key, d.db);
                     const n = c?.factCount ?? 0;
                     const isSelected = ri === rowIndex && ci === colIndex;
+                    const isFocusCell = ri === focusR && ci === focusC;
                     return (
                       <td
                         role="gridcell"
                         key={r.key}
                         ref={(el) => { cellRefs.current.set(`${ri}:${ci}`, el); }}
-                        tabIndex={isSelected ? 0 : -1}
+                        tabIndex={isFocusCell ? 0 : -1}
                         aria-selected={isSelected}
                         aria-controls={panelId}
                         aria-label={`${r.label}, ${dimensionLabel(d)}, ${n === 0 ? "no sourced fact" : `${n} sourced ${n === 1 ? "fact" : "facts"}`}`}
@@ -503,10 +525,12 @@ export function RegionDimensionMatrix({
       </div>
 
       {/* ── The panel ──────────────────────────────────────────────────────────────────────────
-          One cell's facts, at the card's own reading width, under the table. `aria-live="polite"`
-          is what makes it the selected cell's announced CONTENT: an arrow keypress moves focus to
-          the cell (whose own label names the region, the dimension and the count) and the panel
-          then announces what it now holds, rather than the reader having to go looking for it. */}
+          One cell's facts, at the card's own reading width, under the table. It renders ONLY when
+          the reader has committed to a cell (ruling R2): on first navigation there is no panel at
+          all, and the card is the table plus its foot legend. `aria-live="polite"` is what makes it
+          the selected cell's announced CONTENT: committing on a cell (whose own label names the
+          region, the dimension and the count) opens the panel and it announces what it holds,
+          rather than the reader having to go looking for it. */}
       {selectedDimension && (
         <div
           id={panelId}
@@ -514,7 +538,7 @@ export function RegionDimensionMatrix({
           role="region"
           aria-live="polite"
           aria-label={panelHeading(selectedRegion, selectedDimension, grid, regions)}
-          style={{ background: "var(--page)", borderTop: "1px solid var(--line-2)", padding: "12px 16px 4px" }}
+          style={{ background: "var(--page)", borderTop: "1px solid var(--line-2)", padding: "12px 16px 8px" }}
         >
           <MatrixPanel
             dimension={selectedDimension}
@@ -524,33 +548,41 @@ export function RegionDimensionMatrix({
             profileHref={selectedRegion ? profileHrefByRegion[selectedRegion.key] ?? null : null}
             onCompare={() => selectAt(rowIndex, 0)}
           />
-
-          {/* Foot strip, verbatim from the artboard: the dash convention and the two affordances
-              left, the column scoping right. */}
-          <div
-            data-audit="ops-matrix-foot"
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "baseline",
-              gap: 16,
-              flexWrap: "wrap",
-              padding: "10px 0 8px",
-              fontSize: "var(--fs-105)",
-              color: "var(--ink-3)",
-            }}
-          >
-            <span>
-              <Absence reason="not in primary source" /> · click a cell to open its facts · arrow keys move the
-              selection
-            </span>
-            <span>
-              {totalRegions > regions.length ? `${regions.length} of ${totalRegions} regions` : `${regions.length} regions`} ·
-              filters scope columns
-            </span>
-          </div>
         </div>
       )}
+
+      {/* Foot strip, verbatim from the artboard: the dash convention and the two affordances left,
+          the column scoping right. It lives on the CARD, not inside the panel, because with no
+          default selection the panel is absent on first render and the legend that explains the
+          table's dashes and says how to open a cell is exactly what a reader needs THEN. It was
+          inside the panel while a default selection guaranteed the panel existed; that guarantee is
+          gone with the default (ruling R2), so the strip moved out with it.
+
+          The arrow-key clause states what arrows now do. They MOVE between cells and select nothing
+          (ruling R5); committing is a click, Enter or Space. The old wording, "arrow keys move the
+          selection", described the behaviour this lane removed. */}
+      <div
+        data-audit="ops-matrix-foot"
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "baseline",
+          gap: 16,
+          flexWrap: "wrap",
+          padding: "10px 16px 12px",
+          fontSize: "var(--fs-105)",
+          color: "var(--ink-3)",
+        }}
+      >
+        <span>
+          <Absence reason="not in primary source" /> · click a cell, or press Enter on it, to open its facts ·
+          arrow keys move between cells
+        </span>
+        <span>
+          {totalRegions > regions.length ? `${regions.length} of ${totalRegions} regions` : `${regions.length} regions`} ·
+          filters scope columns
+        </span>
+      </div>
 
       {/* Ruling R7 (an app feature the artboard does not draw sits at the card FOOT, never where an
           artboard region goes): the empty-region and coverage-reconciliation disclosures. Unchanged
