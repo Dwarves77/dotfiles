@@ -15,7 +15,10 @@
   "notes": [
     "Values are read from the artboard markup, which the handoff makes the authority ('where README prose and a page artboard disagree, the artboard wins').",
     "`grid-template-columns` is compared with one `*` token: getComputedStyle resolves the track list to USED pixel widths, so the `1fr` title track reports the container's leftover width and cannot be a design constant. Every fixed track is compared exactly. The mount places the row in a 778px box — the content column the frame produces at 1440 (README §0.3).",
-    "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it."
+    "The artboard's `gap:0 14px` is compared as row-gap 0 / column-gap 14px, which is how CSSOM reports it.",
+    "Items B1-B7 (operator UI fix round 2026-09-08) are measured on the `[data-audit=\"row-absent\"]` row the mount adds: dc.html p1's own second list row (no impact, no next date, no timeline, no tier) carrying p4's kind chip and the REAL overflow control (PriorityDropdown). The pre-existing scored row is untouched, so B6/B7's geometry rows below still measure exactly what they measured before this round.",
+    "B5's timeline half diverges from dc.html p1 deliberately: p1's unscored row draws an em dash in the TIMELINE column, while the operator's item B5 asks for the empty-track variant (1px rgba(0,0,0,.12), no dots). The later, explicit operator instruction wins over the artboard here and the divergence is logged in DEVIATION-LOG.md; the value asserted below is the item's.",
+    "B1's vertical padding diverges from dc.html p4 line 517 deliberately: the artboard's row chip is `padding:1px 6px`, the operator's item states 2px 6px, and his item list is the later explicit instruction ('exact values ... not to be rounded, adjusted or improved'). 2px is asserted; the artboard's 1px is logged in DEVIATION-LOG.md. Every other value here (fill, no border, 9.5/700/.06em uppercase, radius 3, colour #1A1A1A) is the artboard's own."
   ],
   "selector": ".cl-list-row",
   "expect": {
@@ -157,6 +160,117 @@
         "border-left-style": "solid",
         "border-left-color": "rgba(0,0,0,.08)"
       }
+    },
+    {
+      "name": "B1 — kind chip is a NEUTRAL TAG at the row size (fill, no border, 9.5/700/.06em, radius 3, padding 2px 6px)",
+      "selector": "[data-audit=\"row-absent\"] .cl-tag-chip-row",
+      "note": "dc.html p4 line 517 (the market list row's meta line): `padding:1px 6px;border-radius:3px;background:#F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;color:#1A1A1A`. Chip family rule 2.5 (operator 2026-09-07, restated in B1): the tier square is the ONLY bordered chip, so every border width here is 0.",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "0.06em",
+        "text-transform": "uppercase",
+        "border-top-left-radius": "3px",
+        "padding-top": "2px",
+        "padding-left": "6px",
+        "background-color": "#F5F2EE",
+        "color": "#1A1A1A",
+        "border-top-width": "0px",
+        "border-left-width": "0px",
+        "border-right-width": "0px",
+        "border-bottom-width": "0px",
+        "text": "Monitoring"
+      }
+    },
+    {
+      "name": "B2 — the overflow control's 44px hit target carries NO circle and NO border",
+      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
+      "note": "B2: 'No circle, no border.' The 44x44 hit target stays (law-2's floor, and the artboard's own 44px end column); what is removed is the `border-radius:999px` + `1px solid var(--color-border)` this button carried, which is what made it read as a bordered circle.",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "border-top-width": "0px",
+        "border-top-left-radius": "0px",
+        "background-color": "rgba(0, 0, 0, 0)"
+      }
+    },
+    {
+      "name": "B2 — the glyph inside it is the artboard's bare 28px box, #7A6E6C",
+      "selector": "[data-audit=\"row-absent\"] .cl-overflow-glyph",
+      "note": "dc.html p1's row-end control: `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a #F5F2EE hover and no border at all.",
+      "expect": {
+        "width": "28px",
+        "height": "28px",
+        "border-top-left-radius": "6px",
+        "color": "#7A6E6C",
+        "border-top-width": "0px",
+        "text": "⋯"
+      }
+    },
+    {
+      "name": "B3 — unscored meter: the 30px dashed baseline, rgba(0,0,0,.3)",
+      "selector": "[data-audit=\"row-absent\"] .cl-impact-baseline",
+      "note": "dc.html p1 second row: `width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)`.",
+      "expect": {
+        "width": "30px",
+        "border-bottom-width": "1px",
+        "border-bottom-style": "dashed",
+        "border-bottom-color": "rgba(0,0,0,.3)"
+      }
+    },
+    {
+      "name": "B3 — an EM DASH in the score slot, never the literal UNSCORED",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence-dash",
+      "note": "dc.html p1 second row draws the score slot as `<span style=\"font-size:11px;color:#7A6E6C\">—</span>` beside the dashed line. Before this round the row rendered the composite's small-caps reason here instead.",
+      "expect": {
+        "text": "—",
+        "font-size": "11px",
+        "color": "#7A6E6C",
+        "count": 1
+      }
+    },
+    {
+      "name": "B4 — the tier cell shows an em dash when there is no tier",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-tier .cl-absence-dash",
+      "note": "B4: 'Tier cell shows an em dash when there is no tier.' Before this round the cell was EMPTY unless the row's single reason happened to belong to the tier dimension, and below 768px that same element said 'NOT IN PRIMARY SOURCE' in words.",
+      "expect": {
+        "text": "—",
+        "color": "#7A6E6C",
+        "count": 1
+      }
+    },
+    {
+      "name": "B5 — the date cell shows an em dash",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-due-dash",
+      "note": "dc.html p1 second row: `text-align:right;font-size:12.5px;color:#7A6E6C` reading '—'. B5: 'Date cell shows an em dash.'",
+      "expect": {
+        "font-size": "12.5px",
+        "text": "—"
+      }
+    },
+    {
+      "name": "B5 — the timeline cell shows the empty-track variant, 1px rgba(0,0,0,.12), no dots",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline .cl-timeline-empty",
+      "note": "B5's stated values. The track is a 76px 1px line; 'no dots' is asserted by the forbid below, which matches any dot rendered inside this cell.",
+      "expect": {
+        "width": "76px",
+        "height": "1px",
+        "background-color": "rgba(0,0,0,.12)",
+        "count": 1
+      }
+    },
+    {
+      "name": "B3/B4 — the row's ONE reason word sits on the title cell's meta line, small caps 10.5px",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-meta-tags .cl-absence",
+      "note": "B4: 'The absence reason goes in the meta line of the title cell, small caps 10.5px, never in the tier column.' The row's precedence (Absence.tsx) picks 'not in primary source' here because the tier is missing. `count: 1` is the one-token guarantee restated at its new address.",
+      "expect": {
+        "font-size": "10.5px",
+        "font-weight": "600",
+        "color": "#7A6E6C",
+        "text-transform": "uppercase",
+        "text": "not in primary source",
+        "count": 1
+      }
     }
   ],
   "forbid": [
@@ -175,6 +289,24 @@
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
       "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "B3/B4/B5 — no absence WORD survives in any value cell",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-impact .cl-absence, [data-audit=\"row-absent\"] .cl-row-due .cl-absence, [data-audit=\"row-absent\"] .cl-row-tier .cl-absence, [data-audit=\"row-absent\"] .cl-row-timeline .cl-absence",
+      "reason": "Items B3/B4/B5: the value cells draw dashes and the empty track; the reason word lives once, on the meta line. `.cl-absence` is the word (the dash carries `.cl-absence-dash` instead), so this fires on exactly the placement the operator asked to be undone."
+    },
+    {
+      "name": "B5 — the empty timeline draws no dots",
+      "selector": "[data-audit=\"row-absent\"] .cl-row-timeline span[style*=\"border-radius: 50%\"]",
+      "reason": "B5: 'timeline cell shows the empty-track variant (1px rgba(0,0,0,.12), no dots)'."
+    },
+    {
+      "name": "B2 — the overflow control is never a bordered circle again",
+      "selector": "[data-audit=\"row-absent\"] .cl-overflow-trigger",
+      "matchStyle": {
+        "border-top-width": "1px"
+      },
+      "reason": "B2: 'The overflow control is a 28px CIRCLE with a border ... No circle, no border.' This is the exact shape that shipped, addressed by computed style so it fires however the border is spelled."
     }
   ]
 }

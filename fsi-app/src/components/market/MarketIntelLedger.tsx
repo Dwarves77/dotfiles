@@ -38,7 +38,6 @@ import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
-import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import {
@@ -213,12 +212,11 @@ export function MarketIntelLedger({
         rows: bandRows.map((r, i) => {
           const due = dueInfo(r);
           const kind = signalKindLabel(r);
-          const meta = (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              {kind && <TagChip>{kind}</TagChip>}
-              <span>{marketMetaLine(r)}</span>
-            </span>
-          );
+          // ITEM B1 (operator, 2026-09-08): the kind chip is no longer composed here. `ListRow`
+          // renders it from the `kind` prop with the artboard's row-size neutral tag, so this
+          // page cannot drift from the chip family and the wrapper span that held the two
+          // together is deleted rather than left doing nothing (CLAUDE.md rule 13).
+          const meta = marketMetaLine(r);
           const baseHref = itemDetailHref(r);
           return {
             key: r.id,
@@ -230,6 +228,7 @@ export function MarketIntelLedger({
             jurisdiction: jurisdictionCode(r),
             title: r.title,
             meta,
+            kind: kind || undefined,
             impact: r.impactScores ?? scoreResource(r),
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,

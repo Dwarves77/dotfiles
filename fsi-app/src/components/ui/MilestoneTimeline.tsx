@@ -47,7 +47,14 @@ export function MilestoneTimeline({ entries, bandHex, variant = "row" }: Milesto
   const list = (entries ?? []).slice(0, 5);
   if (list.length === 0) {
     return (
-      <span aria-hidden="true" style={{ display: "block", width: 76, height: 1, background: "rgba(0,0,0,.12)" }} />
+      // Item B5 (operator, 2026-09-08): "timeline cell shows the empty-track variant (1px
+      // rgba(0,0,0,.12), no dots)". This is that variant, already built; the class is added so an
+      // audit spec row can MEASURE it rather than the operator having to look for it.
+      <span
+        className="cl-timeline-empty"
+        aria-hidden="true"
+        style={{ display: "block", width: 76, height: 1, background: "rgba(0,0,0,.12)" }}
+      />
     );
   }
 

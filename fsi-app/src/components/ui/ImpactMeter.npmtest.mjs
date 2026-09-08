@@ -32,17 +32,27 @@ test("mobile bars sit on a rgba(0,0,0,.25) baseline (from the desktop --line-1 r
 // `reason`. A test pinning the old literal would be preserving the defect, so it is replaced by
 // the invariant that actually binds.
 test("the meter never renders the literal 'unscored' (ruling 2.1)", () => {
-  assert.match(SOURCE, /import \{ Absence, type AbsenceReason \} from "@\/components\/ui\/Absence";/);
-  assert.doesNotMatch(SOURCE, /<Absence reason="unscored"/);
+  assert.match(SOURCE, /import \{ Absence \} from "@\/components\/ui\/Absence";/);
+  // UPDATED (item B3, operator 2026-09-08): the meter DOES now pass the closed-vocabulary word
+  // "unscored" to Absence — but to its `dash` variant, which renders U+2014 and carries the word
+  // only on aria-label/title. Ruling 2.1's actual prohibition is on the literal token appearing as
+  // TEXT, so the assertion is made on rendered output rather than on the source string: no
+  // `variant="reason"` (the word-rendering variant) anywhere in this file.
+  assert.match(SOURCE, /<Absence reason="unscored" variant="dash" \/>/);
+  assert.doesNotMatch(SOURCE, /<Absence reason=\{[^}]*\} \/>/, "the meter never renders a spelled-out reason of its own");
 });
 
-test("the unscored row variant renders the composite's single reason when given one, and no token when not", () => {
-  assert.match(SOURCE, /reason\?: AbsenceReason \| null;/, "reason must be an optional prop (undefined-safe)");
-  assert.match(SOURCE, /reason\s*\n?\s*\?\s*<Absence reason=\{reason\} \/>/);
-});
-
-test("full variant is untouched — still the bare em-dash unscored render, no Absence/media-query leak", () => {
-  assert.match(SOURCE, /: <span style=\{\{ fontSize: "var\(--fs-11\)", color: "var\(--ink-3\)" \}\}>—<\/span>/);
+// UPDATED (item B3, operator 2026-09-08): "the meter column gets the 30px dashed baseline
+// rgba(0,0,0,.3) with an em dash in the score slot and NO literal UNSCORED". The composite's
+// single reason moved to the row's title-cell meta line, so the `reason` prop this meter took
+// from the row is DELETED rather than left unused (CLAUDE.md rule 13), and the score slot draws
+// the artboard's dash at both variants.
+test("the unscored meter draws the dash in the score slot and takes no reason from its caller", () => {
+  assert.doesNotMatch(SOURCE, /reason\?: AbsenceReason/, "the reason prop is removed, not left dormant");
+  assert.doesNotMatch(SOURCE, /AbsenceReason/, "and its type import with it");
+  const unscored = SOURCE.slice(SOURCE.indexOf("if (!scored)"), SOURCE.indexOf("const s = scores!;"));
+  assert.match(unscored, /<span style=\{\{ fontSize: "var\(--fs-11\)" \}\}>\s*<Absence reason="unscored" variant="dash" \/>/);
+  assert.doesNotMatch(unscored, /variant === "row"\s*\n?\s*\? reason/, "the old row/full reason branch is gone");
 });
 
 test("operator audit item 2.1 (2026-09-07): unscored row-variant baseline is 30px at every viewport, desktop and mobile", () => {

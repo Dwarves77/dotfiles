@@ -71,21 +71,29 @@ const MATRIX = readFileSync(
   "utf8"
 );
 
-test("the two narrow cells the audit measured use the narrow variant", () => {
-  // ListRow's TIER cell: a 40px fixed grid track (GRID's seventh column). UPDATED AT FOLD-61:
-  // lane mobfix61's D-M4 made the row pick ONE reason for the whole row (ListRow's `reasonSlot`),
-  // so the tier cell no longer hardcodes "not in primary source" - it renders the row's single
-  // reason, and it is still the narrow variant, which is the half this test guards.
-  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence\} variant="narrow" \/>/);
-  // RegionDimensionMatrix's empty region cell.
+// UPDATED (items B3/B4/B5, operator 2026-09-08): the LIST ROW no longer uses either of these two
+// variants. Its value cells draw the `dash` variant (a dash at every width, reason on
+// aria-label/title) and its ONE spelled-out reason sits on the title cell's meta line. The
+// operations matrix still uses `narrow`, which is why that variant stays in Absence.tsx; the wide
+// spelled-out form is the meta line's and the matrix's mobile summary badge's.
+test("the operations matrix keeps the narrow variant in its own narrow cells", () => {
   assert.match(MATRIX, /<Absence reason="not in primary source" variant="narrow" \/>/);
+  assert.doesNotMatch(LIST_ROW, /<Absence[^/]*variant="narrow" \/>/, "the row's cells draw the dash instead (B4)");
 });
 
-test("the wide cells keep the spelled-out reason (ruling 2.1's presentation where it fits)", () => {
-  // The DUE cell (84px) and the mobile matrix card's summary badge are not narrow cells. UPDATED
-  // AT FOLD-61 for the same D-M4 reason as above: the due cell renders the row's single reason
-  // rather than a hardcoded "pending", and renders it in the WIDE variant, which is the half this
-  // test guards. `reasonSlot === "due"` is what routes "pending" here.
-  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence\} \/>/);
-  assert.match(MATRIX, /<Absence reason="not in primary source" \/>/);
+test("the row's ONE spelled-out reason renders on the meta line, and every empty value cell draws the dash", () => {
+  assert.match(LIST_ROW, /<Absence reason=\{metaReason\} \/>/, "the meta line carries the word");
+  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence \?\? "pending"\} variant="dash" \/>/, "the date cell draws a dash (B5)");
+  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence \?\? "not in primary source"\} variant="dash" \/>/, "the tier cell draws a dash (B4)");
+  assert.match(MATRIX, /<Absence reason="not in primary source" \/>/, "the matrix's mobile summary badge keeps the words");
+});
+
+test("the dash variant is a dash and only a dash, and declares itself to the rendering guard", () => {
+  const dash = SOURCE.slice(SOURCE.indexOf('if (variant === "dash")'), SOURCE.indexOf('if (variant === "narrow")'));
+  assert.match(dash, /data-absence="dash"/, "the guard's placeholder-literal scan skips a declared dash");
+  assert.match(dash, /aria-label=\{reason\}/);
+  assert.match(dash, /title=\{reason\}/);
+  assert.match(dash, /className="cl-absence-dash"/);
+  assert.doesNotMatch(dash, /className="cl-absence"/, "the dash is a value placeholder, not the countable reason token");
+  assert.doesNotMatch(dash, /\{reason\}\s*<\/span>/, "the dash never renders the word as text");
 });

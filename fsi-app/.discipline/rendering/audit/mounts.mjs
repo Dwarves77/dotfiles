@@ -104,6 +104,7 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ListRow, ListRowColumnHeader } from '@/components/ui/ListRow';
+import { PriorityDropdown } from '@/components/regulations/PriorityDropdown';
 import { BAND_ORDER } from '@/lib/urgency/bands';
 
 const action = BAND_ORDER.find((b) => b.key === 'action');
@@ -132,6 +133,30 @@ window.__mount = () => {
           ],
           tier: 1,
           overflow: React.createElement('button', { type: 'button', 'aria-label': 'Row actions', style: { width: 28, height: 28 } }, '\\u22ef'),
+        })),
+      // Items B1-B5 (operator UI fix round 2026-09-08). dc.html p1's SECOND list row: an item with
+      // no impact score, no next date, no timeline and no tier, i.e. every absence dimension at
+      // once — which is precisely the row the operator photographed carrying three tokens. It also
+      // carries p4's kind chip (\`kind\`) and the REAL overflow control (PriorityDropdown, the
+      // component all six list surfaces pass into \`overflow\`) so B1 and B2 are measured on the
+      // thing that ships, not on a stub button.
+      React.createElement('div', { 'data-audit': 'row-absent' },
+        React.createElement(ListRow, {
+          href: '/regulations/road-traffic-vehicle-emissions',
+          band: BAND_ORDER.find((b) => b.key === 'monitor'),
+          jurisdiction: 'GB',
+          title: 'The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997',
+          kind: 'Monitoring',
+          meta: 'Catalogue record \\u00b7 Road \\u00b7 transport',
+          impact: null,
+          due: null,
+          timeline: null,
+          tier: null,
+          overflow: React.createElement(PriorityDropdown, {
+            variant: 'card',
+            showPriorityActions: false,
+            ariaLabel: 'Row actions',
+          }),
         })),
       React.createElement('div', { 'data-audit': 'row-endstat' },
         React.createElement(ListRow, {

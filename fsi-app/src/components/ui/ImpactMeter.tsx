@@ -13,10 +13,12 @@
  * tabular numerals (audit item B29-B46, 2026-09-07, artboard #sys list-row
  * example). Unscored = a 30px dashed baseline (operator audit item
  * 2.1, 2026-09-07 ruling — one width, desktop and mobile), never a second
- * "NOT SCORED" row and never the literal "UNSCORED". The small-caps reason
- * beside it is the COMPOSITE'S single reason, supplied by the row through the
- * `reason` prop (lane mobfix61, 2026-09-08 — see that prop and Absence.tsx's
- * ABSENCE_PRECEDENCE); the meter never names a reason of its own.
+ * "NOT SCORED" row and never the literal "UNSCORED". Beside the baseline sits
+ * an EM DASH in the score slot (item B3, operator 2026-09-08; dc.html p1's own
+ * unscored row draws it at 11px #7A6E6C). The composite's single small-caps
+ * reason is NOT here: it lives in the row's title-cell meta line, so the meter
+ * never names a reason of its own (the former `reason` prop is removed rather
+ * than left dormant, CLAUDE.md rule 13).
  *
  * Full variant (detail rail, dashboard): one continuous bar per dimension
  * over the full green→orange→red ramp, revealed from the left by the score.
@@ -33,7 +35,7 @@
  */
 
 import type { ImpactScores } from "@/types/resource";
-import { Absence, type AbsenceReason } from "@/components/ui/Absence";
+import { Absence } from "@/components/ui/Absence";
 
 const VALUE_COLOR: Record<number, string> = {
   1: "var(--awareness)",
@@ -54,21 +56,9 @@ export function isImpactScored(scores: ImpactScores | null | undefined): scores 
 export interface ImpactMeterProps {
   scores?: ImpactScores | null;
   variant?: "row" | "full";
-  /**
-   * The composite's SINGLE absence reason, when the composite has decided this is the cell that
-   * carries it (lane mobfix61, 2026-09-08, operator mobile report D-M4). Undefined or null means
-   * the unscored state renders the 30px dashed baseline ALONE.
-   *
-   * Before this the meter always rendered an Absence naming the "unscored" state itself, while
-   * the row's due and tier cells rendered their own absences beside it, so one unscored row put
-   * three tokens on screen — the stack the operator photographed. Ruling 2.1 forbids the literal
-   * "UNSCORED" regardless, and the dashed baseline IS the unscored state, so the meter no longer
-   * names it: the one reason a row shows is chosen by the ROW, from Absence.tsx's precedence.
-   */
-  reason?: AbsenceReason | null;
 }
 
-export function ImpactMeter({ scores, variant = "row", reason }: ImpactMeterProps) {
+export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
   const scored = isImpactScored(scores);
 
   if (!scored) {
@@ -108,11 +98,19 @@ export function ImpactMeter({ scores, variant = "row", reason }: ImpactMeterProp
             borderBottom: "1px dashed rgba(0,0,0,.3)",
           }}
         />
-        {variant === "row"
-          ? reason
-            ? <Absence reason={reason} />
-            : null
-          : <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>—</span>}
+        {/* Item B3 (operator, 2026-09-08): "the meter column gets the 30px dashed baseline
+            rgba(0,0,0,.3) with an em dash in the score slot and NO literal UNSCORED". The score
+            slot is where "N/12" sits when the item is scored; dc.html p1's own second row draws it
+            as `<span style="font-size:11px;color:#7A6E6C">—</span>` beside the dashed line, which
+            is exactly this. Before B3 the row variant rendered the composite's small-caps reason
+            here instead (the `reason` prop, now removed): that reason moved to the title cell's
+            meta line, so the meter names nothing at all and the score slot shows the dash at both
+            viewports. The dash goes through the shared Absence part's `dash` variant so it carries
+            its closed-vocabulary reason to assistive technology and declares itself to the
+            rendering guard's placeholder scan. */}
+        <span style={{ fontSize: "var(--fs-11)" }}>
+          <Absence reason="unscored" variant="dash" />
+        </span>
       </span>
     );
   }

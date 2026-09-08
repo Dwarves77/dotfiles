@@ -58,10 +58,38 @@ test("fix58-tokens (2026-09-07, design audit B1-B28): BandChip carries the band-
   assert.match(bandChip, /width:\s*7,\s*height:\s*7/);
 });
 
-test("fix58-tokens: TagChip is a squared 4px-radius neutral tag (dc.html #sys), not the pill token", () => {
+test("fix58-tokens: TagChip is a squared neutral tag (dc.html #sys), not the pill token", () => {
   const tagChip = SOURCE.slice(SOURCE.indexOf("export function TagChip"), SOURCE.indexOf("export function WorkspaceTagPill"));
-  assert.match(tagChip, /borderRadius:\s*4/);
+  // UPDATED (item B1, operator 2026-09-08): the chip now has two sizes, the detail-header chip
+  // (dc.html p5, radius 4, unchanged) and the LIST ROW chip (dc.html p4 line 517, radius 3). What
+  // this test has always guarded is that neither is the pill.
+  assert.match(tagChip, /borderRadius: row \? 3 : 4/);
   assert.doesNotMatch(tagChip, /var\(--radius-pill\)/);
+});
+
+// ITEM B1 (operator, 2026-09-08): "the kind chips render as bordered grey boxes; they are NEUTRAL
+// TAGS, #F5F2EE fill, NO border, 9.5px/700 .06em uppercase, radius 3, padding 2px 6px." Chip
+// family rule 2.5 (2026-09-07) says the tier square is the ONLY bordered chip, so this test also
+// closes that class over the whole file: no chip but TierChip may declare a visible border.
+test("B1: the row-size TagChip is the artboard's neutral row tag, and no chip but the tier square is bordered", () => {
+  const tagChip = SOURCE.slice(SOURCE.indexOf("export function TagChip"), SOURCE.indexOf("export function WorkspaceTagPill"));
+  assert.match(tagChip, /fontSize: row \? "var\(--fs-95\)" : "var\(--fs-105\)"/);
+  assert.match(tagChip, /fontWeight: row \? 700 : 600/);
+  assert.match(tagChip, /letterSpacing: row \? "0\.06em" : "0\.04em"/);
+  assert.match(tagChip, /padding: row \? "2px 6px" : "3px 8px"/);
+  assert.match(tagChip, /background: "var\(--tag\)"/);
+  assert.doesNotMatch(tagChip, /border:/, "chip family rule 2.5: the neutral tag carries no border at either size");
+
+  // The rest of the family, read as blocks so a border added to any of them fails here.
+  const bandChip = SOURCE.slice(SOURCE.indexOf("export function BandChip"), SOURCE.indexOf("const TIER_CHIP_MOBILE_CSS"));
+  const tierChip = SOURCE.slice(SOURCE.indexOf("export function TierChip"), SOURCE.indexOf("/**\n * Neutral kind/mode/topic tag"));
+  const filterChip = SOURCE.slice(SOURCE.indexOf("export function FilterChip("));
+  assert.match(tierChip, /border: "1px solid rgba\(0,0,0,\.2\)"/, "the tier square is the one bordered chip");
+  // BandChip's border is its own band-tinted edge, which the artboard draws and rule 2.5's
+  // "bordered chip" language does not cover (it is the colour-carrying pill, not a neutral tag).
+  // Asserted here so the exception is visible rather than assumed.
+  assert.match(bandChip, /border: `1px solid \$\{band\.borderCssVar\}`/);
+  assert.match(filterChip, /border: "1px solid transparent"/, "the filter chip's border is transparent; the group shell carries the visible one");
 });
 
 test("fix58-tokens: FilterChipGroup label reads 10px/.12em/700 (dc.html p2 'Mode' label), not the old 9.5px/.1em/800", () => {
