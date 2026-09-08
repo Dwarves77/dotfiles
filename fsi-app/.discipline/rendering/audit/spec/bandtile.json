@@ -2,7 +2,11 @@
   "part": "BandTile",
   "mount": "bandtile",
   "viewport": 1440,
-  "artboards": ["00-system-sheet §0.4 'Band tiles'", "01-dashboard", "02-regulations-list"],
+  "artboards": [
+    "00-system-sheet §0.4 'Band tiles'",
+    "01-dashboard",
+    "02-regulations-list"
+  ],
   "source": "docs/design/handoff-2026-09-06/README.md §0.4 'Band tiles'; 'Caros Ledge UI System.dc.html' #sys band-tile block",
   "notes": [
     "BandTile.tsx is pure inline style (the `.cl-band-tile` class only carries the mobile-only media query, no desktop-affecting rule), so every property here is a real product value at 1440.",
@@ -35,18 +39,25 @@
     {
       "name": "label text",
       "selector": "[data-audit=\"immediate\"] .cl-band-tile-label",
-      "expect": { "text": "Immediate" }
+      "expect": {
+        "text": "Immediate"
+      }
     },
     {
       "name": "window (muted)",
       "selector": "[data-audit=\"immediate\"] .cl-band-tile-window",
       "note": "README §0.4: 'window (10.5px muted)'.",
-      "expect": { "font-size": "10.5px", "color": "#7A6E6C" }
+      "expect": {
+        "font-size": "10.5px",
+        "color": "#7A6E6C"
+      }
     },
     {
       "name": "window text",
       "selector": "[data-audit=\"immediate\"] .cl-band-tile-window",
-      "expect": { "text": "≤ 90 days" }
+      "expect": {
+        "text": "≤ 90 days"
+      }
     },
     {
       "name": "numeral (Anton, band colour)",
@@ -76,7 +87,17 @@
       "name": "card minimum hit area",
       "selector": "[data-audit=\"immediate\"] button",
       "note": "README §0.4 'Hit targets': 44px minimum on every toggle row and control. A band tile is a filter toggle; BandTile.tsx states `minHeight: 112` which already clears the floor, checked here as the record of that value.",
-      "expect": { "min-height": "112px" }
+      "expect": {
+        "min-height": "112px"
+      }
+    },
+    {
+      "name": "numeral is thousands-separated (artboard 01's MONITOR tile reads '1,135', not '1135')",
+      "selector": "[data-audit=\"monitor\"] .cl-band-tile-numeral",
+      "note": "The count passes through src/lib/format.ts's locale-pinned formatNumber, so the separator cannot drift with the runtime locale (F36).",
+      "expect": {
+        "text": "1,135"
+      }
     }
   ]
 }

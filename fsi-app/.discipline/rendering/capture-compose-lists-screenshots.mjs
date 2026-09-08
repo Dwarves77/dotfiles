@@ -22,6 +22,9 @@ import { createRequire } from 'node:module';
 import { mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
+// FOLD-59: the artboard|built compositor moved to its own module so the page captures
+// (capture-compose-page.mjs) can produce side-by-sides too, instead of them being hand-made.
+import { composite } from './compose-composite.mjs';
 import { AUDIT_MOUNTS } from './audit/mounts.mjs';
 import { fullAppCss } from './smoke/smoke-fixtures.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
@@ -284,7 +287,12 @@ window.__mount = (props) => {
 
 const CAPTURES = [
   {
-    out: 'compose-06-research-built.png',
+    // FOLD-59: this entry carried no `artboard`, so `composite()` was handed
+    // `join(SCREENS_DIR, undefined)` and the whole script threw before writing any of the
+    // four side-by-sides. Restored to the same shape every other entry here has, and to the
+    // filename compose-06-research-list.json's own evidence line already names.
+    out: 'compose-06-research-list.png',
+    artboard: '06-research-list.png',
     entry: RESEARCH_ENTRY,
     props: {
       resources: RESEARCH_ROWS,
@@ -343,7 +351,10 @@ const CAPTURES = [
     // Artboard 08 (lane comp-08, 2026-09-08). Entry and fixture come from the audit mount registry
     // rather than a third copy here, so the compose-08 spec and this evidence PNG measure the
     // IDENTICAL mount: one fixture, two readers.
-    out: 'compose-08-operations-built.png',
+    // FOLD-59: same missing-`artboard` defect as the research entry above (comp-08's own
+    // fold), restored to the filename compose-08-operations-list.json already names.
+    out: 'compose-08-operations-list.png',
+    artboard: '08-operations-list.png',
     entry: AUDIT_MOUNTS['compose-08-operations'].entry,
     props: null,
   },
@@ -352,25 +363,6 @@ const CAPTURES = [
 /** The exit evidence this lane's method requires: artboard on the left, the built page on the right,
  *  one PNG. Composited in the same browser rather than with an image library (there is no image
  *  dependency in this repo, and adding one for two labelled <img> tags would be the wrong trade). */
-async function composite(browser, artboardPath, builtPath, outPath) {
-  // Both images are inlined as data URIs: the compositor page is created with `setContent` (an
-  // about:blank document), and a `file://` subresource from an opaque origin is blocked by the
-  // browser, which showed up as an image that never completes loading.
-  const dataUri = (p) => `data:image/png;base64,${readFileSync(p).toString('base64')}`;
-  const page = await browser.newPage();
-  const label = 'font:700 20px system-ui,sans-serif;padding:10px 4px;letter-spacing:.06em;text-transform:uppercase';
-  await page.setContent(`
-    <body style="margin:0;background:#EDE9E3">
-      <div style="display:flex;align-items:flex-start;gap:16px;padding:16px">
-        <div><div style="${label}">Artboard</div><img src="${dataUri(artboardPath)}" style="display:block;width:1440px"></div>
-        <div><div style="${label}">Built, 1440</div><img src="${dataUri(builtPath)}" style="display:block;width:1440px"></div>
-      </div>
-    </body>`);
-  await page.waitForFunction(() => Array.from(document.images).every((i) => i.complete && i.naturalWidth > 0));
-  await page.screenshot({ path: outPath, fullPage: true });
-  await page.close();
-}
-
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await chromium.launch(

@@ -20,6 +20,7 @@
 
 import Link from "next/link";
 import type { UrgencyBand } from "@/lib/urgency/bands";
+import { formatNumber } from "@/lib/format";
 
 export interface BandTileProps {
   band: UrgencyBand;
@@ -119,7 +120,11 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
             margin: "4px 0 10px",
           }}
         >
-          {count ?? 0}
+          {/* Thousands-separated (FOLD-59, 2026-09-08). Artboard 01 draws the MONITOR tile as
+              "1,135"; this rendered the raw number, so a four-digit count read "1135". The
+              repo's locale-pinned helper is used rather than `toLocaleString()` directly, so
+              the separator cannot drift with the runtime locale (F36). */}
+          {formatNumber(count ?? 0)}
         </span>
       )}
       <span

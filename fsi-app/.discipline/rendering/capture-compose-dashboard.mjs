@@ -12,7 +12,7 @@ import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
-import { ENTRY as DASHBOARD_ENTRY } from './smoke/dashboard-brief-smoke.mjs';
+import { ENTRY_FROM_RESOURCES as DASHBOARD_ENTRY } from './smoke/dashboard-brief-smoke.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
@@ -85,6 +85,9 @@ const PROPS = {
   resources: Array.from({ length: 5 }, (_, i) => dueResource(i)),
   recentChanges: Array.from({ length: 6 }, (_, i) => changeRow(i)),
   auditDate: '2026-09-06',
+  // Fixed instant: brief-rows derives "N days" and the due sort from it, and a capture that
+  // moves with the wall clock is not evidence.
+  nowIso: '2026-09-06T00:00:00.000Z',
   aggregates: POPULATED_AGGREGATES,
   surfaceCoverage: SURFACE_COVERAGE,
   __watchlist: [

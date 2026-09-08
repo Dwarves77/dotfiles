@@ -72,6 +72,38 @@ window.__mount = (props) => {
 };
 `;
 
+// FOLD-59 (2026-09-08): a SECOND entry, for the artboard-01 capture. `ENTRY` above takes ready
+// `BriefRow[]`, which is right for the smoke spec (it asserts row RENDERING and wants to state each
+// row's fields literally). The capture wants the opposite: an artboard-faithful `Resource[]` run
+// through the SAME server derivation the route runs, so the side-by-side shows what the page really
+// produces. Deriving inside the bundle rather than in Node is what makes that possible at all —
+// `brief-rows.ts` is TypeScript, esbuild compiles it here, and a Promise/Date cannot cross the
+// structured-clone boundary `mountBundle` uses anyway.
+const ENTRY_FROM_RESOURCES = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
+import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  const now = new Date(props.nowIso);
+  root.render(React.createElement(DashboardBrief, {
+    dueNextRows: buildDueNextRows(props.resources, now),
+    changedRows: buildChangedRows(props.recentChanges, props.resources, now),
+    totalChanges: props.totalChanges ?? props.recentChanges.length,
+    aggregates: props.aggregates,
+    auditDate: props.auditDate,
+    surfaceCoverage: props.surfaceCoverage,
+    nowIso: props.nowIso,
+    watchlistPromise: Promise.resolve(props.__watchlist ?? []),
+  }));
+};
+`;
+
 const EMPTY_AGGREGATES = {
   totalItems: 0,
   byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
@@ -212,4 +244,4 @@ export async function runSmoke(browser) {
 // SAME real `DashboardBrief` with real data (audit item 1.1's "All N immediate" link) instead of
 // hitting this sandbox's honest-empty live-server state (no reachable Supabase project — see
 // DEVIATION-LOG.md). `runSmoke` above is unchanged; this only widens what the module exposes.
-export { ENTRY, STATES };
+export { ENTRY, ENTRY_FROM_RESOURCES, STATES };

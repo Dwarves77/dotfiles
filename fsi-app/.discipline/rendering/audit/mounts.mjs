@@ -1629,7 +1629,10 @@ window.__mount = () => {
   root.render(
     React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, width: 778, padding: 20, background: 'var(--page)' } },
       BAND_ORDER.map((band, i) => React.createElement('div', { key: band.key, 'data-audit': band.key },
-        React.createElement(BandTile, { band, count: 14 + i, selected: i === 0 }))),
+        // FOLD-59: the MONITOR tile (i === 2) carries a FOUR-DIGIT count, as artboard 01 does
+        // ("1,135"). Every tile here was two digits, so the numeral's thousands separator was
+        // unmeasurable and its absence went unseen until the side-by-side showed "1135".
+        React.createElement(BandTile, { band, count: i === 2 ? 1135 : 14 + i, selected: i === 0 }))),
     ),
   );
 };
