@@ -1,210 +1,934 @@
 {
-  "runAt": "2026-09-08T16:16:33.330Z",
+  "runAt": "2026-09-08T16:31:52.878Z",
   "specs": [
     {
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "mount": "market-research-rows",
+      "part": "Page composition — Dashboard (01)",
+      "mount": "page-frame-1440",
       "viewport": 1440,
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "notes": [
-        "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text, README §0.4.",
-        "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly, closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
-        "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px`, the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all, confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip, read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file.",
-        "SPEC CORRECTION, lane comp-06 (2026-09-08): this child previously expected the row chip to carry the THEME (\"Emissions accounting\"), which is what train 58 shipped. Artboard 06/id=\"p6\" puts the SEVERITY in the chip and the theme in the meta text; the artboard is the authority (HANDOFF: \"where README prose and a page artboard disagree, the artboard wins\"), so the product changed and this spec follows it. The theme did not disappear from the row, it moved to the meta line, where the artboard draws it.",
-        "SPEC UPDATE, lane listrow (item B1, operator 2026-09-08). The note above records that dc.html p4 (the market-list artboard) draws the ROW chip at radius 3 / 9.5px / 700 / .06em / #1A1A1A while #sys's legend chip is radius 4 / 10.5px / 600, and that this spec declined to resolve the conflict. The operator resolved it: 'the kind chips ... are NEUTRAL TAGS, #F5F2EE fill, NO border, 9.5px/700 .06em uppercase, radius 3, padding 2px 6px.' Both chips exist, at two sizes: `TagChip variant=\"row\"` (this one, p4's numbers) and the default detail-header chip (#sys/p5's numbers, still measured by chips.json). The selector moves off the brittle `style*=\"border-radius: 4px\"` substring and onto the class the component now carries. The vertical padding asserted is the operator's 2px, not p4's 1px, per his 'exact values' instruction; logged in DEVIATION-LOG.md."
+        "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
+        "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
+        "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
+        "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text.",
+        "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base — DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own — so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
       ],
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
       "expect": {
-        "background-color": "#F5F2EE",
-        "border-top-left-radius": "3px",
-        "font-size": "9.5px",
-        "font-weight": "700",
-        "letter-spacing": "0.06em",
-        "text-transform": "uppercase",
-        "color": "#1A1A1A",
-        "padding-top": "2px",
-        "padding-left": "6px",
-        "border-top-width": "0px"
+        "display": "grid",
+        "grid-template-columns": "* 300px"
       },
       "children": [
         {
-          "name": "market row, signal-kind TagChip label text",
-          "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-          "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
+          "name": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
           "expect": {
-            "text": "Cost alert"
+            "display": "grid"
+          },
+          "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
+        },
+        {
+          "name": "region 2 — Due next card, comes after band tiles, before What changed",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) h2[data-guard-title]",
+          "expect": {},
+          "note": "Text is 'Due next · N items' where N is the live due-next row count, not a fixed artboard string."
+        },
+        {
+          "name": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
+          "expect": {
+            "count": "1"
           }
         },
         {
-          "name": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-          "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-          "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\".",
+          "name": "region 3 — What changed card, comes after Due next",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) h2[data-guard-title]",
+          "expect": {},
+          "text": "What changed"
+        },
+        {
+          "name": "region 4 — rail, 'Across the platform' card first",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) p:first-of-type",
+          "expect": {},
+          "text": "Across the platform"
+        },
+        {
+          "name": "region 5 — rail, Watchlist card second",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
           "expect": {
-            "background-color": "#F5F2EE",
-            "border-top-left-radius": "3px",
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 6 — rail, Legend card third and last",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
+          "expect": {},
+          "text": "Legend"
+        },
+        {
+          "name": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+          "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers.",
+          "expect": {
+            "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+            "min-height": "56px",
+            "row-gap": "0px",
+            "column-gap": "14px",
+            "padding-left": "0px"
+          }
+        },
+        {
+          "name": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+          "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount.",
+          "expect": {
+            "border-left-width": "1px",
+            "border-left-style": "solid",
+            "border-left-color": "rgba(0,0,0,.08)"
+          }
+        },
+        {
+          "name": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
+          "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted.",
+          "expect": {
             "font-size": "9.5px",
-            "font-weight": "700",
-            "text": "Background"
+            "letter-spacing": "0.12em",
+            "text-transform": "uppercase",
+            "font-weight": "700"
+          }
+        },
+        {
+          "name": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
+          "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge.",
+          "expect": {
+            "width": "3px"
+          }
+        },
+        {
+          "name": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+          "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim.",
+          "expect": {
+            "width": "28px",
+            "height": "28px",
+            "border-top-left-radius": "6px",
+            "color": "#7A6E6C",
+            "text": "⋯"
           }
         }
       ],
-      "forbid": [],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/market-research-rows.json",
-      "__id": "market-research-rows"
+      "forbid": [
+        {
+          "name": "no floating Ask AI button (ruling 2.2)",
+          "selector": "[data-audit=\"dashboard\"] button",
+          "textMatch": "Ask AI",
+          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
+        },
+        {
+          "name": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span",
+          "textMatch": "re:(^|[^0-9])0/12",
+          "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score. The regex form is deliberate: a plain \"0/12\" substring also matches the legitimate \"10/12\", which made this forbid report a passing product as a defect."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json",
+      "__id": "compose-01-dashboard"
+    },
+    {
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "mount": "page-frame-1440",
+      "viewport": 390,
+      "compiledCss": true,
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "notes": [
+        "Same mount as compose-01-dashboard, at 390 instead of 1440 — the mobile frame is the SAME component tree at a smaller measure (the spec's own framing: 'No new components. Every part is the desktop part at a smaller measure'), so a second mount would be a duplicate of one that already exists.",
+        "`compiledCss: true` is required here and on every mobile-* spec: AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind utility classes (`hidden md:flex`, `md:hidden`), which the raw globals.css read every other spec uses leaves un-expanded. See run-audit.mjs's own comment at the addStyleTag call.",
+        "The drawer is closed in this mount (AppShell's own initial state), so DRAWER geometry is measured by mobile-18-drawer.json, which opens it.",
+        "Every interactive target in the top bar is asserted at 44x44 via boundsCheck plus explicit width/height, per the spec's 'All interactive targets >= 44px'."
+      ],
+      "selector": ".md\\:hidden > header",
+      "expect": {
+        "height": "56px",
+        "background-color": "rgb(255, 255, 255)",
+        "border-bottom": "1px solid rgba(0, 0, 0, 0.08)",
+        "padding-left": "6px",
+        "padding-right": "6px"
+      },
+      "children": [
+        {
+          "name": "Desktop 252px nav card is NOT rendered below 768 (the drawer replaces it)",
+          "selector": "aside.hidden",
+          "expect": {
+            "display": "none"
+          }
+        },
+        {
+          "name": "Top bar hamburger: 44x44 target, glyph 17px",
+          "selector": ".md\\:hidden > header button[aria-label=\"Open navigation\"]",
+          "expect": {
+            "width": "44px",
+            "height": "44px",
+            "color": "rgb(26, 26, 26)"
+          }
+        },
+        {
+          "name": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+          "selector": ".md\\:hidden > header h1",
+          "expect": {
+            "font-size": "16px",
+            "text-transform": "uppercase",
+            "letter-spacing": "0.64px",
+            "text-overflow": "ellipsis"
+          },
+          "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+        },
+        {
+          "name": "Top bar search glyph sits in a 44x44 target",
+          "selector": ".md\\:hidden > header button[aria-label=\"Search\"]",
+          "expect": {
+            "width": "44px",
+            "height": "44px",
+            "color": "rgb(122, 110, 108)"
+          }
+        },
+        {
+          "name": "Top bar avatar sits in a 44x44 target",
+          "selector": ".md\\:hidden > header a[href=\"/profile\"]",
+          "expect": {
+            "width": "44px",
+            "height": "44px"
+          }
+        },
+        {
+          "name": "3px band-proportion rule sits directly above the top bar, full width",
+          "selector": ".md\\:hidden > div[aria-hidden=\"true\"]",
+          "expect": {
+            "height": "3px",
+            "width": "390px"
+          }
+        },
+        {
+          "name": "Band tiles are a 2x2 grid, gap 10",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
+          "expect": {
+            "grid-template-columns": "* *",
+            "gap": "10px"
+          },
+          "note": "Exactly two tracks is the 2x2 assertion (four tiles, two columns). getComputedStyle resolves an fr track to its used pixel width, so the track count plus the 10px gap is the honest form of this check (see normalise.mjs's wildcard header)."
+        },
+        {
+          "name": "Band tile padding 12px 14px 0",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+          "expect": {
+            "padding-top": "12px",
+            "padding-left": "14px",
+            "padding-right": "14px",
+            "padding-bottom": "0px",
+            "border-radius": "10px"
+          }
+        },
+        {
+          "name": "Band tile label 10px/800 .06em uppercase in the band colour",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+          "expect": {
+            "font-size": "10px",
+            "font-weight": "800",
+            "letter-spacing": "0.6px",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "Band tile over-window line 10px",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-window",
+          "expect": {
+            "font-size": "10px",
+            "color": "rgb(122, 110, 108)"
+          }
+        },
+        {
+          "name": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+          "expect": {
+            "font-size": "30px",
+            "line-height": "30px",
+            "margin-top": "6px",
+            "margin-bottom": "8px"
+          }
+        },
+        {
+          "name": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+          "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+          "expect": {
+            "height": "4px",
+            "margin-left": "-14px",
+            "margin-right": "-14px",
+            "margin-bottom": "0px"
+          }
+        },
+        {
+          "name": "Dashboard page padding tightens to 16px at 390",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+          "expect": {
+            "padding-left": "16px",
+            "padding-right": "16px",
+            "padding-top": "14px",
+            "padding-bottom": "16px"
+          }
+        },
+        {
+          "name": "Due Next rows use the mobile two-line row: grid 3px 1fr, min-height 76",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+          "expect": {
+            "grid-template-columns": "3px *",
+            "min-height": "76px",
+            "padding-right": "44px"
+          }
+        },
+        {
+          "name": "Row band spine is 3px",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row > .cl-row-spine",
+          "expect": {
+            "width": "3px"
+          }
+        },
+        {
+          "name": "Row content padding 10px 6px 10px 12px",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-content",
+          "expect": {
+            "padding": "10px 6px 10px 12px"
+          }
+        },
+        {
+          "name": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+          "expect": {
+            "font-size": "13.5px",
+            "line-height": "18.23px",
+            "white-space": "normal",
+            "text-overflow": "clip"
+          }
+        },
+        {
+          "name": "Row jurisdiction code 10.5px/700 .06em",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-juris",
+          "expect": {
+            "font-size": "10.5px",
+            "letter-spacing": "0.63px"
+          }
+        },
+        {
+          "name": "Row line 2 gap 9px, margin-top 7px",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-line2",
+          "expect": {
+            "gap": "9px",
+            "margin-top": "7px",
+            "flex-wrap": "wrap"
+          }
+        },
+        {
+          "name": "Impact bars 8px wide on a 1px rgba(0,0,0,.25) baseline",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-impact-bar",
+          "expect": {
+            "width": "8px"
+          }
+        },
+        {
+          "name": "Row due date + days 11.5px tabular-nums",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-due-label",
+          "expect": {
+            "font-size": "11.5px",
+            "font-weight": "700"
+          }
+        },
+        {
+          "name": "Row overflow control is a 44x44 target pushed right, with a left rule",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+          "expect": {
+            "width": "44px",
+            "height": "44px",
+            "border-left": "1px solid rgba(0, 0, 0, 0.08)"
+          },
+          "note": "'Pushed right' is measured by the boundsCheck below (the cell's right edge is the row's), not by margin-left: getComputedStyle resolves `auto` to its used pixel value, which is data-dependent."
+        },
+        {
+          "name": "The 76px timeline column is dropped at this width (it lives on detail)",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-timeline",
+          "expect": {
+            "display": "none"
+          }
+        },
+        {
+          "name": "The desktop column header row is not drawn at 390 (the mobile row is two-line; MOBILE-60 fix)",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row-header",
+          "expect": {
+            "display": "none"
+          },
+          "note": "Before MOBILE-60 this kept the desktop eight-track grid (489px of fixed tracks) and ran ~160px past the card at 390."
+        },
+        {
+          "name": "Card foot wraps instead of running past the card edge at 390 (MOBILE-60 fix)",
+          "selector": "[data-audit=\"dashboard\"] .cl-card-foot",
+          "expect": {
+            "flex-wrap": "wrap"
+          }
+        },
+        {
+          "name": "Section head stacks at 390 so its nowrap aside cannot overflow (MOBILE-60 fix)",
+          "selector": "[data-audit=\"dashboard\"] .cl-section-heading",
+          "expect": {
+            "flex-direction": "column",
+            "align-items": "flex-start"
+          }
+        },
+        {
+          "name": "Brief content track keeps a zero floor so nothing can widen the page (MOBILE-60 fix)",
+          "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+          "expect": {
+            "grid-template-columns": "*"
+          },
+          "note": "One track only below 1280. The floor itself (minmax(0,...)) is proven by the page-width boundsCheck below: with a bare 1fr the track measured 539px inside a 390px viewport."
+        },
+        {
+          "name": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+          "selector": ".cl-band-tiles",
+          "expect": {
+            "grid-template-columns": "* *",
+            "gap": "10px"
+          },
+          "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no literal UNSCORED token anywhere on the mobile dashboard",
+          "selector": "body",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
+        },
+        {
+          "name": "no bare fabricated 0/12 impact sum on an unscored row",
+          "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+          "textMatch": "re:(^|[^0-9])0/12",
+          "reason": "An unscored row renders the Absence convention, never a fabricated zero (FOLD-59: the regex form, not a substring, so a real 10/12 is not a false finding)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+        }
+      ],
+      "boundsCheck": [
+        {
+          "name": "no top-bar cell overlaps a sibling or escapes the 56px bar at 390",
+          "container": ".md\\:hidden > header",
+          "cells": "button, h1, a[href=\"/profile\"]",
+          "reason": "Operator, 2026-09-07: 'your text is too right and it overlays different areas' — the same cell-containment check the dashboard row grid now carries, applied to the mobile top bar, whose three targets plus a centred title are the tightest row in the product at 390."
+        },
+        {
+          "name": "no list-row cell overlaps a sibling or escapes its row at 390",
+          "container": "[data-audit=\"dashboard\"] .cl-list-row",
+          "cells": ".cl-row-content > *",
+          "reason": "Same defect class at the narrowest supported width: 375 must not clip, so 390 must have headroom."
+        },
+        {
+          "name": "nothing inside the brief escapes the 390 viewport",
+          "container": "[data-audit=\"dashboard\"] .cl-brief-grid",
+          "cells": ".cl-band-tiles, .cl-list-row, .cl-card-foot, .cl-section-heading",
+          "reason": "MOBILE-60 regression guard: the four fixes above (brief track floor, column header, section head, card foot) each showed up first as a child wider than its own container at 390. Operator standard 2026-09-07: 'a visual pass for overflow/collision/orphan lines on every page'."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-01-dashboard.json",
+      "__id": "mobile-01-dashboard"
     }
   ],
   "rows": [
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "background-color",
-      "expected": "#F5F2EE",
-      "actual": "rgb(245, 242, 238)",
+      "target": "Page composition — Dashboard (01)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "border-top-left-radius",
-      "expected": "3px",
-      "actual": "3px",
+      "target": "Page composition — Dashboard (01)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "grid-template-columns",
+      "expected": "* 300px",
+      "actual": "730px 300px",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "target": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "region 5 — rail, Watchlist card second",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "grid-template-columns",
+      "expected": "3px 56px * 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 227px 88px 84px 76px 40px 44px",
+      "status": "MATCH",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "min-height",
+      "expected": "56px",
+      "actual": "56px",
+      "status": "MATCH",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "row-gap",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "column-gap",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "padding-left",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "border-left-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "border-left-style",
+      "expected": "solid",
+      "actual": "solid",
+      "status": "MATCH",
+      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "border-left-color",
+      "expected": "rgba(0,0,0,.08)",
+      "actual": "rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
+      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
       "property": "font-size",
       "expected": "9.5px",
       "actual": "9.5px",
       "status": "MATCH",
-      "note": null
+      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "font-weight",
-      "expected": "700",
-      "actual": "700",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "artboards": [
-        "04-market-list",
-        "06-research-list"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
       "property": "letter-spacing",
-      "expected": "0.06em (= 0.57px at 9.5px)",
-      "actual": "0.57px",
+      "expected": "0.12em (= 1.14px at 9.5px)",
+      "actual": "1.14px",
       "status": "MATCH",
-      "note": null
+      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
       "property": "text-transform",
       "expected": "uppercase",
       "actual": "uppercase",
       "status": "MATCH",
-      "note": null
+      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "01-dashboard"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
       "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "target": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
+      "property": "width",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+      "property": "width",
+      "expected": "28px",
+      "actual": "28px",
+      "status": "MATCH",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+      "property": "height",
+      "expected": "28px",
+      "actual": "28px",
+      "status": "MATCH",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+      "property": "border-top-left-radius",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
       "property": "color",
-      "expected": "#1A1A1A",
-      "actual": "rgb(26, 26, 26)",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+      "property": "text",
+      "expected": "⋯",
+      "actual": "⋯",
+      "status": "MATCH",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"dashboard\"] button [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation per ruling 2.2."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "row impact meter never renders bare '0' for an unscored item (ruling: never 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span [text contains \"re:(^|[^0-9])0/12\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score. The regex form is deliberate: a plain \"0/12\" substring also matches the legitimate \"10/12\", which made this forbid report a passing product as a defect."
+    },
+    {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "selector": ".md\\:hidden > header",
+      "property": "height",
+      "expected": "56px",
+      "actual": "56px",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "padding-top",
-      "expected": "2px",
-      "actual": "2px",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "selector": ".md\\:hidden > header",
+      "property": "background-color",
+      "expected": "rgb(255, 255, 255)",
+      "actual": "rgb(255, 255, 255)",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "selector": ".md\\:hidden > header",
+      "property": "border-bottom",
+      "expected": "1px solid rgba(0, 0, 0, 0.08)",
+      "actual": "1px solid rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "selector": ".md\\:hidden > header",
       "property": "padding-left",
       "expected": "6px",
       "actual": "6px",
@@ -212,123 +936,1204 @@
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "border-top-width",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "selector": ".md\\:hidden > header",
+      "property": "padding-right",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Desktop 252px nav card is NOT rendered below 768 (the drawer replaces it)",
+      "selector": "aside.hidden",
+      "property": "display",
+      "expected": "none",
+      "actual": "none",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar hamburger: 44x44 target, glyph 17px",
+      "selector": ".md\\:hidden > header button[aria-label=\"Open navigation\"]",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar hamburger: 44x44 target, glyph 17px",
+      "selector": ".md\\:hidden > header button[aria-label=\"Open navigation\"]",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar hamburger: 44x44 target, glyph 17px",
+      "selector": ".md\\:hidden > header button[aria-label=\"Open navigation\"]",
+      "property": "color",
+      "expected": "rgb(26, 26, 26)",
+      "actual": "rgb(26, 26, 26)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+      "selector": ".md\\:hidden > header h1",
+      "property": "font-size",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+      "selector": ".md\\:hidden > header h1",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+      "selector": ".md\\:hidden > header h1",
+      "property": "letter-spacing",
+      "expected": "0.64px",
+      "actual": "0.64px",
+      "status": "MATCH",
+      "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+      "selector": ".md\\:hidden > header h1",
+      "property": "text-overflow",
+      "expected": "ellipsis",
+      "actual": "ellipsis",
+      "status": "MATCH",
+      "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar search glyph sits in a 44x44 target",
+      "selector": ".md\\:hidden > header button[aria-label=\"Search\"]",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar search glyph sits in a 44x44 target",
+      "selector": ".md\\:hidden > header button[aria-label=\"Search\"]",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar search glyph sits in a 44x44 target",
+      "selector": ".md\\:hidden > header button[aria-label=\"Search\"]",
+      "property": "color",
+      "expected": "rgb(122, 110, 108)",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar avatar sits in a 44x44 target",
+      "selector": ".md\\:hidden > header a[href=\"/profile\"]",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Top bar avatar sits in a 44x44 target",
+      "selector": ".md\\:hidden > header a[href=\"/profile\"]",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "3px band-proportion rule sits directly above the top bar, full width",
+      "selector": ".md\\:hidden > div[aria-hidden=\"true\"]",
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "3px band-proportion rule sits directly above the top bar, full width",
+      "selector": ".md\\:hidden > div[aria-hidden=\"true\"]",
+      "property": "width",
+      "expected": "390px",
+      "actual": "390px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tiles are a 2x2 grid, gap 10",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
+      "property": "grid-template-columns",
+      "expected": "* *",
+      "actual": "174px 174px",
+      "status": "MATCH",
+      "note": "Exactly two tracks is the 2x2 assertion (four tiles, two columns). getComputedStyle resolves an fr track to its used pixel width, so the track count plus the 10px gap is the honest form of this check (see normalise.mjs's wildcard header)."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tiles are a 2x2 grid, gap 10",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
+      "property": "gap",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Exactly two tracks is the 2x2 assertion (four tiles, two columns). getComputedStyle resolves an fr track to its used pixel width, so the track count plus the 10px gap is the honest form of this check (see normalise.mjs's wildcard header)."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "property": "padding-top",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "property": "padding-left",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "property": "padding-right",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "property": "padding-bottom",
       "expected": "0px",
       "actual": "0px",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "market row, signal-kind TagChip label text",
-      "selector": "[data-audit=\"market-row\"] .cl-tag-chip-row",
-      "property": "text",
-      "expected": "Cost alert",
-      "actual": "Cost alert",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "property": "border-radius",
+      "expected": "10px",
+      "actual": "10px",
       "status": "MATCH",
-      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert')."
+      "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "background-color",
-      "expected": "#F5F2EE",
-      "actual": "rgb(245, 242, 238)",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile label 10px/800 .06em uppercase in the band colour",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+      "property": "font-size",
+      "expected": "10px",
+      "actual": "10px",
       "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
+      "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "border-top-left-radius",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile label 10px/800 .06em uppercase in the band colour",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+      "property": "font-weight",
+      "expected": "800",
+      "actual": "800",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile label 10px/800 .06em uppercase in the band colour",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+      "property": "letter-spacing",
+      "expected": "0.6px",
+      "actual": "0.6px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile label 10px/800 .06em uppercase in the band colour",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile over-window line 10px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-window",
+      "property": "font-size",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile over-window line 10px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-window",
+      "property": "color",
+      "expected": "rgb(122, 110, 108)",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+      "property": "font-size",
+      "expected": "30px",
+      "actual": "30px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+      "property": "line-height",
+      "expected": "30px",
+      "actual": "30px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+      "property": "margin-top",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+      "property": "margin-bottom",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+      "property": "height",
+      "expected": "4px",
+      "actual": "4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+      "property": "margin-left",
+      "expected": "-14px",
+      "actual": "-14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+      "property": "margin-right",
+      "expected": "-14px",
+      "actual": "-14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+      "property": "margin-bottom",
+      "expected": "0px",
+      "actual": "0px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Dashboard page padding tightens to 16px at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Dashboard page padding tightens to 16px at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-right",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Dashboard page padding tightens to 16px at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-top",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Dashboard page padding tightens to 16px at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "padding-bottom",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Due Next rows use the mobile two-line row: grid 3px 1fr, min-height 76",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "grid-template-columns",
+      "expected": "3px *",
+      "actual": "3px 295px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Due Next rows use the mobile two-line row: grid 3px 1fr, min-height 76",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "min-height",
+      "expected": "76px",
+      "actual": "76px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Due Next rows use the mobile two-line row: grid 3px 1fr, min-height 76",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "property": "padding-right",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row band spine is 3px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row > .cl-row-spine",
+      "property": "width",
       "expected": "3px",
       "actual": "3px",
       "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
+      "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "font-size",
-      "expected": "9.5px",
-      "actual": "9.5px",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row content padding 10px 6px 10px 12px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-content",
+      "property": "padding",
+      "expected": "10px 6px 10px 12px",
+      "actual": "10px 6px 10px 12px",
       "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
+      "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+      "property": "font-size",
+      "expected": "13.5px",
+      "actual": "13.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+      "property": "line-height",
+      "expected": "18.23px",
+      "actual": "18.225px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+      "property": "white-space",
+      "expected": "normal",
+      "actual": "normal",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+      "property": "text-overflow",
+      "expected": "clip",
+      "actual": "clip",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row jurisdiction code 10.5px/700 .06em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-juris",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row jurisdiction code 10.5px/700 .06em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-juris",
+      "property": "letter-spacing",
+      "expected": "0.63px",
+      "actual": "0.63px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row line 2 gap 9px, margin-top 7px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-line2",
+      "property": "gap",
+      "expected": "9px",
+      "actual": "9px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row line 2 gap 9px, margin-top 7px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-line2",
+      "property": "margin-top",
+      "expected": "7px",
+      "actual": "7px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row line 2 gap 9px, margin-top 7px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-line2",
+      "property": "flex-wrap",
+      "expected": "wrap",
+      "actual": "wrap",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Impact bars 8px wide on a 1px rgba(0,0,0,.25) baseline",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-impact-bar",
+      "property": "width",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row due date + days 11.5px tabular-nums",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-due-label",
+      "property": "font-size",
+      "expected": "11.5px",
+      "actual": "11.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row due date + days 11.5px tabular-nums",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-due-label",
       "property": "font-weight",
       "expected": "700",
       "actual": "700",
       "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
+      "note": null
     },
     {
-      "spec": "market-research-rows",
-      "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
       "artboards": [
-        "04-market-list",
-        "06-research-list"
+        "mobile-390 text spec (no artboard PNG exists yet)"
       ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
-      "viewport": 1440,
-      "target": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
-      "selector": "[data-audit=\"research-row\"] .cl-tag-chip-row",
-      "property": "text",
-      "expected": "Background",
-      "actual": "Background",
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row overflow control is a 44x44 target pushed right, with a left rule",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
       "status": "MATCH",
-      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\"."
+      "note": "'Pushed right' is measured by the boundsCheck below (the cell's right edge is the row's), not by margin-left: getComputedStyle resolves `auto` to its used pixel value, which is data-dependent."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row overflow control is a 44x44 target pushed right, with a left rule",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": "'Pushed right' is measured by the boundsCheck below (the cell's right edge is the row's), not by margin-left: getComputedStyle resolves `auto` to its used pixel value, which is data-dependent."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Row overflow control is a 44x44 target pushed right, with a left rule",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "property": "border-left",
+      "expected": "1px solid rgba(0, 0, 0, 0.08)",
+      "actual": "1px solid rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
+      "note": "'Pushed right' is measured by the boundsCheck below (the cell's right edge is the row's), not by margin-left: getComputedStyle resolves `auto` to its used pixel value, which is data-dependent."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "The 76px timeline column is dropped at this width (it lives on detail)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-timeline",
+      "property": "display",
+      "expected": "none",
+      "actual": "none",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "The desktop column header row is not drawn at 390 (the mobile row is two-line; MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header",
+      "property": "display",
+      "expected": "none",
+      "actual": "none",
+      "status": "MATCH",
+      "note": "Before MOBILE-60 this kept the desktop eight-track grid (489px of fixed tracks) and ran ~160px past the card at 390."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Card foot wraps instead of running past the card edge at 390 (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-card-foot",
+      "property": "flex-wrap",
+      "expected": "wrap",
+      "actual": "wrap",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Section head stacks at 390 so its nowrap aside cannot overflow (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-section-heading",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Section head stacks at 390 so its nowrap aside cannot overflow (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-section-heading",
+      "property": "align-items",
+      "expected": "flex-start",
+      "actual": "flex-start",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "Brief content track keeps a zero floor so nothing can widen the page (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "property": "grid-template-columns",
+      "expected": "*",
+      "actual": "358px",
+      "status": "MATCH",
+      "note": "One track only below 1280. The floor itself (minmax(0,...)) is proven by the page-width boundsCheck below: with a bare 1fr the track measured 539px inside a 390px viewport."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+      "selector": ".cl-band-tiles",
+      "property": "grid-template-columns",
+      "expected": "* *",
+      "actual": "174px 174px",
+      "status": "MATCH",
+      "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+      "selector": ".cl-band-tiles",
+      "property": "gap",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "no literal UNSCORED token anywhere on the mobile dashboard",
+      "selector": "body [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "no bare fabricated 0/12 impact sum on an unscored row",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row [text contains \"re:(^|[^0-9])0/12\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "An unscored row renders the Absence convention, never a fabricated zero (FOLD-59: the regex form, not a substring, so a real 10/12 is not a false finding)."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "no top-bar cell overlaps a sibling or escapes the 56px bar at 390",
+      "selector": ".md\\:hidden > header > button, h1, a[href=\"/profile\"]",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator, 2026-09-07: 'your text is too right and it overlays different areas' — the same cell-containment check the dashboard row grid now carries, applied to the mobile top bar, whose three targets plus a centred title are the tightest row in the product at 390."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "no list-row cell overlaps a sibling or escapes its row at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row > .cl-row-content > *",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 3 row(s)",
+      "status": "MATCH",
+      "note": "Same defect class at the narrowest supported width: 375 must not clip, so 390 must have headroom."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "nothing inside the brief escapes the 390 viewport",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > .cl-band-tiles, .cl-list-row, .cl-card-foot, .cl-section-heading",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "MOBILE-60 regression guard: the four fixes above (brief track floor, column header, section head, card foot) each showed up first as a child wider than its own container at 390. Operator standard 2026-09-07: 'a visual pass for overflow/collision/orphan lines on every page'."
     }
   ],
   "errors": []

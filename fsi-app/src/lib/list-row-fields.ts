@@ -30,7 +30,26 @@
 import type { Resource, ImpactScores, TimelineEntry } from "@/types/resource";
 import { scoreResource } from "@/lib/scoring";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
-import { itemDetailHref } from "@/lib/item-links";
+import { itemDetailHref, canonicalSurfaceForItem, type DetailSurface } from "@/lib/item-links";
+import type { WatchlistItemType } from "@/lib/supabase-server";
+
+/**
+ * The watchlist vocabulary's name for the surface an item belongs to.
+ *
+ * ITEM F2 (operator, 2026-09-08): artboard 1 draws the `⋯` overflow control on the dashboard's
+ * Due next and What changed rows, exactly as the five list surfaces draw it, and the row's Watch
+ * toggle lives inside that control. To mount the SAME control there, the row has to say which
+ * watchlist type its item is. `canonicalSurfaceForItem` is already the one classifier that decides
+ * which detail surface owns an item (item-links.ts); this is its name in the vocabulary
+ * `watchlistHref` and `WatchButton` speak, and it is the INVERSE of watchlist-links.ts's own
+ * switch, kept beside the derivation that needs it rather than as a second classifier.
+ */
+const WATCH_TYPE_FOR_SURFACE: Record<DetailSurface, WatchlistItemType> = {
+  regulations: "reg",
+  market: "signal",
+  research: "research",
+  operations: "operations",
+};
 
 /** The serialisable field set a `<ListRow/>` needs. `band` is carried as the stored platform
  *  priority (not a UrgencyBand object) so this shape crosses the server/client boundary as plain
@@ -46,12 +65,22 @@ export interface ListRowFields {
   due: { label: string; days: string } | null;
   timeline: TimelineEntry[] | null;
   tier: number | null;
+  /** ITEM F2: which watchlist vocabulary this row's item belongs to, so the row's `⋯` control can
+   *  mount the real Watch toggle rather than being a control with nothing behind it (ruling 1.1). */
+  watchType: WatchlistItemType;
 }
 
 /**
  * One row's fields. `now` is REQUIRED — a caller that has no server instant to hand is a caller
  * that would reintroduce the #418 class (render-now.ts).
  */
+/** ITEM F2: the watchlist vocabulary's name for an item, from the one surface classifier.
+ *  Exported so a row built from a change-feed record (which is not a full `Resource`, but does
+ *  carry the same `type`/`domain` pair the classifier reads) resolves it the same way. */
+export function watchTypeForItem(item: { type?: string | null; domain?: number | null }): WatchlistItemType {
+  return WATCH_TYPE_FOR_SURFACE[canonicalSurfaceForItem(item)];
+}
+
 export function toListRowFields(r: Resource, now: Date): ListRowFields {
   const due = dueInfo(r, now);
   return {
@@ -67,5 +96,6 @@ export function toListRowFields(r: Resource, now: Date): ListRowFields {
     due: due ? { label: due.label, days: due.days } : null,
     timeline: r.timeline ?? null,
     tier: r.sourceTier ?? null,
+    watchType: watchTypeForItem(r),
   };
 }

@@ -11,7 +11,8 @@
     "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) \u2014 verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
     "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
     "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) \u2014 checked below as an <a>/Link element, not plain text.",
-    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
+    "ITEM F2 (operator, 2026-09-08): \"'Due next' and 'What changed' must use the same row component as the lists (B), including 56px rows and the overflow cell.\" They already do on this base — DashboardBrief.tsx imports ListRow/ListRowColumnHeader and renders no row markup of its own — so nothing was rebuilt; the rows below MEASURE it on the real dashboard tree so the claim is evidence rather than a source read, and so a future page-local table would fail here."
   ],
   "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
   "expect": {
@@ -168,6 +169,59 @@
         "border-width": "1px",
         "border-color": "rgba(0,0,0,.12)",
         "border-radius": "10px"
+      }
+    },
+    {
+      "name": "F2 — the dashboard's tables render through the shared ListRow, at the list row's own 56px and grid",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "note": "Same values listrow.json asserts on the component in isolation, asserted here on the assembled dashboard so 'the dashboard uses the same row' is measured, not assumed. B6's grid and 56px are the operator's own numbers.",
+      "expect": {
+        "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+        "min-height": "56px",
+        "row-gap": "0px",
+        "column-gap": "14px",
+        "padding-left": "0px"
+      }
+    },
+    {
+      "name": "F2 — and each of those rows carries the 44px overflow cell with its 1px rgba(0,0,0,.08) left divider",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "note": "F2: 'including ... the overflow cell'. The 44px cell width is asserted by the grid track above; this is the divider that makes it read as a cell. The CONTROL inside it was missing until this round: the dashboard passed no `overflow`, so artboard 1's own row-end glyph was absent on both tables while the cell and its divider rendered. It now mounts the same PriorityDropdown+WatchButton the five list surfaces mount.",
+      "expect": {
+        "border-left-width": "1px",
+        "border-left-style": "solid",
+        "border-left-color": "rgba(0,0,0,.08)"
+      }
+    },
+    {
+      "name": "F2 — the column header row is unchanged, 9.5px uppercase .12em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header span:nth-of-type(2)",
+      "note": "F2: 'The column header row (JURIS. / TITLE / IMPACT LOW->H / DUE / TIMELINE / TIER) is correct; keep it, 9.5px uppercase .12em.' Asserted so 'keep it' is enforced rather than trusted.",
+      "expect": {
+        "font-size": "9.5px",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "B7 — the band spine is 3px, full-bleed, flush to the card's left edge",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-spine",
+      "note": "B7: 'Band spine is 3px full-bleed, flush to the card's left edge — correct.' Verified, not rebuilt: 3px wide, the row's own padding-left is 0 (asserted above), so the spine starts at the card's inner edge.",
+      "expect": {
+        "width": "3px"
+      }
+    },
+    {
+      "name": "F2 — the dashboard's rows end in the same bare 28px ⋯ glyph the list surfaces use",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow .cl-overflow-glyph",
+      "note": "Artboard 1 draws the ⋯ on both dashboard tables. B2's geometry, measured here on the dashboard so 'the same control' is a measurement rather than a claim.",
+      "expect": {
+        "width": "28px",
+        "height": "28px",
+        "border-top-left-radius": "6px",
+        "color": "#7A6E6C",
+        "text": "⋯"
       }
     }
   ],

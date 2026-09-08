@@ -20,7 +20,7 @@
 
 import type { Resource } from "@/types/resource";
 import type { RecentChangeRow } from "@/lib/supabase-server";
-import { toListRowFields, type ListRowFields } from "@/lib/list-row-fields";
+import { toListRowFields, watchTypeForItem, type ListRowFields } from "@/lib/list-row-fields";
 import { dueInfo } from "@/lib/dashboard/row-fields";
 import { itemDetailHref } from "@/lib/item-links";
 
@@ -78,6 +78,10 @@ export function buildChangedRows(
         due: null,
         timeline: null,
         tier: null,
+        // ITEM F2: the row still needs a watchlist type for its ⋯ control's Watch toggle, and the
+        // change feed carries the same (itemType, domain) pair the href above is built from, so it
+        // goes through the SAME classifier rather than defaulting to "reg".
+        watchType: watchTypeForItem({ type: c.itemType, domain: c.domain }),
         isNew: true,
       });
     }

@@ -17,6 +17,8 @@ import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { WatchButton } from "@/components/ui/WatchButton";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
@@ -185,6 +187,24 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    overflow={
+                      // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
+                      // the same row component as the lists (B), including the 56px rows and the
+                      // overflow cell." The cell and its divider already rendered (ListRow draws
+                      // them); what the dashboard never passed was a control to put in it, so
+                      // artboard 1's own row-end glyph was missing on both tables. It is the SAME
+                      // control the five list surfaces mount, holding the SAME Watch toggle, so
+                      // there is one row-actions control in the product and no new component.
+                      // Ruling 1.1 is satisfied because Watch is a real action on a real item:
+                      // `row.watchType` comes from the one classifier that already decides which
+                      // surface owns an item (list-row-fields.ts).
+                      <PriorityDropdown
+                        variant="card"
+                        showPriorityActions={false}
+                        ariaLabel={`Actions for ${row.title}`}
+                        menuTopContent={<WatchButton variant="row" itemType={row.watchType} itemId={row.id} />}
+                      />
+                    }
                   />
                 ))}
                 <CardFoot
@@ -253,6 +273,24 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    overflow={
+                      // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
+                      // the same row component as the lists (B), including the 56px rows and the
+                      // overflow cell." The cell and its divider already rendered (ListRow draws
+                      // them); what the dashboard never passed was a control to put in it, so
+                      // artboard 1's own row-end glyph was missing on both tables. It is the SAME
+                      // control the five list surfaces mount, holding the SAME Watch toggle, so
+                      // there is one row-actions control in the product and no new component.
+                      // Ruling 1.1 is satisfied because Watch is a real action on a real item:
+                      // `row.watchType` comes from the one classifier that already decides which
+                      // surface owns an item (list-row-fields.ts).
+                      <PriorityDropdown
+                        variant="card"
+                        showPriorityActions={false}
+                        ariaLabel={`Actions for ${row.title}`}
+                        menuTopContent={<WatchButton variant="row" itemType={row.watchType} itemId={row.id} />}
+                      />
+                    }
                   />
                 ))}
                 <CardFoot
