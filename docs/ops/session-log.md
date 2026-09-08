@@ -15208,6 +15208,40 @@ frozen artboard-08 redesign is unaffected by this lane.
 all five ledgers and `ListSurfaceShell`; lane communitynav2 owns its removal across every rail, and a
 `git log -S` over this branch's three commits confirms none of them moved it.
 
+**UX compliance**: this lane's whole range touches `.tsx` under `fsi-app/src`, so the block covers
+every screen it moves, not only the finishing pass.
+
+- `/regulations`: the reader's primary goal is to see what binds them and how soon. The path is the
+  band groups, which artboard 02 draws as the whole page. The one primary action is opening a
+  regulation row. The obligations rail card is the read-only companion to that goal, and its
+  "Calendar" head link is the single path onward to the register. Removing the strip removes a second
+  rendering of the rail card's own content, so no goal loses its path.
+- `/regulations/register` (new, no artboard): the goal is "what is due next, across everything".
+  The path is that Calendar link. The one primary action is the register's own "Load more", whose
+  async feedback is the button's pending label plus the honest "N of M" total, which is recomputed
+  from the database rather than from the loaded array. Facet changes re-read through the same route
+  and show the same pending state; a read that errors returns an empty page rather than a broken one.
+- `/operations`: the goal is to compare regions against dimensions. The path is the matrix, which is
+  FROZEN this round and untouched. The one primary action is opening a dimension cell. The calculator
+  link at the foot of the content column is a secondary path, given the band cards' own foot-link
+  geometry rather than an invented one, and it is the only route to the moved page.
+- `/operations/calculator` (new, no artboard): the goal is "what does this investment return". The
+  one primary action is editing any input. There is no asynchronous action to give feedback for: every
+  field recomputes locally and synchronously through `automate-vs-hire.mjs`, which is why the page
+  reads nothing for it. The one async region is the "Recent recalculations" rail, which keeps
+  `NoticesRail`'s existing loading and empty states unchanged.
+- `/operations/[slug]`: the three moved panels are S-sections rendered through the SAME
+  `DetailSection` every other section on that surface uses, so they inherit its heading, its aside
+  slot and its sticky-index entry rather than introducing a fourth section shape. Their data paths
+  are unchanged; each stays an async server component resolved before paint, so no new spinner or
+  skeleton state exists to specify.
+
+No interactive target moved below the 44px floor and none was introduced: the calculator link takes a
+24px minimum box inside a 44px row, and every other control on these pages is a part that already
+passed F35. The finishing pass itself changes no layout value at any viewport. It threads one string
+prop and deletes an unreachable helper, which is why the 72-spec audit is byte-stable across it at
+both 1440 and 390.
+
 **Gates.** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 fixture checks,
 97 SM smoke, 216 UX smoke); `audit:design` 72 specs / 2065 checks, 2065 MATCH and 0 MISMATCH at both
 1440 and 390; the CI npmtest glob 1039 pass / 0 fail (it was RED before fix 1 above);
