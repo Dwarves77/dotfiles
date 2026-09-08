@@ -68,7 +68,6 @@ import {
   type SeedFallbackTrigger,
 } from "@/lib/notifications/seed-fallback-flag";
 import type { Resource, ChangeLogEntry, Dispute, Supersession } from "@/types/resource";
-import { AUDIT_DATE } from "@/data/audit-date";
 import type {
   WorkspaceOverrideRow,
   WatchlistItem,
@@ -200,8 +199,9 @@ const cachedAppData = unstable_cache(
 // breadth; behavior changed: no seed resources returned.
 function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
   // T7 (2026-07-12): was `await import("@/data")`, which bundled the 1.23 MB seed-resources.json into an async
-  // chunk to read ONE constant (AUDIT_DATE) while returning all-empty arrays. Now a static AUDIT_DATE + the
-  // real types; the src/data barrel (its only importer was here) drops out of the client bundle entirely.
+  // chunk to read ONE constant (AUDIT_DATE) while returning all-empty arrays; the src/data barrel (its only
+  // importer was here) drops out of the client bundle entirely. Lane duenext (2026-09-08) then dropped the
+  // AUDIT_DATE import too: see the auditDate field below for why a failure payload must not carry a date.
   return {
     resources: [] as Resource[],
     archived: [] as Resource[],
@@ -211,11 +211,20 @@ function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
     // than their honest-empty one (brief-rows.ts's briefCardState), so an empty array here is no
     // longer indistinguishable from an empty corpus.
     briefResources: [] as Resource[],
+    // Lane duenext (2026-09-08): the Due-next card's own read (migration 315). Empty here for the
+    // same reason every other collection is: this factory is the shape returned when getAppData
+    // itself threw, so there is no read to report.
+    dueNext: [] as Resource[],
     recentChanges: [] as import("@/lib/supabase-server").RecentChangeRow[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,
     supersessions: [] as Supersession[],
-    auditDate: AUDIT_DATE,
+    // Lane duenext (2026-09-08): was the static `AUDIT_DATE` constant, i.e. this failure payload
+    // asserted a detection pass on a date frozen into the bundle, on the one code path that exists
+    // BECAUSE the read threw. Same fabrication class as fetchDashboardData's own seeded-to-today
+    // audit date, and rule 2 forbids it. The empty string is the honest value: What-changed renders
+    // "No detection pass on record", which on a hard failure is true.
+    auditDate: "",
     synopses: [],
     intelligenceChanges: [],
     sectorDisplayNames: [],
