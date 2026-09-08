@@ -1032,3 +1032,122 @@ two components; the "Compare against:" base-region control with `baseRegion`, `o
 `indexAgainstBase` is NOT dead: it moved into the panel's compare mode, where the base region is
 implied by column order rather than picked by the reader, which is a better answer to the question
 the control was asking. Cross-region comparison is superseded, not dropped.
+
+---
+
+## Lane noexpand (2026-09-08): nothing is open when you arrive
+
+Base: `lane/opsmatrix3-2026-09-08` (`64646ddc`). The two lanes land together, because the default
+SELECTION this lane removes is a thing that lane built.
+
+### The ruling
+
+The operator navigated to `/operations` and the page had already opened a dimension, Infrastructure
+capacity, with nobody having clicked anything. Verbatim: "the ops page opend to a sub category not
+just the main page, infastructure capacity and other items should be closed, no items expanded when
+first navigtaing to a page". The coordinator's readings, which this lane treated as binding: R1 the
+rule is site-wide, not one page's; R2 it covers content disclosure including a default selection
+whose visible effect is an opened panel; R3 the FILTERS rail's stated default is out of scope; R4 a
+deep link may still open exactly what it names; R5 keyboard reachability is not an excuse to
+preselect.
+
+### What changed in the matrix
+
+`RegionDimensionMatrix` computed `defaultSelection` on mount, "the first sourced cell in the first
+sourced row", tinted that cell and rendered its fact panel. That is gone. On first render there is no
+selection, no panel and no tinted cell: the table and its foot legend.
+
+Keyboard reachability needed two pieces of state where there was one. `focusPos` is the roving
+tabindex position, starting at the first cell, moved by the four arrows plus Home and End, and it
+paints nothing. `selection` is what the reader committed to with a click, Enter or Space, starts
+null, and is the only thing the panel renders from. Arrow keys used to move the selection, so a
+reader arrowing across the scoreboard to read scores had panels opening under him; they now move
+focus alone, which is what R5 asks for. A selection whose column or dimension the rail scopes away
+now closes the panel rather than falling back to a computed default, because falling back to a
+default is the same defect one step removed.
+
+The foot strip (`not in primary source` legend, the click affordance, the region count) moved from
+inside the panel onto the CARD. It sat inside the panel only because a default selection guaranteed
+a panel existed; with nothing open on arrival, the strip that explains the dashes and says how to
+open a cell is exactly what the reader needs then. Its arrow-key clause reads "arrow keys move
+between cells", because that is what arrows now do.
+
+### What changed elsewhere, and what deliberately did not
+
+`resource/IntelligenceBrief.tsx` opened its "Contents (N sections)" panel on mount (`useState(true)`).
+Closed. No route renders that component today (its only importer, `resource/SectorSynopsis.tsx`, has
+no importer of its own), which is stated rather than used as a reason to skip it.
+
+`community/CommunitySidebar.tsx`'s `SidebarSection` opens its groups on mount, and is LEFT ALONE and
+reported. These are the /community left-rail navigation groups, the same kind of standing control
+surface R3 exempts, but no written ruling states their default the way UI FIX ROUND 2 item 4 states
+the filters rail's. R3's own last sentence says to report such a case rather than decide it. The
+change if the operator rules the other way is one line, and the marker at the site says so.
+
+The `/admin` sub-tab row reports `aria-selected="true"` on "Provisional review" at rest. Measured,
+excluded, reasoned: it is a `role="tab"` in a `role="tablist"`, sibling navigation where exactly one
+tab is always active and whose "panel" is the page body. A tablist with nothing active renders no
+content at all. The exclusion is written into the sweep's probe and the sweep still PRINTS it, so it
+stays in view rather than being filtered out of the question.
+
+### R3 has no site on this base
+
+Stated because the absence matters. There is no `FiltersCard` in the tree, and the rail's facet
+groups (`list-surface/ListSurfaceRailCards.tsx`) are not collapsible per group: every group renders
+its options, and the file's only disclosure is the per-group "more options" expander, already
+`useState(false)`. Nothing was closed, nothing was touched, and the R3 allowance is carried in F42
+and in the sweep for the lane that later builds those groups.
+
+### The audit spec split, and why nothing was weakened
+
+`operations-matrix.json` measured the selected state and the panel ON THE DEFAULT SELECTION, because
+the audit runner renders one state and cannot click. Fourteen rows (the `#DCE7FB` tint, the 2px
+`#2563EB` inset, the panel's background and top rule, its position below the table, its heading, its
+two links, the three-card cap, the remainder line, five fact-card values) moved VERBATIM to a new
+`operations-matrix-selected.json`, whose mount `ops-matrix-selected` renders the same component and
+the same fixture and then CLICKS the ASIA x D3 cell by its accessible name. They are now measured on
+a cell selected through the real click handler, which is strictly stronger: before, a broken click
+path could not have failed them.
+
+One row was rephrased rather than moved. "the selected cell is the grid's single TAB STOP" asserted
+`[tabindex="0"]` count 1; that count now holds AT REST, with nothing selected, which is the harder
+state, and a second row pins the stop to the first cell. Three new forbids and three new targets are
+the regression guard: no `aria-selected`, no panel, no fact card, no cell painted `#DCE7FB`, one tab
+stop, the stop is the first cell, the foot legend survives.
+
+`compose-08-operations-list.json` REQUIRED the panel on the composed `/operations` page in three
+rows. That is the exact screen the operator was looking at, so those rows asserted the defect. They
+are replaced by the closed state plus two forbids, and everything they measured is still measured on
+the selected-state spec.
+
+### Closing the class
+
+F42 `default-open-disclosure` fails CI on the lexical shape in `src/components/**`: an open/expand
+state starting `true`, a collapsed/closed state starting `false`, a
+`defaultOpen`/`defaultExpanded`/`initialOpen`/`expandedByDefault`/`openByDefault`/`defaultIndex` prop
+defaulting truthy, a `<details open>`. Polarity is read off the state name after a camelCase split
+and matched on whole words, so `openingHours` is not a violation. Allows are per-site
+`// fitness-allow: F42 (ruling)` markers naming their ruling, never a path allowlist.
+
+F42 cannot see the shape that caused this ruling. A default SELECTION has no boolean and no prop:
+the tell is only in the rendered DOM. So the other half is in the rendering guard,
+`smoke/no-default-open-smoke.mjs`, which mounts the real matrix and every `compose-*` page mount and
+measures `details[open]`, `aria-expanded="true"`, a non-tab `aria-selected="true"` and a visible
+`role="tabpanel"` in the initial DOM, using the probe `audit/open-state-sweep.mjs` exports rather
+than a second copy of it. Both are cited in invariant RD-67 and skill Section 4 category 42.
+
+Proven by attack, both halves. The `defaultSelection` block was pasted back into the matrix and the
+guard leg went red on six assertions; the file was restored and it went green. `tocOpen` was set back
+to `true` and F42 went red on the exact line; it was restored and passed.
+
+### The deep-link proof (R4), and an honest limit
+
+The only place in this app where a URL opens something the bare route does not is
+`/profile?tab=<key>` (`lib/account/initial-tab.ts`, read by `UserProfilePage` on its first render).
+The smoke spec mounts the real page twice against the same fixture: at `/profile` the organization
+panel is absent, at `/profile?tab=organization` it is present, and in BOTH cases every `<details>` on
+the page is still closed. A deep link opens exactly what it names and nothing else.
+
+The limit, stated rather than papered over: there is no `<details>`, accordion or section that a URL
+opens in this app, so the proof is on a tab-scoped panel rather than on a disclosure. No such path
+was invented to make a better-looking test.

@@ -15720,3 +15720,84 @@ constant the rail's own D1-D6 labels read); and `totalRegionCount`.
 confirming against the refreshed markup when it lands. Two readings of the artboard are recorded
 there rather than guessed at: the scroll hint appears only when the roster exceeds five columns, and
 the foot legend carries the absence phrase rather than a second bare em dash beside it.
+
+---
+
+## 2026-09-08, lane noexpand: no items expanded when first navigating to a page
+
+**Base.** `lane/opsmatrix3-2026-09-08` (`64646ddc`), branched from the lane rather than a train,
+because the default SELECTION this lane removes is a thing that lane built and the two land together.
+
+**The ruling.** The operator navigated to `/operations` and the page had already opened a dimension,
+Infrastructure capacity, without him clicking anything: "the ops page opend to a sub category not
+just the main page, infastructure capacity and other items should be closed, no items expanded when
+first navigtaing to a page". Site-wide (R1), covering any default selection whose visible effect is
+an opened panel (R2), with the FILTERS rail's stated default out of scope (R3), deep links still
+opening what they name (R4), and keyboard reachability not licensing a preselection (R5).
+
+**Method: measurement first, grep second.** Every one of the 49 registered mounts (the 17 artboard
+routes among them) was rendered at 1440 and at 390 through the audit machinery and its initial DOM
+was read for `details[open]`, `aria-expanded="true"`, `aria-selected="true"` and a visible
+`role="tabpanel"`. That sweep is now a repo file, `.discipline/rendering/audit/open-state-sweep.mjs`,
+beside `overflow-sweep.mjs`, and its probe is the same string the rendering guard's new leg
+evaluates, so the two cannot drift. It found FOUR open elements before any interaction, on two
+distinct causes; grep over the initialiser family then found two more that no mount renders.
+
+**Findings, all [CONFIRMED] by rendering unless marked.**
+- `ops-matrix` / `compose-08-operations`: a `<td>` with `aria-selected="true"` and its fact panel,
+  from `RegionDimensionMatrix`'s `defaultSelection`. FIXED: no selection, no panel, no tint on first
+  render; the first cell carries `tabindex="0"` and takes focus on Tab, and only a click, Enter or
+  Space selects. Arrow keys now move focus and select nothing (R5).
+- `admin-stat-tiles` / `compose-admin`: `aria-selected="true"` on the "Provisional review" sub-tab.
+  NOT A DEFECT and not touched: a `role="tab"` in a `role="tablist"`, sibling navigation where one
+  tab is always active and whose panel is the page body. The exclusion is a ruling written into the
+  probe, and the sweep still prints the row rather than filtering it away.
+- `resource/IntelligenceBrief.tsx:455`: `tocOpen = useState(true)`, the "Contents" panel open on
+  mount. FIXED to `false`. No route renders that component today (its only importer,
+  `resource/SectorSynopsis.tsx`, has no importer of its own): stated, not used as an excuse.
+- `community/CommunitySidebar.tsx:408`: `open = useState(true)` on the /community left-rail
+  navigation groups. LEFT ALONE AND REPORTED, per R3's "reports the case rather than deciding". It is
+  a standing control surface like the filters rail, but no written ruling states its default. One
+  line changes it if the operator rules the other way, and the marker at the site says so.
+- R3's protected case does not exist on this base [CONFIRMED, by measurement and by source]: there is
+  no `FiltersCard`, and the rail's facet groups are not collapsible per group. Nothing was touched.
+
+**Proofs moved, not deleted.** Fourteen rows of `operations-matrix.json` measured the tint, the
+inset, the panel and the fact cards ON the default selection, because the audit runner renders one
+state and cannot click. They moved verbatim to a new `operations-matrix-selected.json` whose mount
+clicks the ASIA x D3 cell; the at-rest spec gained three targets and four forbids for the closed
+state. `compose-08-operations-list.json` had three rows REQUIRING the panel on the composed page,
+which is the screen the operator was complaining about; they are replaced by the closed state and
+two forbids. The matrix npmtests' two default-selection tests became a test that no default is
+computed in any spelling and a test that a stale selection closes the panel, plus two new ones for
+the focus/selection split. Every moved assertion is measured in a strictly harder state than before.
+
+**Class closed, both halves, both attacked.** F42 `default-open-disclosure` (invariant RD-67, skill
+Section 4 category 42) fails CI on the lexical shape; the rendering guard's `no-default-open` leg
+fails on the rendered shape, which F42 by construction cannot see. Attack A: the `defaultSelection`
+block was pasted back into the matrix and the guard leg went red on six assertions, then green on
+restore. Attack B: `tocOpen` was set back to `true` and F42 went red on the exact line, then green on
+restore.
+
+**R4 proved, with its limit named.** `/profile?tab=organization` opens the organization panel;
+`/profile` does not; in both cases every `<details>` on the page stays closed. That is the only
+URL-opens-a-thing path in the app: no `<details>`, accordion or section is opened by a URL anywhere,
+so the proof rides a tab-scoped panel rather than a disclosure. Nothing was invented to improve it.
+
+**A registry limit worth knowing.** RD-67 cites `fitness:F42` and its selftest, but NOT the guard leg
+as an `enforcedBy` token: `isExecutionWired` recognises the guard ENTRYPOINT and not the smoke
+modules it imports, so the token resolves UNRESOLVED even though the guard runs the leg every time.
+The leg is named in the invariant's `residual` with its runner and its registration point, which is
+the posture RD-58/F35 and the rendering-guard invariant already carry. A future lane that teaches
+`execution-wiring.mjs` to follow the guard's imports would let three invariants cite their browser
+legs directly.
+
+**Gates.** tsc exit 0 (exit code read, not the tail); fitness runner exit 0, 36 functions, 0
+violations; rendering guard PASS, 515 fixture checks + 131 smoke checks (9 specs, `no-default-open`
+among them) + 216 UX checks; design audit 71 specs / 2085 checks, 2085 MATCH, 0 NOT BUILT, at 1440
+and 390; overflow sweep exit 0 at both widths, 0px horizontal page overflow on every mount;
+discipline suite 5989 tests, 0 fail; CI npmtest glob 1006 tests, 0 fail; `next build` (Turbopack) and
+`next build --webpack` both exit 0.
+
+**Open, for the operator.** One ruling is wanted: the /community sidebar navigation groups, R2
+content or R3 control surface. Everything else in the sweep is either fixed or reasoned in place.
