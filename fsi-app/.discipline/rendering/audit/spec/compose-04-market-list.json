@@ -194,8 +194,8 @@
     {
       "name": "HEADLINE SERIES head caption is p4's 10.5px / 600 / 0.12em, and states the cap over the corpus",
       "selector": "[data-audit=\"headline-series\"] h2 + span",
-      "note": "p4's inline style sets font-weight twice (700 then 600); 600 is what a browser resolves and what p4 therefore draws. The build had 800.",
-      "textMatch": "re:^10 of 16 · dated, sourced observations",
+      "note": "p4's inline style sets font-weight twice (700 then 600); 600 is what a browser resolves and what p4 therefore draws. The build had 800. UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned: the caption reads \"5 of 8\" on the compose-04 mount, five distinct families (four fuels and the folded ECB FX family) over the fixture's eight observed series. The TYPE assertions in this row, which are p4's and are what market63 measured, are untouched. Not weakened: the caption is still anchored at the start of the string, so a card that reverts to counting SERIES rather than families, or that loses its denominator, still fails.",
+      "textMatch": "re:^5 of 8 \u00b7 dated, sourced observations",
       "expect": {
         "font-size": "10.5px",
         "font-weight": "600",
@@ -216,15 +216,17 @@
     {
       "name": "Every headline card sits on p4's five-across track (this mount's 998px content box; see the TRACK ARITHMETIC note)",
       "selector": "[data-audit=\"headline-track\"]",
+      "note": "UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned:five resolved tracks, not ten, because the ruling's cap is five and this fixture holds exactly five families. The TRACK WIDTH is unchanged at 191.594px, which is the whole point: the same `calc((100% - 40px) / 5)` formula resolves to the same per-card width whatever the row is filled with, so this row still fails if the geometry reverts to `repeat(auto-fit, minmax(220px,1fr))`.",
       "expect": {
-        "grid-template-columns": "191.594px 191.594px 191.594px 191.594px 191.594px 191.594px 191.594px 191.594px 191.594px 191.594px"
+        "grid-template-columns": "191.594px 191.594px 191.594px 191.594px 191.594px"
       }
     },
     {
-      "name": "The card is capped at ten, so the caption's 'of 16' is a real remainder and the row really does overflow",
+      "name": "The row is capped at the ruling's FIVE visible families, and every one of them is a card",
       "selector": "[data-audit=\"headline-card\"]",
+      "note": "UPDATED BY FOLD 63 (2026-09-08); spec row written 2026-09-08 by lane market63. Lane seriesfamily, folded into the SAME train, carries the operator's LATER ruling on this row: one card per series FAMILY, capped at FIVE visible, header count N = distinct families shown. That supersedes market63's ten-card cap, so this row's NUMBER moves and its geometry does not. The value below is measured off this mount, not reasoned:five cards. THE OVERFLOW IS NOT MEASURED HERE AND THAT IS DELIBERATE (rule 15: no vacuous assertion). market63 put twelve invented ECB FX series in the fixture so a ten-cap could overflow; those keys are claimed by no declared family (series-family.mjs names ecb-fx:eur-usd/-gbp/-cny/-jpy and no others), so under the ruling they would each become a singleton family and the row would lose the '+3 rates' fold the ruling states verbatim. The real four keys are kept, which gives exactly five families and a full visible track. The cap and the overflow ORDER are proven exhaustively, by attack, in src/__tests__/market-headline-series-select.test.mjs, which the npmtest glob runs; this row proves the DOM renders one card per selected family.",
       "expect": {
-        "count": "10"
+        "count": "5"
       }
     },
     {

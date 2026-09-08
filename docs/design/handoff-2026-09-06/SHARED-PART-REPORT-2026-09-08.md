@@ -278,3 +278,108 @@ Every one of the 17 routes has a mount. No route needed to be reported as unmeas
 `compose-08-operations`, `operations-detail-1440`, `compose-map`, `compose-11-watchlist`,
 `compose-community`, `compose-admin`, `compose-account`, `compose-settings`, `compose-login`,
 `compose-onboarding`.
+
+---
+
+# CORRECTION ON THE FOLD-63 TREE (added 2026-09-08 by the fold, not by lane `sharedreport`)
+
+Everything above this heading is lane `sharedreport`'s report, folded unchanged. It measured the
+five shared parts on `train/wave61-2026-09-08` (`9f549170`). This train lands on
+`train/wave62-2026-09-08` (`605413d9`), which already carried four lanes that own these exact parts
+(`cardrule`, `listrow`, `railfacets`, `adminlayout`), and then this fold added five more. So the
+tables above describe a tree the operator is not being asked to land.
+
+This section is what is true of the tree we ARE landing, `train/wave63-2026-09-08`. It was
+MEASURED, not reasoned: every route below was re-mounted at 1440 through the same machinery the
+report's own Method section names (`.discipline/rendering/audit/mounts.mjs` +
+`.discipline/rendering/smoke/harness.mjs`, the esbuild bundle and the Playwright page
+`npm run audit:design` drives), with the same rendered-text rule (each node's own computed
+`text-transform` applied, hidden subtrees skipped). Where a mechanical gate in the tree already
+measures an item continuously, that gate's own numbers are given rather than a second private
+detector, and the gate is named so the reader can re-run it.
+
+## The five items, restated against this tree
+
+| Item | On the wave-61 base (report above) | On THIS tree | Closed by |
+|---|---|---|---|
+| 2 Card top rule | PRESENT on 8 of 17 routes; "no single deciding line, `<SectionRule/>` hand-mounted at 31 call sites in 16 files" | **CLOSED as a class.** There is now exactly ONE deciding line and it is unconditional: `fsi-app/src/components/ui/SectionCard.tsx:101`, whose two layouts both mount the rule (`SectionCard.tsx:136-142`) and whose values come from `fsi-app/src/components/ui/SectionRule.tsx:27`. No file outside `components/ui/` mounts the rule by hand any more | wave 62 lane `cardrule` (operator item A1), plus three shells this fold converted |
+| 3 Absence strings | PRESENT on 3 of 17; "both cells pass the WIDE variant into a track ~85px across" | **CLOSED at the row.** The row now asks for ONE reason and renders it in the cell that owns it: `fsi-app/src/components/ui/ListRow.tsx:547` (`pickAbsenceReason`) and `:585` (the dashed-baseline variant in the impact cell). The per-cell wide variants the report measured are gone | wave 62 lane `listrow` (operator item D-M4) |
+| 5 Overflow control | PRESENT on 5 of 17; "`PriorityDropdown.tsx` is the bordered circle and is what every list row mounts" | **CLOSED.** `fsi-app/src/components/regulations/PriorityDropdown.tsx:243-262`: a 44x44 button with `border: "none"`, `background: "transparent"`, `borderRadius: 0`, holding the artboard's bare glyph. Zero bordered circles on any of the sixteen routes re-mounted | wave 62 lane `listrow` |
+| 6 Kind chip | PRESENT on 0 of 17 (border already correct); "every other stated value: NO" | **Border still correct, and now measured continuously.** `fsi-app/src/components/ui/Chips.tsx:124` `TagChip` gained the `variant="row"` form the item asks for (9.5px / 700 / `--ink` / radius 3 / `2px 6px`), and the surfaces hand it to `ListRow` as `kind` rather than composing a chip each | wave 62 compose lanes; `ResearchLedger` moved onto it |
+| 10 Nav footer | PRESENT on 10 of 10 measurable routes; "renders ONE combined row. In flight: lane `communitynav2`" | **CLOSED by the lane the report named, folded here.** `fsi-app/src/components/Sidebar.tsx:256` (`footer()`), TWO rows, one implementation for the desktop card and the mobile drawer | THIS FOLD, lane `communitynav2` |
+
+## Re-measured, route by route
+
+Sixteen mounts, 1440. `/regulations/register` and `/operations/calculator` are new this fold and
+had no row in the report above. `/market/[id]`, `/research/[id]` and `/operations/[id]` are covered
+by the detail mount `/regulations/[id]` measures; their own per-route numbers are in the layout
+guard's `results.json`.
+
+Two columns need their definitions stated, because the first run of this probe got one of them
+wrong and the wrong number is the kind that survives into a decision. An ABSENCE TOKEN is
+`.cl-absence`, the class `Absence.tsx` puts on both of its variants. `[data-absence]` on its own is
+something different: it is the marker a legitimate glyph carries so the placeholder-literal scan
+skips it (`ImpactMeter`'s dashed baseline, the due cell's dash, and this fold's own headline-card
+pending delta all carry it). Counting those as tokens turned 20 into 50 and invented a defect.
+The D-M4 column is the compose specs' own forbid selector, run in the page: a list row carrying a
+token in two of its three cells, which is the shape ruling 2.1 forbids.
+
+| Route | Cards with card chrome | Of those, no 3px rule | Absence TOKENS | Of those, in the row's single slot | Rows with 2+ tokens (D-M4) | Bordered overflow circles | Bordered kind chips | Nav footer rows |
+|---|---|---|---|---|---|---|---|---|
+| `/` dashboard | 6 | 1 | 0 | 0 | 0 | 0 | 0 | 2 |
+| `/regulations` | 8 | 4 | 0 | 0 | 0 | 0 | 0 | no nav in mount |
+| `/regulations/[id]` | 17 | 3 | 2 | 0 | 0 | 0 | 0 | 2 |
+| `/market` | 11 | 4 | 4 | 4 | 0 | 0 | 0 | no nav in mount |
+| `/research` | 11 | 7 | 13 | 13 | 0 | 0 | 0 | no nav in mount |
+| `/operations` | 8 | 3 | 17 | 3 | 0 | 0 | 0 | no nav in mount |
+| `/map` | 6 | 0 | 0 | 0 | 0 | 0 | 0 | 2 |
+| `/watchlist` | 6 | 0 | 0 | 0 | 0 | 0 | 0 | no nav in mount |
+| `/community` | 15 | 8 | 3 | 0 | 0 | 0 | 0 | 2 |
+| `/admin` | 6 | 0 | 1 | 0 | 0 | 0 | 0 | 2 |
+| `/profile` account | 6 | 0 | 1 | 0 | 0 | 0 | 0 | 2 |
+| `/settings` | 13 | 1 | 0 | 0 | 0 | 0 | 0 | 2 |
+| `/login` auth | 0 | 0 | 0 | 0 | 0 | 0 | 0 | N/A, artboard 16 draws no nav |
+| `/onboarding` | 1 | 1 | 0 | 0 | 0 | 0 | 0 | N/A, artboard 17 draws no nav |
+| `/regulations/register` NEW | 5 | 0 | 0 | 0 | 0 | 0 | 0 | 2 |
+| `/operations/calculator` NEW | 5 | 3 | 0 | 0 | 0 | 0 | 0 | 2 |
+
+Items 5, 6 and 10 are flat: zero bordered overflow circles and zero bordered kind chips on any of
+the sixteen routes, and every route whose mount includes the nav renders a TWO-row footer. Item 3
+is flat too on the measure that matters: the D-M4 column is zero everywhere, and on the four list
+routes every absence token on a row is inside the row's single `.cl-row-absence-slot`, which is
+what makes "at most one reason per row" structural rather than a convention.
+
+## The one non-flat column, named rather than left as a number
+
+"No 3px rule" is a DETECTOR breadth, not a ruleless card, and the two continuous gates in the tree
+are the ones to read rather than this probe. The probe's card test is the report's own (radius >= 8,
+a border or a shadow, at least 180x48, holding content), which is deliberately wider than the
+product's card class, so it also catches tiles, row cards and grouped blocks no artboard draws a
+rule on.
+
+- The design audit's CLASS-CLOSURE forbid, present on every `compose-*.json` spec, matches any
+  `[data-section-card=""]` rendering no rule in either of `SectionCard`'s two positions. On this
+  tree it matches nothing: **73 specs, 2407 checks, 2407 MATCH, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN
+  SPEC** (`npm run audit:design`). Every card in the product carries its rule.
+- The site-wide layout guard's L6 detects cards structurally, so it sees the same wider class. On
+  this tree it reports **34 findings**, and every one is in a named non-card family: `li.cl-row-card`
+  on `/watchlist` (8, and the report above already excludes it, "a row is not a card"), the
+  `/community` room TILES rendered as buttons (12), and the detail rail blocks CONNECTIONS /
+  AFFECTED LANES / OWNER & TEAM (14). The band-grouping cards that were 28 of the 62 L6 findings
+  before this fold are gone from the count, because L6 now reads ruling 5.2's own
+  `data-section-card="band-grouping"` stamp, the same identity the design audit already used.
+
+## What this fold changed in these five parts
+
+- `ObligationRegisterPageView.tsx` (new page, item D2) arrived with a hand-built card shell,
+  because its lane branched from wave 61 before `SectionCard` existed. Converted, not exempted.
+- `SourceHealthDashboard.tsx`'s registry card, a hand-built shell with NO box-shadow at all at
+  `605413d9`. Converted.
+- `SourceTierLegend.tsx`'s tier-definitions dialog: an undesigned overlay, F42's own named class.
+  Marked at its site.
+- `MarketComparativeRibbon.tsx`'s five HEADLINE SERIES tiles are NOT cards and are marked as such
+  in both guards. This section's own report agrees, above, in its item-2 exclusions: "The five
+  inner price tiles on `/market`. Artboard 04 draws them inside the HEADLINE SERIES card with a
+  plain 1px border and no rule."
+- `Sidebar.tsx`'s footer became two rows (lane `communitynav2`), which is the one item this report
+  listed as in flight.

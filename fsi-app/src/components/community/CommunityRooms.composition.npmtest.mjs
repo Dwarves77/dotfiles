@@ -5,6 +5,14 @@
 // page in a real browser and is the authority on geometry; this file pins the SOURCE-level facts
 // that survive a refactor of the mount but must not be undone silently — the regions the artboard
 // draws, the shared parts they are assembled from, and the two R7 placements.
+//
+// FOLD 63 (2026-09-08): the ANCHORS below moved, the assertions did not. This lane branched from
+// wave 61, where every card here was `<div style={CARD} data-audit="x"><SectionRule/>`. Wave 62's
+// lane cardrule (operator item A1) replaced that shell with the shared `SectionCard`, whose audit
+// hook is the PROP `dataAudit="x"` and which mounts the rule itself, so `data-audit="x"` and the
+// `SectionRule` import are no longer in this file's source and every string search for them found
+// nothing. Each anchor is updated to the shell the tree actually has; not one assertion is dropped
+// or loosened, and each still fails if the thing it names goes away.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
@@ -15,13 +23,6 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(HERE, "CommunityRooms.tsx"), "utf8");
 const PAGE = readFileSync(resolve(HERE, "..", "..", "app", "community", "page.tsx"), "utf8");
 
-// UPDATED (fold 62, 2026-09-08): the shared part this page takes its card from is `SectionCard`,
-// not `SectionRule` directly. Lane cardrule made the rule a property of the card (operator item
-// A1), so a page that imported SectionRule itself would now be the page-local copy this test
-// exists to forbid. Every audit hook below moved with it, from a literal `data-audit` attribute on
-// a hand-typed card div to SectionCard's own `dataAudit` prop, which renders the same attribute on
-// the same element: the assertions follow the source, and the rendered selectors the compose-12
-// spec addresses are unchanged.
 test("the page is assembled from the shared parts, never a page-local copy of them", () => {
   for (const part of ["SectionCard", "SectionHeading", "CardFoot", "RowTable", "Absence", "Button"]) {
     assert.match(SOURCE, new RegExp(`from "@/components/ui/${part === "RowTable" ? "RowTable" : part}"`));
@@ -76,7 +77,7 @@ test("artboard 12 has no 'Regional rooms' heading above the tiles", () => {
 });
 
 test("the '<ROOM> REGION' card and its 'Live in this region' rows are gone (operator ruling 2026-09-08: the thread table supersedes them)", () => {
-  assert.doesNotMatch(SOURCE, /dataAudit="region-card"/);
+  assert.doesNotMatch(SOURCE, /data-?[aA]udit=?"?region-card/);
   // Scoped to the seeded render: NotSeededState, the pre-seed empty state no artboard
   // covers, still describes the region ledger in prose (R7).
   const seededRender = SOURCE.slice(

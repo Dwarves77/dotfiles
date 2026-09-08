@@ -15505,3 +15505,84 @@ on lane `communitynav2`.
 
 **Gates:** tsc clean; fitness 0 violations; rendering guard PASS; audit:design every spec MATCH at
 1440 and 390; npmtest glob 0 fail; run-test-suite 0 fail; `next build --webpack` clean.
+
+## 2026-09-08: FOLD 63, train/wave63-2026-09-08
+
+**Lane:** FOLD, train 63. **Base:** `train/wave62-2026-09-08` (`605413d9`). **Branch:**
+`train/wave63-2026-09-08`. Worktree `/root/work/lanes/fold63`. The container cannot push; the
+coordinator lands.
+
+**Accomplished.** Five lanes cherry-picked with `-x`, in the order the collision required:
+`regopscope` (5 commits, D2/D3 page moves, register sort, the moved calculator's hydration fix),
+`communitynav2` (artboard 12 amendment, the two-row nav footer G1, the disclaimer removal H1, the
+auditor sentence), `market63` (artboard 04 headline row, rail explainer, carbon corridor label),
+`seriesfamily` (the operator's HEADLINE SERIES FAMILY ruling), `sharedreport` (docs). Every lane
+branched from `9f549170`, so each range was cherry-picked as `9f549170..<branch>`.
+
+**The one known collision, resolved as ruled.** market63 and seriesfamily both rewrote the /market
+HEADLINE SERIES row. SELECTION and the header count are seriesfamily's (`selectHeadlineSeries` over
+declared families, N distinct families of M observed series); GEOMETRY and TYPE are market63's
+(`grid-auto-flow: column`, `calc((100% - 40px) / 5)`, no sparkline, no 1m or YoY row, Anton 17px
+value with the delta inline). The OVERFLOW takes market63's mechanism because overflow is geometry:
+families past the ruling's cap of five continue the same row into the horizontal scroller.
+seriesfamily's disclosure and market63's `MAX_METRICS = 10` are both gone; the cap is
+`HEADLINE_VISIBLE_CAP`, the ruling's own five. The compose-04 FIXTURE is seriesfamily's four REAL
+ECB keys, because family membership is by exact `series_key` and market63's twelve invented keys
+would each resolve to a family of their own, destroying the "+3 rates" fold the ruling states
+verbatim. Full hunk-by-hunk account in DEVIATION-LOG.md's FOLD 63 section.
+
+**Cross-lane overlaps that were measured rather than assumed.** communitynav2's sitewide removal of
+the auditor sentence supersedes market63's per-surface `filtersFootnote` prop, so the prop, its
+default and its one `null` caller are deleted rather than left dormant, and regopscope's new
+register page loses the same sentence. regopscope's new pages arrived with hand-built card shells
+because that lane branched before `SectionCard` existed; converted, never exempted.
+`OperationsLedger` now renders no card at all (item D3 removed its only one), so it leaves the card
+coverage test's FILES list and gains an assertion that it renders none.
+
+**Four BASE defects at `605413d9`, inherited and fixed here.** Each confirmed by checking the base
+out clean and running the gate on it: a duplicate `complianceDeadline` key from lanes duenext and
+briefdata both adding it in wave 62 (the base does not typecheck and does not build); two F42 card
+shells (`SourceHealthDashboard`, `SourceTierLegend`); and `compose-01-dashboard`'s Due-next row
+count, which expected 2 against a fixture that renders 3 because it counted only the
+`complianceDeadline` candidate and missed `dueInfo`'s timeline candidate. Ten inherited npmtest
+failures, all anchors pinned to shells wave 62 replaced, are re-pointed at the shells the tree has.
+
+**Two layout-guard defects found by this fold.** `collect.mjs` read a card's rule background off an
+unpainted wrapper, so every padded `SectionCard` reported a transparent rule (68 of 130 L6
+findings); and L6 held ruling 5.2's band-grouping card, the one card the ruling says draws no
+dark-grey rule, to the four-part chrome (another 28). Both now measure what the rule says.
+
+**UX compliance.** DP-1 / DP-2 and `docs/design/ux-laws.md` were read before the `.tsx` edits in
+this fold. Law 2 hit targets: the one interactive element this fold ADDS to a surface, the
+`/operations` calculator link, was measured at 217x26 by the layout guard and raised to a 28px
+minimum box to meet L9's site-wide floor, with its audit-spec row updated to match. Law 1 (one
+primary action per region) and the row laws are untouched: the fold moved regions between pages and
+resolved two rewrites of one row, and added no new control other than that link. RD-60: the
+headline row keeps market63's mobile reflow (the five-across track becomes a fixed 150px card that
+scrolls sideways below 768), which is the DP-1 reflow rule applied to it, not a second design.
+
+**Gates, all from the fold worktree, with the clean-base number beside each.**
+
+| Gate | Base `605413d9` (clean) | Fold `train/wave63-2026-09-08` |
+|---|---|---|
+| `npx tsc --noEmit` | FAIL, TS1117 | 0 errors |
+| `.discipline/fitness/runner.mjs` | 2 violations (F42) | 36 functions, 0 violations |
+| `.discipline/rendering/run-rendering-guard.mjs` | FAIL, 221 failures | FAIL, 218 failures, a strict SUBSET of the base's, 0 findings unique to the fold |
+| `npm run audit:design` | 2343 checks, 1 MISMATCH | 73 specs, 2407 checks, 2407 MATCH |
+| `npm run audit:overflow` | not re-run | 0px horizontal page overflow on every mount |
+| `npm run audit:layout` | 990 findings | 863 findings |
+| CI npmtest glob | 15 failing | 1109 tests, 1109 pass, 0 fail |
+| `.discipline/run-test-suite.sh` | not re-run | 6011 tests, 6006 pass, 0 fail, 5 skipped |
+| `npx next build --webpack` | FAIL at the TypeScript step | clean, one pre-existing `unpdf` node_modules warning identical on the base |
+
+**Blockers / next steps.** The rendering guard still FAILS, on 218 inherited findings the layout
+guard's wave-61 baseline does not cover; the guard is a non-blocking CI lane by operator policy
+(2026-07-11) until it has three consecutive green runs. Of the 218: 120 are L9 hit targets and EVERY ONE of
+them is the same element, `input.cl-facet-check` at 266x24, the rail facet row lane `railfacets`
+set to 24px from artboard C1. So operator L9 (a 28px site-wide short-axis floor) and operator item
+C1 (24px facet rows, the artboard's own value) contradict each other on one element, on six routes
+at two widths. That needs a ruling and no lane should pick a side on its own; it is also why the
+number is large without being 120 separate problems. The remaining 98: 83 L2 overlaps on
+`/settings` and `/profile`, 12 L10 manifest entries, 2 L1 and 1 L3, all owned by the surfaces they
+sit on rather than by any part this fold touched. The `Tile` primitive named in DEVIATION-LOG is the other
+piece of follow-up work, delivered decision-ready.
