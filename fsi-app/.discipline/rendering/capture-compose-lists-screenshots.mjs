@@ -19,7 +19,7 @@
 //     o.paste(a,(0,44)); o.paste(b,(a.width+24,44)); o.save(OUT)"
 
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, rmSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { AUDIT_MOUNTS } from './audit/mounts.mjs';
@@ -37,6 +37,38 @@ const STYLE_INJECT = `
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const OUT_DIR = join(getRepoRoot(), 'docs/design/handoff-2026-09-06/built');
+const SCREENS_DIR = join(getRepoRoot(), 'docs/design/handoff-2026-09-06/screens');
+
+// GET /api/obligations/upcoming — the read behind the Regulations rail card "Obligations · next 30
+// days" (artboard 02/id="p2"). Dates are generated relative to the run because the card's own
+// 30-day window is computed against `new Date()`; a hard-coded date would fall out of the window and
+// capture the Absence state instead of the four rows the artboard draws. Mirrors the audit mount's
+// own fixture (.discipline/rendering/audit/mounts.mjs, COMPOSE_REGULATIONS_API) including the fifth
+// event 90 days out, which the card must drop.
+const obligationDate = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const obligationEvent = (days, title, obligation) => ({
+  id: `oblig-${days}`,
+  event_date: obligationDate(days),
+  date_precision: 'day',
+  event_kind: 'compliance_deadline',
+  obligation_text: obligation,
+  item: { id: `item-${days}`, title, legacy_id: null, jurisdiction_iso: ['eu'] },
+});
+const OBLIGATIONS_ROUTE = {
+  urlGlob: '**/api/obligations/upcoming**',
+  handler: (route) => route.fulfill({
+    json: {
+      hasJurisdictionFilter: false,
+      events: [
+        obligationEvent(3, 'EU Net-Zero Industry Act', 'Member State reporting'),
+        obligationEvent(12, 'EU ETS maritime', '70% surrender of 2025 emissions'),
+        obligationEvent(22, 'Iowa DNR', 'annual compliance certification'),
+        obligationEvent(29, 'EU Battery Regulation', 'due-diligence policy in place'),
+        obligationEvent(90, 'Outside the window', 'must not appear in the card'),
+      ],
+    },
+  }),
+};
 
 const EMPTY_AGGREGATES = {
   totalItems: 0,
@@ -274,6 +306,8 @@ const CAPTURES = [
   },
   {
     out: 'compose-02-regulations-list.png',
+    artboard: '02-regulations-list.png',
+    apiRoutes: [OBLIGATIONS_ROUTE],
     entry: REGULATIONS_ENTRY,
     props: {
       initialResources: REG_ROWS,
@@ -291,6 +325,7 @@ const CAPTURES = [
   },
   {
     out: 'compose-04-market-list.png',
+    artboard: '04-market-list.png',
     entry: MARKET_ENTRY,
     props: {
       initialResources: MARKET_ROWS,
@@ -314,6 +349,28 @@ const CAPTURES = [
   },
 ];
 
+/** The exit evidence this lane's method requires: artboard on the left, the built page on the right,
+ *  one PNG. Composited in the same browser rather than with an image library (there is no image
+ *  dependency in this repo, and adding one for two labelled <img> tags would be the wrong trade). */
+async function composite(browser, artboardPath, builtPath, outPath) {
+  // Both images are inlined as data URIs: the compositor page is created with `setContent` (an
+  // about:blank document), and a `file://` subresource from an opaque origin is blocked by the
+  // browser, which showed up as an image that never completes loading.
+  const dataUri = (p) => `data:image/png;base64,${readFileSync(p).toString('base64')}`;
+  const page = await browser.newPage();
+  const label = 'font:700 20px system-ui,sans-serif;padding:10px 4px;letter-spacing:.06em;text-transform:uppercase';
+  await page.setContent(`
+    <body style="margin:0;background:#EDE9E3">
+      <div style="display:flex;align-items:flex-start;gap:16px;padding:16px">
+        <div><div style="${label}">Artboard</div><img src="${dataUri(artboardPath)}" style="display:block;width:1440px"></div>
+        <div><div style="${label}">Built, 1440</div><img src="${dataUri(builtPath)}" style="display:block;width:1440px"></div>
+      </div>
+    </body>`);
+  await page.waitForFunction(() => Array.from(document.images).every((i) => i.complete && i.naturalWidth > 0));
+  await page.screenshot({ path: outPath, fullPage: true });
+  await page.close();
+}
+
 async function main() {
   mkdirSync(OUT_DIR, { recursive: true });
   const browser = await chromium.launch(
@@ -325,15 +382,21 @@ async function main() {
   for (const cap of CAPTURES.filter((c) => !only || c.out.includes(only))) {
     const bundleJs = await bundleEntry(cap.entry);
     const page = await newSmokePage(browser, {
-      apiRoutes: [{ urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ json: { resources: [], archived: [] } }) }],
+      apiRoutes: [
+        { urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ json: { resources: [], archived: [] } }) },
+        ...(cap.apiRoutes ?? []),
+      ],
     });
     await page.setViewportSize({ width: 1440, height: 1200 });
     await mountBundle(page, bundleJs, '__mount', cap.props);
     await page.evaluate(() => new Promise((r) => setTimeout(r, 300)));
-    const outPath = join(OUT_DIR, cap.out);
-    await page.screenshot({ path: outPath, fullPage: true });
-    console.log(`wrote ${outPath}`);
+    const builtPath = join(OUT_DIR, `_built-${cap.out}`);
+    await page.screenshot({ path: builtPath, fullPage: true });
     await page.close();
+    const outPath = join(OUT_DIR, cap.out);
+    await composite(browser, join(SCREENS_DIR, cap.artboard), builtPath, outPath);
+    rmSync(builtPath, { force: true });
+    console.log(`wrote ${outPath}`);
   }
   await browser.close();
 }

@@ -686,6 +686,42 @@ const COMPOSE_LEDGER_API = [
   { urlGlob: '**/api/workspace/bootstrap**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ personalState: [], listOrders: {}, members: null, adminAttention: null, overrides: [] }) }) },
 ];
 
+// GET /api/obligations/upcoming, the read behind the Regulations rail card "Obligations · next 30
+// days" (artboard 02/id="p2"). Dates are generated RELATIVE TO THE RUN (+3/+12/+22/+29 days) because
+// the card's own 30-day window is computed against `new Date()` — a hard-coded fixture date would
+// silently fall out of the window and turn this spec into an assertion about the Absence state
+// instead of about the four rows the artboard draws. The last entry (+90 days) is deliberately
+// OUTSIDE the window: it proves the window is applied here, in the real composition, and not only in
+// obligation-rail-select.npmtest.mjs.
+const composeObligationDate = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const composeObligationEvent = (days, title, obligation) => ({
+  id: `oblig-${days}`,
+  event_date: composeObligationDate(days),
+  date_precision: 'day',
+  event_kind: 'compliance_deadline',
+  obligation_text: obligation,
+  item: { id: `item-${days}`, title, legacy_id: null, jurisdiction_iso: ['eu'] },
+});
+const COMPOSE_REGULATIONS_API = [
+  ...COMPOSE_LEDGER_API,
+  {
+    urlGlob: '**/api/obligations/upcoming**',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        hasJurisdictionFilter: false,
+        events: [
+          composeObligationEvent(3, 'Fixture regulation A', 'Member State reporting'),
+          composeObligationEvent(12, 'Fixture regulation B', '70% surrender of prior-year emissions'),
+          composeObligationEvent(22, 'Fixture regulation C', 'annual compliance certification'),
+          composeObligationEvent(29, 'Fixture regulation D', 'due-diligence policy in place'),
+          composeObligationEvent(90, 'Fixture regulation E', 'outside the 30-day window'),
+        ],
+      }),
+    }),
+  },
+];
+
 
 // ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
 // The real logged-out identity frame plus the Sign in / Create account tab strip both /login and
@@ -1909,10 +1945,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-02-regulations': {
     id: 'compose-02-regulations',
-    description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
+    description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Obligations/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
     viewport: 1440,
     entry: COMPOSE_REGULATIONS_ENTRY,
-    apiRoutes: COMPOSE_LEDGER_API,
+    apiRoutes: COMPOSE_REGULATIONS_API,
   },
   'compose-06-research': {
     id: 'compose-06-research',

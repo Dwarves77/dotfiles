@@ -12110,3 +12110,61 @@ smoke + 11 UX smoke specs, 80 + 182 checks); `run-test-suite.sh` 5899 pass, **0 
 
 Evidence: `docs/design/handoff-2026-09-06/built/compose-11-watchlist.png` (artboard beside the
 built page at 1440, populated fixture). Commits: 581fac7c, f87c0acc, f8a9a4fb.
+## Addendum 86, postscript 13: the Regulations rail's OBLIGATIONS · NEXT 30 DAYS card (2026-09-08, lane comp-oblig)
+
+One item, finished: artboard 02/id="p2" draws an "Obligations · next 30 days" card in the
+`/regulations` rail, between the FILTERS card and LEGEND. The built rail ran Filters then Legend,
+skipping it (found by the compose-lists lane's own side-by-side composite and named there as the
+next step). It is built now.
+
+**Built from the shared parts, never a page-local copy.** `ObligationsRailCard` lives in
+`fsi-app/src/components/list-surface/ListSurfaceRailCards.tsx` beside `FiltersRailCard` and
+`LegendRailCard`, and mounts through the same `RailCard` wrapper (ruling 5.1's `SectionRule`
+included). `RegulationsLedger.tsx`'s `rail` prop now renders Obligations then Legend;
+`ListSurfaceShell` still mounts Filters above both, so the artboard's rail order holds.
+
+**Shared parts extended additively** (nothing forked): `RailCard` gained an optional
+`headLink={{label, href}}` prop for the artboard's "Calendar →" (callers that omit it render the
+head byte-identically to before); `Skeleton.tsx` gained `SkeletonRailDateRow`, the dated rail row in
+its final geometry; `forward-event-format.mjs` gained `formatEventDateCompact`, the same
+precision-honest rendering in the artboard's 48px-column form ("Sep 25 2026"), so no second date
+formatter exists anywhere.
+
+**Data path.** No new Supabase read: the card fetches the existing bounded, RLS-gated,
+jurisdiction-defaulted `GET /api/obligations/upcoming` (read-upcoming.mjs), the same route
+`UpcomingObligationsStrip` uses. The artboard's own extra constraints, a 30-day window and its
+four-row count, are the pure `src/lib/forward-events/obligation-rail-select.mjs` with its own
+npmtest. Loading is a skeleton in final geometry, never a 0; an empty window is the Absence token,
+never an empty card. "Calendar →" points at the Obligation Register section already on the page
+(`ObligationRegisterFilterBar.tsx` gained an `id`, nothing else, per R7).
+
+**Measured, not assumed.** The head label wraps to two lines; the artboard's own head wraps
+identically, confirmed against the artboard PNG region and by in-browser measurement (inner 266px,
+title 208px, link 68px, weight-independent). The band bar is one hue in the live card where the
+artboard's sample data drew two: every row inside 30 days classifies Immediate under the one
+urgency module. Both logged in `docs/design/handoff-2026-09-06/DEVIATION-LOG.md` with three more
+rows (the closed missing-region row, the shared-wrapper 2px padding difference, the Calendar link
+target).
+
+**Composition is measured from now on.** `spec/compose-02-regulations-list.json` gained five rows:
+the card's presence, its DOM order after Filters and before Legend (sibling-combinator placement,
+so "present but in the wrong place" fails), the exact head label, the "Calendar →" link with its
+11px/600 type, and a four-row count. The audit mount's obligation fixture deliberately carries a
+fifth event 90 days out, so the 30-day window is proven in the real composition and not only in the
+unit test. `capture-compose-lists-screenshots.mjs` now serves that fixture too and composites the
+side-by-side itself (artboard | built), which the prior pass produced by hand.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`ListSurfaceRailCards.tsx`,
+`Skeleton.tsx`, `RegulationsLedger.tsx`, `ObligationRegisterFilterBar.tsx`). Every value applied is
+the artboard's own literal (`3px 48px 1fr`, gap 10px, row gap 9px, 12px body, 11px/600 head link,
+weight-700 tabular date, line-height 1.4, radius 2 bar); nothing was improvised, and the two values
+that differ from the artboard are logged with their measurement. The rows are static text, matching
+the artboard, so no new interactive target is introduced; the one control, the head link, carries a
+24px minimum box, the same floor the "Clear N" control in this file already uses. Rendering guard
+PASS with no new failures.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33 PASS,
+0 violations; rendering guard PASS (11 fixtures, 392 checks, 6 SM + 11 UX smoke specs, 78 + 182
+checks); design audit 45 specs, 815 checks, 815 MATCH, 0 MISMATCH; `run-test-suite.sh` 5903 tests,
+0 fail, 5 skipped, exit 0 (the `audit-finding-status` informational report on pre-existing archived
+audits is unchanged); `next build --webpack` exit 0 with no `.env.local`.
