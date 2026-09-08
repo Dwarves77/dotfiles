@@ -19,6 +19,7 @@
 
 import type { SupersededNotice } from "@/lib/propagation/methods/superseded-notices.ts";
 import { formatNumber, formatLocaleDateTime } from "@/lib/format";
+import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 
 export interface RecalculationNoticeItem extends SupersededNotice {
   /** The entity/decision's human-readable name, when resolvable (entities.display_name-shaped). Falls
@@ -90,8 +91,26 @@ function NoticeRow({ n }: { n: RecalculationNoticeItem }) {
   );
 }
 
-export function RecalculationNotice({ notices, emptyMessage = "No recalculations since your last visit." }: RecalculationNoticeProps) {
+export function RecalculationNotice({
+  notices,
+  emptyMessage = "No recalculations since your last visit.",
+  bare = false,
+}: RecalculationNoticeProps & {
+  /** Additive extension (lane comp-11, 2026-09-08, dc.html p11's "Recalculation
+   *  notices" card): when the caller already supplies the section card, the empty
+   *  state must not nest a second `cl-card` inside it. Bare renders the message
+   *  alone, in the shared absence type treatment the artboard draws it in
+   *  (`ABSENCE_TEXT_STYLE`). Default false — every existing mount is unaffected. */
+  bare?: boolean;
+}) {
   if (notices.length === 0) {
+    if (bare) {
+      return (
+        <div style={{ padding: "22px 16px" }} data-figure-kind="recalculation-notice-empty">
+          <span style={ABSENCE_TEXT_STYLE}>{emptyMessage}</span>
+        </div>
+      );
+    }
     return (
       <div className="cl-card" style={{ padding: "16px 18px" }} data-figure-kind="recalculation-notice-empty">
         <div className="cl-card-body">{emptyMessage}</div>

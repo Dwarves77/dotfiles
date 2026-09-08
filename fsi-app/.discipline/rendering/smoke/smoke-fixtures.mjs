@@ -35,6 +35,33 @@ export function fullAppCss() {
   return `${theme}\n${globals}`;
 }
 
+// ── Compiled app CSS, Tailwind utilities included (lane compose-other, 2026-09-08) ─────────────────
+// `fullAppCss()` above reads globals.css raw — fine for every mount to date, none of which render a
+// component styled with Tailwind UTILITY classes (`flex`, `shrink-0`, `md:flex`, …) rather than
+// inline `style`/CSS custom properties. This lane's full-page composition mounts DO (AppShell's
+// `Sidebar.tsx`/`TopBar.tsx` predate the inline-style convention the shared `components/ui/*` parts
+// follow) — a raw-file read leaves globals.css's `@import "tailwindcss"` and `@theme inline { }`
+// block un-expanded (a browser `<style>` tag can't resolve either), so the sidebar rendered with NO
+// layout classes at all (flat, unstyled list) the first time this was tried; confirmed by diffing
+// `compose-10-map-built.png` before/after. Compiling through the SAME `@tailwindcss/postcss` plugin
+// the real Next build uses (postcss.config.mjs) — not a hand-rolled utility subset — produces the
+// real generated CSS from the real `src/` tree's class usage, then this is CACHED for the process
+// lifetime (each capture script call is its own process; ~1-2s compile cost paid once per capture,
+// never in the CI test/gate path — no compose-* mount is in-loop with run-rendering-guard.mjs).
+let _compiledCache = null;
+export async function fullAppCssCompiled() {
+  if (_compiledCache) return _compiledCache;
+  const { default: postcss } = await import("postcss");
+  const { default: tailwind } = await import("@tailwindcss/postcss");
+  const globals = readFileSync(join(APP_DIR, "globals.css"), "utf8");
+  const result = await postcss([tailwind({ base: join(APP_DIR, "../../") })]).process(globals, {
+    from: join(APP_DIR, "globals.css"),
+  });
+  const theme = readFileSync(join(APP_DIR, "theme.css"), "utf8");
+  _compiledCache = `${theme}\n${result.css}`;
+  return _compiledCache;
+}
+
 // ── Row-system CSS (Lane MOBILE, 2026-09-03) ────────────────────────────────────────────────────
 // `runUxSpec`'s harness (ux-harness.mjs / mountBundle) bundles and mounts ONLY the target component's
 // own JS/TSX via esbuild + page.addScriptTag — it never loads the app's globals.css (that only

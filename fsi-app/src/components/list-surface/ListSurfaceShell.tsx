@@ -16,28 +16,25 @@
  * src/components/ui/ shared part (only these five surfaces use it), so it
  * lives under its own directory rather than in ui/.
  *
- * DEVIATION (logged in docs/design/handoff-2026-09-06/DEVIATION-LOG.md):
- * the artboards' Filters rail card uses checkboxes; this renders the same
- * groups as FilterChipGroup/FilterChip pills, the actual shared component
- * README §0.4 defines for "filter chips grouped in labelled sets", per this
- * lane's dispatch. Rail cards specific to one surface (Obligations
- * calendar, Carbon cost per FEU, Source coverage, Next data drops) are not
- * reproduced here — logged as deferred, out of this lane's list-mechanics
- * budget.
+ * Desktop Filters (lane compose-lists, 2026-09-07/08, operator audit "the filters were not above
+ * the regulations, they were on the right — same on every page"; artboard 02/id="p2"): the rail's
+ * `FiltersRailCard` (ListSurfaceRailCards.tsx) renders the SAME facetGroups/secondaryFacetGroups
+ * data as real checkbox rows with live counts, matching the artboards' own checkbox rendering —
+ * this superseded an earlier pill-based rail card (see DEVIATION-LOG's prior "checkboxes vs pills"
+ * entry, now closed). Rail cards specific to one surface (Obligations calendar, Carbon cost per
+ * FEU, Source coverage, Next data drops) are not reproduced here — logged as deferred, out of this
+ * lane's list-mechanics budget.
  *
- * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px
- * the facet card becomes ONE horizontally-scrolling strip of
- * `FilterChipGroup` shells (no live counts in the strip itself — compact,
- * label + chips only) plus a "Filters" control. That control opens a SHEET
- * — built from the SAME bottom-anchored/scrim mechanism the nav drawer
- * uses (`Sidebar.tsx`'s `rgba(0,0,0,.3)` scrim, confirmed the app's own
- * value by README line 133 "30%-black scrim"), never a page-local overlay
- * — containing exactly the facet groups the rail shows on desktop (the
- * SAME `facetGroups`/`secondaryFacetGroups` this shell already receives,
- * rendered with their live counts, unchanged chip chrome), plus a close
- * target. The spec names the sheet but the operator's own overlays list
- * says overlay styling is not designed — logged in DEVIATION-LOG.md as
- * "sheet built from the drawer mechanism, styling pending an artboard".
+ * Mobile (lane moblist, 2026-09-07, mobile-390 spec "FILTERS"): below 768px the facet UI stays
+ * pill-based — ONE horizontally-scrolling strip of `FilterChipGroup` shells (no live counts in the
+ * strip itself — compact, label + chips only) plus a "Filters" control opening a SHEET — built
+ * from the SAME bottom-anchored/scrim mechanism the nav drawer uses (`Sidebar.tsx`'s
+ * `rgba(0,0,0,.3)` scrim, confirmed the app's own value by README line 133 "30%-black scrim"),
+ * never a page-local overlay — containing exactly the facet groups the rail shows on desktop (the
+ * SAME `facetGroups`/`secondaryFacetGroups` this shell already receives, rendered with their live
+ * counts, unchanged chip chrome), plus a close target. The spec names the sheet but the operator's
+ * own overlays list says overlay styling is not designed — logged in DEVIATION-LOG.md as "sheet
+ * built from the drawer mechanism, styling pending an artboard".
  */
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
@@ -48,6 +45,7 @@ import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
 import { SkeletonListRow, SkeletonBandTile } from "@/components/ui/Skeleton";
+import { FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { BAND_ORDER, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 import type { FacetOption } from "./list-surface-helpers";
@@ -67,10 +65,22 @@ export interface ListSurfaceFacetGroup {
 export interface ListSurfaceShellProps {
   title: string;
   dek?: ReactNode;
+  /** The masthead scope line under the title (artboard 02/id="p2": "1,316 active · 32
+   *  jurisdictions · last sync Sep 4 · next obligation Sep 25 · EU Net-Zero Industry Act"), live
+   *  fields only — a caller with a field it cannot source omits that segment rather than inventing
+   *  it. Renders via Masthead's own `dek` slot when `dek` itself is not passed. */
+  scopeLine?: ReactNode;
   dateLabel: string;
+  /** Server render instant (src/lib/render-now.ts) — threaded to <Masthead/> so the VOL week
+   *  number is not recomputed from each host's own clock. See render-now.ts. */
+  nowIso?: string;
   itemCount: number;
   scope: string;
   onSearch?: (q: string) => void;
+  /** Page-scoped command-bar prompt (each list artboard writes its own, e.g. artboard 08/id="p8":
+   *  'Search regions and dimensions ...'). Omitted, CommandBar's generic item-count placeholder
+   *  stands. Pass-through only: the ask surface is still the one CommandBar in the Masthead. */
+  searchPlaceholder?: string;
 
   bandCounts: Record<UrgencyBandKey, number> | null;
   selectedBand: UrgencyBandKey | null;
@@ -91,6 +101,19 @@ export interface ListSurfaceShellProps {
    *  not one of the shared row/tile parts and is reused unchanged. */
   aboveRows?: ReactNode;
 
+  /** Count + sort/window control row (ListSurfaceSortRow), artboards 02/04:
+   *  rendered directly above the rows, below aboveRows. Omitted by surfaces
+   *  whose artboard does not carry this row (Research/Operations/Watchlist). */
+  sortRow?: ReactNode;
+
+  /** When true, rowsByBand's rows are concatenated (in the order each
+   *  band's own `rows` array already carries — the caller sorts them) into
+   *  ONE unheaded list instead of per-band Card sections — artboard 02's
+   *  "Show as one list" state. Each row still carries its own true band
+   *  colouring (ListRow's own left-edge bar), only the band SectionHeader
+   *  and per-band grouping disappear. */
+  flat?: boolean;
+
   /** Rows already grouped by band, in BAND_ORDER, each with its true
    *  (post-filter) total so the section can say "showing N of M". */
   rowsByBand: Array<{
@@ -108,6 +131,13 @@ export interface ListSurfaceShellProps {
 
   emptyState?: ReactNode;
   stateNote?: ReactNode;
+
+  /** Extra content rendered INSIDE a band's card, below that card's foot row (artboards 02/06:
+   *  the one-line transition strip that explains the next band, e.g. Research's "Awareness · 34
+   *  findings sit below the scoring threshold and are kept for context · Why unscored"). Called
+   *  once per rendered band section with that band's key and the next rendered section's band key
+   *  (null on the last section); return null to render nothing for that band. */
+  sectionFoot?: (bandKey: UrgencyBandKey, nextBandKey: UrgencyBandKey | null) => ReactNode;
 
   /** Extra content rendered at the FOOT of the primary card column, below
    *  stateNote — restored this lane (UILISTS2, 2026-09-07) for Regulations'
@@ -295,19 +325,32 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
   );
 }
 
+/** Band card foot strip, right side (artboards 02/08): the transition into the next populated band,
+ *  or "end of list" on the last card. Reads the sections actually rendered, so a band with no rows
+ *  is never named as "next". */
+function transitionLabel(sections: Array<{ band: UrgencyBand; total: number }>, index: number): string {
+  const next = sections[index + 1];
+  return next ? `then ${next.band.label} \u00b7 ${next.total}` : "end of list";
+}
+
 export function ListSurfaceShell({
   title,
   dek,
+  scopeLine,
   dateLabel,
+  nowIso,
   itemCount,
   scope,
   onSearch,
+  searchPlaceholder,
   bandCounts,
   selectedBand,
   onSelectBand,
   facetGroups,
   secondaryFacetGroups,
   aboveRows,
+  sortRow,
+  flat,
   rowsByBand,
   perBandCap,
   onExpandBand,
@@ -316,10 +359,12 @@ export function ListSurfaceShell({
   loadingMoreRows,
   emptyState,
   stateNote,
+  sectionFoot,
   belowRows,
   rail,
 }: ListSurfaceShellProps) {
   const anyRows = rowsByBand.some((b) => b.rows.length > 0);
+  const populatedSections = useMemo(() => rowsByBand.filter((section) => section.total > 0), [rowsByBand]);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const allFacetGroups = useMemo(
     () => [...facetGroups, ...(secondaryFacetGroups ?? [])],
@@ -329,7 +374,13 @@ export function ListSurfaceShell({
   return (
     <>
       <div style={{ padding: "20px 40px 0" }}>
-        <Masthead title={title} dek={dek} dateLabel={dateLabel} commandBar={{ itemCount, onSearch, scope }} />
+        <Masthead
+          title={title}
+          dek={dek ?? scopeLine}
+          dateLabel={dateLabel}
+          nowIso={nowIso}
+          commandBar={{ itemCount, onSearch, scope, placeholder: searchPlaceholder }}
+        />
       </div>
       <div
         style={{
@@ -365,66 +416,11 @@ export function ListSurfaceShell({
             )}
           </div>
 
-          {/* Facets — always visible, live counts. Desktop (>=768px): the two cards below,
-              unchanged. Mobile (<768px, CSS-hidden here, MOBILE_FILTERS_CSS above): a compact
-              horizontally-scrolling strip (no counts) plus a "Filters" button opening the sheet
-              below with the SAME groups and their live counts. */}
-          <div
-            className="cl-facets-desktop"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--line-1)",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
-              overflow: "hidden",
-            }}
-          >
-            <SectionRule />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
-              {facetGroups.map((group) => (
-                <FilterChipGroup key={group.key} label={group.label}>
-                  <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
-                    All
-                  </FilterChip>
-                  {group.options.map((opt) => (
-                    <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                      {opt.label} · {opt.count}
-                    </FilterChip>
-                  ))}
-                </FilterChipGroup>
-              ))}
-            </div>
-          </div>
-
-          {secondaryFacetGroups && secondaryFacetGroups.length > 0 && (
-            <div
-              className="cl-facets-desktop"
-              style={{
-                background: "var(--card)",
-                border: "1px solid var(--line-1)",
-                borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-card)",
-                overflow: "hidden",
-              }}
-            >
-              <SectionRule />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
-                {secondaryFacetGroups.map((group) => (
-                  <FilterChipGroup key={group.key} label={group.label}>
-                    <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
-                      All
-                    </FilterChip>
-                    {group.options.map((opt) => (
-                      <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                        {opt.label} · {opt.count}
-                      </FilterChip>
-                    ))}
-                  </FilterChipGroup>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* Facets — desktop: relocated to the rail's FILTERS card (operator audit 2026-09-07:
+              "the filters were not above the regulations, they were on the right — same on every
+              page"; artboard 02/id="p2"). Mobile (<768px): unchanged — a compact horizontally-
+              scrolling strip (no counts) plus a "Filters" button opening the sheet below, still
+              built from the SAME facetGroups/secondaryFacetGroups. */}
           {allFacetGroups.length > 0 && (
             <div className="cl-facets-mobile" data-guard-strip="true">
               {allFacetGroups.map((group) => (
@@ -452,17 +448,48 @@ export function ListSurfaceShell({
 
           {aboveRows}
 
-          {/* Rows, grouped by band */}
+          {sortRow}
+
+          {/* Rows — flat (artboard 02 "Show as one list"): every matching row, in the order
+              rowsByBand's own per-band arrays already carry, concatenated into one unheaded list;
+              still virtualized past the threshold, still each row's own true band colouring. */}
           {loadingFirstPage ? (
             <Card>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</Card>
           ) : !anyRows ? (
             <Card>
-              <div style={{ padding: 16 }}>{emptyState ?? <StateNote>Nothing matches these filters right now.</StateNote>}</div>
+              {/* A caller-supplied empty state carries its own padding (artboard 06/id="p6":
+                  28px 20px, centred, Anton title). The default StateNote gets the 16px inset it
+                  has always had. */}
+              {emptyState ?? <div style={{ padding: 16 }}><StateNote>Nothing matches these filters right now.</StateNote></div>}
             </Card>
+          ) : flat ? (
+            (() => {
+              const flatRows = rowsByBand.flatMap((section) => section.rows);
+              return (
+                <Card noRule>
+                  {flatRows.length > VIRTUALIZE_THRESHOLD ? (
+                    <VirtualizedRowList
+                      rows={flatRows}
+                      rowHeight={56}
+                      getRowId={(row) => row.key}
+                      renderRow={(row) => {
+                        const { key, ...rowProps } = row;
+                        return <ListRow {...rowProps} />;
+                      }}
+                    />
+                  ) : (
+                    flatRows.map((row) => {
+                      const { key, ...rowProps } = row;
+                      return <ListRow key={key} {...rowProps} />;
+                    })
+                  )}
+                </Card>
+              );
+            })()
           ) : (
-            rowsByBand
-              .filter((section) => section.total > 0)
-              .map((section) => {
+            populatedSections
+              .map((section, sectionIndex, rendered) => {
+                const nextSection = rendered[sectionIndex + 1] ?? null;
                 const expanded = expandedBands?.has(section.band.key) ?? false;
                 const cap = expanded ? section.rows.length : perBandCap;
                 const visible = section.rows.slice(0, cap);
@@ -493,12 +520,32 @@ export function ListSurfaceShell({
                       })
                     )}
                     {loadingMoreRows && <SkeletonListRow />}
-                    {section.total > visible.length && onExpandBand && (
-                      <div style={{ padding: "10px 16px" }}>
-                        {/* law-2 (RD-60/F35): a bare underlined text link with no padding is well
-                            under the 24px small-target floor. min-height + vertical padding lifts
-                            it to a real target without changing its visual (still text + underline,
-                            no chip/pill chrome the artboard doesn't show). */}
+                    {/* Band-card foot row (artboards 02/04/06, id="p2"/"p4"/"p6": "All 15
+                        immediate →" left, "then Action · 13" right; "end of list" on the last
+                        rendered band). Values are the artboard's own: 10px 16px, 1px top rule,
+                        #FAFAF8 ground, 12px text, the link at weight 600. Built here once for
+                        every list surface this shell serves, the three artboards draw the same
+                        row. The link renders only when the band actually has more rows to reveal
+                        (a link that expands nothing would be a dead control, operator audit P0
+                        1.1); the "then <next band>" side is always stated. */}
+                    <div
+                      data-audit="band-foot"
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        padding: "10px 16px",
+                        borderTop: "1px solid var(--line-2)",
+                        background: "var(--page)",
+                        fontSize: "var(--fs-12)",
+                      }}
+                    >
+                      {section.total > visible.length && onExpandBand ? (
+                        // law-2 (RD-60/F35): a bare underlined text link with no padding is well
+                        // under the 24px small-target floor. min-height + vertical padding lifts
+                        // it to a real target without changing its visual (still text + underline,
+                        // no chip/pill chrome the artboard doesn't show).
                         <button
                           type="button"
                           onClick={() => onExpandBand(section.band.key)}
@@ -506,8 +553,8 @@ export function ListSurfaceShell({
                             display: "inline-flex",
                             alignItems: "center",
                             minHeight: 24,
-                            fontSize: "var(--fs-11)",
-                            fontWeight: 700,
+                            fontSize: "var(--fs-12)",
+                            fontWeight: 600,
                             color: "var(--ink)",
                             background: "none",
                             border: "none",
@@ -518,10 +565,20 @@ export function ListSurfaceShell({
                             fontFamily: "inherit",
                           }}
                         >
-                          All {section.total} {section.band.label.toLowerCase()}
+                          All {section.total} {section.band.label.toLowerCase()} →
                         </button>
-                      </div>
-                    )}
+                      ) : (
+                        <span style={{ minHeight: 24, display: "inline-flex", alignItems: "center" }} />
+                      )}
+                      <span style={{ color: "var(--ink-3)" }}>{transitionLabel(populatedSections, sectionIndex)}</span>
+                    </div>
+                    {(() => {
+                      // The transition strip is per-band and often absent; only the band that has
+                      // one pays for its wrapper (an empty 14px-margin div under every band card
+                      // is dead space the artboard does not draw).
+                      const foot = sectionFoot?.(section.band.key, nextSection ? nextSection.band.key : null);
+                      return foot ? <div style={{ margin: "0 16px 14px" }}>{foot}</div> : null;
+                    })()}
                   </Card>
                 );
               })
@@ -531,8 +588,17 @@ export function ListSurfaceShell({
           {belowRows}
         </div>
 
-        {/* Rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{rail}</div>
+        {/* Rail — FILTERS card first (artboard 02/id="p2" rail order: Filters, then the
+            surface-specific card, then Legend), built here once from the same facetGroups /
+            secondaryFacetGroups data every list surface already computes, so the relocation out
+            of the content column applies to all five surfaces without a per-page rail edit. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <FiltersRailCard
+            groups={allFacetGroups}
+            footnote="Counts are live for the current selection. The band tiles above are the fourth facet."
+          />
+          {rail}
+        </div>
       </div>
     </>
   );

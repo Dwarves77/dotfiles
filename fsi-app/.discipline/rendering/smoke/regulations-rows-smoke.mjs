@@ -40,6 +40,8 @@ import {
   measureGuard,
   detectOverflows,
   findPlaceholderLiterals,
+  measureBoundsSweep,
+  assertBoundsClean,
 } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
 
@@ -308,6 +310,25 @@ async function runLedgerSpec(browser) {
       }
     }
   }
+
+  // D1 cell-bounds sweep at 1440 (this list page's own list — RegulationsLedger, one of the five
+  // ListRow surfaces the operator report named) — see dashboard-brief-smoke.mjs's BOUNDS_VIEWPORT
+  // comment for why 1440 specifically.
+  for (const state of LEDGER_STATES) {
+    const label = `regulations-ledger:${state.label}@1440:bounds`;
+    const page = await newSmokePage(browser, { apiRoutes: LEDGER_API_ROUTES });
+    try {
+      await page.setViewportSize({ width: 1440, height: 900 });
+      await mountBundle(page, bundleJs, '__mount', state.props);
+      await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
+      const sweep = await measureBoundsSweep(page);
+      checks += 1;
+      failures.push(...assertBoundsClean(label, sweep));
+    } finally {
+      await page.close();
+    }
+  }
+
   return { checks, failures };
 }
 

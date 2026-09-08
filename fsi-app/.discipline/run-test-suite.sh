@@ -65,6 +65,7 @@ node --test \
   fsi-app/.discipline/lib/*.test.mjs \
   fsi-app/.discipline/rules/*.test.mjs \
   fsi-app/.discipline/consistency/*.test.mjs \
+  fsi-app/.discipline/consistency/checks/*.test.mjs \
   fsi-app/.discipline/governance/*.test.mjs \
   fsi-app/.discipline/rendering/*.test.mjs \
   fsi-app/.discipline/rendering/audit/*.test.mjs \

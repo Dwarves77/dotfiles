@@ -20,6 +20,7 @@
 import { getPublicOperationsItems, getPublicResourcesOnly, getPublicSurfaceCounts } from "@/lib/data";
 import { fetchOperationsCoverage, fetchStateCostFacts } from "@/lib/supabase-server";
 import { OperationsLedger } from "@/components/operations/OperationsLedger";
+import { renderNowIso } from "@/lib/render-now";
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE, toLedgerRowPayload } from "@/lib/list-pagination";
 import { AutomateVsHireCalculator } from "./AutomateVsHireCalculator";
@@ -51,6 +52,7 @@ export default async function Operations() {
         regulationsByRegion={regulationsByRegion}
         operationsCoverage={operationsCoverage}
         stateCosts={stateCosts}
+        nowIso={renderNowIso()}
       />
       {/* Lane DP-SURF: the automate-vs-hire calculator. Pure client-side compute. */}
       <AutomateVsHireCalculator />

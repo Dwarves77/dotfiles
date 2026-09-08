@@ -1,0 +1,55 @@
+{
+  "part": "Page composition — Operations profile detail (09)",
+  "mount": "operations-detail-1440",
+  "viewport": 1440,
+  "artboards": ["09-operations-profile"],
+  "source": "docs/design/handoff-2026-09-06/screens/09-operations-profile.png; dc.html id=\"p9\"; README §0.5",
+  "notes": [
+    "Region-composition check inside [data-audit=\"operations-detail\"] — OperationsDetailSurface mounted with fixture data matching artboard 09's Singapore example (mounts.mjs OPERATIONS_FIXTURE).",
+    "Artboard order top to bottom: header (chips incl. trailing topic chip 'Corridors', header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Legend)."
+  ],
+  "selector": "[data-audit=\"operations-detail\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
+      "selector": "[data-audit=\"operations-detail\"] .cl-action-row button",
+      "expect": { "count": "4" }
+    },
+    {
+      "name": "region 2 — header carries the trailing topic chip ('Corridors')",
+      "selector": "[data-audit=\"operations-detail\"] header span",
+      "expect": { "count": "1" },
+      "textMatch": "Corridors"
+    },
+    {
+      "name": "region 3 — Exposure grid renders before the timeline",
+      "selector": "[data-audit=\"operations-detail\"] p",
+      "expect": { "count": "1" },
+      "textMatch": "Exposure"
+    },
+    {
+      "name": "region 4 — Summary section (id=summary) renders when no dynamic sections carry content",
+      "selector": "[data-audit=\"operations-detail\"] section#summary h2",
+      "expect": { "text": "Summary" }
+    },
+    {
+      "name": "region 5 — At a glance 'Region' row is the humanized jurisdiction, not a raw ISO code",
+      "selector": "[data-audit=\"operations-detail\"] span",
+      "expect": { "count": "3" },
+      "textMatch": "Singapore"
+    },
+    {
+      "name": "region 6 — rail, 'In this list' card first",
+      "selector": "[data-audit=\"operations-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
+      "expect": { "text": "In this list" }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no per-item ask bar in the header (ruling 2.3)",
+      "selector": "[data-audit=\"operations-detail\"] header:not(.cl-masthead) input[placeholder]",
+      "reason": "The masthead command bar is the only ask surface."
+    }
+  ]
+}

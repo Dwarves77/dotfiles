@@ -26,13 +26,14 @@
  * that page's own header (PERF-11).
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -41,6 +42,7 @@ import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
@@ -49,11 +51,20 @@ import {
   regionFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "market";
+
+// Sort row (artboard 04/id="p4": "Sort Next date | Newest | A-Z", active option filled — three
+// options here, unlike Regulations' four; the artboard carries no "My order" on this surface).
+const SORT_OPTIONS: ListSurfaceSortOption[] = [
+  { key: "next-date", label: "Next date" },
+  { key: "newest", label: "Newest" },
+  { key: "az", label: "A-Z" },
+];
 
 /** The market signal KIND — a neutral tag (README artboard 04), not a band.
  *  Reads the classified `severity` column when present (migration 102);
@@ -91,23 +102,35 @@ void fetchRemainder; // Market's corpus (55 items) ships whole from getPublicMar
 // as documentation of the mechanism other surfaces use, not dead code — see this file's header.
 
 export interface MarketIntelLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   initialResources: Resource[];
   aggregates: WorkspaceAggregates;
   seriesBoard?: MarketSeriesBoardVM;
+  /** artboard 04/id="p4": the "Headline series" card, nested between the band tiles and the sort
+   *  row. The page passes its own <MarketComparativeRibbon board={seriesBoard} embedded /> here
+   *  (both already read the SAME seriesBoard fetch) rather than this component importing and
+   *  mounting it directly — page.tsx owns the fetch, this component owns only the placement slot. */
+  headlineSeries?: ReactNode;
 }
 
-export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }: MarketIntelLedgerProps) {
+export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, nowIso, headlineSeries }: MarketIntelLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
+  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az">("next-date");
+  const [flat, setFlat] = useState(false);
 
   const tagsFacet = useWorkspaceTagsFacet();
 
   const filtered = useMemo(() => {
     const base = filterRows(initialResources, filter);
     const kinded = kindFilter ? base.filter((r) => signalKindLabel(r) === kindFilter) : base;
-    return kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id));
-  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag]);
+    return sortResourceRows(kinded.filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey);
+  }, [initialResources, filter, kindFilter, tagsFacet.matchesSelectedTag, sortKey]);
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(initialResources, aggregates.byPriority as unknown as Record<string, number>);
@@ -202,7 +225,8 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
     <ListSurfaceShell
       title="Market Intelligence"
       dek="Signals are unverified by design — timely first, confirmed later."
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="market"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
@@ -211,6 +235,23 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard }:
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
+      aboveRows={headlineSeries}
+      sortRow={
+        <ListSurfaceSortRow
+          countLabel={
+            <>
+              <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> signals · {flat ? "flat" : "grouped by band"}
+            </>
+          }
+          linkLabel={flat ? "Group by band" : "Show as one list"}
+          onLink={() => setFlat((f) => !f)}
+          controlLabel="Sort"
+          options={SORT_OPTIONS}
+          active={sortKey}
+          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az")}
+        />
+      }
+      flat={flat}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}

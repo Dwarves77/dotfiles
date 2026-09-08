@@ -395,7 +395,7 @@ const DIMENSIONS = [
   { num: 3, key: 'labor', db: 'labor_markets', name: 'Labor markets' },
   { num: 4, key: 'materials', db: 'materials_sourcing', name: 'Materials sourcing' },
   { num: 5, key: 'infrastructure', db: 'infrastructure', name: 'Infrastructure capacity' },
-  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost data' },
+  { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
 ];
 
 let root = null;
@@ -528,8 +528,33 @@ const PAGE_FRAME_FIXTURES = {
         note: '',
         tags: [],
       },
+      // D1 fixture (operator report 2026-09-07, page-frame boundsCheck below): a real, unscored
+      // Due-next row — `impactScores` omitted, matching production where most items have no
+      // impact score yet. Without this the audit's page-frame mount, like the pre-fix rendering-
+      // guard smoke fixture, never mounted ImpactMeter's unscored branch (the 30px dashed baseline
+      // + Absence "unscored" reason) at all, so it could not have caught the collision either.
+      {
+        id: 'r1',
+        title: 'EUDR — EU Deforestation Regulation',
+        priority: 'CRITICAL',
+        jurisdiction: 'EU',
+        jurisdictionIso: ['EU'],
+        sourceTier: 1,
+        complianceDeadline: '2026-12-30',
+        timeline: [],
+        domain: 1,
+        type: 'regulation',
+        modes: ['Ocean', 'Road'],
+        topic: 'reporting',
+        note: '',
+        tags: [],
+      },
     ],
-    recentChanges: [],
+    // Non-empty so the "What changed" card renders its ListRow rows (always `impact={null}` —
+    // DashboardBrief.tsx — i.e. always the unscored branch) instead of the empty-state StateNote.
+    recentChanges: [
+      { id: 'c0', title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods', priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 },
+    ],
     auditDate: '2026-09-07',
     aggregates: {
       totalItems: 1434,
@@ -609,8 +634,19 @@ import { createRoot } from 'react-dom/client';
 import { AppShell } from '@/components/AppShell';
 import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+
+// 'owner' so Sidebar's nav-card footer renders BOTH rows (Account + the
+// role-gated Admin row, R2) — sidebar.json's footer assertions need both
+// present. Same role the admin-issues-rail/account-members entries already
+// set, for the same reason.
+useWorkspaceStore.getState().setUserRole('owner');
 
 const F = ${JSON.stringify(PAGE_FRAME_FIXTURES)};
+// One fixed instant for every date this fixture derives, so a row never changes band or its
+// "N days" label between runs (the same reason brief-rows.ts takes an injected now).
+const NOW_ISO = '2026-09-07T00:00:00.000Z';
 
 let root = null;
 window.__mount = () => {
@@ -619,9 +655,220 @@ window.__mount = () => {
   root.render(
     React.createElement(AppShell, null,
       React.createElement('div', { 'data-audit': 'dashboard' },
-        React.createElement(DashboardBrief, { ...F.dashboard, watchlistPromise: Promise.resolve([]) })),
+        React.createElement(DashboardBrief, {
+          // FOLD-59: <DashboardBrief/> takes SERVER-SELECTED BriefRow[] since HYDRATION-59, not a
+          // Resource[] it derives from itself. The fixture keeps its Resource rows and runs them
+          // through the SAME derivation the route runs (src/lib/dashboard/brief-rows.ts) against
+          // one fixed instant, so this mount measures the real shape rather than rows hand-shaped
+          // to match it.
+          dueNextRows: buildDueNextRows(F.dashboard.resources, new Date(NOW_ISO)),
+          changedRows: buildChangedRows(F.dashboard.recentChanges, F.dashboard.resources, new Date(NOW_ISO)),
+          totalChanges: F.dashboard.recentChanges.length,
+          aggregates: F.dashboard.aggregates,
+          auditDate: F.dashboard.auditDate,
+          surfaceCoverage: F.dashboard.surfaceCoverage,
+          nowIso: NOW_ISO,
+          watchlistPromise: Promise.resolve([]),
+        })),
       React.createElement('div', { 'data-audit': 'regulation-detail' },
         React.createElement(RegulationDetailSurface, F.regulation)),
+    ),
+  );
+};
+`;
+
+// ── Market / research / operations detail — page-composition mounts ──────────────────────────────
+// Lane compose-dashboard-details (2026-09-08). Mirrors the regulation-detail fixture above,
+// populated from the same artboard examples this lane's compose specs check against
+// (05-market-detail.png / 07-research-detail.png / 09-operations-profile.png) rather than invented
+// generic data — the compose specs assert against real artboard strings, so the fixture carries them.
+
+const MARKET_FIXTURE = {
+  resource: {
+    id: 'm-detail-1',
+    cat: 'ocean',
+    sub: 'packaging',
+    title: 'Packaging material input costs',
+    url: 'https://example.com/market-source',
+    note: '',
+    type: 'market_signal',
+    priority: 'HIGH',
+    added: '2026-04-11',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'BLS WPU066 for plastic resins and materials rose sharply in four months.',
+    keyData: [],
+    modes: ['ocean'],
+    jurisdiction: null,
+    jurisdictionIso: [],
+    sourceTier: 1,
+    sourceName: 'U.S. Bureau of Labor Statistics / FRED',
+    sourceUrl: 'https://example.com/market-source',
+    topic: 'Packaging',
+    signalBand: 'B2',
+    severity: 'cost',
+    timeline: [
+      { date: '2026-01-26', label: 'January reading', status: 'past' },
+      { date: '2026-04-11', label: 'April reading published', status: 'current' },
+      { date: '2026-06-11', label: 'BLS PPI release', status: 'future' },
+    ],
+    impactScores: { cost: 3, compliance: 1, client: 2, operational: 2 },
+  },
+  relatedPool: [],
+  sections: [],
+  convergence: { independent_citers: 4, confirmation_count: 4 },
+  priceBoard: [],
+  carbonFactors: [],
+  groupLabel: 'Global',
+  deck: 'U.S. Bureau of Labor Statistics / FRED · published Apr 11 2026',
+  initialNote: '',
+  supersessions: [],
+  connections: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const RESEARCH_FIXTURE = {
+  resource: {
+    id: 'r-detail-1',
+    cat: 'ocean',
+    sub: 'emissions',
+    title: 'Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework',
+    url: 'https://example.com/research-source',
+    note: '',
+    type: 'research_finding',
+    priority: 'LOW',
+    added: '2026-05-10',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'Coalition goals for zero-emission shipping by 2030.',
+    keyData: [],
+    modes: [],
+    jurisdiction: null,
+    jurisdictionIso: [],
+    sourceTier: 3,
+    sourceName: 'Mission Innovation',
+    sourceUrl: 'https://example.com/research-source',
+    topic: 'Emissions accounting',
+    timeline: [
+      { date: '2024-04-24', label: 'Mission announced', status: 'past' },
+      { date: '2026-Q4', label: 'IMO MEPC extraordinary session', status: 'current' },
+      { date: '2028', label: 'GFI targets', status: 'future' },
+    ],
+    impactScores: { cost: 1, compliance: 1, client: 2, operational: 1 },
+  },
+  related: [],
+  relatedReason: 'none',
+  sections: [],
+  groupLabel: 'Global',
+  deck: 'Mission Innovation · published May 10 2026 · theme: Emissions accounting',
+  connections: [],
+  supersessions: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const OPERATIONS_FIXTURE = {
+  resource: {
+    id: 'o-detail-1',
+    cat: 'ocean',
+    sub: 'ports',
+    title: 'Singapore regional operations profile',
+    url: 'https://example.com/operations-source',
+    note: '',
+    type: 'operations_profile',
+    priority: 'LOW',
+    added: '2026-04-11',
+    reasoning: '',
+    tags: [],
+    whatIsIt: 'Singapore port dues concession for zero- and low-carbon fuels.',
+    keyData: [],
+    modes: ['ocean', 'air'],
+    jurisdiction: 'SG',
+    jurisdictionIso: ['SG'],
+    sourceTier: 2,
+    sourceName: 'Singapore Ministry of Transport (MOT)',
+    sourceUrl: 'https://example.com/operations-source',
+    topic: 'Corridors',
+    timeline: [
+      { date: '2025-01-01', label: 'MSGI window opens', status: 'past' },
+      { date: '2027-03-31', label: 'EEG base-tier window closes', status: 'current' },
+      { date: '2027-12-31', label: 'MSGI window closes', status: 'future' },
+    ],
+    impactScores: { cost: 1, compliance: 1, client: 1, operational: 2 },
+  },
+  related: [],
+  relatedReason: 'none',
+  sections: [],
+  groupLabel: 'Asia',
+  deck: 'Singapore Ministry of Transport (MOT) · Maritime and Port Authority · published Apr 11 2026 · Ocean · Air',
+  connections: [],
+  supersessions: [],
+  relevance: null,
+  resourceLookup: {},
+};
+
+const MARKET_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { MarketSignalDetailSurface } from '@/components/pages/MarketSignalDetailSurface';
+
+const F = ${JSON.stringify(MARKET_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'market-detail' },
+        React.createElement(MarketSignalDetailSurface, F)),
+    ),
+  );
+};
+`;
+
+const RESEARCH_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { ResearchFindingDetailSurface } from '@/components/research/ResearchFindingDetailSurface';
+
+const F = ${JSON.stringify(RESEARCH_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'research-detail' },
+        React.createElement(ResearchFindingDetailSurface, F)),
+    ),
+  );
+};
+`;
+
+const OPERATIONS_DETAIL_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { OperationsDetailSurface } from '@/components/operations/OperationsDetailSurface';
+
+const F = ${JSON.stringify(OPERATIONS_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'operations-detail' },
+        React.createElement(OperationsDetailSurface, F)),
     ),
   );
 };
@@ -635,6 +882,427 @@ window.__mount = () => {
 const EMPTY_API = [
   { urlGlob: '**/api/**', handler: (route) => route.fulfill({ contentType: 'application/json', body: '{}' }) },
 ];
+
+// RegulationsLedger/MarketIntelLedger both call /api/listings/rest for archived/infinite-scroll
+// reads, and (via useWorkspaceBootstrap's stubbed-authenticated client, DEFAULT_ALIAS's
+// stub-supabase-browser.mjs) /api/workspace/bootstrap on mount — usePersonalStateHydration.ts
+// calls `data.personalState.map(...)` unconditionally once `data` is non-null, matching every
+// other WorkspaceBootstrapData field's real API contract (always present, never optional except
+// where the type itself says so). A bare '{}' body (EMPTY_API's catch-all) crashes on that '.map'
+// over 'undefined'. Both routes get their real empty-but-shaped response before the generic '{}'
+// catch-all for anything else under /api/**.
+// Playwright registers overlapping page.route() handlers LIFO — the LAST one registered is tried
+// FIRST — so the generic '**/api/**' catch-all must be registered BEFORE the two specific routes
+// below, or it would shadow them and this array's whole point (a shaped, non-crashing response for
+// the two endpoints these ledgers actually depend on) would silently do nothing.
+const COMPOSE_LEDGER_API = [
+  ...EMPTY_API,
+  { urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ resources: [], archived: [] }) }) },
+  { urlGlob: '**/api/workspace/bootstrap**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ personalState: [], listOrders: {}, members: null, adminAttention: null, overrides: [] }) }) },
+];
+
+// GET /api/obligations/upcoming, the read behind the Regulations rail card "Obligations · next 30
+// days" (artboard 02/id="p2"). Dates are generated RELATIVE TO THE RUN (+3/+12/+22/+29 days) because
+// the card's own 30-day window is computed against `new Date()` — a hard-coded fixture date would
+// silently fall out of the window and turn this spec into an assertion about the Absence state
+// instead of about the four rows the artboard draws. The last entry (+90 days) is deliberately
+// OUTSIDE the window: it proves the window is applied here, in the real composition, and not only in
+// obligation-rail-select.npmtest.mjs.
+const composeObligationDate = (days) => new Date(Date.now() + days * 86400000).toISOString().slice(0, 10);
+const composeObligationEvent = (days, title, obligation) => ({
+  id: `oblig-${days}`,
+  event_date: composeObligationDate(days),
+  date_precision: 'day',
+  event_kind: 'compliance_deadline',
+  obligation_text: obligation,
+  item: { id: `item-${days}`, title, legacy_id: null, jurisdiction_iso: ['eu'] },
+});
+const COMPOSE_REGULATIONS_API = [
+  ...COMPOSE_LEDGER_API,
+  {
+    urlGlob: '**/api/obligations/upcoming**',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        hasJurisdictionFilter: false,
+        events: [
+          composeObligationEvent(3, 'Fixture regulation A', 'Member State reporting'),
+          composeObligationEvent(12, 'Fixture regulation B', '70% surrender of prior-year emissions'),
+          composeObligationEvent(22, 'Fixture regulation C', 'annual compliance certification'),
+          composeObligationEvent(29, 'Fixture regulation D', 'due-diligence policy in place'),
+          composeObligationEvent(90, 'Fixture regulation E', 'outside the 30-day window'),
+        ],
+      }),
+    }),
+  },
+];
+// ── Page composition mounts (lane compose-other, 2026-09-08) ───────────────────────────────────────
+// Full-page mounts (AppShell + Masthead + the page's real body component) for the seven pages this
+// lane owns (README screens 10/12/13/14/15/16/17). Same technique as PAGE_FRAME_ENTRY above: bundle
+// the REAL page-level components with populated fixture props, never a reproduction. Each mount's
+// `[data-audit="<page>"]` wrapper is what its compose-*.json spec selects into.
+
+const MAP_FIXTURE_RESOURCES = Array.from({ length: 6 }, (_, i) => ({
+  id: `map-r${i}`,
+  title: `Fixture regulation ${i}`,
+  priority: i < 2 ? 'CRITICAL' : i < 4 ? 'HIGH' : 'MODERATE',
+  jurisdiction: ['eu', 'eu', 'us', 'us', 'global', 'uk'][i],
+  jurisdictionIso: [['EU'], ['EU'], ['US'], ['US'], [], ['GB']][i],
+  sourceTier: 2,
+  complianceDeadline: '2027-01-01',
+  impactScores: { cost: 2, compliance: 2, client: 1, operational: 2 },
+  timeline: [],
+  domain: 1,
+  type: 'regulation',
+  modes: ['Ocean'],
+  topic: ['emissions', 'reporting', 'packaging', 'transport', 'reporting', 'transport'][i],
+  note: '',
+  tags: [],
+}));
+
+const MAP_COVERAGE_GAPS = [
+  { region: { id: 'us-sub', name: 'US sub-national' }, gap: 54, partial: 0, covered: 0, total: 54 },
+  { region: { id: 'canada', name: 'Canada' }, gap: 13, partial: 0, covered: 0, total: 13 },
+  { region: { id: 'australia', name: 'Australia' }, gap: 9, partial: 0, covered: 0, total: 9 },
+];
+
+// No STYLE_INJECT here (unlike every other ENTRY in this file): these page-composition mounts
+// render Tailwind-utility-styled components (Sidebar/TopBar), which STYLE_INJECT's raw globals.css
+// read cannot style (see fullAppCssCompiled's header in smoke-fixtures.mjs) — capture-compose-
+// page.mjs injects the compiled CSS itself via page.addStyleTag before mounting.
+// The map (10), community (12) and account (14) compose mounts of lane compose-other are NOT
+// carried on this branch: this lane cherry-picked only that lane's admin (13) and settings (15)
+// commits, so their fixtures and smoke stubs are not here. They land with their own lane.
+
+// ── Admin (13) full-page composition mount ───────────────────────────────────────────────────────
+// Reuses the SAME real AdminDashboard mount ADMIN_STAT_TILES_ENTRY already proved out (it needs no
+// STYLE_INJECT of its own here — the compiled-CSS path supplies it), wrapped in AppShell for the
+// nav card + Masthead's frame position, exactly as compose-map/compose-community do.
+// dc.html p13's own four provisional rows, shaped as real ProvisionalSource records so artboard
+// 13's table renders with populated data (Sources / Provisional review is the default landing
+// view). `created_at` is computed at mount time, not frozen, because the Discovered column is a
+// live RelativeTime.
+const ADMIN_PROVISIONAL_FIXTURE = [
+  { name: 'European Maritime Safety Agency — Reducing emissions', url: 'https://emsa.europa.eu/emissions', tier: 2, days: 2 },
+  { name: 'Maritime and Port Authority of Singapore — MSGI', url: 'https://mpa.gov.sg/msgi', tier: 2, days: 2 },
+  { name: 'Plastics News — resin price tracker', url: 'https://plasticsnews.com/resin', tier: 5, days: 5 },
+  { name: 'Federal Register — EPA Clean Trucks', url: 'https://federalregister.gov/epa-clean-trucks', tier: 1, days: 6 },
+];
+
+const COMPOSE_ADMIN_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { AdminDashboard } from '@/components/admin/AdminDashboard';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+const DAY = 86400000;
+const PROVISIONAL = ${JSON.stringify(ADMIN_PROVISIONAL_FIXTURE)}.map((r, i) => ({
+  id: 'prov-' + (i + 1),
+  name: r.name,
+  url: r.url,
+  domain: 1,
+  description: '',
+  discovered_via: 'citation_detection',
+  cited_by_source_id: 'src-1',
+  cited_by_source_tier: 1,
+  citation_count: 3,
+  independent_citers: 2,
+  citing_source_ids: ['src-1'],
+  highest_citing_tier: 1,
+  provisional_tier: r.tier,
+  recommended_tier: r.tier,
+  accessibility_verified: true,
+  publishes_structured_content: true,
+  entity_identified: true,
+  status: 'pending_review',
+  reviewer_notes: '',
+  created_at: new Date(Date.now() - r.days * DAY).toISOString(),
+  reviewed_at: null,
+}));
+
+useWorkspaceStore.getState().setUserRole('owner');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'admin' },
+        React.createElement(AdminDashboard, {
+          userId: 'smoke-user',
+          userEmail: 'smoke@example.com',
+          dateLabel: 'Sunday 6 September 2026',
+          initialOrgs: [{ id: 'org-1', name: "Dietl / Rockit", slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-01-01' }],
+          initialProvisionalSources: PROVISIONAL,
+          initialEmissionFactorsLiveCount: 13,
+        }),
+      ),
+    ),
+  );
+};
+`;
+
+// ── Account (14) full-page composition mount ─────────────────────────────────────────────────────
+// Reuses the SAME real UserProfilePage the /profile route mounts (README screen 14 / dc.html p14),
+// wrapped in AppShell for the nav card + Masthead's frame position. Seeds workspaceStore's
+// orgId/orgName/userRole (UserProfilePage reads these directly, same as COMPOSE_ADMIN_ENTRY seeds
+// userRole for AdminDashboard) so the rail's isOwner/isAdmin gate and the Organization tab have a
+// real org to key off; the three direct supabase.from(...) reads (profiles / organizations.plan /
+// org_memberships count) are answered by stub-supabase-browser-account.mjs's fixture rows, and
+// getWorkspaceProfile (Sector-profile tab + "Sectors followed" tile) by
+// stub-workspace-profile-account.mjs — no live Supabase project reachable in this sandbox
+// (DEVIATION-LOG.md).
+const COMPOSE_ACCOUNT_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { UserProfilePage } from '@/components/profile/UserProfilePage';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setWorkspace('org-1', 'Dietl / Rockit');
+useWorkspaceStore.getState().setUserRole('owner');
+// dc.html p14's own illustrated tab is "Members & roles" (with Organization stacked below it,
+// its own artboard-matched behavior — see UserProfilePage.tsx's "members" tab branch); the initial
+// tab reads from the URL's ?tab= param on first render (UserProfilePage.tsx / initial-tab.ts),
+// which this mount's page has none of by default, so set it before mounting.
+window.history.replaceState(null, '', '/profile?tab=members');
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'account' },
+        React.createElement(UserProfilePage, {
+          userId: 'audit-user',
+          userEmail: 'jason@dietl-rockit.example',
+        }),
+      ),
+    ),
+  );
+};
+`;
+
+// ── Settings (15) full-page composition mount ────────────────────────────────────────────────────
+// Reuses the SAME real SettingsPage the /settings route mounts (README screen 15 / dc.html p15),
+// wrapped in AppShell. Per operator ruling R9 (DEVIATION-LOG.md), this page's second-level items
+// (General/Notifications/Saved searches/Data & supersessions/Archive/Help) are ALREADY correctly
+// built as one scrolling page under a sticky SectionIndex, not the artboard's literal 300px rail —
+// that structural deviation is binding and NOT reproduced/asserted against here.
+// ── Auth (16) full-page composition mounts (/login, /signup) ─────────────────────────────────────
+// Reuses the SAME real page components the routes mount (README screen 16 / dc.html p16), wrapped
+// in AppShell-free AuthFrame (both pages already render their own full-frame chrome, no Sidebar).
+// ── Onboarding (17) full-page composition mount ──────────────────────────────────────────────────
+// The real OnboardingWizard (README screen 17 / dc.html p17), inside AuthFrame. Its own `step` state
+// defaults to 2 ("Modes & jurisdictions") already — the artboard's own illustrated step — so no
+// forced navigation is needed. Step 4 "Briefing" has no artboard yet (operator ruling, dispatch) and
+// is out of this mount's scope.
+const ONBOARDING_AGGREGATES_FIXTURE = {
+  totalItems: 742,
+  byPriority: { CRITICAL: 12, HIGH: 21, MODERATE: 611, LOW: 98 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 58,
+  lastUpdatedAt: '2026-09-06T00:00:00Z',
+};
+
+const COMPOSE_ONBOARDING_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
+
+const AGGREGATES = ${JSON.stringify(ONBOARDING_AGGREGATES_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'onboarding' },
+      React.createElement(OnboardingWizard, {
+        userId: 'audit-user',
+        userEmail: 'jason@dietl-rockit.example',
+        orgId: 'org-1',
+        aggregates: AGGREGATES,
+      }),
+    ),
+  );
+};
+`;
+
+const COMPOSE_LOGIN_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import LoginPage from '@/app/login/page';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'login' },
+      React.createElement(LoginPage, null),
+    ),
+  );
+};
+`;
+
+const COMPOSE_SIGNUP_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import SignupPage from '@/app/signup/page';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'signup' },
+      React.createElement(SignupPage, null),
+    ),
+  );
+};
+`;
+
+const COMPOSE_SETTINGS_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { SettingsPage } from '@/components/pages/SettingsPage';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setWorkspace('org-1', 'Dietl / Rockit');
+useWorkspaceStore.getState().setUserRole('owner');
+useWorkspaceStore.getState().setSectorProfile(['fine-art', 'live-events', 'luxury-goods', 'film-tv', 'automotive', 'humanitarian']);
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'settings' },
+        React.createElement(SettingsPage, {
+          initialResources: [],
+          initialArchived: [],
+          supersessions: [],
+          userId: 'audit-user',
+          userEmail: 'jason@dietl-rockit.example',
+        }),
+      ),
+    ),
+  );
+};
+`;
+
+
+// No STYLE_INJECT here (unlike every other ENTRY in this file): these page-composition mounts
+// render Tailwind-utility-styled components (Sidebar/TopBar), which STYLE_INJECT's raw globals.css
+// read cannot style (see fullAppCssCompiled's header in smoke-fixtures.mjs) — capture-compose-
+// page.mjs injects the compiled CSS itself via page.addStyleTag before mounting.
+const COMPOSE_MAP_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { Masthead } from '@/components/ui/Masthead';
+import { MapPageView } from '@/components/map/MapPageView';
+
+const RESOURCES = ${JSON.stringify(MAP_FIXTURE_RESOURCES)};
+const COVERAGE_GAPS = ${JSON.stringify(MAP_COVERAGE_GAPS)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'map' },
+        React.createElement('div', { style: { padding: '20px 40px 0' } },
+          React.createElement(Masthead, {
+            title: 'Regulatory map',
+            dateLabel: 'Sunday 6 September 2026',
+            dek: '3 jurisdictions live \\u00b7 6 active items \\u00b7 2 jurisdictions with immediate items \\u00b7 marker size = item count \\u00b7 colour = highest band present',
+            commandBar: { itemCount: 6, scope: 'map', placeholder: 'Search a jurisdiction \\u2014 or ask "where are my immediate items?"' },
+          }),
+        ),
+        React.createElement(MapPageView, {
+          resources: RESOURCES,
+          coverageGaps: COVERAGE_GAPS,
+          initialRegionFilter: null,
+          communityActivity: [],
+        }),
+      ),
+    ),
+  );
+};
+`;
+
+// ── Community (12) full-page composition mount ──────────────────────────────────────────────────
+const COMMUNITY_ROOMS_FIXTURE = [
+  {
+    key: 'GLOBAL', name: 'Global', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
+    itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
+    liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
+    threads: [
+      { id: 't1', groupId: 'g-global', title: 'How are you handling the CH4 and N2O scope changes?', body: '', replyCount: 14, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-06T14:00:00Z', referencedItemIds: [], authorName: 'A. Weiss', isYou: false, isOwner: false, signedOff: false },
+      { id: 't2', groupId: 'g-global', title: 'Ocean rate spike: what your clients are asking this week', body: '', replyCount: 23, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-04T09:00:00Z', referencedItemIds: [], authorName: 'S. Patel', isYou: false, isOwner: false, signedOff: false },
+      { id: 't3', groupId: 'g-global', title: 'Template: customer letter for the CBAM cost pass-through', body: '', replyCount: 5, createdAt: '2026-09-02T09:00:00Z', lastActivityAt: '2026-09-02T09:00:00Z', referencedItemIds: [], authorName: 'M. Ruiz', isYou: false, isOwner: false, signedOff: false },
+    ],
+  },
+  { key: 'EU', name: 'EU', short: 'EU', groupId: 'g-eu', joined: false, youHere: false, itemCount: 753, itemCountKnown: true, hue: 'critical', themes: ['Emissions', 'Reporting', 'Packaging'], liveItems: [], roster: [],
+    threads: [{ id: 't4', groupId: 'g-eu', title: 'FuelEU pooling — anyone modelled the 2027 penalty exposure?', body: '', replyCount: 8, createdAt: '2026-09-05T09:12:00Z', lastActivityAt: '2026-09-05T09:12:00Z', referencedItemIds: [], authorName: 'J. Nowak', isYou: false, isOwner: false, signedOff: false }] },
+  { key: 'US', name: 'US', short: 'US', groupId: 'g-us', joined: false, youHere: false, itemCount: 24, itemCountKnown: true, hue: 'high', themes: ['Reporting', 'Emissions', 'Transport'], liveItems: [], roster: [], threads: [] },
+  { key: 'UK', name: 'UK', short: 'UK', groupId: 'g-uk', joined: false, youHere: false, itemCount: 210, itemCountKnown: true, hue: 'moderate', themes: ['Transport', 'Research', 'Emissions'], liveItems: [], roster: [], threads: [] },
+  { key: 'APAC', name: 'APAC', short: 'APAC', groupId: 'g-apac', joined: false, youHere: false, itemCount: 2, itemCountKnown: true, hue: 'low', themes: ['Reporting'], liveItems: [], roster: [], threads: [] },
+  { key: 'LATAM', name: 'LATAM', short: 'LATAM', groupId: 'g-latam', joined: false, youHere: false, itemCount: 1, itemCountKnown: true, hue: 'low', themes: ['Emissions'], liveItems: [], roster: [], threads: [] },
+  { key: 'MEAF', name: 'MEAF', short: 'MEAF', groupId: 'g-meaf', joined: false, youHere: false, itemCount: 0, itemCountKnown: true, hue: 'low', themes: [], liveItems: [], roster: [], threads: [] },
+];
+
+const COMPOSE_COMMUNITY_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { Masthead } from '@/components/ui/Masthead';
+import { CommunityRooms } from '@/components/community/CommunityRooms';
+
+const ROOMS = ${JSON.stringify(COMMUNITY_ROOMS_FIXTURE)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'community' },
+        React.createElement('div', { style: { padding: '20px 40px 0' } },
+          React.createElement(Masthead, {
+            title: 'Community',
+            dateLabel: 'Sunday 6 September 2026',
+            dek: '7 regional rooms \\u00b7 999 active items across them \\u00b7 you are in 1 \\u00b7 peer signal is unverified until a verifier signs off',
+            commandBar: { itemCount: 999, scope: 'community', placeholder: 'Search posts, groups, members \\u2014 or ask "what did the EU room flag this week?"' },
+          }),
+        ),
+        React.createElement(CommunityRooms, {
+          rooms: ROOMS,
+          seeded: true,
+          currentUserId: 'u1',
+          currentUserName: 'Jason',
+          currentUserIsOwner: true,
+          currentUserIsVerifier: false,
+          verifierStatus: 'none',
+          networkMemberCount: 1,
+          pendingPickups: 0,
+          verticalGroups: [],
+          verticalOptions: [],
+        }),
+      ),
+    ),
+  );
+};
+`;
 
 
 // ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
@@ -961,7 +1629,10 @@ window.__mount = () => {
   root.render(
     React.createElement('div', { style: { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 14, width: 778, padding: 20, background: 'var(--page)' } },
       BAND_ORDER.map((band, i) => React.createElement('div', { key: band.key, 'data-audit': band.key },
-        React.createElement(BandTile, { band, count: 14 + i, selected: i === 0 }))),
+        // FOLD-59: the MONITOR tile (i === 2) carries a FOUR-DIGIT count, as artboard 01 does
+        // ("1,135"). Every tile here was two digits, so the numeral's thousands separator was
+        // unmeasurable and its absence went unseen until the side-by-side showed "1135".
+        React.createElement(BandTile, { band, count: i === 2 ? 1135 : 14 + i, selected: i === 0 }))),
     ),
   );
 };
@@ -1172,6 +1843,43 @@ const ADMIN_ISSUES_RAIL_API = [
   { urlGlob: '**/api/admin/attention', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(ADMIN_ISSUES_RAIL_FIXTURE) }) },
 ];
 
+// Account (14) — /api/orgs/org-1 fixture responses (lane compose-other, 2026-09-08). MembersPanel
+// and OrganizationPanel (the "Members & roles" and "Organization" tabs) both fetch these directly —
+// values match dc.html p14's own illustrated Members & roles state exactly (2 members, both Owner;
+// org name/slug/plan).
+const ACCOUNT_ORG_API = [
+  {
+    urlGlob: '**/api/orgs/org-1/members',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        members: [
+          { id: 'm-1', user_id: 'audit-user', role: 'owner', joined_at: '2026-04-04T00:00:00Z', display_name: 'Jason', avatar_url: null },
+          { id: 'm-2', user_id: 'u-2', role: 'owner', joined_at: '2026-05-28T00:00:00Z', display_name: 'jasonlosh@gmail.com', avatar_url: null },
+        ],
+        caller_role: 'owner',
+        caller_membership_id: 'm-1',
+      }),
+    }),
+  },
+  {
+    urlGlob: '**/api/orgs/org-1/invitations',
+    handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ invitations: [] }) }),
+  },
+  {
+    urlGlob: '**/api/orgs/org-1',
+    handler: (route) => route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        org: { id: 'org-1', name: 'Dietl / Rockit', slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-04-04T00:00:00Z' },
+        caller_role: 'owner',
+        owner: { user_id: 'audit-user', display_name: 'Jason', owner_since: '2026-04-04T00:00:00Z' },
+        member_count: 2,
+      }),
+    }),
+  },
+];
+
 const ADMIN_ISSUES_RAIL_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
@@ -1238,6 +1946,411 @@ window.__mount = () => {
       React.createElement(OnboardingStepper, { current: 2 }),
     ),
   );
+};
+`;
+
+// ── Compose-lists page composition: RegulationsLedger / MarketIntelLedger (lane compose-lists,
+// 2026-09-08, artboards 02/id="p2" and 04/id="p4"). Real page-composition components, not the raw
+// ListSurfaceShell primitive `list-surface-1440` above mounts — this exercises facetGroups (incl.
+// Topic/Source-tier), the real sortRow/flat wiring, and (Market only) the embedded Headline Series
+// card, the exact regions the operator's screenshot audit named ("filters were on the right ...
+// you are NOT matching the images directly"). Fixture shape matches
+// ../capture-compose-lists-screenshots.mjs's own fixture (same rows, same SERIES_BOARD), so the
+// audit and the evidence screenshot measure the identical mount.
+const COMPOSE_EMPTY_AGGREGATES = {
+  totalItems: 0,
+  byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 0,
+  lastUpdatedAt: null,
+};
+
+function composeRegRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const topics = ['Emissions & carbon pricing', 'Sustainable fuels & energy', 'Green transport standards', 'ESG reporting'];
+  const bands = ['CRITICAL', 'CRITICAL', 'CRITICAL', 'HIGH', 'HIGH', 'HIGH', 'MODERATE', 'MODERATE', 'LOW'];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `reg-${i}`, domain: 1,
+    title: `Regulation fixture ${i}: cross-border reporting duty amendment`,
+    note: 'Short regulation note.', type: 'regulation', priority: bands[i % bands.length],
+    added: `2026-0${(i % 8) + 1}-0${(i % 9) + 1}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: modes[i % modes.length], topic: topics[i % topics.length], sourceTier: (i % 6) + 1,
+    citationCount: i % 4 === 0 ? null : 2, biasTags: [], itemGrade: 'record', reasoning: '', tags: [],
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-06-01', label: 'Compliance deadline', status: 'future' }],
+  };
+}
+const COMPOSE_REG_ROWS = Array.from({ length: 24 }, (_, i) => composeRegRow(i));
+
+function composeCountsBy(rows, field) {
+  const counts = {};
+  for (const r of rows) counts[r[field]] = (counts[r[field]] ?? 0) + 1;
+  return counts;
+}
+
+const COMPOSE_REGULATIONS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RegulationsLedger } from '@/components/regulations/RegulationsLedger';
+
+const REG_ROWS = ${JSON.stringify(COMPOSE_REG_ROWS)};
+const props = {
+  initialResources: REG_ROWS,
+  initialArchived: [],
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: REG_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_REG_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_REG_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-04T00:00:00Z',
+  },
+  hasMore: false,
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(RegulationsLedger, props));
+};
+`;
+
+function composeMarketRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const bands = ['CRITICAL', 'CRITICAL', 'CRITICAL', 'HIGH', 'HIGH', 'HIGH', 'MODERATE', 'MODERATE', 'LOW'];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `mkt-${i}`, domain: 4,
+    title: `Market signal fixture ${i}: spot-rate divergence on the trans-Pacific lane`,
+    note: 'Short signal note.', type: 'signal', priority: bands[i % bands.length],
+    added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: modes[i % modes.length], sourceTier: (i % 6) + 1,
+    severity: ['action_required', 'cost_alert', 'window_closing', 'competitive_edge', 'monitoring'][i % 5],
+    tags: [], reasoning: '',
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+  };
+}
+const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
+
+function composeSeriesRow(key, label, displayValue, pct1w) {
+  return {
+    seriesKey: key, id: key, label, displayValue, emptyReason: null, asAtDate: '2026-09-03',
+    referencePeriod: null, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
+    currency: null, derivation: null, originClass: null, methodVersion: null, nObservations: 12,
+    deltas: {
+      count: 12,
+      latest: { date: '2026-09-03', value: 1, unit: null, currency: null },
+      sparkline: Array.from({ length: 6 }, (_, i) => ({ date: `2026-0${i + 1}-01`, value: 1 + i * 0.05 })),
+      delta1w: { value: pct1w / 100, pct: pct1w, fromDate: '2026-08-27' },
+      delta1m: { value: (pct1w * 2) / 100, pct: pct1w * 2, fromDate: '2026-08-03' },
+      deltaYoY: { insufficientHistory: true },
+      message: null,
+    },
+  };
+}
+const COMPOSE_SERIES_BOARD = {
+  groups: [{
+    keyPrefix: 'fixture', name: 'Fixture producer', implemented: true, cadence: 'weekly',
+    sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+    series: [
+      composeSeriesRow('diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+      composeSeriesRow('e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+      composeSeriesRow('hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+      composeSeriesRow('rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+    ],
+  }],
+  unregistered: [], totalObservedSeries: 4, totalProducers: 1, implementedProducerCount: 1, isEmpty: false,
+};
+
+const COMPOSE_MARKET_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MarketIntelLedger } from '@/components/market/MarketIntelLedger';
+import { MarketComparativeRibbon } from '@/components/market/MarketComparativeRibbon';
+
+const MARKET_ROWS = ${JSON.stringify(COMPOSE_MARKET_ROWS)};
+const SERIES_BOARD = ${JSON.stringify(COMPOSE_SERIES_BOARD)};
+const props = {
+  initialResources: MARKET_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: MARKET_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_MARKET_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_MARKET_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-03T00:00:00Z',
+  },
+  seriesBoard: SERIES_BOARD,
+  headlineSeries: React.createElement(MarketComparativeRibbon, { board: SERIES_BOARD, embedded: true }),
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(MarketIntelLedger, props));
+};
+`;
+
+// ── /research page composition (lane comp-06, 2026-09-08, artboard 06/id="p6") ─────────────────────
+// The REAL ResearchLedger, fed a 20-row fixture in getPublicResearchItems()'s own `Resource` shape
+// (a migration-102 `theme` column value, a `severity` value, a `sub` kind label, an `added` date),
+// so the theme card row, the Window row, the band-card foot rows and the transition strip are all
+// measured as the page composes them, not as isolated parts fed invented props.
+const COMPOSE_RESEARCH_THEMES = ['emissions_accounting', 'fuels_saf', 'last_mile_electrification', 'disclosure_regimes'];
+const COMPOSE_RESEARCH_SUBS = ['initiative', 'think tank', 'active data platform', 'peer-reviewed journal'];
+const COMPOSE_RESEARCH_BANDS = ['HIGH', 'MODERATE', 'LOW', 'LOW', 'LOW', 'LOW'];
+
+function composeResearchRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `res-${i}`, domain: 7,
+    title: `Research finding fixture ${i}: measured abatement across the ocean leg`,
+    note: 'Short finding note.', type: 'Finding', sub: COMPOSE_RESEARCH_SUBS[i % COMPOSE_RESEARCH_SUBS.length],
+    priority: COMPOSE_RESEARCH_BANDS[i % COMPOSE_RESEARCH_BANDS.length],
+    // Fixed dates (never Date.now()): the audit is a measurement, and a fixture whose rows drift
+    // in and out of the Window row's buckets by wall clock is not reproducible. "all" is the
+    // default window, so every row is in view whatever today is.
+    added: `2026-08-${String((i % 28) + 1).padStart(2, '0')}`,
+    jurisdiction, jurisdictionIso: [jurisdiction], modes: modes[i % modes.length],
+    theme: COMPOSE_RESEARCH_THEMES[i % COMPOSE_RESEARCH_THEMES.length],
+    severity: ['cost_alert', 'monitoring', 'competitive_edge'][i % 3],
+    sourceTier: 3, tags: [], reasoning: '',
+    timeline: i % 3 === 0 ? [{ date: '2026-12-01', label: 'MEPC session', status: 'future' }] : undefined,
+  };
+}
+const COMPOSE_RESEARCH_ROWS = Array.from({ length: 20 }, (_, i) => composeResearchRow(i));
+
+const COMPOSE_RESEARCH_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { ResearchLedger } from '@/components/research/ResearchLedger';
+
+const RESEARCH_ROWS = ${JSON.stringify(COMPOSE_RESEARCH_ROWS)};
+const props = {
+  resources: RESEARCH_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: RESEARCH_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_RESEARCH_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_RESEARCH_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-06T00:00:00Z',
+  },
+  sourceCoverage: [
+    { transportMode: 'ocean', jurisdictionIso: 'EU', sourceCount: 18 },
+    { transportMode: 'road', jurisdictionIso: 'US', sourceCount: 14 },
+    { transportMode: 'air', jurisdictionIso: 'UK', sourceCount: 11 },
+    { transportMode: 'rail', jurisdictionIso: 'Global', sourceCount: 3 },
+  ],
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(ResearchLedger, props));
+};
+`;
+
+// ── Compose-08: the real OperationsLedger page composition (lane comp-08, 2026-09-08, artboard
+// 08/id="p8"). The `ops-matrix` mount above measures RegionDimensionMatrix ALONE, fed empty facts;
+// this one measures the COMPOSED /operations page — masthead scope line, band tiles, the matrix in
+// its artboard placement (first in the content column, above the band cards), the band-grouped
+// rows, the By-state disclosure's R7 placement at the card foot, and the rail's Region/Dimension
+// filters + Coverage gaps + Legend order. Fixture is populated (25 rows, 5 regions, real coverage/
+// fact row shapes) because an empty matrix cannot show a placement defect.
+function composeOpsRow(i) {
+  // 0 immediate / 4 action / 2 monitor / 19 awareness — the artboard's own band split.
+  const priority = i < 4 ? 'HIGH' : i < 6 ? 'MODERATE' : 'LOW';
+  const regions = ['EU', 'US', 'SG', 'GB', 'AE'];
+  const jurisdiction = regions[i % regions.length];
+  return {
+    id: `ops-${i}`, domain: 6,
+    title: `${jurisdiction} Regional Operations Profile ${i}`,
+    note: 'Regional profile note.', type: 'operations', priority,
+    added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: [['ocean'], ['air'], ['road'], ['ocean', 'air']][i % 4], sourceTier: 2,
+    tags: [], reasoning: '',
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+  };
+}
+const COMPOSE_OPS_ROWS = Array.from({ length: 25 }, (_, i) => composeOpsRow(i));
+
+const COMPOSE_OPS_REGIONS = [
+  { code: 'EU', label: 'European Union', severity: 'critical', isoCodes: ['EU', 'DE', 'NL'] },
+  { code: 'US', label: 'United States', severity: 'critical', isoCodes: ['US'] },
+  { code: 'ASIA', label: 'Asia · SG + HK', severity: 'high', isoCodes: ['SG', 'HK'] },
+  { code: 'UK', label: 'United Kingdom', severity: 'high', isoCodes: ['GB'] },
+  { code: 'UAE', label: 'UAE · Dubai', severity: 'moderate', isoCodes: ['AE'] },
+];
+
+// The artboard's own matrix body: EU/US hold facts on a couple of dimensions only, ASIA/UK/UAE are
+// sourced across the rest, D1 (regulatory_feasibility) is structurally empty everywhere.
+const COMPOSE_OPS_DIM_DBS = ['regional_resources', 'labor_markets', 'materials_sourcing', 'infrastructure', 'operational_cost'];
+const COMPOSE_OPS_COVERAGE = [];
+const COMPOSE_OPS_FACTS = [];
+for (const region of ['EU', 'US', 'ASIA', 'UK', 'UAE']) {
+  for (const db of COMPOSE_OPS_DIM_DBS) {
+    const sourced = region === 'EU' ? db === 'labor_markets' || db === 'operational_cost'
+      : region === 'US' ? db === 'labor_markets'
+      : true;
+    const factCount = sourced ? (db === 'labor_markets' && region === 'US' ? 6 : 5) : 0;
+    COMPOSE_OPS_COVERAGE.push({ region_code: region, dimension: db, state: sourced ? 'populated' : 'missing', fact_count: factCount, notes: null });
+    for (let n = 0; n < factCount; n += 1) {
+      COMPOSE_OPS_FACTS.push({
+        region_code: region, dimension: db,
+        fact_label: ['Labour cost, business economy, mean across member states', 'Warehouse worker monthly wage', 'Class 1 driver-handler with overtime', 'Private-sector salary growth, logistics', 'First-line supervisors, median'][n % 5],
+        value: ['€40.4 / hr', 'HKD 14,747 / mo', '£40–42k / yr', '3–6% / yr', '$60,000 / yr'][n % 5],
+        status: null, trend: null,
+        source_name: ['Eurostat lc_lci_lev', 'Indeed HK', 'Talent.com / Glassdoor UK', 'Hays GCC Salary Guide', 'BLS OEWS 53-1047'][n % 5],
+        source_url: 'https://example.com/fixture', source_note: null,
+        last_updated: '2026-05-28', freshness: region === 'EU' && db === 'operational_cost' ? 'ageing' : 'current',
+        value_numeric: null, unit: null, currency: null, derivation: null, origin_class: null,
+        source_key: null, source_ref: null, n_observations: null, method_version: null,
+        as_at_date: null, reference_period: null,
+      });
+    }
+  }
+}
+
+const COMPOSE_OPS_STATE_COSTS = [
+  { stateCode: 'US-CA', factLabel: 'Minimum wage', value: '$16.50', unit: '/hr', trend: null, statuteCitation: 'Cal. Lab. Code § 1182.12', sourceName: 'California DIR', effectiveDate: '2026-01-01' },
+  { stateCode: 'US-NY', factLabel: 'Minimum wage', value: '$16.00', unit: '/hr', trend: null, statuteCitation: 'NY Lab. Law § 652', sourceName: 'NY DOL', effectiveDate: '2026-01-01' },
+];
+
+const COMPOSE_OPERATIONS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { OperationsLedger } from '@/components/operations/OperationsLedger';
+
+const OPS_ROWS = ${JSON.stringify(COMPOSE_OPS_ROWS)};
+const props = {
+  initialResources: OPS_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: OPS_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_OPS_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_OPS_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 18,
+    lastUpdatedAt: '2026-09-06T00:00:00Z',
+  },
+  regulationsByRegion: [],
+  operationsCoverage: {
+    regions: ${JSON.stringify(COMPOSE_OPS_REGIONS)},
+    coverage: ${JSON.stringify(COMPOSE_OPS_COVERAGE)},
+    facts: ${JSON.stringify(COMPOSE_OPS_FACTS)},
+  },
+  stateCosts: ${JSON.stringify(COMPOSE_OPS_STATE_COSTS)},
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(OperationsLedger, props));
+};
+`;
+
+// ── /watchlist, the real page composition (lane comp-11, 2026-09-08, artboard 11 / dc.html p11) ──
+// The REAL `WatchlistSurface` fed a populated `WatchlistItem[]`, so the composition spec measures
+// the page as assembled — masthead scope line, Watched card (head, column header, rows, foot, the
+// changed-since-last-visit strip), the Recalculation notices card, and the rail's three cards in
+// artboard order — rather than a shell primitive fed invented props.
+//
+// TWO API fixtures matter here, and both must return SHAPED bodies, not EMPTY_API's '{}':
+//   /api/notices          feeds `useRecalculationNotices`; a populated list is what makes the
+//                         state-note strip and the notices list render at all.
+//   /api/workspace/tags   feeds `useWorkspaceTagsFacet`; its tags are the rail Filters card's
+//                         "Workspace tags" group.
+// Playwright tries overlapping page.route handlers LIFO, so the generic catch-all is registered
+// first (the EMPTY_API spread) and these two after it, exactly as COMPOSE_LEDGER_API does.
+const COMPOSE_WATCHLIST_NOTICES = Array.from({ length: 4 }, (_, i) => ({
+  newValueId: `nv-${i}`,
+  entityId: `ent-${i}`,
+  entityLabel: `Fixture entity ${i}`,
+  href: null,
+  oldValue: 1200 + i,
+  newValue: 1180 + i,
+  unit: 'EUR/1000L',
+  currency: null,
+  methodId: 'fixture-method',
+  oldMethodVersion: '1.0.0',
+  newMethodVersion: '1.0.0',
+  supersededAt: '2026-09-05T09:00:00Z',
+  triggeringEvent: null,
+}));
+
+const COMPOSE_WATCHLIST_TAGS = {
+  tags: [
+    { id: 'tag-1', name: 'Packaging', itemCount: 3 },
+    { id: 'tag-2', name: 'Fuel', itemCount: 2 },
+  ],
+  itemTags: { 'wl-0': ['tag-1'], 'wl-2': ['tag-2'] },
+};
+
+const COMPOSE_WATCHLIST_API = [
+  ...EMPTY_API,
+  { urlGlob: '**/api/notices**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ notices: COMPOSE_WATCHLIST_NOTICES }) }) },
+  { urlGlob: '**/api/workspace/tags**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(COMPOSE_WATCHLIST_TAGS) }) },
+];
+
+function composeWatchRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const priorities = ['CRITICAL', 'HIGH', 'HIGH', 'MODERATE', 'LOW'];
+  // The real WatchlistItemType vocabulary (src/lib/watchlist-links.ts) — 'reg', not 'regulation'.
+  // An unknown type resolves to a null href and drops the row into the surface's Absence fallback,
+  // which is the correct behaviour for a type the app has no route for and the WRONG fixture for
+  // measuring the composed row.
+  const types = ['reg', 'reg', 'research', 'operations'];
+  return {
+    id: `wl-${i}`,
+    type: types[i % types.length],
+    title: `Watched fixture ${i}: packaging and packaging waste regulation`,
+    source: 'fixture',
+    jurisdiction: jurisdictions[i % jurisdictions.length],
+    lastChangedAt: '2026-08-06T00:00:00Z',
+    scope: i % 4 === 3 ? 'team' : 'personal',
+    addedBy: i % 4 === 3 ? 'A. Member' : undefined,
+    priority: priorities[i % priorities.length],
+    impactScores: { cost: 3, compliance: 3, client: 2, operational: 2 },
+    sourceTier: (i % 6) + 1,
+    complianceDeadline: `2026-12-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [
+      { date: '2026-03-01', status: 'past' },
+      { date: '2026-12-10', status: 'current' },
+      { date: '2027-06-01', status: 'ahead' },
+    ],
+  };
+}
+const COMPOSE_WATCH_ROWS = Array.from({ length: 6 }, (_, i) => composeWatchRow(i));
+
+const COMPOSE_WATCHLIST_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { WatchlistSurface } from '@/components/watchlist/WatchlistSurface';
+
+const ITEMS = ${JSON.stringify(COMPOSE_WATCH_ROWS)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(WatchlistSurface, { items: ITEMS, limit: 250 }));
 };
 `;
 
@@ -1379,6 +2492,39 @@ export const AUDIT_MOUNTS = {
     },
     apiRoutes: EMPTY_API,
   },
+  'market-detail-1440': {
+    id: 'market-detail-1440',
+    description: 'The real AppShell frame wrapping MarketSignalDetailSurface, fixture data drawn from artboard 05.',
+    viewport: 1440,
+    entry: MARKET_DETAIL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'research-detail-1440': {
+    id: 'research-detail-1440',
+    description: 'The real AppShell frame wrapping ResearchFindingDetailSurface, fixture data drawn from artboard 07.',
+    viewport: 1440,
+    entry: RESEARCH_DETAIL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'operations-detail-1440': {
+    id: 'operations-detail-1440',
+    description: 'The real AppShell frame wrapping OperationsDetailSurface, fixture data drawn from artboard 09.',
+    viewport: 1440,
+    entry: OPERATIONS_DETAIL_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
   'detail-shell': {
     id: 'detail-shell',
     description: 'DetailHeader/ActionRow/DetailTagRow+TagPopover/SectionIndex/SummaryDepthSwitch/DetailTimeline/DetailSection/rail cards, real components from DetailShell.tsx.',
@@ -1451,5 +2597,153 @@ export const AUDIT_MOUNTS = {
     description: 'The real OnboardingStepper (4-pill progress row), README screen 17 / dc.html p17.',
     viewport: 1440,
     entry: ONBOARDING_STEPPER_ENTRY,
+  },
+  'compose-02-regulations': {
+    id: 'compose-02-regulations',
+    description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Obligations/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
+    viewport: 1440,
+    entry: COMPOSE_REGULATIONS_ENTRY,
+    apiRoutes: COMPOSE_REGULATIONS_API,
+  },
+  'compose-06-research': {
+    id: 'compose-06-research',
+    description: 'The real ResearchLedger page composition (20-row fixture): theme cards, Window row, band-foot rows + transition strip, rail Filters/Source coverage/Legend, artboard 06/id="p6".',
+    viewport: 1440,
+    entry: COMPOSE_RESEARCH_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-04-market': {
+    id: 'compose-04-market',
+    description: 'The real MarketIntelLedger page composition (20-row fixture): rail Filters/Legend, embedded Headline Series card, sort/count row, band-sectioned rows — artboard 04/id="p4".',
+    viewport: 1440,
+    entry: COMPOSE_MARKET_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-08-operations': {
+    id: 'compose-08-operations',
+    description: 'The real OperationsLedger page composition (25-row fixture, 5 regions, populated coverage/facts): masthead scope line, band tiles, "Regions side by side" matrix card, band-sectioned rows, By-state disclosure at the card foot, rail Filters/Coverage gaps/Legend — artboard 08/id="p8".',
+    viewport: 1440,
+    entry: COMPOSE_OPERATIONS_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-11-watchlist': {
+    id: 'compose-11-watchlist',
+    description: 'The real WatchlistSurface page composition (6-row fixture, populated notices + tags): masthead scope line, Watched card head/column header/rows/foot/state note, Recalculation notices card, rail Filters/Share/Legend — artboard 11/id="p11".',
+    viewport: 1440,
+    entry: COMPOSE_WATCHLIST_ENTRY,
+    apiRoutes: COMPOSE_WATCHLIST_API,
+  },
+  'compose-map': {
+    id: 'compose-map',
+    description: 'Full-page composition mount: AppShell + Masthead + MapPageView, populated fixture data, README screen 10 / dc.html p10.',
+    viewport: 1440,
+    entry: COMPOSE_MAP_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-map.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      'leaflet/dist/leaflet.css': `${SMOKE}stub-empty-css.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-community': {
+    id: 'compose-community',
+    description: 'Full-page composition mount: AppShell + Masthead + CommunityRooms, populated fixture data, README screen 12 / dc.html p12.',
+    viewport: 1440,
+    entry: COMPOSE_COMMUNITY_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-community.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-admin': {
+    id: 'compose-admin',
+    description: 'Full-page composition mount: AppShell + the real AdminDashboard (own internal Masthead), populated fixture data, README screen 13 / dc.html p13.',
+    viewport: 1440,
+    entry: COMPOSE_ADMIN_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'compose-account': {
+    id: 'compose-account',
+    description: 'Full-page composition mount: AppShell + the real UserProfilePage (own internal Masthead), populated fixture data, README screen 14 / dc.html p14.',
+    viewport: 1440,
+    entry: COMPOSE_ACCOUNT_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-account.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-account.mjs`,
+      '@/lib/workspace/profile': `${SMOKE}stub-workspace-profile-account.mjs`,
+    },
+    apiRoutes: [...ADMIN_ISSUES_RAIL_API, ...ACCOUNT_ORG_API],
+  },
+  'compose-settings': {
+    id: 'compose-settings',
+    description: 'Full-page composition mount: AppShell + the real SettingsPage (own internal Masthead + SectionIndex), populated fixture data, README screen 15 / dc.html p15.',
+    viewport: 1440,
+    entry: COMPOSE_SETTINGS_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-settings.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser.mjs`,
+    },
+    // Playwright checks page.route handlers most-recently-registered-first, so the specific
+    // /api/workspace/bootstrap mock (usePersonalStateHydration needs a real `personalState` array,
+    // not EMPTY_API's bare `{}`) must be registered AFTER the EMPTY_API catch-all, not before.
+    apiRoutes: [
+      ...EMPTY_API,
+      {
+        urlGlob: '**/api/workspace/bootstrap',
+        handler: (route) => route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ personalState: [], overrides: [] }),
+        }),
+      },
+    ],
+  },
+  'compose-login': {
+    id: 'compose-login',
+    description: 'Full-page composition mount: the real /login page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
+    viewport: 1440,
+    entry: COMPOSE_LOGIN_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-login.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-signup': {
+    id: 'compose-signup',
+    description: 'Full-page composition mount: the real /signup page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
+    viewport: 1440,
+    entry: COMPOSE_SIGNUP_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-signup.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-onboarding': {
+    id: 'compose-onboarding',
+    description: 'Full-page composition mount: the real OnboardingWizard (AuthFrame + OnboardingStepper), step 2 (its own default), README screen 17 / dc.html p17.',
+    viewport: 1440,
+    entry: COMPOSE_ONBOARDING_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-onboarding.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
   },
 };

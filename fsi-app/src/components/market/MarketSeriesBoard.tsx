@@ -59,6 +59,8 @@ import { FRESHNESS } from "@/lib/contracts/vocabularies.mjs";
 import { lookupWatchMembership, type WatchMembershipEntry } from "@/lib/watchlist/membership";
 
 interface MarketSeriesBoardProps {
+  /** Server render instant (src/lib/render-now.ts). */
+  nowIso?: string;
   board: MarketSeriesBoardVM;
   /**
    * PERF-3 (2026-09-03, docs/audits/perf-load-times-2026-09-03.md item 2): one server-side batch
@@ -105,11 +107,16 @@ const FRESHNESS_PANEL_COPY: Record<string, string> = {
   unknown: "No populated series carries a decided cadence — degradation cannot be judged.",
 };
 
-export function MarketSeriesBoard({ board, watchMembership }: MarketSeriesBoardProps) {
+export function MarketSeriesBoard({ board, watchMembership, nowIso: nowIsoProp }: MarketSeriesBoardProps) {
   // Injected "now" for every freshness derivation below — the component's render instant, computed
   // once here rather than read inside the pure lib functions (envelope.mjs's own "time is injected,
   // never read" discipline; deriveSeriesFreshness/summarizeBoardFreshness both take nowIso as an arg).
-  const nowIso = new Date().toISOString().slice(0, 10);
+  // HYDRATION-59 (2026-09-07): the instant is now INJECTED from the server render
+  // (src/lib/render-now.ts) rather than read from this component's own host clock — the same
+  // "time is injected, never read" discipline this comment already claims, extended across the
+  // SSR/hydration boundary so the freshness labels cannot differ between the two passes.
+  // clock-ok: fallback only. Every mount site passes `nowIso` from the server (src/app/market/page.tsx).
+  const nowIso = (nowIsoProp ?? new Date().toISOString()).slice(0, 10);
 
   const populatedFreshness = board.groups
     .filter((g) => g.state === "populated")

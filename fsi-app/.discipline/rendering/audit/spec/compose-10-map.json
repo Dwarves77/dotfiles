@@ -1,0 +1,76 @@
+{
+  "part": "Page composition — Map (10)",
+  "mount": "compose-map",
+  "viewport": 1440,
+  "artboards": ["10-map"],
+  "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+  "notes": [
+    "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + MapPageView, all real components, mounted with populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-map'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+    "Artboard order top to bottom: Masthead (VOL line, REGULATORY MAP title, dek, page-scoped command bar) -> Mode/Band/Region filter row (ABOVE the map, not beside it — operator audit item, closed) -> Regulatory map card (map canvas + in-card KEY legend) -> Jurisdiction register card (table: JURISDICTION / ACTIVE THEMES / HIGHEST BAND / ITEMS, one ListRow per jurisdiction) -> Immediate strip foot -> rail: Immediate jurisdictions card, Coverage gaps card, Legend card, in that order alongside the two left-column cards (not below them).",
+    "Command bar placeholder is page-scoped: 'Search a jurisdiction — or ask \"where are my immediate items?\"' (dc.html p10 exact text) — this lane added the missing `placeholder` prop to src/app/map/page.tsx's Masthead call; before this lane it fell back to the generic 'Search or ask across N items…' copy.",
+    "The KEY box's fixture rows are limited to the mount's fixture data (6 resources across 4 jurisdictions) — the artboard shows 7 jurisdictions / 976 items from example data, never shipped (README: sample data in the mock is never shipped)."
+  ],
+  "selector": "[data-audit=\"map\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1 — Masthead title 'Regulatory map'",
+      "selector": "[data-audit=\"map\"] h1, [data-audit=\"map\"] [class*=masthead] p, [data-audit=\"map\"] div div p",
+      "expect": {},
+      "note": "Checked precisely by the command-bar placeholder target below and by direct screenshot comparison — Masthead's own title element carries no stable hook here, so this row is evidence-only."
+    },
+    {
+      "name": "region 1a — command bar page-scoped placeholder (dc.html p10 exact text)",
+      "selector": "[data-audit=\"map\"] input[placeholder^=\"Search a jurisdiction\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "region 2 — filter row (Mode/Band/Region) comes before the map card",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] > div:first-child",
+      "expect": {},
+      "note": "Mode/Band/Region FilterChipGroups — presence + position (first child of the content column, above the map card) is what artboard 10 requires; the operator's audit item named filters landing beside content on other pages as the defect this checks against."
+    },
+    {
+      "name": "region 3 — Regulatory map card canvas",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-canvas\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "region 4 — Jurisdiction register rows, after the map card",
+      "selector": "[data-audit=\"map\"] [data-testid=\"jurisdiction-register-rows\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "region 5 — rail, Immediate jurisdictions card first",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
+      "expect": {},
+      "textMatch": "Immediate ·"
+    },
+    {
+      "name": "region 6 — rail, Coverage gaps card second",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
+      "expect": {},
+      "textMatch": "Coverage gaps"
+    },
+    {
+      "name": "region 7 — rail, Legend card third and last",
+      "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
+      "expect": {},
+      "textMatch": "Legend"
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"map\"] button",
+      "textMatch": "Ask AI",
+      "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation."
+    },
+    {
+      "name": "no second per-page ask/search bar (README §0.3)",
+      "selector": "[data-audit=\"map\"] input[type=\"search\"]",
+      "reason": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input.",
+      "note": "Presence-only forbid; MapPageView's own filter chips are buttons, not inputs, so this never legitimately matches."
+    }
+  ]
+}

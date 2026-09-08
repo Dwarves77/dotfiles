@@ -44,9 +44,11 @@ export interface DashboardMastheadProps {
    *  read means "not loaded / RPC error", not "zero jurisdictions"). */
   aggregatesLoaded: boolean;
   totalJurisdictions: number;
+  /** Server render instant (src/lib/render-now.ts) — passed straight through to <Masthead/>. */
+  nowIso?: string;
 }
 
-export function DashboardMasthead({ dateLabel, itemCount, aggregatesLoaded, totalJurisdictions }: DashboardMastheadProps) {
+export function DashboardMasthead({ dateLabel, itemCount, aggregatesLoaded, totalJurisdictions, nowIso }: DashboardMastheadProps) {
   const { user } = useAuth();
   const orgName = useWorkspaceStore((s) => s.orgName);
   const sectorProfile = useWorkspaceStore((s) => s.sectorProfile);
@@ -80,6 +82,7 @@ export function DashboardMasthead({ dateLabel, itemCount, aggregatesLoaded, tota
     <Masthead
       title={title}
       dateLabel={dateLabel}
+      nowIso={nowIso}
       dek={dek}
       commandBar={{ itemCount, scope: "dashboard" }}
     />

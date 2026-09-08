@@ -34,6 +34,7 @@ import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
 import { AUDIT_MOUNTS } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
+import { detectBoundsViolations } from '../assertions.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -87,6 +88,23 @@ async function probe(page, targets, forbids) {
           });
         });
       };
+      // `textMatch` value forms, ONE implementation used by both readTarget and readForbid:
+      //   "<text>"      substring, the original and still the default;
+      //   "re:<regex>"  a JS regular expression over the element's own text.
+      // FOLD-59 (2026-09-08): the regex form exists because substring alone produced a FALSE
+      // finding. compose-01's "never a bare 0/12 impact score" forbid read `textMatch: "0/12"`,
+      // and "10/12" — a real, correctly scored row — contains "0/12", so a passing product
+      // reported NOT IN SPEC. A false finding is worse than no audit (CLAUDE.md rule 14), and the
+      // fix belongs in the harness rather than in a weaker spec: the invariant being guarded (an
+      // unscored row never renders a fabricated zero) is exactly right, only its expression was.
+      const textFilter = (nodes, textMatch) => {
+        if (!textMatch) return nodes;
+        if (String(textMatch).startsWith('re:')) {
+          const re = new RegExp(String(textMatch).slice('re:'.length));
+          return nodes.filter((n) => re.test(n.textContent || ''));
+        }
+        return nodes.filter((n) => (n.textContent || '').includes(textMatch));
+      };
       const readTarget = (t) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(t.selector)), t.matchStyle);
         // HARNESS FIX, found independently by two fix lanes (fix58-tokens and fix58-detail,
@@ -97,7 +115,7 @@ async function probe(page, targets, forbids) {
         // under the selector (5: the overflow menu, Export brief, Share, Watch, + Tag) instead
         // of the one it named. Same filter, same rule. Both lanes' fixes were identical; kept
         // once here at the fold.
-        if (t.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(t.textMatch));
+        nodes = textFilter(nodes, t.textMatch);
         if (nodes.length === 0) return { found: false, count: 0, styles: {}, text: null, fontSize: null, placeholder: null };
         const el = nodes[0];
         const cs = getComputedStyle(el);
@@ -120,7 +138,7 @@ async function probe(page, targets, forbids) {
       };
       const readForbid = (f) => {
         let nodes = styleFilter(Array.from(document.querySelectorAll(f.selector)), f.matchStyle);
-        if (f.textMatch) nodes = nodes.filter((n) => (n.textContent || '').includes(f.textMatch));
+        nodes = textFilter(nodes, f.textMatch);
         // Visible text only: several shared parts carry their own responsive rules in a nested
         // `<style>` tag (ListRow, CommandBar, TierChip), whose textContent is CSS and would make an
         // otherwise correct forbid finding unreadable.
@@ -141,6 +159,70 @@ async function probe(page, targets, forbids) {
     },
     { targets, forbids },
   );
+}
+
+/**
+ * D1 audit check (operator report 2026-09-07): a `boundsCheck` entry names a row/header selector
+ * and a cell selector — for every matched row, every matched cell's `getBoundingClientRect()` is
+ * checked against its row's own box (no cell escapes it) and against its sibling cells (no two
+ * overlap). This is what `expect`/`children`'s value-level checks structurally cannot do (they
+ * read `getComputedStyle`, never geometry against a SIBLING), and what `detectOverflows`
+ * (the smoke specs' own guard) cannot do either (it only sees a container's own scrollWidth vs
+ * clientWidth — never one cell bleeding into another while the container itself stays scroll-
+ * free, which is exactly the reported defect).
+ */
+async function probeBounds(page, checks) {
+  return page.evaluate((checks) => {
+    const rectOf = (el) => {
+      const r = el.getBoundingClientRect();
+      return { left: r.left, top: r.top, right: r.right, bottom: r.bottom, width: r.width, height: r.height };
+    };
+    return checks.map((check) => {
+      const rows = Array.from(document.querySelectorAll(check.container));
+      const perRow = rows.map((row) => ({
+        containerRect: rectOf(row),
+        cells: Array.from(row.querySelectorAll(check.cells)).map((el) => ({ name: el.className || el.tagName, rect: rectOf(el) })),
+      }));
+      return { rowCount: rows.length, perRow };
+    });
+  }, checks);
+}
+
+function rowsForBounds(spec, checks, measured) {
+  const rows = [];
+  const base = { spec: spec.__id, part: spec.part, artboards: spec.artboards, source: spec.source, viewport: spec.viewport };
+  checks.forEach((check, i) => {
+    const { rowCount, perRow } = measured[i];
+    if (rowCount === 0) {
+      rows.push({
+        ...base,
+        target: check.name,
+        selector: check.container,
+        property: '(bounds)',
+        expected: 'present',
+        actual: 'no element matched this selector',
+        status: 'NOT BUILT',
+        note: check.reason ?? null,
+      });
+      return;
+    }
+    const allViolations = [];
+    perRow.forEach(({ containerRect, cells }, rowIdx) => {
+      const v = detectBoundsViolations(containerRect, cells);
+      if (v.length > 0) allViolations.push(`row ${rowIdx}: ${v.join('; ')}`);
+    });
+    rows.push({
+      ...base,
+      target: check.name,
+      selector: `${check.container} > ${check.cells}`,
+      property: '(cell containment)',
+      expected: 'no cell overlaps a sibling or exceeds its row',
+      actual: allViolations.length === 0 ? `clean across ${rowCount} row(s)` : allViolations.join(' | '),
+      status: allViolations.length === 0 ? 'MATCH' : 'MISMATCH',
+      note: check.reason ?? null,
+    });
+  });
+  return rows;
 }
 
 function rowsFor(spec, targets, measuredTargets, forbids, measuredForbids) {
@@ -351,6 +433,12 @@ async function main() {
           forbids.map((f) => ({ selector: f.selector, textMatch: f.textMatch ?? null, matchStyle: f.matchStyle ?? null })),
         );
         rows.push(...rowsFor(spec, targets, measured.targets, forbids, measured.forbids));
+
+        const boundsChecks = spec.boundsCheck || [];
+        if (boundsChecks.length > 0) {
+          const measuredBounds = await probeBounds(page, boundsChecks);
+          rows.push(...rowsForBounds(spec, boundsChecks, measuredBounds));
+        }
       } finally {
         await page.close();
       }

@@ -1,0 +1,68 @@
+{
+  "part": "Page composition — Settings (15)",
+  "mount": "compose-settings",
+  "viewport": 1440,
+  "artboards": ["15-settings"],
+  "source": "docs/design/handoff-2026-09-06/screens/15-settings.png (artboard image is the authority per SETUP); dc.html id=\"p15\"; README screen 15",
+  "notes": [
+    "Region-composition check for the full page: AppShell + the real SettingsPage (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-settings'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+    "BINDING, NOT REPRODUCED: operator ruling R9 (DEVIATION-LOG.md) retires the artboard's literal 300px rail (Briefing schedule cadence / Appearance / Data & supersessions links) in favour of ONE scrolling page under a sticky S1..S6 SectionIndex directly below the merged Account tab row — General/Notifications/Saved searches/Data & supersessions/Archive/Help all become anchored sections, not a rail. This spec asserts the R9 shape (SectionIndex present, six sections in order), never the artboard's literal rail — that would be asserting a fabricated match against a superseded ruling.",
+    "This lane fixed one real defect the R9 rebuild still owed the artboard: the masthead card's own 'Applies workspace-wide · changes here affect every member, not just you' + 'See audit log →' banner (dc.html p15, directly below the search row, inside the SAME masthead card) was missing entirely — nothing in DEVIATION-LOG superseded or logged it. Added an additive, optional `notice` prop to the shared `Masthead` component (src/components/ui/Masthead.tsx — no existing caller passes it, every other page's masthead unaffected) rendering dc.html's exact copy and link, wired on SettingsPage.tsx only.",
+    "NOT FIXED, logged instead (DEVIATION-LOG 2026-09-08): the merged Account tab row on 14-account.png/15-settings.png shows live counts (Members & roles · 2, Sector profile · 6, Jurisdictions · 30) — UserProfilePage.tsx's own tab row fetches these; SettingsPage.tsx's copy of the same tab row (`accountTabs` in SettingsPage.tsx) is a static label list with no counts, a real drift from the two pages' shared-row intent recorded when the row was first built (DEVIATION-LOG 2026-09-07, 'Account + Settings — merged tab row'). Fixing it means either lifting the count-fetching logic into a shared hook both pages call, or having SettingsPage fetch the same three counts independently — either is more than a page-composition region fix and is logged for a follow-up lane rather than attempted here.",
+    "Capture-script note: this mount's real content (the 40-sector grid alone) runs past 4000px tall; AppShell's `height:100vh` frame scrolls internally, so `capture-compose-page.mjs`'s original `fullPage` screenshot silently truncated at the 1400px viewport. Fixed the capture script (measures the mounted `[data-audit]` element's real height, grows the viewport to fit before shooting) — see compose-13-admin.json's own note, which independently hit the same bug and traces its full effect on that page's Organizations region."
+  ],
+  "selector": "[data-audit=\"settings\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1 — masthead workspace-wide notice banner (dc.html p15, previously missing entirely)",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "Applies workspace-wide"
+    },
+    {
+      "name": "region 2 — merged Account tab row, Settings active",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "Members & roles"
+    },
+    {
+      "name": "region 3 — sticky SectionIndex (ruling R9), six sections in order",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "S1"
+    },
+    {
+      "name": "region 3b — SectionIndex has all six R9 entries, General first",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "S6 Help"
+    },
+    {
+      "name": "region 4 — Dashboard settings card (Appearance/Default sort/Default export/Alert priorities/Home sections)",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "Dashboard settings"
+    },
+    {
+      "name": "region 5 — Freight sectors card, 40-sector grid",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "Freight sectors"
+    },
+    {
+      "name": "region 6 — Briefing schedule folded into General (ruling R9), not a rail card",
+      "selector": "[data-audit=\"settings\"] *",
+      "expect": {},
+      "textMatch": "Briefing schedule"
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no floating Ask AI button (ruling 2.2)",
+      "selector": "[data-audit=\"settings\"] button",
+      "textMatch": "Ask AI",
+      "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    }
+  ]
+}

@@ -23,8 +23,9 @@
 //     the same word. 'Title'/'Tier' are ListRowColumnHeader's own real column-header labels (README
 //     §0.4 "column headers... uppercase"), the same class detail-surfaces-smoke.mjs documents for
 //     'Title'/'Source'. '—' is ImpactMeter's own documented unscored rendering (README §0.4:
-//     "Unscored = a dashed baseline and an em dash") on "What changed" rows, which never carry
-//     impact by design (DashboardBrief passes `impact={null}` there) — the same em-dash class
+//     "Unscored = a dashed baseline and an em dash") on any row whose item carries no score —
+//     since HYDRATION-59 that is only a change row whose item is outside the loaded corpus slice
+//     (src/lib/dashboard/brief-rows.ts's documented degrade path) — the same em-dash class
 //     market-rows-smoke.mjs's header describes for `priceStat: null`. None of these are a row's own
 //     fabricated or omitted DATA; confirmed by reading the components that emit them.
 //
@@ -71,6 +72,38 @@ window.__mount = (props) => {
 };
 `;
 
+// FOLD-59 (2026-09-08): a SECOND entry, for the artboard-01 capture. `ENTRY` above takes ready
+// `BriefRow[]`, which is right for the smoke spec (it asserts row RENDERING and wants to state each
+// row's fields literally). The capture wants the opposite: an artboard-faithful `Resource[]` run
+// through the SAME server derivation the route runs, so the side-by-side shows what the page really
+// produces. Deriving inside the bundle rather than in Node is what makes that possible at all —
+// `brief-rows.ts` is TypeScript, esbuild compiles it here, and a Promise/Date cannot cross the
+// structured-clone boundary `mountBundle` uses anyway.
+const ENTRY_FROM_RESOURCES = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
+import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+
+let root = null;
+window.__mount = (props) => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  const now = new Date(props.nowIso);
+  root.render(React.createElement(DashboardBrief, {
+    dueNextRows: buildDueNextRows(props.resources, now),
+    changedRows: buildChangedRows(props.recentChanges, props.resources, now),
+    totalChanges: props.totalChanges ?? props.recentChanges.length,
+    aggregates: props.aggregates,
+    auditDate: props.auditDate,
+    surfaceCoverage: props.surfaceCoverage,
+    nowIso: props.nowIso,
+    watchlistPromise: Promise.resolve(props.__watchlist ?? []),
+  }));
+};
+`;
+
 const EMPTY_AGGREGATES = {
   totalItems: 0,
   byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
@@ -95,48 +128,58 @@ const EMPTY_SURFACE_COVERAGE = {
 const LONG = (n, word = 'extremely-long-dashboard-title-token') =>
   Array.from({ length: n }, (_, i) => `${word}-${i}`).join(' ');
 
-function resource(i, { long = false } = {}) {
+// HYDRATION-59 (2026-09-07): <DashboardBrief/> no longer derives its two row sets from a Resource[]
+// and a change feed inside the component — the SERVER selects and shapes them
+// (src/lib/dashboard/brief-rows.ts -> src/lib/list-row-fields.ts) so the derivation is shared with
+// the list ledgers (defect D3) and runs against one fixed instant (defect D1). This fixture
+// therefore supplies ready `BriefRow` objects, which is exactly what the route now passes.
+// FOLD-59 (2026-09-08): `unscored` carries lane DASHROW-59's D1 coverage forward onto the BriefRow
+// shape. A real, non-fabricated Due-next row with NO impact score, which is production's common
+// case: the Due-next card renders ImpactMeter's unscored branch (dashed baseline plus the Absence
+// reason) beside the DUE column's dates. Without it, ImpactMeter's unscored branch is never
+// mounted by this spec and the collision the operator reported cannot be measured.
+function briefRow(i, { long = false, changed = false, unscored = false } = {}) {
   return {
-    id: `r${i}`,
+    id: changed ? `c${i}` : `r${i}`,
+    href: `/regulations/${changed ? `c${i}` : `r${i}`}`,
+    priority: changed ? 'HIGH' : 'CRITICAL',
+    jurisdiction: i % 2 === 0 ? 'EU' : 'US',
     title: long ? `${LONG(7)} #${i}` : `Corporate Sustainability Reporting Directive #${i}`,
-    priority: 'CRITICAL',
-    jurisdiction: i % 2 === 0 ? 'EU' : 'US-CA',
-    jurisdictionIso: [i % 2 === 0 ? 'EU' : 'US'],
-    sourceTier: (i % 7) + 1,
-    complianceDeadline: '2027-01-01',
-    impactScores: { cost: 3, compliance: 2, clientFacing: 3, operational: 2 },
+    meta: 'regulation · Ocean · reporting',
+    impact: unscored ? null : { cost: 3, compliance: 2, client: 3, operational: 2 },
+    due: { label: 'Jan 1, 2027', days: '116 days' },
     timeline: [],
-    domain: 1,
-    type: 'regulation',
-    modes: ['Ocean'],
-    topic: 'reporting',
-    note: '',
-    tags: [],
+    tier: (i % 7) + 1,
+    ...(changed ? { isNew: true } : {}),
   };
 }
 
-function baseProps(resources, recentChanges = []) {
+function baseProps(dueNextRows, changedRows = []) {
   return {
-    resources,
-    recentChanges,
+    dueNextRows,
+    changedRows,
+    totalChanges: changedRows.length,
     auditDate: '2026-09-06',
     aggregates: EMPTY_AGGREGATES,
     surfaceCoverage: EMPTY_SURFACE_COVERAGE,
+    nowIso: '2026-09-07T00:00:00.000Z',
     __watchlist: [],
   };
 }
 
 // Both SectionHeading titles ("Due next", "What changed") always render, data-guard-title on both,
-// regardless of resource count — every state's floor is 2.
+// regardless of row count — every state's floor is 2.
 const STATES = [
   { label: 'empty', props: baseProps([]), expectTitles: 2 },
-  { label: 'one-row', props: { ...baseProps([resource(0)]), aggregates: POPULATED_AGGREGATES }, expectTitles: 2 },
+  { label: 'one-row', props: { ...baseProps([briefRow(0)]), aggregates: POPULATED_AGGREGATES }, expectTitles: 2 },
   {
     label: 'extreme',
     props: {
       ...baseProps(
-        Array.from({ length: 10 }, (_, i) => resource(i, { long: true })),
-        Array.from({ length: 10 }, (_, i) => ({ id: `c${i}`, title: `${LONG(6)} change #${i}`, priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 })),
+        // i === 0 is unscored (DASHROW-59's D1 fixture): the Due-next card's first row renders
+        // ImpactMeter's unscored branch beside its DUE date, the exact collision reported.
+        Array.from({ length: 5 }, (_, i) => briefRow(i, { long: true, unscored: i === 0 })),
+        Array.from({ length: 6 }, (_, i) => briefRow(i, { long: true, changed: true })),
       ),
       aggregates: POPULATED_AGGREGATES,
     },
@@ -201,4 +244,4 @@ export async function runSmoke(browser) {
 // SAME real `DashboardBrief` with real data (audit item 1.1's "All N immediate" link) instead of
 // hitting this sandbox's honest-empty live-server state (no reachable Supabase project — see
 // DEVIATION-LOG.md). `runSmoke` above is unchanged; this only widens what the module exposes.
-export { ENTRY, STATES };
+export { ENTRY, ENTRY_FROM_RESOURCES, STATES };

@@ -3,6 +3,7 @@ import { getSettingsData } from "@/lib/data";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { SettingsPage } from "@/components/pages/SettingsPage";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
+import { renderNowIso } from "@/lib/render-now";
 
 // Note: previous `export const revalidate = 60` was a no-op — Settings
 // reads cookies via auth.getUser, opting the page into dynamic. Removed
@@ -31,6 +32,7 @@ export default async function Settings() {
         supersessions={data.supersessions}
         userId={user.id}
         userEmail={user.email || ""}
+        nowIso={renderNowIso()}
       />
     </>
   );

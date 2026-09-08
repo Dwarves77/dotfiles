@@ -22,6 +22,7 @@
 import type { ReactNode } from "react";
 import { CommandBar } from "@/components/ui/CommandBar";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { nowFrom } from "@/lib/render-now";
 
 const EDITORIAL_VOLUME = "IV";
 
@@ -29,9 +30,18 @@ const EDITORIAL_VOLUME = "IV";
  *  mirrors EditorialMasthead's own helper (kept duplicated rather than
  *  imported: that file is a "use client" sibling with no shared export of
  *  just this helper, and the function is a pure 6-line date computation,
- *  not a vocabulary at risk of drifting). */
+ *  not a vocabulary at risk of drifting).
+ *
+ *  HYDRATION-59 (2026-09-07): reads the UTC field getters, not the local
+ *  ones. The local getters made this function's output depend on the HOST's
+ *  timezone — the server (UTC) and the viewer's browser resolve a different
+ *  calendar date for part of every day, and when the two dates fall either
+ *  side of a Monday they resolve a different ISO WEEK, so the "VOL IV · No.
+ *  N" line rendered one number in the SSR HTML and another during hydration.
+ *  See src/lib/render-now.ts for the two axes and why `nowIso` closes the
+ *  second one. */
 function isoWeekNumber(date: Date): number {
-  const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+  const d = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), date.getUTCDate()));
   const dayNum = d.getUTCDay() || 7;
   d.setUTCDate(d.getUTCDate() + 4 - dayNum);
   const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
@@ -46,16 +56,32 @@ export interface MastheadProps {
   dateLabel: string;
   commandBar?: { itemCount: number; onSearch?: (q: string) => void; scope?: string; placeholder?: string };
   volNumber?: number;
+  /** The server's render instant (src/lib/render-now.ts `renderNowIso()`),
+   *  threaded so the VOL line's week number is computed from an instant the
+   *  SERVER chose rather than from each host's own clock — see that module
+   *  for why a client component may not read its own clock in render. */
+  nowIso?: string;
   /**
    * Appended to the "VOL IV · No. N · <date>" line (additive extension,
    * admin/account/settings lane 2026-09-06 — README screens 13-15 append
    * "· Operator view" / "· Personal" to name whose view this is).
    */
   eyebrowSuffix?: string;
+  /**
+   * An inline callout row inside the masthead card, directly below the
+   * title/dek/command-bar row (additive, lane compose-other 2026-09-08 —
+   * dc.html p15's own "Applies workspace-wide · changes here affect every
+   * member, not just you" + "See audit log →" banner, `margin:0 16px
+   * 14px;border-left:3px solid;background:#F5F2EE`). Optional: no existing
+   * Masthead caller passes it, so every other page's masthead is
+   * unaffected. Bold leading text + trailing right-aligned link, same
+   * treatment as MembersPanel's own inline "Workspace" note.
+   */
+  notice?: { text: ReactNode; linkLabel?: string; linkHref?: string };
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix }: MastheadProps) {
-  const weekNo = volNumber ?? isoWeekNumber(new Date());
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice }: MastheadProps) {
+  const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
     <header
       className="cl-masthead"
@@ -77,6 +103,23 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           command bar drops to full width under the title. Below 768
           (theme.css's documented --bp-mobile). */}
       <style>{`
+        /* D2 fix (operator report 2026-09-07): "the top text under Jason's Brief" — the scope
+           line ("N items across N surfaces...") and the verticals line — wrapped with a one-word
+           orphan (e.g. "...Automotive & Motorsport, Humanitarian & NGO" / "Cargo" alone on the
+           next line). Greedy line-breaking packs every line but the last as full as possible,
+           which is exactly what strands a short remainder word alone; \`text-wrap: balance\`
+           distributes a block's own text evenly across its wrapped lines instead, so a multi-line
+           scope/verticals line splits evenly with no orphan. \`text-wrap: pretty\` is the
+           declared fallback for a browser that has \`pretty\` but not yet \`balance\` — the later
+           \`balance\` declaration wins wherever it is supported; an unsupported value is ignored
+           by the cascade, leaving \`pretty\` in effect. Applies to every page through this one
+           shared Masthead part, not a dashboard-only override; DIRECT children of \`.cl-masthead-
+           dek\` are each their own wrapped block (the scope line and the verticals line are two
+           separate <div>s), so the rule targets them individually rather than the dek container. */
+        .cl-masthead-dek > * {
+          text-wrap: pretty;
+          text-wrap: balance;
+        }
         @media (max-width: 767px) {
           .cl-masthead-body { padding: 14px 16px 0 !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }
@@ -136,6 +179,28 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         )}
       </div>
       </div>
+      {notice && (
+        <div
+          style={{
+            margin: "0 16px 16px",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 12,
+            alignItems: "center",
+            padding: "9px 12px",
+            borderLeft: "3px solid var(--ink-3)",
+            background: "var(--color-surface-overlay)",
+            borderRadius: "0 6px 6px 0",
+          }}
+        >
+          <span style={{ fontSize: "12.5px" }}>{notice.text}</span>
+          {notice.linkLabel && (
+            <a href={notice.linkHref ?? "#"} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+              {notice.linkLabel}
+            </a>
+          )}
+        </div>
+      )}
     </header>
   );
 }

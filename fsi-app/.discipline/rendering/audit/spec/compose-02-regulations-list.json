@@ -1,0 +1,121 @@
+{
+  "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+  "mount": "compose-02-regulations",
+  "viewport": 1440,
+  "artboards": [
+    "02-regulations-list"
+  ],
+  "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+  "notes": [
+    "The pre-existing list-surface.json spec measures ListSurfaceShell/ListSurfaceRailCards in isolation via the 'list-surface-1440' mount (a minimal fixture: one facetGroup, no sortRow, no topic/tier). This spec measures the REAL RegulationsLedger composition (24-row fixture, matching capture-compose-lists-screenshots.mjs), so the sort row, the Topic/Source-tier facets, and the rail's actual top-to-bottom order are all exercised end to end.",
+    "Fixture is invented sample data with the real shape (same helper as the evidence screenshot); the audit asserts geometry/placement/labels, never fixture values.",
+    "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) — asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence.",
+    "The rail's OBLIGATIONS · NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar →' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs."
+  ],
+  "selector": "[data-audit=\"filters-rail\"]",
+  "expect": {
+    "display": "block"
+  },
+  "children": [
+    {
+      "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Filters rail card carries checkbox rows (not chip pills) for every facet group",
+      "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+      "expect": {}
+    },
+    {
+      "name": "Filters rail card's facet groups include Topic (p2 rail: MODE / JURISDICTION / TOPIC / SOURCE TIER)",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "textMatch": "Topic",
+      "note": "Text-presence check narrowed to the group-heading paragraphs: confirms RegulationsLedger's facetGroups array actually includes the Topic group, not just Mode/Jurisdiction.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Filters rail card's facet groups include Source tier",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "textMatch": "Source tier",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Sort/count row renders above the rows, with the count + 'grouped by band'/flat-toggle text and Sort control",
+      "selector": "[data-audit=\"sort-row\"]",
+      "expect": {
+        "display": "flex"
+      }
+    },
+    {
+      "name": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
+      "selector": "[data-audit=\"sort-row\"] button",
+      "textMatch": "My order",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Obligations rail card mounts AFTER the Filters card (rail order: Filters, Obligations, Legend)",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"obligations-rail\"]",
+      "note": "Sibling-combinator placement check: only matches when filters-rail's DOM node precedes obligations-rail's.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Obligations rail card mounts BEFORE the Legend card",
+      "selector": "[data-audit=\"obligations-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Obligations rail card head carries the artboard's exact label",
+      "selector": "[data-audit=\"obligations-rail\"] p",
+      "expect": {
+        "text": "Obligations · next 30 days"
+      }
+    },
+    {
+      "name": "Obligations rail card head carries the artboard's 'Calendar →' link",
+      "selector": "[data-audit=\"obligations-rail\"] a",
+      "expect": {
+        "text": "Calendar →",
+        "display": "flex",
+        "font-size": "11px",
+        "font-weight": "600"
+      },
+      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
+    },
+    {
+      "name": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
+      "selector": "[data-audit=\"obligations-rail\"] [data-audit=\"obligation-row\"]",
+      "expect": {
+        "count": "4",
+        "display": "grid",
+        "gap": "10px"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
+      "selector": ".cl-facets-desktop",
+      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
+    },
+    {
+      "name": "the literal word UNSCORED anywhere in a row",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+    }
+  ]
+}

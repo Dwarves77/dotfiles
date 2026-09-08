@@ -65,9 +65,35 @@ test("ListSurfaceShell's per-band Card skips SectionRule (noRule) to avoid stack
   assert.match(text, /<Card key=\{section\.band\.key\} noRule>/);
 });
 
-test("ListSurfaceShell.tsx mounts SectionRule 3 times (the per-ledger Card, and the primary + secondary facets cards)", () => {
+// UPDATED (lane comp-11, 2026-09-08). This assertion had been RED on the branch since the
+// filters-to-the-rail relocation (operator audit 2026-09-07, "the filters were not above the
+// regulations, they were on the right"): that change deleted ListSurfaceShell's two content-column
+// facets cards, so the file's three mounts became one — the per-ledger Card — and the two the
+// facets cards used to carry now live on FiltersRailCard in ListSurfaceRailCards.tsx, which the
+// list above already locks. The test described the old structure; it now describes the product.
+test("ListSurfaceShell.tsx mounts SectionRule once (the per-ledger Card; the facets cards' rules moved to FiltersRailCard when filters moved to the rail)", () => {
   const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceShell.tsx"), "utf8");
-  assert.equal(countRealMounts(text), 3);
+  assert.equal(countRealMounts(text), 1);
+  // The relocation is what makes 1 correct rather than a regression: the shell mounts the rail card
+  // that carries the facets, and that card mounts its own rule.
+  assert.match(text, /<FiltersRailCard/);
+});
+
+// Lane comp-11 (2026-09-08): the two card heads on artboard 11 are the shared SectionHeading, and
+// the cards around them are WatchlistSurface's own `Card` helper — ONE `<SectionRule />` mount
+// serving both, which is why the count above stays 1 for that file rather than rising to 2.
+test("SectionHeading emits no rule of its own (the card mounts SectionRule; the heading sits under it)", () => {
+  const text = readFileSync(resolve(ROOT, "components/ui/SectionHeading.tsx"), "utf8");
+  assert.equal(countRealMounts(text), 0);
+  // Ruling 4.1/5.1: no divider below a section title, in the shared component this time.
+  assert.doesNotMatch(text, /borderBottom:/);
+});
+
+// Lane comp-oblig (2026-09-08): the rail file mounts the rule twice — RailCard, which every
+// titled rail card (Obligations, Coverage, Legend) wraps itself in, and FiltersRailCard.
+test("ListSurfaceRailCards.tsx mounts SectionRule twice (RailCard, which every titled rail card uses, and FiltersRailCard)", () => {
+  const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceRailCards.tsx"), "utf8");
+  assert.equal(countRealMounts(text), 2);
 });
 
 const NO_BORDER_BOTTOM_UNDER_TITLE = [

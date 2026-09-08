@@ -24,7 +24,7 @@ import {
   Clock, Eye, Search, ChevronDown, ExternalLink,
   Shield, Activity,
 } from "lucide-react";
-import { ProvisionalReviewCard } from "@/components/sources/ProvisionalReviewCard";
+import { ProvisionalReviewTable } from "@/components/sources/ProvisionalReviewTable";
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { ThemesView } from "@/components/sources/ThemesView";
@@ -323,7 +323,14 @@ function MetricBox({ label, value, sublabel }: { label: string; value: string; s
 
 // ── Main Dashboard ──
 
-export function SourceHealthDashboard() {
+export interface SourceHealthDashboardProps {
+  /** Staged updates awaiting review, the provisional card's pipeline note. */
+  stagedUpdatesCount?: number | null;
+  /** Opens the ingest queue from the provisional card's pipeline note. */
+  onOpenQueue?: () => void;
+}
+
+export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue }: SourceHealthDashboardProps = {}) {
   const { sources, provisionalSources, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
 
   // Optimistically remove a provisional row from the list after a successful
@@ -349,6 +356,26 @@ export function SourceHealthDashboard() {
     { id: "themes" as const, label: "Themes", count: 0 },
     { id: "obligations" as const, label: "Upcoming obligations", count: 0 },
   ];
+
+  // dc.html p13's Provisional-review region is ONE card: the graduated rule, the
+  // Anton head, the SOURCE/TIER/STATUS/DISCOVERED table with per-row Approve and
+  // ⋯, the legend foot, the pipeline note. None of this module's other chrome
+  // (the "Source Intelligence" header, the B.2 progress bar, the tier legend,
+  // the T1-T7 grid, this component's own second tab bar, the source search) is
+  // drawn for that region, and the outer Admin sub-nav already owns the tab row,
+  // so the provisional view renders the artboard's card and nothing else. The
+  // chrome below still belongs to the registry/health/canonical views, which
+  // have no artboard of their own.
+  if (activeView === "provisional") {
+    return (
+      <ProvisionalReviewTable
+        rows={provisionalSources}
+        onActionDone={handleProvisionalAction}
+        stagedUpdatesCount={stagedUpdatesCount}
+        onOpenQueue={onOpenQueue}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -488,25 +515,8 @@ export function SourceHealthDashboard() {
         </div>
       )}
 
-      {/* Provisional sources */}
-      {activeView === "provisional" && (
-        <div className="space-y-2">
-          {provisionalSources.length === 0 ? (
-            <EmptyState
-              title="No provisional sources"
-              description="When the system discovers a new source through citation, it will appear here for review."
-            />
-          ) : (
-            provisionalSources.map((ps) => (
-              <ProvisionalReviewCard
-                key={ps.id}
-                ps={ps as any}
-                onActionDone={handleProvisionalAction}
-              />
-            ))
-          )}
-        </div>
-      )}
+      {/* Provisional sources render above, as the artboard's own card, the
+          early return at the top of this component. */}
 
       {/* Canonical source issues */}
       {activeView === "canonical" && <CanonicalSourceReview />}

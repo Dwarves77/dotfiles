@@ -1,0 +1,49 @@
+{
+  "part": "Page composition — Research finding detail (07)",
+  "mount": "research-detail-1440",
+  "viewport": 1440,
+  "artboards": ["07-research-detail"],
+  "source": "docs/design/handoff-2026-09-06/screens/07-research-detail.png; dc.html id=\"p7\"; README §0.5",
+  "notes": [
+    "Region-composition check inside [data-audit=\"research-detail\"] — ResearchFindingDetailSurface mounted with fixture data matching artboard 07's Mission Innovation example (mounts.mjs RESEARCH_FIXTURE).",
+    "Artboard order top to bottom: header (chips, header stat, action row) -> exposure grid -> timeline -> sticky section index -> Summary (Generated · 30-second read) -> Sources -> rail (In this list, At a glance, Impact assessment, Connections, Legend)."
+  ],
+  "selector": "[data-audit=\"research-detail\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
+      "selector": "[data-audit=\"research-detail\"] .cl-action-row button",
+      "expect": { "count": "4" }
+    },
+    {
+      "name": "region 2 — Exposure grid renders before the timeline",
+      "selector": "[data-audit=\"research-detail\"] p",
+      "expect": { "count": "1" },
+      "textMatch": "Exposure"
+    },
+    {
+      "name": "region 3 — Summary section (id=summary) renders when no dynamic sections carry content",
+      "selector": "[data-audit=\"research-detail\"] section#summary h2",
+      "expect": { "text": "Summary" }
+    },
+    {
+      "name": "region 5 — rail, 'In this list' card first",
+      "selector": "[data-audit=\"research-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
+      "expect": { "text": "In this list" }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no per-item ask bar in the header (ruling 2.3)",
+      "selector": "[data-audit=\"research-detail\"] header:not(.cl-masthead) input[placeholder]",
+      "reason": "The masthead command bar is the only ask surface."
+    },
+    {
+      "name": "At a glance 'Type' row never renders a raw snake_case enum",
+      "selector": "[data-audit=\"research-detail\"] div",
+      "textMatch": "research_finding",
+      "reason": "The Type row humanizes the enum (e.g. 'Research finding'), never the raw DB value."
+    }
+  ]
+}

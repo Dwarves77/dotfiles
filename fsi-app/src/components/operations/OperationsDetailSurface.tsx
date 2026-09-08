@@ -69,6 +69,7 @@ import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
+import { isoToDisplayLabel } from "@/lib/jurisdictions/iso";
 
 interface RelatedItem {
   id: string;
@@ -148,7 +149,11 @@ export function OperationsDetailSurface({
 }: Props) {
   const band = bandFromPriority(r.priority);
   const impact = r.impactScores ?? scoreResource(r);
-  const jurisdiction = r.jurisdiction || (r.jurisdictionIso && r.jurisdictionIso[0]) || "";
+  // Artboard 09 (dc.html #p9): "Region" chip + At a glance row read "Asia" / "Asia · Singapore" — a
+  // continental grouping this Resource shape has no field for (logged in DEVIATION-LOG.md); the ISO
+  // country code IS on record, so it renders humanized ("Singapore") rather than the raw code ("SG").
+  const jurisdictionIsoCode = r.jurisdiction || (r.jurisdictionIso && r.jurisdictionIso[0]) || "";
+  const jurisdiction = jurisdictionIsoCode ? isoToDisplayLabel(jurisdictionIsoCode) : "";
 
   const meta = [
     ["Operations", jurisdiction].filter(Boolean).join(" · "),
@@ -195,7 +200,16 @@ export function OperationsDetailSurface({
               <TagChip>Regional profile</TagChip>
               {jurisdiction && <TagChip>{jurisdiction}</TagChip>}
               {r.modes && r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)}
+              {/* Artboard 09 (dc.html #p9): trailing "Corridors" topic chip after the mode chips. */}
+              {r.topic && <TagChip>{r.topic}</TagChip>}
             </>
+          }
+          headerStat={
+            sourceRows.length > 0
+              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+                  connections.length > 0 ? ` · ${connections.length} connections` : ""
+                }`
+              : null
           }
           actions={
             <ActionRow

@@ -14,6 +14,9 @@ import {
   PLACEHOLDER_LITERALS,
   hydrationAgrees,
   isNowIndependent,
+  cellExceedsContainer,
+  rectsOverlap,
+  detectBoundsViolations,
 } from "./assertions.mjs";
 import {
   buildFixtures,
@@ -114,4 +117,57 @@ test("fixture set: each layout class has a RED (defect) and a GREEN (fix) fixtur
   for (const cls of ["L-1", "L-4", "F-1"]) {
     assert.ok(fx.some((f) => f.cls === cls && !f.red), `class ${cls} lacks a GREEN fixture`);
   }
+});
+
+// ── 5. Cell-bounds detector (D1 class) — RED-THEN-GREEN, the ListRow impact-cell defect ──────────
+// Reproduces the actual shipped defect at scale: an 88px impact column (grid column 4 of ListRow's
+// `3px 56px 1fr 88px 84px 76px 40px 44px`) whose unscored content (30px dashed baseline + gap +
+// "UNSCORED" reason) measured wider than the column, so its content box spilled into the DUE
+// column's box — never a container-level horizontal scrollbar, so `detectOverflows` alone could
+// never have caught it. These are the rects a `getBoundingClientRect()` collection would produce
+// pre-fix (RED, content wraps to nothing so the reason renders on one line past the column) and
+// post-fix (GREEN, the same content wrapped inside the column per the ImpactMeter/ListRow fix).
+
+const ROW_CONTAINER = { left: 0, top: 0, right: 780, bottom: 56, width: 780, height: 56 };
+// Column x-offsets for GRID = "3px 56px 1fr 88px 84px 76px 40px 44px" at a 780px row, gap 14:
+// spine 0-3, juris 17-73, title 87-568 (1fr absorbs remainder), impact 582-670, due 684-768, ...
+const IMPACT_COLUMN = { left: 582, right: 670 };
+const DUE_COLUMN = { left: 684, right: 768 };
+
+test("D1 RED: unscored impact cell (one-line, no containment) bleeds past its 88px column into the DUE cell", () => {
+  const impactCellRect = { left: IMPACT_COLUMN.left, top: 19, right: IMPACT_COLUMN.left + 118, bottom: 37, width: 118, height: 18 }; // 118px content in an 88px (582-670) column, painting past the 14px gap and into the DUE column's box (matches the measured production screenshot)
+  const dueCellRect = { left: DUE_COLUMN.left, top: 19, right: DUE_COLUMN.right, bottom: 37, width: 84, height: 18 };
+  const violations = detectBoundsViolations(ROW_CONTAINER, [
+    { name: "cl-row-impact", rect: impactCellRect },
+    { name: "cl-row-due", rect: dueCellRect },
+  ]);
+  assert.ok(violations.length > 0, "expected the oversized impact cell to be flagged");
+  assert.ok(violations.some((v) => v.includes("cl-row-impact") && v.includes("cl-row-due")));
+});
+
+test("D1 GREEN: unscored impact cell wraps inside its own 88px column — no overlap, no container escape", () => {
+  const impactCellRect = { left: IMPACT_COLUMN.left, top: 19, right: IMPACT_COLUMN.right, bottom: 37, width: 88, height: 18 };
+  const dueCellRect = { left: DUE_COLUMN.left, top: 19, right: DUE_COLUMN.right, bottom: 37, width: 84, height: 18 };
+  const violations = detectBoundsViolations(ROW_CONTAINER, [
+    { name: "cl-row-impact", rect: impactCellRect },
+    { name: "cl-row-due", rect: dueCellRect },
+  ]);
+  assert.deepEqual(violations, []);
+});
+
+test("cellExceedsContainer / rectsOverlap: unit behaviour at the tolerance boundary", () => {
+  const container = { left: 0, top: 0, right: 100, bottom: 20 };
+  assert.equal(cellExceedsContainer({ left: 0, top: 0, right: 100, bottom: 20 }, container), false);
+  assert.equal(cellExceedsContainer({ left: 0, top: 0, right: 105, bottom: 20 }, container), true);
+  assert.equal(rectsOverlap({ left: 0, top: 0, right: 50, bottom: 20 }, { left: 60, top: 0, right: 100, bottom: 20 }), false);
+  assert.equal(rectsOverlap({ left: 0, top: 0, right: 50, bottom: 20 }, { left: 40, top: 0, right: 100, bottom: 20 }), true);
+});
+
+test("detectBoundsViolations ignores zero-size (unrendered) cells", () => {
+  const container = { left: 0, top: 0, right: 100, bottom: 20 };
+  const violations = detectBoundsViolations(container, [
+    { name: "empty-overflow-slot", rect: { left: 40, top: 0, right: 40, bottom: 0, width: 0, height: 0 } },
+    { name: "visible", rect: { left: 0, top: 0, right: 100, bottom: 20, width: 100, height: 20 } },
+  ]);
+  assert.deepEqual(violations, []);
 });

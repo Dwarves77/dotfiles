@@ -7,9 +7,9 @@
   "notes": [
     "Train 58, step 2: StatBlock gained an additive `size=\"tile\"` variant (11px label / 16px Anton numeral / 11.5px note) for exactly this grid; AdminDashboard.tsx's 8 tiles (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors) now use it with the artboard's wrapper geometry, a new `.cl-admin-stat-tile` class.",
     "None of the 8 tiles in this grid carries a separate title line above the label/numeral row (unlike some other admin cards) — no SectionRule is mounted on these tiles, per the artboard's own markup, which shows no top rule inside any tile.",
-    "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. `AdminDashboard`'s default `section` state is 'Workspaces' (tile 1), so this spec measures tile 2 ('Sources', inactive on mount) for base border/shadow/padding, confirmed by a direct debug read this session."
+    "The artboard's 'Sources' tile example carries `border:1px solid #5A5552` with no box-shadow, read here as an active/selected-section illustration (Sources is the artboard's example active tab), not a base style; the product's `on` (aria-pressed) state overrides `borderColor` to `var(--brand)` for the active tile and is not asserted by this spec, which measures the base (inactive) tile only. Lane compose-other (2026-09-08) changed `AdminDashboard`'s default `section` state from 'Workspaces' to 'Sources' (dc.html p13's own default landing state — see DEVIATION-LOG 2026-09-08), which made tile 2 ('Sources') the ACTIVE tile on mount, breaking this spec's prior tile-2 measurement (it started reading the active border colour, `rgb(90,85,82)`, against the base-style expectation). Re-pointed to tile 3 ('Ingest'), inactive on mount both before and after that change, confirmed by a direct debug read this session."
   ],
-  "selector": ".cl-admin-stat-tile:nth-of-type(2)",
+  "selector": ".cl-admin-stat-tile:nth-of-type(3)",
   "expect": {
     "background-color": "#FFFFFF",
     "border-top-width": "1px",
@@ -30,7 +30,7 @@
     },
     {
       "name": "tile — label",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(1)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(1)",
       "expect": {
         "font-size": "11px",
         "letter-spacing": "0.1em",
@@ -40,7 +40,7 @@
     },
     {
       "name": "tile — numeral",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) span:nth-of-type(2)",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) span:nth-of-type(2)",
       "expect": {
         "font-family": "contains:Anton",
         "font-size": "16px"
@@ -48,7 +48,7 @@
     },
     {
       "name": "tile — note",
-      "selector": ".cl-admin-stat-tile:nth-of-type(2) > div > span",
+      "selector": ".cl-admin-stat-tile:nth-of-type(3) > div > span",
       "note": "The note span is a direct sibling of the label/numeral row div, not nested inside it — the row div is the only other child, so `> span` (not `:nth-of-type(2)`, which counts among span siblings only and there is exactly one) reaches it. line-height 1.45 resolves to 16.675px at 11.5px font-size (getComputedStyle always reports a resolved px value, per this audit's own convention — see factcard.json/listrow.json).",
       "expect": {
         "font-size": "11.5px",

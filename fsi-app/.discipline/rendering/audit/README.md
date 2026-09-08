@@ -94,6 +94,11 @@ blocks; a non-zero exit means the harness itself broke.
      `grid-template-columns` list, which CSSOM reports as a used pixel width.
    - `contains:<substring>` — for a value whose exact serialisation is not a design statement, e.g.
      a font-family fallback stack (`contains:Anton`).
+   - `textMatch` on a target or a forbid narrows the selector by the element's own text:
+     a plain string is a SUBSTRING test, and `re:<regex>` is a JS regular expression. Reach for
+     the regex form whenever the substring would also match a legitimate longer value — a forbid
+     on `"0/12"` also matches `"10/12"`, and a forbid that fires on correct output is a false
+     finding (CLAUDE.md rule 14), not a strict check.
    - `matchStyle` on a target or a forbid narrows the selector by computed style
      (`{"height": "3px", "background-image": "contains:rgb(22, 163, 74)"}`) — the way to address an
      element the product gives no marker attribute to.

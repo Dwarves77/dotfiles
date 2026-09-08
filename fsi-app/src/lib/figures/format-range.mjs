@@ -11,10 +11,27 @@
 //      central by construction for the monotone metrics this component carries; the min/max labels are
 //      the bands, whichever way the metric happens to run.
 
+/**
+ * The app's one display locale. Must equal `FIXED_LOCALE` in src/lib/format.ts — asserted by
+ * format-range.test.mjs, since this module is `.mjs` (imported by the discipline engine's plain
+ * `node --test` runs) and cannot import the `.ts` home.
+ *
+ * HYDRATION-59 [CONFIRMED root cause, 2026-09-07]: this was `toLocaleString(undefined, ...)`, and
+ * `undefined` resolves to the HOST's default locale — the container's on the server, the VIEWER's
+ * in the browser. /operations rendered `USD 375,545 – USD 460,670 – USD 545,794` in the SSR HTML
+ * and `USD 375.545 – USD 460.670 – USD 545.794` in a de-DE browser, reproduced verbatim this lane
+ * from React's own text-mismatch diff (EstimatedFigure, via AutomateVsHireCalculator). That is
+ * React error #418 on EVERY load for EVERY non-en-US viewer — deterministic, not a race — and the
+ * same defect ObligationRegisterFilterBar's header documents for its own call site, in the second
+ * of the "~30 more places repo-wide" that lane named. `CarbonCostOverlay` (/market) is this
+ * module's other consumer and was exposed identically.
+ */
+export const FIXED_LOCALE = "en-US";
+
 /** @param {number|null} n */
 export function formatNumber(n) {
   if (n === null || n === undefined || !Number.isFinite(n)) return "—";
-  return n.toLocaleString(undefined, { maximumFractionDigits: Math.abs(n) >= 1000 ? 0 : 2 });
+  return n.toLocaleString(FIXED_LOCALE, { maximumFractionDigits: Math.abs(n) >= 1000 ? 0 : 2 });
 }
 
 /**

@@ -20,16 +20,22 @@ const jiti = createJiti(import.meta.url, {
 const {
   modeFacetOptions,
   regionFacetOptions,
+  topicFacetOptions,
+  tierFacetOptions,
   bandFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
+  filterByWindow,
+  windowDays,
+  WINDOW_OPTIONS,
   EMPTY_FILTER_STATE,
   BAND_FACET_PARAM,
   bandFromSearchParam,
 } = await jiti.import("./list-surface-helpers.ts");
 
 function res(over = {}) {
-  return { id: "r1", title: "A regulation", priority: "HIGH", jurisdiction: "EU", modes: ["ocean"], tags: [], ...over };
+  return { id: "r1", title: "A regulation", priority: "HIGH", jurisdiction: "EU", modes: ["ocean"], tags: [], added: "2026-01-01", ...over };
 }
 
 test("modeFacetOptions counts distinct modes across rows, sorted by count desc then alpha", () => {
@@ -93,6 +99,17 @@ test("filterRows band/mode/region/query compose (AND, order-preserving)", () => 
 test("filterRows with EMPTY_FILTER_STATE returns every row, unmodified order", () => {
   const rows = [res({ id: "a" }), res({ id: "b" })];
   assert.deepEqual(filterRows(rows, EMPTY_FILTER_STATE).map((r) => r.id), ["a", "b"]);
+});
+
+test("filterRows topic/tier compose with the pre-existing band/mode/region/query filters", () => {
+  const rows = [
+    res({ id: "a", topic: "ESG reporting", sourceTier: 1 }),
+    res({ id: "b", topic: "ESG reporting", sourceTier: 2 }),
+    res({ id: "c", topic: "Fuels", sourceTier: 1 }),
+  ];
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, topic: "ESG reporting" }).map((r) => r.id), ["a", "b"]);
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, tier: "1" }).map((r) => r.id), ["a", "c"]);
+  assert.deepEqual(filterRows(rows, { ...EMPTY_FILTER_STATE, topic: "ESG reporting", tier: "1" }).map((r) => r.id), ["a"]);
 });
 
 test("withListPosition appends the detail-return contract (list/pos/of) to a bare href", () => {
@@ -160,4 +177,109 @@ test("bandFromSearchParam rejects anything outside the vocabulary (absent, missp
   assert.equal(bandFromSearchParam("IMMEDIATE"), null, "case-sensitive: only the real lower-case band keys are valid");
   assert.equal(bandFromSearchParam("critical"), null, "platform priority values are not band keys");
   assert.equal(bandFromSearchParam("not-a-band"), null);
+});
+
+// ListSurfaceSortRow's sort keys (artboards 02/04, id="p2"/"p4": "Sort Next date | Newest | A-Z").
+test("sortResourceRows 'my-order' is the identity (no drag-reorder in this rebuild — never fabricated)", () => {
+  const rows = [res({ id: "b", title: "B" }), res({ id: "a", title: "A" })];
+  assert.deepEqual(sortResourceRows(rows, "my-order"), rows);
+});
+
+test("sortResourceRows 'az' sorts by title alphabetically", () => {
+  const rows = [res({ id: "b", title: "Zebra" }), res({ id: "a", title: "Alpha" })];
+  const sorted = sortResourceRows(rows, "az");
+  assert.deepEqual(sorted.map((r) => r.id), ["a", "b"]);
+});
+
+test("sortResourceRows 'newest' sorts by 'added' descending", () => {
+  const rows = [res({ id: "old", added: "2025-01-01" }), res({ id: "new", added: "2026-06-01" })];
+  const sorted = sortResourceRows(rows, "newest");
+  assert.deepEqual(sorted.map((r) => r.id), ["new", "old"]);
+});
+
+test("sortResourceRows 'next-date' sorts by soonest upcoming deadline, undated rows last", () => {
+  const soon = res({ id: "soon", complianceDeadline: "2099-01-05" });
+  const later = res({ id: "later", complianceDeadline: "2099-06-01" });
+  const undated = res({ id: "undated" });
+  const sorted = sortResourceRows([later, undated, soon], "next-date");
+  assert.deepEqual(sorted.map((r) => r.id), ["soon", "later", "undated"]);
+});
+
+test("sortResourceRows does not mutate the input array", () => {
+  const rows = [res({ id: "b", title: "B" }), res({ id: "a", title: "A" })];
+  const original = rows.slice();
+  sortResourceRows(rows, "az");
+  assert.deepEqual(rows, original);
+});
+
+// Topic / Source-tier facets (artboard 02/id="p2" rail: MODE / JURISDICTION / TOPIC / SOURCE TIER).
+test("topicFacetOptions counts distinct topics, sorted by count desc then alpha, blank topics excluded", () => {
+  const rows = [res({ topic: "ESG reporting" }), res({ topic: "ESG reporting" }), res({ topic: "Fuels" }), res({ topic: "" }), res({})];
+  const opts = topicFacetOptions(rows);
+  assert.deepEqual(opts.map((o) => o.value), ["ESG reporting", "Fuels"]);
+  assert.equal(opts[0].count, 2);
+});
+
+test("tierFacetOptions returns one row per distinct tier present, T1 first, rows with no tier excluded", () => {
+  const rows = [res({ sourceTier: 3 }), res({ sourceTier: 1 }), res({ sourceTier: 1 }), res({ sourceTier: undefined })];
+  const opts = tierFacetOptions(rows);
+  assert.deepEqual(opts.map((o) => o.label), ["T1", "T3"]);
+  assert.equal(opts[0].count, 2);
+  assert.equal(opts[0].value, "1");
+});
+
+// ── Window row (artboard 06/id="p6": "WINDOW 7d | 30d | 90d | All") ────────────────────────────────
+// Research's own control where Regulations/Market carry Sort. A fixed `now` is passed in so these
+// assertions do not depend on the wall clock.
+const NOW = new Date("2026-09-08T00:00:00Z");
+
+test("WINDOW_OPTIONS is exactly the artboard's four buckets, in its order, All last and unbounded", () => {
+  assert.deepEqual(
+    WINDOW_OPTIONS.map((o) => o.key),
+    ["7d", "30d", "90d", "all"],
+  );
+  assert.deepEqual(
+    WINDOW_OPTIONS.map((o) => o.label),
+    ["7d", "30d", "90d", "All"],
+  );
+  assert.equal(windowDays("all"), null);
+  assert.equal(windowDays("7d"), 7);
+});
+
+test("filterByWindow keeps rows added inside the window, drops older ones", () => {
+  const rows = [res({ id: "fresh", added: "2026-09-05" }), res({ id: "stale", added: "2026-07-01" })];
+  assert.deepEqual(
+    filterByWindow(rows, "7d", NOW).map((r) => r.id),
+    ["fresh"],
+  );
+  assert.deepEqual(
+    filterByWindow(rows, "90d", NOW).map((r) => r.id),
+    ["fresh", "stale"],
+  );
+});
+
+test("filterByWindow's lower bound is inclusive (a row added exactly N days ago is inside the window)", () => {
+  const rows = [res({ id: "edge", added: "2026-09-01" })];
+  assert.equal(filterByWindow(rows, "7d", NOW).length, 1);
+});
+
+test("'all' returns the same array untouched: a window is a recency filter, never a copy or a re-sort", () => {
+  const rows = [res({ id: "a" }), res({ id: "b" })];
+  assert.equal(filterByWindow(rows, "all", NOW), rows);
+});
+
+test("a row whose `added` is missing or unparseable is KEPT, never silently dropped", () => {
+  const rows = [res({ id: "no-date", added: "" }), res({ id: "junk", added: "not-a-date" })];
+  assert.deepEqual(
+    filterByWindow(rows, "7d", NOW).map((r) => r.id),
+    ["no-date", "junk"],
+  );
+});
+
+test("filterByWindow preserves input order", () => {
+  const rows = [res({ id: "b", added: "2026-09-02" }), res({ id: "a", added: "2026-09-06" })];
+  assert.deepEqual(
+    filterByWindow(rows, "30d", NOW).map((r) => r.id),
+    ["b", "a"],
+  );
 });

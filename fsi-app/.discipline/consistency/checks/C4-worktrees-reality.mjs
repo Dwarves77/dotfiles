@@ -40,6 +40,20 @@ function getMainRepoRoot() {
   return dirname(commonDir);
 }
 
+/**
+ * The three ephemeral worktree conventions C4 does not track, in ONE place so the
+ * live-side skip and any caller agree. See the block comment at the use site for why
+ * each is exempt. Exported for `C4-worktrees-reality.test.mjs`.
+ */
+export function isEphemeralWorktreePath(worktreePath) {
+  const normalized = String(worktreePath).replace(/\\/g, '/');
+  return (
+    normalized.includes('/.worktrees/') ||
+    normalized.includes('/.claude/worktrees/') ||
+    normalized.includes('/work/lanes/')
+  );
+}
+
 export const consistencyCheck = {
   id: 'C4',
   name: 'worktrees.md reality',
@@ -118,16 +132,24 @@ export const consistencyCheck = {
     // to the same path under EITHER format count as a match. This mirrors
     // the bidirectional intent of the existence check above.
     //
-    // Worktrees under `.worktrees/` (FaDB convention) OR `.claude/worktrees/`
-    // (the Claude Code agent-harness convention) are EXEMPT from both directions
-    // of the check. Both are developer-local / harness-local transient state;
-    // parallel-agent worktrees created there exist only on the developer or agent
-    // machine and disappear after cleanup. Forcing inventory tracking on every
-    // ephemeral worktree creates a local-state-vs-CI drift exactly like the
-    // migration 067 incident (file exists locally, missing in CI checkout).
+    // Worktrees under `.worktrees/` (FaDB convention), `.claude/worktrees/` (the
+    // Claude Code agent-harness convention) OR `work/lanes/` (the train-assembly
+    // container's lane convention, TRAIN-ASSEMBLY-RUNBOOK.md) are EXEMPT from both
+    // directions of the check. All three are developer-local / harness-local
+    // transient state; parallel-agent worktrees created there exist only on the
+    // developer or agent machine and disappear after cleanup. Forcing inventory
+    // tracking on every ephemeral worktree creates a local-state-vs-CI drift exactly
+    // like the migration 067 incident (file exists locally, missing in CI checkout).
+    //
+    // The third path was added at train 59's fold (2026-09-08). This check was
+    // already failing on `origin/master` in the assembly container, and for the
+    // reason the paragraph above states: eleven live lane worktrees under
+    // `/root/work/lanes/` — the convention the runbook itself prescribes — were each
+    // reported as an untracked worktree. The rule was written before that convention
+    // existed; the convention is the exempt kind, so the list is what was out of date.
     for (const livePath of liveWorktrees) {
       const normalized = livePath.replace(/\\/g, '/');
-      if (normalized.includes('/.worktrees/') || normalized.includes('/.claude/worktrees/')) continue; // ephemeral by convention
+      if (isEphemeralWorktreePath(normalized)) continue; // ephemeral by convention
       const basename = livePath.split(/[\\/]/).pop();
       const historicalForm = basename === 'dotfiles' ? 'dotfiles' : `dotfiles-${basename}`;
       const matched = inventoryPaths.has(basename) || inventoryPaths.has(historicalForm);

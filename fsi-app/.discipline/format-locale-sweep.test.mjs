@@ -26,6 +26,23 @@
 // scope to those would risk breaking build/audit scripts that were never part of this pass's ~30-70
 // site inventory.
 //
+// [REFUTED IN PART — lane HYDRATION-59, 2026-09-07, corrected in place per CLAUDE.md rule 14.] The
+// paragraph above says the `src/lib/**/*.mjs` helpers outside this scan's roots are "genuinely out
+// of the hydration-mismatch bug class". That was true of two of the three it names and FALSE of a
+// fourth it did not: `src/lib/figures/format-range.mjs` called `toLocaleString(undefined, …)` and is
+// rendered by `<EstimatedFigure/>` / `<DerivedFigure/>` inside "use client" trees on /operations
+// (AutomateVsHireCalculator) and /market (CarbonCostOverlay). Reproduced verbatim this lane from
+// React's own text-mismatch diff in a de-DE Playwright context: SSR `USD 375,545 – USD 460,670 –
+// USD 545,794`, hydration `USD 375.545 – USD 460.670 – USD 545.794` — React #418 on every load for
+// every non-en-US viewer. That module now pins its own `FIXED_LOCALE` (asserted equal to
+// src/lib/format.ts's by format-range.test.mjs).
+//
+// The scope of THIS sweep is deliberately unchanged (its rule is "route through the formatter
+// module", which only makes sense inside the React trees). The gap it left — an UNPINNED locale
+// anywhere under src/ that a render can reach — is closed by a second, complementary scan with a
+// wider root and a narrower predicate: src/lib/render-clock.npmtest.mjs. Neither subsumes the
+// other: this one bans a direct call even when pinned; that one bans an unpinned call anywhere.
+//
 // EXCLUDED FILES: this file's own module (n/a — outside scan roots), any *.test.mjs / *.npmtest.mjs /
 // *.selftest.mjs (test files legitimately reference the string in assertions/comments), and
 // src/lib/format.ts is outside the scan roots entirely (the ONE permitted home).

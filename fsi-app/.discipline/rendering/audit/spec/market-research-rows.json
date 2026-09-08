@@ -1,13 +1,17 @@
 {
-  "part": "Market + Research list rows — signal-kind / theme tag (README §0.4)",
+  "part": "Market + Research list rows, signal-kind / severity tag (README §0.4)",
   "mount": "market-research-rows",
   "viewport": 1440,
-  "artboards": ["04-market-list", "06-research-list"],
+  "artboards": [
+    "04-market-list",
+    "06-research-list"
+  ],
   "source": "docs/design/handoff-2026-09-06/README.md §0.4: 'Whole row links... Market and Research rows add a signal-kind tag after the type — a tag, never a band.' 'Caros Ledge UI System.dc.html' #sys row-anatomy note ('Market and Research rows add a signal-kind tag after the type — a tag, never a band') and #sys's own 'neutral tag chip (kind/mode/topic)' definition (chips.json's authority, 0 MISMATCH there: padding 3px 8px, border-radius 4px, background #F5F2EE, font-weight 600, font-size 10.5px); src/components/market/MarketIntelLedger.tsx and src/components/research/ResearchLedger.tsx (real components, one real row each)",
   "notes": [
-    "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text — README §0.4.",
-    "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly — closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
-    "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px` — the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all — confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip — read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file."
+    "CONFIRMED live: MarketIntelLedger.tsx appends a TagChip carrying the row's `signalKindLabel` (e.g. 'Cost alert') inside the row's meta line, alongside the type text, README §0.4.",
+    "CONFIRMED live, train 58 (2026-09-07): ResearchLedger.tsx ALSO now imports TagChip and renders one carrying `THEME_LABELS[themeKeyOf(r)]` (e.g. 'Emissions accounting') in the row's meta line, mirroring MarketIntelLedger's own signal-kind tag exactly, closed by lane fix58-lists (folded into this train), whose own DEVIATION-LOG entry names the ResearchLedger tag fix. Prior versions of this spec (pre-train-58) treated this as a real gap and a NOT BUILT target; it is now a MATCH target, updated here to measure what the product actually renders rather than leave a closed gap asserted as still-open.",
+    "SPEC CORRECTION, train 58 (2026-09-07): the selector and expect block previously read `span[style*=\"radius-pill\"]` / `border-radius: 999px`, the WorkspaceTagPill/BandChip pill shape, not TagChip's. This was simply a wrong value from the start, unrelated to fix58-tokens's later `--radius-pill` token fix: TagChip.tsx's neutral kind/mode/topic tag has always used a square 4px radius (dc.html #sys's own 'neutral tag chip' definition, chips.json's already-passing authority for this exact component), never the pill token. Once fix58-tokens's own commit additionally corrected TagChip.tsx's radius from the pill token to a literal `4` (matching chips.json), this spec's stale `radius-pill` substring selector stopped matching anything at all, confirmed live this session via a standalone debug mount dumping both rows' full HTML: the actual rendered TagChip carries `border-radius: 4px; background: var(--tag)` (var(--tag) resolves to #F5F2EE per theme.css), matching chips.json exactly. Corrected the selector to match what TagChip actually renders and the expect block to its real, already-verified-elsewhere geometry. dc.html's own concrete market-list artboard (p4) shows a THIRD set of numbers on this exact row (radius 3px, 9.5px font, 700 weight, color #1A1A1A) that matches neither the #sys legend nor the shipped TagChip, read as the system-sheet component definition (#sys, HANDOFF.md's own 'component definitions' authority, already the basis chips.json passes against) taking precedence over one page artboard's own inline numbers for a SHARED component's pixel values, not asserted here to avoid re-litigating chips.json's already-closed finding a second time in a different spec file.",
+    "SPEC CORRECTION, lane comp-06 (2026-09-08): this child previously expected the row chip to carry the THEME (\"Emissions accounting\"), which is what train 58 shipped. Artboard 06/id=\"p6\" puts the SEVERITY in the chip and the theme in the meta text; the artboard is the authority (HANDOFF: \"where README prose and a page artboard disagree, the artboard wins\"), so the product changed and this spec follows it. The theme did not disappear from the row, it moved to the meta line, where the artboard draws it."
   ],
   "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
   "expect": {
@@ -16,20 +20,20 @@
   },
   "children": [
     {
-      "name": "market row — signal-kind TagChip label text",
+      "name": "market row, signal-kind TagChip label text",
       "selector": "[data-audit=\"market-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
-      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert' — matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
+      "note": "MarketIntelLedger.tsx's signalKindLabel classifies this fixture's severity ('cost_alert') as 'Cost alert', matches README's own vocabulary example ('kind / mode · neutral tag', #sys chip block: 'Cost alert').",
       "expect": {
         "text": "Cost alert"
       }
     },
     {
-      "name": "research row — theme TagChip (fix58-lists, closed gap)",
+      "name": "research row, severity TagChip (artboard 06/id=\"p6\" row chip)",
       "selector": "[data-audit=\"research-row\"] .cl-row-meta-tags span[style*=\"border-radius: 4px\"]",
-      "note": "ResearchLedger.tsx now renders the fixture's theme ('emissions_accounting') through the same TagChip, labelled via THEME_LABELS ('Emissions accounting').",
+      "note": "Artboard 06/id=\"p6\" draws the row's SEVERITY in this chip (\"Cost alert\", \"Background\") with the THEME in the meta text beside it (\"Finding · Last-mile electrification · Road\"). ResearchLedger.tsx renders exactly that, classifying via the shared src/lib/research/taxonomy.mjs deriveSeverity/SEVERITY_LABELS, the same one-tag-then-meta anatomy MarketIntelLedger's signal-kind tag uses. This fixture row carries no action/cost phrasing and an `added` date outside the recency window, so the classifier returns \"background\".",
       "expect": {
         "background-color": "#F5F2EE",
-        "text": "Emissions accounting"
+        "text": "Background"
       }
     }
   ],

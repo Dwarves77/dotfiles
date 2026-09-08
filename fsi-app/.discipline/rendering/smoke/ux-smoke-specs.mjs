@@ -17,6 +17,7 @@ import { runSmoke as runDetailSurfacesSmoke } from './detail-surfaces-smoke.mjs'
 import { runSmoke as runNoticesRailSmoke } from './notices-rail-smoke.mjs';
 import { runSmoke as runCorridorScopeSmoke } from './corridor-scope-smoke.mjs';
 import { runSmoke as runMapSmoke } from './map-smoke.mjs';
+import { runSmoke as runMastheadBalanceSmoke } from './masthead-balance-smoke.mjs';
 
 export const UX_SMOKE_SPECS = [
   { name: "market-rows", run: runMarketRowsSmoke }, // lane MOBILE, Wave 3
@@ -40,4 +41,9 @@ export const UX_SMOKE_SPECS = [
   // ListRow (jurisdiction register rows, endStat prop) — the gap the perf audit named ("no smoke
   // spec mounts the map register or the marker legend").
   { name: "map-page", run: runMapSmoke },
+  // D2 fix (operator report 2026-09-07, "your top text ... one line is very long and the next
+  // line only has the word Cargo"): mounts the shared Masthead with the dashboard's own reported
+  // dek content, proving `text-wrap: balance` removes the last-line word orphan at 1440 and at
+  // the dashboard's actual masthead content width (masthead-balance-smoke.mjs's own header).
+  { name: "masthead-balance", run: runMastheadBalanceSmoke },
 ];

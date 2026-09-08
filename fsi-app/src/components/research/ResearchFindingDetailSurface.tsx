@@ -118,6 +118,13 @@ const RESEARCH_SECTION_HEADINGS: Record<string, string> = {
 };
 const KNOWN_RESEARCH_KEYS = new Set(["1", "2", "3", "4", "5", "6"]);
 
+/** "research_finding" -> "Research finding" — the At a glance "Type" row (artboard 07 shows
+ *  "Initiative", never a raw snake_case enum) needs the same humanization the header chip
+ *  already applies (r.type.replace(/_/g, " ")), just capitalized for a standalone label. */
+function capitalize(s: string): string {
+  return s.length > 0 ? s[0].toUpperCase() + s.slice(1) : s;
+}
+
 function assignTheme(r: Resource) {
   const text = `${r.title} ${r.note || ""} ${r.whyMatters || ""}`;
   return classifyTheme(text, r.theme);
@@ -198,7 +205,23 @@ export function ResearchFindingDetailSurface({
               <TagChip>Finding</TagChip>
               {r.type && <TagChip>{r.type.replace(/_/g, " ")}</TagChip>}
               {themeKey && <TagChip>{THEME_LABELS[themeKey as keyof typeof THEME_LABELS]}</TagChip>}
+              {/* Artboard 07 (dc.html #p7): "All modes" chip when a finding is not mode-scoped —
+                  matches the operations detail's own modes chip (OperationsDetailSurface.tsx) for
+                  the case where modes IS restricted; a finding with no modes on record applies
+                  broadly, so "All modes" is the honest label rather than omitting the chip. */}
+              {r.modes && r.modes.length > 0 ? (
+                r.modes.slice(0, 2).map((m) => <TagChip key={m}>{m.toUpperCase()}</TagChip>)
+              ) : (
+                <TagChip>All modes</TagChip>
+              )}
             </>
+          }
+          headerStat={
+            sourceRows.length > 0
+              ? `${sourceRows.length} source${sourceRows.length === 1 ? "" : "s"}${
+                  connections.length > 0 ? ` · ${connections.length} connections` : ""
+                }`
+              : null
           }
           actions={
             <ActionRow
@@ -249,7 +272,7 @@ export function ResearchFindingDetailSurface({
               <AtAGlanceCard
                 rows={[
                   { label: "Band", value: `${band.label} · ${band.window}` },
-                  { label: "Type", value: r.type },
+                  { label: "Type", value: r.type ? capitalize(r.type.replace(/_/g, " ")) : null },
                   { label: "Theme", value: themeKey ? THEME_LABELS[themeKey as keyof typeof THEME_LABELS] : null },
                   { label: "Jurisdiction", value: jurisLabel },
                   { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${r.sourceTier}` : r.sourceName },

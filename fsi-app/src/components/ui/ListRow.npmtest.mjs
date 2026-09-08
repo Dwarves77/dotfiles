@@ -122,7 +122,7 @@ test("B56: the due-date label is fs-125 (12.5px)", () => {
 });
 
 test("B60: the tier cell is text-align:center", () => {
-  assert.match(SOURCE, /className="cl-row-tier" style=\{\{ display: "flex", alignItems: "center", textAlign: "center" \}\}/);
+  assert.match(SOURCE, /className="cl-row-tier" style=\{\{ display: "flex", alignItems: "center", textAlign: "center",/);
 });
 
 test("B61: the desktop overflow-cell divider is --line-2 (rgba(0,0,0,.08)), not --line-3", () => {

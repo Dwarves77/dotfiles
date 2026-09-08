@@ -16,6 +16,7 @@ import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { formatLocaleDate } from "@/lib/format";
+import { renderNowIso } from "@/lib/render-now";
 import type { CommunityActivityRow } from "@/components/map/MapView";
 
 export default async function MapRoute({
@@ -47,11 +48,16 @@ export default async function MapRoute({
     regs.filter((r) => bandFromPriority(r.priority).key === "immediate").map((r) => (r.jurisdiction || "global").toLowerCase())
   );
 
-  const dateStr = formatLocaleDate(new Date(), {
+  // HYDRATION-59: one server instant (render-now.ts), UTC-pinned, and threaded into <Masthead/>
+  // so its VOL week number is computed from the SAME instant this label is — never from the
+  // browser's own clock during hydration.
+  const nowIso = renderNowIso();
+  const dateStr = formatLocaleDate(new Date(nowIso), {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
 
   return (
@@ -61,6 +67,7 @@ export default async function MapRoute({
         <Masthead
           title="Regulatory map"
           dateLabel={dateStr}
+          nowIso={nowIso}
           dek={
             <>
               {jurisdictions.size} jurisdiction{jurisdictions.size === 1 ? "" : "s"} live ·{" "}
@@ -69,7 +76,11 @@ export default async function MapRoute({
               immediate items · marker size = item count · colour = highest band present
             </>
           }
-          commandBar={{ itemCount: data.resources.length, scope: "map" }}
+          commandBar={{
+            itemCount: data.resources.length,
+            scope: "map",
+            placeholder: 'Search a jurisdiction — or ask "where are my immediate items?"',
+          }}
         />
       </div>
       <MapPageView

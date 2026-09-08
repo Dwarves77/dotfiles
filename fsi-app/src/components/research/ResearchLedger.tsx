@@ -27,15 +27,19 @@
  * dormant.
  */
 
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState, type ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
 import { formatLocaleDate } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
+import { isImpactScored } from "@/components/ui/ImpactMeter";
+import { ResearchThemeCards } from "@/components/research/ResearchThemeCards";
+import { ListSurfaceSortRow } from "@/components/list-surface/ListSurfaceSortRow";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
 import { TagChip } from "@/components/ui/Chips";
@@ -44,17 +48,34 @@ import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceR
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
+  WINDOW_OPTIONS,
   bandFacetOptions,
   modeFacetOptions,
   regionFacetOptions,
+  filterByWindow,
   filterRows,
+  windowDays,
   withListPosition,
+  type ListSurfaceWindowKey,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
-import { THEME_KEYS, THEME_LABELS, THEME_COLUMN_TO_KEY, assignTheme } from "@/lib/research/taxonomy.mjs";
+import {
+  SEVERITY_LABELS,
+  THEME_KEYS,
+  THEME_LABELS,
+  THEME_COLUMN_TO_KEY,
+  assignTheme,
+  deriveSeverity,
+} from "@/lib/research/taxonomy.mjs";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "research";
+/** "+N new" on a theme card counts items added inside this window (artboard 06/id="p6" draws
+ *  "+4 new" on the selected theme card; the window itself is this file's own choice, stated here
+ *  rather than buried, and logged in DEVIATION-LOG.md). */
+const NEW_WINDOW_DAYS = 7;
+/** The masthead command-bar prompt, artboard 06/id="p6", verbatim. */
+const SEARCH_PLACEHOLDER = 'Search findings and themes — or ask "what affects my FY26 Scope 3 baseline?"';
 
 function themeKeyOf(r: Resource): string | null {
   const column = r.theme && (THEME_COLUMN_TO_KEY as Record<string, string>)[r.theme] ? r.theme : undefined;
@@ -69,23 +90,42 @@ export interface ResearchSourceCoverageCellProp {
 }
 
 export interface ResearchLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   resources: Resource[];
   aggregates: WorkspaceAggregates;
   sourceCoverage?: ResearchSourceCoverageCellProp[];
+  /** Page content the artboard does not draw, rendered at the FOOT of the content column rather
+   *  than above the masthead where it used to sit (operator ruling R7: an app feature the artboard
+   *  has no region for stays live, moved out of the region an artboard region must occupy).
+   *  /research passes ThemeStrip plus the split-credibility legend here, both server-rendered in
+   *  app/research/page.tsx and handed down as an element, so this client component never has to
+   *  own their data reads. */
+  belowRows?: ReactNode;
 }
 
-export function ResearchLedger({ resources, aggregates, sourceCoverage }: ResearchLedgerProps) {
+export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, belowRows }: ResearchLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [theme, setTheme] = useState<string | null>(null);
+  const [windowKey, setWindowKey] = useState<ListSurfaceWindowKey>("all");
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
 
   const tagsFacet = useWorkspaceTagsFacet();
 
-  const filtered = useMemo(() => {
-    const base = filterRows(resources, filter);
-    const themed = theme ? base.filter((r) => themeKeyOf(r) === theme) : base;
-    return themed.filter((r) => tagsFacet.matchesSelectedTag(r.id));
-  }, [resources, filter, theme, tagsFacet.matchesSelectedTag]);
+  /** Everything except the theme facet, the theme cards' own counts are read off this, so
+   *  selecting one theme never rewrites the other three cards' numbers to 0. */
+  const beforeTheme = useMemo(() => {
+    const base = filterByWindow(filterRows(resources, filter), windowKey);
+    return base.filter((r) => tagsFacet.matchesSelectedTag(r.id));
+  }, [resources, filter, windowKey, tagsFacet.matchesSelectedTag]);
+
+  const filtered = useMemo(
+    () => (theme ? beforeTheme.filter((r) => themeKeyOf(r) === theme) : beforeTheme),
+    [beforeTheme, theme],
+  );
 
   const bandCounts = useMemo(() => {
     const opts = bandFacetOptions(resources, aggregates.byPriority as unknown as Record<string, number>);
@@ -95,16 +135,29 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
   const modeOptions = useMemo(() => modeFacetOptions(resources), [resources]);
   const regionOptions = useMemo(() => regionFacetOptions(resources, aggregates.byJurisdiction), [resources, aggregates.byJurisdiction]);
 
-  const themeOptions = useMemo(() => {
+  /** Theme cards (artboard 06/id="p6"): one card per theme PRESENT in the current selection, in
+   *  THEME_KEYS order, each with its live count and how many of those arrived inside
+   *  NEW_WINDOW_DAYS. This is the theme facet, the artboard's own caption ("themes are a second
+   *  facet row, not a second tile system"), so the theme group is NOT also listed in the rail's
+   *  Filters card; one control per facet. */
+  const themeCards = useMemo(() => {
     const counts = new Map<string, number>();
-    for (const r of resources) {
+    const fresh = new Map<string, number>();
+    // FOLD-59: from the SERVER instant, not Date.now(). This cutoff decides which theme cards
+    // carry the "+N new" badge, so reading the host clock made the badge differ between the SSR
+    // and hydration passes for any finding added within a render of the boundary.
+    const cutoff = nowFrom(nowIso).getTime() - NEW_WINDOW_DAYS * 86400000;
+    for (const r of beforeTheme) {
       const key = themeKeyOf(r);
-      if (key) counts.set(key, (counts.get(key) ?? 0) + 1);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+      const added = r.added ? new Date(r.added).getTime() : NaN;
+      if (!Number.isNaN(added) && added >= cutoff) fresh.set(key, (fresh.get(key) ?? 0) + 1);
     }
     return (THEME_KEYS as string[])
       .filter((k) => counts.has(k))
-      .map((k) => ({ value: k, label: (THEME_LABELS as Record<string, string>)[k] ?? k, count: counts.get(k) ?? 0 }));
-  }, [resources]);
+      .map((k) => ({ key: k, count: counts.get(k) ?? 0, newCount: fresh.get(k) ?? 0 }));
+  }, [beforeTheme, nowIso]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
@@ -112,7 +165,6 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
   ];
 
   const themeFacetGroups: ListSurfaceFacetGroup[] = [
-    { key: "theme", label: "Theme", options: themeOptions, selected: theme, onSelect: setTheme },
     {
       key: "workspace-tags",
       label: "Workspace tags",
@@ -133,10 +185,20 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
           const baseHref = itemDetailHref(r);
           const themeKey = themeKeyOf(r);
           const themeLabel = themeKey ? (THEME_LABELS as Record<string, string>)[themeKey] ?? themeKey : null;
+          // Artboard 06/id="p6" row: a kind TagChip carrying the row's SEVERITY ("Cost alert",
+          // "Background") followed by "Finding · <theme> · <kind>". The theme lives in the meta
+          // TEXT here, not in the chip, this is the same one-tag-then-meta anatomy
+          // MarketIntelLedger's signal-kind tag already uses, with the artboard's own strings.
+          // Severity comes from the shared classifier (src/lib/research/taxonomy.mjs), never a
+          // page-local vocabulary.
+          const severityLabel = (SEVERITY_LABELS as Record<string, string>)[
+            deriveSeverity([r.title, r.whatIsIt, r.whyMatters].filter(Boolean).join(" "), r.added, r.severity) as string
+          ];
+          const metaText = [r.type, themeLabel, r.sub || (r.modes ?? []).join(", ")].filter(Boolean).join(" · ");
           const meta = (
             <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              {themeLabel && <TagChip>{themeLabel}</TagChip>}
-              <span>{metaLine(r)}</span>
+              {severityLabel && <TagChip>{severityLabel}</TagChip>}
+              <span>{metaText || metaLine(r)}</span>
             </span>
           );
           return {
@@ -168,46 +230,185 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage }: Resear
     });
   }, [filtered, filter.band, tagsFacet.tagsForItem]);
 
-  const total = aggregates.totalItems || resources.length;
   const coverageBySource = useMemo(() => {
     const map = new Map<string, number>();
     for (const c of sourceCoverage ?? []) map.set(c.transportMode, (map.get(c.transportMode) ?? 0) + c.sourceCount);
     return Array.from(map.entries());
   }, [sourceCoverage]);
 
+  const total = aggregates.totalItems || resources.length;
+  const shown = filtered.length;
+  const themeLabelOf = (key: string) => (THEME_LABELS as Record<string, string>)[key] ?? key;
+  const windowLabel = WINDOW_OPTIONS.find((o) => o.key === windowKey)?.label ?? "All";
+  const widerWindow = WINDOW_OPTIONS.find((o) => {
+    const days = windowDays(windowKey);
+    return days != null && (o.days == null || o.days > days);
+  });
+  /** Awareness-band rows the meter itself calls unscored, the number artboard 06's transition
+   *  strip states ("34 findings sit below the scoring threshold and are kept for context"). */
+  const unscoredAwareness = useMemo(
+    () =>
+      filtered.filter(
+        (r) => bandFromPriority(r.priority).key === "awareness" && !isImpactScored(r.impactScores ?? scoreResource(r)),
+      ).length,
+    [filtered],
+  );
+
   return (
     <ListSurfaceShell
       title="Research"
-      dek="Peer-reviewed journals, think tanks, quantified-climate research, analytical press."
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      scopeLine={
+        <>
+          <b style={{ color: "var(--ink)" }}>{total}</b> active findings · <b style={{ color: "var(--ink)" }}>{themeCards.length}</b>{" "}
+          themes · peer-reviewed journals, think tanks, quantified-climate research, analytical press
+        </>
+      }
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="research"
+      searchPlaceholder={SEARCH_PLACEHOLDER}
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
       bandCounts={bandCounts}
       selectedBand={filter.band}
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={themeFacetGroups}
+      aboveRows={<ResearchThemeCards themes={themeCards} selected={theme} onSelect={setTheme} />}
+      sortRow={
+        <ListSurfaceSortRow
+          countLabel={
+            <>
+              <b style={{ color: "var(--ink)" }}>
+                {shown} of {total}
+              </b>{" "}
+              findings{theme ? ` · ${themeLabelOf(theme)}` : ""}
+            </>
+          }
+          linkLabel={theme ? "Clear theme" : undefined}
+          onLink={theme ? () => setTheme(null) : undefined}
+          controlLabel="Window"
+          options={WINDOW_OPTIONS.map((o) => ({ key: o.key, label: o.label }))}
+          active={windowKey}
+          onSelect={(k) => setWindowKey(k as ListSurfaceWindowKey)}
+        />
+      }
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
       onExpandBand={(key) => setExpanded((s) => new Set(s).add(key))}
-      stateNote={<StateNote>{total} findings tracked across {themeOptions.length} themes.</StateNote>}
+      sectionFoot={(_bandKey, nextBandKey) =>
+        nextBandKey === "awareness" && unscoredAwareness > 0 ? (
+          <StateNote
+            band={BAND_ORDER.find((b) => b.key === "awareness")}
+            action={{
+              label: "Why unscored →",
+              // The artboard links this to a scoring-methodology page the product does not have.
+              // Rather than ship a dead href (operator audit P0 1.1), it asks the one ask surface
+              //, the same `open-ask-assistant` event the masthead CommandBar dispatches. Logged
+              // in DEVIATION-LOG.md.
+              onClick: () =>
+                window.dispatchEvent(
+                  new CustomEvent("open-ask-assistant", {
+                    detail: { question: "Why are some research findings unscored?", scope: "research" },
+                  }),
+                ),
+            }}
+          >
+            <b>Awareness</b> · {unscoredAwareness} findings sit below the scoring threshold and are kept for context
+          </StateNote>
+        ) : null
+      }
+      emptyState={
+        <div style={{ padding: "28px 20px", textAlign: "center" }}>
+          <div
+            style={{
+              fontFamily: "var(--font-display)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              fontSize: 20,
+              color: "var(--ink)",
+            }}
+          >
+            {windowDays(windowKey) == null
+              ? "Nothing matches this selection"
+              : `Nothing in the last ${windowDays(windowKey)} days`}
+          </div>
+          <div style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.45 }}>
+            0 of {total} findings match{theme ? ` ${themeLabelOf(theme)} · ` : " "}
+            {windowLabel}.{" "}
+            {widerWindow && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setWindowKey(widerWindow.key)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
+                    color: "var(--ink)",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    textDecorationColor: "rgba(0,0,0,.3)",
+                    cursor: "pointer",
+                  }}
+                >
+                  Widen to {widerWindow.days} days
+                </button>
+                {theme ? " or " : "."}
+              </>
+            )}
+            {theme && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setTheme(null)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    font: "inherit",
+                    color: "var(--ink)",
+                    fontWeight: 600,
+                    textDecoration: "underline",
+                    textDecorationColor: "rgba(0,0,0,.3)",
+                    cursor: "pointer",
+                  }}
+                >
+                  clear the theme
+                </button>
+                .
+              </>
+            )}
+          </div>
+        </div>
+      }
+      belowRows={belowRows}
       rail={
         <>
-          <RailCard title="Source coverage">
+          {/* Source coverage (artboard 06/id="p6" rail card 2): label + Anton value pairs in a
+              1fr/auto grid, then the caption. The artboard's four rows are SOURCE CLASSES
+              (peer-reviewed / think tank / quantified research / analytical press); no per-item
+              source-class field exists in this corpus, so the card states the axis the data
+              really has (getResearchSourceCoverage's transport modes) with the artboard's own
+              geometry: logged in DEVIATION-LOG.md rather than invented. */}
+          <RailCard title="Source coverage" dataAudit="source-coverage-rail">
             {coverageBySource.length === 0 ? (
               <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>No coverage matrix populated yet.</p>
             ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr auto", gap: "6px 12px", fontSize: "var(--fs-125)", alignItems: "baseline" }}>
                 {coverageBySource.map(([mode, count]) => (
-                  <div key={mode} style={{ display: "flex", justifyContent: "space-between", fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
-                    <span>{mode}</span>
-                    <span style={{ fontWeight: 700, color: "var(--ink)" }}>{count}</span>
-                  </div>
+                  <Fragment key={mode}>
+                    <span style={{ color: "var(--ink)" }}>{mode}</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--ink)" }}>{count}</span>
+                  </Fragment>
                 ))}
               </div>
             )}
+            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: "8px 0 0", lineHeight: 1.5 }}>
+              Distribution across the transport modes the coverage matrix records.
+            </p>
           </RailCard>
           <LegendRailCard />
         </>

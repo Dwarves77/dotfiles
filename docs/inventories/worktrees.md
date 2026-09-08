@@ -19,9 +19,8 @@ New worktrees go under `C:/Users/jason/dotfiles/.worktrees/wt-<name>` per FaDB r
 | Path | Branch | Status | Suggested disposition |
 |---|---|---|---|
 | `dotfiles` | `master` | Main repo | Keep |
-| `wt-audit` | `master` (at creation, 2026-07-18) | Session E audit lane, dormant-systems audit, read-only until audit doc lands | Keep until audit doc lands |
 
-**Ephemeral parallel-agent worktrees under `.worktrees/`** (FaDB convention, e.g., `wt-build-7`, `wt-linkedin`) **or `.claude/worktrees/`** (the Claude Code agent-harness convention, e.g., `agent-<id>`) are NOT listed here. Both are developer-local / harness-local transient state; C4 ignores them on both sides (live + inventory). Track only the main repo + historical preserved state.
+**Ephemeral parallel-agent worktrees under `.worktrees/`** (FaDB convention, e.g., `wt-build-7`, `wt-linkedin`), **`.claude/worktrees/`** (the Claude Code agent-harness convention, e.g., `agent-<id>`) **or `work/lanes/`** (the train-assembly container's lane convention, see [TRAIN-ASSEMBLY-RUNBOOK](../runbooks/TRAIN-ASSEMBLY-RUNBOOK.md) — e.g. `train59`, `comp-06`) are NOT listed here. Both are developer-local / harness-local transient state; C4 ignores them on both sides (live + inventory). Track only the main repo + historical preserved state.
 
 ## Preserved branches (worktree dirs removed; branches alive)
 
@@ -59,6 +58,16 @@ All operator-pending decisions on archived branches have been resolved:
 - **mt-A/B/C trilogy**: all three branches force-deleted; archive tags preserved. Investigation found all three landed on master via PRs #114/#115/#116 (migrations 075/076/077 byte-identical).
 - **remediation-discipline worktree**: REMOVED 2026-05-21 (Layer 4 hotfix dispatch). The 2 unmerged "sync FROM master" commits were content-superseded by e8d03a7 + b66ae26. Branch deleted; worktree dir removed.
 - **3 small-fix branches** (4issues, ecovadis, masthead-uuid): force-deleted; archive tags preserved. Cherry-pick from archive tag if any of the fixes still applies to current master.
+
+## Corrections
+
+- **2026-09-08 (train 59 fold).** Two C4 drifts cleared, both of them inventory/rule staleness rather
+  than worktree mismanagement. (1) The `wt-audit` row was an ORPHAN CLAIM: the row promised "keep
+  until the audit doc lands", the doc landed, and the worktree is long gone, so the row named a
+  directory that does not exist. Removed. (2) The train-assembly container runs its lane worktrees
+  under `work/lanes/`, a third ephemeral convention that postdates the rule; C4 reported all eleven
+  as untracked. The convention is added to the exempt list above and to C4's own predicate, which
+  now has an adversarial test (`C4-worktrees-reality.test.mjs`) it did not have before.
 
 ## Maintenance trigger
 

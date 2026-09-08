@@ -489,7 +489,11 @@ export default async function CommunityPage() {
           title="Community"
           dateLabel={dateStr}
           dek={dek}
-          commandBar={{ itemCount: totalItems, scope: "community" }}
+          commandBar={{
+            itemCount: totalItems,
+            scope: "community",
+            placeholder: 'Search posts, groups, members — or ask "what did the EU room flag this week?"',
+          }}
         />
       </div>
       <CommunityRooms

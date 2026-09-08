@@ -27,6 +27,9 @@ import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardMasthead } from "@/components/dashboard/DashboardMasthead";
 import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
 import { formatLocaleDate } from "@/lib/format";
+import { renderNowIso } from "@/lib/render-now";
+import { buildDueNextRows, buildChangedRows, selectBriefResources } from "@/lib/dashboard/brief-rows";
+import { enrichRowSourceChips } from "@/lib/supabase-server";
 
 export default async function Home() {
   const [data, aggregates, surfaceCoverage] = await Promise.all([
@@ -39,12 +42,28 @@ export default async function Home() {
   // masthead + band tiles + Due next / What changed paint at first-paint.
   const watchlistPromise = getWatchlist();
 
-  const dateStr = formatLocaleDate(new Date(), {
+  // HYDRATION-59: one server instant (render-now.ts), UTC-pinned, threaded into every client
+  // component on this route that renders a date — see that module for the two mismatch axes.
+  const nowIso = renderNowIso();
+  const dateStr = formatLocaleDate(new Date(nowIso), {
     weekday: "long",
     year: "numeric",
     month: "long",
     day: "numeric",
+    timeZone: "UTC",
   });
+
+  // Defect D3 (2026-09-07): the two row sets are SELECTED here, on the server, so they can be
+  // (a) derived from one fixed instant (no client clock in render — render-now.ts) and (b)
+  // enriched with the same source-chip read /regulations runs, over ONLY the ≤11 rows this page
+  // renders (bounded, F38/F39 — see enrichRowSourceChips). They then travel to <DashboardBrief/>
+  // as ready ListRow field sets built by the SHARED derivation the list ledgers use
+  // (src/lib/list-row-fields.ts), so one item cannot read "6/12 · T1" on /regulations and
+  // "UNSCORED · not in primary source" here on the same load.
+  const now = new Date(nowIso);
+  await enrichRowSourceChips(selectBriefResources(data.resources, data.recentChanges, now));
+  const dueNextRows = buildDueNextRows(data.resources, now);
+  const changedRows = buildChangedRows(data.recentChanges, data.resources, now);
 
   // True workspace totals (migration 068), fail-soft to the row payload only
   // when aggregates report zero (anon / seed / RPC error).
@@ -64,19 +83,22 @@ export default async function Home() {
       <div className="cl-dashboard-masthead-wrap" style={{ padding: "20px 40px 0" }}>
         <DashboardMasthead
           dateLabel={dateStr}
+          nowIso={nowIso}
           itemCount={itemsCount}
           aggregatesLoaded={aggregates.totalItems > 0}
           totalJurisdictions={aggregates.totalJurisdictions}
         />
       </div>
       <DashboardBrief
-        resources={data.resources}
+        dueNextRows={dueNextRows}
+        changedRows={changedRows}
         aggregates={aggregates}
-        recentChanges={data.recentChanges}
+        totalChanges={data.recentChanges.length}
         auditDate={data.auditDate}
         surfaceCoverage={surfaceCoverage}
         watchlistPromise={watchlistPromise}
         fetchError={data._error}
+        nowIso={nowIso}
       />
     </>
   );

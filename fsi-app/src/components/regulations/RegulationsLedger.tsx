@@ -54,7 +54,8 @@ import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
+import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
 import { WatchButton } from "@/components/ui/WatchButton";
@@ -69,20 +70,35 @@ import {
   useRemainderFetch,
   type ListSurfaceFacetGroup,
 } from "@/components/list-surface/ListSurfaceShell";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { LegendRailCard, ObligationsRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
   bandFacetOptions,
   modeFacetOptions,
   regionFacetOptions,
+  topicFacetOptions,
+  tierFacetOptions,
   filterRows,
   withListPosition,
+  sortResourceRows,
   type RowFilterState,
 } from "@/components/list-surface/list-surface-helpers";
 
 const PER_BAND_CAP = 5;
 const LIST_KEY = "regulations";
+
+// Sort row (artboard 02/id="p2": "Sort Next date | Newest | A-Z | My order", active option
+// filled). "My order" is the corpus's own incoming order — this rebuild has no drag-reorder (see
+// this file's header comment), so "My order" is honestly the identity/no-op sort, not a
+// fabricated manual-order feature.
+const SORT_OPTIONS: ListSurfaceSortOption[] = [
+  { key: "next-date", label: "Next date" },
+  { key: "newest", label: "Newest" },
+  { key: "az", label: "A-Z" },
+  { key: "my-order", label: "My order" },
+];
 
 async function fetchRemainder(): Promise<Resource[]> {
   const res = await fetch(`/api/listings/rest?surface=regulations&offset=60`, { cache: "no-store" });
@@ -92,6 +108,11 @@ async function fetchRemainder(): Promise<Resource[]> {
 }
 
 export interface RegulationsLedgerProps {
+  /** Server render instant (src/lib/render-now.ts `renderNowIso()`). Threaded from this
+   *  surface's page.tsx so every date this ledger renders comes from ONE instant the SERVER
+   *  chose — the SSR pass and the hydration pass then produce identical text by construction
+   *  (React #418 class, see render-now.ts). */
+  nowIso?: string;
   initialResources: Resource[];
   initialArchived: Resource[];
   aggregates: WorkspaceAggregates;
@@ -104,10 +125,12 @@ export interface RegulationsLedgerProps {
   initialBand?: UrgencyBandKey | null;
 }
 
-export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null }: RegulationsLedgerProps) {
+export function RegulationsLedger({ initialResources, aggregates, hasMore, initialBand = null, nowIso }: RegulationsLedgerProps) {
   const { rows: fetchedRows, loadingMore } = useRemainderFetch(initialResources, fetchRemainder, hasMore);
   const [filter, setFilter] = useState<RowFilterState>({ ...EMPTY_FILTER_STATE, band: initialBand });
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
+  const [sortKey, setSortKey] = useState<"next-date" | "newest" | "az" | "my-order">("next-date");
+  const [flat, setFlat] = useState(false);
 
   // Workspace override layer (priority retag + dismiss) + personal archive layer — restored
   // (UILISTS2, 2026-09-07). Overrides arrive via useWorkspaceOverridesHydration, mounted globally
@@ -125,8 +148,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   const tagsFacet = useWorkspaceTagsFacet();
 
   const filtered = useMemo(
-    () => filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)),
-    [allRows, filter, tagsFacet.matchesSelectedTag]
+    () => sortResourceRows(filterRows(allRows, filter).filter((r) => tagsFacet.matchesSelectedTag(r.id)), sortKey),
+    [allRows, filter, tagsFacet.matchesSelectedTag, sortKey]
   );
 
   const bandCounts = useMemo(() => {
@@ -136,6 +159,8 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
 
   const modeOptions = useMemo(() => modeFacetOptions(allRows), [allRows]);
   const regionOptions = useMemo(() => regionFacetOptions(allRows, aggregates.byJurisdiction), [allRows, aggregates.byJurisdiction]);
+  const topicOptions = useMemo(() => topicFacetOptions(allRows), [allRows]);
+  const tierOptions = useMemo(() => tierFacetOptions(allRows), [allRows]);
 
   const facetGroups: ListSurfaceFacetGroup[] = [
     { key: "mode", label: "Mode", options: modeOptions, selected: filter.mode, onSelect: (v) => setFilter((f) => ({ ...f, mode: v })) },
@@ -145,6 +170,20 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       options: regionOptions,
       selected: filter.region,
       onSelect: (v) => setFilter((f) => ({ ...f, region: v })),
+    },
+    {
+      key: "topic",
+      label: "Topic",
+      options: topicOptions,
+      selected: filter.topic ?? null,
+      onSelect: (v) => setFilter((f) => ({ ...f, topic: v })),
+    },
+    {
+      key: "tier",
+      label: "Source tier",
+      options: tierOptions,
+      selected: filter.tier ?? null,
+      onSelect: (v) => setFilter((f) => ({ ...f, tier: v })),
     },
   ];
 
@@ -196,11 +235,35 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem]);
 
   const total = aggregates.totalItems || allRows.length;
+  const jurisdictionCount = aggregates.totalJurisdictions || regionOptions.length;
+
+  // Scope line (artboard 02/id="p2" masthead: "1,316 active · 32 jurisdictions · last sync Sep 4 ·
+  // next obligation Sep 25 · EU Net-Zero Industry Act"), live fields only — a field this surface
+  // cannot source (aggregates.lastUpdatedAt absent pre-apply) is omitted rather than invented.
+  const nextObligation = useMemo(() => {
+    let soonest: { days: number; due: ReturnType<typeof dueInfo>; title: string } | null = null;
+    for (const r of allRows) {
+      const due = dueInfo(r);
+      if (!due) continue;
+      if (!soonest || due.daysNum < soonest.days) soonest = { days: due.daysNum, due, title: r.title };
+    }
+    return soonest;
+  }, [allRows]);
+  const scopeLineParts = [
+    `${formatNumber(total)} active`,
+    `${jurisdictionCount} jurisdictions`,
+    aggregates.lastUpdatedAt
+      ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
+      : null,
+    nextObligation ? `next obligation ${nextObligation.due!.label} · ${nextObligation.title}` : null,
+  ].filter(Boolean);
 
   return (
     <ListSurfaceShell
       title="Regulations"
-      dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      scopeLine={scopeLineParts.join(" · ")}
+      dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+      nowIso={nowIso}
       itemCount={total}
       scope="regulations"
       onSearch={(q) => setFilter((f) => ({ ...f, query: q }))}
@@ -209,6 +272,22 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={[workspaceTagFacetGroup]}
+      sortRow={
+        <ListSurfaceSortRow
+          countLabel={
+            <>
+              <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> regulations · {flat ? "flat" : "grouped by band"}
+            </>
+          }
+          linkLabel={flat ? "Group by band" : "Show as one list"}
+          onLink={() => setFlat((f) => !f)}
+          controlLabel="Sort"
+          options={SORT_OPTIONS}
+          active={sortKey}
+          onSelect={(k) => setSortKey(k as "next-date" | "newest" | "az" | "my-order")}
+        />
+      }
+      flat={flat}
       rowsByBand={rowsByBand}
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
@@ -225,14 +304,11 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         )
       }
       belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
+      /* Artboard 02/id="p2" rail order, top to bottom: Filters (mounted by ListSurfaceShell
+         itself), then "Obligations · next 30 days", then Legend. */
       rail={
         <>
-          <RailCard title="Filters">
-            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>
-              Counts are live for the current selection. Use the band tiles and the Mode / Jurisdiction chips above to narrow
-              the list.
-            </p>
-          </RailCard>
+          <ObligationsRailCard nowIso={nowIso} />
           <LegendRailCard />
         </>
       }

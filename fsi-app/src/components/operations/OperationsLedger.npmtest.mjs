@@ -38,6 +38,15 @@ test("the matrix's dimension list is NOT filtered — MATRIX_DIMENSIONS is DIMEN
   );
 });
 
-test("<RegionDimensionMatrix> is fed MATRIX_DIMENSIONS (all six), not a partial list", () => {
-  assert.match(SOURCE, /dimensions=\{MATRIX_DIMENSIONS\.map/);
+// Lane comp-08 (2026-09-08) added artboard 08's DIMENSION facet, so the matrix's dimension list is
+// now `matrixDimensions` — MATRIX_DIMENSIONS narrowed by the reader's own facet selection. The
+// INVARIANT this test guards is unchanged and still the point: with no facet selected the matrix is
+// fed all six, and no filter is baked into the derivation. Only the mount moved.
+test("<RegionDimensionMatrix> is fed the full MATRIX_DIMENSIONS unless the reader narrows it", () => {
+  assert.match(SOURCE, /dimensions=\{matrixDimensions\.map/);
+  const start = SOURCE.indexOf("const matrixDimensions = useMemo(");
+  assert.notEqual(start, -1, "matrixDimensions must be derived from MATRIX_DIMENSIONS in one place");
+  const body = SOURCE.slice(start, start + 400);
+  // The unselected default is the whole list; the only narrowing is the reader's own facet value.
+  assert.match(body, /dimensionFilter\s*\?\s*MATRIX_DIMENSIONS\.filter\(\(d\) => d\.db === dimensionFilter\)\s*:\s*MATRIX_DIMENSIONS/);
 });

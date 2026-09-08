@@ -1,68 +1,115 @@
 "use client";
 
 /**
- * WatchlistSurface — /watchlist (UI system handoff 2026-09-06, artboard 11
- * "Watchlist": the SAME row anatomy, but ONE flat block sorted by next
- * date — no band tiles, no band grouping. This is the one place this
- * lane's dispatch's "all five use BandTile x4" instruction conflicts with
- * the artboard; the artboard wins per README's own rule ("where README
- * prose and a page artboard disagree, the artboard wins") and the
- * operator's "just as the page renderings look" ruling — logged in
- * DEVIATION-LOG.md.
+ * WatchlistSurface — /watchlist, composed region for region against artboard
+ * 11 (docs/design/handoff-2026-09-06/screens/11-watchlist.png, dc.html
+ * id="p11"), top to bottom and left to right:
  *
- * REWRITTEN this lane (UILISTS, 2026-09-06). Assembled from
- * src/components/ui/ parts directly (Masthead+CommandBar, ListRow,
- * StateNote) rather than ListSurfaceShell, since the layout genuinely
- * differs (flat list, no tiles/facets) — see list-surface-helpers.ts's
- * `withListPosition` reused here for the same detail-return contract the
- * other four surfaces use.
+ *   masthead card ...... VOL line · "WATCHLIST" · scope line
+ *                        ("N watched · personal · M shared by the workspace")
+ *                        · command bar with the watchlist-scoped placeholder
+ *   content column ..... Watched card: SectionHeading ("Watched · N" /
+ *                        "Sorted by next date") · ListRowColumnHeader
+ *                        ("Juris. / Title · type · modes / Impact low → high /
+ *                        Next date / Timeline / Tier") · ListRows · CardFoot
+ *                        ("Watch from any row's ⋯ menu..." / "Browse
+ *                        regulations →") · the changed-since-last-visit
+ *                        StateNote
+ *                        Recalculation notices card: SectionHeading
+ *                        ("Recalculation notices" / "Since your last visit")
+ *                        · the /api/notices feed with its honest empty line
+ *   rail (300px) ....... Filters · Share with workspace · Legend
  *
- * DATA: unchanged read path (fetchWatchlist via getWatchlistFull). The
- * band/impact/timeline/tier fields on each row are additive columns this
- * lane added to that SAME bounded lookup — see WatchlistItem's own header
- * in src/lib/supabase-server.ts — never a second query. source/
- * market_series rows carry none of them and render the Absence convention.
+ * COMPOSITION LANE comp-11 (2026-09-08), against the operator's audit of
+ * 2026-09-07 ("the filters were not above the regulations, they were on the
+ * right... you are NOT matching the images directly"). What that pass changed
+ * here, and why:
  *
- * NO DRAG HERE, unchanged from the previous version (see its own note,
- * preserved below).
+ *   - The masthead scope line and the watchlist-scoped command-bar
+ *     placeholder were absent; both are artboard regions with live fields.
+ *   - The Scope/Type controls (native selects) and the Workspace-tags chip
+ *     card sat in the CONTENT COLUMN above the rows. Artboard 11 has nothing
+ *     there. They are an app feature the artboard does not draw (ruling R7),
+ *     so they move to the rail's `FiltersRailCard` — the same card, the same
+ *     data, the same single-select semantics the other four list surfaces
+ *     already use, rather than a watchlist-local filter UI. Logged.
+ *   - The column-header row, the card foot strip and the Recalculation
+ *     notices card were missing entirely; all three are built from shared
+ *     parts (`ListRowColumnHeader`, `CardFoot`, `SectionHeading` +
+ *     `RecalculationNotice`), never page-local copies.
+ *   - The card head was a page-local div at the wrong size; it is now the
+ *     shared `SectionHeading`, promoted out of DashboardBrief this lane.
+ *
+ * DATA: unchanged read path (fetchWatchlist via getWatchlistFull) plus the
+ * pre-existing GET /api/notices feed, read through NoticesRail's own
+ * `useRecalculationNotices` hook — no new query, no second copy of that fetch.
+ * The band/impact/timeline/tier fields on each row are additive columns on the
+ * SAME bounded lookup (see WatchlistItem's header in src/lib/supabase-server.ts).
+ * source/market_series rows carry none of them and render the Absence
+ * convention.
+ *
+ * Artboard fields the DATA does not carry, rendered as an omission rather than
+ * invented (logged in DEVIATION-LOG.md): the row meta's "All modes ·
+ * packaging" segments (WatchlistItem has no modes or topic field), and the
+ * state note's "changed BAND" wording (no band-change history exists;
+ * /api/notices is the app's only "what changed on watched items since your
+ * last visit" feed, so the strip states what that feed actually reports).
+ *
+ * NO DRAG HERE, unchanged from the previous version.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
-import { ListRow } from "@/components/ui/ListRow";
+import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { CardFoot } from "@/components/ui/CardFoot";
 import { WatchButton } from "@/components/ui/WatchButton";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
-import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
+import { RailCard, LegendRailCard, FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import type { ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { SkeletonListRow } from "@/components/ui/Skeleton";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
+import { useRecalculationNotices } from "@/components/figures/NoticesRail";
+import { RecalculationNotice } from "@/components/figures/RecalculationNotice";
 import { withListPosition } from "@/components/list-surface/list-surface-helpers";
 import { bandFromPriority } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
+import { nowFrom } from "@/lib/render-now";
 import { formatLocaleDate } from "@/lib/format";
 import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
-import type { Resource } from "@/types/resource";
+import type { Resource, TimelineEntry } from "@/types/resource";
 
 type ScopeFilterValue = "all" | WatchlistScope;
 type TypeFilterValue = "all" | WatchlistItemType;
 
 const LIST_KEY = "watchlist";
 
+const SCOPE_LABEL: Record<WatchlistScope, string> = { personal: "Personal", team: "Team" };
+
 export interface WatchlistSurfaceProps {
   items: WatchlistItem[];
   limit: number;
+  /** Server render instant (src/lib/render-now.ts) — every date this surface renders derives from
+   *  it, never from the host clock during render (React #418 class). */
+  nowIso?: string;
 }
 
 /** Days until an item's compliance deadline, or null when it carries none —
  *  same UTC day math as src/lib/dashboard/row-fields.ts's dueInfo, kept
  *  local since WatchlistItem is not a Resource (no timeline array to also
  *  scan). */
-function dueInfo(deadline: string | null | undefined): { label: string; days: string } | null {
+function dueInfo(deadline: string | null | undefined, now: Date): { label: string; days: string } | null {
   if (!deadline) return null;
-  const today = Date.now();
+  // HYDRATION-59: floored to UTC midnight from an INJECTED instant, matching row-fields.ts's own
+  // dueInfo. `Date.now()` here was doubly unsafe — it read this client component's own clock in
+  // render (SSR instant != hydration instant), and it compared against a sub-second instant rather
+  // than a day boundary, so `Math.round` could bucket the same deadline to a different "N days" in
+  // the two passes.
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
   const d = new Date(deadline + (deadline.length === 10 ? "T00:00:00Z" : ""));
   const ms = d.getTime();
   if (Number.isNaN(ms) || ms < today) return null;
@@ -71,7 +118,51 @@ function dueInfo(deadline: string | null | undefined): { label: string; days: st
   return { label, days: `${diff} day${diff === 1 ? "" : "s"}` };
 }
 
-export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
+/**
+ * WatchlistItem's timeline in the shape ListRow's `MilestoneTimeline` takes.
+ * The artboard's row carries a populated TIMELINE cell (dc.html p11 lines
+ * 96-105) and the read has carried this field all along; the surface was
+ * passing a hardcoded `null` and drawing an empty track.
+ *
+ * Two real differences between the two shapes, neither invented over:
+ * an entry with no date is dropped (it cannot be placed on a track), and the
+ * read's extra "ahead" status maps to `TimelineEntry`'s "future", the same
+ * thing said in the row vocabulary. `label` is empty because this read
+ * genuinely carries no milestone labels — the row variant never renders them,
+ * and an empty one stays visibly absent anywhere else rather than becoming a
+ * fabricated milestone name.
+ */
+function rowTimeline(entries: WatchlistItem["timeline"]): TimelineEntry[] | null {
+  if (!entries || entries.length === 0) return null;
+  const mapped = entries
+    .filter((e): e is { date: string; status?: "past" | "current" | "future" | "ahead" } => typeof e.date === "string" && e.date.length > 0)
+    .map((e) => ({ date: e.date, label: "", status: e.status === "ahead" ? ("future" as const) : e.status }));
+  return mapped.length > 0 ? mapped : null;
+}
+
+/** The section card both content-column regions sit in — the shared card
+ *  chrome plus the one `SectionRule` ruling 5.1 puts above every panel. Same
+ *  five declarations `ListSurfaceShell`'s own `Card` uses; two uses inside one
+ *  file, not a second definition of a shared part. */
+function Card({ children }: { children: ReactNode }) {
+  return (
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      {children}
+    </div>
+  );
+}
+
+export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps) {
+  const now = nowFrom(nowIso);
   const [scope, setScope] = useState<ScopeFilterValue>("all");
   const [type, setType] = useState<TypeFilterValue>("all");
   const [query, setQuery] = useState("");
@@ -82,9 +173,11 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
     return seen;
   }, [items]);
 
-  const hasTeamRows = useMemo(() => items.some((i) => i.scope === "team"), [items]);
+  const personalCount = useMemo(() => items.filter((i) => i.scope === "personal").length, [items]);
+  const teamCount = items.length - personalCount;
 
   const tagsFacet = useWorkspaceTagsFacet();
+  const { notices, loading: noticesLoading } = useRecalculationNotices();
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -97,16 +190,74 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
     );
   }, [items, scope, type, query, tagsFacet.matchesSelectedTag]);
 
-  const filtered = scope !== "all" || type !== "all" || query.trim().length > 0;
   const atCap = items.length >= limit;
+
+  /**
+   * The rail's facet groups — the SAME single-select contract
+   * `FiltersRailCard` already renders for Regulations/Market/Research/
+   * Operations, so the watchlist's filters live where every other list
+   * surface's filters live and no watchlist-local filter chrome exists. A
+   * group with fewer than two options is dropped: a "Scope" list on a
+   * personal-only watchlist filters nothing.
+   */
+  const facetGroups: ListSurfaceFacetGroup[] = useMemo(() => {
+    const groups: ListSurfaceFacetGroup[] = [];
+    const scopeOptions = (["personal", "team"] as WatchlistScope[])
+      .map((s) => ({ value: s, label: SCOPE_LABEL[s], count: items.filter((i) => i.scope === s).length }))
+      .filter((o) => o.count > 0);
+    if (scopeOptions.length > 1) {
+      groups.push({
+        key: "scope",
+        label: "Scope",
+        options: scopeOptions,
+        selected: scope === "all" ? null : scope,
+        onSelect: (v) => setScope((v as WatchlistScope | null) ?? "all"),
+      });
+    }
+    if (presentTypes.length > 1) {
+      groups.push({
+        key: "type",
+        label: "Type",
+        options: presentTypes.map((t) => ({
+          value: t,
+          label: WATCHLIST_TYPE_LABEL[t],
+          count: items.filter((i) => i.type === t).length,
+        })),
+        selected: type === "all" ? null : type,
+        onSelect: (v) => setType((v as WatchlistItemType | null) ?? "all"),
+      });
+    }
+    if (tagsFacet.tags.length > 0) {
+      groups.push({
+        key: "tags",
+        label: "Workspace tags",
+        options: tagsFacet.tags.map((t) => ({ value: t.id, label: t.name, count: t.itemCount })),
+        selected: tagsFacet.selectedTagId,
+        onSelect: (v) => tagsFacet.setSelectedTagId(v),
+      });
+    }
+    return groups;
+  }, [items, presentTypes, scope, type, tagsFacet.tags, tagsFacet.selectedTagId, tagsFacet.setSelectedTagId]);
 
   return (
     <>
       <div style={{ padding: "20px 40px 0" }}>
         <Masthead
           title="Watchlist"
-          dateLabel={formatLocaleDate(new Date(), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
-          commandBar={{ itemCount: items.length, onSearch: setQuery, scope: "watchlist" }}
+          dateLabel={formatLocaleDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
+          nowIso={nowIso}
+          dek={
+            <span data-audit="scope-line">
+              <b style={{ color: "var(--ink)" }}>{personalCount}</b> watched · personal ·{" "}
+              <b style={{ color: "var(--ink)" }}>{teamCount}</b> shared by the workspace
+            </span>
+          }
+          commandBar={{
+            itemCount: items.length,
+            onSearch: setQuery,
+            scope: "watchlist",
+            placeholder: 'Search your watchlist — or ask "what changed on my watched items?"',
+          }}
         />
       </div>
       <div
@@ -114,161 +265,167 @@ export function WatchlistSurface({ items, limit }: WatchlistSurfaceProps) {
         className="cl-list-surface-grid"
       >
         <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: 1fr !important; } }`}</style>
-        <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
-          {tagsFacet.tags.length > 0 && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                background: "var(--card)",
-                border: "1px solid var(--line-1)",
-                borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-card)",
-                padding: "12px 16px",
-              }}
-            >
-              <FilterChipGroup label="Workspace tags">
-                <FilterChip active={tagsFacet.selectedTagId === null} onClick={() => tagsFacet.setSelectedTagId(null)}>
-                  All
-                </FilterChip>
-                {tagsFacet.tags.map((t) => (
-                  <FilterChip
-                    key={t.id}
-                    active={tagsFacet.selectedTagId === t.id}
-                    onClick={() => tagsFacet.setSelectedTagId(tagsFacet.selectedTagId === t.id ? null : t.id)}
+        <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
+          <div data-audit="watched-card">
+            <Card>
+              {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins and there
+                  is no divider below the title — the artboard still draws one, the later ruling
+                  does not. */}
+              <SectionHeading title={`Watched · ${items.length}`} aside="Sorted by next date" />
+
+              {atCap && (
+                <div style={{ padding: "0 16px 10px" }}>
+                  <StateNote>
+                    Showing the most recent {limit} watched items per scope. Older watches exist but are not listed here.
+                  </StateNote>
+                </div>
+              )}
+
+              {items.length === 0 ? (
+                <div style={{ padding: 16 }}>
+                  <StateNote action={{ label: "Browse what to watch →", href: "/regulations" }}>
+                    Nothing watched yet. Watch any row&apos;s ⋯ menu, or a Watch button on a detail page, to follow it here.
+                  </StateNote>
+                </div>
+              ) : visible.length === 0 ? (
+                <div style={{ padding: 16 }}>
+                  <StateNote
+                    action={{
+                      label: "Clear filters",
+                      onClick: () => {
+                        setScope("all");
+                        setType("all");
+                        setQuery("");
+                        tagsFacet.setSelectedTagId(null);
+                      },
+                    }}
                   >
-                    {t.name} · {t.itemCount}
-                  </FilterChip>
-                ))}
-              </FilterChipGroup>
-            </div>
-          )}
-          {items.length > 0 && (
-            <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-end", gap: 14 }}>
-              {hasTeamRows && (
-                <label style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
-                  Scope{" "}
-                  <select id="watchlist-scope" value={scope} onChange={(e) => setScope(e.target.value as ScopeFilterValue)} style={{ fontFamily: "inherit" }}>
-                    <option value="all">All</option>
-                    <option value="personal">Personal</option>
-                    <option value="team">Team</option>
-                  </select>
-                </label>
+                    No watched items match these filters. You have {items.length} in total.
+                  </StateNote>
+                </div>
+              ) : (
+                <>
+                  <ListRowColumnHeader titleLabel="Title · type · modes" dueLabel="Next date" />
+                  {visible
+                    .map((item) => {
+                      const href = watchlistHref(item);
+                      const band = item.priority ? bandFromPriority(item.priority) : null;
+                      const due = dueInfo(item.complianceDeadline, now);
+                      const impact =
+                        item.impactScores ??
+                        (item.priority ? scoreResource({ type: item.type, priority: item.priority, tags: [], cat: "global" } as unknown as Resource) : null);
+                      const metaParts = [WATCHLIST_TYPE_LABEL[item.type]];
+                      if (item.scope === "team" && item.addedBy) metaParts.push(`added by ${item.addedBy}`);
+                      return { item, href, band, due, impact, metaParts };
+                    })
+                    .map(({ item, href, band, due, impact, metaParts }, i) =>
+                      href && band ? (
+                        <ListRow
+                          key={`${item.scope}:${item.type}:${item.id}`}
+                          href={withListPosition(href, LIST_KEY, i + 1, visible.length)}
+                          band={band}
+                          jurisdiction={(item.jurisdiction || "global").slice(0, 6).toUpperCase()}
+                          title={item.title}
+                          meta={
+                            // dc.html p11 row meta: "Regulation · All modes · packaging · watched 1
+                            // mo ago · personal". Modes and topic are not fields WatchlistItem
+                            // carries, so those two segments are omitted rather than invented; the
+                            // scope segment the artboard ends on is live and now rendered.
+                            <span>
+                              {metaParts.join(" · ")} · watched <RelativeTime iso={item.lastChangedAt} /> · {item.scope}
+                            </span>
+                          }
+                          impact={impact}
+                          due={due}
+                          timeline={rowTimeline(item.timeline)}
+                          tier={item.sourceTier ?? null}
+                          tags={tagsFacet.tagsForItem(item.id)}
+                          overflow={
+                            // Every row ON /watchlist is watched by definition, so the state is
+                            // known without a fetch — `initialWatched` both skips the per-row GET
+                            // and satisfies ruling 3.5 (a watched row must never read "Watch";
+                            // this row shows the filled ★ and offers "Unwatch"). The glyph-only
+                            // "icon" variant is the one that fits the artboard's 44px trailing
+                            // cell; the labelled variants are 100px+ wide and overflowed it.
+                            <WatchButton variant="icon" itemType={item.type} itemId={item.id} initialWatched />
+                          }
+                        />
+                      ) : (
+                        <div
+                          key={`${item.scope}:${item.type}:${item.id}`}
+                          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line-3)" }}
+                        >
+                          <span style={{ minWidth: 0 }}>
+                            <span data-guard-title style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink)" }}>
+                              {item.title}
+                            </span>
+                            <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
+                              {WATCHLIST_TYPE_LABEL[item.type]} · watched <RelativeTime iso={item.lastChangedAt} /> · {item.scope}
+                            </span>
+                          </span>
+                          <Absence reason="not in primary source" />
+                        </div>
+                      ),
+                    )}
+                </>
               )}
-              {presentTypes.length > 1 && (
-                <label style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
-                  Type{" "}
-                  <select id="watchlist-type" value={type} onChange={(e) => setType(e.target.value as TypeFilterValue)} style={{ fontFamily: "inherit" }}>
-                    <option value="all">All</option>
-                    {presentTypes.map((t) => (
-                      <option key={t} value={t}>
-                        {WATCHLIST_TYPE_LABEL[t]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+
+              <CardFoot
+                left="Watch from any row's ⋯ menu or the Watch button on a detail page."
+                right={
+                  <a
+                    href="/regulations"
+                    style={{
+                      color: "var(--ink)",
+                      fontWeight: 600,
+                      textDecoration: "underline",
+                      textDecorationColor: "rgba(0,0,0,.3)",
+                      display: "inline-block",
+                      padding: "4px 0",
+                    }}
+                  >
+                    Browse regulations →
+                  </a>
+                }
+              />
+
+              {/* dc.html p11: the changed-since-last-visit strip, inside the card, below its foot.
+                  The artboard says "changed band"; no band-change history exists in this product,
+                  so the strip states the count the app's actual "what changed on watched items"
+                  feed (/api/notices) reports. Absent while that feed is in flight, and absent when
+                  it is empty — the artboard draws this strip only in its has-changes state, and
+                  the Recalculation notices card below carries the empty case. */}
+              {!noticesLoading && notices.length > 0 && (
+                <div style={{ margin: "10px 16px 14px" }} data-audit="changed-note">
+                  <StateNote band={bandFromPriority("HIGH")} action={{ label: "Review changes →", href: "#recalculation-notices" }}>
+                    <b>Action</b> · {notices.length} watched {notices.length === 1 ? "item" : "items"} changed since your last visit
+                  </StateNote>
+                </div>
               )}
-            </div>
-          )}
+            </Card>
+          </div>
 
-          <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", overflow: "hidden" }}>
-            {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no
-                divider below the title (the prior borderBottom under "Watched · N" removed). */}
-            <SectionRule />
-            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", padding: "10px 16px" }}>
-              <span style={{ fontFamily: "var(--font-display)", fontSize: 18, letterSpacing: "0.04em", textTransform: "uppercase", color: "var(--ink)" }}>
-                Watched · {items.length}
-              </span>
-              <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", textTransform: "uppercase", letterSpacing: "0.1em" }}>Sorted by next date</span>
-            </div>
-
-            {atCap && (
-              <div style={{ padding: "10px 16px" }}>
-                <StateNote>Showing the most recent {limit} watched items per scope. Older watches exist but are not listed here.</StateNote>
-              </div>
-            )}
-
-            {items.length === 0 ? (
-              <div style={{ padding: 16 }}>
-                <StateNote action={{ label: "Browse what to watch →", href: "/regulations" }}>
-                  Nothing watched yet. Watch any row&apos;s ⋯ menu, or a Watch button on a detail page, to follow it here.
-                </StateNote>
-              </div>
-            ) : visible.length === 0 ? (
-              <div style={{ padding: 16 }}>
-                <StateNote
-                  action={{
-                    label: "Clear filters",
-                    onClick: () => {
-                      setScope("all");
-                      setType("all");
-                      setQuery("");
-                    },
-                  }}
-                >
-                  No watched items match these filters. You have {items.length} in total.
-                </StateNote>
-              </div>
-            ) : (
-              visible
-                .map((item) => {
-                  const href = watchlistHref(item);
-                  const band = item.priority ? bandFromPriority(item.priority) : null;
-                  const due = dueInfo(item.complianceDeadline);
-                  const impact =
-                    item.impactScores ??
-                    (item.priority ? scoreResource({ type: item.type, priority: item.priority, tags: [], cat: "global" } as unknown as Resource) : null);
-                  const metaParts = [WATCHLIST_TYPE_LABEL[item.type]];
-                  if (item.scope === "team" && item.addedBy) metaParts.push(`added by ${item.addedBy}`);
-                  return { item, href, band, due, impact, metaParts };
-                })
-                .map(({ item, href, band, due, impact, metaParts }, i) =>
-                  href && band ? (
-                    <ListRow
-                      key={`${item.scope}:${item.type}:${item.id}`}
-                      href={withListPosition(href, LIST_KEY, i + 1, visible.length)}
-                      band={band}
-                      jurisdiction={(item.jurisdiction || "global").slice(0, 6).toUpperCase()}
-                      title={item.title}
-                      meta={
-                        <span>
-                          {metaParts.join(" · ")} · watched <RelativeTime iso={item.lastChangedAt} />
-                        </span>
-                      }
-                      impact={impact}
-                      due={due}
-                      timeline={null}
-                      tier={item.sourceTier ?? null}
-                      tags={tagsFacet.tagsForItem(item.id)}
-                      overflow={<WatchButton itemType={item.type} itemId={item.id} />}
-                    />
-                  ) : (
-                    <div
-                      key={`${item.scope}:${item.type}:${item.id}`}
-                      style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 16px", borderBottom: "1px solid var(--line-3)" }}
-                    >
-                      <span style={{ minWidth: 0 }}>
-                        <span data-guard-title style={{ fontSize: "var(--fs-14)", fontWeight: 600, color: "var(--ink)" }}>{item.title}</span>
-                        <span style={{ display: "block", fontSize: "var(--fs-11)", color: "var(--ink-2)" }}>
-                          {WATCHLIST_TYPE_LABEL[item.type]} · watched <RelativeTime iso={item.lastChangedAt} />
-                        </span>
-                      </span>
-                      <Absence reason="not in primary source" />
-                    </div>
-                  ),
-                )
-            )}
-
-            <div style={{ padding: "10px 16px" }}>
-              <StateNote>Watch from any row&apos;s ⋯ menu or the Watch button on a detail page.</StateNote>
-            </div>
+          <div id="recalculation-notices" data-audit="recalculation-notices">
+            <Card>
+              <SectionHeading title="Recalculation notices" aside="Since your last visit" />
+              {noticesLoading ? (
+                <SkeletonListRow />
+              ) : (
+                <RecalculationNotice notices={notices} bare emptyMessage="No recalculations on watched items since your last visit" />
+              )}
+            </Card>
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <RailCard title="Share with workspace">
-            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>
+        {/* Rail — artboard 11 draws exactly two cards (Share with workspace, Legend). The Filters
+            card holds the app's own scope/type/tag facets, which the artboard does not draw at
+            all: ruling R7 keeps the feature, and the operator's 2026-09-07 audit fixes where
+            filters live sitewide ("they were on the right"), so they sit first in the rail here
+            exactly as they do on the other four list surfaces. Logged in DEVIATION-LOG.md. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <FiltersRailCard groups={facetGroups} />
+          <RailCard title="Share with workspace" dataAudit="share-rail">
+            <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0, lineHeight: 1.5 }}>
               A shared watchlist puts the same rows on every member&apos;s dashboard. Team-watch any row to add it.
             </p>
           </RailCard>

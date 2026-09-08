@@ -41,6 +41,7 @@
 
 import { getPublicMarketIntelItems, getPublicSurfaceCounts } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
+import { renderNowIso } from "@/lib/render-now";
 import { fetchMarketSeriesBoard } from "@/lib/supabase-server";
 import { MarketIntelLedger } from "@/components/market/MarketIntelLedger";
 import { MarketSeriesBoard } from "@/components/market/MarketSeriesBoard";
@@ -161,13 +162,19 @@ export default async function Market() {
     <>
       {/* UILISTS lane (2026-09-06): MarketIntelLedger now renders its own Masthead (UI system
           handoff artboard 04) — the old hand-built <EditorialMasthead> + meta sub-line is gone. */}
-      {/* Comparative ribbon (spec 02 §6 item 1): the 15-second "has anything moved" read. The
-          artboard nests this ("Headline series") between the band tiles and the row list; kept as
-          its own section below the ledger instead — restructuring MarketComparativeRibbon's own
-          layout to nest inside ListSurfaceShell is out of this lane's budget, logged in
-          DEVIATION-LOG.md. Renders nothing when no series is populated yet, never an empty shell. */}
-      <MarketIntelLedger initialResources={marketIntel.resources.map(toLedgerRowPayload)} aggregates={aggregates} seriesBoard={seriesBoard} />
-      <MarketComparativeRibbon board={seriesBoard} />
+      {/* Comparative ribbon (spec 02 §6 item 1): the 15-second "has anything moved" read. RELOCATED
+          (lane compose-lists, 2026-09-08, closing the deviation this comment used to log): now
+          passed to MarketIntelLedger's `aboveRows` slot, `embedded`, so it nests BETWEEN the band
+          tiles and the sort row, inside the content column — matching artboard 04/id="p4"'s own
+          "Headline series" card placement exactly, instead of its own full-bleed section below the
+          ledger. Renders nothing when no series is populated yet, never an empty shell. */}
+      <MarketIntelLedger
+        initialResources={marketIntel.resources.map(toLedgerRowPayload)}
+        aggregates={aggregates}
+        seriesBoard={seriesBoard}
+        nowIso={renderNowIso()}
+        headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
+      />
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
           every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
           never a fetch inside the component itself (CORR write set — the fetch lives in this page).
@@ -186,7 +193,10 @@ export default async function Market() {
       {/* PERF-10 (2026-09-04): watchMembership is null — no per-viewer batch read runs on this page at
           all (see this file's header); each row's WatchButton resolves its own watch state
           client-side instead of arriving pre-seeded. */}
-      <MarketSeriesBoard board={seriesBoard} watchMembership={null} />
+      {/* id target for the embedded Headline series card's "Series board →" link above. */}
+      <div id="market-series-board">
+        <MarketSeriesBoard board={seriesBoard} watchMembership={null} nowIso={renderNowIso()} />
+      </div>
       <div style={{ maxWidth: 1180, margin: "0 auto", padding: "28px 36px 0" }}>
         <p
           style={{

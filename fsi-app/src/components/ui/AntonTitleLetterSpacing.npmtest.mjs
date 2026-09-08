@@ -30,13 +30,23 @@ test("DetailSection's <h2> carries letterSpacing 0.04em (was 0.02em, item A9)", 
   assert.doesNotMatch(block, /letterSpacing: "0\.02em"/);
 });
 
-test("DashboardBrief's SectionHeading <h2> carries letterSpacing 0.04em (was 0.02em, item A9)", () => {
-  const text = readFileSync(resolve(ROOT, "components/dashboard/DashboardBrief.tsx"), "utf8");
-  const start = text.indexOf("function SectionHeading(");
-  const end = text.indexOf("/** The foot line");
+// UPDATED (lane comp-11, 2026-09-08): SectionHeading was promoted out of DashboardBrief into the
+// shared ui/ layer, because artboard 11 carries the byte-identical card head on both its cards and
+// a second copy would have been the duplication CLAUDE.md rule 13 forbids. The .04em assertion
+// follows the component; the two callers are checked by the import that proves each uses it.
+test("the shared SectionHeading's <h2> carries letterSpacing 0.04em (was 0.02em, item A9)", () => {
+  const text = readFileSync(resolve(ROOT, "components/ui/SectionHeading.tsx"), "utf8");
+  const start = text.indexOf("<h2");
+  const end = text.indexOf("</h2>");
   const block = text.slice(start, end);
   assert.match(block, /letterSpacing: "0\.04em"/);
   assert.doesNotMatch(block, /letterSpacing: "0\.02em"/);
+});
+
+test("DashboardBrief renders its card heads through the shared SectionHeading, not a page-local copy", () => {
+  const text = readFileSync(resolve(ROOT, "components/dashboard/DashboardBrief.tsx"), "utf8");
+  assert.match(text, /import \{ SectionHeading \} from "@\/components\/ui\/SectionHeading"/);
+  assert.doesNotMatch(text, /function SectionHeading\(/);
 });
 
 test("PageMasthead's page <h1> carries letterSpacing 0.04em", () => {
@@ -47,12 +57,15 @@ test("PageMasthead's page <h1> carries letterSpacing 0.04em", () => {
   assert.match(block, /letterSpacing: "0\.04em"/);
 });
 
-test("WatchlistSurface's card title carries letterSpacing 0.04em", () => {
+test("WatchlistSurface's card titles go through the shared SectionHeading (which carries the .04em)", () => {
   const text = readFileSync(resolve(ROOT, "components/watchlist/WatchlistSurface.tsx"), "utf8");
-  assert.match(text, /Watched · \{items\.length\}/);
-  const idx = text.indexOf("fontSize: 18,");
-  const block = text.slice(idx, idx + 200);
-  assert.match(block, /letterSpacing: "0\.04em"/);
+  assert.match(text, /import \{ SectionHeading \} from "@\/components\/ui\/SectionHeading"/);
+  // dc.html p11's two card heads, in artboard order.
+  assert.match(text, /<SectionHeading title=\{`Watched · \$\{items\.length\}`\} aside="Sorted by next date" \/>/);
+  assert.match(text, /<SectionHeading title="Recalculation notices" aside="Since your last visit" \/>/);
+  // The page-local head this replaced set its own 18px font — the artboard says 20, which the
+  // shared component now owns. No page-local title styling may return.
+  assert.doesNotMatch(text, /fontSize: 18,/);
 });
 
 test("MapPageView's CardHead title carries letterSpacing 0.04em", () => {

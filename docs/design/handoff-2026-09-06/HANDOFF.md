@@ -137,6 +137,30 @@ Design package for the site-wide UI overhaul. Produced by Claude Design from
   dispatch (step 2b: "no artboard shows it; leave it exactly as is... do not invent a spec") it was
   left untouched — no spec written, no geometry changed. Needs a Claude Design artboard for the
   Workspaces/Organizations table before any audit spec or fix lane can be dispatched against it.
+- **Admin (13) sub-tab row belongs INSIDE the card head, train 59 (2026-09-08).** dc.html p13 draws
+  the Provisional review / Source registry / Bulk add / Tier disagreements / Spot-check tabs inside
+  the `SOURCES · PROVISIONAL REVIEW` card's own head, right of the title. They currently sit ABOVE
+  the card as a free-standing row, and at 1440 that row wraps to two lines. Moving them is a
+  page-shell restructure across all seven admin sections, not a card-local change, so it is a lane
+  of its own; the composition spec measures the tabs where they are today rather than asserting the
+  artboard's placement, so this gap is visible in the side-by-side and NOT hidden by a passing spec.
+- **What-changed reclassification data, train 59 (2026-09-08).** Artboard 01 draws each What-changed
+  row with its band transition (`old band -> new band`) and a NEW marker. `buildChangedRows`
+  (`src/lib/dashboard/brief-rows.ts`) carries `isNew`, but a change row outside the loaded corpus
+  slice has no previous band to name, so those rows render the Absence convention rather than an
+  invented transition. Needs the detection pass to persist the prior classification per change
+  before the artboard's own row can be rendered truthfully. Nothing to fix in the component.
+- **Research vertical / source-class facets have no data behind them, train 59 (2026-09-08).**
+  Artboard 06's rail Filters card lists a VERTICAL group (live events, fine art, luxury, automotive,
+  humanitarian) and a SOURCE CLASS group (peer-reviewed, think tank, quantified research, analytical
+  press). `/research` renders MODE and REGION only. The source-class values exist as the Source
+  coverage rail card's own figures but are not a facet dimension on the items; vertical is not on
+  the item at all. Needs a corpus field before the facet can be real; a facet that filters nothing
+  is the dead control operator audit P0 1.1 forbids.
+- **Mobile specs, carried from train 56.** Artboard `20-mobile-390.png` is still not in the repo.
+  The mobile-390 spec was delivered as operator text and built against that; every composition spec
+  in `spec/compose-*.json` measures 1440 only. Mobile composition cannot be audited until the
+  artboards land.
 
 ## Regenerating the built screenshots
 
@@ -147,6 +171,23 @@ lane could not produce it, or a component it mounts changed), regenerate it with
 ```
 NO_PROXY="$NO_PROXY,smoke-guard.internal" node fsi-app/.discipline/rendering/capture-detail-mobile-screenshots.mjs
 ```
+
+The seventeen `built/compose-*.png` side-by-sides (artboard | built, both at 1440) are regenerated
+by three scripts plus one compositor, all runnable from `fsi-app/`:
+
+```
+npm run capture:compose-lists-screenshots   # 02, 04, 06, 08 — composited already
+npm run capture:compose-details             # 03, 05, 07, 09 — composited already
+npm run capture:compose-dashboard           # writes compose-01-dashboard-brief.png
+npm run capture:compose-11-watchlist        # writes compose-11-watchlist-built.png
+node .discipline/rendering/capture-compose-page.mjs <mount-id> <out.png>   # 10, 12, 13, 14, 15, 16, 17
+node .discipline/rendering/compose-composite.mjs <artboard.png> <built.png> <out.png>
+```
+
+`compose-composite.mjs` is the ONE compositor (train 59 extracted it from the lists script, where it
+was reachable from that script's four entries only and every other page's side-by-side was being
+assembled by hand). Pair any `-built.png` with its artboard from `screens/` to produce the
+`compose-NN-*.png` the composition specs cite as their exit evidence.
 
 (also wired as `npm run capture:detail-mobile-screenshots` from `fsi-app/`). It reuses the same
 `RegulationDetailSurface` fixture mounts `detail-surfaces-smoke.mjs` exports for its own smoke run

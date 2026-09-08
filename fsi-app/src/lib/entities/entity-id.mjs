@@ -18,6 +18,7 @@
 
 import { createHash } from "node:crypto";
 import { normaliseMode } from "../contracts/vocabularies.mjs";
+import { hostFromUrl } from "./host-from-url.mjs";
 
 // The full entity_kind enum, byte-identical to migration 282's `CREATE TYPE entity_kind AS ENUM (...)`
 // (spec §1.1). Frozen so a caller cannot silently widen the vocabulary — widening it means a migration.
@@ -40,19 +41,10 @@ function assertKind(kind) {
   }
 }
 
-/** Lowercased, www-stripped registrable host from a URL or a bare host string. Pure; throws on nothing —
- *  an unparseable value normalizes to "" (the caller decides whether an empty host is fatal), matching
- *  the fail-safe posture every `new URL(...).hostname` call site in src/lib/sources/** already uses. */
-export function hostFromUrl(urlOrHost) {
-  const raw = String(urlOrHost || "").trim();
-  if (!raw) return "";
-  try {
-    const u = raw.includes("://") ? new URL(raw) : new URL(`https://${raw}`);
-    return u.hostname.toLowerCase().replace(/^www\./, "");
-  } catch {
-    return "";
-  }
-}
+// hostFromUrl lives in ./host-from-url.mjs (one definition, re-exported here so every existing
+// importer of this module is unchanged): this file imports node:crypto at module top, which a browser
+// bundle cannot resolve, and a client component needs the host normalizer without the id builder.
+export { hostFromUrl };
 
 /**
  * Normalize a seed for one entity kind. Exported so a caller can preview the normalized seed (e.g. for
