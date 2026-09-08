@@ -451,9 +451,17 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { RegionDimensionMatrix } from '@/components/operations/RegionDimensionMatrix';
 
+// The artboard's own five columns (redesign 2026-09-08), matching the region roster the live page
+// carries, rather than the two-region stub this mount used while it fed the component NO facts at
+// all. A matrix mounted with an empty \`facts\` array cannot exercise the panel, the selection, the
+// fact card or the default-selection rule -- every one of which is now the point of this component
+// -- so the fixture carries real rows in the real prop shape.
 const regions = [
   { key: 'EU', label: 'European Union' },
   { key: 'US', label: 'United States' },
+  { key: 'ASIA', label: 'Asia · SG + HK' },
+  { key: 'UK', label: 'United Kingdom' },
+  { key: 'UAE', label: 'UAE · Dubai' },
 ];
 
 // Verbatim copy of OperationsLedger.tsx's own DIMENSIONS constant (all 6) -- the audit reproduces
@@ -467,6 +475,60 @@ const DIMENSIONS = [
   { num: 6, key: 'cost', db: 'operational_cost', name: 'Operational cost' },
 ];
 
+// THE FIXTURE IS AN ATTACK ON THE DEFAULT-SELECTION RULE, not a convenience sample. It reproduces
+// the shape of the live corpus that makes the rule necessary:
+//   - D1 regulatory_feasibility has ZERO rows, structurally, on every region (it always has);
+//   - EU and US hold zero facts on every dimension (measured live 2026-08-18: 75 rows, all
+//     ASIA/UAE/UK).
+// D2 is left empty here as well, so the default must skip TWO empty rows and TWO empty columns.
+// A default of "row 0, column 0", of "row 0's first sourced cell", or of "the first sourced cell
+// scanning COLUMNS first" (which would reach UK on D3 before ASIA only if the scan order were
+// wrong) each opens the page onto the wrong cell or an empty panel. Only "the first sourced cell
+// in the first sourced row" lands on ASIA x D3 Labor markets, and the spec asserts that cell by
+// naming the panel heading it produces.
+// ASIA x D3 carries FOUR facts, so the same default render also exercises the panel's "max 3, then
+// N more facts on the profile" cap -- the cap is proven at rest, with no interaction to script.
+const F = (region, dimension, factLabel, value, opts = {}) => ({
+  region_code: region,
+  dimension,
+  fact_label: factLabel,
+  value,
+  status: 'published',
+  source_note: null,
+  source_name: opts.sourceName ?? 'MOM Occupational Wage Survey · 2025',
+  source_url: opts.sourceUrl ?? 'https://example.org/source',
+  last_updated: opts.lastUpdated ?? '2026-05-28',
+  freshness: 'current',
+  value_numeric: null,
+  unit: null,
+  currency: null,
+  derivation: null,
+  origin_class: opts.originClass ?? null,
+  source_key: null,
+  source_ref: null,
+  n_observations: null,
+  method_version: null,
+  as_at_date: null,
+  reference_period: null,
+});
+
+const facts = [
+  // D3 -- the FIRST sourced row (D1 and D2 hold nothing). ASIA is its first sourced column, so
+  // ASIA x D3 is the default selection, and its four facts exercise the three-card cap.
+  F('ASIA', 'labor_markets', 'Warehouse worker monthly wage', 'HKD 14,747 / mo', { sourceName: 'Indeed HK · 2025-09' }),
+  F('ASIA', 'labor_markets', 'Median gross wage, logistics operatives', 'SGD 3,200 / mo', { originClass: 'official' }),
+  F('ASIA', 'labor_markets', 'Logistics-sector vacancy rate', '4.8%', { originClass: 'official' }),
+  F('ASIA', 'labor_markets', 'Agency staffing premium', '18%'),
+  F('UK', 'labor_markets', 'Warehouse operative median pay', 'GBP 12.40 / hr'),
+  F('UAE', 'labor_markets', 'Warehouse operative median pay', 'AED 3,100 / mo'),
+  // D4 and D6 -- more sourced rows below the default, so the grid is not one populated row.
+  F('ASIA', 'materials_sourcing', 'Bonded warehouse capacity', '412,000 sqm'),
+  F('UK', 'materials_sourcing', 'Bonded warehouse capacity', '188,400 sqm'),
+  F('UAE', 'materials_sourcing', 'Bonded warehouse capacity', '96,200 sqm'),
+  F('ASIA', 'operational_cost', 'Handling cost per TEU', 'USD 128'),
+  F('UAE', 'operational_cost', 'Handling cost per TEU', 'USD 96'),
+];
+
 let root = null;
 window.__mount = () => {
   const el = document.getElementById('smoke-root');
@@ -475,9 +537,11 @@ window.__mount = () => {
     React.createElement('div', { style: { width: 900 }, 'data-audit': 'ops-matrix' },
       React.createElement(RegionDimensionMatrix, {
         regions,
-        dimensions: DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name })),
-        facts: [],
+        dimensions: DIMENSIONS.map((d) => ({ key: d.key, db: d.db, name: d.name, num: d.num })),
+        facts,
         coverageRows: [],
+        totalRegionCount: 18,
+        profileHrefByRegion: { ASIA: '/operations/asia-profile' },
       }),
     ),
   );

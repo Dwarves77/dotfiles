@@ -15646,3 +15646,77 @@ fail, exit 0. `npx next build` (Turbopack) exit 0 and `npx next build --webpack`
 carry their own UX compliance blocks (see the lane regopscope and communitynav2 entries above), plus
 regenerated evidence. The two guards that measure the shared parts, the rendering guard and the
 site-wide layout guard, both ran at 1440 and 390 on this tree and are recorded above.
+## Addendum, lane opsmatrix3 (2026-09-08): artboard 08's matrix redesigned, and the mobile duplicate it let us delete
+
+**Scope.** `RegionDimensionMatrix.tsx` and its panel, plus the audit specs and the fixture that
+measure it. Four page-file lines in `OperationsLedger.tsx`, named below. The sibling lane regopscope2
+owns the /operations page-level moves (calculator, by-state strip, footnotes) and nothing here
+touches them.
+
+**What changed and why.** The operator redesigned artboard 08: "the expand-a-dimension matrix does
+not survive real data". The table is now a scoreboard of 40px rows, one bare score or one em dash per
+cell, nothing expanding inside it; the selected cell's facts open in a panel below the table at the
+card's reading width. Selection is a real focus model: the table is a `role="grid"` with roving
+tabindex, arrow keys move the selection and the panel follows, and column 0 (the dimension row
+header) is part of the same grid so ArrowLeft off the first region column opens compare mode. Every
+selectable target is reachable from the first by arrow alone.
+
+**The specification is an image, and that is a caveat, not a detail.** The brief names a
+`handoff-2026-09-07` screen and a refreshed `id="p8"`; neither is in the repo, and the 2026-09-06 `08`
+and `p8` both draw the design being replaced. So dc.html p8 is stale for this page and no geometry
+came from it. The artboard is copied to
+`docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png` (the old 08 left
+in place as the record) and cited by both specs. Eleven values the image and the spec did not state
+were taken from the system sheet and are TABULATED in DEVIATION-LOG.md so the operator can confirm
+each one when the refreshed markup arrives. All three of the operator's hex values turned out to be
+canonical tokens already (`--selection`, `--monitor`, `--page`), so nothing was added to the theme.
+
+**The audit spec was replaced, with the reason stated.** `operations-matrix.json` measured the
+expanded-row design: the colspan facts row, the disclosure glyph, the "do not conflate the Facts tr
+with a dimension row" caveat. Keeping it would have left the audit green against markup the product
+had deleted, which is the failure mode rule 15 exists to stop. It is rewritten with one row per
+clause of the operator's spec (row height, cell type, selection tint and inset, panel background and
+top rule, header and link strings, fact card type sizes, the sticky column, the hint, the legend) and
+its notes quote his spec verbatim. Three rows in `compose-08-operations-list.json` changed for the
+same reason and are marked "REDESIGN 2026-09-08"; the rest of that file is regopscope2's territory
+and was not touched.
+
+**Every new row proven by attack.** Fourteen scripted breakages, each reverted: row height 40 to 56,
+Anton 16 to 14, selection tint removed, inset removed, sticky to static, panel background to card,
+panel top rule removed, fact cap 3 to 99, figure 18 to 16, source line 10.5 to 11, the arrow-key
+legend removed, roving tabindex made unconditional, a colspan cell plus a "CURRENT" state word
+reintroduced, and the default selection replaced twice (once with row-0/column-0, once with a
+column-first scan). Every one turned the audit red; the two wrong defaults turned TWO rows red each.
+The fixture is built as the attack: D1 and D2 hold no facts and EU and US hold none on any dimension,
+which is the shape of the live corpus, so only "the first sourced cell in the first sourced row"
+produces the panel heading the spec asserts.
+
+**A defect this lane created and fixed inside the same run.** [CONFIRMED by the rendering guard]
+Deleting the `<=640px` card reflow: a second rendering of the same data, and the thing rule 13
+forbids: exposed that the table CRUSHES rather than scrolls at 375 with no column floors: the
+dimension column measured 21px and wrapped a dimension name over twelve one-character lines. Column
+floors (180 / 96) fix it, they cannot re-create lane opsclip's 1440 overflow (that came from facts
+living in the region columns, which they no longer do), and their sum is asserted arithmetically
+rather than trusted to a screenshot. The scroller also stopped claiming to be a must-fit
+`data-guard-container` and now declares `data-guard-strip`, which is what `ux-assert.mjs` provides
+for a table that keeps its column widths: the same conclusion `ui/RowTable.tsx` reached this train,
+with the sticky dimension column as the thing that makes the panning readable.
+
+**Page-file lines (four, all in OperationsLedger.tsx).** `matrixRegions` (the REGION facet scopes the
+matrix's columns, mirroring the existing `matrixDimensions` line for rows); `profileHrefByRegion`
+(built from rows the page already holds; a region with no profile row gets no link rather than a dead
+href); `num: d.num` added to the dimensions map (the D-number prefix, from the same DIMENSIONS
+constant the rail's own D1-D6 labels read); and `totalRegionCount`.
+
+**Gates.** tsc clean · fitness 35 checked / 0 violations · rendering guard PASS · audit:design
+2069/2069 MATCH · audit:overflow 0px on every mount · npmtest glob 1057 pass / 0 fail · test suite
+5970 pass / 0 fail · `next build --webpack` clean.
+
+**Evidence.** `docs/design/handoff-2026-09-06/built/08-operations-redesign-2026-09-08-sidebyside-1440.png`
+(50/50 artboard against build), plus `-built-1440.png`, `-built-1024.png` and the component-alone
+`08-operations-matrix-redesign-2026-09-08-part.png`. All read back before reporting.
+
+**Open, for the operator.** The eleven system-sheet values in DEVIATION-LOG.md's table want
+confirming against the refreshed markup when it lands. Two readings of the artboard are recorded
+there rather than guessed at: the scroll hint appears only when the roster exceeds five columns, and
+the foot legend carries the absence phrase rather than a second bare em dash beside it.

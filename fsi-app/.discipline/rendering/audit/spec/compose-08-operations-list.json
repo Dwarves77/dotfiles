@@ -7,6 +7,7 @@
   ],
   "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items \u00b7 M jurisdictions \u00b7 six dimensions per region \u00b7 every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) \u2192 COVERAGE GAPS \u2192 LEGEND.",
   "notes": [
+    "MATRIX REDESIGN, 2026-09-08 (lane opsmatrix3). The operator replaced artboard 08's expand-a-dimension matrix with a compact scoreboard whose selected cell opens a panel BELOW the table — his words, 'the expand-a-dimension matrix does not survive real data'. The `source` line above still describes p8 for everything OUTSIDE the matrix card, which p8 still governs and which this lane did not touch; for the matrix card itself p8 is STALE and the specification is docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png. Three rows here changed and the reason is that they measured markup the product deleted: the foot strip is no longer a sibling of the scroller (it moved inside the panel) and its 'no sourced fact yet' copy and its 'Compare against:' control are both gone, the latter superseded by the panel's compare mode. Per-value coverage of the redesign lives in operations-matrix.json, which was rewritten wholesale for the same reason; this file keeps only the page-level placement checks.",
     "This spec measures the COMPOSED page, region by region, in document order \u2014 the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
     "Fixture (mounts.mjs 'compose-08-operations') is invented sample data with the real prop shapes: 25 rows split 0/4/2/19 across the bands, 5 regions, populated region_dimension_coverage + regional_data_facts rows. The audit asserts geometry, placement and the components' own literals, never fixture values.",
     "The runner reads computed STYLE and textContent only: an `expect` key naming an HTML attribute (e.g. an input's placeholder) measures as null and reports a false MATCH, so no such key appears here. The page-scoped command-bar prompt artboard 08 states is verified in the side-by-side evidence PNG (docs/design/handoff-2026-09-06/built/compose-08-operations-list.png), not by this spec.",
@@ -38,18 +39,26 @@
       }
     },
     {
-      "name": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
-      "selector": "[data-audit=\"ops-matrix-foot\"]",
-      "textMatch": "no sourced fact yet",
+      "name": "REDESIGN 2026-09-08: the matrix's selection PANEL opens under the table, inside the same card, at the card's own reading width",
+      "selector": "[data-audit=\"ops-matrix-card\"] [data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "display": "block",
+        "count": "1"
+      }
+    },
+    {
+      "name": "REDESIGN 2026-09-08: the matrix foot strip sits INSIDE that panel (it moved from being a sibling of the scroller) and carries the arrow-key affordance the redesigned artboard states",
+      "selector": "[data-audit=\"ops-matrix-panel\"] [data-audit=\"ops-matrix-foot\"]",
+      "textMatch": "arrow keys move the selection",
       "expect": {
         "display": "flex"
       }
     },
     {
-      "name": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
-      "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
+      "name": "REDESIGN 2026-09-08: the panel follows the scroller in DOM order, so nothing expands inside the table (placement, not presence, was the defect)",
+      "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
       "expect": {
-        "display": "flex"
+        "display": "block"
       }
     },
     {
@@ -195,10 +204,9 @@
       "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
     },
     {
-      "name": "no 'Facts' label in the expanded dimension row's leading cell",
-      "selector": "[data-audit=\"ops-matrix-card\"] td",
-      "textMatch": "Facts",
-      "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '\u25be Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+      "name": "REDESIGN 2026-09-08: nothing expands inside the matrix table — no cell spans it",
+      "selector": "[data-audit=\"ops-matrix-card\"] td[colspan], [data-audit=\"ops-matrix-card\"] th[colspan]",
+      "reason": "REPLACES the 'no Facts label in the expanded dimension row's leading cell' forbid, which measured the expand-a-dimension design the operator retired on 2026-09-08 ('the expand-a-dimension matrix does not survive real data'). There is no expanded row to label any more: the facts open in a panel BELOW the table, and a colspan cell reappearing inside the card is the old design coming back. Full per-value coverage of the redesign is in operations-matrix.json; this row is the page-level guard that the retired shape stays retired."
     },
     {
       "name": "no trailing 'N regional operations profiles across N regions' line below the band cards",

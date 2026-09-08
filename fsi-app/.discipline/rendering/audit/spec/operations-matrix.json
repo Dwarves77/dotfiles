@@ -1,35 +1,288 @@
 {
-  "part": "Operations region x dimension matrix (D1-D6)",
+  "part": "Operations region x dimension scoreboard: RegionDimensionMatrix (table card + selection panel)",
   "mount": "ops-matrix",
   "viewport": 1440,
-  "artboards": ["08-operations-list (\"Regions side by side\" matrix table; the Filters rail card's D1-D6 breakdown)"],
-  "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p8 (#p8, Operations list): the matrix's own dek ('25 active items · 18 jurisdictions · six dimensions per region') and its <table> row set; the rail card's own D1-D6 labelled breakdown (D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost); operator ruling 3.3 ('Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility. Six dimensions, D1-D6, same order everywhere.'); src/components/operations/OperationsLedger.tsx and RegionDimensionMatrix.tsx (real components)",
-  "notes": [
-    "FIXED, fix lane fix58-detail (2026-09-07): OperationsLedger.tsx's `MATRIX_DIMENSIONS` (feeding RegionDimensionMatrix's `dimensions` prop, ~line 356) was `= DIMENSIONS` already at the time this lane read the file — the retired `SOURCED_DIMENSIONS = DIMENSIONS.filter((d) => d.key !== \"regulatory\")` derivation this note used to describe is gone from the product; the file's own DEFECT-FIX comment above `MATRIX_DIMENSIONS` (2026-09-07) records the same change. The MISMATCH this spec measured was the audit mount (`mounts.mjs`'s `ops-matrix` entry) still hardcoding the retired 5-item `SOURCED_DIMENSIONS` shape — a stale harness fixture, not a live product defect. The mount now reproduces the real `MATRIX_DIMENSIONS = DIMENSIONS` (all 6, unfiltered).",
-    "The artboard's OWN 'Regions side by side' matrix table (p8, the <table> under the 'six dimensions per region' dek) shows only 5 rows in its example markup, no Regulatory feasibility row — a self-contradiction against its own 'six dimensions' dek text. Operator ruling 3.3 is the binding, later statement over the artboard's own example: 'Operations matrix renders 5 of 6 dimensions; add D6 Regulatory Feasibility... same order everywhere' — built against, per this dispatch's framing of the closed rulings.",
-    "`buildRegionGrid` (region-grid.mjs) computes `state: 'absent'` for every regulatory_feasibility cell (0 rows in regional_data_facts, always) and RegionDimensionMatrix's own empty-cell branch renders the shared `Absence` component for any `state === 'absent'` cell — the D1 row therefore renders with the Absence convention in every cell, never a fabricated count, never blank."
+  "artboards": [
+    "08-operations-list-redesign-2026-09-08 (the REDESIGNED artboard; supersedes 08-operations-list for this component)"
   ],
-  "selector": "[data-audit=\"ops-matrix\"] table > tbody",
+  "source": "docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png (the operator's redesigned artboard, copied into the repo by lane opsmatrix3 on 2026-09-08; the 2026-09-06 08 is left in place as the record of the design it replaces), plus the operator's written spec quoted verbatim in the notes below. Values neither states are taken from the system sheet (screens/00-system-sheet.png, README.md §0.4) and are marked `[system sheet]` on the row that asserts them.",
+  "notes": [
+    "THIS SPEC REPLACES THE ONE THAT STOOD HERE BEFORE, AND THE REASON IS THAT THE OLD ONE MEASURED A DESIGN THAT NO LONGER EXISTS. The previous spec asserted the expand-a-dimension matrix: `table > tbody > tr > td:first-child` counted at 6 on the reading that an OPEN dimension inserts a second `<tr>` the count must not conflate with a dimension row, and the surrounding contract (a disclosure glyph per row, a `<td colspan>` facts row, per-region fact blocks inside it) was the thing under measurement. The operator redesigned artboard 08 on 2026-09-08: his words, 'the expand-a-dimension matrix does not survive real data', and nothing expands in the table any more. Keeping the old rows would have left the audit green against markup the product had deleted, which is the failure mode CLAUDE.md rule 15 exists to prevent. The two assertions that survived the redesign (six D1-D6 rows, D1 first) are re-stated below against the new selectors, so ruling 3.3 is still enforced.",
+    "THE OPERATOR'S SPEC, verbatim, which every row below traces to: 'Matrix rows 40px. Cell = Anton 16 score or em dash. Nothing expands in the table. / Click a cell, it gets selection tint #DCE7FB + 2px #2563EB inset; a panel opens under the table (bg #FAFAF8, 1px top rule): header \"Region · Dn Dimension · N sourced facts\", links \"Compare across regions\" and \"Open profile\", facts as fact cards (headline figure Anton 18 inline with 12.5px quote, source line 10.5px), max 3, then \"N more facts on the profile\". / Click a row header, same panel in compare mode: one headline card per region, stacked, region label on each. / Arrow keys move the selection; panel follows. Default selection: first sourced cell in the first sourced row. / First column sticky; regions beyond five scroll horizontally inside the card; header hint \"18 regions · scroll\". Footer legend: \"not in primary source\". / Rail filters scope columns.'",
+    "ALL THREE OF THE OPERATOR'S HEX VALUES ARE ALREADY CANONICAL TOKENS in src/app/theme.css, so the component names tokens and this spec measures the resolved colours: #DCE7FB is `--selection` (interaction states), #2563EB is `--monitor` (the band scale), #FAFAF8 is `--page`. No new token was introduced and no raw hex was written into the component.",
+    "THE FIXTURE IS AN ATTACK, not a sample (mounts.mjs `OPSMATRIX_ENTRY`). D1 and D2 hold no facts on any region and EU and US hold no facts on any dimension: the shape of the live corpus, where regulatory_feasibility is structurally empty and 75 of 75 rows are ASIA/UK/UAE. The default selection must therefore skip two empty rows AND two empty columns to land on ASIA x D3, which is what the panel-heading row below asserts by naming the exact string that cell produces. A default of row 0 / column 0, or of row 0's first sourced cell, or of a column-first scan, fails that row. ASIA x D3 carries FOUR facts, so the same at-rest render also proves the three-card cap and the 'N more facts on the profile' remainder line, with no interaction to script.",
+    "WHAT THIS SPEC CANNOT MEASURE, stated rather than faked: the audit runner reads computed style and textContent of a single rendered state and cannot click or send keys, so the SELECTION MOVING (arrow keys, click-to-select, compare mode on a row header) is proven in RegionDimensionMatrix.npmtest.mjs against the component's own source, and the selected-state STYLING is measured here on the default selection, which is a real selected cell rendered by the real code path. An `expect` key naming an HTML attribute measures as null and reports a false MATCH, so no row below reads one: `aria-selected` and `tabindex` appear only inside SELECTORS, where they are real CSS attribute matches."
+  ],
+  "selector": "[data-audit=\"ops-matrix-card\"]",
   "expect": {
-    "count": "1"
+    "border-radius": "10px",
+    "overflow-x": "hidden"
   },
   "children": [
     {
-      "name": "dimension rows (one per dimension, top-level tr only — an open dimension inserts a second Facts tr the count below must not conflate with a dimension row)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td:first-child",
-      "note": "Operator 3.3: six dimensions, D1-D6. The matrix renders one td:first-child per DIMENSIONS entry (6), including the D1 Regulatory feasibility row.",
+      "name": "six dimension rows, D1-D6 (operator ruling 3.3, carried forward from the spec this replaces: nothing expands, so a tbody row IS a dimension row and the old 'do not conflate with the Facts tr' caveat is gone)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr",
       "expect": {
         "count": "6"
       }
     },
     {
-      "name": "dimension row 1's name (order check: D1 should be first when all 6 are present)",
-      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child td:first-child [data-guard-title]",
-      "note": "p8 rail card's own D1-D6 order: D1 Regulatory feasibility, D2 Regional resource, D3 Labor markets, D4 Materials sourcing, D5 Infrastructure, D6 Operational cost. The matrix's first rendered row is 'Regulatory feasibility' (D1), unfiltered.",
+      "name": "row 1 is D1 Regulatory feasibility (order check, ruling 3.3: same order everywhere)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr:first-child th [data-guard-title]",
       "expect": {
         "text": "Regulatory feasibility"
       }
+    },
+    {
+      "name": "every dimension row carries its D-number prefix: the redesigned artboard draws 'D1 Regulatory feasibility' through 'D6 Operational cost' in the table, not just in the rail",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "textMatch": "D6",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "MATRIX ROWS 40px (operator spec, first clause)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "expect": {
+        "height": "40px"
+      }
+    },
+    {
+      "name": "CELL = ANTON 16 SCORE (operator spec): the display face at 16px, line-height 1",
+      "selector": "[data-audit=\"ops-cell-score\"]",
+      "expect": {
+        "font-size": "16px",
+        "font-family": "contains:Anton",
+        "line-height": "16px"
+      }
+    },
+    {
+      "name": "CELL = ... OR EM DASH: an unsourced cell renders the narrow Absence, which IS the artboard's bare dash carrying its closed-vocabulary reason (22 of this fixture's 30 cells)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td .cl-absence",
+      "expect": {
+        "count": "22"
+      }
+    },
+    {
+      "name": "SELECTION TINT #DCE7FB on the selected cell (`--selection`)",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "expect": {
+        "background-color": "#DCE7FB",
+        "count": "1"
+      }
+    },
+    {
+      "name": "2px #2563EB INSET on the selected cell (`--monitor`), as a box-shadow so selecting a cell cannot change the 40px row height",
+      "selector": "[data-audit=\"ops-matrix\"] table [aria-selected=\"true\"]",
+      "matchStyle": {
+        "box-shadow": "contains:rgb(37, 99, 235)"
+      },
+      "expect": {
+        "box-shadow": "contains:inset"
+      }
+    },
+    {
+      "name": "the selected cell is the grid's single TAB STOP (roving tabindex): every other cell is reachable from it by arrow, which is what makes the reachability rule hold without a mouse",
+      "selector": "[data-audit=\"ops-matrix\"] table [tabindex=\"0\"]",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "FIRST COLUMN STICKY with a 1px right divider (operator spec)",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "expect": {
+        "position": "sticky",
+        "left": "0px",
+        "border-right-width": "1px"
+      }
+    },
+    {
+      "name": "the header's Dimension cell is sticky too, so the pinned column has a pinned head",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th:first-child",
+      "expect": {
+        "position": "sticky",
+        "left": "0px"
+      }
+    },
+    {
+      "name": "the table scrolls horizontally INSIDE the card (the card clips; the scroller is the inner box), and the box is declared to the guard's overflow detector",
+      "selector": "[data-audit=\"ops-matrix\"] .cl-ops-matrix-table[data-guard-strip]",
+      "expect": {
+        "overflow-x": "auto"
+      }
+    },
+    {
+      "name": "HEADER HINT states the cells sourced and the percentage [system sheet: 10.5px uppercase muted, the meta treatment every card head aside in the app uses]",
+      "selector": "[data-audit=\"ops-matrix-hint\"]",
+      "textMatch": "cells sourced",
+      "expect": {
+        "text-transform": "uppercase",
+        "font-size": "10.5px"
+      }
+    },
+    {
+      "name": "region column sub-line is the artboard's one-line 'N/6 sourced' form, one per region column [system sheet: 10px, the smallest step on the type scale]",
+      "selector": "[data-audit=\"ops-matrix\"] table > thead th",
+      "textMatch": "sourced",
+      "expect": {
+        "count": "5"
+      }
+    },
+    {
+      "name": "PANEL OPENS UNDER THE TABLE: bg #FAFAF8 (`--page`) with a 1px top rule [system sheet: the rule is `--line-2`, the header-divider weight every card-internal strip in the app uses]",
+      "selector": "[data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "background-color": "#FAFAF8",
+        "border-top-width": "1px",
+        "count": "1"
+      }
+    },
+    {
+      "name": "the panel is BELOW the table in DOM order, never inside it (nothing expands in the table)",
+      "selector": ".cl-ops-matrix-table ~ [data-audit=\"ops-matrix-panel\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "PANEL HEADER is 'Region · Dn Dimension · N sourced facts': and this exact string is also the DEFAULT-SELECTION proof: the fixture's first two rows and first two columns are empty, so only 'the first sourced cell in the first sourced row' produces it",
+      "selector": "[data-audit=\"ops-panel-heading\"]",
+      "expect": {
+        "text": "Asia · SG + HK · D3 Labor markets · 4 sourced facts"
+      }
+    },
+    {
+      "name": "PANEL LINK 'Compare across regions' (operator spec)",
+      "selector": "[data-audit=\"ops-matrix-panel\"] button",
+      "textMatch": "Compare across regions",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "PANEL LINK 'Open profile' (operator spec), drawn only for a region that has a profile row",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "textMatch": "Open profile",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "FACTS AS FACT CARDS, MAX 3 (operator spec). ASIA x D3 carries four facts; three cards render",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "expect": {
+        "count": "3"
+      }
+    },
+    {
+      "name": "'N more facts on the profile' closes the capped list (operator spec): one fact remains of the four",
+      "selector": "[data-audit=\"ops-matrix-panel\"] a",
+      "textMatch": "more fact",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "FACT CARD HEADLINE FIGURE is Anton 18 (operator spec)",
+      "selector": "[data-audit=\"ops-fact-figure\"]",
+      "expect": {
+        "font-size": "18px",
+        "font-family": "contains:Anton"
+      }
+    },
+    {
+      "name": "the headline figure sits INLINE with its 12.5px quote (operator spec): one baseline row, not a figure stacked over prose",
+      "selector": "[data-audit=\"ops-fact-quote\"]",
+      "expect": {
+        "font-size": "12.5px"
+      }
+    },
+    {
+      "name": "FACT CARD SOURCE LINE is 10.5px (operator spec)",
+      "selector": "[data-audit=\"ops-fact-source\"]",
+      "expect": {
+        "font-size": "10.5px"
+      }
+    },
+    {
+      "name": "the source line carries an UNDERLINED link (the artboard draws the source name underlined, then a date, then a provenance word)",
+      "selector": "[data-audit=\"ops-fact-source\"] a",
+      "expect": {
+        "text-decoration-line": "underline",
+        "count": "3"
+      }
+    },
+    {
+      "name": "fact card shape is the system sheet's sourced fact card [system sheet, README §0.4 + ui/FactCard.tsx SOURCED_SHAPE]: white, 2px solid ink left edge, 1px line the other three sides, radius 0 8px 8px 0",
+      "selector": "[data-audit=\"ops-fact-card\"]",
+      "expect": {
+        "border-left-width": "2px",
+        "border-top-width": "1px",
+        "border-radius": "0px 8px 8px 0px",
+        "background-color": "#FFFFFF"
+      }
+    },
+    {
+      "name": "FOOTER LEGEND carries the dash convention, the click affordance and the arrow-key affordance, all three (redesigned artboard, panel foot, left half)",
+      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "textMatch": "arrow keys move the selection",
+      "expect": {
+        "display": "flex",
+        "count": "1"
+      }
+    },
+    {
+      "name": "the legend states its reason in the closed absence vocabulary, not as loose prose",
+      "selector": "[data-audit=\"ops-matrix-foot\"] .cl-absence",
+      "expect": {
+        "count": "1"
+      }
+    },
+    {
+      "name": "the panel foot's right half names the column scoping (redesigned artboard: 'N of M regions · filters scope columns')",
+      "selector": "[data-audit=\"ops-matrix-foot\"]",
+      "textMatch": "filters scope columns",
+      "expect": {
+        "count": "1"
+      }
     }
   ],
-  "forbid": []
+  "forbid": [
+    {
+      "name": "NOTHING EXPANDS IN THE TABLE: no cell spans the table's width",
+      "selector": "[data-audit=\"ops-matrix\"] table td[colspan], [data-audit=\"ops-matrix\"] table th[colspan]",
+      "reason": "The operator's first clause. The expanded-row `<td colSpan={regions+1}>` and its `repeat(N,1fr)` per-region fact grid are DELETED, not hidden: a colspan cell reappearing here is the old design coming back."
+    },
+    {
+      "name": "no fact card is rendered inside the table",
+      "selector": "[data-audit=\"ops-matrix\"] table [data-audit=\"ops-fact-card\"]",
+      "reason": "Facts live in the panel below the table, at the card's reading width. A fact inside a region column is what set that column's minimum content width and dragged the table 198px past its container at 1440."
+    },
+    {
+      "name": "no disclosure glyph on a dimension row",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > th",
+      "textMatch": "▸",
+      "reason": "The row is a selection target now, not a disclosure. A ▸/▾ promises an expansion the table no longer has."
+    },
+    {
+      "name": "no freshness state word beside a cell score",
+      "selector": "[data-audit=\"ops-matrix\"] table > tbody > tr > td",
+      "textMatch": "CURRENT",
+      "reason": "The redesigned artboard's cell is a bare number or a bare em dash. The 9.5px uppercase state word under the count ('CURRENT' / 'AGEING') belonged to the design this replaces and doubled the cell's height against the operator's 40px row."
+    },
+    {
+      "name": "no 'Compare against:' base-region control",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "textMatch": "Compare against",
+      "reason": "Superseded, not dropped: the panel's compare mode shows every region's headline figure stacked at reading width, which is what picking a base region and re-reading the columns was trying to achieve. `indexAgainstBase` is still live, inside compare mode."
+    },
+    {
+      "name": "the literal word UNSCORED as component text",
+      "selector": "[data-audit=\"ops-matrix\"]",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders a lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    }
+  ]
 }

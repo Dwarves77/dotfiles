@@ -921,3 +921,114 @@ gone with join and leave at the composer foot.
 | `audit:layout` findings | 792 | 728 (L1 11, L2 165, L4 1, L6 34, L7 190, L9 234, L10 93) |
 | `audit:design` | all MATCH | 73 specs, 2407 checks, 2407 MATCH, 0 MISMATCH |
 | `run-test-suite.sh` | 5992 pass, 0 fail | 6006 pass, 0 fail |
+## LANE OPSMATRIX3 (train 61, 2026-09-08): artboard 08's matrix, redesigned
+
+The operator replaced artboard 08's region x dimension matrix. In his words: "the expand-a-dimension
+matrix does not survive real data". The replacement is a compact scoreboard whose selected cell
+opens its facts in a panel below the table, at the card's own reading width. This section records
+what the build could not take from the repo, what it decided instead, and every value it had to
+source from the system sheet.
+
+### The specification is an image, because the markup it names does not exist
+
+The brief names `docs/design/handoff-2026-09-07/screens/08-operations-list.png` and a refreshed
+`id="p8"` section. NEITHER IS IN THE REPO. The only handoff present is 2026-09-06, and both its `08`
+screen and its `p8` markup draw the OLD expand-a-dimension design, so dc.html p8 is STALE for this
+page and NO geometry was taken from it. The artboard image was copied into the repo at
+`screens/08-operations-list-redesign-2026-09-08.png` and is cited as the source by both audit specs.
+The 2026-09-06 `08-operations-list.png` was left in place, unchanged: it is the record of the design
+this replaces, and overwriting it would destroy the only evidence of what changed.
+
+### Values taken from the system sheet, listed so the operator can confirm them
+
+The image and the operator's written spec govern wherever they speak. These are the values NEITHER
+stated, taken from the system sheet (`screens/00-system-sheet.png`, README section 0.4) rather than
+invented. Every one is a value the app already uses somewhere else.
+
+| Value | Taken as | Where it came from |
+|---|---|---|
+| Panel's 1px top rule colour | `--line-2` | README 0.4: the header-divider weight every card-internal strip in the app already uses |
+| Sticky column's 1px right divider | `--line-2` | Same rule; a column divider separating pinned from scrolling reads at divider weight, not row weight |
+| Row divider under each matrix row | `--line-3` | README 0.4 list row: "row divider 1px solid rgba(0,0,0,.06)" |
+| Card header aside type | 10.5px / .12em / uppercase / 600 / `--ink-3` | The meta treatment every card head aside in the app carries; unchanged from the previous build of this same strip |
+| Region column sub-line type | 10px (`--fs-10`) | The smallest step on the type scale; unchanged from the previous build of this same sub-line |
+| Panel heading type | 12.5px (`--fs-125`), dimension at 700 ink, rest `--ink-3` | The body step the matrix table itself is set at, so the panel reads as the table's continuation |
+| Panel link type | 11.5px (`--fs-115`) / 600 / underlined on `--link-line` | The link treatment README 0.4 gives an inline source link |
+| Fact card box | white, 2px solid `--ink` left edge, 1px `--line-1` on the other three sides, radius `0 8px 8px 0`, padding `12px 14px`, `0 0 10px` gap | README 0.4 "sourced fact card", and `ui/FactCard.tsx`'s own `SOURCED_SHAPE`, read rather than re-derived |
+| Panel padding | `12px 16px 4px` | The card's own 16px gutter, so the panel's left edge lines up with the head and the table |
+| Panel foot legend type | 10.5px `--ink-3` | Same meta step as the card header aside, which is the other end of the same card |
+| Column floors | dimension 180px, region 96px | NOT in any source: derived from the rendering guard's own measurement (see below) and asserted arithmetically rather than eyeballed |
+
+### The operator's three hexes were already tokens
+
+`#DCE7FB` is `--selection`, `#2563EB` is `--monitor`, `#FAFAF8` is `--page`, all three already
+canonical in `src/app/theme.css`. The component names the tokens; no raw hex was written into it and
+no token was added. Worth stating because it means the redesign asked for nothing the system did not
+already have.
+
+### Decisions the image left open
+
+**An unsourced cell is SELECTABLE, and its panel says so plainly.** The brief allowed either. Chosen
+because the alternative puts holes in the arrow-key grid: a reader arrowing along D1, which is
+structurally empty on every region, would find the selection skipping cells for no visible reason 
+and because a reader who wants to know why a cell is empty then has nowhere to click. The panel
+renders the closed-vocabulary absence token followed by "no producer has written D1 Regulatory
+feasibility for European Union. Nothing is estimated in its place." That is the app's absence
+doctrine (ruling 2.1) at panel scale, not an exception to it.
+
+**The scroll hint appears only when the table can scroll.** The artboard's head aside reads
+"18 OF 30 CELLS SOURCED · 60% · 18 REGIONS · SCROLL". The build draws the counted half always and
+appends "N regions · scroll" only when the column roster exceeds the operator's own five-column
+threshold. Telling a reader to scroll a table that does not move is a false affordance, and the
+region figure is COUNTED from the column roster rather than stated, so it can never disagree with
+the columns on screen. With today's five-region roster the clause does not appear; it will the day a
+sixth region lands.
+
+**The foot legend shows the absence phrase, not a bare leading em dash.** The artboard draws
+"— not in primary source". A bare `—` is a placeholder literal by the app's own source-entry-filter
+SoT and the rendering guard fails on it; the dash is permitted only inside the declared `Absence`
+part, which is exactly what the cells use (`variant="narrow"`, `data-absence`). The legend therefore
+carries the same token in its phrase form. Adding a second, undeclared dash beside it to match the
+drawing would reintroduce the literal this convention exists to keep out. Same reasoning lane
+opsclip recorded for DEFECT 3; unchanged here.
+
+### One defect this lane found in its own work, and fixed
+
+[CONFIRMED, measured by `run-rendering-guard.mjs` on this lane's first run] Deleting the `<=640px`
+card reflow exposed the table's real behaviour at phone widths: with `width: 100%` and no column
+floor, a six-column table inside a 343px card does not scroll, it CRUSHES. The guard measured the
+dimension column at 21px against a 67px cell, wrapping "Regional resource availability" over TWELVE
+lines one character wide, on all three operations fixtures. Column floors (180 / 96) turn crush into
+scroll. They do NOT re-create the 198px overflow lane opsclip fixed at 1440: that came from FACTS
+being rendered into the region columns, and the facts are in the panel now. The floors sum to
+180 + 5 x 96 = 660px, inside the card at 1440, and the sum is asserted arithmetically in
+`RegionDimensionMatrix.npmtest.mjs` rather than left to a screenshot.
+
+### The scroller is a declared STRIP, not a declared container
+
+The box carried `data-guard-container="ops-matrix-scroll"`, which tells `detectOverflows` "this
+box's content must FIT it". That was only ever true by accident: the old table never overflowed
+because it crushed. A box whose purpose is to scroll cannot satisfy a must-fit check, so it now
+carries `data-guard-strip="true"`, which is the mechanism `ux-assert.mjs` provides for exactly this
+case. The precedent is `ui/RowTable.tsx` (lane admin60, this same train), which reached the identical
+conclusion for the admin tables. This table has one thing RowTable does not, and it is what makes
+the panning readable rather than merely possible: the dimension column stays pinned.
+
+### No shared table-card part existed to reuse
+
+Checked before building: `ui/` holds `RowTable` (a CSS-grid admin row anatomy, no sticky column, no
+card chrome) and globals.css holds `.cl-table-cards` (the stack-into-cards reflow this design
+replaces). Neither is the round-2 table card. The scroller here is therefore built so a shared part
+can absorb it later without touching any data code: the whole pattern is `MatrixScroller`'s three
+elements plus the `stickyCell` / `bodyCell` / `headCell` style objects, none of which read component
+state.
+
+### Deleted, not left dormant (CLAUDE.md rule 13)
+
+The expanded-row path (`openDimension` state, the `<td colSpan>` cell, its `repeat(N,1fr)` per-region
+fact grid, the disclosure glyph, the row click handler); `LegacyFactRow` and `EnvelopedFactRow` as
+two components; the "Compare against:" base-region control with `baseRegion`, `orderRegions` ordering,
+`baseFactFor` and `anyEnveloped`; and the `.cl-ops-matrix-cards` reflow with its globals.css rules.
+`indexAgainstBase` is NOT dead: it moved into the panel's compare mode, where the base region is
+implied by column order rather than picked by the reader, which is a better answer to the question
+the control was asking. Cross-region comparison is superseded, not dropped.

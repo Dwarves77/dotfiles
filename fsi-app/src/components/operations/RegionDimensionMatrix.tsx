@@ -1,77 +1,105 @@
 "use client";
 
 /**
- * RegionDimensionMatrix — regions on one axis, dimensions on the other, for the Operations surface.
+ * RegionDimensionMatrix: the Operations surface's region x dimension scoreboard.
  *
- * WHAT IT REPLACES, AND WHY. Spec 04 acceptance criterion 1 asks for "a cross-region view in which two
- * regions appear on one axis for one dimension, WITHOUT expanding accordions". The surface rendered
- * per-region accordions, all closed by default, so comparing EU against US meant opening two panels and
- * holding the numbers in your head. The register calls this the cheapest change with the largest
- * contract movement, because the data is already keyed (region, dimension) — the shape was the problem,
- * not the storage.
+ * WHAT IT IS. Six dimension rows (D1-D6) against the region columns, one compact score per cell,
+ * and ONE panel under the table that holds the facts for whichever cell is selected. Nothing
+ * expands inside the table.
  *
- * IT IS ALSO A COVERAGE INSTRUMENT. EU and US hold ZERO sourced facts across all five dimensions
- * (measured live 2026-08-18: 75 rows, all ASIA/UAE/UK). In a grid that hole is two empty columns you
- * see at a glance, which is the point — the register's ordering argument is that making the gap visible
- * correctly PRICES the producer work rather than hiding it behind closed panels.
+ * WHY IT LOOKS NOTHING LIKE THE VERSION BEFORE IT. The operator redesigned this artboard on
+ * 2026-09-08, in his words: "the expand-a-dimension matrix does not survive real data". The prior
+ * build put the facts INSIDE the table: an open dimension inserted a full-width `<td colSpan>`
+ * carrying an N-up grid of per-region fact blocks: so the reading width of a fact was one Nth of
+ * the card, the table's height jumped by several hundred pixels on a click, and comparing two
+ * regions on one dimension meant reading two narrow columns of prose side by side. The replacement
+ * separates the two jobs the page was asking one table to do: the TABLE is a scoreboard you scan,
+ * and the PANEL below it is where one cell's facts are read at full card width.
  *
- * LAYER 2 (WO-9's deferred half, landed 2026-08-30 on WO-12's migration 267): a fact row that carries
- * the full number envelope (value_numeric + unit at minimum — see `isEnvelopedFact`) now renders as an
- * indexed number, with unit/derivation/origin_class shown, and indexes against the chosen base region
- * when that region ALSO carries an enveloped fact in the same unit for the same cell. A row that does
- * NOT carry the envelope — which is 100% of the 75 live rows as of this write, both WO-17 producers
- * being kill-switched off — renders EXACTLY as before: the free-text `value` column, unchanged. A
- * malformed envelope (value_numeric with a NULL unit) is NOT enveloped per `isEnvelopedFact` and also
- * falls back to the legacy path, never a bare number with no unit. The base-region control's own label
- * says which case applies to the data actually loaded, rather than a single static disclaimer.
+ * THE SOURCE FOR THIS BUILD, and an honest caveat about it. The operator's brief names
+ * `docs/design/handoff-2026-09-07/screens/08-operations-list.png` and a refreshed `id="p8"` markup
+ * section. NEITHER EXISTS in the repo: the only handoff present is 2026-09-06, whose 08 and whose
+ * p8 draw the OLD expand-a-dimension design. So dc.html p8 is STALE for this page and no geometry
+ * is taken from it. The specification this file is built against is the artboard image, copied into
+ * the repo at
  *
- * All computation lives in `@/lib/operations/region-grid.mjs`, which OperationsLedger's coverage rail
- * also consumes, so this surface cannot show two different coverage numbers for one page.
+ *   docs/design/handoff-2026-09-06/screens/08-operations-list-redesign-2026-09-08.png
  *
- * DEFECT-FIX (item 3.3, 2026-09-07): every empty cell (`factCount === 0`, `grid` state 'absent') now
- * renders the shared `Absence` component (`ui/Absence.tsx`, reason "not in primary source") instead of
- * a bare "— no data" text span, in both the desktop table cell and the mobile card summary badge. This
- * is what lets `regulatory_feasibility` (D1 — see OperationsLedger.tsx's own MATRIX_DIMENSIONS comment)
- * render as a real row: it structurally has zero rows in `regional_data_facts`, so every one of its
- * cells hits this same empty-cell branch and shows the one honest absence convention, never a blank and
- * never an invented count.
+ * (the 2026-09-06 08 is left in place unchanged: the record matters), plus the operator's written
+ * spec quoted in DEVIATION-LOG.md. Values the image and the spec do not state are taken from the
+ * system sheet (screens/00-system-sheet.png, README §0.4) and every one of them is listed in
+ * DEVIATION-LOG.md so it can be confirmed when the refreshed markup arrives. Nothing is invented.
  *
- * COMPOSED TO ARTBOARD 08 (lane comp-08, 2026-09-08). This was a bare <section> with a 15px h2, a
- * sentence-form dek, and the base-region control above the table; artboard 08/id="p8" draws it as a
- * card: ruling 5.1's graduated top rule, an Anton "REGIONS SIDE BY SIDE" head with the coverage and
- * affordance meta on the right, the table, then a foot strip carrying "Compare against:" (moved, not
- * copied) and the dash convention. Cells are the artboard's Anton count over a 9.5px uppercase state
- * word; an empty cell keeps the shared Absence part's fixed-vocabulary word, not the artboard's bare dash
- * (a bare dash is a placeholder literal by the app's own source-entry-filter SoT and the rendering
- * guard fails on it) — logged in DEVIATION-LOG.md. The dimension row carries the
- * artboard's disclosure glyph, and the first fact-holding dimension opens by default per the
- * artboard's own note ("the expanded Facts row is the whole point of this page").
+ * WHAT WAS DELETED, not left dormant (CLAUDE.md rule 13):
+ *   - the expanded-row code path: the `open`/`resolvedOpen`/`defaultOpenDimension` state, the
+ *     `<td colSpan={orderedRegions.length + 1}>` cell, its `repeat(N, 1fr)` per-region fact grid,
+ *     the row's disclosure glyph and the whole-row click handler that drove it;
+ *   - `EnvelopedFactRow` and `LegacyFactRow` as TWO components. `factHeadline` (region-grid.mjs)
+ *     already routes both data shapes into the same headline/description/prose slots, and the
+ *     redesigned fact card has ONE anatomy, so the split had nothing left to express;
+ *   - the "Compare against:" base-region control, `baseRegion` state, `orderRegions` ordering and
+ *     `baseFactFor`/`anyEnveloped`. Cross-region comparison is not dropped, it is SUPERSEDED by the
+ *     panel's compare mode, which shows every region's headline figure stacked at reading width
+ *     instead of asking the reader to pick a base and re-read the columns. `indexAgainstBase` stays
+ *     live and moved into compare mode, where a base region is implied rather than chosen;
+ *   - the `<=640px` `.cl-ops-matrix-cards` reflow, a SECOND rendering of the same data. The sticky
+ *     first column the operator's spec adds is what made the old horizontal pan unreadable-by-
+ *     absence: you lost the row label as soon as you panned. With the dimension column pinned, the
+ *     one table serves every width, which is also the round-2 table-card pattern.
+ *
+ * TABLE-CARD PATTERN. This is a table card in the round-2 sense: card `overflow: hidden` at radius
+ * 10, an inner horizontal scroller, the first column sticky with a 1px right divider, and the
+ * scroll hint in the card header. NO SHARED TABLE-CARD PART EXISTS ON THIS BASE (checked: the ui/
+ * set has `RowTable`, which is a CSS-grid admin row anatomy with no sticky column and no card
+ * chrome, and `.cl-table-cards` in globals.css, which is the stack-into-cards reflow this design
+ * replaces). The scroller here is therefore built so a shared part can absorb it later without
+ * touching this file's data code: every piece of it is markup and style in `MatrixScroller`'s three
+ * elements plus the `stickyCell` style object below, and none of it reads this component's state.
+ *
+ * SELECTION IS A FOCUS MODEL, NOT A HOVER. The table is a `role="grid"` with roving tabindex: the
+ * selected cell is the single tab stop, arrow keys move the selection and the panel follows, and
+ * column 0 (the dimension row header) is part of the same grid, so ArrowLeft off the first region
+ * column lands on the row header and opens compare mode. Every selectable cell is therefore
+ * reachable from the first by arrow alone, with no pointer.
  */
 
-import { Fragment, useMemo, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-server";
 import { Absence } from "@/components/ui/Absence";
 import { SectionCard } from "@/components/ui/SectionCard";
 import {
   buildRegionGrid,
-  orderRegions,
   sourceUrlFromNote,
   sourceNameFromNote,
-  isEnvelopedFact,
   indexAgainstBase,
-  formatEnvelopedValue,
+  isEnvelopedFact,
   originClassLabel,
-  originClassStrength,
   derivationLabel,
   factHeadline,
 } from "@/lib/operations/region-grid.mjs";
 
 export interface MatrixRegion { key: string; label: string }
-export interface MatrixDimension { key: string; db: string; name: string }
+export interface MatrixDimension {
+  key: string;
+  db: string;
+  name: string;
+  /** D-number. The redesigned artboard prefixes EVERY dimension row with it ("D1 Regulatory
+   *  feasibility" ... "D6 Operational cost"), matching the rail's own D1-D6 labels, so a reader
+   *  moving between the two never has to map a name onto a number. Optional so the prop shape stays
+   *  backward-compatible; the prefix is simply not drawn when it is absent, never guessed from the
+   *  array index (a filtered `dimensions` prop would make an index-derived number WRONG: the rail
+   *  scopes this table to one dimension, and D4 alone must still read "D4"). */
+  num?: number;
+}
+
+/** The artboard's own threshold: "regions beyond five scroll horizontally inside the card". */
+const COLUMNS_BEFORE_SCROLL = 5;
+/** "facts as fact cards ... max 3, then 'N more facts on the profile'" (operator spec). */
+const PANEL_FACT_CAP = 3;
 
 interface Props {
+  /** Column roster, ALREADY SCOPED by the rail's Region facet ("Rail filters scope columns"). */
   regions: MatrixRegion[];
-  /** SOURCED dimensions only — the ones with rows in regional_data_facts. */
   dimensions: MatrixDimension[];
   facts: OperationsFact[];
   coverageRows?: OperationsCoverageRow[];
@@ -83,26 +111,18 @@ interface Props {
    *  While pending, the line says it is counting rather than naming a number (README §0.6: a count
    *  still loading shows a loading affordance, never a figure that will change under the reader). */
   crossRefCountsPending?: boolean;
+  /** Size of the UNSCOPED region roster, so the panel foot can say "5 of 18 regions · filters scope
+   *  columns" with both halves real. Omitted or equal to `regions.length` means nothing is scoped
+   *  away and the line names one number instead of a fraction: never "5 of 5". */
+  totalRegionCount?: number;
+  /** `/operations/<slug>` for each region's own profile row, when one exists. The panel's "Open
+   *  profile" link and its "N more facts on the profile" line are drawn ONLY for a region that has
+   *  one; a region with no profile row gets the honest count with no link, never a dead href. */
+  profileHrefByRegion?: Record<string, string>;
 }
 
-const FRESHNESS_LABEL: Record<string, string> = {
-  current: "current",
-  ageing: "ageing",
-  stale: "stale",
-  frozen: "not updating",
-  unknown: "date unknown",
-};
-
-// Artboard 08/id="p8" cell state word: "CURRENT" in ink (#1A1A1A), "AGEING" in muted (#7A6E6C).
-// The two states the artboard does NOT draw keep their warning/error hue — a feed that has STOPPED
-// updating ("frozen") is a signal the artboard had no example of, never quietened to grey here.
-const FRESHNESS_COLOR: Record<string, string> = {
-  current: "var(--ink)",
-  ageing: "var(--ink-3)",
-  stale: "var(--color-warning)",
-  frozen: "var(--color-error)",
-  unknown: "var(--color-text-muted)",
-};
+/** Selected cell. `regionKey: null` is the row header: compare mode across every column. */
+interface Selection { regionKey: string | null; dimDb: string }
 
 export function RegionDimensionMatrix({
   regions,
@@ -111,16 +131,16 @@ export function RegionDimensionMatrix({
   coverageRows = [],
   crossRefCountsByRegion = {},
   crossRefCountsPending = false,
+  totalRegionCount,
+  profileHrefByRegion = {},
 }: Props) {
-  const [baseRegion, setBaseRegion] = useState<string | null>(null);
-  // Artboard 08/id="p8"'s own note: "the expanded Facts row is the whole point of this page and is
-  // open by default" (and its own markup draws Labor markets open). The default is the first
-  // dimension that actually HOLDS facts, so the page never opens onto an empty Facts row; null
-  // (nothing open) only when no dimension holds any. `undefined` means "not chosen yet", so a
-  // reader who closes the opened row gets `null` and it stays closed.
-  const [openDimension, setOpenDimension] = useState<string | null | undefined>(undefined);
-
-  const dbByKey = useMemo(() => Object.fromEntries(dimensions.map((d) => [d.db, d.key])), [dimensions]);
+  const panelId = useId();
+  const [selection, setSelection] = useState<Selection | null>(null);
+  // Focus follows the selection only when the reader MOVED it (a click or an arrow key), never on
+  // mount: the default selection paints the panel, and stealing page focus for it on load would
+  // yank a reader who arrived by keyboard past the masthead.
+  const moveRef = useRef(false);
+  const cellRefs = useRef(new Map<string, HTMLTableCellElement | null>());
 
   const grid = useMemo(
     () =>
@@ -138,10 +158,9 @@ export function RegionDimensionMatrix({
           sourceUrl: f.source_url,
           lastUpdated: f.last_updated,
           freshness: f.freshness,
-          // Layer 2 (WO-12 envelope, migration 267) — carried through unchanged so isEnvelopedFact /
-          // indexAgainstBase / formatEnvelopedValue below can read them. NULL on every one of the 75
-          // live rows today (rule 0.15 re-read 2026-08-30); the dual-layer render below is exercised
-          // by fixtures in region-grid.test.mjs, not yet by live data.
+          // Layer 2 (WO-12 envelope, migration 267): carried through unchanged so isEnvelopedFact
+          // / indexAgainstBase / factHeadline below can read them. NULL on every one of the 75 live
+          // rows today; the enveloped path is exercised by fixtures in region-grid.test.mjs.
           valueNumeric: f.value_numeric,
           unit: f.unit,
           currency: f.currency,
@@ -165,43 +184,100 @@ export function RegionDimensionMatrix({
     [regions, dimensions, facts, coverageRows, crossRefCountsByRegion]
   );
 
-  const defaultOpenDimension = useMemo(
-    () => dimensions.find((d) => facts.some((f) => f.dimension === d.db))?.db ?? null,
-    [dimensions, facts],
-  );
-  const resolvedOpen = openDimension === undefined ? defaultOpenDimension : openDimension;
-
-  const orderedKeys: string[] = useMemo(
-    () => orderRegions(regions.map((r) => r.key), baseRegion),
-    [regions, baseRegion]
-  );
-  const orderedRegions = orderedKeys.map((k) => regions.find((r) => r.key === k)!).filter(Boolean);
-  const coverageByRegion = Object.fromEntries(grid.regionCoverage.map((r: any) => [r.regionKey, r]));
-
-  // Layer 2: whether ANY loaded fact carries a valid envelope. Governs the base-region control's own
-  // disclaimer (honest per the data actually on screen, never a static claim) — true today only in
-  // tests, since 0 of 75 live rows are enveloped.
-  const anyEnveloped = useMemo(
-    () => grid.cells.some((c: any) => c.facts.some(isEnvelopedFact)),
+  const cellAt = useCallback(
+    (regionKey: string, dimDb: string) => grid.byCell[`${regionKey}|${dimDb}`] ?? null,
     [grid]
   );
 
-  // For an enveloped fact in a non-base region's cell, find the base region's matching fact in the
-  // SAME cell to index against: same fact_label preferred (the same series), else the first enveloped
-  // fact the base region's cell carries for this dimension. Returns null (no index) rather than
-  // guessing across an unrelated series.
-  const baseFactFor = (dimDb: string, fact: any): any => {
-    if (!baseRegion) return null;
-    const baseCell = grid.byCell[`${baseRegion}|${dimDb}`];
-    const baseFacts: any[] = baseCell?.facts ?? [];
-    return (
-      baseFacts.find((bf) => bf.factLabel === fact.factLabel && isEnvelopedFact(bf)) ??
-      baseFacts.find(isEnvelopedFact) ??
-      null
-    );
-  };
+  /**
+   * DEFAULT SELECTION: "the first sourced cell in the first sourced row" (operator spec), computed
+   * from the DATA, not hardcoded to row 0. D1 Regulatory feasibility structurally holds zero rows
+   * in `regional_data_facts` and EU/US hold zero facts on every dimension, so a first-row/
+   * first-column default would open the page onto an empty panel every single time. This scans in
+   * reading order and takes the first cell that actually carries a fact; only a workspace with NO
+   * sourced cell anywhere falls back to the first row header (compare mode), which is the honest
+   * view of a matrix that has nothing in it.
+   */
+  const defaultSelection = useMemo<Selection | null>(() => {
+    for (const d of dimensions) {
+      for (const r of regions) {
+        const c = cellAt(r.key, d.db);
+        if (c && c.factCount > 0) return { regionKey: r.key, dimDb: d.db };
+      }
+    }
+    return dimensions.length > 0 ? { regionKey: null, dimDb: dimensions[0].db } : null;
+  }, [dimensions, regions, cellAt]);
+
+  // A selection the props no longer contain (the rail scoped its column away, or its dimension
+  // away) is dropped back to the default rather than leaving the panel pointed at a column that is
+  // not on screen.
+  const resolved: Selection | null = useMemo(() => {
+    if (!selection) return defaultSelection;
+    const dimOk = dimensions.some((d) => d.db === selection.dimDb);
+    const regionOk = selection.regionKey === null || regions.some((r) => r.key === selection.regionKey);
+    return dimOk && regionOk ? selection : defaultSelection;
+  }, [selection, defaultSelection, dimensions, regions]);
+
+  const rowIndex = resolved ? dimensions.findIndex((d) => d.db === resolved.dimDb) : -1;
+  const colIndex = resolved
+    ? resolved.regionKey === null
+      ? 0
+      : regions.findIndex((r) => r.key === resolved.regionKey) + 1
+    : -1;
+
+  const select = useCallback((next: Selection) => {
+    moveRef.current = true;
+    setSelection(next);
+  }, []);
+
+  const selectAt = useCallback(
+    (r: number, c: number) => {
+      const row = dimensions[Math.max(0, Math.min(dimensions.length - 1, r))];
+      if (!row) return;
+      const cc = Math.max(0, Math.min(regions.length, c));
+      select({ regionKey: cc === 0 ? null : regions[cc - 1].key, dimDb: row.db });
+    },
+    [dimensions, regions, select]
+  );
+
+  // Roving tabindex + arrow movement. The panel follows the selection by construction (it renders
+  // from `resolved`), so there is no second "activate" step for a reader to discover; Enter and
+  // Space are still honoured for a reader who tabbed in and expects them to commit.
+  const onCellKeyDown = useCallback(
+    (e: React.KeyboardEvent, r: number, c: number) => {
+      const moves: Record<string, [number, number]> = {
+        ArrowRight: [r, c + 1],
+        ArrowLeft: [r, c - 1],
+        ArrowDown: [r + 1, c],
+        ArrowUp: [r - 1, c],
+        Home: [r, 0],
+        End: [r, regions.length],
+      };
+      if (moves[e.key]) {
+        e.preventDefault();
+        selectAt(moves[e.key][0], moves[e.key][1]);
+        return;
+      }
+      if (e.key === "Enter" || e.key === " ") {
+        e.preventDefault();
+        selectAt(r, c);
+      }
+    },
+    [selectAt, regions.length]
+  );
+
+  useEffect(() => {
+    if (!moveRef.current) return;
+    moveRef.current = false;
+    cellRefs.current.get(`${rowIndex}:${colIndex}`)?.focus();
+  }, [rowIndex, colIndex]);
 
   if (regions.length === 0 || dimensions.length === 0) return null;
+
+  const selectedDimension = rowIndex >= 0 ? dimensions[rowIndex] : null;
+  const selectedRegion = resolved?.regionKey ? regions.find((r) => r.key === resolved.regionKey) ?? null : null;
+  const scrolls = regions.length > COLUMNS_BEFORE_SCROLL;
+  const totalRegions = totalRegionCount ?? regions.length;
 
   return (
     // Operator items A1 + E4 (2026-09-08): "Regions side by side" is one of the eighteen listed
@@ -231,16 +307,16 @@ export function RegionDimensionMatrix({
             lineHeight: 1,
             margin: 0,
             color: "var(--ink)",
-            // dc.html p8 declares `white-space:nowrap` on both halves of this head strip; neither
-            // is taken. The artboard's card is wider than the built page's, and nowrap here pushed
-            // the meta beside it off the right edge at 375 (rendering guard, lane opsclip). Losing
-            // characters is the defect this lane removes; wrapping this strip costs nothing.
-            // Logged in DEVIATION-LOG.md.
           }}
         >
           Regions side by side
         </h2>
+        {/* The artboard's head aside: "18 OF 30 CELLS SOURCED · 60% · 18 REGIONS · SCROLL". The
+            scroll hint is drawn only when there is somewhere to scroll TO: with five or fewer
+            columns every region already fits, and telling a reader to scroll a table that does not
+            move is a false affordance. Both figures are computed, never stated. */}
         <span
+          data-audit="ops-matrix-hint"
           style={{
             fontSize: "var(--fs-105)",
             letterSpacing: "0.12em",
@@ -250,50 +326,67 @@ export function RegionDimensionMatrix({
             textAlign: "right",
           }}
         >
-          {grid.fillRate.filled} of {grid.fillRate.total} cells sourced · {grid.fillRate.pct}% · click a
-          dimension to open its facts
+          {grid.fillRate.filled} of {grid.fillRate.total} cells sourced · {grid.fillRate.pct}%
+          {scrolls ? ` · ${regions.length} regions · scroll` : ""}
         </span>
       </header>
 
-      {/* Lane MOBILE-2, 2026-09-03 (coordinator's round-2 probe, /operations, "United States 1/5
-          dimensions sourced" clipped at the right edge on a growing live region roster): the wide
-          table already scrolled inside this div's own overflowX:auto (pre-existing), but requiring
-          horizontal panning for the PAGE'S PRIMARY comparison view on a phone is poor UX regardless
-          of whether the guard's clipped-overflow detector technically passes. `.cl-ops-matrix-table`
-          hides this table at <=640px (globals.css); `.cl-ops-matrix-cards` below replaces it with one
-          card per region at that width. Desktop is unchanged — same table, same class list plus the
-          new one. */}
-      {/* Defect D4 (2026-09-07) added a scrollbar gutter and a CSS scroll shadow here, on the
-          reading that the table was legitimately wider than its container and only lacked an
-          affordance. DEFECT 1 (lane opsclip, train 61) shows that reading was wrong: the table
-          was wider because the FACTS were rendered into the region columns, and the artboard fits
-          five columns in the same card at the same width. The scroll affordance stays as the
-          honest fallback for the widths between the mobile card reflow and the artboard's own
-          1440, but it is no longer a component-local <style> block: it is `.cl-scroll-shadow` in
-          globals.css, one definition shared with the /regulations obligations strip.
+      {/* ── The scroller ───────────────────────────────────────────────────────────────────────
+          `data-guard-strip` is the DECLARATION, and which declaration this box carries is a real
+          decision, not a formality.
 
-          The container is also now DECLARED to the rendering guard's overflow detector. Production
-          overflowed it by 198px at 1440 and nothing in the suite noticed, because the guard
-          measures only elements carrying this attribute and this one did not. */}
-      <div className="cl-ops-matrix-table cl-scroll-shadow" data-guard-container="ops-matrix-scroll">
-        <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12.5 }}>
-          <thead style={{ backgroundColor: "var(--color-surface-raised)" }}>
-            <tr>
-              <th style={{ ...cell, textAlign: "left", borderLeft: "none" }}>Dimension</th>
-              {orderedRegions.map((r) => {
-                const cov = coverageByRegion[r.key];
+          It used to carry `data-guard-container`, which tells the rendering guard's `detectOverflows`
+          "this box's content must FIT it". That was true of the old table only by accident: with
+          `width: 100%` and no column floors it never overflowed, it CRUSHED, which is why the
+          declaration passed while the columns became one character wide at 375. A box whose whole
+          purpose is to scroll can never satisfy a must-fit check, so keeping the attribute would
+          have meant a permanently red gate or a fudged tolerance.
+
+          `data-guard-strip` is the mechanism the guard provides for exactly this case, and
+          `ux-assert.mjs` is deliberate about it: content may pass the viewport edge only inside a
+          DECLARED strip, never inside a box that merely sets `overflow-x: auto`. The precedent is
+          `ui/RowTable.tsx` (lane admin60, this same train), which reached the identical conclusion
+          for the admin tables: every column keeps the width the design gives it and the reader
+          scrolls to reach them, which is the mobile 390 spec's own rule: "the frame collapses;
+          every part is the desktop part at a smaller measure". This table has one thing RowTable
+          does not, and it is what makes the panning readable rather than merely possible: the
+          dimension column stays pinned, so a reader who scrolls to the UAE column can still see
+          which row they are on.
+
+          `.cl-scroll-shadow` (globals.css) supplies the visible affordance: edge shadows that
+          appear exactly when there is more table in that direction, plus a reserved scrollbar
+          gutter: shared with the /regulations obligations strip rather than copied. */}
+      <div className="cl-ops-matrix-table cl-scroll-shadow" data-guard-strip="true">
+        <table
+          role="grid"
+          aria-label="Regions by dimension, sourced fact counts"
+          style={{ borderCollapse: "separate", borderSpacing: 0, width: "100%", fontSize: "var(--fs-125)" }}
+        >
+          <thead style={{ background: "var(--tag)" }}>
+            <tr role="row">
+              <th role="columnheader" scope="col" style={{ ...headCell, ...stickyCell, zIndex: 3, background: "var(--tag)" }}>
+                Dimension
+              </th>
+              {regions.map((r) => {
+                const cov = grid.regionCoverage.find((c: { regionKey: string }) => c.regionKey === r.key);
                 return (
-                  <th key={r.key} style={{ ...cell, verticalAlign: "top" }}>
-                    <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{r.label}</div>
-                    {/* Artboard 08/id="p8" column subhead: ONE 10px line, "2/5 sourced · 778 regs" —
-                        the coverage fraction and the cross-reference count on the same line, not two
-                        stacked lines with the word "dimensions"/"linked regulations" spelled out. */}
-                    <div style={{ fontSize: 10, fontWeight: 400, color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)" }}>
+                  <th role="columnheader" scope="col" key={r.key} style={{ ...headCell, textAlign: "center" }}>
+                    <div style={{ fontWeight: 600, color: "var(--ink)" }}>{r.label}</div>
+                    {/* The artboard's column sub-line: "2/6 sourced · 778 regs": the coverage
+                        fraction and the cross-reference count on ONE line. */}
+                    <div
+                      style={{
+                        fontSize: "var(--fs-10)",
+                        fontWeight: 400,
+                        color: cov?.filled ? "var(--ink-2)" : "var(--color-error)",
+                      }}
+                    >
                       {cov?.filled ?? 0}/{cov?.total ?? 0} sourced
-                      {/* FOLD-59: the cross-reference count arrives with the deferred rest-load
-                          (HYDRATION-59 defect D4). While it is pending the subhead says so rather
-                          than rendering a 0 that later jumps to its real value. */}
-                      {crossRefCountsPending ? " · counting regs…" : cov?.crossReferenceCount > 0 ? ` · ${cov.crossReferenceCount} regs` : ""}
+                      {crossRefCountsPending
+                        ? " · counting regs…"
+                        : cov?.crossReferenceCount > 0
+                          ? ` · ${cov.crossReferenceCount} regs`
+                          : ""}
                     </div>
                   </th>
                 );
@@ -301,275 +394,171 @@ export function RegionDimensionMatrix({
             </tr>
           </thead>
           <tbody>
-            {dimensions.map((d) => {
-              const open = resolvedOpen === d.db;
+            {dimensions.map((d, ri) => {
+              const headerSelected = ri === rowIndex && colIndex === 0;
               return (
-                <Fragment key={d.db}>
-                  <tr
-                    onClick={() => setOpenDimension(open ? null : d.db)}
-                    style={{ cursor: "pointer", backgroundColor: open ? "var(--color-surface-raised)" : undefined }}
+                <tr role="row" key={d.db}>
+                  {/* Column 0 is a rowheader AND a grid cell: selecting it opens the panel in
+                      compare mode, which is the operator's "click a row header, same panel in
+                      compare mode". It is part of the roving tabindex, so ArrowLeft from the first
+                      region column reaches it without a pointer. */}
+                  <th
+                    role="rowheader"
+                    scope="row"
+                    ref={(el) => { cellRefs.current.set(`${ri}:0`, el as unknown as HTMLTableCellElement); }}
+                    tabIndex={headerSelected ? 0 : -1}
+                    aria-selected={headerSelected}
+                    aria-controls={panelId}
+                    aria-label={`${dimensionLabel(d)}, compare across every region`}
+                    onClick={() => selectAt(ri, 0)}
+                    onKeyDown={(e) => onCellKeyDown(e, ri, 0)}
+                    style={{
+                      ...bodyCell,
+                      ...stickyCell,
+                      textAlign: "left",
+                      cursor: "pointer",
+                      background: headerSelected ? "var(--selection)" : "var(--card)",
+                      boxShadow: headerSelected ? SELECTED_INSET : undefined,
+                    }}
                   >
-                    {/* `data-guard-title` sits on the inner span, not the `<td>`: the squeezed-title
-                        detector (ux-assert.mjs, read-only to this lane) estimates "one line" as
-                        fontSize x 1.3 and has no notion of a title element's own padding — measured
-                        against the padded `<td>` (the shared `cell` style's 6px vertical padding,
-                        `line-height: normal`), a single-line dimension name reads as height >= 2
-                        estimated lines and false-positives as "squeezed", confirmed by a raw
-                        Range.getClientRects() count of 1 on the same markup. The inner span carries
-                        no padding, so its measured height matches its actual (single) line. */}
-                    <td style={{ ...cell, textAlign: "left", fontWeight: 600, color: "var(--color-text-primary)" }}>
-                      {/* Artboard 08: the dimension name carries its own disclosure glyph, closed
-                          "▸" / open "▾" — the row is the click target (the whole <tr> already is). */}
-                      <span style={{ display: "flex", gap: 6, alignItems: "baseline" }}>
-                        <span aria-hidden="true" style={{ color: "var(--ink-3)", flexShrink: 0 }}>{open ? "▾" : "▸"}</span>
-                        <span data-guard-title style={{ display: "block", overflowWrap: "anywhere", minWidth: 0 }}>{d.name}</span>
-                      </span>
-                    </td>
-                    {orderedRegions.map((r) => {
-                      const c = grid.byCell[`${r.key}|${d.db}`];
-                      if (!c || c.factCount === 0) {
-                        return (
-                          <td key={r.key} style={{ ...cell, color: "var(--color-text-muted)" }} title="No producer has written this cell">
-                            {/* DEFECT 3 (lane opsclip, train 61) resolves the deviation the
-                                comment here used to record. Artboard 08 draws a bare em dash and
-                                explains it in the foot strip; the earlier reading was that the app
-                                cannot render one because a bare dash is a placeholder literal by
-                                the source-entry-filter SoT. `variant="narrow"` is neither a bare
-                                dash nor a shouted phrase: it is the dash CARRYING its
-                                closed-vocabulary reason on `aria-label`/`title`, which is the
-                                artboard's presentation and ruling 2.1's vocabulary at the same
-                                time. Production shouted the phrase over three lines in every empty
-                                cell of a five-column matrix. */}
-                            <Absence reason="not in primary source" variant="narrow" />
-                          </td>
-                        );
-                      }
-                      const fresh = c.facts[0]?.freshness ?? "unknown";
-                      return (
-                        <td key={r.key} style={{ ...cell, color: "var(--color-text-secondary)" }}>
-                          {/* Artboard 08 cell: Anton 16px count over a 9.5px uppercase state word. */}
-                          <div style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, color: "var(--ink)" }}>{c.factCount}</div>
-                          <div
-                            style={{
-                              fontSize: 9.5,
-                              letterSpacing: "0.08em",
-                              textTransform: "uppercase",
-                              fontWeight: 700,
-                              marginTop: 2,
-                              color: FRESHNESS_COLOR[fresh],
-                            }}
-                          >
-                            {FRESHNESS_LABEL[fresh]}
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-
-                  {open && (
-                    <tr>
-                      {/* DEFECT 1, lane opsclip (train 61, 2026-09-08). THE CLIP AND ITS CAUSE.
-                          Measured on production at 1440: this scroll container had clientWidth
-                          750 against scrollWidth 948, so the United Kingdom column was cut
-                          mid-glyph on every line and the UAE column was entirely off-screen. The
-                          artboard fits FIVE columns in the same card at the same width, so a
-                          horizontal scroller was never the answer.
-
-                          ROOT CAUSE [CONFIRMED by reading both markups side by side]: the facts
-                          were rendered into the REGION'S OWN <td>, one per column, so each fact's
-                          prose set that region column's minimum content width and dragged the
-                          whole table past its container. Artboard 08 does not do that, its
-                          expanded row is a SINGLE cell spanning the table
-                          (`<td colspan="6">`) holding a `repeat(5,1fr)` grid. The facts then
-                          divide the card's width evenly and can never widen a header column.
-                          Removing the 190px/130px `minWidth` floors on the header cells (which the
-                          artboard does not have either) is the other half. */}
-                      <td
-                        colSpan={orderedRegions.length + 1}
-                        style={{ ...cell, textAlign: "left", padding: "12px 16px 14px", background: "var(--card)" }}
-                      >
-                        <div
+                    <span style={{ display: "flex", gap: 6, alignItems: "baseline", minWidth: 0 }}>
+                      {typeof d.num === "number" && (
+                        <span
+                          aria-hidden="true"
                           style={{
-                            display: "grid",
-                            gridTemplateColumns: `repeat(${orderedRegions.length}, minmax(0, 1fr))`,
-                            gap: 12,
+                            fontSize: "var(--fs-10)",
+                            fontWeight: 700,
+                            letterSpacing: "0.04em",
+                            color: "var(--ink-3)",
+                            flexShrink: 0,
                           }}
                         >
-                          {orderedRegions.map((r) => {
-                            const c = grid.byCell[`${r.key}|${d.db}`];
-                            return (
-                              <div key={r.key} style={{ minWidth: 0 }}>
-                                {/* Artboard 08: each block opens with its region tag in 10px
-                                    uppercase muted, so a reader scanning the row knows which
-                                    column each figure belongs to without tracking back up. */}
-                                <div
-                                  style={{
-                                    fontSize: 10,
-                                    letterSpacing: "0.1em",
-                                    textTransform: "uppercase",
-                                    color: "var(--ink-3)",
-                                    fontWeight: 700,
-                                    marginBottom: 3,
-                                  }}
-                                >
-                                  {r.label}
-                                </div>
-                                {!c || c.factCount === 0 ? (
-                                  // Same narrow-cell rule as the summary cell above: these blocks
-                                  // are a fifth of the card each, and the spelled-out phrase runs
-                                  // to three lines in one.
-                                  <Absence reason="not in primary source" variant="narrow" />
-                                ) : (
-                                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                    {c.facts.map((f: any, i: number) =>
-                                      isEnvelopedFact(f) ? (
-                                        <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
-                                      ) : (
-                                        <LegacyFactRow key={i} fact={f} />
-                                      )
-                                    )}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
+                          D{d.num}
+                        </span>
+                      )}
+                      {/* `data-guard-title` sits on the inner span, not the cell: the squeezed-title
+                          detector estimates "one line" as fontSize x 1.3 and has no notion of a
+                          cell's own padding, so measuring the padded cell reads a single-line name
+                          as two lines and false-positives. */}
+                      <span
+                        data-guard-title
+                        style={{ display: "block", overflowWrap: "anywhere", minWidth: 0, fontWeight: 600, color: "var(--ink)" }}
+                      >
+                        {d.name}
+                      </span>
+                    </span>
+                  </th>
+
+                  {regions.map((r, i) => {
+                    const ci = i + 1;
+                    const c = cellAt(r.key, d.db);
+                    const n = c?.factCount ?? 0;
+                    const isSelected = ri === rowIndex && ci === colIndex;
+                    return (
+                      <td
+                        role="gridcell"
+                        key={r.key}
+                        ref={(el) => { cellRefs.current.set(`${ri}:${ci}`, el); }}
+                        tabIndex={isSelected ? 0 : -1}
+                        aria-selected={isSelected}
+                        aria-controls={panelId}
+                        aria-label={`${r.label}, ${dimensionLabel(d)}, ${n === 0 ? "no sourced fact" : `${n} sourced ${n === 1 ? "fact" : "facts"}`}`}
+                        onClick={() => selectAt(ri, ci)}
+                        onKeyDown={(e) => onCellKeyDown(e, ri, ci)}
+                        style={{
+                          ...bodyCell,
+                          textAlign: "center",
+                          cursor: "pointer",
+                          background: isSelected ? "var(--selection)" : undefined,
+                          boxShadow: isSelected ? SELECTED_INSET : undefined,
+                        }}
+                      >
+                        {/* The artboard's cell is a bare score or a bare em dash: no state word
+                            beside it. `variant="narrow"` IS the bare dash: it carries the
+                            closed-vocabulary reason on aria-label/title and declares itself to the
+                            guard's placeholder-literal scan with `data-absence`, so the artboard's
+                            presentation and ruling 2.1's vocabulary hold at once. An unsourced cell
+                            stays SELECTABLE (see the panel: it states the absence plainly): making
+                            it a dead cell would put arrow-key holes in the grid and leave a reader
+                            asking "why is this empty?" with nowhere to click. */}
+                        {n === 0 ? (
+                          <Absence reason="not in primary source" variant="narrow" />
+                        ) : (
+                          <span
+                            data-audit="ops-cell-score"
+                            style={{ fontFamily: "var(--font-display)", fontSize: 16, lineHeight: 1, color: "var(--ink)" }}
+                          >
+                            {n}
+                          </span>
+                        )}
                       </td>
-                    </tr>
-                  )}
-                </Fragment>
+                    );
+                  })}
+                </tr>
               );
             })}
           </tbody>
         </table>
       </div>
 
-      {/* Mobile card reflow (<=640px, see the table's own comment above): one card per region —
-          region name, "n/total dimensions" chip, the sourced dimensions stacked, each with a
-          real >=44px expand/collapse control and wrapping facts. Shares `openDimension` /
-          `baseRegion` state with the table so the two never disagree when a viewport crosses the
-          breakpoint mid-session. */}
-      <div className="cl-ops-matrix-cards" data-guard-container="ops-region-card">
-        {orderedRegions.map((r) => {
-          const cov = coverageByRegion[r.key];
-          return (
-            <div
-              key={r.key}
-              style={{
-                border: "1px solid var(--color-border)",
-                borderRadius: 8,
-                padding: "14px 16px",
-                marginBottom: 12,
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 10, flexWrap: "wrap", marginBottom: crossRefCountsPending || cov?.crossReferenceCount > 0 ? 4 : 8 }}>
-                <span data-guard-title style={{ fontSize: 14, fontWeight: 700, color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
-                  {r.label}
-                </span>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "3px 9px",
-                    borderRadius: 12,
-                    whiteSpace: "nowrap",
-                    background: "var(--color-surface-raised)",
-                    color: cov?.filled ? "var(--color-text-secondary)" : "var(--color-error)",
-                  }}
-                >
-                  {cov?.filled ?? 0}/{cov?.total ?? 0} dimensions
-                </span>
-              </div>
-              {crossRefCountsPending ? (
-                <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
-                  counting linked regulations…
-                </div>
-              ) : (
-                cov?.crossReferenceCount > 0 && (
-                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginBottom: 8 }}>
-                    {cov.crossReferenceCount} linked regulations
-                  </div>
-                )
-              )}
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                {dimensions.map((d) => {
-                  const c = grid.byCell[`${r.key}|${d.db}`];
-                  const open = resolvedOpen === d.db;
-                  const hasData = !!c && c.factCount > 0;
-                  const fresh = c?.facts[0]?.freshness ?? "unknown";
-                  return (
-                    <div key={d.db} style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
-                      <button
-                        type="button"
-                        onClick={() => setOpenDimension(open ? null : d.db)}
-                        aria-expanded={open}
-                        style={{
-                          width: "100%",
-                          minHeight: 44,
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          gap: 10,
-                          background: "none",
-                          border: "none",
-                          padding: "6px 0",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
-                      >
-                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--color-text-primary)", overflowWrap: "anywhere", minWidth: 0 }}>
-                          {d.name}
-                        </span>
-                        <span style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                          {hasData ? (
-                            <span style={{ fontSize: 11, color: "var(--color-text-secondary)", whiteSpace: "nowrap" }}>
-                              {c!.factCount} · <span style={{ color: FRESHNESS_COLOR[fresh] }}>{FRESHNESS_LABEL[fresh]}</span>
-                            </span>
-                          ) : (
-                            <Absence reason="not in primary source" />
-                          )}
-                          <span aria-hidden style={{ fontSize: 16, fontWeight: 700, lineHeight: 1, color: "var(--color-primary)" }}>
-                            {open ? "−" : "+"}
-                          </span>
-                        </span>
-                      </button>
-                      {open && (
-                        <div style={{ padding: "0 0 12px" }}>
-                          {!hasData ? (
-                            <span style={{ fontSize: 12, color: "var(--color-text-muted)" }}>
-                              No sourced fact for {r.key} on this dimension.
-                            </span>
-                          ) : (
-                            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                              {c!.facts.map((f: any, i: number) =>
-                                isEnvelopedFact(f) ? (
-                                  <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
-                                ) : (
-                                  <LegacyFactRow key={i} fact={f} />
-                                )
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      {/* ── The panel ──────────────────────────────────────────────────────────────────────────
+          One cell's facts, at the card's own reading width, under the table. `aria-live="polite"`
+          is what makes it the selected cell's announced CONTENT: an arrow keypress moves focus to
+          the cell (whose own label names the region, the dimension and the count) and the panel
+          then announces what it now holds, rather than the reader having to go looking for it. */}
+      {selectedDimension && (
+        <div
+          id={panelId}
+          data-audit="ops-matrix-panel"
+          role="region"
+          aria-live="polite"
+          aria-label={panelHeading(selectedRegion, selectedDimension, grid, regions)}
+          style={{ background: "var(--page)", borderTop: "1px solid var(--line-2)", padding: "12px 16px 4px" }}
+        >
+          <MatrixPanel
+            dimension={selectedDimension}
+            region={selectedRegion}
+            regions={regions}
+            cellAt={cellAt}
+            profileHref={selectedRegion ? profileHrefByRegion[selectedRegion.key] ?? null : null}
+            onCompare={() => selectAt(rowIndex, 0)}
+          />
+
+          {/* Foot strip, verbatim from the artboard: the dash convention and the two affordances
+              left, the column scoping right. */}
+          <div
+            data-audit="ops-matrix-foot"
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "baseline",
+              gap: 16,
+              flexWrap: "wrap",
+              padding: "10px 0 8px",
+              fontSize: "var(--fs-105)",
+              color: "var(--ink-3)",
+            }}
+          >
+            <span>
+              <Absence reason="not in primary source" /> · click a cell to open its facts · arrow keys move the
+              selection
+            </span>
+            <span>
+              {totalRegions > regions.length ? `${regions.length} of ${totalRegions} regions` : `${regions.length} regions`} ·
+              filters scope columns
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* Ruling R7 (an app feature the artboard does not draw sits at the card FOOT, never where an
-          artboard region goes): the empty-region and coverage-reconciliation disclosures used to
-          hang below the card in the page's own column, between this card and the band cards, which
-          is where artboard 08 puts the first band card. They are unchanged in content — only their
-          mount point moved inside this card, above the foot strip. */}
+          artboard region goes): the empty-region and coverage-reconciliation disclosures. Unchanged
+          in content by this lane; they follow the panel so the artboard's own foot strip keeps the
+          position the artboard gives it. */}
       {(grid.emptyRegions.length > 0 || grid.reconciliation.disagreed.length > 0) && (
-        <div style={{ padding: "10px 16px 0" }}>
+        <div style={{ padding: "10px 16px 12px", borderTop: "1px solid var(--line-3)" }}>
           {grid.emptyRegions.length > 0 && (
-            <p style={{ fontSize: 12, color: "var(--color-text-secondary)", margin: 0, maxWidth: "78ch" }}>
+            <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", margin: 0, maxWidth: "78ch" }}>
               <strong style={{ color: "var(--color-error)" }}>
                 {grid.emptyRegions.join(" and ")} hold no sourced facts on any dimension.
               </strong>{" "}
@@ -577,206 +566,351 @@ export function RegionDimensionMatrix({
               separately in the column header and are not part of the coverage figure.
             </p>
           )}
-
           {grid.reconciliation.disagreed.length > 0 && (
-            <p style={{ fontSize: 12, color: "var(--color-warning)", margin: "8px 0 0", maxWidth: "78ch" }}>
+            <p style={{ fontSize: "var(--fs-12)", color: "var(--color-warning)", margin: "8px 0 0", maxWidth: "78ch" }}>
               Coverage-table mismatch on {grid.reconciliation.disagreed.length} of {grid.reconciliation.checked} cells:
               the stored coverage row and the facts present disagree. The counts above are computed from the facts.
             </p>
           )}
         </div>
       )}
-
-      {/* Foot strip (artboard 08/id="p8"): "Compare against: EU · US · ASIA · UK · UAE" left, the
-          dash convention stated right. The base-region control is the SAME control that used to sit
-          above the table — moved, not copied; its "moves that column first" explanation is now the
-          control's own title, since the artboard's strip carries the dash note in that position. */}
-      <div
-        data-audit="ops-matrix-foot"
-        style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          gap: 16,
-          flexWrap: "wrap",
-          padding: "8px 16px",
-          borderTop: "1px solid var(--line-2)",
-          background: "var(--bg)",
-          fontSize: 12,
-        }}
-      >
-        <span
-          style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}
-          title={
-            anyEnveloped
-              ? "Moves that column first; sourced numeric facts index against it — legacy free-text facts are still not indexed."
-              : "Moves that column first; values are not indexed — the stored figures are free text, not numbers."
-          }
-        >
-          <span style={{ color: "var(--ink-3)" }}>Compare against:</span>
-          {regions.map((r) => (
-            <button
-              key={r.key}
-              type="button"
-              onClick={() => setBaseRegion(baseRegion === r.key ? null : r.key)}
-              aria-pressed={baseRegion === r.key}
-              style={{
-                // Law-2 floor (docs/design/ux-laws.md #2): 24px minimum with the strip's own 6px
-                // gap supplying the clearance.
-                display: "inline-flex",
-                alignItems: "center",
-                minHeight: 24,
-                padding: "2px 8px",
-                borderRadius: 4,
-                border: "1px solid",
-                borderColor: baseRegion === r.key ? "var(--ink)" : "var(--line-1)",
-                background: baseRegion === r.key ? "var(--tag)" : "var(--card)",
-                color: "var(--ink)",
-                fontFamily: "inherit",
-                fontSize: 12,
-                fontWeight: baseRegion === r.key ? 700 : 400,
-                cursor: "pointer",
-              }}
-            >
-              {r.key}
-            </button>
-          ))}
-        </span>
-        <span style={{ color: "var(--ink-3)" }}>An empty cell = no sourced fact yet, never an estimate</span>
-      </div>
     </SectionCard>
   );
 }
 
-// ── Fact row rendering, split by envelope state ──────────────────────────────────────────────────
-// TWO components, not one branching component: the render-rule (WO-12 step 4) is "a mixed table
-// renders enveloped rows indexed and legacy rows as labelled prose" — two genuinely different
-// treatments of two genuinely different data shapes, not one component with an `if` inside that a
-// later edit could accidentally let leak across.
+// ── Panel ────────────────────────────────────────────────────────────────────────────────────────
 
-/** The artboard's Facts block for a fact that is NOT enveloped, 100% of live rows today.
- *
- *  DEFECT 1's second half (lane opsclip, train 61, 2026-09-08). Production set the whole prose
- *  block in the heavy display face at ~17px in a ~130px measure, 15 or more lines, ~370px tall,
- *  and showed no headline figure anywhere. Artboard 08 draws a headline figure in the display face
- *  at 18px over a one-line description in ORDINARY 11.5px body, with the source muted below.
- *
- *  `factHeadline` (region-grid.mjs) is the one place that decides which slot the data goes into,
- *  and its header records which columns were checked for a figure and what was found. A fact whose
- *  stored `value` is a sentence rather than a figure has no headline figure in the data: the
- *  absence convention stands in the figure's place, and the sentence is set at the description's
- *  own type where it belongs, never in Anton. Nothing is derived out of the prose.
+function dimensionLabel(d: MatrixDimension): string {
+  return typeof d.num === "number" ? `D${d.num} ${d.name}` : d.name;
+}
+
+function panelHeading(
+  region: MatrixRegion | null,
+  d: MatrixDimension,
+  grid: { byCell: Record<string, { factCount: number } | undefined> },
+  regions: MatrixRegion[]
+): string {
+  const count = region
+    ? grid.byCell[`${region.key}|${d.db}`]?.factCount ?? 0
+    : regions.reduce((sum, r) => sum + (grid.byCell[`${r.key}|${d.db}`]?.factCount ?? 0), 0);
+  const facts = count === 0 ? "no sourced fact" : `${count} sourced ${count === 1 ? "fact" : "facts"}`;
+  return `${region ? region.label : "Every region"} · ${dimensionLabel(d)} · ${facts}`;
+}
+
+/**
+ * The panel body. TWO modes, one anatomy:
+ *   single: the selected cell's facts as fact cards, capped at three.
+ *   compare: one headline card per region, stacked, each labelled with its region (the operator's
+ *             "click a row header, same panel in compare mode"). This is what replaced the
+ *             base-region control: the reader sees every region's figure at once instead of
+ *             choosing a base and re-reading the table.
  */
-function LegacyFactRow({ fact: f }: { fact: any }) {
-  const url = f.sourceUrl ?? sourceUrlFromNote(f.sourceNote);
-  const name = f.sourceName ?? sourceNameFromNote(f.sourceNote);
-  const { figure, description, prose } = factHeadline(f);
+function MatrixPanel({
+  dimension,
+  region,
+  regions,
+  cellAt,
+  profileHref,
+  onCompare,
+}: {
+  dimension: MatrixDimension;
+  region: MatrixRegion | null;
+  regions: MatrixRegion[];
+  cellAt: (regionKey: string, dimDb: string) => { factCount: number; facts: unknown[] } | null;
+  profileHref: string | null;
+  onCompare: () => void;
+}) {
+  const compare = region === null;
+  const cell = region ? cellAt(region.key, dimension.db) : null;
+  const shown = compare ? [] : ((cell?.facts ?? []) as Record<string, unknown>[]).slice(0, PANEL_FACT_CAP);
+  const remaining = compare ? 0 : Math.max(0, (cell?.factCount ?? 0) - shown.length);
+
+  // Compare mode's implied base: the first region in column order that carries an enveloped fact.
+  // `indexAgainstBase` refuses across a unit mismatch and returns null when either side is not
+  // enveloped, so an un-enveloped corpus (every live row today) simply shows no index anywhere 
+  // never a fabricated ratio.
+  const compareRows = compare
+    ? regions.map((r) => ({ region: r, fact: ((cellAt(r.key, dimension.db)?.facts ?? []) as Record<string, unknown>[])[0] ?? null }))
+    : [];
+  const baseFact = compareRows.find((x) => x.fact && isEnvelopedFact(x.fact))?.fact ?? null;
+
+  const count = compare
+    ? compareRows.reduce((s, x) => s + (cellAt(x.region.key, dimension.db)?.factCount ?? 0), 0)
+    : cell?.factCount ?? 0;
+
   return (
-    <div style={{ borderLeft: "2px solid var(--ink-2)", paddingLeft: 10, minWidth: 0 }}>
-      {figure ? (
-        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", margin: "2px 0" }}>
-          {figure}
+    <>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          justifyContent: "space-between",
+          gap: 16,
+          flexWrap: "wrap",
+          marginBottom: 10,
+        }}
+      >
+        {/* "Region · Dn Dimension · N sourced facts" (operator spec). The dimension carries the
+            weight because it is the thing the panel is about; the region and the count frame it. */}
+        <span data-audit="ops-panel-heading" style={{ fontSize: "var(--fs-125)", color: "var(--ink-3)", minWidth: 0 }}>
+          {compare ? "Every region" : region!.label}
+          {" · "}
+          <strong style={{ color: "var(--ink)", fontWeight: 700 }}>{dimensionLabel(dimension)}</strong>
+          {" · "}
+          {count === 0 ? "no sourced fact" : `${count} sourced ${count === 1 ? "fact" : "facts"}`}
+        </span>
+        <span style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
+          {!compare && (
+            <button type="button" onClick={onCompare} style={panelLink}>
+              Compare across regions
+            </button>
+          )}
+          {/* No profile row for this region means no link: an "Open profile" that goes nowhere is
+              worse than its absence. */}
+          {!compare && profileHref && (
+            <a href={profileHref} style={panelLink}>
+              Open profile &rarr;
+            </a>
+          )}
+        </span>
+      </div>
+
+      {compare ? (
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          {compareRows.map(({ region: r, fact }) => (
+            <div key={r.key}>
+              <div
+                style={{
+                  fontSize: "var(--fs-10)",
+                  fontWeight: 700,
+                  letterSpacing: "0.1em",
+                  textTransform: "uppercase",
+                  color: "var(--ink-3)",
+                  margin: "0 0 3px",
+                }}
+              >
+                {r.label}
+              </div>
+              {fact ? (
+                <MatrixFactCard fact={fact} baseFact={fact === baseFact ? null : baseFact} />
+              ) : (
+                <p style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", margin: "0 0 10px" }}>
+                  <Absence reason="not in primary source" />
+                </p>
+              )}
+            </div>
+          ))}
         </div>
+      ) : shown.length === 0 ? (
+        // The unsourced cell, selected. It says so plainly rather than rendering an empty panel:
+        // the absence token in the app's one vocabulary, then the sentence that explains it.
+        <p data-audit="ops-panel-absent" style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", margin: "0 0 10px", maxWidth: "72ch" }}>
+          <Absence reason="not in primary source" />: no producer has written {dimensionLabel(dimension)} for{" "}
+          {region!.label}. Nothing is estimated in its place.
+        </p>
       ) : (
-        // The figure slot, empty and saying so. "pending" is the closed-vocabulary reason that
-        // fits: the figure IS in the source and IS in this row's prose; what has not happened is
-        // the envelope extraction that would give the cell a comparable number (migration 267's
-        // columns, NULL on every live row, both producers kill-switched off). Logged in
-        // DEVIATION-LOG.md with the columns checked.
-        <div style={{ margin: "2px 0" }}>
-          <Absence reason="pending" />
-        </div>
+        <>
+          {shown.map((f, i) => (
+            <MatrixFactCard key={i} fact={f} baseFact={null} />
+          ))}
+          {remaining > 0 &&
+            (profileHref ? (
+              <a href={profileHref} style={{ ...panelLink, display: "inline-flex" }}>
+                {remaining} more {remaining === 1 ? "fact" : "facts"} on the profile &rarr;
+              </a>
+            ) : (
+              <span style={{ fontSize: "var(--fs-115)", color: "var(--ink-3)" }}>
+                {remaining} more {remaining === 1 ? "fact" : "facts"} not shown here
+              </span>
+            ))}
+        </>
       )}
-      {/* Artboard 08's description line: ordinary body, 11.5px, line-height 1.45, not the display
-          face, which is what turned this into a wall of bold text on production. */}
-      <div style={{ fontSize: "var(--fs-115)", color: "var(--ink)", lineHeight: 1.45, overflowWrap: "anywhere" }}>{description}</div>
-      {prose && (
-        <div style={{ fontSize: "var(--fs-115)", color: "var(--ink-2)", lineHeight: 1.45, marginTop: 3, overflowWrap: "anywhere" }}>
-          {prose}
-        </div>
-      )}
-      {/* law-2 (RD-60/F35): the source link is a real target — 24px tall with 8px clearance from
-          the description line above, which the 8px marginTop supplies. */}
-      <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
-        {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", minHeight: 24, color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
-        {f.lastUpdated ? ` · row written ${String(f.lastUpdated).slice(0, 10)}` : " · no date on row"}
-      </div>
-    </div>
+    </>
   );
 }
 
-// Origin-class accent, banded by strength (vocabularies.mjs ORIGIN_CLASS: 1 weakest .. 7 strongest) —
-// same three-tier idiom as this file's own FRESHNESS_COLOR above, so a reader who has already learned
-// "green/amber/muted = good/caution/unknown" on this page does not have to learn a second code.
-function originClassColor(strength: number | null): string {
-  if (strength === null) return "var(--color-text-muted)";
-  if (strength >= 6) return "var(--color-success)"; // verified, official
-  if (strength >= 3) return "var(--color-warning)"; // modelled, derived, partner
-  return "var(--color-error)"; // community, community-corroborated — never citable as fact
-}
-
-/** THE dual-layer render: an indexed number, in its unit, with unit/derivation/origin_class shown
- *  rather than hidden (task requirement — provenance surfaced, not suppressed), plus an index against
- *  the chosen base region when one is selected and comparable (`indexAgainstBase` — same unit, both
- *  sides enveloped, never fabricated across a unit mismatch). */
-function EnvelopedFactRow({ fact: f, baseFact, isBaseColumn }: { fact: any; baseFact: any; isBaseColumn: boolean }) {
-  const display = formatEnvelopedValue(f);
-  const originLabel = originClassLabel(f.originClass);
-  const strength = originClassStrength(f.originClass);
-  const derivLabel = derivationLabel(f.derivation);
-  const idx = !isBaseColumn ? indexAgainstBase(f, baseFact) : null;
-  const period = f.referencePeriod ? `for ${f.referencePeriod}` : f.asAtDate ? `as at ${String(f.asAtDate).slice(0, 10)}` : null;
+/**
+ * THE FACT CARD. One anatomy for both data shapes, because `factHeadline` (region-grid.mjs) is the
+ * one place that decides which slot a fact's data goes into: an enveloped row (migration 267's
+ * value_numeric + unit) yields a formatted figure, a free-text row yields its `value` as the figure
+ * when it is short and numeric, and a sentence yields no figure at all and is set as prose. Nothing
+ * is derived out of the prose and no sentence is ever promoted into the display face.
+ *
+ * SHAPE. The artboard draws a headline figure in the display face INLINE with its description on
+ * one line, then a source line below carrying an underlined link, a date, and a provenance word.
+ * The card's box is the system sheet's sourced fact card (README §0.4, and `ui/FactCard.tsx`'s own
+ * SOURCED_SHAPE): white, 2px solid ink LEFT edge, 1px `--line-1` the other three sides, radius
+ * 0 8px 8px 0.
+ *
+ * WHY NOT `ui/FactCard` ITSELF. Different anatomy, not different styling. FactCard renders a
+ * VERBATIM QUOTE under a "FACT" eyebrow with a tier chip and an "Open source" link: the detail
+ * surfaces' claim card. This card leads with a FIGURE inline with its label and has no eyebrow, no
+ * quotation marks and no tier. Wrapping a figure in FactCard's quote marks would assert it is a
+ * verbatim span from the source, which for a derived or formatted figure is false. The box geometry
+ * is shared by reading the same system-sheet values; the anatomy is this page's own, exactly as
+ * `RowTable` is the table sibling of `ListRow` rather than a variant of it.
+ */
+function MatrixFactCard({ fact: f, baseFact }: { fact: Record<string, unknown>; baseFact: Record<string, unknown> | null }) {
+  const url = (f.sourceUrl as string) ?? sourceUrlFromNote(f.sourceNote);
+  const name = (f.sourceName as string) ?? sourceNameFromNote(f.sourceNote);
+  const { figure, description, prose } = factHeadline(f);
+  const idx = baseFact ? indexAgainstBase(f, baseFact) : null;
+  // The source line's third element: the provenance word the artboard draws ("official"). It is the
+  // row's own origin class, and its derivation when one is recorded: surfaced, never suppressed
+  // (WO-12 step 4). A row carrying neither falls back to the date the row itself was written, which
+  // is what the artboard's other card shows.
+  const provenance = [originClassLabel(f.originClass), derivationLabel(f.derivation)].filter(Boolean).join(" · ");
+  const written = f.lastUpdated ? String(f.lastUpdated).slice(0, 10) : null;
 
   return (
-    <div>
-      <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{f.factLabel}</div>
-      <div style={{ fontSize: 12, color: "var(--color-text-primary)", lineHeight: 1.5, fontWeight: 600 }}>
-        {display ?? f.value}
-        {idx !== null && (
-          <span style={{ fontSize: 11, fontWeight: 400, color: "var(--color-text-secondary)", marginLeft: 6 }}>
-            (index {Math.round(idx)} vs base)
-          </span>
-        )}
-      </div>
-      {/* Provenance chips — surfaced, never suppressed. */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, margin: "3px 0 2px" }}>
-        {originLabel && (
+    <div
+      data-audit="ops-fact-card"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderLeft: "2px solid var(--ink)",
+        borderRadius: "0 8px 8px 0",
+        padding: "12px 14px",
+        margin: "0 0 10px",
+        minWidth: 0,
+      }}
+    >
+      {/* Headline figure and description on ONE line. `baseline` alignment is what makes an 18px
+          display figure and 12.5px body sit on the same line rather than the figure floating. */}
+      <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap", minWidth: 0 }}>
+        {figure ? (
           <span
-            title={`origin_class: ${f.originClass}`}
-            style={{
-              fontSize: 9.5, fontWeight: 800, letterSpacing: "0.04em", textTransform: "uppercase",
-              padding: "1px 6px", borderRadius: 4, border: "1px solid",
-              borderColor: originClassColor(strength), color: originClassColor(strength),
-              backgroundColor: `${originClassColor(strength)}14`,
-            }}
+            data-audit="ops-fact-figure"
+            style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", flexShrink: 0 }}
           >
-            {originLabel}
+            {figure}
           </span>
+        ) : (
+          // The figure slot, empty and saying so. "pending" is the vocabulary word that fits: the
+          // figure is in the source and in this row's prose; what has not happened is the envelope
+          // extraction that would make it a comparable number.
+          <Absence reason="pending" />
         )}
-        {derivLabel && (
-          <span style={{ fontSize: 10, color: "var(--color-text-muted)", alignSelf: "center" }}>{derivLabel}</span>
+        <span
+          data-audit="ops-fact-quote"
+          style={{ fontSize: "var(--fs-125)", color: "var(--ink)", lineHeight: 1.45, overflowWrap: "anywhere", minWidth: 0 }}
+        >
+          {description}
+          {prose ? (description ? `: ${prose}` : prose) : ""}
+        </span>
+        {idx !== null && (
+          <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", flexShrink: 0 }}>index {Math.round(idx)} vs base</span>
         )}
       </div>
-      <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 1 }}>
-        {f.sourceKey ? `${f.sourceKey}${f.sourceRef ? ` · ${f.sourceRef}` : ""}` : "source not linked"}
-        {period ? ` · ${period}` : ""}
+      {/* Source line: underlined link, then date, then provenance word. */}
+      <div data-audit="ops-fact-source" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
+        {name ? (
+          url ? (
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                minHeight: 24,
+                color: "var(--ink-2)",
+                textDecoration: "underline",
+                textDecorationColor: "var(--link-line)",
+              }}
+            >
+              {name}
+            </a>
+          ) : (
+            name
+          )
+        ) : (
+          "source not linked"
+        )}
+        {written ? ` · row written ${written}` : " · no date on row"}
+        {provenance ? ` · ${provenance}` : ""}
       </div>
     </div>
   );
 }
 
-// dc.html p8's own th/td: `padding:10px 12px`, hairline row rule below and column rule left, no
-// full box border, and NO width declaration anywhere, the artboard lets the table's own automatic
-// layout size the columns. That is now possible here for the first time, because the facts no
-// longer live in the region columns (see the expanded row above): a region column is sized by its
-// header label and a two-digit count, nothing else, and `overflowWrap: anywhere` keeps a long
-// dimension name inside the card rather than widening the table. The `minWidth: 190/130` floors
-// that used to sit on the header cells are gone with it.
-const cell: React.CSSProperties = {
+// ── Shared cell geometry ─────────────────────────────────────────────────────────────────────────
+// `borderCollapse: separate` (not `collapse`) is REQUIRED by the sticky first column: a collapsed
+// table shares one border between two cells, and a sticky cell painted over its neighbour then
+// loses the shared edge as it scrolls. With separate borders + zero spacing the rules are the
+// cells' own and the sticky column keeps its divider at every scroll offset.
+
+/**
+ * COLUMN FLOORS, and why a table card needs them where the old design did not.
+ *
+ * [CONFIRMED by the rendering guard, 2026-09-08, this lane's own first run] With `width: 100%` and
+ * no floor, a six-column table inside a 343px card at 375px does not scroll: it CRUSHES. The
+ * guard measured the dimension column at 21px against a 67px cell, wrapping "Regional resource
+ * availability" over TWELVE lines, one character wide, on all three operations fixtures. The old
+ * build never saw this because `.cl-ops-matrix-cards` hid the table below 640 entirely; taking that
+ * duplicate away exposed the table's real behaviour at phone widths, which is the honest result of
+ * the deletion rather than a reason to put the duplicate back.
+ *
+ * A floor is what turns "crush" into "scroll": every column keeps a width it can actually be read
+ * at, the sum exceeds the card at 375, and the inner scroller does its job with the dimension
+ * column pinned beside it. This does NOT re-create the 1440 overflow the previous lane fixed: that
+ * came from FACTS being rendered into the region columns, so each fact's prose set its column's
+ * minimum content width. The facts are in the panel now. The floors below sum to
+ * 180 + 5 x 96 = 660px, inside the card's own width at 1440, so the table fills without scrolling
+ * there and scrolls only where it must.
+ */
+const DIMENSION_COL_MIN = 180;
+const REGION_COL_MIN = 96;
+
+/** Row height 40px (operator spec). Vertical padding is 0 so the height is the height. */
+const bodyCell: React.CSSProperties = {
+  height: 40,
+  padding: "0 12px",
   borderBottom: "1px solid var(--line-3)",
-  borderLeft: "1px solid var(--line-3)",
-  padding: "10px 12px",
-  textAlign: "center",
-  verticalAlign: "top",
+  verticalAlign: "middle",
+  minWidth: REGION_COL_MIN,
+  // The safety valve for a dimension name longer than any the corpus holds. With the floor above it
+  // never fires on a real name; without the floor it was firing on every one of them.
   overflowWrap: "anywhere",
+};
+
+const headCell: React.CSSProperties = {
+  padding: "8px 12px",
+  borderBottom: "1px solid var(--line-2)",
+  verticalAlign: "bottom",
+  textAlign: "left",
+  fontWeight: 600,
+  minWidth: REGION_COL_MIN,
+  overflowWrap: "anywhere",
+};
+
+/** The sticky first column, its floor, and its 1px right divider. */
+const stickyCell: React.CSSProperties = {
+  position: "sticky",
+  left: 0,
+  zIndex: 2,
+  minWidth: DIMENSION_COL_MIN,
+  background: "var(--card)",
+  borderRight: "1px solid var(--line-2)",
+};
+
+/** Selection: tint #DCE7FB (`--selection`) with a 2px #2563EB (`--monitor`) INSET: inset rather
+ *  than a border so the 40px row height does not change when a cell is selected. */
+const SELECTED_INSET = "inset 0 0 0 2px var(--monitor)";
+
+const panelLink: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "center",
+  minHeight: 24,
+  padding: 0,
+  border: "none",
+  background: "none",
+  fontFamily: "inherit",
+  fontSize: "var(--fs-115)",
+  fontWeight: 600,
+  color: "var(--ink)",
+  textDecoration: "underline",
+  textDecorationColor: "var(--link-line)",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
 };
