@@ -42,8 +42,23 @@ async function main() {
   await mountBundle(page, bundleJs, '__mount', null);
   await page.waitForTimeout(300);
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  // AppShell's own frame is `height:100vh` with its OWN internal scroll (the nav card + content
+  // column scroll independently inside that fixed-height box) — the document body itself never
+  // grows past the viewport, so Playwright's `fullPage` screenshot (which measures body scroll
+  // height) silently truncates any mount whose real content is taller than the 1400px viewport
+  // set above. Measure the actual mounted content's height and grow the viewport to it before
+  // shooting a plain (non-fullPage) screenshot — first caught on compose-settings, whose Freight
+  // sectors 36-checkbox grid alone runs past 4000px (lane compose-other, 2026-09-08).
+  const contentHeight = await page.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    return el ? Math.ceil(el.getBoundingClientRect().height) : 1400;
+  }, `[data-audit="${mount.dataAudit || mountId.replace(/^compose-/, '')}"]`);
+  if (contentHeight > 1400) {
+    await page.setViewportSize({ width: mount.viewport || 1440, height: contentHeight + 40 });
+    await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));
+  }
   const out = join(OUT_DIR, outName);
-  await page.screenshot({ path: out, fullPage: true });
+  await page.screenshot({ path: out, fullPage: false });
   console.log(`wrote ${out}`);
   await browser.close();
 }

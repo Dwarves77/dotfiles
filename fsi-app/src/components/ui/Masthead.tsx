@@ -67,9 +67,20 @@ export interface MastheadProps {
    * "· Operator view" / "· Personal" to name whose view this is).
    */
   eyebrowSuffix?: string;
+  /**
+   * An inline callout row inside the masthead card, directly below the
+   * title/dek/command-bar row (additive, lane compose-other 2026-09-08 —
+   * dc.html p15's own "Applies workspace-wide · changes here affect every
+   * member, not just you" + "See audit log →" banner, `margin:0 16px
+   * 14px;border-left:3px solid;background:#F5F2EE`). Optional: no existing
+   * Masthead caller passes it, so every other page's masthead is
+   * unaffected. Bold leading text + trailing right-aligned link, same
+   * treatment as MembersPanel's own inline "Workspace" note.
+   */
+  notice?: { text: ReactNode; linkLabel?: string; linkHref?: string };
 }
 
-export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso }: MastheadProps) {
+export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice }: MastheadProps) {
   const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
     <header
@@ -168,6 +179,28 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         )}
       </div>
       </div>
+      {notice && (
+        <div
+          style={{
+            margin: "0 16px 16px",
+            display: "grid",
+            gridTemplateColumns: "1fr auto",
+            gap: 12,
+            alignItems: "center",
+            padding: "9px 12px",
+            borderLeft: "3px solid var(--ink-3)",
+            background: "var(--color-surface-overlay)",
+            borderRadius: "0 6px 6px 0",
+          }}
+        >
+          <span style={{ fontSize: "12.5px" }}>{notice.text}</span>
+          {notice.linkLabel && (
+            <a href={notice.linkHref ?? "#"} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>
+              {notice.linkLabel}
+            </a>
+          )}
+        </div>
+      )}
     </header>
   );
 }

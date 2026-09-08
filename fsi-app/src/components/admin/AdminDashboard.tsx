@@ -570,12 +570,20 @@ export function AdminDashboard({
       // Source registry / Provisional review / Spot-check all resolve to the
       // source review surface (SourceHealthDashboard owns provisional review +
       // recently-approved spot-check); the sub-tab scopes the operator's intent.
+      // dc.html p13's own default view (Sources / Provisional review) shows an
+      // ORGANIZATIONS card stacked directly below the source table — not only
+      // under the Workspaces section, where this card used to live exclusively
+      // (lane compose-other, 2026-09-08). Same PlateCard/OrganizationsTable, one
+      // more render site, not a duplicate implementation.
       return (
         <div style={{ display: "grid", gap: 16 }}>
           {issueFilter && (
             <IssueFilterCaption label={issueFilterLabel(issueFilter)} onClear={() => setIssueFilter(null)} />
           )}
           <SourceHealthDashboard />
+          <PlateCard title="Organizations" meta={`${orgs.length} org${orgs.length === 1 ? "" : "s"} · ${members.length} membership${members.length === 1 ? "" : "s"}`}>
+            <OrganizationsTable orgs={orgs} members={members} />
+          </PlateCard>
         </div>
       );
     }
@@ -814,6 +822,7 @@ function PlateCard({
         }}
       >
         <span
+          className="cl-admin-platecard-title"
           style={{
             fontSize: 12.5,
             fontWeight: 800,

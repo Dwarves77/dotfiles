@@ -1085,6 +1085,43 @@ window.__mount = () => {
 };
 `;
 
+// ── Settings (15) full-page composition mount ────────────────────────────────────────────────────
+// Reuses the SAME real SettingsPage the /settings route mounts (README screen 15 / dc.html p15),
+// wrapped in AppShell. Per operator ruling R9 (DEVIATION-LOG.md), this page's second-level items
+// (General/Notifications/Saved searches/Data & supersessions/Archive/Help) are ALREADY correctly
+// built as one scrolling page under a sticky SectionIndex, not the artboard's literal 300px rail —
+// that structural deviation is binding and NOT reproduced/asserted against here.
+const COMPOSE_SETTINGS_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { AppShell } from '@/components/AppShell';
+import { SettingsPage } from '@/components/pages/SettingsPage';
+import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+useWorkspaceStore.getState().setWorkspace('org-1', 'Dietl / Rockit');
+useWorkspaceStore.getState().setUserRole('owner');
+useWorkspaceStore.getState().setSectorProfile(['fine-art', 'live-events', 'luxury-goods', 'film-tv', 'automotive', 'humanitarian']);
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement(AppShell, null,
+      React.createElement('div', { 'data-audit': 'settings' },
+        React.createElement(SettingsPage, {
+          initialResources: [],
+          initialArchived: [],
+          supersessions: [],
+          userId: 'audit-user',
+          userEmail: 'jason@dietl-rockit.example',
+        }),
+      ),
+    ),
+  );
+};
+`;
+
 const COMPOSE_COMMUNITY_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -2505,5 +2542,30 @@ export const AUDIT_MOUNTS = {
       '@/lib/workspace/profile': `${SMOKE}stub-workspace-profile-account.mjs`,
     },
     apiRoutes: [...ADMIN_ISSUES_RAIL_API, ...ACCOUNT_ORG_API],
+  },
+  'compose-settings': {
+    id: 'compose-settings',
+    description: 'Full-page composition mount: AppShell + the real SettingsPage (own internal Masthead + SectionIndex), populated fixture data, README screen 15 / dc.html p15.',
+    viewport: 1440,
+    entry: COMPOSE_SETTINGS_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-settings.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser.mjs`,
+    },
+    // Playwright checks page.route handlers most-recently-registered-first, so the specific
+    // /api/workspace/bootstrap mock (usePersonalStateHydration needs a real `personalState` array,
+    // not EMPTY_API's bare `{}`) must be registered AFTER the EMPTY_API catch-all, not before.
+    apiRoutes: [
+      ...EMPTY_API,
+      {
+        urlGlob: '**/api/workspace/bootstrap',
+        handler: (route) => route.fulfill({
+          contentType: 'application/json',
+          body: JSON.stringify({ personalState: [], overrides: [] }),
+        }),
+      },
+    ],
   },
 };

@@ -163,6 +163,14 @@ export function SettingsPage({ initialResources, initialArchived, supersessions,
             scope: "settings",
             placeholder: 'Search settings — or ask "how do I change my briefing day?"',
           }}
+          notice={{
+            text: (
+              <>
+                <b>Applies workspace-wide</b> · changes here affect every member, not just you
+              </>
+            ),
+            linkLabel: "See audit log →",
+          }}
         />
       </div>
       <div style={{ padding: "16px 40px 0" }}>
