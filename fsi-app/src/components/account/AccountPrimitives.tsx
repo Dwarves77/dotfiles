@@ -115,6 +115,7 @@ export function AccountCard({
           borderBottom: "1px solid rgba(0,0,0,.08)",
           // dc.html p14 and p15 both draw this head on the card's own white, with only the
           // hairline below it. The tinted plate it used to carry is in neither artboard.
+          // (Removed independently by lanes settings60 and admin60; one copy kept at the fold.)
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
@@ -136,9 +137,14 @@ export function AccountCard({
         </span>
         {meta != null && (
           <span
+            /* dc.html p14/p15 card head meta: 10.5px / .12em / uppercase / 600,
+               one line (lane admin60, 2026-09-08, it used to render in
+               sentence case at the same size, which read as body copy). */
             style={{
               fontSize: "10.5px",
               fontWeight: 600,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
               color: "var(--color-text-muted)",
             }}
           >

@@ -368,7 +368,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
               {/* dc.html p14 illustrates "Members & roles" with Organization stacked directly
                   below in the same left column (lane compose-other, 2026-09-08) — Organization
                   keeps its own separate tab too, this is in addition to that, not instead. */}
-              <MembersPanel orgId={orgId} callerUserId={userId} />
+              <MembersPanel orgId={orgId} callerUserId={userId} callerEmail={email} />
               <OrganizationPanel orgId={orgId} />
             </>
           )}
@@ -379,45 +379,47 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {/* Stat blocks (README screen 14: "statistics are stat blocks, never band tiles" —
-              replaces the page-local StatTile, a duplicate of the shared StatBlock). Fixed
-              2x2 grid, dc.html p14's own rail width (300px), not the prior 4-across row that
-              only fit above a much wider single content column. */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 12 }}>
-            <StatTileCard>
-              <StatBlock
-                label="Sectors followed"
-                value={formatNumber(stats.sectorCount)}
-                note={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
-              />
-            </StatTileCard>
-            <StatTileCard>
-              <StatBlock
-                label="Home jurisdictions"
-                value={formatNumber(stats.jurisCount)}
-                note={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
-              />
-            </StatTileCard>
-            <StatTileCard>
-              <StatBlock
-                label="Member since"
-                value={memberSince ?? "—"}
-                note={
-                  orgName
-                    ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
-                    : memberSince
-                      ? "Not in a workspace"
-                      : "Join date not recorded"
-                }
-              />
-            </StatTileCard>
-            <StatTileCard>
-              <StatBlock
-                label="Plan"
-                value={orgPlan ? capitalize(orgPlan) : "—"}
-                note="Billing, owner only"
-              />
-            </StatTileCard>
+          {/* Stat blocks (README screen 14: "statistics are stat blocks, never band tiles").
+              dc.html p14 groups all four in ONE bordered rail card, 2x2 inside, no per-tile
+              border, the same treatment artboard 13's rail gives its Companies / Individuals /
+              Newest join / Active-this-month block. They used to render as four separate
+              bordered cards (lane admin60, 2026-09-08). */}
+          <div
+            data-audit="account-stat-card"
+            style={{
+              background: "var(--card)",
+              border: "1px solid var(--line-1)",
+              borderRadius: "var(--radius-card)",
+              boxShadow: "0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06)",
+              padding: "14px 16px",
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr",
+              gap: 14,
+              overflow: "hidden",
+            }}
+          >
+            <StatBlock
+              label="Sectors followed"
+              value={formatNumber(stats.sectorCount)}
+              note={stats.highlighted > 0 ? `${stats.highlighted} highlighted niches` : "No highlighted niches yet"}
+            />
+            <StatBlock
+              label="Home jurisdictions"
+              value={formatNumber(stats.jurisCount)}
+              note={stats.jurisLabels.length > 0 ? stats.jurisLabels.join(" · ") : "None followed yet"}
+            />
+            <StatBlock
+              label="Member since"
+              value={memberSince ?? "—"}
+              note={
+                orgName
+                  ? `${orgName}${userRole ? ` · ${userRole}` : ""}`
+                  : memberSince
+                    ? "Not in a workspace"
+                    : "Join date not recorded"
+              }
+            />
+            <StatBlock label="Plan" value={orgPlan ? capitalize(orgPlan) : "—"} note="Billing, owner only" />
           </div>
 
           {/* Admin card (dc.html p14 exact copy) — replaces the prior owner banner strip, which
@@ -442,28 +444,6 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
           <QuickLinksRail />
         </div>
       </div>
-    </div>
-  );
-}
-
-// ── Stat block card chrome ──────────────────────────────────────────────
-// Just the bordered card frame around a shared <StatBlock/> — not a second
-// stat component. Kept here (not promoted to src/components/ui/) because
-// it is pure chrome with no props beyond "which stat is inside" and admin's
-// equivalent tiles are buttons, not cards; if a third surface needs the
-// same frame it should move to a shared part then, not be copied again.
-function StatTileCard({ children, alarm = false }: { children: React.ReactNode; alarm?: boolean }) {
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderLeft: alarm ? "3px solid var(--immediate)" : "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        padding: "13px 16px",
-      }}
-    >
-      {children}
     </div>
   );
 }
