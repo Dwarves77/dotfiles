@@ -195,6 +195,12 @@ window.__mount = () => {
         React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 1, compliance: 1, client: 2, operational: 3 } })),
       React.createElement('div', { 'data-audit': 'row-unscored' },
         React.createElement(ImpactMeter, { variant: 'row', scores: null })),
+      // Lane METERFIX (2026-09-08): the PARTIALLY scored case, [0,0,0,2], the operator's own
+      // example row ("meter with one bar and 2/12"). The artboard draws no partially scored meter
+      // anywhere (all 34 clusters in dc.html p1/p2/p4/p6/p8/p11 are fully scored, lowest sum 4/12),
+      // so impactmeter.json's rows for this mount are the derived treatment, labelled as such.
+      React.createElement('div', { 'data-audit': 'row-partial' },
+        React.createElement(ImpactMeter, { variant: 'row', scores: { cost: 0, compliance: 0, client: 0, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-scored', style: { width: 380 } },
         React.createElement(ImpactMeter, { variant: 'full', scores: { cost: 1, compliance: 3, client: 1, operational: 2 } })),
       React.createElement('div', { 'data-audit': 'full-unscored', style: { width: 380 } },

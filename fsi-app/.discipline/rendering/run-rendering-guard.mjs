@@ -58,6 +58,10 @@ import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
 // that inspects the request, which is why the 401 that killed the feature in production was
 // invisible to every other leg.
 import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
+// lane METERFIX, 2026-09-08: the partially scored impact meter. Mounts the real ListRow -> real
+// ImpactMeter and measures BAR HEIGHTS at 1440 and 390, the only slot in this engine that reads
+// the meter's painted geometry, which is what the "never one lonely bar" ruling is about.
+import { runSmoke as runImpactMeterPartialSmoke } from "./smoke/impact-meter-partial-smoke.mjs";
 // lane BRIEFDATA, 2026-09-08: the WATCH WRITE against an auth-enforcing, state-keeping route stub.
 // See that module's header for the live measurement (org_watchlist: 0 rows; user_watchlist: 1 row)
 // and for why an api fixture that fulfils every request cannot prove a write path.
@@ -201,6 +205,7 @@ async function main() {
     { name: "workspace-tags", run: runWorkspaceTagsSmoke },
     { name: "watchlist-write", run: runWatchlistWriteSmoke },
     { name: "no-default-open", run: runNoDefaultOpenSmoke },
+    { name: "impact-meter-partial", run: runImpactMeterPartialSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];
