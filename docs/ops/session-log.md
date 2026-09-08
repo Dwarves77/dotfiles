@@ -14483,3 +14483,56 @@ over the base's 2100 are this lane's card rows and the five closure forbids); re
 **5983 tests, 5978 pass, 0 fail, 5 skipped** (the base's known kill-switch failure does not reproduce
 here); `next build --webpack` exit 0. Attack proofs run and reverted for A1/A3 (rule suppressed),
 A2 (three values reverted) and E4 (gradient recoloured red).
+## LANE LISTROW — UI fix round 2026-09-08, train 62, items B1-B7 and F2
+
+The one `ListRow` and everything that renders inside it. Every change is in a shared part; no page
+carries a copy, and the two ledgers that used to compose a chip of their own no longer can.
+
+- **B1** `TagChip` had ONE size, the detail header's (10.5/600, radius 4, padding 3px 8px), and the
+  list rows reused it, which is why the row chip read as a grey box against dc.html p4's much
+  smaller tag. It now has two sizes and only two, because the artboards draw two: the detail size
+  unchanged, and `variant="row"` at the artboard's 9.5/700 .06em uppercase, radius 3, #F5F2EE, no
+  border, colour #1A1A1A, padding 2px 6px (the operator's number; the artboard's 1px is logged).
+  `ListRow` renders it itself from a new `kind` prop, so `MarketIntelLedger` and `ResearchLedger`
+  hand over a string and can no longer drift. The rest of the family was swept as asked and has not
+  drifted; the measurements are in DEVIATION-LOG.
+- **B2** the row-end control was a single 44x44 element carrying `border-radius: 999px` and a 1px
+  border: the bordered circle. It is the artboard's two boxes again, a transparent borderless 44x44
+  hit target (law-2's floor untouched) holding a 28x28 glyph box, radius 6, #7A6E6C, hover #F5F2EE.
+  Fixed once in `PriorityDropdown`, which every list surface and now the dashboard mounts.
+- **B3/B4/B5** the absence model from train 61 keeps its structure and changes where each piece
+  renders: em dash in the meter's score slot beside the 30px dashed baseline, em dash in the date
+  cell, em dash in the tier cell, the empty track in the timeline cell, and the ONE small-caps
+  reason on the title cell's meta line at 10.5px. `reasonSlot` and `ImpactMeter`'s `reason` prop are
+  deleted, not left dormant; a new `Absence variant="dash"` carries the closed-vocabulary reason on
+  aria-label/title and declares itself to the guard's placeholder scan. The three surfaces the
+  operator named (dashboard "What changed", the Operations action block, the Regulations monitor
+  block) are fixed by that one change, and the side-by-sides show it.
+- **B6/B7** already correct on this base and verified rather than rebuilt: the row measures
+  `3px 56px 1fr 88px 84px 76px 40px 44px`, gap `0 14px`, min-height 56px, title 14px/600 ellipsised
+  on one line, meta 11px; the spine is 3px with the row's own padding-left at 0. The 390 rules are
+  untouched and every mobile spec stays green.
+- **F2** the dashboard's two tables already rendered through `ListRow` (F2's stated duplication
+  defect did not exist here), so nothing was rebuilt; what was missing is the control artboard 1
+  draws at the end of those rows. They now mount the same overflow control the lists do, carrying
+  the same Watch toggle, with the item's watchlist type derived by the one surface classifier the
+  row's href already uses.
+
+Evidence: every value above is an audit spec row in
+`.discipline/rendering/audit/spec/listrow.json`, `compose-01-dashboard.json` and
+`market-research-rows.json`, and each was proven by attack — the fixes reverted, the specs read red
+on exactly the reverted values (14 MISMATCH, 4 NOT BUILT, 3 forbid hits), the fixes restored, 123
+MATCH. The listrow mount gained a third row, dc.html p1's own second row (no impact, no date, no
+timeline, no tier) with the kind chip and the REAL overflow control, so B1 and B2 are measured on
+what ships rather than on a stub.
+
+**UX compliance**: this lane touched `.tsx`/`.ts` under `fsi-app/src` in eight files. One new
+interactive element exists in the product as a result: the dashboard rows' overflow control, which
+is the existing 44x44 `PriorityDropdown` shell holding the existing `WatchButton` — goal, watch an
+item from the brief; path, one tap on the row-end glyph, one tap on Watch; primary action, Watch,
+44px; feedback, the button's own optimistic state and its error path, unchanged. No control was
+built without a function behind it (ruling 1.1). `PriorityDropdown`'s trigger keeps its 44x44 box,
+its aria-label, aria-haspopup and aria-expanded; only its paint changed, so no hit target moved.
+The row's single click target is unchanged. Gates: tsc clean, fitness 0 violations, rendering guard
+PASS at every viewport including 375, `npm run audit:design` 2067 checks / 0 MISMATCH / 0 NOT BUILT,
+test suite 5967 pass 0 fail, `next build --webpack` exit 0.
