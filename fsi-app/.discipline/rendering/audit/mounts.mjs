@@ -273,11 +273,29 @@ import { LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
 import { DismissedStash } from '@/components/regulations/DismissedStash';
 import { BAND_ORDER } from '@/lib/urgency/bands';
 
+// TWO groups, the second past the six-option cap (lane railfacets, 2026-09-08, items C1/C2/C3).
+// The one-group fixture this replaced could not reach either of the two things the round's item
+// list names: a group SEPARATOR needs a second group below the first, and the "+ N more" link row
+// only exists once a group has more options than FiltersRailCard's VISIBLE_OPTIONS_CAP of 6. The
+// values are artboard 02/id="p2"'s own FILTERS card data (Mode: Air 212 / Ocean 388, Jurisdiction:
+// European Union 778 / United States 23 / United Kingdom 233 / Global 549, then the tail the
+// artboard itself collapses behind a "+ N more" row), so the audit measures the composition the
+// image draws rather than an audit-invented shape.
 const facetGroups = [
   { key: 'mode', label: 'Mode', options: [
       { value: 'air', label: 'Air', count: 212 },
       { value: 'ocean', label: 'Ocean', count: 388 },
     ], selected: 'ocean', onSelect: () => {} },
+  { key: 'jurisdiction', label: 'Jurisdiction', options: [
+      { value: 'eu', label: 'European Union', count: 778 },
+      { value: 'us', label: 'United States', count: 23 },
+      { value: 'uk', label: 'United Kingdom', count: 233 },
+      { value: 'global', label: 'Global', count: 549 },
+      { value: 'ca', label: 'Canada', count: 41 },
+      { value: 'jp', label: 'Japan', count: 37 },
+      { value: 'sg', label: 'Singapore', count: 29 },
+      { value: 'au', label: 'Australia', count: 18 },
+    ], selected: null, onSelect: () => {} },
 ];
 
 const dismissed = [

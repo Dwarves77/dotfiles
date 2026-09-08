@@ -222,6 +222,15 @@
         "font-size": "11px",
         "color": "#7A6E6C"
       }
+    },
+    {
+      "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+      "expect": {
+        "height": "24px",
+        "font-size": "12.5px"
+      }
     }
   ],
   "forbid": [
