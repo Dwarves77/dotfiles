@@ -35,6 +35,7 @@ import { Masthead } from "@/components/ui/Masthead";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { SectionRule } from "@/components/ui/SectionRule";
 import { RowTableAction } from "@/components/ui/RowTable";
+import { TabRow } from "@/components/ui/TabRow";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
@@ -100,46 +101,46 @@ interface SectionDef {
 const SECTIONS: SectionDef[] = [
   {
     name: "Workspaces",
-    sub: "Organizations, members, invitations. Per-tenant overrides and plan visibility.",
+    sub: "Organizations, members, invitations, per-tenant overrides.",
     tabs: ["Organizations"],
   },
   {
     name: "Sources",
-    sub: "Source registry, bulk add, provisional candidate review and tier classification.",
+    sub: "Registry, bulk add, provisional review, tier classification.",
     // Provisional review leads (dc.html p13: "Provisional review · Source registry · Bulk add ·
     // Tier disagreements · Spot-check") — it is the actionable queue (489 pending), not an
     // alphabetical/creation-order list.
     tabs: [
       "Provisional review",
       "Source registry",
-      "Bulk add sources",
+      "Bulk add",
       "Tier disagreements",
       "Spot-check",
     ],
   },
   {
     name: "Ingest",
-    sub: "Staged updates, flags & rejections (combined), regulatory scan scheduling.",
+    sub: "Staged updates, flags & rejections, scan scheduling.",
     tabs: ["Flags & rejections", "Staged updates", "Regulatory scan", "Corpus turns"],
   },
   {
     name: "Coverage",
-    sub: "Jurisdiction review, coverage matrix, gap analysis, the dual-verified catalogue.",
+    sub: "Jurisdiction review, coverage matrix, gap analysis.",
     tabs: ["Jurisdiction review", "Coverage matrix", "Catalogue"],
   },
   {
     name: "Research pipeline",
-    sub: "Machine-pipeline visibility — draft items and their machine-gated status (moved from customer-facing /research per design rebuild).",
+    sub: "Machine-gated drafts and their status.",
     tabs: ["Pipeline"],
   },
   {
     name: "Community pickups",
-    sub: "High-engagement community posts pending promotion to platform intelligence.",
+    sub: "High-engagement posts pending promotion.",
     tabs: ["Pending pickups"],
   },
   {
     name: "Runtime",
-    sub: "First-party error tracking (server + client), the modelling-constant assumption register, and platform observability.",
+    sub: "First-party error tracking, assumption register.",
     tabs: ["Errors", "Assumptions"],
   },
 ];
@@ -335,6 +336,34 @@ export function AdminDashboard({
 
   const mtd = `$${(initialMtdSpendUsd || 0).toFixed(2)}`;
 
+  // dc.html p13's own sub-tab labels carry their count as inline "· N" text
+  // ("Provisional review · 489"), not a red pill; a tab with no live count
+  // accessor renders bare rather than a fabricated zero.
+  const subNav = (placement: "page" | "card-head") => (
+    <TabRow
+      ariaLabel={`${section} views`}
+      placement={placement}
+      semantics="tablist"
+      tabs={activeSection.tabs.map((t) => {
+        const count = subTabCount(t);
+        return {
+          key: t,
+          label: count !== null ? `${t} · ${formatNumber(count)}` : t,
+          active: t === sub,
+          onClick: () => {
+            setSub(t);
+            setIssueFilter(null);
+          },
+        };
+      })}
+    />
+  );
+
+  // The provisional card is the Sources body for exactly these two sub-tabs
+  // (the same condition the setActiveView effect above uses).
+  const tabsInCardHead = section === "Sources" && (sub === "Provisional review" || sub === "Spot-check");
+
+
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-background)" }}>
       <style>{`
@@ -430,65 +459,16 @@ export function AdminDashboard({
               </Link>
             </div>
 
-            {/* Sub-nav */}
-            <div
-              role="tablist"
-              aria-label={`${section} views`}
-              style={{
-                display: "flex",
-                gap: 2,
-                borderBottom: "1px solid var(--color-border)",
-                margin: "0 0 18px",
-                flexWrap: "wrap",
-              }}
-            >
-              {activeSection.tabs.map((t) => {
-                const on = t === sub;
-                const count = subTabCount(t);
-                return (
-                  <button
-                    key={t}
-                    type="button"
-                    role="tab"
-                    aria-selected={on}
-                    onClick={() => {
-                      setSub(t);
-                      setIssueFilter(null);
-                    }}
-                    style={{
-                      fontFamily: "inherit",
-                      fontSize: 12.5,
-                      fontWeight: on ? 800 : 600,
-                      padding: "10px 16px",
-                      border: "none",
-                      borderBottom: on ? "3px solid var(--color-primary)" : "3px solid transparent",
-                      background: "transparent",
-                      color: on ? "var(--text)" : "var(--text-2)",
-                      cursor: "pointer",
-                    }}
-                  >
-                    {t}
-                    {count !== null && (
-                      <span
-                        style={{
-                          marginLeft: 7,
-                          fontSize: 10,
-                          fontWeight: 800,
-                          padding: "1px 7px",
-                          borderRadius: 999,
-                          background: "var(--critical-bg)",
-                          color: "var(--sev-critical)",
-                          border: "1px solid var(--critical-bd)",
-                          fontVariantNumeric: "tabular-nums",
-                        }}
-                      >
-                        {formatNumber(count)}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            {/* Sub-nav.
+                dc.html p13 draws the Sources sub-tab row INSIDE the
+                "SOURCES · PROVISIONAL REVIEW" card head, on one line, with its
+                counts as inline "· N" text. Where that card is the section
+                body (Sources / Provisional review and Spot-check) the row is
+                passed into it via `headTabs` and NOT rendered here, so there is
+                exactly one row on the page either way. Every other section's
+                body has no artboard, so its row keeps the page-level placement.
+                Lane admin60, 2026-09-08. */}
+            {!tabsInCardHead && <div style={{ margin: "0 0 18px" }}>{subNav("page")}</div>}
 
             {/* Section body */}
             {renderBody(section, sub)}
@@ -560,7 +540,7 @@ export function AdminDashboard({
 
     // Sources
     if (sec === "Sources") {
-      if (tab === "Bulk add sources") return <BulkImportView />;
+      if (tab === "Bulk add") return <BulkImportView />;
       if (tab === "Tier disagreements") return <TierOpinionDisagreementsView />;
       // Source registry / Provisional review / Spot-check all resolve to the
       // source review surface (SourceHealthDashboard owns provisional review +
@@ -576,6 +556,7 @@ export function AdminDashboard({
             <IssueFilterCaption label={issueFilterLabel(issueFilter)} onClear={() => setIssueFilter(null)} />
           )}
           <SourceHealthDashboard
+            headTabs={tabsInCardHead ? subNav("card-head") : undefined}
             stagedUpdatesCount={stagedUpdates.length}
             onOpenQueue={() => {
               setSection("Ingest");
@@ -608,7 +589,7 @@ export function AdminDashboard({
             onAction={(action) => {
               if (action.kind === "bulk-add") {
                 setSection("Sources");
-                setSub("Bulk add sources");
+                setSub("Bulk add");
                 setIssueFilter(`coverage:${action.jurisdictionIso}`);
               }
             }}
@@ -793,6 +774,14 @@ export function AdminDashboard({
 
 // ── Small shared presentational helpers ─────────────────────────────────────
 
+/**
+ * The admin section card. dc.html p13's ORGANIZATIONS card verbatim: the
+ * graduated SectionRule cap (ruling 5.1), an Anton 20px uppercase title and a
+ * 10.5px / .12em small-caps right meta on one baseline row, a hairline under
+ * the head, and the body flush to the card edges so a RowTable's own 16px
+ * gutter is the only one. Lane admin60 (2026-09-08) replaced the 12.5px bold
+ * plate header this used to draw, which matched no artboard head on any page.
+ */
 function PlateCard({
   title,
   meta,
@@ -807,34 +796,48 @@ function PlateCard({
       style={{
         background: "var(--surface)",
         border: "1px solid var(--color-border)",
-        borderRadius: 8,
+        borderRadius: "var(--radius-card)",
         overflow: "hidden",
       }}
     >
+      <SectionRule />
       <div
         style={{
-          padding: "12px 20px",
-          background: "var(--raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
-          gap: 12,
+          gap: 16,
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid var(--line-2)",
         }}
       >
         <span
           className="cl-admin-platecard-title"
           style={{
-            fontSize: 12.5,
-            fontWeight: 800,
-            letterSpacing: "0.05em",
+            fontFamily: "var(--font-display)",
+            fontSize: 20,
+            letterSpacing: "0.04em",
             textTransform: "uppercase",
-            color: "var(--text)",
+            whiteSpace: "nowrap",
+            color: "var(--ink)",
           }}
         >
           {title}
         </span>
-        {meta && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{meta}</span>}
+        {meta && (
+          <span
+            style={{
+              fontSize: "var(--fs-105)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              fontWeight: 600,
+              color: "var(--ink-3)",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {meta}
+          </span>
+        )}
       </div>
       {children}
     </div>

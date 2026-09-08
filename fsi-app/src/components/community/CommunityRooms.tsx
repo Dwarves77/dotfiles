@@ -3,10 +3,14 @@
 /**
  * CommunityRooms — redesign TEMPLATE 11 client surface.
  *
- * Binds to "Pages - 11 Community": regional rooms grid → selected-room panel
- * (header + Join/Leave, "Live in this region" ledger, Discussions composer +
- * thread cards) → rail (Who's here, Why post here → Admin pickups, Verifier
- * sign-off, Vertical groups pending frame).
+ * Composed against artboard 12 (dc.html id="p12", lane community60 2026-09-08).
+ * Content column: the room tile grid (4 fixed columns, the dashed "+ New vertical
+ * group" tile as its 8th slot) → the ROOM INDEX card (the artboard's JURIS. /
+ * DISCUSSION / REPLIES / LAST ACTIVITY table on the shared RowTable, under an
+ * Anton head, over the foot strip) → the NEW POST card. Rail: Who's here,
+ * Verifier sign-off, Why post here. Two features artboard 12 has no region for
+ * keep R7 placement: the room header + "Live in this region" card after the last
+ * designed region of the content column, and Vertical groups last in the rail.
  *
  * Data-bearing values arrive computed from the page (no mock snapshots).
  * Everything here is presentation + interaction against the existing
@@ -30,12 +34,26 @@
  * tokens — no raw hex in this component.
  */
 
-import { useMemo, useState } from "react";
-import { formatRelativeCompact } from "@/lib/relative-time";
+import { useMemo, useRef, useState } from "react";
+import { formatRelative } from "@/lib/relative-time";
 import Link from "next/link";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import type { RoomKey } from "@/lib/community/rooms";
 import { isRoomMember } from "@/lib/community/rooms";
+import { nowFrom } from "@/lib/render-now";
+import { formatNumber } from "@/lib/format";
+import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
+import { Button } from "@/components/ui/Button";
+import { CardFoot } from "@/components/ui/CardFoot";
+import { SectionHeading } from "@/components/ui/SectionHeading";
+import { SectionRule } from "@/components/ui/SectionRule";
+import {
+  RowTable,
+  RowTableOverflow,
+  type RowTableColumn,
+  type RowTableOverflowItem,
+  type RowTableRowSpec,
+} from "@/components/ui/RowTable";
 
 export interface LiveItemVM {
   id: string;
@@ -58,6 +76,10 @@ export interface ThreadVM {
   lastActivityAt: string;
   referencedItemIds: string[];
   authorName: string;
+  /** The author's organization name, when the page could resolve it. Artboard 12
+   *  draws it after the author ("Opened by A. Weiss · Dietl"); omitted when the
+   *  author has no org row the caller can read. */
+  authorOrg?: string | null;
   isYou: boolean;
   isOwner: boolean;
   /** Titles+hrefs for citations attached this session (optimistic display). */
@@ -120,8 +142,10 @@ interface CommunityRoomsProps {
   currentUserIsOwner: boolean;
   currentUserIsVerifier: boolean;
   verifierStatus: string;
-  networkMemberCount: number;
   pendingPickups: number;
+  /** The server-decided instant (src/lib/render-now.ts), so the relative-time cells
+   *  render the same string in the SSR pass and in hydration. */
+  nowIso?: string;
   /** Member-created vertical groups (cross-regional, cargo-vertical). */
   verticalGroups: VerticalGroupVM[];
   /** Cargo-vertical options for the create picker: {id, label}. */
@@ -151,6 +175,15 @@ const CARD: React.CSSProperties = {
   borderRadius: 8,
   overflow: "hidden",
 };
+/** The rail-card eyebrow, dc.html p12 verbatim: 10.5px / .12em / uppercase / 700 / --ink-3. */
+const RAIL_EYEBROW: React.CSSProperties = {
+  fontSize: "var(--fs-105)",
+  letterSpacing: "0.12em",
+  textTransform: "uppercase",
+  color: "var(--ink-3)",
+  fontWeight: 700,
+  margin: 0,
+};
 const PLATE_HEAD: React.CSSProperties = {
   background: "var(--color-surface-raised)",
   borderBottom: "1px solid var(--border-sub)",
@@ -164,8 +197,8 @@ export function CommunityRooms({
   currentUserIsOwner,
   currentUserIsVerifier,
   verifierStatus,
-  networkMemberCount,
   pendingPickups,
+  nowIso,
   verticalGroups,
   verticalOptions,
 }: CommunityRoomsProps) {
@@ -185,6 +218,20 @@ export function CommunityRooms({
   const [citeOpen, setCiteOpen] = useState<Record<string, boolean>>({});
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
+  /** The row whose disclosure is open. Artboard 12's table is the room INDEX (R8);
+   *  a row expands in place, the thread page is not built. */
+  const [openThreadId, setOpenThreadId] = useState<string | null>(null);
+  const composerRef = useRef<HTMLTextAreaElement | null>(null);
+
+  function openThread(id: string, action?: "reply" | "cite") {
+    setOpenThreadId((cur) => (cur === id && !action ? null : id));
+    if (action === "reply") setReplyOpen((p) => ({ ...p, [id]: true }));
+    if (action === "cite") setCiteOpen((p) => ({ ...p, [id]: true }));
+  }
+
+  function focusComposer() {
+    composerRef.current?.focus();
+  }
 
   const selected = roomState.find((r) => r.key === selectedKey) ?? roomState[0];
 
@@ -265,6 +312,7 @@ export function CommunityRooms({
         lastActivityAt: post.created_at ?? new Date().toISOString(),
         referencedItemIds: [],
         authorName: currentUserName,
+        authorOrg: null,
         isYou: true,
         isOwner: currentUserIsOwner,
         signedOff: false,
@@ -477,8 +525,248 @@ export function CommunityRooms({
   }
 
   // ── render ──
+  //
+  // Region order is artboard 12's (dc.html id="p12"), top to bottom in the
+  // content column: room tile grid -> the ROOM INDEX (the artboard's table:
+  // JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY / overflow, under an Anton
+  // head, over a foot strip) -> the NEW POST card. The rail is Who's here,
+  // Verifier sign-off, Why post here, in that order.
+  //
+  // Two app features the artboard has no region for keep R7 placement (leave
+  // as is, move to after the last designed region of the column): the room
+  // header with Join/leave plus "Live in this region" sits after NEW POST, and
+  // the Vertical groups card sits last in the rail.
+  const now = nowFrom(nowIso);
+  const roomName = selected ? selected.name : "";
+  const threads = selected ? selected.threads : [];
+
+  const columns: RowTableColumn[] = [
+    { label: "Juris.", width: "64px" },
+    { label: "Discussion", width: "minmax(0,1fr)" },
+    { label: "Replies", width: "96px" },
+    { label: "Last activity", width: "120px" },
+    { label: "", width: "44px" },
+  ];
+
+  function overflowItems(t: ThreadVM): RowTableOverflowItem[] {
+    const items: RowTableOverflowItem[] = [
+      { key: "reply", label: "Reply", onSelect: () => openThread(t.id, "reply") },
+    ];
+    if (t.isYou && selected && selected.liveItems.length > 0) {
+      items.push({ key: "cite", label: "Cite source", onSelect: () => openThread(t.id, "cite") });
+    }
+    if (!t.signedOff && t.signoff?.status !== "pending") {
+      items.push({
+        key: "signoff",
+        label: t.signoff?.status === "declined" ? "Request sign-off again" : "Request verifier sign-off",
+        onSelect: () => requestSignoff(t),
+      });
+    }
+    if (t.isYou) {
+      items.push({ key: "delete", label: "Delete discussion", onSelect: () => doDelete(t) });
+    }
+    return items;
+  }
+
+  const rows: RowTableRowSpec[] = threads.map((t) => ({
+    key: t.id,
+    id: `post-${t.id}`,
+    activateLabel: `Open ${t.title}`,
+    onActivate: () => openThread(t.id),
+    cells: [
+      <span
+        key="j"
+        style={{
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.06em",
+          color: "var(--ink-2)",
+        }}
+      >
+        {roomName.toUpperCase()}
+      </span>,
+      <span key="d" style={{ minWidth: 0, display: "block" }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: 14,
+            fontWeight: 600,
+            lineHeight: 1.3,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            color: "var(--ink)",
+          }}
+        >
+          {t.title}
+        </span>
+        <span
+          style={{
+            display: "flex",
+            gap: 8,
+            alignItems: "center",
+            fontSize: 11,
+            color: "var(--ink-3)",
+            marginTop: 2,
+            whiteSpace: "nowrap",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {/* The artboard draws a QUESTION / PRACTICE / MARKET / TEMPLATE tag chip here.
+              community_posts carries no kind/topic/tag column (migration 030), so the
+              Absence convention stands in its place rather than a fabricated label. */}
+          <Absence reason="connect data" />
+          <span>
+            Opened by {t.isYou ? currentUserName : t.authorName}
+            {t.authorOrg ? ` · ${t.authorOrg}` : ""}
+          </span>
+          {t.signedOff && <SignedOffChip />}
+        </span>
+      </span>,
+      <span key="r" style={{ fontVariantNumeric: "tabular-nums", color: "var(--ink)" }}>
+        <b>{t.replyCount}</b>{" "}
+        <span style={{ color: "var(--ink-3)" }}>
+          {t.replyCount === 1 ? "reply" : "replies"}
+        </span>
+      </span>,
+      <span key="l" style={{ fontSize: 11.5, color: "var(--ink-3)", whiteSpace: "nowrap" }}>
+        {formatRelative(new Date(t.lastActivityAt), now)}
+      </span>,
+      <RowTableOverflow key="o" label={`Actions for ${t.title}`} items={overflowItems(t)} />,
+    ],
+    below: openThreadId === t.id ? threadDisclosure(t) : null,
+  }));
+
+  /** The row's own disclosure: the thread body and the actions the overflow menu opens.
+   *  R8 holds — the thread PAGE is not built; this is the row expanding in place. */
+  function threadDisclosure(t: ThreadVM) {
+    return (
+      <div style={{ padding: "2px 0 0" }}>
+        {t.body && (
+          <p style={{ fontSize: 12.5, lineHeight: 1.6, color: "var(--ink-2)", margin: "0 0 8px" }}>
+            {t.body}
+          </p>
+        )}
+        {(t.citedLive?.length ?? 0) > 0 && (
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 8px" }}>
+            {t.citedLive!.map((c, i) => (
+              <Link
+                key={i}
+                href={c.href}
+                style={{
+                  fontSize: 10,
+                  fontWeight: 700,
+                  color: "var(--accent-blue)",
+                  border: "1px solid var(--accent-blue)",
+                  borderRadius: 4,
+                  padding: "2px 7px",
+                  textDecoration: "none",
+                }}
+              >
+                Cited: {c.title.slice(0, 40)}
+              </Link>
+            ))}
+          </div>
+        )}
+        {t.referencedItemIds.length > (t.citedLive?.length ?? 0) && (
+          <p style={{ fontSize: 10, color: "var(--ink-3)", margin: "0 0 8px" }}>
+            {t.referencedItemIds.length} cited source
+            {t.referencedItemIds.length > 1 ? "s" : ""}
+          </p>
+        )}
+        {t.signoff?.status === "pending" && (
+          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--epistemic-signal)", margin: "0 0 8px" }}>
+            Sign-off requested{t.signoff.isMine ? "" : ` · ${t.signoff.requesterName}`} · pending
+          </p>
+        )}
+        {t.signoff?.status === "declined" && (
+          <p style={{ fontSize: 10.5, fontWeight: 700, color: "var(--sev-moderate)", margin: "0 0 8px" }}>
+            Sign-off declined
+          </p>
+        )}
+        {replyOpen[t.id] && (
+          <div style={{ display: "flex", gap: 8, margin: "0 0 8px" }} onClick={(e) => e.stopPropagation()}>
+            <input
+              value={replyDraft[t.id] ?? ""}
+              onChange={(e) => setReplyDraft((p) => ({ ...p, [t.id]: e.target.value }))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  doReply(t);
+                }
+              }}
+              aria-label="Write a reply"
+              placeholder="Write a reply"
+              style={{
+                flex: 1,
+                fontFamily: "inherit",
+                fontSize: 12.5,
+                minHeight: 44,
+                padding: "8px 12px",
+                border: "1px solid var(--line-1)",
+                borderRadius: 6,
+                outline: "none",
+                background: "var(--page)",
+                color: "var(--ink)",
+              }}
+            />
+            <Button
+              className="min-h-[44px]"
+              variant="primary"
+              onClick={() => doReply(t)}
+              disabled={busy || !(replyDraft[t.id] ?? "").trim()}
+            >
+              Reply
+            </Button>
+          </div>
+        )}
+        {citeOpen[t.id] && selected && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              margin: "0 0 8px",
+              padding: "10px 12px",
+              border: "1px solid var(--line-3)",
+              borderRadius: 6,
+              background: "var(--page)",
+            }}
+          >
+            <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Cite a live item in this region</p>
+            {selected.liveItems.map((li) => (
+              <button
+                key={li.id}
+                type="button"
+                onClick={() => citeSource(t, li)}
+                disabled={busy || t.referencedItemIds.includes(li.id)}
+                style={{
+                  display: "block",
+                  width: "100%",
+                  minHeight: 44,
+                  textAlign: "left",
+                  fontFamily: "inherit",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "var(--ink)",
+                  background: "none",
+                  border: "none",
+                  padding: "6px 0",
+                  cursor: t.referencedItemIds.includes(li.id) ? "default" : "pointer",
+                  opacity: t.referencedItemIds.includes(li.id) ? 0.5 : 1,
+                }}
+              >
+                {t.referencedItemIds.includes(li.id) ? "Attached · " : "Cite · "}
+                {li.title}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
-    <div style={{ padding: "28px 36px 80px" }}>
+    <div style={{ padding: "20px 40px 40px" }} data-audit="community-body">
       {notice && (
         <div
           role="status"
@@ -498,877 +786,474 @@ export function CommunityRooms({
         </div>
       )}
 
-      {/* ══ Region rooms header ══ */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "baseline",
-          justifyContent: "space-between",
-          gap: 12,
-          flexWrap: "wrap",
-          borderBottom: "2px solid var(--text)",
-          padding: "0 0 8px",
-          margin: "0 0 14px",
-        }}
-      >
-        <h2
-          style={{
-            fontFamily: "var(--font-display)",
-            fontWeight: 400,
-            fontSize: 26,
-            letterSpacing: "0.02em",
-            textTransform: "uppercase",
-            margin: 0,
-            color: "var(--text)",
-          }}
-        >
-          Regional rooms
-        </h2>
-        {seeded && (
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)" }}>
-            <b style={{ color: "var(--text)" }}>{totalItems} active items</b> across{" "}
-            {roomState.length} rooms · you&rsquo;re in{" "}
-            <b style={{ color: "var(--color-primary)" }}>{yourRoomCount}</b>
-          </span>
-        )}
-      </div>
-
       {!seeded ? (
         <NotSeededState pendingPickups={pendingPickups} verifierStatus={verifierStatus} />
-      ) : (
-        <>
-          {/* ══ Rooms grid — fixed 4 columns (dc.html p12: grid-template-columns:repeat(4,1fr)),
-              never auto-fit: auto-fit's minmax(165px,1fr) packed 6 tiles per row at 1440px width,
-              truncating theme text ("Trans...", "Emissi...") the artboard's 4-column layout never
-              needs to. */}
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(4,1fr)",
-              gap: 12,
-              margin: "0 0 22px",
-            }}
-          >
-            {roomState.map((r) => {
-              const isSel = r.key === selectedKey;
-              // P1 fix (2026-09-06): the tile chip must read the SAME source of
-              // truth (actual membership) the room panel's Join/Leave button
-              // reads — see isRoomMember in rooms.ts for why `youHere` alone
-              // cannot stand in for it.
-              const here = isRoomMember(r);
-              const t = r.threads.length;
-              return (
-                <button
-                  key={r.key}
-                  onClick={() => {
-                    setSelectedKey(r.key);
-                    setDraft("");
-                  }}
-                  aria-pressed={isSel}
-                  style={{
-                    fontFamily: "inherit",
-                    cursor: "pointer",
-                    textAlign: "left",
-                    width: "100%",
-                    background: isSel ? "var(--room-selected-bg)" : "var(--surface)",
-                    borderRadius: 8,
-                    padding: "12px 14px",
-                    border: isSel
-                      ? "2px solid var(--color-primary)"
-                      : "1px solid var(--color-border)",
-                  }}
-                >
-                  <span
+      ) : selected ? (
+        <div
+          className="cl-community-grid"
+          style={{
+            display: "grid",
+            gridTemplateColumns: "minmax(0,1fr) 300px",
+            gap: 28,
+            alignItems: "start",
+          }}
+        >
+          <style>{`
+            @media (max-width: 1100px) {
+              .cl-community-grid { grid-template-columns: minmax(0,1fr) !important; }
+            }
+          `}</style>
+
+          {/* ══ Content column ══ */}
+          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: 18 }}>
+            {/* Room tiles — fixed 4 columns (dc.html p12: grid-template-columns:repeat(4,1fr)),
+                never auto-fit: auto-fit's minmax(165px,1fr) packed 6 tiles per row at 1440px
+                and truncated the theme text the artboard's 4-column layout never truncates. */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 12 }}>
+              {roomState.map((r) => {
+                const isSel = r.key === selectedKey;
+                // The tile chip reads ACTUAL membership, the same source of truth the room
+                // panel's Join/leave button reads (isRoomMember in rooms.ts) — `youHere` is a
+                // jurisdiction hint, not a membership claim.
+                const here = isRoomMember(r);
+                const t = r.threads.length;
+                const last = r.threads[0]?.lastActivityAt;
+                return (
+                  <button
+                    key={r.key}
+                    onClick={() => {
+                      setSelectedKey(r.key);
+                      setDraft("");
+                      setOpenThreadId(null);
+                    }}
+                    aria-pressed={isSel}
                     style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: 8,
+                      fontFamily: "inherit",
+                      cursor: "pointer",
+                      textAlign: "left",
+                      width: "100%",
+                      background: "var(--card)",
+                      borderRadius: 10,
+                      padding: "12px 14px",
+                      overflow: "hidden",
+                      border: isSel ? "1px solid var(--brand)" : "1px solid var(--line-1)",
+                      boxShadow: isSel
+                        ? undefined
+                        : "0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06)",
                     }}
                   >
                     <span
                       style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 15,
-                        letterSpacing: "0.03em",
-                        textTransform: "uppercase",
-                        color: "var(--text)",
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "baseline",
+                        gap: 8,
                       }}
                     >
-                      {r.short}
-                    </span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 20,
-                        color: HUE_VAR[r.hue],
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {r.itemCountKnown ? r.itemCount : "—"}
-                    </span>
-                  </span>
-                  {r.themes.length > 0 && (
-                    <p
-                      style={{
-                        fontSize: 10,
-                        color: "var(--color-text-secondary)",
-                        margin: "4px 0 0",
-                      }}
-                    >
-                      {r.themes.join(" · ")}
-                    </p>
-                  )}
-                  <span
-                    style={{
-                      display: "flex",
-                      gap: 6,
-                      alignItems: "center",
-                      margin: "8px 0 0",
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    {here && <YoureHereChip />}
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--color-text-muted)" }}>
-                      {t === 0 ? "no discussions yet" : `${t} discussion${t > 1 ? "s" : ""}`}
-                    </span>
-                  </span>
-                </button>
-              );
-            })}
-            {/* Dashed "+ New vertical group" tile, the grid's own 8th slot (dc.html p12) — same
-                create-group action the rail's "Vertical groups" card's own "+ New group" trigger
-                opens, not a second implementation. */}
-            <button
-              type="button"
-              onClick={() => setCreateOpen(true)}
-              style={{
-                fontFamily: "inherit",
-                cursor: "pointer",
-                background: "transparent",
-                borderRadius: 8,
-                padding: "12px 14px",
-                border: "1px dashed var(--color-border-strong, rgba(0,0,0,.25))",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 12,
-                fontWeight: 600,
-                color: "var(--color-text-secondary)",
-                minHeight: 44,
-              }}
-            >
-              + New vertical group
-            </button>
-          </div>
-
-          {/* ══ Selected room ══ */}
-          {selected && (
-            <div
-              className="cl-community-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "minmax(0,1fr) 300px",
-                gap: 18,
-                alignItems: "start",
-              }}
-            >
-              <style>{`
-                @media (max-width: 1100px) {
-                  .cl-community-grid { grid-template-columns: minmax(0,1fr) !important; }
-                }
-              `}</style>
-
-              {/* Left column */}
-              <div style={{ minWidth: 0 }}>
-                {/* Room header */}
-                <div style={{ ...CARD, margin: "0 0 14px" }}>
-                  <div
-                    style={{
-                      ...PLATE_HEAD,
-                      padding: "14px 20px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      gap: 14,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <div>
-                      <p
+                      <span
                         style={{
-                          fontFamily: "var(--font-display)",
-                          fontSize: 22,
-                          letterSpacing: "0.02em",
+                          fontSize: 11,
+                          letterSpacing: "0.1em",
                           textTransform: "uppercase",
-                          margin: 0,
-                          color: "var(--text)",
+                          fontWeight: 800,
+                          color: "var(--ink)",
                         }}
                       >
-                        {selected.name}
-                      </p>
-                      <p style={{ fontSize: 11, color: "var(--color-text-secondary)", margin: "3px 0 0" }}>
-                        {selected.itemCountKnown
-                          ? `${selected.itemCount} active ${selected.itemCount === 1 ? "item" : "items"} in this region`
-                          : "Ledger item count pending"}
-                        {" · "}
-                        {selected.threads.length === 0
-                          ? "no discussions yet"
-                          : `${selected.threads.length} discussion${selected.threads.length > 1 ? "s" : ""}`}
-                      </p>
-                    </div>
-                    <button
-                      onClick={toggleJoin}
-                      disabled={busy || !selected.groupId}
-                      style={
-                        selected.joined
-                          ? {
-                              fontFamily: "inherit",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              padding: "10px 18px",
-                              borderRadius: 6,
-                              border: "1px solid var(--color-border-strong)",
-                              background: "var(--surface)",
-                              color: "var(--text)",
-                              cursor: busy ? "wait" : "pointer",
-                              whiteSpace: "nowrap",
-                            }
-                          : {
-                              fontFamily: "inherit",
-                              fontSize: 12,
-                              fontWeight: 800,
-                              padding: "10px 18px",
-                              borderRadius: 6,
-                              border: "1px solid var(--color-primary)",
-                              background: "var(--color-primary)",
-                              color: "var(--color-text-inverse)",
-                              cursor: busy ? "wait" : "pointer",
-                              whiteSpace: "nowrap",
-                            }
-                      }
+                        {r.name}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: 18,
+                          color: HUE_VAR[r.hue],
+                          fontVariantNumeric: "tabular-nums",
+                        }}
+                      >
+                        {r.itemCountKnown ? formatNumber(r.itemCount) : "—"}
+                      </span>
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 11,
+                        color: "var(--ink-2)",
+                        marginTop: 4,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
                     >
-                      {selected.joined ? "Joined · leave room" : "Join room"}
-                    </button>
-                  </div>
+                      {r.themes.length > 0 ? r.themes.join(" · ") : "—"}
+                    </span>
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: 10,
+                        color: "var(--ink-3)",
+                        marginTop: 6,
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {here && <b style={{ color: "var(--ink)" }}>Joined</b>}
+                      {here && " · "}
+                      {t === 0
+                        ? "no discussions yet"
+                        : `${t} discussion${t > 1 ? "s" : ""}${last ? ` · ${formatRelative(new Date(last), now)}` : ""}`}
+                    </span>
+                  </button>
+                );
+              })}
+              {/* The dashed "+ New vertical group" tile is the grid's own 8th slot (dc.html p12);
+                  same create-group action the rail's Vertical groups card opens, one handler. */}
+              <button
+                type="button"
+                onClick={() => setCreateOpen(true)}
+                style={{
+                  fontFamily: "inherit",
+                  cursor: "pointer",
+                  background: "transparent",
+                  borderRadius: 10,
+                  padding: "12px 14px",
+                  border: "1px dashed rgba(0,0,0,.25)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 600,
+                  color: "var(--ink-2)",
+                  minHeight: 44,
+                }}
+              >
+                + New vertical group
+              </button>
+            </div>
 
-                  {/* Live in this region */}
-                  <div style={{ padding: "14px 20px" }}>
-                    <p style={{ ...EYEBROW, margin: "0 0 10px" }}>
-                      Live in this region · from the ledger
-                    </p>
-                    {selected.liveItems.length === 0 ? (
-                      <p style={{ fontSize: 12, color: "var(--color-text-muted)", margin: 0 }}>
-                        &mdash; no verified ledger items tagged to this region yet.
-                      </p>
-                    ) : (
-                      selected.liveItems.map((li) => (
-                        <Link
-                          key={li.id}
-                          href={li.href}
+            {/* ══ Room index — artboard 12's table ══ */}
+            <div style={CARD} data-audit="room-index">
+              <SectionRule />
+              <SectionHeading
+                title={`${roomName} room`}
+                aside={`${threads.length} discussion${threads.length === 1 ? "" : "s"} · ${threads.length} shown · ${selected.roster.length} member${selected.roster.length === 1 ? "" : "s"} here`}
+              />
+              {threads.length === 0 ? (
+                <p
+                  style={{
+                    fontSize: 12,
+                    color: "var(--ink-2)",
+                    lineHeight: 1.6,
+                    margin: 0,
+                    padding: "0 16px 14px",
+                  }}
+                >
+                  Be first in the {roomName} room. No discussions here yet — post what you saw on
+                  the ground this week.
+                </p>
+              ) : (
+                <RowTable
+                  columns={columns}
+                  rows={rows}
+                  metrics={{ paddingLeft: 14, rowMinHeight: 56, ruleAfterLastRow: true }}
+                />
+              )}
+              <CardFoot
+                left="Threads reference ledger items by link — the ledger keeps the scoring."
+                right={
+                  <Button className="min-h-[44px]" variant="secondary" onClick={focusComposer}>
+                    Start a discussion
+                  </Button>
+                }
+              />
+            </div>
+
+            {/* ══ New post ══ */}
+            <div style={CARD} data-audit="new-post">
+              <SectionRule />
+              <SectionHeading
+                title={`New post · ${roomName}`}
+                aside={`Posts to the ${roomName} room`}
+              />
+              <div style={{ padding: "14px 16px" }}>
+                <textarea
+                  ref={composerRef}
+                  value={draft}
+                  onChange={(e) => setDraft(e.target.value)}
+                  aria-label={`Post to the ${roomName} room`}
+                  placeholder={`Ask the ${roomName} room — a lane observation, a handler question, a document worth sharing…`}
+                  disabled={!selected.joined || !selected.groupId}
+                  rows={3}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    boxSizing: "border-box",
+                    minHeight: 64,
+                    fontFamily: "inherit",
+                    fontSize: 13,
+                    lineHeight: 1.5,
+                    padding: "10px 12px",
+                    border: "1px solid rgba(0,0,0,.25)",
+                    borderRadius: 8,
+                    outline: "none",
+                    background: "var(--card)",
+                    color: "var(--ink)",
+                    resize: "vertical",
+                  }}
+                />
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: 10,
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                    {starterQuestions(roomName).map((s) => (
+                      <button
+                        key={s}
+                        type="button"
+                        onClick={() => setDraft(s)}
+                        disabled={!selected.joined}
+                        style={{
+                          fontFamily: "inherit",
+                          padding: "5px 10px",
+                          borderRadius: 999,
+                          border: "1px solid rgba(0,0,0,.2)",
+                          background: "var(--card)",
+                          fontSize: 11.5,
+                          color: "var(--ink)",
+                          textAlign: "left",
+                          cursor: selected.joined ? "pointer" : "not-allowed",
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <Button
+                    className="min-h-[44px]"
+                    variant="primary"
+                    onClick={doPost}
+                    disabled={busy || !draft.trim() || !selected.joined || !selected.groupId}
+                  >
+                    Post
+                  </Button>
+                </div>
+                {!selected.joined && (
+                  <p style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "8px 0 0" }}>
+                    Join the room to post.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {/* ══ R7: the room's own header and ledger strip. Artboard 12 has no region for
+                either, so both keep R7 placement — after the last designed region of this
+                column — rather than being removed or restyled. ══ */}
+            <div style={CARD} data-audit="region-card">
+              <SectionRule />
+              <SectionHeading
+                title={`${roomName} region`}
+                aside={
+                  selected.itemCountKnown
+                    ? `${formatNumber(selected.itemCount)} active ${selected.itemCount === 1 ? "item" : "items"}`
+                    : "Ledger item count pending"
+                }
+              />
+              <div style={{ padding: "0 16px 14px" }}>
+                <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 8px" }}>
+                  <Button
+                    className="min-h-[44px]"
+                    variant={selected.joined ? "secondary" : "primary"}
+                    onClick={toggleJoin}
+                    disabled={busy || !selected.groupId}
+                  >
+                    {selected.joined ? "Joined · leave room" : "Join room"}
+                  </Button>
+                </div>
+                <p style={{ ...EYEBROW, margin: "0 0 10px" }}>
+                  Live in this region · from the ledger
+                </p>
+                {selected.liveItems.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--ink-3)", margin: 0 }}>
+                    &mdash; no verified ledger items tagged to this region yet.
+                  </p>
+                ) : (
+                  selected.liveItems.map((li) => (
+                    <Link
+                      key={li.id}
+                      href={li.href}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        gap: 12,
+                        minHeight: 44,
+                        padding: "10px 0",
+                        borderTop: "1px solid var(--line-3)",
+                        textDecoration: "none",
+                      }}
+                    >
+                      <span style={{ minWidth: 0 }}>
+                        <span
+                          style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}
+                        >
+                          {li.title}
+                        </span>
+                        <span
                           style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            gap: 12,
-                            padding: "10px 0",
-                            borderTop: "1px solid var(--border-sub)",
-                            textDecoration: "none",
+                            display: "block",
+                            fontSize: 11,
+                            color: "var(--ink-3)",
+                            marginTop: 2,
                           }}
                         >
-                          <span style={{ minWidth: 0 }}>
-                            <span
-                              style={{
-                                display: "block",
-                                fontSize: 13,
-                                fontWeight: 800,
-                                color: "var(--text)",
-                              }}
-                            >
-                              {li.title}
-                            </span>
-                            <span
-                              style={{
-                                display: "block",
-                                fontSize: 11,
-                                color: "var(--color-text-muted)",
-                                margin: "2px 0 0",
-                              }}
-                            >
-                              {li.meta}
-                            </span>
-                          </span>
-                          <span
-                            style={{
-                              fontSize: 11.5,
-                              fontWeight: 800,
-                              color: "var(--color-primary)",
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            Open &rarr;
-                          </span>
-                        </Link>
-                      ))
-                    )}
-                    <p style={{ fontSize: 10.5, color: "var(--color-text-muted)", margin: "8px 0 0" }}>
-                      Full regional view on the{" "}
-                      <Link href="/regulations" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                        Regulations index
-                      </Link>{" "}
-                      and the{" "}
-                      <Link href="/map" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                        Map
-                      </Link>
-                      .
-                    </p>
-                  </div>
-                </div>
-
-                {/* Discussions */}
-                <div style={CARD}>
-                  <div
-                    style={{
-                      ...PLATE_HEAD,
-                      padding: "12px 20px",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                      gap: 10,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <span
-                      style={{
-                        fontSize: 12.5,
-                        fontWeight: 800,
-                        letterSpacing: "0.05em",
-                        textTransform: "uppercase",
-                        color: "var(--text)",
-                      }}
-                    >
-                      Discussions · {selected.short}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: 9.5,
-                        fontWeight: 800,
-                        letterSpacing: "0.1em",
-                        textTransform: "uppercase",
-                        color: "var(--epistemic-signal)",
-                        border: "1px dashed var(--epistemic-border)",
-                        borderRadius: 4,
-                        padding: "2px 8px",
-                      }}
-                    >
-                      Peer signal · unverified until signed off
-                    </span>
-                  </div>
-                  <div style={{ padding: "14px 20px" }}>
-                    {/* Composer */}
-                    <div style={{ display: "flex", gap: 10, alignItems: "center", margin: "0 0 10px" }}>
-                      <input
-                        value={draft}
-                        onChange={(e) => setDraft(e.target.value)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter") {
-                            e.preventDefault();
-                            doPost();
-                          }
-                        }}
-                        aria-label={`Post to the ${selected.short} room`}
-                        placeholder={`Ask the ${selected.short} room — a lane observation, a handler question, a document worth sharing`}
-                        disabled={!selected.joined || !selected.groupId}
+                          {li.meta}
+                        </span>
+                      </span>
+                      <span
                         style={{
-                          flex: 1,
-                          fontFamily: "inherit",
-                          fontSize: 13.5,
-                          padding: "11px 14px",
-                          border: "1px solid var(--color-border-medium)",
-                          borderRadius: 6,
-                          outline: "none",
-                          background: "var(--color-background)",
-                          color: "var(--text)",
-                        }}
-                      />
-                      <button
-                        onClick={doPost}
-                        disabled={busy || !draft.trim() || !selected.joined || !selected.groupId}
-                        style={{
-                          fontFamily: "inherit",
-                          fontSize: 12.5,
+                          fontSize: 11.5,
                           fontWeight: 800,
-                          padding: "11px 20px",
-                          borderRadius: 6,
-                          border: "1px solid var(--color-primary)",
-                          background: "var(--color-primary)",
-                          color: "var(--color-text-inverse)",
-                          cursor: busy || !draft.trim() ? "not-allowed" : "pointer",
-                          opacity: !draft.trim() || !selected.joined ? 0.5 : 1,
+                          color: "var(--brand)",
                           whiteSpace: "nowrap",
                         }}
                       >
-                        Post
-                      </button>
-                    </div>
-                    {!selected.joined && (
-                      <p style={{ fontSize: 10.5, color: "var(--color-text-muted)", margin: "0 0 8px" }}>
-                        Join the room to post.
-                      </p>
-                    )}
-
-                    {/* Starter chips */}
-                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", margin: "0 0 4px" }}>
-                      <span
-                        style={{
-                          fontSize: 10,
-                          fontWeight: 800,
-                          letterSpacing: "0.1em",
-                          textTransform: "uppercase",
-                          color: "var(--color-text-muted)",
-                          alignSelf: "center",
-                        }}
-                      >
-                        Open questions this week
+                        Open &rarr;
                       </span>
-                      {starterQuestions(selected.short).map((s) => (
-                        <button
-                          key={s}
-                          onClick={() => setDraft(s)}
-                          disabled={!selected.joined}
-                          style={{
-                            fontFamily: "inherit",
-                            fontSize: 11.5,
-                            fontWeight: 600,
-                            color: "var(--color-text-secondary)",
-                            background: "var(--color-background)",
-                            border: "1px solid var(--color-border-medium)",
-                            borderRadius: 999,
-                            padding: "6px 13px",
-                            cursor: selected.joined ? "pointer" : "not-allowed",
-                            textAlign: "left",
-                          }}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-
-                    {/* Threads */}
-                    {selected.threads.map((t) => (
-                      <div
-                        key={t.id}
-                        id={`post-${t.id}`}
-                        style={{ borderTop: "1px solid var(--border-sub)", padding: "12px 0" }}
-                      >
-                        <div
-                          style={{
-                            display: "flex",
-                            gap: 8,
-                            alignItems: "baseline",
-                            flexWrap: "wrap",
-                            margin: "0 0 5px",
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontSize: 9,
-                              fontWeight: 800,
-                              letterSpacing: "0.09em",
-                              textTransform: "uppercase",
-                              color: "var(--color-primary)",
-                              background: "var(--accent-tint-strong)",
-                              border: "1px solid var(--accent-tint-border)",
-                              borderRadius: 4,
-                              padding: "2px 7px",
-                            }}
-                          >
-                            {t.isYou ? "You" : t.authorName}
-                            {t.isOwner ? " · Owner" : ""}
-                          </span>
-                          {t.signedOff ? <SignedOffChip /> : <UnverifiedChip />}
-                          <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-                            Opened {formatRelativeCompact(t.createdAt)}
-                          </span>
-                          {t.lastActivityAt !== t.createdAt && (
-                            <span style={{ fontSize: 10.5, color: "var(--color-text-muted)" }}>
-                              · Last activity {formatRelativeCompact(t.lastActivityAt)}
-                            </span>
-                          )}
-                        </div>
-                        <p
-                          style={{
-                            fontSize: 14,
-                            fontWeight: 800,
-                            lineHeight: 1.45,
-                            margin: "0 0 7px",
-                            color: "var(--text)",
-                          }}
-                        >
-                          {t.title}
-                        </p>
-
-                        {/* Cited sources */}
-                        {(t.citedLive?.length ?? 0) > 0 && (
-                          <div style={{ display: "flex", gap: 6, flexWrap: "wrap", margin: "0 0 7px" }}>
-                            {t.citedLive!.map((c, i) => (
-                              <Link
-                                key={i}
-                                href={c.href}
-                                style={{
-                                  fontSize: 10,
-                                  fontWeight: 700,
-                                  color: "var(--accent-blue)",
-                                  border: "1px solid var(--accent-blue)",
-                                  borderRadius: 4,
-                                  padding: "2px 7px",
-                                  textDecoration: "none",
-                                }}
-                              >
-                                Cited: {c.title.slice(0, 40)}
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-                        {t.referencedItemIds.length > (t.citedLive?.length ?? 0) && (
-                          <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "0 0 7px" }}>
-                            {t.referencedItemIds.length} cited source
-                            {t.referencedItemIds.length > 1 ? "s" : ""}
-                          </p>
-                        )}
-
-                        {/* Actions */}
-                        <div style={{ display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-                          <TextAction onClick={() => setReplyOpen((p) => ({ ...p, [t.id]: !p[t.id] }))}>
-                            Reply
-                          </TextAction>
-                          {t.isYou && selected.liveItems.length > 0 && (
-                            <TextAction onClick={() => setCiteOpen((p) => ({ ...p, [t.id]: !p[t.id] }))}>
-                              Cite source
-                            </TextAction>
-                          )}
-                          {t.signedOff ? null : t.signoff?.status === "pending" ? (
-                            <span
-                              style={{
-                                fontSize: 10.5,
-                                fontWeight: 700,
-                                color: "var(--epistemic-signal)",
-                              }}
-                            >
-                              Sign-off requested{t.signoff.isMine ? "" : ` · ${t.signoff.requesterName}`}
-                              {" · pending"}
-                            </span>
-                          ) : t.signoff?.status === "declined" ? (
-                            <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                              <span
-                                style={{
-                                  fontSize: 10.5,
-                                  fontWeight: 700,
-                                  color: "var(--sev-moderate)",
-                                }}
-                              >
-                                Sign-off declined
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() => requestSignoff(t)}
-                                disabled={busy || !selected.joined}
-                                title={
-                                  selected.joined
-                                    ? "Open a fresh verifier sign-off request"
-                                    : "Join the room to request sign-off"
-                                }
-                                style={{
-                                  fontFamily: "inherit",
-                                  fontSize: 11,
-                                  fontWeight: 700,
-                                  color: "var(--accent-blue)",
-                                  background: "none",
-                                  border: "none",
-                                  padding: 0,
-                                  cursor: busy || !selected.joined ? "not-allowed" : "pointer",
-                                  opacity: selected.joined ? 1 : 0.55,
-                                }}
-                              >
-                                Request again
-                              </button>
-                            </span>
-                          ) : (
-                            <button
-                              type="button"
-                              onClick={() => requestSignoff(t)}
-                              disabled={busy || !selected.joined}
-                              title={
-                                selected.joined
-                                  ? "Ask an active verifier to check this claim against a primary document"
-                                  : "Join the room to request sign-off"
-                              }
-                              style={{
-                                fontFamily: "inherit",
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: "var(--accent-blue)",
-                                background: "none",
-                                border: "none",
-                                padding: 0,
-                                cursor: busy || !selected.joined ? "not-allowed" : "pointer",
-                                opacity: selected.joined ? 1 : 0.55,
-                              }}
-                            >
-                              Request verifier sign-off
-                            </button>
-                          )}
-                          <span style={{ fontSize: 10.5, color: "var(--color-text-muted)", marginLeft: "auto" }}>
-                            {t.replyCount} {t.replyCount === 1 ? "reply" : "replies"}
-                          </span>
-                          {t.isYou && (
-                            <button
-                              type="button"
-                              onClick={() => doDelete(t)}
-                              disabled={busy}
-                              style={{
-                                fontFamily: "inherit",
-                                fontSize: 11,
-                                fontWeight: 700,
-                                color: "var(--destructive-quiet)",
-                                background: "none",
-                                border: "none",
-                                padding: 0,
-                                cursor: busy ? "wait" : "pointer",
-                              }}
-                            >
-                              Delete
-                            </button>
-                          )}
-                        </div>
-
-                        {/* Inline reply composer */}
-                        {replyOpen[t.id] && (
-                          <div style={{ display: "flex", gap: 8, margin: "10px 0 0" }}>
-                            <input
-                              value={replyDraft[t.id] ?? ""}
-                              onChange={(e) => setReplyDraft((p) => ({ ...p, [t.id]: e.target.value }))}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter") {
-                                  e.preventDefault();
-                                  doReply(t);
-                                }
-                              }}
-                              aria-label="Write a reply"
-                              placeholder="Write a reply"
-                              style={{
-                                flex: 1,
-                                fontFamily: "inherit",
-                                fontSize: 12.5,
-                                padding: "8px 12px",
-                                border: "1px solid var(--color-border-medium)",
-                                borderRadius: 6,
-                                outline: "none",
-                                background: "var(--color-background)",
-                                color: "var(--text)",
-                              }}
-                            />
-                            <button
-                              type="button"
-                              onClick={() => doReply(t)}
-                              disabled={busy || !(replyDraft[t.id] ?? "").trim()}
-                              style={{
-                                fontFamily: "inherit",
-                                fontSize: 11.5,
-                                fontWeight: 800,
-                                padding: "8px 14px",
-                                borderRadius: 6,
-                                border: "1px solid var(--color-primary)",
-                                background: "var(--color-primary)",
-                                color: "var(--color-text-inverse)",
-                                cursor: "pointer",
-                                whiteSpace: "nowrap",
-                                opacity: (replyDraft[t.id] ?? "").trim() ? 1 : 0.5,
-                              }}
-                            >
-                              Reply
-                            </button>
-                          </div>
-                        )}
-
-                        {/* Inline cite picker */}
-                        {citeOpen[t.id] && (
-                          <div
-                            style={{
-                              margin: "10px 0 0",
-                              padding: "10px 12px",
-                              border: "1px solid var(--border-sub)",
-                              borderRadius: 6,
-                              background: "var(--color-background)",
-                            }}
-                          >
-                            <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Cite a live item in this region</p>
-                            {selected.liveItems.map((li) => (
-                              <button
-                                key={li.id}
-                                type="button"
-                                onClick={() => citeSource(t, li)}
-                                disabled={busy || t.referencedItemIds.includes(li.id)}
-                                style={{
-                                  display: "block",
-                                  width: "100%",
-                                  textAlign: "left",
-                                  fontFamily: "inherit",
-                                  fontSize: 12,
-                                  fontWeight: 700,
-                                  color: "var(--text)",
-                                  background: "none",
-                                  border: "none",
-                                  padding: "6px 0",
-                                  cursor: t.referencedItemIds.includes(li.id) ? "default" : "pointer",
-                                  opacity: t.referencedItemIds.includes(li.id) ? 0.5 : 1,
-                                }}
-                              >
-                                {t.referencedItemIds.includes(li.id) ? "Attached · " : "Cite · "}
-                                {li.title}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-
-                    {/* Empty state */}
-                    {selected.threads.length === 0 && (
-                      <div style={{ borderTop: "1px solid var(--border-sub)", padding: "14px 0 4px" }}>
-                        <p style={{ fontSize: 13, fontWeight: 800, margin: "0 0 3px", color: "var(--text)" }}>
-                          Be first in the {selected.short} room.
-                        </p>
-                        <p style={{ fontSize: 12, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-                          No discussions here yet. Pick an open question above or post what you saw on the
-                          ground this week.
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Rail */}
-              <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
-                {/* Who's here */}
-                <div style={CARD}>
-                  <div
-                    style={{
-                      padding: "11px 16px",
-                      borderBottom: "1px solid var(--border-sub)",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "baseline",
-                    }}
-                  >
-                    <p style={EYEBROW}>Who&rsquo;s here · {selected.short}</p>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: 17,
-                        color: "var(--text)",
-                        fontVariantNumeric: "tabular-nums",
-                      }}
-                    >
-                      {selected.roster.length}
-                    </span>
-                  </div>
-                  <div style={{ padding: "6px 16px 4px" }}>
-                    {selected.roster.length === 0 ? (
-                      <p style={{ fontSize: 11.5, color: "var(--color-text-secondary)", lineHeight: 1.6, margin: 0, padding: "8px 0" }}>
-                        No member has this as a home region yet.
-                      </p>
-                    ) : (
-                      selected.roster.map((m, i) => (
-                        <div
-                          key={i}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            alignItems: "center",
-                            padding: "8px 0",
-                          }}
-                        >
-                          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text)" }}>
-                            {m.name}
-                            {m.isYou && (
-                              <span style={{ color: "var(--color-text-muted)", fontWeight: 600 }}> (you)</span>
-                            )}
-                          </span>
-                          {m.isOwner && (
-                            <span
-                              style={{
-                                fontSize: 9,
-                                fontWeight: 800,
-                                letterSpacing: "0.08em",
-                                textTransform: "uppercase",
-                                color: "var(--color-primary)",
-                                border: "1px solid var(--accent-tint-border)",
-                                borderRadius: 4,
-                                padding: "2px 7px",
-                              }}
-                            >
-                              Owner
-                            </span>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                  <p
-                    style={{
-                      fontSize: 10.5,
-                      color: "var(--color-text-muted)",
-                      margin: 0,
-                      padding: "9px 16px",
-                      background: "var(--color-background)",
-                      lineHeight: 1.6,
-                    }}
-                  >
-                    Presence comes from profile home jurisdictions. The network is {networkMemberCount}{" "}
-                    {networkMemberCount === 1 ? "member" : "members"} and grows by{" "}
-                    <Link href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                      workspace invitation
                     </Link>
-                    .
-                  </p>
-                </div>
-
-                {/* Why post here */}
-                <div style={{ ...CARD, padding: "13px 16px" }}>
-                  <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Why post here</p>
-                  <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-                    The ledger prints what&rsquo;s verified. The room holds what operators know first —
-                    handler capacity, berth behaviour, what a regulator said on a call. High-engagement
-                    posts are picked up by editorial into platform intelligence: post → engagement →{" "}
-                    <Link href="/admin" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
-                      Admin pickups ({pendingPickups} pending)
-                    </Link>{" "}
-                    → platform brief.
-                  </p>
-                </div>
-
-                {/* Verifier sign-off */}
-                <SignoffRailPanel
-                  threads={selected.threads}
-                  currentUserIsVerifier={currentUserIsVerifier}
-                  verifierStatus={verifierStatus}
-                  busy={busy}
-                  onWithdraw={withdrawSignoff}
-                  onDecide={decideSignoff}
-                />
-
-                {/* Vertical groups — live: member-created, cross-regional. */}
-                <VerticalGroupsRailPanel
-                  groups={groupState}
-                  onCreate={() => setCreateOpen(true)}
-                />
+                  ))
+                )}
+                <p style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "8px 0 0" }}>
+                  Full regional view on the{" "}
+                  <Link href="/regulations" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
+                    Regulations index
+                  </Link>{" "}
+                  and the{" "}
+                  <Link href="/map" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
+                    Map
+                  </Link>
+                  .
+                </p>
               </div>
             </div>
-          )}
-        </>
-      )}
+          </div>
+
+          {/* ══ Rail — artboard order: Who's here, Verifier sign-off, Why post here.
+              Vertical groups is R7 (no artboard region) and sits after them. ══ */}
+          <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
+            {/* Who's here */}
+            <div style={CARD} data-audit="whos-here">
+              <SectionRule />
+              <div style={{ padding: "12px 16px 14px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "baseline",
+                    marginBottom: 8,
+                  }}
+                >
+                  <span style={RAIL_EYEBROW}>Who&rsquo;s here · {roomName}</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: 16,
+                      color: "var(--ink)",
+                      fontVariantNumeric: "tabular-nums",
+                    }}
+                  >
+                    {selected.roster.length}
+                  </span>
+                </div>
+                {selected.roster.length === 0 ? (
+                  <p style={{ fontSize: 12, color: "var(--ink-2)", lineHeight: 1.5, margin: 0 }}>
+                    No member has this as a home region yet.
+                  </p>
+                ) : (
+                  selected.roster.map((m, i) => (
+                    <div
+                      key={i}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        fontSize: 12.5,
+                        minHeight: 24,
+                      }}
+                    >
+                      <span>
+                        <b>{m.name}</b>
+                        {m.isYou ? " (you)" : ""}
+                      </span>
+                      {m.isOwner && (
+                        <span
+                          style={{
+                            fontSize: 9.5,
+                            fontWeight: 700,
+                            letterSpacing: "0.08em",
+                            textTransform: "uppercase",
+                            padding: "2px 6px",
+                            border: "1px solid rgba(0,0,0,.2)",
+                            borderRadius: 4,
+                          }}
+                        >
+                          Owner
+                        </span>
+                      )}
+                    </div>
+                  ))
+                )}
+                <p style={{ fontSize: 11, color: "var(--ink-3)", marginTop: 8, lineHeight: 1.5 }}>
+                  Presence comes from profile home jurisdictions. Grow the network by{" "}
+                  <Link href="/profile" style={{ color: "var(--brand)", fontWeight: 700 }}>
+                    workspace invitation
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+
+            {/* Verifier sign-off */}
+            <SignoffRailPanel
+              threads={threads}
+              currentUserIsVerifier={currentUserIsVerifier}
+              verifierStatus={verifierStatus}
+              busy={busy}
+              onWithdraw={withdrawSignoff}
+              onDecide={decideSignoff}
+            />
+
+            {/* Why post here */}
+            <div style={CARD} data-audit="why-post-here">
+              <SectionRule />
+              <div style={{ padding: "12px 16px 14px" }}>
+                <p style={{ ...RAIL_EYEBROW, margin: "0 0 8px" }}>Why post here</p>
+                <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>
+                  The ledger prints what&rsquo;s verified. The room holds what operators know first
+                  — handler capacity, berth behaviour, what a regulator said on a call.
+                  High-engagement posts are picked up by editorial into platform intelligence.
+                </p>
+              </div>
+              {/* R7: the editorial pickup queue is an app feature artboard 12 does not draw;
+                  it keeps its link at the card foot rather than inside the drawn paragraph. */}
+              <CardFoot
+                left={
+                  <Link href="/admin" style={{ color: "var(--brand)", fontWeight: 700 }}>
+                    Admin pickups ({formatNumber(pendingPickups)} pending) &rarr;
+                  </Link>
+                }
+                right={null}
+              />
+            </div>
+
+            {/* R7: Vertical groups — no artboard region, kept and placed last. */}
+            <VerticalGroupsRailPanel groups={groupState} onCreate={() => setCreateOpen(true)} />
+          </div>
+        </div>
+      ) : null}
 
       {createOpen && (
         <CreateGroupModal
@@ -1390,45 +1275,7 @@ function starterQuestions(short: string): string[] {
   ];
 }
 
-function YoureHereChip() {
-  return (
-    <span
-      style={{
-        fontSize: 8.5,
-        fontWeight: 800,
-        letterSpacing: "0.08em",
-        textTransform: "uppercase",
-        color: "var(--color-primary)",
-        background: "var(--accent-tint-strong)",
-        border: "1px solid var(--accent-tint-border)",
-        borderRadius: 4,
-        padding: "2px 6px",
-        whiteSpace: "nowrap",
-      }}
-    >
-      You&rsquo;re here
-    </span>
-  );
-}
 
-function UnverifiedChip() {
-  return (
-    <span
-      style={{
-        fontSize: 9,
-        fontWeight: 800,
-        letterSpacing: "0.09em",
-        textTransform: "uppercase",
-        color: "var(--epistemic-signal)",
-        border: "1px dashed var(--epistemic-border)",
-        borderRadius: 4,
-        padding: "2px 7px",
-      }}
-    >
-      Unverified
-    </span>
-  );
-}
 
 function SignedOffChip() {
   return (
@@ -1493,19 +1340,21 @@ function SignoffRailPanel({
   });
 
   return (
-    <div style={{ ...CARD, padding: "13px 16px" }}>
-      <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Verifier sign-off</p>
-      <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
-        A verifier checks a post&rsquo;s claim against a primary document; signed-off claims earn the
-        platform&rsquo;s verified treatment and become citable.{" "}
+    <div style={CARD} data-audit="verifier-signoff">
+      <SectionRule />
+      <div style={{ padding: "12px 16px 14px" }}>
+      <p style={{ ...RAIL_EYEBROW, margin: "0 0 8px" }}>Verifier sign-off</p>
+      <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>
+        A verifier checks a post&rsquo;s claim against a primary document; signed-off claims
+        become citable.{" "}
         {currentUserIsVerifier ? (
-          <>You are an <b style={{ color: "var(--accent-blue)" }}>active verifier</b>.</>
+          <>You are an <b style={{ color: "var(--ink)" }}>active verifier</b>.</>
         ) : verifierStatus === "pending" ? (
           <>Your verifier application is pending.</>
         ) : (
           <>
             You are{" "}
-            <Link href="/profile" style={{ color: "var(--color-primary)", fontWeight: 700, textDecoration: "none" }}>
+            <Link href="/profile" style={{ color: "var(--ink)", fontWeight: 700 }}>
               not a verifier
             </Link>
             .
@@ -1513,14 +1362,20 @@ function SignoffRailPanel({
         )}
       </p>
 
-      {/* Your open requests */}
-      <div style={{ margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--border-sub)" }}>
-        <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Your open requests</p>
+      {/* Your open requests. Artboard 12 draws ONE line, "Your open requests · none",
+          with the value in the absence type treatment — not a labelled sub-section. */}
+      <div style={{ margin: "8px 0 0" }}>
         {myOpen.length === 0 ? (
-          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
-            No open sign-off requests of yours in this room.
+          <p style={{ fontSize: 12, margin: 0 }}>
+            {/* NONE is a real zero, not a missing value, so the closed absence VOCABULARY
+                cannot express it; ABSENCE_TEXT_STYLE carries the treatment for exactly this
+                case (see Absence.tsx). */}
+            Your open requests · <span style={ABSENCE_TEXT_STYLE}>none</span>
           </p>
         ) : (
+          <>
+        <p style={{ ...RAIL_EYEBROW, margin: "0 0 6px" }}>Your open requests</p>
+        {(
           myOpen.map((t) => (
             <div key={t.id} style={{ display: "flex", gap: 8, alignItems: "center", padding: "6px 0" }}>
               <a href={`#post-${t.id}`} style={{ ...rowLink, flex: 1, minWidth: 0 }}>
@@ -1537,12 +1392,14 @@ function SignoffRailPanel({
             </div>
           ))
         )}
+          </>
+        )}
       </div>
 
       {/* Verifier decide queue */}
       {currentUserIsVerifier && (
-        <div style={{ margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--border-sub)" }}>
-          <p style={{ ...EYEBROW, margin: "0 0 6px" }}>Decide queue</p>
+        <div style={{ margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--line-3)" }}>
+          <p style={{ ...RAIL_EYEBROW, margin: "0 0 6px" }}>Decide queue</p>
           {decideQueue.length === 0 ? (
             <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0 }}>
               No sign-off requests waiting in this room.
@@ -1579,30 +1436,11 @@ function SignoffRailPanel({
           )}
         </div>
       )}
+      </div>
     </div>
   );
 }
 
-function TextAction({ onClick, children }: { onClick: () => void; children: React.ReactNode }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      style={{
-        fontFamily: "inherit",
-        fontSize: 11,
-        fontWeight: 700,
-        color: "var(--color-text-secondary)",
-        background: "none",
-        border: "none",
-        cursor: "pointer",
-        padding: 0,
-      }}
-    >
-      {children}
-    </button>
-  );
-}
 
 function PendingFrame({ eyebrow, body }: { eyebrow: string; body: string }) {
   return (

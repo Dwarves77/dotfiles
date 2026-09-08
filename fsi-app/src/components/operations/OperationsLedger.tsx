@@ -467,7 +467,10 @@ export function OperationsLedger({
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
       onExpandBand={(key) => setExpanded((s) => new Set(s).add(key))}
-      stateNote={<StateNote>{total} regional operations profiles across {regions.length} regions.</StateNote>}
+      /* Artboard 08/id="p8" draws nothing below the band cards; the item total and the
+         jurisdiction count this line restated are both in the masthead scope line already ("25
+         active items · 18 jurisdictions · ..."). Removed with the same line on /regulations and
+         /market, which share this shared slot (lane lists60, 2026-09-08). */
       belowRows={
         /* R7: the US By-state cost sub-list is an app feature artboard 08 does not draw. It used to
            sit between the matrix and the first band card — exactly where the artboard puts a band

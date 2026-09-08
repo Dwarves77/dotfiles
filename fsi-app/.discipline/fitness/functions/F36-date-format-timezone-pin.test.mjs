@@ -112,3 +112,38 @@ test('LIVE: every PRE_EXISTING_ALLOWLIST entry is a real file under enumerate()'
     assert.ok(files.has(f), `allowlisted file not found by enumerate(): ${f}`);
   }
 });
+
+// Lane settings60 (2026-09-08). `Intl.DateTimeFormat().resolvedOptions().timeZone` is a ZONE
+// LOOKUP, not a format call: it returns the reader's own IANA zone name, produces no date string,
+// and cannot make SSR and hydration disagree about a calendar day. Pinning `timeZone` on it would
+// make it echo the pinned value back and destroy its only purpose. The carve-out is deliberately
+// narrow — the very next token after the call must be `.resolvedOptions(` — and these cases are
+// the attack on it: every other shape still has to be caught.
+test('resolvedOptions() zone lookup is not a format call', () => {
+  assert.deepEqual(
+    findUnpinnedDateCalls('const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;'),
+    [],
+  );
+  assert.deepEqual(
+    findUnpinnedDateCalls('const tz = new Intl.DateTimeFormat() .resolvedOptions() .timeZone;'),
+    [],
+  );
+});
+
+test('the carve-out does NOT exempt a real formatter, however it is spelled', () => {
+  assert.equal(findUnpinnedDateCalls('new Intl.DateTimeFormat("en").format(d)').length, 1);
+  // A formatter built with options and only LATER queried is still a formatter at the call site.
+  assert.equal(findUnpinnedDateCalls('const f = new Intl.DateTimeFormat("en"); f.resolvedOptions();').length, 1);
+  // A pinned formatter stays clean; an unpinned toLocale* stays caught.
+  assert.deepEqual(findUnpinnedDateCalls('new Intl.DateTimeFormat("en", { timeZone: "UTC" })'), []);
+  assert.equal(findUnpinnedDateCalls('d.toLocaleDateString("en")').length, 1);
+  assert.equal(findUnpinnedDateCalls('d.toLocaleTimeString("en")').length, 1);
+});
+
+test('LIVE: BriefingScheduleSection\'s zone lookup passes without an allowlist entry', () => {
+  const rel = 'fsi-app/src/components/settings/BriefingScheduleSection.tsx';
+  const content = readFileSync(join(REPO, rel), 'utf8');
+  assert.ok(/resolvedOptions\(\)\.timeZone/.test(content), 'expected the zone lookup to still be there');
+  assert.deepEqual(fitnessFunction.check(rel, content), []);
+  assert.ok(!(rel in PRE_EXISTING_ALLOWLIST), 'the fix must not be an allowlist entry');
+});

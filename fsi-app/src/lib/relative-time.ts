@@ -10,8 +10,11 @@ const WEEK = 7 * DAY;
 const MONTH = 30 * DAY;
 const YEAR = 365 * DAY;
 
-export function formatRelative(ts: Date): string {
-  const diff = Date.now() - ts.getTime();
+export function formatRelative(ts: Date, now?: Date | number): string {
+  // `now` is the server-decided instant (src/lib/render-now.ts). Passing it keeps a client
+  // component's SSR and hydration passes on ONE clock; omitting it keeps every existing caller
+  // unchanged. clock-ok: the fallback runs only for callers that have not been threaded yet.
+  const diff = (now === undefined ? Date.now() : typeof now === "number" ? now : now.getTime()) - ts.getTime();
 
   if (diff < 0) {
     // future timestamp, show absolute upcoming distance
@@ -62,10 +65,14 @@ export function toDate(input: string | Date | null | undefined): Date | null {
 // re-inlined this compact style with minor drift ("5 min ago" spaced, "5s ago" seconds, floor vs round). This
 // is the majority form: floor-based, no space, "just now" under a minute. The VERBOSE formatRelative above is
 // the credibility/masthead style; both are intentional — surfaces pick by density, not by accident.
-export function formatRelativeCompact(input: string | Date | null | undefined): string {
+export function formatRelativeCompact(
+  input: string | Date | null | undefined,
+  now?: Date | number
+): string {
   const d = toDate(input);
   if (!d) return "";
-  const diff = Date.now() - d.getTime();
+  // See formatRelative above for why `now` exists. clock-ok: fallback for un-threaded callers.
+  const diff = (now === undefined ? Date.now() : typeof now === "number" ? now : now.getTime()) - d.getTime();
   if (diff < MIN) return "just now";
   if (diff < HOUR) return `${Math.floor(diff / MIN)}m ago`;
   if (diff < DAY) return `${Math.floor(diff / HOUR)}h ago`;

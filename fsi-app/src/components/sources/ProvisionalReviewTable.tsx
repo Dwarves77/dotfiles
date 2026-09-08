@@ -58,6 +58,13 @@ export interface ProvisionalReviewTableProps {
   stagedUpdatesCount?: number | null;
   /** Opens the ingest queue (Ingest / Staged updates). Omitted = no link rendered. */
   onOpenQueue?: () => void;
+  /**
+   * The Sources sub-tab row, rendered INSIDE this card directly under its head
+   * (lane admin60, 2026-09-08). dc.html p13 draws that row inside the card, not
+   * above it; the page owns the tabs' state, this card owns their placement, so
+   * the row is passed in rather than reimplemented here. Omitted = no row.
+   */
+  headTabs?: React.ReactNode;
 }
 
 const COLUMNS = [
@@ -101,6 +108,7 @@ export function ProvisionalReviewTable({
   onActionDone,
   stagedUpdatesCount = null,
   onOpenQueue,
+  headTabs,
 }: ProvisionalReviewTableProps) {
   const supabase = createSupabaseBrowserClient();
   const [busy, setBusy] = useState<string | null>(null);
@@ -192,6 +200,8 @@ export function ProvisionalReviewTable({
           {formatNumber(rows.length)} pending · approve, reject or re-tier on the row
         </span>
       </div>
+
+      {headTabs}
 
       {error && (
         <div style={{ padding: "10px 16px" }}>

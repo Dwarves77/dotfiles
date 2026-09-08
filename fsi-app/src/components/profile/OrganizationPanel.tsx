@@ -3,10 +3,12 @@
 /**
  * OrganizationPanel — Account · Profile · Organization (redesign T10).
  *
- * Rebuilt against "Pages - 10 Account". Shows the org identity as a
- * compact table (name / slug / plan / members / created) plus the
- * workspace-scope footnote. The owner name/slug editor is preserved
- * below the table (owner-only) so the redesign loses no capability.
+ * dc.html p14 / artboard 14 draws this card as a head plus ONE row: the
+ * ORGANIZATION NAME and SLUG fields with Save. That is what the card body is
+ * now (lane admin60, 2026-09-08). The org identity table (name / slug / plan /
+ * members / created) and the workspace-scope footnote, which used to sit ABOVE
+ * those fields where the artboard has nothing, are kept and moved below them as
+ * a card-foot disclosure under ruling R7.
  *
  * Backed by /api/orgs/[org_id] (GET + owner PATCH).
  *
@@ -18,6 +20,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AccountCard, FieldLabel, TextInput, InkButton } from "@/components/account/AccountPrimitives";
+import { RowTable } from "@/components/ui/RowTable";
 import { formatLocaleDate } from "@/lib/format";
 
 interface OrgPayload {
@@ -26,6 +29,15 @@ interface OrgPayload {
   owner: { user_id: string; display_name: string; owner_since: string } | null;
   member_count: number;
 }
+
+/** The R7 disclosure's track list, the same admin RowTable anatomy. */
+const ORG_COLUMNS = [
+  { label: "Name", width: "1fr" },
+  { label: "Slug", width: "120px" },
+  { label: "Plan", width: "110px" },
+  { label: "Members", width: "160px" },
+  { label: "Created", width: "120px" },
+];
 
 export function OrganizationPanel({ orgId }: { orgId: string | null }) {
   const [data, setData] = useState<OrgPayload | null>(null);
@@ -136,120 +148,146 @@ export function OrganizationPanel({ orgId }: { orgId: string | null }) {
     ? "—"
     : formatLocaleDate(created, { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 
-  const cols = "1.4fr 1fr 0.8fr 0.7fr 0.9fr";
-
   return (
-    <section
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        overflow: "hidden",
-      }}
+    <AccountCard
+      title="Organization"
+      meta="Workspace-scoped settings persist to this org"
+      bodyPad={false}
     >
-      <div
-        style={{
-          padding: "12px 20px",
-          background: "var(--color-surface-raised)",
-          borderBottom: "1px solid var(--color-border-subtle)",
-        }}
-      >
-        <span style={{ fontSize: "12.5px", fontWeight: 800, letterSpacing: "0.05em", textTransform: "uppercase", color: "var(--color-text-primary)" }}>
-          Organization
-        </span>
-      </div>
-
-      {/* Table (scrolls horizontally on narrow viewports) */}
-      <div style={{ overflowX: "auto" }}>
-        <div style={{ display: "grid", gridTemplateColumns: cols, minWidth: 560 }}>
-          {["Name", "Slug", "Plan", "Members", "Created"].map((h, i) => (
-            <span
-              key={h}
-              style={{
-                fontSize: "9.5px",
-                fontWeight: 800,
-                letterSpacing: "0.11em",
-                textTransform: "uppercase",
-                color: "var(--color-text-muted)",
-                padding: i === 0 ? "10px 14px 10px 20px" : "10px 14px",
-                background: "var(--color-background)",
-                borderBottom: "1px solid var(--color-border)",
-              }}
-            >
-              {h}
-            </span>
-          ))}
-          <span style={{ fontSize: 13, fontWeight: 800, padding: "12px 14px 12px 20px", color: "var(--color-text-primary)" }}>
-            {data.org.name}
-          </span>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "12px 14px", fontFamily: "monospace" }}>
-            {data.org.slug}
-          </span>
-          <span style={{ padding: "12px 14px" }}>
-            <span
-              style={{
-                fontSize: "9.5px",
-                fontWeight: 800,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--accent-blue)",
-                border: "1px solid rgba(37,99,235,0.35)",
-                borderRadius: 4,
-                padding: "2px 8px",
-              }}
-            >
-              {data.org.plan}
-            </span>
-          </span>
-          <span style={{ fontSize: "12.5px", fontWeight: 700, padding: "12px 14px", color: "var(--color-text-primary)" }}>
-            {data.member_count}
-            {data.owner ? (
-              <span style={{ fontWeight: 500, color: "var(--color-text-muted)" }}> · owner {data.owner.display_name}</span>
-            ) : null}
-          </span>
-          <span style={{ fontSize: 12, color: "var(--color-text-secondary)", padding: "12px 20px 12px 14px" }}>{createdStr}</span>
+      {/* dc.html p14's ORGANIZATION body: two labelled fields and Save on one
+          row (1fr 1fr auto, aligned to the field baselines). */}
+      <form data-audit="org-fields-row" onSubmit={submit} style={{ padding: "14px 16px 16px", display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 12, alignItems: "end" }}>
+        <div>
+          <FieldLabel>Organization name</FieldLabel>
+          <TextInput
+            value={nameDraft}
+            onChange={(e) => setNameDraft(e.target.value)}
+            disabled={submitting || !isOwner}
+            placeholder="Your organization name"
+          />
         </div>
-      </div>
+        <div>
+          <FieldLabel>Slug</FieldLabel>
+          <TextInput
+            value={slugDraft}
+            onChange={(e) => setSlugDraft(e.target.value.toLowerCase())}
+            disabled={submitting || !isOwner}
+            placeholder="org-slug"
+          />
+        </div>
+        <InkButton
+          type="submit"
+          disabled={
+            !isOwner ||
+            submitting ||
+            (nameDraft.trim() === data.org.name && slugDraft.trim().toLowerCase() === data.org.slug)
+          }
+        >
+          {submitting ? "Saving…" : "Save"}
+        </InkButton>
+      </form>
 
-      <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: 0, padding: "10px 20px", background: "var(--color-background)", borderTop: "1px solid var(--color-border-subtle)" }}>
-        Workspace-scoped settings (briefing schedule, jurisdiction weights) persist to this organization.
-        Billing and plan changes are owner-only.
-      </p>
-
-      {/* Owner editor — preserved capability (name / slug) */}
-      {isOwner && (
-        <form onSubmit={submit} style={{ padding: "16px 20px", borderTop: "1px solid var(--color-border-subtle)" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14, margin: "0 0 12px" }}>
-            <div>
-              <FieldLabel>Organization name</FieldLabel>
-              <TextInput value={nameDraft} onChange={(e) => setNameDraft(e.target.value)} disabled={submitting} placeholder="Your organization name" />
-            </div>
-            <div>
-              <FieldLabel>Slug</FieldLabel>
-              <TextInput value={slugDraft} onChange={(e) => setSlugDraft(e.target.value.toLowerCase())} disabled={submitting} placeholder="org-slug" />
-            </div>
-          </div>
-          {status && (
-            <div
-              role="status"
-              style={{
-                fontSize: 11,
-                padding: "8px 10px",
-                borderRadius: 6,
-                margin: "0 0 12px",
-                color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
-                background: status.kind === "ok" ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
-                border: `1px solid ${status.kind === "ok" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
-              }}
-            >
-              {status.text}
-            </div>
-          )}
-          <InkButton type="submit" disabled={submitting || (nameDraft.trim() === data.org.name && slugDraft.trim().toLowerCase() === data.org.slug)}>
-            {submitting ? "Saving…" : "Save organization"}
-          </InkButton>
-        </form>
+      {status && (
+        <div
+          role="status"
+          style={{
+            fontSize: 11,
+            padding: "8px 10px",
+            borderRadius: 6,
+            margin: "0 16px 12px",
+            color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
+            background: status.kind === "ok" ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
+            border: `1px solid ${status.kind === "ok" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
+          }}
+        >
+          {status.text}
+        </div>
       )}
-    </section>
+
+      {/* Ruling R7: the org identity table (name / slug / plan / members /
+          created) and the workspace-scope footnote are real features artboard 14
+          does not draw. They are not removed and not restyled, they move BELOW
+          the designed region, as a card-foot disclosure, which is where R7's own
+          precedents put an undesigned block that sits where a designed one must
+          go. Lane admin60, 2026-09-08. */}
+      <details data-audit="org-record-disclosure" style={{ borderTop: "1px solid var(--line-2)" }}>
+        <summary
+          style={{
+            padding: "10px 16px",
+            background: "var(--page)",
+            fontSize: "var(--fs-12)",
+            fontWeight: 600,
+            color: "var(--ink-3)",
+            cursor: "pointer",
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          Workspace record
+        </summary>
+        <div>
+          <RowTable
+            columns={ORG_COLUMNS}
+            rows={[
+              {
+                key: data.org.id,
+                cells: [
+                  <span key="name" style={{ display: "block", fontWeight: 600, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {data.org.name}
+                  </span>,
+                  <span
+                    key="slug"
+                    style={{ display: "block", fontFamily: "ui-monospace, monospace", fontSize: "var(--fs-115)", color: "var(--ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                  >
+                    {data.org.slug}
+                  </span>,
+                  <span
+                    key="plan"
+                    style={{
+                      display: "inline-block",
+                      maxWidth: "100%",
+                      padding: "4px 9px",
+                      borderRadius: 4,
+                      background: "var(--tag)",
+                      fontWeight: 600,
+                      fontSize: "var(--fs-105)",
+                      letterSpacing: "0.04em",
+                      textTransform: "uppercase",
+                      whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                    }}
+                  >
+                    {data.org.plan}
+                  </span>,
+                  <span key="members" style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {data.member_count}
+                    {data.owner ? ` · owner ${data.owner.display_name}` : ""}
+                  </span>,
+                  <span key="created" style={{ display: "block", color: "var(--ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {createdStr}
+                  </span>,
+                ],
+              },
+            ]}
+          />
+          <p
+            style={{
+              margin: 0,
+              padding: "10px 16px",
+              borderTop: "1px solid var(--line-2)",
+              background: "var(--page)",
+              fontSize: "var(--fs-11)",
+              color: "var(--ink-3)",
+              lineHeight: 1.5,
+            }}
+          >
+            Workspace-scoped settings (briefing schedule, jurisdiction weights) persist to this organization.
+            Billing and plan changes are owner-only.
+          </p>
+        </div>
+      </details>
+    </AccountCard>
   );
 }

@@ -9,8 +9,9 @@
  * copy of the same JSX.
  */
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { Absence } from "@/components/ui/Absence";
 import { SkeletonRailDateRow } from "@/components/ui/Skeleton";
 import { classifyByDays } from "@/lib/urgency/bands";
@@ -235,27 +236,34 @@ export function FiltersRailCard({
           >
             Filters
           </p>
-          {activeCount > 0 && (
-            <button
-              type="button"
-              onClick={clearAll}
-              style={{
-                minHeight: 24,
-                background: "none",
-                border: "none",
-                padding: 0,
-                fontSize: "var(--fs-11)",
-                fontWeight: 700,
-                color: "var(--ink)",
-                textDecoration: "underline",
-                textDecorationColor: "rgba(0,0,0,.3)",
-                cursor: "pointer",
-                fontFamily: "inherit",
-              }}
-            >
-              Clear {activeCount}
-            </button>
-          )}
+          {/* Artboard 02/id="p2" draws `Clear 1` (one facet active) and artboard 04/id="p4" draws a
+              bare `Clear` (none active) in the SAME head position, so the link is part of the card's
+              drawn anatomy in both states and is rendered unconditionally here — lane lists60,
+              2026-09-08, closing the fold's "the rail Filters card has no Clear link" item, which was
+              this control hiding itself whenever the fixture had no active facet. With nothing
+              selected it is `disabled`: the artboard's own geometry and type are kept (11px/600 ink,
+              24px box) so the card still looks like the image, and a press that would clear nothing
+              is refused rather than silently doing nothing (operator audit P0 1.1's class). */}
+          <button
+            type="button"
+            onClick={clearAll}
+            disabled={activeCount === 0}
+            style={{
+              minHeight: 24,
+              background: "none",
+              border: "none",
+              padding: 0,
+              fontSize: "var(--fs-11)",
+              fontWeight: 700,
+              color: "var(--ink)",
+              textDecoration: "underline",
+              textDecorationColor: "rgba(0,0,0,.3)",
+              cursor: activeCount === 0 ? "default" : "pointer",
+              fontFamily: "inherit",
+            }}
+          >
+            {activeCount === 0 ? "Clear" : `Clear ${activeCount}`}
+          </button>
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
           {shown.map((group) => (
@@ -364,6 +372,164 @@ export function ObligationsRailCard({ nowIso }: { nowIso?: string }) {
               </div>
             );
           })
+        )}
+      </div>
+    </RailCard>
+  );
+}
+
+// CARBON COST PER FEU rail card (artboard 04/id="p4", drawn between the Filters card and NEXT DATA
+// DROPS; the page-composition audit found the region missing from the built rail, which carried
+// SOURCES TRACKED there instead). The artboard's own anatomy: the head label, a 12px dek
+// ("EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor."), a `1fr auto` grid of corridor
+// rows whose right cell is a small-caps pending token, and an 11px foot line naming the missing
+// inputs ONCE rather than a GAP box per corridor.
+//
+// DATA (lane lists60, 2026-09-08). No new read. /market already computes one carbonCostPerFeu()
+// result per LIVE CORRIDOR ENTITY for the <CarbonCostOverlay/> section below the ledger
+// (src/app/market/page.tsx's buildCarbonCostOverlays, reading getCachedCorridorScopes()); this card
+// is a second, compact view of those same entries, reduced by the pure summariseCarbonCorridors
+// (src/lib/market/market-rail-select.mjs). The fuller overlay section stays exactly where it is
+// (ruling R7 — an app feature the artboard does not draw, already sitting after the last designed
+// region of the page).
+//
+// ABSENCE, NEVER A FABRICATED FIGURE. Every live corridor is in the gapped state today, because
+// carbon-cost-per-feu.mjs's four inputs are four named GAPs: no emission factor for the corridor's
+// mode, no licence-clear routing-distance dataset, no licence-clear tonnes-per-FEU convention (GLEC
+// and ISO 14083 are both `prohibited` in migration 258's register), and no EU ETS/FuelEU/CBAM/UKA
+// price in market_series (the eex-eua producer is an unimplemented stub). That is exactly the state
+// the ARTBOARD ITSELF draws ("4 inputs pending"), so the card matches the image today and lights up
+// with a real figure the moment any one of the four lands, with no change here. With no corridor at
+// all the card renders the fixed-vocabulary Absence token rather than an empty shell.
+export interface CarbonCorridorRow {
+  label: string;
+  pending: number;
+  point: number | null;
+  currency: string | null;
+}
+
+export function CarbonCostRailCard({ corridors }: { corridors: CarbonCorridorRow[] }) {
+  return (
+    <RailCard title="Carbon cost per FEU" dataAudit="carbon-feu-rail">
+      <div data-audit="carbon-feu-dek" style={{ fontSize: "var(--fs-12)", lineHeight: 1.5, color: "var(--ink-2)" }}>
+        EUA / ETS2 / CBAM / UKA cost per forty-foot unit, by corridor.
+      </div>
+      {corridors.length === 0 ? (
+        <div style={{ marginTop: 8 }}>
+          <Absence reason="connect data" />
+        </div>
+      ) : (
+        <>
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr auto",
+              gap: "6px 12px",
+              fontSize: "var(--fs-125)",
+              marginTop: 8,
+              alignItems: "baseline",
+            }}
+          >
+            {corridors.map((c) => (
+              <Fragment key={c.label}>
+                <span data-audit="carbon-feu-corridor">{c.label}</span>
+                <span style={{ fontWeight: 600, justifySelf: "end" }}>
+                  {c.pending > 0 ? (
+                    <span
+                      data-audit="carbon-feu-pending"
+                      style={{
+                        fontSize: "var(--fs-105)",
+                        letterSpacing: "0.08em",
+                        textTransform: "uppercase",
+                        color: "var(--ink-3)",
+                        fontWeight: 700,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {c.pending} input{c.pending === 1 ? "" : "s"} pending
+                    </span>
+                  ) : (
+                    `${c.currency ?? ""}${formatNumber(Math.round(c.point ?? 0))}`
+                  )}
+                </span>
+              </Fragment>
+            ))}
+          </div>
+          {corridors.some((c) => c.pending > 0) && (
+            <div data-audit="carbon-feu-foot" style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 8, lineHeight: 1.5 }}>
+              No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once,
+              here, instead of a four-line GAP box per corridor.
+            </div>
+          )}
+        </>
+      )}
+    </RailCard>
+  );
+}
+
+// NEXT DATA DROPS rail card (artboard 04/id="p4", drawn between CARBON COST PER FEU and Legend).
+// The artboard's anatomy: three rows of a `70px 1fr` grid — a tabular-nums weekday+date in ink at
+// weight 700, then the producer name.
+//
+// THE DATE IS NOT A NEW PREDICTION (spec 02 §9). It is the same derivation the product already
+// publishes as `published_price_statistics.next_release_at`: the producer's latest observed
+// reference period plus that producer's own REGISTERED cadence, read through the same `addDaysIso`
+// helper (see market-rail-select.mjs's own header). A producer with no registered cadence, no
+// implemented producer script, or no observation yet is OMITTED rather than given a guessed date, so
+// this card can never imply a scheduler that does not exist. With every producer omitted it renders
+// the Absence token, never an invented calendar.
+/** Artboard 04's own row label form: "Mon Sep 8" — weekday, space, month, day, NO comma. A single
+ *  `formatLocaleDate` with `weekday: "short"` renders "Mon, Sep 8" in the pinned locale, so the two
+ *  halves are formatted separately and joined by a space. Both halves stay inside format.ts's
+ *  locale-pinned helper (F36); nothing here hand-writes a month or weekday name. */
+function formatNextDropDate(dateIso: string): string {
+  const d = new Date(`${dateIso}T00:00:00Z`);
+  const weekday = formatLocaleDate(d, { weekday: "short", timeZone: "UTC" });
+  const monthDay = formatLocaleDate(d, { month: "short", day: "numeric", timeZone: "UTC" });
+  return `${weekday} ${monthDay}`;
+}
+
+export interface NextDataDropRow {
+  keyPrefix: string;
+  name: string;
+  dateIso: string;
+}
+
+export function NextDataDropsRailCard({ drops }: { drops: NextDataDropRow[] }) {
+  return (
+    <RailCard title="Next data drops" dataAudit="next-drops-rail">
+      <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: "var(--fs-12)" }}>
+        {drops.length === 0 ? (
+          <Absence reason="pending" />
+        ) : (
+          drops.map((d) => (
+            <div
+              key={d.keyPrefix}
+              data-audit="next-drop-row"
+              style={{ display: "grid", gridTemplateColumns: "minmax(70px, auto) minmax(0, 1fr)", gap: 10 }}
+            >
+              {/* nowrap: at the rail's 300px the artboard's 70px date column is a tight fit for a
+                  two-digit day ("Thu Sep 10"), and the first capture broke it across two lines with
+                  "10" orphaned on the second — exactly the wrap the operator's 2026-09-07 visual
+                  pass rules out.
+                  FOLD 60: `nowrap` alone traded that wrap for a 6px OVERFLOW. The track was a hard
+                  70px, "Thu Sep 10" measures 76px, and every box between here and the card is
+                  `overflow: visible`, so the date did not clip, it SPILLED into the producer-name
+                  column beside it. Measured, not guessed: clientWidth 70, scrollWidth 76. The track
+                  is now `minmax(70px, auto)`, so it IS the artboard's 70px for every date that fits
+                  (a single-digit day, which is what artboard 04 itself draws) and grows only by the
+                  few pixels a two-digit day needs. The name column takes `minmax(0, 1fr)` so it
+                  yields those pixels instead of pushing the row wider, the same `min-width: 0`
+                  containment RowTable carries. Neither wrap nor spill is reachable now. */}
+              <span
+                data-audit="next-drop-date"
+                style={{ fontWeight: 700, color: "var(--ink)", fontVariantNumeric: "tabular-nums", whiteSpace: "nowrap" }}
+              >
+                {formatNextDropDate(d.dateIso)}
+              </span>
+              <span style={{ minWidth: 0 }}>{d.name}</span>
+            </div>
+          ))
         )}
       </div>
     </RailCard>

@@ -170,8 +170,12 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
       {/* Newest join */}
       <div style={cell}>
         <p style={eyebrow}>Newest join</p>
+        {/* dc.html p13 draws every figure in this card in ink, "May 28" included:
+            a join date is not a severity, and the green it used to render in was
+            the only coloured numeral on the artboard that the artboard does not
+            colour (lane admin60, 2026-09-08). */}
         {newestLabel ? (
-          <p style={{ ...figure, color: "var(--sev-low)" }}>{newestLabel}</p>
+          <p style={figure}>{newestLabel}</p>
         ) : (
           <p style={{ ...figure, color: "var(--text-2)" }}>—</p>
         )}
@@ -191,7 +195,10 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
               }
         }
       >
-        <p style={{ ...eyebrow, color: "var(--brass)" }}>Active this month</p>
+        {/* Same: the artboard's eyebrows are all --ink-3. The brass marked this
+            as the honest-pending tile, which its own em-dash figure and its
+            "populates when per-org activity events ship" sub already say. */}
+        <p style={eyebrow}>Active this month</p>
         <p style={{ ...figure, color: "var(--text-2)" }}>—</p>
         <p style={sub}>populates when per-org activity events ship</p>
       </div>

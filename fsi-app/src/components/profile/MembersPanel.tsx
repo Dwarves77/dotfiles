@@ -18,11 +18,29 @@
  *
  * Member identity renders the server-resolved display_name
  * (full_name ?? display_name ?? email ?? short id) — never a raw UUID.
+ *
+ * Composition, lane admin60 (2026-09-08), against dc.html p14 / artboard 14:
+ * the member list is the artboard's TABLE, the shared `RowTable` under
+ * MEMBER / JOINED / ROLE column headers with the trailing 44px overflow cell,
+ * not the flex rows it used to draw; Remove and Ban moved off the row as text
+ * buttons and into that overflow menu (ruling R7's precedent for row-level
+ * secondary actions, the overlay styling left exactly as RowTable ships it, per
+ * "overlays: unchanged and undesigned, do not invent"); the invite row gained
+ * the artboard's "INVITE BY EMAIL" field label, its "name@company.com"
+ * placeholder and its "Send invite" button; and the artboard's seat foot strip
+ * is built from real workspace data where it exists (it does not: no seats /
+ * seat_limit / max_members column exists in the schema or in any /api/orgs
+ * payload, so the seat clause renders the Absence convention with reason
+ * "connect data" and no "Manage seats" link is drawn, there being no seats
+ * route, logged in DEVIATION-LOG.md).
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { Copy, Check } from "lucide-react";
-import { AccountCard, TextInput } from "@/components/account/AccountPrimitives";
+import { AccountCard, FieldLabel, TextInput, InkButton } from "@/components/account/AccountPrimitives";
+import { RowTable, RowTableOverflow } from "@/components/ui/RowTable";
+import { StateNote } from "@/components/ui/StateNote";
+import { Absence } from "@/components/ui/Absence";
 import { formatLocaleDate } from "@/lib/format";
 
 interface Member {
@@ -49,7 +67,23 @@ interface EmailDelivery {
 interface MembersPanelProps {
   orgId: string | null;
   callerUserId: string;
+  /**
+   * The signed-in reader's own email. dc.html p14's first row reads
+   * "you · jasonlosh@hotmail.com" on its second line; /api/orgs/[id]/members
+   * returns a resolved display_name and no email column, so the caller's own
+   * address is passed in from the page (which already has it) rather than
+   * guessed. Omitted = the second line reads "you" alone.
+   */
+  callerEmail?: string;
 }
+
+/** dc.html p14's MEMBERS & ROLES track list, verbatim. */
+const MEMBER_COLUMNS = [
+  { label: "Member", width: "1fr" },
+  { label: "Joined", width: "120px" },
+  { label: "Role", width: "150px" },
+  { label: "", width: "44px" },
+];
 
 const ROLE_LABELS: Record<string, string> = {
   owner: "Owner",
@@ -58,7 +92,7 @@ const ROLE_LABELS: Record<string, string> = {
   viewer: "Viewer",
 };
 
-export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
+export function MembersPanel({ orgId, callerUserId, callerEmail }: MembersPanelProps) {
   const [data, setData] = useState<MembersResponse | null>(null);
   const [pendingInvites, setPendingInvites] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
@@ -258,40 +292,27 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
     <>
       <AccountCard
         title="Members & roles"
-        meta={`${data.members.length} member${data.members.length === 1 ? "" : "s"}${invitedMeta}`}
-        maxWidth={720}
+        meta={`${data.members.length} member${data.members.length === 1 ? "" : "s"}${invitedMeta} · role changes apply immediately`}
+        bodyPad={false}
       >
-        {/* Invite row (owner/admin) */}
+        {/* Invite row, dc.html p14: a labelled "INVITE BY EMAIL" field and a
+            "Send invite" ink button on one baseline row, inside the card's own
+            16px gutter. */}
         {isOwner && (
-          <div style={{ display: "flex", gap: 8, margin: "0 0 12px" }}>
-            <TextInput
-              type="email"
-              placeholder="Email address"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && invite()}
-              style={{ flex: 1, fontSize: "12.5px", padding: "9px 12px" }}
-            />
-            <button
-              type="button"
-              onClick={invite}
-              disabled={inviting || !inviteEmail.trim()}
-              style={{
-                fontFamily: "var(--font-sans)",
-                fontSize: "11.5px",
-                fontWeight: 800,
-                padding: "9px 16px",
-                borderRadius: 6,
-                border: "1px solid var(--color-primary)",
-                background: "var(--color-primary)",
-                color: "#FFFFFF",
-                cursor: inviting || !inviteEmail.trim() ? "not-allowed" : "pointer",
-                opacity: inviting || !inviteEmail.trim() ? 0.5 : 1,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {inviting ? "Inviting…" : "Invite"}
-            </button>
+          <div data-audit="members-invite-row" style={{ padding: "14px 16px 0", display: "grid", gridTemplateColumns: "1fr auto", gap: 8, alignItems: "end" }}>
+            <div>
+              <FieldLabel>Invite by email</FieldLabel>
+              <TextInput
+                type="email"
+                placeholder="name@company.com"
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && invite()}
+              />
+            </div>
+            <InkButton type="button" onClick={invite} disabled={inviting || !inviteEmail.trim()}>
+              {inviting ? "Inviting…" : "Send invite"}
+            </InkButton>
           </div>
         )}
 
@@ -301,7 +322,7 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
               fontSize: 11,
               padding: "10px 12px",
               borderRadius: 6,
-              margin: "0 0 12px",
+              margin: "12px 16px 0",
               background: "var(--color-bg-ai-strip)",
               border: "1px solid var(--color-active-border)",
               color: "var(--color-text-secondary)",
@@ -373,7 +394,7 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
               fontSize: 11,
               padding: "8px 10px",
               borderRadius: 6,
-              margin: "0 0 12px",
+              margin: "12px 16px 0",
               color: status.kind === "ok" ? "var(--color-success)" : "var(--color-error)",
               background: status.kind === "ok" ? "rgba(22,163,74,0.06)" : "rgba(220,38,38,0.06)",
               border: `1px solid ${status.kind === "ok" ? "rgba(22,163,74,0.2)" : "rgba(220,38,38,0.2)"}`,
@@ -383,142 +404,131 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
           </div>
         )}
 
-        {data.members.map((m) => {
-          const isPending = pendingId === m.id;
-          const isSelf = m.user_id === callerUserId;
-          const joined = new Date(m.joined_at);
-          const joinedStr = Number.isNaN(joined.getTime()) ? m.joined_at : formatLocaleDate(joined);
-          return (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 0",
-                borderTop: "1px solid var(--color-border-subtle)",
-                opacity: isPending ? 0.6 : 1,
-              }}
-            >
-              <div style={{ minWidth: 0 }}>
-                <p style={{ fontSize: "12.5px", fontWeight: 700, margin: 0, color: "var(--color-text-primary)" }}>
-                  {m.display_name}
-                  {isSelf && (
-                    <span style={{ fontSize: 10, fontWeight: 800, textTransform: "uppercase", color: "var(--color-text-muted)", marginLeft: 6 }}>
-                      you
+        {/* The member table, dc.html p14's own track list, verbatim. */}
+        <div data-audit="members-table" style={{ marginTop: 10 }}>
+          <RowTable
+            columns={MEMBER_COLUMNS}
+            rows={data.members.map((m) => {
+              const isPending = pendingId === m.id;
+              const isSelf = m.user_id === callerUserId;
+              const joined = new Date(m.joined_at);
+              const joinedStr = Number.isNaN(joined.getTime()) ? m.joined_at : formatJoined(joined);
+              return {
+                key: m.id,
+                cells: [
+                  <span key="member" style={{ display: "block", minWidth: 0 }}>
+                    <b style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                      {m.display_name}
+                    </b>
+                    {/* dc.html p14's second line: "you · <email>" on the reader's
+                        own row, nothing on anyone else's. The role is NOT repeated
+                        here; it has its own column. */}
+                    <span
+                      style={{
+                        display: "block",
+                        fontSize: "var(--fs-11)",
+                        color: "var(--ink-3)",
+                        whiteSpace: "nowrap",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                      }}
+                    >
+                      {isSelf ? (callerEmail ? `you · ${callerEmail}` : "you") : "\u00a0"}
                     </span>
-                  )}
-                </p>
-                <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "1px 0 0" }}>
-                  {ROLE_LABELS[m.role].toLowerCase()} · joined {joinedStr}
-                </p>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-                {isOwner ? (
-                  <select
-                    value={m.role}
-                    disabled={isPending}
-                    onChange={(e) => changeRole(m, e.target.value)}
-                    aria-label={`Role for ${m.display_name}`}
-                    style={{
-                      fontFamily: "var(--font-sans)",
-                      fontSize: "9.5px",
-                      fontWeight: 800,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "var(--color-primary)",
-                      background: "var(--surface)",
-                      border: "1px solid var(--color-active-border)",
-                      borderRadius: 4,
-                      padding: "3px 6px",
-                      cursor: isPending ? "default" : "pointer",
-                    }}
-                  >
-                    {Object.entries(ROLE_LABELS).map(([k, v]) => (
-                      <option key={k} value={k}>
-                        {v}
-                      </option>
-                    ))}
-                  </select>
-                ) : (
+                  </span>,
                   <span
-                    style={{
-                      fontSize: "9.5px",
-                      fontWeight: 800,
-                      letterSpacing: "0.08em",
-                      textTransform: "uppercase",
-                      color: "var(--color-primary)",
-                      border: "1px solid var(--color-active-border)",
-                      borderRadius: 4,
-                      padding: "2px 8px",
-                    }}
+                    key="joined"
+                    style={{ display: "block", color: "var(--ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
                   >
-                    {ROLE_LABELS[m.role]}
-                  </span>
-                )}
-                {isOwner && (
-                  <>
-                    <button
-                      type="button"
-                      onClick={() => remove(m)}
-                      disabled={isPending || isSelf}
-                      title={isSelf ? "You cannot remove your own membership" : "Remove from workspace"}
+                    {joinedStr}
+                  </span>,
+                  isOwner ? (
+                    <select
+                      key="role"
+                      value={m.role}
+                      disabled={isPending}
+                      onChange={(e) => changeRole(m, e.target.value)}
+                      aria-label={`Role for ${m.display_name}`}
                       style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "var(--color-text-secondary)",
-                        background: "none",
-                        border: "none",
-                        cursor: isPending || isSelf ? "not-allowed" : "pointer",
-                        opacity: isSelf ? 0.4 : 1,
-                        padding: 2,
+                        fontFamily: "inherit",
+                        width: "100%",
+                        minHeight: 44,
+                        fontSize: "var(--fs-125)",
+                        fontWeight: 600,
+                        color: "var(--ink)",
+                        background: "var(--surface)",
+                        border: "1px solid rgba(0,0,0,.25)",
+                        borderRadius: 6,
+                        padding: "5px 8px",
+                        cursor: isPending ? "default" : "pointer",
                       }}
                     >
-                      Remove
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setBanTarget(m)}
-                      disabled={isSelf}
-                      title={isSelf ? "You cannot ban yourself" : "Ban from this workspace"}
-                      style={{
-                        fontFamily: "var(--font-sans)",
-                        fontSize: 11,
-                        fontWeight: 700,
-                        color: "var(--destructive-quiet, #9A3412)",
-                        background: "none",
-                        border: "none",
-                        cursor: isSelf ? "not-allowed" : "pointer",
-                        opacity: isSelf ? 0.4 : 1,
-                        padding: 2,
-                      }}
-                    >
-                      Ban
-                    </button>
-                  </>
-                )}
-              </div>
-            </div>
-          );
-        })}
+                      {Object.entries(ROLE_LABELS).map(([k, v]) => (
+                        <option key={k} value={k}>
+                          {v}
+                        </option>
+                      ))}
+                    </select>
+                  ) : (
+                    <span key="role" style={{ display: "block", fontWeight: 600 }}>
+                      {ROLE_LABELS[m.role]}
+                    </span>
+                  ),
+                  isOwner ? (
+                    <RowTableOverflow
+                      key="more"
+                      label={`More actions for ${m.display_name}`}
+                      items={
+                        isSelf
+                          ? []
+                          : [
+                              { key: "remove", label: "Remove from workspace", onSelect: () => remove(m) },
+                              { key: "ban", label: "Ban from this workspace", onSelect: () => setBanTarget(m) },
+                            ]
+                      }
+                      extra={
+                        isSelf ? (
+                          <span style={{ display: "block", padding: "8px 10px", fontSize: "var(--fs-115)", color: "var(--ink-3)", lineHeight: 1.5 }}>
+                            You cannot remove or ban your own membership.
+                          </span>
+                        ) : undefined
+                      }
+                    />
+                  ) : (
+                    <span key="more" aria-hidden="true" />
+                  ),
+                ],
+              };
+            })}
+          />
+        </div>
 
-        <p
+        {/* Legend foot, dc.html p14's own foot strip. */}
+        <div
           style={{
-            fontSize: "10.5px",
-            color: "var(--color-text-muted)",
-            lineHeight: 1.55,
-            margin: "10px 0 0",
-            borderTop: "1px solid var(--color-border-subtle)",
-            paddingTop: 10,
+            padding: "10px 16px",
+            borderTop: "1px solid var(--line-2)",
+            background: "var(--page)",
+            fontSize: "var(--fs-12)",
+            color: "var(--ink-3)",
+            lineHeight: 1.5,
           }}
         >
-          The role chip changes role in place (Owner / Admin / Member / Viewer). <b>Remove</b> detaches the
-          member from this workspace; <b>Ban</b> removes them <i>and</i> blocks the account from re-joining
-          this workspace, behind a typed confirmation. The last owner cannot be removed or banned. Same
-          controls as Admin → Workspaces.
-        </p>
+          Owner · Admin · Member · Viewer. Remove detaches from this workspace; Ban blocks re-joining and
+          asks for typed confirmation. The last owner cannot be removed.
+        </div>
+
+        {/* Seat strip, dc.html p14 draws "Workspace · you are the owner · 3 of 5
+            seats used" with a "Manage seats" link. The seat clause has no data
+            path (see the docblock), so it renders the Absence convention, and the
+            link is not drawn because no seats route exists: a dead control is a
+            defect (ruling 1.1). */}
+        <div data-audit="members-seat-strip" style={{ margin: "0 16px 14px" }}>
+          <StateNote>
+            <b>Workspace</b> · you are {isOwner ? "the owner" : `a ${ROLE_LABELS[data.caller_role].toLowerCase()}`} · seat limit{" "}
+            <Absence reason="connect data" />
+          </StateNote>
+        </div>
       </AccountCard>
 
       {banTarget && (
@@ -531,6 +541,16 @@ export function MembersPanel({ orgId, callerUserId }: MembersPanelProps) {
       )}
     </>
   );
+}
+
+/**
+ * The artboard's JOINED cell reads "Apr 4 2026", month, day, year with no
+ * comma. `formatLocaleDate`'s locale-pinned output for those parts carries the
+ * comma, so it is dropped here rather than a second date formatter being
+ * introduced (F36 keeps ONE locale-pinned formatter).
+ */
+function formatJoined(d: Date): string {
+  return formatLocaleDate(d, { month: "short", day: "numeric", year: "numeric" }).replace(",", "");
 }
 
 // ── Ban dialog — org-scoped ban (typed confirmation → POST) ─────────────────

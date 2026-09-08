@@ -32,9 +32,10 @@ import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
-import { AUDIT_MOUNTS } from './mounts.mjs';
+import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
+import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
@@ -167,6 +168,9 @@ async function probe(page, targets, forbids) {
  * checked against its row's own box (no cell escapes it) and against its sibling cells (no two
  * overlap). This is what `expect`/`children`'s value-level checks structurally cannot do (they
  * read `getComputedStyle`, never geometry against a SIBLING), and what `detectOverflows`
+ * `containmentOnly: true` on an entry keeps the container check and drops the sibling-overlap
+ * check, for items whose positions come from DATA rather than layout (map markers at jurisdiction
+ * centroids), where an overlap is geography, not a defect.
  * (the smoke specs' own guard) cannot do either (it only sees a container's own scrollWidth vs
  * clientWidth — never one cell bleeding into another while the container itself stays scroll-
  * free, which is exactly the reported defect).
@@ -208,7 +212,9 @@ function rowsForBounds(spec, checks, measured) {
     }
     const allViolations = [];
     perRow.forEach(({ containerRect, cells }, rowIdx) => {
-      const v = detectBoundsViolations(containerRect, cells);
+      const v = detectBoundsViolations(containerRect, cells, undefined, {
+        containmentOnly: Boolean(check.containmentOnly),
+      });
       if (v.length > 0) allViolations.push(`row ${rowIdx}: ${v.join('; ')}`);
     });
     rows.push({
@@ -422,10 +428,44 @@ async function main() {
       const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
       try {
         await page.setViewportSize({ width: spec.viewport, height: 1400 });
+        // TWO independent stylesheet mechanisms, both kept at the fold (train 60). They answer
+        // different questions and neither subsumes the other.
+        //
+        // `needsCompiledCss` (lane admin60) gives the mount the app's own compiled stylesheet,
+        // exactly as capture-compose-page.mjs gives it before shooting the same mount. Without it
+        // the eight AppShell page-composition mounts rendered with NO stylesheet at all: every
+        // `var(--fs-*)` fell back to the 16px default, so any measurement that depends on real type
+        // size (a bounds check, a wrapped header cell) was measuring a page the product never
+        // renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its 30px
+        // strip: real at 16px, impossible at the token's 9.5px.
+        //
+        // `styleFiles` (lane map60) adds a named stylesheet from node_modules, for a mount whose
+        // esbuild alias table drops a bare `.css` import. The compose-map mount aliases
+        // `leaflet/dist/leaflet.css` to an empty module, so leaflet built all four markers but
+        // nothing gave `.leaflet-pane` its absolute positioning and the canvas photographed empty.
+        //
+        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it.
+        if (mount.needsCompiledCss) {
+          await page.addStyleTag({ content: await fullAppCssCompiled() });
+        }
+        const extraCss = mountExtraCss(mount);
+        if (extraCss) await page.addStyleTag({ content: extraCss });
         await mountBundle(page, bundleCache.get(spec.mount), '__mount', null);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
         await page.waitForTimeout(80);
         const targets = targetsOf(spec);
+        // SETTLE ON THE SPEC'S OWN TARGETS, not on a fixed 80ms (lane lists60, 2026-09-08).
+        // A mount whose region arrives from a CLIENT FETCH resolved through the harness's routes
+        // (DetailTagRow's /api/workspace/tags is the one that showed it) sometimes had not painted
+        // yet when probe() ran, and the run reported NOT BUILT against a component that was
+        // perfectly correct: this audit read 1030/1030 and 1026/1030 on two consecutive runs of the
+        // SAME commit, with `detailtagrow` the only difference. A flaky gate is worse than a slow
+        // one, because it teaches its readers to re-run rather than to believe it. Each target is
+        // given a bounded wait to appear; a target that is genuinely absent still costs only that
+        // bound and still reports NOT BUILT, so a real regression is never waited into a pass.
+        for (const t of targets) {
+          await page.waitForSelector(t.selector, { timeout: 1500, state: 'attached' }).catch(() => {});
+        }
         const forbids = spec.forbid || [];
         const measured = await probe(
           page,

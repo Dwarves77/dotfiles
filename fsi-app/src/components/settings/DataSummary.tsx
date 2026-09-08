@@ -32,10 +32,6 @@ export function DataSummary({ resources, archived }: DataSummaryProps) {
 
   return (
     <div className="space-y-4">
-      <h3 className="text-[11px] font-semibold uppercase text-text-primary" style={{ letterSpacing: "1.5px" }}>
-        Data Summary
-      </h3>
-
       <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <div className="text-center">
           <span className="text-2xl font-bold text-text-primary">{resources.length}</span>

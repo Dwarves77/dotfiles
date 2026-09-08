@@ -2,15 +2,20 @@
   "part": "Page composition — Auth (16): /login, /signup",
   "mount": "compose-login",
   "viewport": 1440,
-  "artboards": ["16-auth"],
+  "artboards": [
+    "16-auth"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
   "notes": [
     "Region-composition check for /login (the primary illustrated state on the artboard, 'Sign in' tab active). Full page: the real LoginPage (src/app/login/page.tsx) inside AuthFrame — no AppShell/Sidebar, matching the artboard's own full-1440px split-screen frame (left identity panel / right form panel), no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
     "This lane found NO composition defects on this page — it was already built carefully by a prior lane (AuthFrame.tsx/AuthPanel.tsx/LoginPage.tsx headers), including correctly-reasoned, already-logged deviations from the artboard's own placeholder content: the artboard's headline ('What is binding on you, when it bites, and what it costs.') and its fabricated '1,434 items...' copy are explicitly marked placeholder in README ('Fidelity') and are not shipped (CLAUDE.md rule 2, never fabricate numbers) — the real tagline + the real BAND_ORDER urgency-band scale render in that slot instead, both real vocabulary. The artboard's 'Keep me signed in' checkbox is not built because src/lib/supabase-browser.ts's client has no session-only mode wired and that file is outside this lane's write set (logged). This spec exists to LOCK this already-correct composition in place, not to fix anything.",
-    "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected."
+    "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected.",
+    "Artboards 16 and 17 draw a 900px-tall frame whose right column is vertically CENTRED (dc.html p16/p17: the grid is `min-height:900px` and the right column `display:flex;align-items:center;justify-content:center;padding:48px`). AuthFrame.tsx already builds exactly that. FOLD-59's visual pass read the built panel as sitting lower than the artboard's; that was the CAPTURE, whose 1400px viewport made AuthFrame's own `min-height:100vh` outer box 1400 tall so the panel centred at 700 instead of 450. The mount now pins its capture height to the artboard's 900. Asserted below so the geometry cannot drift silently again (lane lists60, 2026-09-08). The 'Keep me signed in' checkbox artboard 16 draws is still NOT built: it needs a session-persistence decision (Supabase session lifetime, not a checkbox), and it is logged in DEVIATION-LOG.md as the open item it already was. No forbid row is added for it, because it is deferred, not ruled out."
   ],
   "selector": "[data-audit=\"login\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — identity panel: brand name + tagline",
@@ -33,7 +38,9 @@
     {
       "name": "region 4 — Work email + Password fields",
       "selector": "[data-audit=\"login\"] input[type=\"password\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
       "name": "region 5 — Forgot password link + Sign in button",
@@ -52,6 +59,25 @@
       "selector": "[data-audit=\"login\"] *",
       "expect": {},
       "textMatch": "Invited to a workspace?"
+    },
+    {
+      "name": "the frame is the artboard's 900px-tall grid",
+      "selector": "[data-audit=\"login\"] > div > div",
+      "expect": {
+        "min-height": "900px",
+        "display": "grid"
+      }
+    },
+    {
+      "name": "the form column is vertically centred in that frame, with the artboard's 48px inset",
+      "selector": "[data-audit=\"login\"] > div > div > div:nth-child(2)",
+      "expect": {
+        "display": "flex",
+        "align-items": "center",
+        "justify-content": "center",
+        "padding-top": "48px",
+        "padding-left": "48px"
+      }
     }
   ],
   "forbid": [

@@ -241,10 +241,10 @@ export default async function ResearchFindingDetailPage({
               // is actually a member of a live theme.
               const { data: themeRows } = await supabase
                 .from("connection_themes")
-                .select("id, member_ids");
+                .select("id, member_ids, density");
               const matchedTheme =
                 themeRows && themeRows.length > 0
-                  ? (themeRows as { id: string; member_ids: string[] }[]).find(
+                  ? (themeRows as { id: string; member_ids: string[]; density: number | null }[]).find(
                       (t) => Array.isArray(t.member_ids) && t.member_ids.includes(self.id)
                     )
                   : null;

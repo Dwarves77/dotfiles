@@ -68,10 +68,14 @@ test("WatchlistSurface's card titles go through the shared SectionHeading (which
   assert.doesNotMatch(text, /fontSize: 18,/);
 });
 
-test("MapPageView's CardHead title carries letterSpacing 0.04em", () => {
+// UPDATED (lane map60, 2026-09-08): MapPageView's page-local CardHead is DELETED, artboard 10's
+// two card heads are the same head artboards 1 and 11 draw, so the page renders the shared
+// SectionHeading (which the .04em assertion above owns) instead of a third copy. The invariant is
+// unchanged; its mount follows the component.
+test("MapPageView renders its card heads through the shared SectionHeading, not a page-local copy", () => {
   const text = readFileSync(resolve(ROOT, "components/map/MapPageView.tsx"), "utf8");
-  const start = text.indexOf("function CardHead(");
-  const end = text.indexOf("const railLabelStyle");
-  const block = text.slice(start, end);
-  assert.match(block, /letterSpacing: "0\.04em"/);
+  assert.match(text, /import \{ SectionHeading \} from "@\/components\/ui\/SectionHeading"/);
+  assert.doesNotMatch(text, /function CardHead\(/);
+  assert.match(text, /<SectionHeading\s+title="Regulatory map"/);
+  assert.match(text, /<SectionHeading\s+title="Jurisdiction register"/);
 });

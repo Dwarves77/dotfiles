@@ -103,7 +103,7 @@ export function rectsOverlap(a, b, tolerance = BOUNDS_TOLERANCE_PX) {
  * @param {{left:number,top:number,right:number,bottom:number}} containerRect
  * @param {{name:string, rect:{left:number,top:number,right:number,bottom:number,width:number,height:number}}[]} cells
  */
-export function detectBoundsViolations(containerRect, cells, tolerance = BOUNDS_TOLERANCE_PX) {
+export function detectBoundsViolations(containerRect, cells, tolerance = BOUNDS_TOLERANCE_PX, options = {}) {
   const violations = [];
   const live = (cells || []).filter((c) => c.rect.width > 0 && c.rect.height > 0);
   for (const c of live) {
@@ -111,6 +111,12 @@ export function detectBoundsViolations(containerRect, cells, tolerance = BOUNDS_
       violations.push(`${c.name} extends outside its container`);
     }
   }
+  // `containmentOnly` (lane map60, 2026-09-08): check containment but NOT sibling overlap. The one
+  // case that needs it is a set of items whose positions are DATA, not layout, map markers sit at
+  // their jurisdictions' centroids, so two geographically close jurisdictions (EU and UK at world
+  // zoom) overlap by geography and the artboard itself draws two markers all but touching. Every
+  // grid/table caller leaves this unset and keeps both halves; it is not a general relaxation.
+  if (options.containmentOnly) return violations;
   for (let i = 0; i < live.length; i++) {
     for (let j = i + 1; j < live.length; j++) {
       if (rectsOverlap(live[i].rect, live[j].rect, tolerance)) {

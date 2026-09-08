@@ -595,7 +595,9 @@ export function ListSurfaceShell({
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <FiltersRailCard
             groups={allFacetGroups}
-            footnote="Counts are live for the current selection. The band tiles above are the fourth facet."
+            /* Artboard 02/id="p2" Filters card foot, verbatim. The build had dropped the middle
+               sentence; lane lists60 restored it (2026-09-08). */
+            footnote="Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
           />
           {rail}
         </div>

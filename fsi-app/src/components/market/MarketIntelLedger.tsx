@@ -41,7 +41,15 @@ import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { TagChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import {
+  RailCard,
+  LegendRailCard,
+  CarbonCostRailCard,
+  NextDataDropsRailCard,
+  type CarbonCorridorRow,
+  type NextDataDropRow,
+} from "@/components/list-surface/ListSurfaceRailCards";
+import { selectNextDataDrops } from "@/lib/market/market-rail-select.mjs";
 import { ListSurfaceSortRow, type ListSurfaceSortOption } from "@/components/list-surface/ListSurfaceSortRow";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
@@ -115,9 +123,23 @@ export interface MarketIntelLedgerProps {
    *  (both already read the SAME seriesBoard fetch) rather than this component importing and
    *  mounting it directly — page.tsx owns the fetch, this component owns only the placement slot. */
   headlineSeries?: ReactNode;
+  /** artboard 04/id="p4" rail, card 2 of 4: CARBON COST PER FEU. The per-corridor
+   *  `carbonCostPerFeu()` results page.tsx ALREADY builds for the <CarbonCostOverlay/> section
+   *  (buildCarbonCostOverlays over getCachedCorridorScopes()), passed in rather than re-derived
+   *  here — one fetch, two views. Reduced to the card's two rows by the pure
+   *  summariseCarbonCorridors (src/lib/market/market-rail-select.mjs). Omitted, the card renders
+   *  the Absence convention. */
+  carbonCorridors?: CarbonCorridorRow[];
 }
 
-export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, nowIso, headlineSeries }: MarketIntelLedgerProps) {
+export function MarketIntelLedger({
+  initialResources,
+  aggregates,
+  seriesBoard,
+  nowIso,
+  headlineSeries,
+  carbonCorridors,
+}: MarketIntelLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -220,11 +242,42 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
 
   const total = aggregates.totalItems || initialResources.length;
   const producers = seriesBoard?.groups ?? [];
+  // Artboard 04's NEXT DATA DROPS rows. Derived from the SAME `seriesBoard` prop the Headline
+  // series card and the Sources tracked card already read, against the injected server instant —
+  // no new read, no host-clock read (see market-rail-select.mjs's header).
+  // Artboard 04's scope line states the OBSERVED SERIES count beside the signal total. The board
+  // already carries it; `null` when no board was passed at all, so the segment drops rather than
+  // rendering a fabricated 0.
+  const observedSeriesCount = seriesBoard ? seriesBoard.totalObservedSeries : null;
+  const nextDataDrops = useMemo(
+    () => selectNextDataDrops(seriesBoard, { now: nowFrom(nowIso) }) as NextDataDropRow[],
+    [seriesBoard, nowIso],
+  );
 
   return (
     <ListSurfaceShell
       title="Market Intelligence"
-      dek="Signals are unverified by design — timely first, confirmed later."
+      /* Artboard 04/id="p4" scope line: "55 active signals · 16 observed series · signals are
+         unverified by design — timely first, confirmed later." The build stated only the standing
+         sentence and neither live count (lane lists60, 2026-09-08). Both counts are already in this
+         component's props: the signal total it renders, and the observed-series total the SAME
+         `seriesBoard` the Headline Series card reads carries. A segment whose figure is absent is
+         omitted, never invented. */
+      scopeLine={
+        <span data-audit="scope-line">
+          <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active signals
+          {observedSeriesCount !== null && (
+            <>
+              {" · "}
+              <b style={{ color: "var(--ink)" }}>{formatNumber(observedSeriesCount)}</b> observed series
+            </>
+          )}
+          {" · signals are unverified by design — timely first, confirmed later"}
+        </span>
+      }
+      /* Artboard 04's own command-bar placeholder. Pass-through: the ask surface is still the one
+         CommandBar in the Masthead (README §0.4). */
+      searchPlaceholder={'Search signals, series, producers — or ask "how does Brent affect my air freight?"'}
       dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
       nowIso={nowIso}
       itemCount={total}
@@ -256,9 +309,18 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
       perBandCap={PER_BAND_CAP}
       expandedBands={expanded}
       onExpandBand={(key) => setExpanded((s) => new Set(s).add(key))}
-      stateNote={<StateNote>{total} active signals across {producers.length || "0"} tracked producers.</StateNote>}
+      /* Artboard 04/id="p4" draws nothing below the band cards; the signal total is already in the
+         masthead scope line ("55 active signals · 16 observed series · ...") and again in the sort
+         row. Removed with the same line on /regulations and /operations (lane lists60, 2026-09-08). */
       rail={
         <>
+          {/* Artboard 04/id="p4" rail order, top to bottom: Filters (mounted by ListSurfaceShell
+              itself), CARBON COST PER FEU, NEXT DATA DROPS, Legend. SOURCES TRACKED is an app
+              feature the artboard does not draw at all — ruling R7 keeps it exactly as it is and
+              moves it to after the last DESIGNED card of this column, which is Legend. */}
+          <CarbonCostRailCard corridors={carbonCorridors ?? []} />
+          <NextDataDropsRailCard drops={nextDataDrops} />
+          <LegendRailCard />
           <RailCard title="Sources tracked">
             {producers.length === 0 ? (
               <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>No price-data producers are registered yet.</p>
@@ -273,7 +335,6 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
               </div>
             )}
           </RailCard>
-          <LegendRailCard />
         </>
       }
     />

@@ -2,46 +2,104 @@
   "part": "Page composition — Regulation detail (03)",
   "mount": "page-frame-1440",
   "viewport": 1440,
-  "artboards": ["03-regulation-detail"],
+  "artboards": [
+    "03-regulation-detail"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/03-regulation-detail.png; dc.html id=\"p3\"; README §0.5",
   "notes": [
     "Region-composition check inside [data-audit=\"regulation-detail\"] — RegulationDetailSurface mounted with fixture data matching the artboard's own EU ETS example (mounts.mjs PAGE_FRAME_FIXTURES.regulation).",
-    "Artboard order top to bottom: header (band pill, tier, header stat, action row) -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (In this list, Impact assessment, Affected lanes, Owner & team, Connections)."
+    "Artboard order top to bottom: header (band pill, type/mode/topic chips, TIER LAST, header stat, action row) -> exposure grid -> timeline -> sticky section index + Summary/Full brief switch -> Summary section (Generated · 30-second read) -> dynamic sections -> Sources -> rail (At a glance, Impact assessment, Relevance, Owner & team, In this list, Connections, Legend)."
   ],
   "selector": "[data-audit=\"regulation-detail\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
       "name": "region 1 — action row, exactly Export brief / Share / Watch / + Tag",
       "selector": "[data-audit=\"regulation-detail\"] .cl-action-row button",
-      "expect": { "count": "4" }
+      "expect": {
+        "count": "4"
+      }
     },
     {
       "name": "region 1a — header stat 'N source(s) · T# primary' present, before action row",
       "selector": "[data-audit=\"regulation-detail\"] header span",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "source"
     },
     {
       "name": "region 2 — sticky section index second entry is 'S2 Obligations — issues requiring action'",
       "selector": "[data-audit=\"regulation-detail\"] nav[aria-label=\"Section index\"] a:nth-of-type(2)",
-      "expect": { "text": "S2 Obligations — issues requiring action" }
+      "expect": {
+        "text": "S2 Obligations — issues requiring action"
+      }
     },
     {
       "name": "region 3 — Summary section aside 'Generated · 30-second read'",
       "selector": "[data-audit=\"regulation-detail\"] section#summary span",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Generated"
     },
     {
       "name": "region 4 — Sources section is the last section before the rail",
       "selector": "[data-audit=\"regulation-detail\"] section#sources h2",
-      "expect": { "text": "Sources" }
+      "expect": {
+        "text": "Sources"
+      }
     },
     {
-      "name": "region 5 — rail, 'In this list' card first",
-      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:nth-of-type(1) p:first-of-type",
-      "expect": { "text": "In this list" }
+      "name": "region 1b — chip row order: band pill, Regulation, mode, topic, then the TIER square last",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-chips\"]",
+      "expect": {
+        "count": "1"
+      },
+      "note": "dc.html #p3: 'Action · <= 6 months' · Regulation · Ocean · Emissions · T1. The build rendered the tier chip second, straight after the band pill; DetailShell now renders extraChips before it, on all four detail pages.",
+      "textMatch": "re:Regulation[\\s\\S]*Ocean[\\s\\S]*Emissions[\\s\\S]*T2"
+    },
+    {
+      "name": "region 1c — EXPOSURE grid renders between the header and the timeline",
+      "selector": "[data-audit=\"regulation-detail\"] p",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Exposure",
+      "note": "Artboard 03 draws WHERE / WHO PAYS / YOUR LANES / TRAJECTORY under the header; this was the one detail surface that never called the shared DetailExposure."
+    },
+    {
+      "name": "region 1d — EXPOSURE 'Who pays' carries the item's own cost mechanism, not an Absence",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"exposure-value\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "carrier ETS surcharge"
+    },
+    {
+      "name": "rail order 1 — AT A GLANCE is the first rail card (artboard 03)",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1) p:first-of-type",
+      "expect": {
+        "text": "At a glance"
+      },
+      "note": "Fixed once in DetailShell's DetailRail slot order (lane details60, 2026-09-08); the build put IN THIS LIST first on all four detail pages."
+    },
+    {
+      "name": "rail order 2 — IMPACT ASSESSMENT is the second rail card (artboard 03)",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(2) p:first-of-type",
+      "expect": {
+        "text": "Impact assessment"
+      }
+    },
+    {
+      "name": "rail order last — LEGEND is present, after the artboard's own page cards (Owner & team, In this list, Connections)",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-rail\"] p",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Legend"
     }
   ],
   "forbid": [
@@ -55,6 +113,12 @@
       "selector": "[data-audit=\"regulation-detail\"] .cl-action-row",
       "textMatch": "▾",
       "reason": "The band pill states the band; changing it is not a reader action from the action row."
+    },
+    {
+      "name": "the place-keeping card is never the first rail card",
+      "selector": "[data-audit=\"regulation-detail\"] [data-audit=\"detail-rail\"] > div:nth-of-type(1)",
+      "textMatch": "In this list",
+      "reason": "Every detail artboard opens its rail with AT A GLANCE; IN THIS LIST comes after it (03/05) or is an R7 undesigned card placed after LEGEND (07/09)."
     }
   ]
 }

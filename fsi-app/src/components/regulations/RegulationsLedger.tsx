@@ -255,7 +255,11 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     aggregates.lastUpdatedAt
       ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
       : null,
-    nextObligation ? `next obligation ${nextObligation.due!.label} · ${nextObligation.title}` : null,
+    // Artboard 02/id="p2" writes this segment as "next obligation Sep 25 · EU Net-Zero Industry
+    // Act" — a compact month+day, no year, because the scope line is one line beside the command
+    // bar and a full "Sep 8, 2026" pushed it wide enough to wrap the bar onto its own row (lane
+    // lists60, 2026-09-08, visual pass at 1440). Same date, the artboard's own form.
+    nextObligation ? `next obligation ${nextObligation.due!.label.replace(/, \d{4}$/, "")} · ${nextObligation.title}` : null,
   ].filter(Boolean);
 
   return (
@@ -293,16 +297,15 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
       expandedBands={expanded}
       onExpandBand={(key) => setExpanded((s) => new Set(s).add(key))}
       loadingMoreRows={loadingMore}
-      stateNote={
-        loadingMore ? (
-          <StateNote>Loading the rest of the regulations corpus in the background.</StateNote>
-        ) : (
-          <StateNote>
-            {total} regulations tracked across {Object.keys(aggregates.byJurisdiction ?? {}).length || regionOptions.length}{" "}
-            jurisdictions.
-          </StateNote>
-        )
-      }
+      /* Artboard 02/id="p2" draws NOTHING below the band cards. The corpus total and the
+         jurisdiction count the trailing "N regulations tracked across N jurisdictions" line
+         restated are both already in the masthead scope line ("1,316 active · 32 jurisdictions ·
+         ..."), and the total again in the sort row — a third copy of two figures the artboard
+         states once each (lane lists60, 2026-09-08; the same slot is cleared on /market and
+         /operations, which share this shared code path). The remainder-fetch note STAYS: it
+         reports a live loading state the artboard has no sample for, and it disappears the moment
+         the fetch lands. */
+      stateNote={loadingMore ? <StateNote>Loading the rest of the regulations corpus in the background.</StateNote> : null}
       belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
       /* Artboard 02/id="p2" rail order, top to bottom: Filters (mounted by ListSurfaceShell
          itself), then "Obligations · next 30 days", then Legend. */

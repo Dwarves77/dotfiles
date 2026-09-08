@@ -35,9 +35,16 @@ test("the rail mounts FiltersRailCard built from facetGroups + secondaryFacetGro
   assert.match(SHELL_SOURCE, /groups=\{allFacetGroups\}/, "FiltersRailCard must receive the same facetGroups + secondaryFacetGroups union every caller already computes");
 });
 
-test("FiltersRailCard renders a Filters title, a Clear-N control, and checkbox rows with live counts", () => {
+test("FiltersRailCard renders a Filters title, a Clear control, and checkbox rows with live counts", () => {
   assert.match(RAIL_SOURCE, /Filters/);
-  assert.match(RAIL_SOURCE, /Clear \{activeCount\}/);
+  // Lane lists60 (2026-09-08): the Clear link is UNCONDITIONAL, because both artboards that draw
+  // this card draw it — 02/id="p2" as `Clear 1` (one facet active) and 04/id="p4" as a bare `Clear`
+  // (none active). It used to render only while a facet was active, so the composition capture
+  // showed no Clear link at all. The count is still appended when there is one to state.
+  assert.match(RAIL_SOURCE, /activeCount === 0 \? "Clear" : `Clear \$\{activeCount\}`/);
+  // ...and with nothing to clear it is disabled rather than a press that silently does nothing
+  // (operator audit P0 1.1's class: a control with no function behind it is a defect).
+  assert.match(RAIL_SOURCE, /disabled=\{activeCount === 0\}/);
   assert.match(RAIL_SOURCE, /type="checkbox"/);
   // `countLabel ?? count` since lane comp-08 (2026-09-08): the live count is still what renders;
   // a facet whose count is a ratio rather than a tally (artboard 08's DIMENSION group, "3/5")

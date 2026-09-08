@@ -1,25 +1,43 @@
 "use client";
 
 /**
- * OrganizationsTable — workspace-level organizations roster for the
- * Admin → Organizations tab. Replaces the Phase D "Coming soon"
- * placeholder with a real data view rendered against the orgs +
- * org_memberships rows already hydrated by app/admin/page.tsx.
+ * OrganizationsTable, the ORGANIZATIONS card's body on artboard 13
+ * (dc.html p13, the card stacked directly under "SOURCES · PROVISIONAL
+ * REVIEW").
  *
- * Data flow: parent (AdminDashboard) passes orgs and members in via
- * props (initialOrgs / initialMembers from server-side fetch). This
- * component does not query Supabase directly — it derives per-org
- * member counts, role rosters, and last-activity proxies from the
- * member list it receives.
+ * Built from the shared `RowTable`, the one admin-table anatomy, rather than
+ * a page-local grid. Lane admin60 (2026-09-08) rebuilt it for two defects the
+ * train-59 fold recorded against this artboard:
  *
- * Last-activity proxy: there is no per-org activity column today, so
- * we use the most recent org_memberships.created_at as the "last
- * activity" timestamp. Surfaced as such in the column header so the
- * caller knows the proxy nature of the value.
+ *  1. The LAST ACTIVITY value was CLIPPED at the card's right edge. The header
+ *     grid and the row grid were two DIFFERENT track lists, the header used
+ *     `minmax(0,…)` floors, the rows used `minmax(160px,…)`/`minmax(180px,…)`
+ *    , so the rows had a ~858px hard minimum inside a ~780px content column
+ *     and the last column ran under the card's `overflow:hidden` edge. There
+ *     is now ONE track list, dc.html p13's own
+ *     (`1fr 120px 110px 100px 120px 44px`, 592px of fixed track plus the
+ *     flexible name column), shared by header and rows because `RowTable`
+ *     derives both from the same `columns` array, and every cell is contained
+ *     the way ListRow's cells are (`min-width:0`, ellipsis, no overflow past
+ *     the column).
+ *  2. A ROLES column the artboard does not draw. The artboard's MEMBERS cell
+ *     reads "2 · owners", the count AND its role summary in one cell, so
+ *     the roles data is not dropped, it renders where the artboard puts it,
+ *     and the sixth column is gone.
+ *
+ * Data flow is unchanged: the parent (AdminDashboard) passes orgs and members
+ * in from the server-side fetch; this component derives per-org member counts,
+ * role rosters and the last-activity proxy from the member list it receives.
+ *
+ * Last-activity proxy: there is no per-org activity column today, so the most
+ * recent org_memberships.created_at stands in. Stated in the card foot rather
+ * than presented as a real activity timestamp.
  */
 
 import { useMemo } from "react";
 import { formatLocaleDate } from "@/lib/format";
+import { RowTable } from "@/components/ui/RowTable";
+import { Absence } from "@/components/ui/Absence";
 
 type OrgRow = {
   id: string;
@@ -46,16 +64,30 @@ type RoleSummary = {
   other: number;
 };
 
-const ROLE_KEYS: Array<keyof RoleSummary> = [
-  "owner",
-  "admin",
-  "viewer",
-  "member",
+const ROLE_KEYS: Array<keyof RoleSummary> = ["owner", "admin", "viewer", "member"];
+
+/** dc.html p13's ORGANIZATIONS track list, verbatim. */
+const COLUMNS = [
+  { label: "Name", width: "1fr" },
+  { label: "Slug", width: "120px" },
+  { label: "Plan", width: "110px" },
+  { label: "Members", width: "100px" },
+  { label: "Last activity", width: "120px" },
+  { label: "", width: "44px" },
 ];
 
 export interface OrganizationsTableProps {
   orgs: OrgRow[];
   members: MemberRow[];
+}
+
+/** "2 · owners", the artboard's MEMBERS cell: the count then its role summary. */
+export function membersCellLabel(count: number, roles: RoleSummary | undefined): string {
+  if (!roles || count === 0) return String(count);
+  const present = ROLE_KEYS.filter((k) => roles[k] > 0).map((k) => `${k}s`);
+  if (roles.other > 0) present.push("other");
+  if (present.length === 0) return String(count);
+  return `${count} · ${present.join(", ")}`;
 }
 
 export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
@@ -73,13 +105,7 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
         map.get(m.org_id) ||
         ({
           count: 0,
-          roles: {
-            owner: 0,
-            admin: 0,
-            viewer: 0,
-            member: 0,
-            other: 0,
-          },
+          roles: { owner: 0, admin: 0, viewer: 0, member: 0, other: 0 },
           lastActivity: null,
         } as { count: number; roles: RoleSummary; lastActivity: string | null });
 
@@ -112,225 +138,103 @@ export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {
   // not "data not ready."
   if (orgs.length === 0) {
     return (
-      <div
-        style={{
-          padding: "24px 16px",
-          border: "1px solid var(--border)",
-          borderRadius: "var(--r-md)",
-          background: "var(--surface)",
-          color: "var(--text-2)",
-          fontSize: 13,
-          lineHeight: 1.5,
-        }}
-      >
-        No organizations are visible to this admin scope. Provisioned orgs
-        will appear here as soon as RLS grants access.
+      <div style={{ padding: "18px 16px" }}>
+        <Absence reason="connect data" />
       </div>
     );
   }
 
   return (
-    <div
-      style={{
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-md)",
-        background: "var(--surface)",
-        overflowX: "auto",
-      }}
-    >
-      {/* Header row — keeps column intent visible without sorting UI;
-          sorting/filtering can land in a follow-up if usage demands it. */}
-      <div
-        style={{
-          display: "grid",
-          // L-6 (2026-07-11): fluid-width fix. The fr columns had 160/120/180px floors, a
-          // ~830px hard minimum that overflowed (and was clipped by the panel's overflow) in
-          // the narrow admin left column. Floors are now 0 so the grid shrinks to fit and text
-          // wraps; at full width the fr ratios render identically to before.
-          gridTemplateColumns:
-            "minmax(0,1.6fr) minmax(0,1fr) 90px 80px minmax(0,1.4fr) 140px",
-          gap: 12,
-          padding: "10px 14px",
-          fontSize: 11,
-          fontWeight: 700,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--text-2)",
-          borderBottom: "1px solid var(--border)",
-          background: "var(--raised)",
-        }}
-      >
-        <div>Name</div>
-        <div>Slug</div>
-        <div>Plan</div>
-        <div style={{ textAlign: "right" }}>Members</div>
-        <div>Roles</div>
-        <div title="Latest member created_at as activity proxy">
-          Last activity
-        </div>
-      </div>
-
-      <div>
-        {orgs.map((org) => {
+    <div data-audit="orgs-table">
+      <RowTable
+        columns={COLUMNS}
+        rows={orgs.map((org) => {
           const idx = indexByOrg.get(org.id);
           const memberCount = idx?.count ?? 0;
-          const roles = idx?.roles;
           const lastActivity = idx?.lastActivity ?? org.created_at ?? null;
-
-          return (
-            <div
-              key={org.id}
-              style={{
-                display: "grid",
-                gridTemplateColumns:
-                  "minmax(160px,1.6fr) minmax(120px,1fr) 90px 80px minmax(180px,1.4fr) 140px",
-                gap: 12,
-                padding: "12px 14px",
-                fontSize: 13,
-                color: "var(--text)",
-                borderBottom: "1px solid var(--border)",
-                alignItems: "center",
-              }}
-            >
-              <div>
-                <div style={{ fontWeight: 600, color: "var(--text)" }}>
-                  {org.name || "(unnamed)"}
-                </div>
-                <div
-                  style={{
-                    fontSize: 11,
-                    color: "var(--text-2)",
-                    fontFamily: "monospace",
-                  }}
-                  title={org.id}
-                >
-                  {org.id.slice(0, 8)}…
-                </div>
-              </div>
-
-              <div
+          return {
+            key: org.id,
+            cells: [
+              <span
+                key="name"
                 style={{
-                  fontFamily: "monospace",
-                  fontSize: 12,
-                  color: "var(--text-2)",
+                  display: "block",
+                  fontWeight: 600,
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
+              >
+                {org.name || "(unnamed)"}
+              </span>,
+              <span
+                key="slug"
+                style={{
+                  display: "block",
+                  fontFamily: "ui-monospace, monospace",
+                  fontSize: "var(--fs-115)",
+                  color: "var(--ink-2)",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                }}
+                title={org.slug || undefined}
               >
                 {org.slug || "—"}
-              </div>
-
-              <div>
-                <span
-                  style={{
-                    display: "inline-block",
-                    fontSize: 10,
-                    fontWeight: 700,
-                    letterSpacing: "0.06em",
-                    textTransform: "uppercase",
-                    padding: "2px 8px",
-                    borderRadius: 4,
-                    border: "1px solid var(--border)",
-                    color: "var(--accent)",
-                    background: "var(--accent-bg)",
-                  }}
-                >
-                  {org.plan || "—"}
-                </span>
-              </div>
-
-              <div
+              </span>,
+              <span
+                key="plan"
                 style={{
-                  textAlign: "right",
-                  fontVariantNumeric: "tabular-nums",
+                  display: "inline-block",
+                  maxWidth: "100%",
+                  padding: "4px 9px",
+                  borderRadius: 4,
+                  background: "var(--tag)",
                   fontWeight: 600,
+                  fontSize: "var(--fs-105)",
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  whiteSpace: "nowrap",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
                 }}
               >
-                {memberCount}
-              </div>
-
-              <div
-                style={{
-                  display: "flex",
-                  flexWrap: "wrap",
-                  gap: 6,
-                  fontSize: 11,
-                  color: "var(--text-2)",
-                }}
-              >
-                {roles && memberCount > 0 ? (
-                  <>
-                    {ROLE_KEYS.filter((k) => roles[k] > 0).map((k) => (
-                      <RolePill key={k} label={k} count={roles[k]} />
-                    ))}
-                    {roles.other > 0 && (
-                      <RolePill label="other" count={roles.other} />
-                    )}
-                  </>
-                ) : (
-                  <span style={{ color: "var(--text-2)" }}>—</span>
-                )}
-              </div>
-
-              <div
-                style={{
-                  fontSize: 12,
-                  color: "var(--text-2)",
-                }}
-                title={lastActivity || ""}
+                {org.plan || "—"}
+              </span>,
+              <span key="members" style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                {membersCellLabel(memberCount, idx?.roles)}
+              </span>,
+              <span
+                key="activity"
+                style={{ display: "block", color: "var(--ink-2)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}
+                title={lastActivity || undefined}
               >
                 {lastActivity ? formatDate(lastActivity) : "—"}
-              </div>
-            </div>
-          );
+              </span>,
+              // dc.html p13 draws a trailing ⋯ glyph on this row. There is no
+              // per-org row action anywhere in the app (per-org settings live on
+              // that org owner's own Account, which the rail card already says),
+              // so the column is held open at the artboard's 44px and left EMPTY
+              // rather than drawn as a control that does nothing (ruling 1.1;
+              // logged in DEVIATION-LOG.md, lane admin60 2026-09-08).
+              <span key="more" aria-hidden="true" />,
+            ],
+          };
         })}
-      </div>
+      />
 
       <div
         style={{
-          padding: "8px 14px",
-          fontSize: 11,
-          color: "var(--text-2)",
-          borderTop: "1px solid var(--border)",
-          background: "var(--raised)",
+          padding: "10px 16px",
+          borderTop: "1px solid var(--line-2)",
+          background: "var(--page)",
+          fontSize: "var(--fs-12)",
+          color: "var(--ink-3)",
         }}
       >
-        Showing {orgs.length} organization{orgs.length === 1 ? "" : "s"} ·{" "}
-        {members.length} membership{members.length === 1 ? "" : "s"} total ·
-        last activity is the most recent membership join (proxy until per-org
-        activity events ship).
+        Last activity is the most recent membership join (proxy until per-org activity events ship).
       </div>
     </div>
-  );
-}
-
-function RolePill({ label, count }: { label: string; count: number }) {
-  return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-        padding: "1px 7px",
-        borderRadius: 4,
-        border: "1px solid var(--border)",
-        background: "var(--surface)",
-        fontSize: 10,
-        fontWeight: 600,
-        letterSpacing: "0.04em",
-        textTransform: "uppercase",
-        color: "var(--text)",
-      }}
-    >
-      {label}
-      <span
-        style={{
-          fontVariantNumeric: "tabular-nums",
-          color: "var(--text-2)",
-          fontWeight: 700,
-        }}
-      >
-        {count}
-      </span>
-    </span>
   );
 }
 
@@ -338,11 +242,7 @@ function formatDate(iso: string): string {
   try {
     const d = new Date(iso);
     if (Number.isNaN(d.getTime())) return iso;
-    return formatLocaleDate(d, {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatLocaleDate(d, { month: "short", day: "numeric" });
   } catch {
     return iso;
   }

@@ -27,9 +27,14 @@
  * 390px layout — no horizontal clipping at either width. Tablet 1024 and
  * desktop keep the original fixed 8-column grid unchanged (operator ruling
  * 2026-09-07: "tablet 1024 keeps the desktop row... leave tablet as is").
- * The `data-guard-title` attribute and the additive `endStat` prop (for
- * rows with no impact/due/timeline/tier dimensions of their own, e.g. the
- * map's jurisdiction register) are unchanged by this lane.
+ * The `data-guard-title` attribute is unchanged by this lane.
+ *
+ * REGISTER VARIANT (lane map60, 2026-09-08): `variant="register"` renders
+ * artboard 10's jurisdiction register instead, its own six-column grid
+ * (3px 1fr 1fr 110px 80px 40px), 44px rows, a name column beside an active-
+ * themes column, the band + count stat cells from `endStat`, and a trailing
+ * → glyph. It has no mobile reflow: /map at 375 is exempt by operator ruling
+ * (2026-09-07, second set, item 2) and no mobile map spec exists to build to.
  */
 
 import Link from "next/link";
@@ -58,15 +63,10 @@ export interface ListRowProps {
    *  its own click, it does not wrap a nested navigable link). */
   overflow?: ReactNode;
   /**
-   * Additive extension (lane uimapcomm, 2026-09-06): when a row's subject
-   * has no impact/due/timeline/tier dimensions of its own — the map's
-   * jurisdiction register is a row per JURISDICTION, not per item — this
-   * replaces those four cells (grid columns 4-7) with one merged stat
-   * block: a band-coloured label left, a band-coloured tabular numeral
-   * right. `impact`/`due`/`timeline`/`tier` are ignored when this is set.
-   * Undefined preserves the original four-cell anatomy exactly — every
-   * existing caller (Regulations, Market, Research, Operations,
-   * Watchlist, Dashboard) is unaffected.
+   * The REGISTER variant's two stat cells (see `variant` below): a band-coloured dot + band label
+   * in the HIGHEST BAND column, and a band-coloured tabular numeral in the ITEMS column, exactly
+   * as dc.html p10 draws them. Read only when `variant="register"`; the list anatomy has its own
+   * impact/due/timeline/tier cells and ignores it.
    */
   endStat?: { label: string; value: string | number; band: UrgencyBand } | null;
   /**
@@ -84,9 +84,28 @@ export interface ListRowProps {
    * the original 56px — every existing caller is unaffected.
    */
   minHeight?: number;
+  /**
+   * Additive extension (lane map60, 2026-09-08, dc.html p10 "Jurisdiction
+   * register"): the REGISTER anatomy. Artboard 10 draws the register on its
+   * own six-column grid, `3px 1fr 1fr 110px 80px 40px`, where the
+   * jurisdiction NAME and its ACTIVE THEMES are two side-by-side columns
+   * under their own headers, the highest band and item count are the next
+   * two, and the row ends in a → glyph. The generic eight-column list grid
+   * cannot express that (it puts the code in a 56px cell and the themes on a
+   * second line under the title, which is what the pre-map60 build showed).
+   * Undefined keeps the original eight-column anatomy byte for byte, so every
+   * other caller (Regulations, Market, Research, Operations, Watchlist,
+   * Dashboard) is unaffected. Requires `endStat`; `impact`/`due`/`timeline`/
+   * `tier`/`overflow`/`tags` are not part of this anatomy and are ignored.
+   */
+  variant?: "list" | "register";
 }
 
 const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
+// dc.html p10, the "Jurisdiction register" card's own header and row grids (identical on both):
+// `grid-template-columns:3px 1fr 1fr 110px 80px 40px; gap:0 14px; padding:0 16px 0 0`.
+const REGISTER_GRID = "3px 1fr 1fr 110px 80px 40px";
+const REGISTER_PADDING = "0 16px 0 0";
 
 /**
  * ListRowColumnHeader — the column-header row that sits above a ListRow
@@ -98,12 +117,18 @@ const GRID = "3px 56px 1fr 88px 84px 76px 40px 44px";
 export function ListRowColumnHeader({
   dueLabel = "Due",
   titleLabel = "Title",
+  variant = "list",
 }: {
   dueLabel?: string;
   /** Additive extension (lane comp-11, 2026-09-08): artboard 11 (id="p11")
    *  labels this column "Title · type · modes" where artboard 1 labels it
    *  "Title". Default is unchanged, so every existing caller is unaffected. */
   titleLabel?: string;
+  /** Additive extension (lane map60, 2026-09-08): the register header row for
+   *  ListRow's `variant="register"` rows, dc.html p10's own
+   *  JURISDICTION / ACTIVE THEMES / HIGHEST BAND / ITEMS labels on the
+   *  register grid. Default "list" is unchanged for every existing caller. */
+  variant?: "list" | "register";
 }) {
   // Every header cell is a grid item in the same fixed GRID the rows use (88px impact, 84px due,
   // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
@@ -125,6 +150,31 @@ export function ListRowColumnHeader({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
   };
+  if (variant === "register") {
+    // dc.html p10: same 30px height, same 9.5/.12em/700/--ink-3 type, the register grid, and the
+    // ITEMS label right-aligned over its right-aligned numerals. The spine and arrow columns carry
+    // no label, exactly as the artboard leaves them blank.
+    return (
+      <div
+        className="cl-list-row-header cl-list-row-header-register"
+        style={{
+          display: "grid",
+          gridTemplateColumns: REGISTER_GRID,
+          gap: "0 14px",
+          height: 30,
+          padding: REGISTER_PADDING,
+          borderBottom: "1px solid var(--line-2)",
+        }}
+      >
+        <span aria-hidden="true" />
+        <span style={cellStyle}>Jurisdiction</span>
+        <span style={cellStyle}>Active themes</span>
+        <span style={cellStyle}>Highest band</span>
+        <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
+        <span aria-hidden="true" />
+      </div>
+    );
+  }
   return (
     <div
       className="cl-list-row-header"
@@ -168,6 +218,12 @@ export function ListRowColumnHeader({
 // mechanism the rendering guard's 375px UX smoke checks for the five list rows require.
 const RESPONSIVE_CSS = `
   .cl-list-row:hover { background: var(--row-hover); }
+  /* The register row (variant="register", dc.html p10) carries the same hover the list row does.
+     It is deliberately OUTSIDE the max-width:767px block below: the mobile reflow rewrites the
+     eight-column list grid, and the register's own six-column grid has no mobile artboard to
+     reflow to (operator ruling 2026-09-07, second set, item 2: no mobile map spec exists and none
+     should be invented). */
+  .cl-list-row-register:hover { background: var(--row-hover); }
 
   @media (max-width: 767px) {
     .cl-list-row { grid-template-columns: 3px 1fr !important; min-height: 76px !important; }
@@ -189,47 +245,126 @@ const RESPONSIVE_CSS = `
   }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56 }: ListRowProps) {
-  const tailContent = endStat ? (
-    <span
-      style={{
-        gridColumn: "4 / span 4",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        gap: 10,
-        paddingRight: 4,
-        minWidth: 0,
-        overflow: "hidden",
-      }}
-    >
-      <span
+export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56, variant = "list" }: ListRowProps) {
+  if (variant === "register" && endStat) {
+    return (
+      <div
+        className="cl-list-row-register"
         style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: 5,
-          fontSize: "var(--fs-10)",
-          fontWeight: 800,
-          letterSpacing: "0.06em",
-          textTransform: "uppercase",
-          color: "var(--ink)",
+          display: "grid",
+          gridTemplateColumns: REGISTER_GRID,
+          gap: "0 14px",
+          minHeight,
+          alignItems: "stretch",
+          borderBottom: "1px solid var(--line-3)",
+          padding: REGISTER_PADDING,
+          position: "relative",
         }}
       >
-        <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar }} />
-        {endStat.label}
-      </span>
-      <span
-        style={{
-          fontFamily: "var(--font-display)",
-          fontSize: 16,
-          color: endStat.band.cssVar,
-          fontVariantNumeric: "tabular-nums",
-        }}
-      >
-        {endStat.value}
-      </span>
-    </span>
-  ) : (
+        <style>{RESPONSIVE_CSS}</style>
+        <span className="cl-row-spine" aria-hidden="true" style={{ background: band.cssVar }} />
+        {/* The whole row is the one click target (README §0.4). The register row carries no ⋯
+            cell, so unlike the list row this Link spans every column but the spine, the → glyph
+            is a direction affordance the artboard draws, never a second competing target. */}
+        <Link
+          href={href}
+          prefetch={false}
+          className="cl-row-link"
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            bottom: 0,
+            right: 0,
+            gridColumn: "2 / -1",
+            gridRow: "1 / -1",
+            textDecoration: "none",
+          }}
+          aria-label={title}
+        />
+        <span
+          className="cl-row-register-name"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            fontSize: "var(--fs-13)",
+            fontWeight: 600,
+            color: "var(--ink)",
+            minWidth: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {title}
+        </span>
+        <span
+          className="cl-row-register-meta"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            fontSize: "var(--fs-12)",
+            color: "var(--ink-2)",
+            minWidth: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+            textOverflow: "ellipsis",
+          }}
+        >
+          {meta}
+        </span>
+        <span
+          className="cl-row-register-band"
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            fontSize: "var(--fs-10)",
+            fontWeight: 800,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: "var(--ink)",
+            minWidth: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: endStat.band.cssVar, flexShrink: 0 }} />
+          {endStat.label}
+        </span>
+        <span
+          className="cl-row-register-count"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "flex-end",
+            fontFamily: "var(--font-display)",
+            fontSize: 16,
+            color: endStat.band.cssVar,
+            fontVariantNumeric: "tabular-nums",
+            minWidth: 0,
+          }}
+        >
+          {endStat.value}
+        </span>
+        <span
+          aria-hidden="true"
+          className="cl-row-register-arrow"
+          style={{ display: "flex", alignItems: "center", justifyContent: "center", color: "var(--ink-3)" }}
+        >
+          →
+        </span>
+      </div>
+    );
+  }
+
+  // The register variant above is the ONLY consumer of `endStat`. Until lane map60 this branch
+  // ALSO rendered it inside the eight-column list grid as one merged `4 / span 4` cell, an
+  // approximation of artboard 10's register that map-register.json's own note called out as "a
+  // genuine layout-strategy difference" from what p10 draws. The variant reproduces p10 exactly,
+  // so the approximation is DELETED rather than left as a second way to render the same row
+  // (CLAUDE.md rule 13). The list anatomy below is unchanged.
+  const tailContent = (
     <>
       {/* `minWidth: 0` on every fixed-width grid cell (D1, operator report 2026-09-07): a grid
           item's default `min-width: auto` refuses to shrink below its content's intrinsic width,

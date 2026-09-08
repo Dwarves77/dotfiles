@@ -18,16 +18,22 @@
 // Usage: PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node .discipline/rendering/capture-compose-11-watchlist.mjs
 
 import { createRequire } from 'node:module';
-import { mkdirSync } from 'node:fs';
+import { mkdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { AUDIT_MOUNTS } from './audit/mounts.mjs';
+// The artboard|built compositor, in its one home (FOLD-59). This script used to write only the
+// bare built PNG and leave the side-by-side to be assembled by hand; lane lists60 (2026-09-08)
+// wired it here, so the committed evidence regenerates from the code it evidences.
+import { composite, SCREENS_DIR } from './compose-composite.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 
 const OUT_DIR = join(getRepoRoot(), 'docs/design/handoff-2026-09-06/built');
-const OUT_FILE = 'compose-11-watchlist-built.png';
+const BUILT_FILE = '_built-compose-11-watchlist.png';
+const OUT_FILE = 'compose-11-watchlist.png';
+const ARTBOARD = '11-watchlist.png';
 
 async function main() {
   const mount = AUDIT_MOUNTS['compose-11-watchlist'];
@@ -44,10 +50,13 @@ async function main() {
   // The two client fetches this page makes (/api/notices, /api/workspace/tags) resolve from the
   // mount's own routes; 400ms is well past their round trip in this harness.
   await page.evaluate(() => new Promise((r) => setTimeout(r, 400)));
-  const outPath = join(OUT_DIR, OUT_FILE);
-  await page.screenshot({ path: outPath, fullPage: true });
-  console.log(`wrote ${outPath}`);
+  const builtPath = join(OUT_DIR, BUILT_FILE);
+  await page.screenshot({ path: builtPath, fullPage: true });
   await page.close();
+  const outPath = join(OUT_DIR, OUT_FILE);
+  await composite(browser, join(SCREENS_DIR, ARTBOARD), builtPath, outPath);
+  rmSync(builtPath, { force: true });
+  console.log(`wrote ${outPath}`);
   await browser.close();
 }
 

@@ -6,55 +6,196 @@
   "source": "docs/design/handoff-2026-09-06/screens/15-settings.png (artboard image is the authority per SETUP); dc.html id=\"p15\"; README screen 15",
   "notes": [
     "Region-composition check for the full page: AppShell + the real SettingsPage (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-settings'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-    "BINDING, NOT REPRODUCED: operator ruling R9 (DEVIATION-LOG.md) retires the artboard's literal 300px rail (Briefing schedule cadence / Appearance / Data & supersessions links) in favour of ONE scrolling page under a sticky S1..S6 SectionIndex directly below the merged Account tab row — General/Notifications/Saved searches/Data & supersessions/Archive/Help all become anchored sections, not a rail. This spec asserts the R9 shape (SectionIndex present, six sections in order), never the artboard's literal rail — that would be asserting a fabricated match against a superseded ruling.",
-    "This lane fixed one real defect the R9 rebuild still owed the artboard: the masthead card's own 'Applies workspace-wide · changes here affect every member, not just you' + 'See audit log →' banner (dc.html p15, directly below the search row, inside the SAME masthead card) was missing entirely — nothing in DEVIATION-LOG superseded or logged it. Added an additive, optional `notice` prop to the shared `Masthead` component (src/components/ui/Masthead.tsx — no existing caller passes it, every other page's masthead unaffected) rendering dc.html's exact copy and link, wired on SettingsPage.tsx only.",
-    "NOT FIXED, logged instead (DEVIATION-LOG 2026-09-08): the merged Account tab row on 14-account.png/15-settings.png shows live counts (Members & roles · 2, Sector profile · 6, Jurisdictions · 30) — UserProfilePage.tsx's own tab row fetches these; SettingsPage.tsx's copy of the same tab row (`accountTabs` in SettingsPage.tsx) is a static label list with no counts, a real drift from the two pages' shared-row intent recorded when the row was first built (DEVIATION-LOG 2026-09-07, 'Account + Settings — merged tab row'). Fixing it means either lifting the count-fetching logic into a shared hook both pages call, or having SettingsPage fetch the same three counts independently — either is more than a page-composition region fix and is logged for a follow-up lane rather than attempted here.",
-    "Capture-script note: this mount's real content (the 40-sector grid alone) runs past 4000px tall; AppShell's `height:100vh` frame scrolls internally, so `capture-compose-page.mjs`'s original `fullPage` screenshot silently truncated at the 1400px viewport. Fixed the capture script (measures the mounted `[data-audit]` element's real height, grows the viewport to fit before shooting) — see compose-13-admin.json's own note, which independently hit the same bug and traces its full effect on that page's Organizations region."
+    "Artboard order (dc.html p15): Masthead (VOL line · SETTINGS · scope line ending 'scoped to <b>Dietl / Rockit</b>' · command bar 420px on the SAME row) -> the 'Applies workspace-wide' notice inside the masthead card -> merged 8-entry Account tab row -> R9's S1..S6 section index -> a TWO-COLUMN grid `minmax(0,1fr) 300px`, gap 28: left column (gap 18) Dashboard defaults · Freight sectors · Notifications; right column (gap 14) Briefing schedule · Appearance · Data & supersessions.",
+    "SUPERSEDES this spec's train-59 note, which asserted that ruling R9 retires the artboard's 300px rail and that the whole page is one column. R9 retires the second-level SUB-NAV only; the coordinator's train-60 dispatch is explicit that artboard 15 is two columns and that the six designed cards compose into them in the artboard's order. R9's section index stays, and Saved searches / Data summary / CSV upload / Supersession history / Archive / Help stay as anchored sections BELOW the two designed columns (ruling R7: features the artboards draw no region for are kept and listed, placed after the last designed region of the column).",
+    "Data-driven differences from the artboard, all logged in DEVIATION-LOG.md 2026-09-08 (lane settings60) and none asserted here as a match: 'Show all 40 sectors' (ALL_SECTORS has 40; the artboard's 36 is its mock corpus), no PDF export segment (`exportFormat` has no `pdf` value and no PDF export path exists), Day segments Mon..Fri (`briefingDay`'s stored union has no Sunday), a Biweekly cadence segment the artboard does not draw (R7), 'Data summary' in place of the rail's 'Export my data' (no data-export path exists anywhere in the app), and the jurisdiction-weighting control kept as a card-foot disclosure rather than the artboard's 'lives in Account -> Jurisdictions' line, which points at a control that does not exist there.",
+    "Three shared parts changed for this page, each additively or to the artboards' own value: `AccountCard` gained optional `bodyPadding`/`foot` and lost the tinted plate behind its head (dc.html p14 AND p15 both draw that head on the card's white); `AccountPrimitives` gained `SegmentedControl` (the form dc.html p15 uses five times); `Masthead`'s title/command-bar row became the grid dc.html declares on 15 of the 17 artboards (`minmax(0,1fr) 420px`) instead of a wrapping flex row, which had been pushing the command bar onto its own line whenever the dek was long."
   ],
   "selector": "[data-audit=\"settings\"]",
   "expect": { "count": "1" },
   "children": [
     {
-      "name": "region 1 — masthead workspace-wide notice banner (dc.html p15, previously missing entirely)",
+      "name": "region 1 — masthead scope line ends with the workspace (dc.html p15 'scoped to Dietl / Rockit')",
+      "selector": "[data-audit=\"settings\"] .cl-masthead-dek",
+      "expect": { "count": "1" },
+      "textMatch": "scoped to Dietl / Rockit"
+    },
+    {
+      "name": "region 2 — masthead command bar sits on the title row, not wrapped below it (dc.html grid minmax(0,1fr) 420px)",
+      "selector": "[data-audit=\"settings\"] .cl-masthead-row",
+      "expect": { "display": "grid" }
+    },
+    {
+      "name": "region 3 — masthead workspace-wide notice banner",
       "selector": "[data-audit=\"settings\"] *",
       "expect": {},
       "textMatch": "Applies workspace-wide"
     },
     {
-      "name": "region 2 — merged Account tab row, Settings active",
+      "name": "region 4 — merged Account tab row, Settings active",
       "selector": "[data-audit=\"settings\"] *",
       "expect": {},
       "textMatch": "Members & roles"
     },
     {
-      "name": "region 3 — sticky SectionIndex (ruling R9), six sections in order",
-      "selector": "[data-audit=\"settings\"] *",
-      "expect": {},
-      "textMatch": "S1"
-    },
-    {
-      "name": "region 3b — SectionIndex has all six R9 entries, General first",
+      "name": "region 5 — sticky SectionIndex (ruling R9), six sections in order",
       "selector": "[data-audit=\"settings\"] *",
       "expect": {},
       "textMatch": "S6 Help"
     },
     {
-      "name": "region 4 — Dashboard settings card (Appearance/Default sort/Default export/Alert priorities/Home sections)",
-      "selector": "[data-audit=\"settings\"] *",
-      "expect": {},
-      "textMatch": "Dashboard settings"
+      "name": "region 6 — the two-column grid, content 1fr / 300px rail, gap 28 (dc.html p15)",
+      "selector": "[data-audit=\"settings-columns\"]",
+      "expect": { "count": "1", "display": "grid", "column-gap": "28px" }
     },
     {
-      "name": "region 5 — Freight sectors card, 40-sector grid",
-      "selector": "[data-audit=\"settings\"] *",
-      "expect": {},
-      "textMatch": "Freight sectors"
+      "name": "region 6a — left column carries exactly the artboard's three cards",
+      "selector": "[data-audit=\"settings-defaults\"], [data-audit=\"settings-sectors\"], [data-audit=\"settings-notifications\"]",
+      "expect": { "count": "3" }
     },
     {
-      "name": "region 6 — Briefing schedule folded into General (ruling R9), not a rail card",
-      "selector": "[data-audit=\"settings\"] *",
+      "name": "region 7 — left 1: Dashboard defaults, with the artboard's own meta",
+      "selector": "[data-audit=\"settings-defaults\"] *",
       "expect": {},
+      "textMatch": "Applies on every load"
+    },
+    {
+      "name": "region 7a — Dashboard defaults draws three segmented groups (Default sort / Default export / Alert bands)",
+      "selector": "[data-audit=\"settings-defaults\"] .cl-set-control-cell",
+      "expect": { "count": "3" }
+    },
+    {
+      "name": "region 7b — Default sort segments are the list surfaces' own words",
+      "selector": "[data-audit=\"settings-defaults\"] [aria-label=\"Default sort\"] button",
+      "expect": { "count": "3" }
+    },
+    {
+      "name": "region 7c — Alert bands segments come from the one urgency vocabulary",
+      "selector": "[data-audit=\"settings-defaults\"] [aria-label=\"Alert bands\"] button",
+      "expect": { "count": "3" }
+    },
+    {
+      "name": "region 7d — the toggle grid is the artboard's six dashboard regions, each a 44px row",
+      "selector": "[data-audit=\"settings-defaults\"] .cl-set-toggle-row",
+      "expect": { "count": "6", "min-height": "44px" }
+    },
+    {
+      "name": "region 7e — first toggle row is 'Band tiles' (dc.html p15 order)",
+      "selector": "[data-audit=\"settings-defaults\"] .cl-set-toggle-row",
+      "expect": {},
+      "textMatch": "Band tiles"
+    },
+    {
+      "name": "region 7f — last toggle row is 'Supersessions'",
+      "selector": "[data-audit=\"settings-defaults\"] .cl-set-toggle-row",
+      "expect": {},
+      "textMatch": "Supersessions"
+    },
+    {
+      "name": "region 8 — left 2: Freight sectors, meta states the live selected count and the artboard's sentence",
+      "selector": "[data-audit=\"settings-sectors\"] *",
+      "expect": {},
+      "textMatch": "filters your default view, briefings and relevance scoring"
+    },
+    {
+      "name": "region 8a — collapsed by default to twelve sector chips (dc.html p15 draws twelve)",
+      "selector": "[data-audit=\"settings-sectors\"] button[aria-pressed]",
+      "expect": { "count": "12" }
+    },
+    {
+      "name": "region 8b — card foot carries the 'Show all N sectors' disclosure with the LIVE count",
+      "selector": "[data-audit=\"settings-sectors\"] button",
+      "expect": {},
+      "textMatch": "re:Show all \\d+ sectors"
+    },
+    {
+      "name": "region 8c — card foot also carries Select all and Clear",
+      "selector": "[data-audit=\"settings-sectors\"] button",
+      "expect": {},
+      "textMatch": "Select all"
+    },
+    {
+      "name": "region 9 — left 3: Notifications card, artboard meta",
+      "selector": "[data-audit=\"settings-notifications\"] *",
+      "expect": {},
+      "textMatch": "In-app now · email and push coming"
+    },
+    {
+      "name": "region 9a — six notification rows, dc.html's own order",
+      "selector": "[data-audit=\"settings-notifications\"] [role=\"switch\"]",
+      "expect": { "count": "6" }
+    },
+    {
+      "name": "region 9b — dc.html's own row description, verbatim ('Master switch', not a sentence)",
+      "selector": "[data-audit=\"settings-notifications\"] *",
+      "expect": {},
+      "textMatch": "Master switch"
+    },
+    {
+      "name": "region 9c — last row is Workspace invitations with the artboard's description",
+      "selector": "[data-audit=\"settings-notifications\"] *",
+      "expect": {},
+      "textMatch": "Always on · you must be reachable"
+    },
+    {
+      "name": "region 10 — right 1: Briefing schedule rail card",
+      "selector": "[data-audit=\"settings-briefing\"]",
+      "expect": { "count": "1" },
       "textMatch": "Briefing schedule"
+    },
+    {
+      "name": "region 10a — Cadence group, Weekly first (dc.html p15 order)",
+      "selector": "[data-audit=\"settings-briefing\"] [aria-label=\"Briefing cadence\"] button",
+      "expect": {},
+      "textMatch": "Weekly"
+    },
+    {
+      "name": "region 10b — the time field carries the artboard's own label",
+      "selector": "[data-audit=\"settings-briefing\"] *",
+      "expect": {},
+      "textMatch": "Time · your local timezone"
+    },
+    {
+      "name": "region 10c — Save schedule button",
+      "selector": "[data-audit=\"settings-briefing\"] button",
+      "expect": {},
+      "textMatch": "Save schedule"
+    },
+    {
+      "name": "region 11 — right 2: Appearance card, dc.html's copy verbatim",
+      "selector": "[data-audit=\"settings-appearance\"]",
+      "expect": { "count": "1" },
+      "textMatch": "Light only. There is one theme; the product reads like a printed ledger and stays that way."
+    },
+    {
+      "name": "region 12 — right 3: Data & supersessions card",
+      "selector": "[data-audit=\"settings-data-links\"]",
+      "expect": { "count": "1" },
+      "textMatch": "Data & supersessions"
+    },
+    {
+      "name": "region 12a — three links, the first stating the saved-search count",
+      "selector": "[data-audit=\"settings-data-links\"] a",
+      "expect": { "count": "3" }
+    },
+    {
+      "name": "region 13 — R7 sections below the two designed columns, still reachable",
+      "selector": "[data-audit=\"settings\"] #saved, [data-audit=\"settings\"] #data, [data-audit=\"settings\"] #archive, [data-audit=\"settings\"] #help",
+      "expect": { "count": "4" }
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "Dashboard defaults control cells — no segmented group escapes its column or overlaps a sibling (operator report 2026-09-07)",
+      "container": "[data-audit=\"settings-defaults\"] .cl-set-controls",
+      "cells": ".cl-set-control-cell",
+      "reason": "Operator, 2026-09-07: 'your text is too right and it overlays different areas ... the row grid must fit the card width without any cell overflowing its column.' Measured on this page before the fix: at dc.html's literal `6px 12px` segment padding the Alert bands group ran 10px past its own third of the card and the word 'Monitor' was clipped by the card's right edge, because the built content column is 764px where the artboard's is 780. The segment padding is 10px and the grid columns are `minmax(0,1fr)`, and this check measures it from now on rather than trusting the reading."
+    },
+    {
+      "name": "the two designed columns — neither column's cards escape the grid",
+      "container": "[data-audit=\"settings-columns\"]",
+      "cells": "[data-audit=\"settings-defaults\"], [data-audit=\"settings-sectors\"], [data-audit=\"settings-notifications\"]",
+      "reason": "The left column's three cards must stay inside the 1fr track and never reach under the 300px rail."
     }
   ],
   "forbid": [
@@ -63,6 +204,18 @@
       "selector": "[data-audit=\"settings\"] button",
       "textMatch": "Ask AI",
       "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "name": "no 'Home sections' label — the toggle grid is named for the regions the dashboard renders",
+      "selector": "[data-audit=\"settings-defaults\"] *",
+      "textMatch": "Home sections",
+      "reason": "dc.html p15's toggle grid has no group label at all; the pre-rebuild build wrapped the six switches in a 'Home sections' block naming regions (Summary strip / Weekly briefing / Top urgency / Due this quarter) the rebuilt dashboard no longer has."
+    },
+    {
+      "name": "no page-local Appearance field inside Dashboard defaults",
+      "selector": "[data-audit=\"settings-defaults\"] *",
+      "textMatch": "Light only",
+      "reason": "Appearance is the artboard's own rail card in the right column, not a field inside Dashboard defaults where the pre-rebuild build put it."
     }
   ]
 }

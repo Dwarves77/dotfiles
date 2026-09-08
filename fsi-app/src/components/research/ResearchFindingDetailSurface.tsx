@@ -36,6 +36,7 @@ import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
+import { SectionRule } from "@/components/ui/SectionRule";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -60,6 +61,7 @@ import {
   AtAGlanceCard,
   RailLegend,
   InThisListStat,
+  DetailRail,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { FactBlocks } from "@/components/detail/FactBlocks";
@@ -267,24 +269,33 @@ export function ResearchFindingDetailSurface({
 
         <DetailLayout
           rail={
-            <>
-              <InThisListStat backHref="/research" backLabel="Back to list" band={band} />
-              <AtAGlanceCard
-                rows={[
-                  { label: "Band", value: `${band.label} · ${band.window}` },
-                  { label: "Type", value: r.type ? capitalize(r.type.replace(/_/g, " ")) : null },
-                  { label: "Theme", value: themeKey ? THEME_LABELS[themeKey as keyof typeof THEME_LABELS] : null },
-                  { label: "Jurisdiction", value: jurisLabel },
-                  { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${r.sourceTier}` : r.sourceName },
-                  { label: "Published", value: r.added ? formatDate(r.added) : null },
-                ]}
-              />
-              <ImpactRailCard scores={impact} />
-              <RelevanceBadgeClient itemId={r.id} />
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-              {themeBrief && <ThemeBriefCard brief={themeBrief} />}
-              <RailLegend />
-            </>
+            <DetailRail
+              atAGlance={
+                <AtAGlanceCard
+                  rows={[
+                    { label: "Band", value: `${band.label} · ${band.window}` },
+                    { label: "Type", value: r.type ? capitalize(r.type.replace(/_/g, " ")) : null },
+                    { label: "Theme", value: themeKey ? THEME_LABELS[themeKey as keyof typeof THEME_LABELS] : null },
+                    { label: "Jurisdiction", value: jurisLabel },
+                    { label: "Source", value: r.sourceName && typeof r.sourceTier === "number" ? `${r.sourceName} · T${r.sourceTier}` : r.sourceName },
+                    { label: "Published", value: r.added ? formatDate(r.added) : null },
+                  ]}
+                />
+              }
+              impact={<ImpactRailCard scores={impact} />}
+              relevance={<RelevanceBadgeClient itemId={r.id} />}
+              /* Artboard 07's page-specific cards, in its own order:
+                 CONNECTIONS · 24, then CLUSTER SYNTHESIS. */
+              designed={
+                <>
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                  {themeBrief && <ThemeBriefCard brief={themeBrief} />}
+                </>
+              }
+              legend={<RailLegend />}
+              /* R7 — artboard 07 draws no place-keeping card. */
+              undesigned={<InThisListStat backHref="/research" backLabel="Back to list" band={band} />}
+            />
           }
         >
           {isRecord ? (
@@ -400,24 +411,59 @@ function RecordFactCard({ fact }: { fact: RecordFactRow }) {
 // header): renders a pre-generated theme_briefs row for the graph-derived
 // cluster this item belongs to. No LLM call, no generation, ever, from
 // this component.
+// CLUSTER SYNTHESIS — artboard 07's page-specific rail card (dc.html #p7, char 402759).
+//
+// Rebuilt to the artboard's own measures, lane details60 (2026-09-08). The
+// artboard draws exactly three things: the 3px dark-grey section rule cap over
+// padding 12px 16px 14px; a head row ("Cluster synthesis", 10.5px/.12em/700/
+// #7A6E6C); the theme title at 12.5px/600/1.4; and one 11px #7A6E6C meta line
+// 6px below it reading "85 items · density 0.180 · STALE · MEMBERSHIP CHANGED",
+// whose staleness clause is small-caps (10.5px/.08em/uppercase/700) INLINE in
+// that line, not a badge in the head.
+//
+// Deleted with the rewrite: the STALE pill in the head, the italic "Synthesis
+// across N items" sentence, and the scrolling `brief_md` body — none is drawn
+// on artboard 07, and the rail is 300px wide, so the full brief was a
+// 220px-tall scroller in a card the design gives three lines. The brief text
+// itself is not lost to the reader: it is the theme's own content, reachable
+// from the theme, and this card is the rail's pointer to it.
+//
+// `density` is the cluster's intra-theme edge density (src/lib/connections/
+// cluster.mjs F3, stored on connection_themes.density). Absent (an older theme
+// row, or a read that did not select it) the segment is omitted rather than
+// rendered as 0 — Absence-by-omission, the same convention AtAGlanceCard uses.
 function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
   if (!brief) return null;
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", padding: "14px 16px" }}>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8, marginBottom: 4 }}>
-        <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>Cluster synthesis</p>
-        {brief.stale && (
-          <span title="This theme's membership has changed since the brief below was generated." style={{ fontSize: "var(--fs-10)", fontWeight: 800, padding: "2px 6px", borderRadius: 4, color: "var(--action)", background: "var(--action-tint)", border: "1px solid var(--line-1)" }}>
-            STALE
+    <div
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      <div style={{ padding: "12px 16px 14px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
+          <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
+            Cluster synthesis
           </span>
-        )}
-      </div>
-      <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", fontStyle: "italic", margin: "0 0 10px", lineHeight: 1.4 }}>
-        Synthesis across {brief.memberCount} items in this finding&apos;s connection-graph cluster.
-      </p>
-      <p style={{ fontSize: "var(--fs-13)", fontWeight: 700, color: "var(--ink)", margin: "0 0 8px" }}>{brief.title}</p>
-      <div style={{ fontSize: "var(--fs-125)", lineHeight: 1.55, maxHeight: 220, overflowY: "auto" }}>
-        <GfmSection markdown={brief.briefMd} />
+        </div>
+        <div style={{ fontSize: "var(--fs-125)", fontWeight: 600, lineHeight: 1.4, color: "var(--ink)" }}>{brief.title}</div>
+        <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 6 }}>
+          {brief.memberCount} item{brief.memberCount === 1 ? "" : "s"}
+          {typeof brief.density === "number" ? ` · density ${brief.density.toFixed(3)}` : ""}
+          {brief.stale && (
+            <>
+              {" · "}
+              <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
+                stale · membership changed
+              </span>
+            </>
+          )}
+        </div>
       </div>
     </div>
   );

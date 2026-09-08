@@ -27,3 +27,25 @@ test("active tab carries a solid 2px brand underline; resting tabs carry the sam
   assert.match(SOURCE, /borderBottom:\s*t\.active \? "2px solid var\(--brand\)" : "2px solid transparent"/);
   assert.match(SOURCE, /marginBottom:\s*-1/);
 });
+
+// ── placement / semantics variants (lane admin60, 2026-09-08, artboard 13) ───
+// dc.html p13 draws the Sources sub-tab row INSIDE the provisional card's head:
+// gap 2, the card's own 16px inset, and never wrapping, so all five tabs stay on
+// one line at 1440. The page-level row (artboards 14/15) keeps gap 4 and wraps.
+
+test("card-head placement is gap 2, 16px inset, and NEVER wraps; page placement keeps gap 4 and wraps", () => {
+  assert.match(SOURCE, /gap:\s*cardHead \? 2 : 4/);
+  assert.match(SOURCE, /flexWrap:\s*cardHead \? "nowrap" : "wrap"/);
+  assert.match(SOURCE, /padding:\s*cardHead \? "0 16px" : undefined/);
+});
+
+test('placement and semantics both default to the pre-existing behaviour, so every existing call site is unchanged', () => {
+  assert.match(SOURCE, /placement = "page"/);
+  assert.match(SOURCE, /semantics = "nav"/);
+});
+
+test('tablist semantics render role="tablist" / role="tab" / aria-selected, and nav semantics render neither', () => {
+  assert.match(SOURCE, /<div role="tablist"/);
+  assert.match(SOURCE, /role=\{semantics === "tablist" \? "tab" : undefined\}/);
+  assert.match(SOURCE, /aria-selected=\{semantics === "tablist" \? !!t\.active : undefined\}/);
+});

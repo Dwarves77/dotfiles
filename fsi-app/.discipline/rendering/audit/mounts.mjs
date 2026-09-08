@@ -22,9 +22,31 @@
 // text is the component's own literal, not fixture data.
 
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fullAppCss } from '../smoke/smoke-fixtures.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
 
 const SMOKE = fileURLToPath(new URL('../smoke/', import.meta.url));
+
+/**
+ * `styleFiles` on a mount: real stylesheets a mount needs at RUNTIME that the esbuild bundle
+ * cannot carry. A bare `.css` import has no output path in this harness's `write:false` bundle, so
+ * such imports are aliased away in `alias` (see compose-map's `leaflet/dist/leaflet.css`) and the
+ * stylesheet is read off disk and injected with `page.addStyleTag` instead, the exact technique
+ * ../smoke/map-smoke.mjs has used since lane uimapcomm. Repo-relative paths, read at call time.
+ *
+ * WHY IT MATTERS, measured (lane map60, 2026-09-08): with leaflet's stylesheet aliased to an empty
+ * module and nothing injected in its place, Leaflet still BUILDS its panes and markers, the four
+ * fixture markers were in the DOM with correct `translate3d` transforms, but nothing gives
+ * `.leaflet-pane` / `.leaflet-marker-icon` their `position:absolute`, so every marker laid out in
+ * normal flow ~2700px BELOW the 420px map card and the canvas photographed empty. It was the
+ * FIXTURE, not the product.
+ */
+export function mountExtraCss(mount) {
+  const files = mount && Array.isArray(mount.styleFiles) ? mount.styleFiles : [];
+  return files.map((rel) => readFileSync(join(getRepoRoot(), rel), 'utf8')).join('\n');
+}
 
 const STYLE_INJECT = `
 (() => {
@@ -120,6 +142,10 @@ window.__mount = () => {
           meta: 'Emissions \\u00b7 Reporting \\u00b7 Packaging',
           endStat: { label: 'Immediate', value: 392, band: BAND_ORDER.find((b) => b.key === 'immediate') },
           minHeight: 44,
+          // Lane map60 (2026-09-08): the register row is ListRow's own \`variant="register"\`, p10's
+          // six-column grid. The merged \`4 / span 4\` endStat cell this mount used to exercise no
+          // longer exists (deleted with it, rule 13); map-register.json's targets move with it.
+          variant: 'register',
         })),
     ),
   );
@@ -603,7 +629,12 @@ const PAGE_FRAME_FIXTURES = {
       agentIntegrityPhrase: null,
       itemGrade: null,
       penaltyRange: null,
-      costMechanism: null,
+      // Artboard 03's EXPOSURE row "Who pays" and its "Emissions" topic chip. Lane details60
+      // (2026-09-08): both are real Resource fields the regulation fixture simply left empty, so
+      // the 03 capture rendered an EXPOSURE region of four Absence cells and a chip row with no
+      // topic chip while 09's rendered in full. Populated from the artboard's own EU ETS example.
+      costMechanism: 'Vessel operator is obligated; forwarders and shippers receive it as carrier ETS surcharge',
+      topic: 'Emissions',
       enforcementBody: 'National maritime authority',
       complianceDeadline: '2027-06-01',
     },
@@ -750,6 +781,11 @@ const RESEARCH_FIXTURE = {
     sourceName: 'Mission Innovation',
     sourceUrl: 'https://example.com/research-source',
     topic: 'Emissions accounting',
+    // Artboard 07's third header chip and its At a glance "Theme" row both read "Emissions
+    // accounting. `theme` is the intelligence_items THEME COLUMN value, which assignTheme maps to
+    // the canonical key through THEME_COLUMN_TO_KEY (src/lib/research/taxonomy.mjs); without it the
+    // classifier fell through to keyword matching, returned null, and both chip and row were absent.
+    theme: 'emissions_accounting',
     timeline: [
       { date: '2024-04-24', label: 'Mission announced', status: 'past' },
       { date: '2026-Q4', label: 'IMO MEPC extraordinary session', status: 'current' },
@@ -760,6 +796,19 @@ const RESEARCH_FIXTURE = {
   related: [],
   relatedReason: 'none',
   sections: [],
+  // Artboard 07's CLUSTER SYNTHESIS rail card, in the artboard's own values ("Maritime
+  // decarbonisation: ... green-corridor economy", "85 items · density 0.180 · stale · membership
+  // changed"). Shaped as selectThemeBriefForItem returns it (src/lib/research/theme-brief.mjs), so
+  // this mount measures the real view-model, not a hand-shaped card. Lane details60, 2026-09-08.
+  themeBrief: {
+    themeId: 'theme-maritime-decarb',
+    title: 'Maritime decarbonisation: the IMO net-zero arc, EU MRV and ETS-for-shipping machinery, and the green-corridor economy',
+    briefMd: '',
+    generatedAt: '2026-05-01T00:00:00.000Z',
+    memberCount: 85,
+    density: 0.18,
+    stale: true,
+  },
   groupLabel: 'Global',
   deck: 'Mission Innovation · published May 10 2026 · theme: Emissions accounting',
   connections: [],
@@ -797,8 +846,15 @@ const OPERATIONS_FIXTURE = {
     ],
     impactScores: { cost: 1, compliance: 1, client: 1, operational: 2 },
   },
-  related: [],
-  relatedReason: 'none',
+  // Artboard 09's RELATED IN ASIA rail card, in the artboard's own three rows. Lane details60,
+  // 2026-09-08 — the card is product code (RelatedRegionCard) and always was; the fixture carried
+  // no related rows, so it returned null and the capture showed no card at all.
+  related: [
+    { id: 'o-detail-au', title: 'Australia Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+    { id: 'o-detail-jp', title: 'Japan Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+    { id: 'o-detail-in', title: 'India Regional Operations Profile', summary: null, sourceName: null, addedDate: null },
+  ],
+  relatedReason: 'jurisdiction',
   sections: [],
   groupLabel: 'Asia',
   deck: 'Singapore Ministry of Transport (MOT) · Maritime and Port Authority · published Apr 11 2026 · Ocean · Air',
@@ -1035,6 +1091,14 @@ window.__mount = () => {
           userEmail: 'smoke@example.com',
           dateLabel: 'Sunday 6 September 2026',
           initialOrgs: [{ id: 'org-1', name: "Dietl / Rockit", slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-01-01' }],
+          // dc.html p13's own ORGANIZATIONS row reads "1 ORG · 2 MEMBERSHIPS" with a
+          // MEMBERS cell of "2 · owners", so the mount seeds those two memberships:
+          // without them the region rendered a bare 0 and the artboard's role summary
+          // could not be measured at all (lane admin60, 2026-09-08).
+          initialMembers: [
+            { id: 'mem-1', org_id: 'org-1', user_id: 'a0764ff3-0000-0000-0000-000000000001', role: 'owner', created_at: '2026-04-04T00:00:00Z' },
+            { id: 'mem-2', org_id: 'org-1', user_id: 'a0764ff3-0000-0000-0000-000000000002', role: 'owner', created_at: '2026-05-28T00:00:00Z' },
+          ],
           initialProvisionalSources: PROVISIONAL,
           initialEmissionFactorsLiveCount: 13,
         }),
@@ -1247,13 +1311,13 @@ const COMMUNITY_ROOMS_FIXTURE = [
     itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
     liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
     threads: [
-      { id: 't1', groupId: 'g-global', title: 'How are you handling the CH4 and N2O scope changes?', body: '', replyCount: 14, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-06T14:00:00Z', referencedItemIds: [], authorName: 'A. Weiss', isYou: false, isOwner: false, signedOff: false },
-      { id: 't2', groupId: 'g-global', title: 'Ocean rate spike: what your clients are asking this week', body: '', replyCount: 23, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-04T09:00:00Z', referencedItemIds: [], authorName: 'S. Patel', isYou: false, isOwner: false, signedOff: false },
-      { id: 't3', groupId: 'g-global', title: 'Template: customer letter for the CBAM cost pass-through', body: '', replyCount: 5, createdAt: '2026-09-02T09:00:00Z', lastActivityAt: '2026-09-02T09:00:00Z', referencedItemIds: [], authorName: 'M. Ruiz', isYou: false, isOwner: false, signedOff: false },
+      { id: 't1', groupId: 'g-global', title: 'How are you handling the CH4 and N2O scope changes?', body: '', replyCount: 14, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-06T14:00:00Z', referencedItemIds: [], authorName: 'A. Weiss', authorOrg: 'Dietl', isYou: false, isOwner: false, signedOff: false },
+      { id: 't2', groupId: 'g-global', title: 'Ocean rate spike: what your clients are asking this week', body: '', replyCount: 23, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-04T09:00:00Z', referencedItemIds: [], authorName: 'S. Patel', authorOrg: 'Dietl', isYou: false, isOwner: false, signedOff: false },
+      { id: 't3', groupId: 'g-global', title: 'Template: customer letter for the CBAM cost pass-through', body: '', replyCount: 5, createdAt: '2026-09-02T09:00:00Z', lastActivityAt: '2026-09-02T09:00:00Z', referencedItemIds: [], authorName: 'M. Ruiz', authorOrg: 'Dietl', isYou: false, isOwner: false, signedOff: false },
     ],
   },
   { key: 'EU', name: 'EU', short: 'EU', groupId: 'g-eu', joined: false, youHere: false, itemCount: 753, itemCountKnown: true, hue: 'critical', themes: ['Emissions', 'Reporting', 'Packaging'], liveItems: [], roster: [],
-    threads: [{ id: 't4', groupId: 'g-eu', title: 'FuelEU pooling — anyone modelled the 2027 penalty exposure?', body: '', replyCount: 8, createdAt: '2026-09-05T09:12:00Z', lastActivityAt: '2026-09-05T09:12:00Z', referencedItemIds: [], authorName: 'J. Nowak', isYou: false, isOwner: false, signedOff: false }] },
+    threads: [{ id: 't4', groupId: 'g-eu', title: 'FuelEU pooling — anyone modelled the 2027 penalty exposure?', body: '', replyCount: 8, createdAt: '2026-09-05T09:12:00Z', lastActivityAt: '2026-09-05T09:12:00Z', referencedItemIds: [], authorName: 'J. Nowak', authorOrg: 'Rockit', isYou: false, isOwner: false, signedOff: false }] },
   { key: 'US', name: 'US', short: 'US', groupId: 'g-us', joined: false, youHere: false, itemCount: 24, itemCountKnown: true, hue: 'high', themes: ['Reporting', 'Emissions', 'Transport'], liveItems: [], roster: [], threads: [] },
   { key: 'UK', name: 'UK', short: 'UK', groupId: 'g-uk', joined: false, youHere: false, itemCount: 210, itemCountKnown: true, hue: 'moderate', themes: ['Transport', 'Research', 'Emissions'], liveItems: [], roster: [], threads: [] },
   { key: 'APAC', name: 'APAC', short: 'APAC', groupId: 'g-apac', joined: false, youHere: false, itemCount: 2, itemCountKnown: true, hue: 'low', themes: ['Reporting'], liveItems: [], roster: [], threads: [] },
@@ -1293,8 +1357,8 @@ window.__mount = () => {
           currentUserIsOwner: true,
           currentUserIsVerifier: false,
           verifierStatus: 'none',
-          networkMemberCount: 1,
           pendingPickups: 0,
+          nowIso: '2026-09-06T16:00:00Z',
           verticalGroups: [],
           verticalOptions: [],
         }),
@@ -2039,10 +2103,13 @@ function composeMarketRow(i) {
 }
 const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
 
-function composeSeriesRow(key, label, displayValue, pct1w) {
+// `referencePeriod` is a real value here, not null: artboard 04's NEXT DATA DROPS card derives its
+// dates from the latest observed period per producer (lane lists60, 2026-09-08). It defaults to the
+// EU Weekly Oil Bulletin's own last published week in this fixture.
+function composeSeriesRow(key, label, displayValue, pct1w, referencePeriod = '2026-09-03') {
   return {
     seriesKey: key, id: key, label, displayValue, emptyReason: null, asAtDate: '2026-09-03',
-    referencePeriod: null, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
+    referencePeriod, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
     currency: null, derivation: null, originClass: null, methodVersion: null, nObservations: 12,
     deltas: {
       count: 12,
@@ -2055,19 +2122,41 @@ function composeSeriesRow(key, label, displayValue, pct1w) {
     },
   };
 }
+// The two producer groups use REAL registry keyPrefixes ('eu-oil-bulletin', 'ecb-fx') and carry a
+// `referencePeriod` on each series row, because artboard 04's NEXT DATA DROPS card derives its rows
+// from exactly those two fields (latest observed period + that producer's own registered
+// cadenceDays — src/lib/market/market-rail-select.mjs). A made-up prefix has no registry entry and
+// would make the card render Absence, measuring nothing (lane lists60, 2026-09-08).
 const COMPOSE_SERIES_BOARD = {
-  groups: [{
-    keyPrefix: 'fixture', name: 'Fixture producer', implemented: true, cadence: 'weekly',
-    sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
-    series: [
-      composeSeriesRow('diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
-      composeSeriesRow('e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
-      composeSeriesRow('hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
-      composeSeriesRow('rfo', 'Residual Fuel Oil', '€646/t', 1.8),
-    ],
-  }],
-  unregistered: [], totalObservedSeries: 4, totalProducers: 1, implementedProducerCount: 1, isEmpty: false,
+  groups: [
+    {
+      keyPrefix: 'eu-oil-bulletin', name: 'EU Weekly Oil Bulletin', implemented: true, cadence: 'weekly',
+      sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+      series: [
+        composeSeriesRow('eu-oil-bulletin:diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+        composeSeriesRow('eu-oil-bulletin:e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+        composeSeriesRow('eu-oil-bulletin:hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+        composeSeriesRow('eu-oil-bulletin:rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+      ],
+    },
+    {
+      keyPrefix: 'ecb-fx', name: 'ECB euro foreign exchange reference rates', implemented: true, cadence: 'daily',
+      sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+      series: [composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04')],
+    },
+  ],
+  unregistered: [], totalObservedSeries: 5, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
 };
+
+// Artboard 04's CARBON COST PER FEU rows, in the shape summariseCarbonCorridors() returns from the
+// overlay entries src/app/market/page.tsx already builds: a corridor label from
+// formatCorridorLabel() plus the count of inputs still missing. Both entries carry the four-gap
+// state every LIVE corridor is in today (see carbon-cost-per-feu.mjs's header), which is the state
+// the artboard itself draws.
+const COMPOSE_CARBON_CORRIDORS = [
+  { label: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
+];
 
 const COMPOSE_MARKET_ENTRY = `
 ${STYLE_INJECT}
@@ -2090,6 +2179,11 @@ const props = {
   },
   seriesBoard: SERIES_BOARD,
   headlineSeries: React.createElement(MarketComparativeRibbon, { board: SERIES_BOARD, embedded: true }),
+  // Artboard 04 rail card 2: the same reduced rows /market passes from its own overlay entries.
+  carbonCorridors: ${JSON.stringify(COMPOSE_CARBON_CORRIDORS)},
+  // The instant every date on this surface derives from — including NEXT DATA DROPS, so the audit
+  // measures a fixed calendar rather than one that moves with the day the audit is run.
+  nowIso: '2026-09-06T00:00:00Z',
 };
 
 let root = null;
@@ -2644,6 +2738,10 @@ export const AUDIT_MOUNTS = {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
       'leaflet/dist/leaflet.css': `${SMOKE}stub-empty-css.mjs`,
     },
+    // The alias above keeps esbuild from needing an output path for leaflet's stylesheet; this
+    // puts the REAL stylesheet back at runtime (see mountExtraCss above). leaflet is already an
+    // app dependency, so this adds no new one and reaches no network.
+    styleFiles: ['fsi-app/node_modules/leaflet/dist/leaflet.css'],
     apiRoutes: EMPTY_API,
   },
   'compose-community': {
@@ -2712,6 +2810,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-login': {
     id: 'compose-login',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real /login page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
     viewport: 1440,
     entry: COMPOSE_LOGIN_ENTRY,
@@ -2724,6 +2826,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-signup': {
     id: 'compose-signup',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real /signup page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
     viewport: 1440,
     entry: COMPOSE_SIGNUP_ENTRY,
@@ -2736,6 +2842,10 @@ export const AUDIT_MOUNTS = {
   },
   'compose-onboarding': {
     id: 'compose-onboarding',
+    // Artboards 16/17 draw a 900px-tall frame with a vertically centred right column; the
+    // capture is pinned to it so the evidence measures the artboard's own geometry rather than
+    // the harness's default 1400px viewport (lane lists60, 2026-09-08).
+    captureHeight: 900,
     description: 'Full-page composition mount: the real OnboardingWizard (AuthFrame + OnboardingStepper), step 2 (its own default), README screen 17 / dc.html p17.',
     viewport: 1440,
     entry: COMPOSE_ONBOARDING_ENTRY,

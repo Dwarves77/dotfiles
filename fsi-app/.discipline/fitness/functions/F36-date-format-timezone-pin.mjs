@@ -79,6 +79,13 @@ export function findUnpinnedDateCalls(strippedSrc) {
   let m;
   while ((m = CALL_RE.exec(strippedSrc))) {
     const span = callSpan(strippedSrc, m.index);
+    // `new Intl.DateTimeFormat().resolvedOptions().timeZone` is a ZONE LOOKUP, not a format call: it
+    // returns the reader's own IANA zone name and can never produce a date string, so there is no
+    // calendar-day for SSR and hydration to disagree about — pinning `timeZone` on it would in fact
+    // make it return the pinned value and defeat its only purpose. Narrow carve-out: the very next
+    // thing after the call must be `.resolvedOptions(`. Everything else stays enforced.
+    const openIdx = strippedSrc.indexOf('(', m.index);
+    if (/^\s*\.resolvedOptions\s*\(/.test(strippedSrc.slice(openIdx + span.length))) continue;
     if (!/timeZone/.test(span)) {
       const line = (strippedSrc.slice(0, m.index).match(/\n/g) || []).length + 1;
       const call = m[1] ? `${m[1]}()` : 'Intl.DateTimeFormat()';

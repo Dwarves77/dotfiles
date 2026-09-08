@@ -6,9 +6,10 @@
   "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
   "notes": [
     "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + CommunityRooms, real components, populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-community'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-    "Artboard order top to bottom: Masthead (VOL line, COMMUNITY title, dek, page-scoped command bar) -> 'Regional rooms' section (aside stat line) -> room tile grid, FIXED 4 columns (dc.html: grid-template-columns:repeat(4,1fr)), 7 room tiles + a dashed '+ New vertical group' tile as the grid's own 8th slot -> selected-room panel (GLOBAL header, Live-in-region ledger, Discussions card with composer + thread rows, foot) -> rail: Who's here, Why post here, Verifier sign-off, Vertical groups, in that order.",
-    "This lane fixed two real defects here: the room-tile grid used `repeat(auto-fit,minmax(165px,1fr))` (6 columns at 1440px, truncating theme text) instead of the artboard's fixed `repeat(4,1fr)`; and the dashed '+ New vertical group' tile — part of the SAME grid in the artboard — did not exist in the room grid at all (only a same-named trigger in the rail's Vertical groups card, kept, same handler reused).",
-    "Command bar placeholder is page-scoped: 'Search posts, groups, members — or ask \"what did the EU room flag this week?\"' (dc.html p12 exact text) — previously missing (generic 'Search or ask across N items…' fallback)."
+    "Artboard order, content column top to bottom: room tile grid (FIXED 4 columns, 7 rooms + the dashed '+ New vertical group' tile as the grid's own 8th slot) -> the ROOM INDEX card (SectionRule, Anton head '<ROOM> ROOM' with the small-caps aside, the JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY table, the foot strip with 'Start a discussion') -> the NEW POST card. Rail, top to bottom: Who's here, Verifier sign-off, Why post here.",
+    "Lane community60 (2026-09-08) closed six listed differences: the extra 'REGIONAL ROOMS' heading above the tiles is gone (the artboard has no such heading; its stat line is the masthead dek); tiles carry the room NAME, not the 3-char key; the stacked discussion feed became the artboard's TABLE, built on the shared RowTable (extended additively with a `metrics` prop for p12's 14px pad / 56px rows / trailing rule, plus per-row `id`/`onActivate`/`below`); the composer left the discussions card and became its own NEW POST card at the foot of the content column; the room header + 'Live in this region' card left its position between the tiles and the discussions for R7 placement after the last designed region; and the rail order is now the artboard's, with the R7 Vertical groups card after it.",
+    "R8 holds: the thread PAGE is not built. The table is the room index and a row expands in place (the `#post-<id>` anchor the rail already emitted is now carried by the table row, so those links still resolve).",
+    "Absence, logged in DEVIATION-LOG: the artboard's per-row QUESTION / PRACTICE / MARKET / TEMPLATE tag chip has no data path (community_posts, migration 030, has no kind/topic/tag column), so the Absence convention renders in its slot."
   ],
   "selector": "[data-audit=\"community\"]",
   "expect": { "count": "1" },
@@ -19,48 +20,205 @@
       "expect": { "count": "1" }
     },
     {
-      "name": "region 2 — 'Regional rooms' section heading",
-      "selector": "[data-audit=\"community\"] h2",
-      "expect": {},
-      "textMatch": "Regional rooms"
-    },
-    {
-      "name": "region 3 — room tile grid is fixed 4 columns, not auto-fit",
+      "name": "region 2 — room tile grid is fixed 4 columns, not auto-fit",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
       "expect": { "count": "1" }
     },
     {
-      "name": "region 3a — '+ New vertical group' dashed tile is the grid's own 8th cell",
+      "name": "region 2a — the first tile carries the room NAME, not the 3-char key",
+      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button:first-child",
+      "expect": {},
+      "textMatch": "Global"
+    },
+    {
+      "name": "region 2b — tile name type (dc.html p12: 11px / .1em / uppercase / 800)",
+      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button:first-child > span:first-child > span:first-child",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "800",
+        "letter-spacing": "0.1em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "region 2c — '+ New vertical group' dashed tile is the grid's own 8th cell",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] button",
       "expect": {},
       "textMatch": "New vertical group"
     },
     {
-      "name": "region 4 — selected-room 'Discussions' card, after the tile grid",
-      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] ~ div",
-      "expect": {},
-      "textMatch": "Discussions ·"
+      "name": "region 3 — the room index card, directly after the tile grid",
+      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] + [data-audit=\"room-index\"]",
+      "expect": { "count": "1" }
     },
     {
-      "name": "region 5 — rail, 'Who's here' card",
-      "selector": "[data-audit=\"community\"] p",
-      "expect": {},
-      "textMatch": "here ·"
+      "name": "region 3a — its 3px section rule (ruling 5.1, above the head, no rule below the title)",
+      "selector": "[data-audit=\"room-index\"] > .cl-section-rule",
+      "expect": { "height": "3px" }
     },
     {
-      "name": "region 6 — rail, 'Verifier sign-off' card",
-      "selector": "[data-audit=\"community\"] p",
-      "expect": {},
-      "textMatch": "Verifier sign-off"
+      "name": "region 3b — Anton head reads '<ROOM> ROOM'",
+      "selector": "[data-audit=\"room-index\"] .cl-section-heading h2",
+      "expect": { "text": "Global room", "text-transform": "uppercase", "letter-spacing": "0.04em" }
     },
     {
-      "name": "region 7 — rail, 'Vertical groups' card, last",
-      "selector": "[data-audit=\"community\"] p",
+      "name": "region 3c — head aside: discussions / shown / members here",
+      "selector": "[data-audit=\"room-index\"] .cl-section-heading-aside",
+      "expect": {},
+      "textMatch": "shown"
+    },
+    {
+      "name": "region 3d — table column 1 header is JURIS.",
+      "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(1)",
+      "expect": { "text": "Juris." }
+    },
+    {
+      "name": "region 3e — table column 2 header is DISCUSSION",
+      "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(2)",
+      "expect": { "text": "Discussion" }
+    },
+    {
+      "name": "region 3f — table column 3 header is REPLIES",
+      "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(3)",
+      "expect": { "text": "Replies" }
+    },
+    {
+      "name": "region 3g — table column 4 header is LAST ACTIVITY",
+      "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(4)",
+      "expect": { "text": "Last activity" }
+    },
+    {
+      "name": "region 3h — header strip geometry and type (dc.html p12: 30px, .12em, 700; the 9.5px size is var(--fs-95), which run-audit's page does not load theme.css for)",
+      "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"]",
+      "expect": {
+        "height": "30px",
+        "font-weight": "700",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "region 3i — a discussion row carries the `#post-<id>` anchor the rail links to",
+      "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"]",
+      "expect": { "count": "3", "min-height": "56px" }
+    },
+    {
+      "name": "region 3j — the whole row is the click target (DP-1), keyboard reachable",
+      "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"][role=\"button\"][tabindex=\"0\"]",
+      "expect": { "count": "3" }
+    },
+    {
+      "name": "region 3k — a row's REPLIES cell reads 'N replies'",
+      "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"] > span:nth-child(3)",
+      "expect": {},
+      "textMatch": "replies"
+    },
+    {
+      "name": "region 3l — every row ends in the 44px overflow control",
+      "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"] button[aria-haspopup=\"menu\"]",
+      "expect": { "count": "3", "width": "44px", "height": "44px" }
+    },
+    {
+      "name": "region 3m — card foot strip, artboard text left",
+      "selector": "[data-audit=\"room-index\"] .cl-card-foot",
+      "expect": {},
+      "textMatch": "Threads reference ledger items by link"
+    },
+    {
+      "name": "region 3n — card foot carries 'Start a discussion'",
+      "selector": "[data-audit=\"room-index\"] .cl-card-foot button",
+      "expect": {},
+      "textMatch": "Start a discussion"
+    },
+    {
+      "name": "region 4 — the NEW POST card, its own card after the room index",
+      "selector": "[data-audit=\"room-index\"] + [data-audit=\"new-post\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "region 4a — its Anton head reads 'NEW POST · <ROOM>'",
+      "selector": "[data-audit=\"new-post\"] .cl-section-heading h2",
+      "expect": { "text": "New post · Global", "text-transform": "uppercase" }
+    },
+    {
+      "name": "region 4b — its aside reads 'POSTS TO THE <ROOM> ROOM'",
+      "selector": "[data-audit=\"new-post\"] .cl-section-heading-aside",
+      "expect": { "text": "Posts to the Global room", "text-transform": "uppercase" }
+    },
+    {
+      "name": "region 4c — the composer is a post box with the artboard's placeholder",
+      "selector": "[data-audit=\"new-post\"] textarea",
+      "expect": {
+        "count": "1",
+        "placeholder": "Ask the Global room — a lane observation, a handler question, a document worth sharing…",
+        "min-height": "64px"
+      }
+    },
+    {
+      "name": "region 4d — the Post button sits on the same row as the starter chips",
+      "selector": "[data-audit=\"new-post\"] button",
+      "expect": {},
+      "textMatch": "Post"
+    },
+    {
+      "name": "region 5 — R7: the room header + Live-in-this-region card sits AFTER the new-post card",
+      "selector": "[data-audit=\"new-post\"] + [data-audit=\"region-card\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "rail 1 — Who's here is the rail's first card",
+      "selector": "[data-audit=\"whos-here\"]",
+      "expect": { "count": "1" },
+      "textMatch": "Presence comes from profile home jurisdictions"
+    },
+    {
+      "name": "rail 2 — Verifier sign-off is the rail's second card, directly after Who's here",
+      "selector": "[data-audit=\"whos-here\"] + [data-audit=\"verifier-signoff\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "rail 2a — its open-requests line is one line, value in the absence treatment",
+      "selector": "[data-audit=\"verifier-signoff\"] p",
+      "expect": {},
+      "textMatch": "Your open requests ·"
+    },
+    {
+      "name": "rail 3 — Why post here is the rail's third card, directly after Verifier sign-off",
+      "selector": "[data-audit=\"verifier-signoff\"] + [data-audit=\"why-post-here\"]",
+      "expect": { "count": "1" },
+      "textMatch": "The ledger prints what"
+    },
+    {
+      "name": "rail 4 — R7: Vertical groups sits after the three designed rail cards",
+      "selector": "[data-audit=\"why-post-here\"] ~ div",
       "expect": {},
       "textMatch": "Vertical groups"
     }
   ],
   "forbid": [
+    {
+      "name": "no 'REGIONAL ROOMS' heading above the tiles (artboard 12 draws none)",
+      "selector": "[data-audit=\"community\"] h2",
+      "textMatch": "Regional rooms",
+      "reason": "Artboard 12 opens the content column with the tile grid; the room/item stat line it would carry lives in the masthead dek."
+    },
+    {
+      "name": "no room tile labelled with the 3-char key",
+      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button > span > span",
+      "textMatch": "re:\\bGLO\\b",
+      "reason": "Artboard 12's tiles read GLOBAL / EU / US / UK / APAC / LATAM / MEAF — the room NAME. 'GLO' is the internal short key."
+    },
+    {
+      "name": "the composer is not inside the room index card",
+      "selector": "[data-audit=\"room-index\"] textarea, [data-audit=\"room-index\"] input",
+      "reason": "Artboard 12 puts posting in its own NEW POST card at the foot of the content column, never inside the discussions card."
+    },
+    {
+      "name": "the discussion list is not a stacked card feed",
+      "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"] button",
+      "textMatch": "Request verifier sign-off",
+      "reason": "The artboard's row is a table row with a trailing overflow control; the per-row action bar the stacked feed carried now lives in that overflow menu."
+    },
     {
       "name": "no floating Ask AI button (ruling 2.2)",
       "selector": "[data-audit=\"community\"] button",
@@ -71,6 +229,19 @@
       "name": "no second per-page ask/search bar (README §0.3)",
       "selector": "[data-audit=\"community\"] input[type=\"search\"]",
       "reason": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
+    },
+    {
+      "name": "the literal word UNSCORED never appears (ruling 2.1)",
+      "selector": "[data-audit=\"community\"] span, [data-audit=\"community\"] p",
+      "textMatch": "UNSCORED",
+      "reason": "General sitewide rule: absence is a reason from the fixed vocabulary, never the literal token."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "no discussion-table cell escapes its row or overlaps a sibling (operator, 2026-09-07)",
+      "container": "[data-audit=\"room-index\"] div[id^=\"post-\"]",
+      "cells": "[data-audit=\"room-index\"] div[id^=\"post-\"] > span"
     }
   ]
 }

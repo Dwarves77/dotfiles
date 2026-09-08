@@ -117,24 +117,32 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, h
       <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
         <SectionRule />
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+      {/* All four detail artboards STACK this header: the chip row (ending in the tier square and
+          the stat), then the workspace tag row, then the action row, every one of them left-aligned
+          at the card's own padding. The build laid it out as a two-column space-between row, which
+          floated the action row to the right edge on 03/07/09 and only stacked on 05 when the chips
+          happened to be wide enough to force a wrap. */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 12 }}>
+        <div style={{ minWidth: 0, maxWidth: "100%" }}>
+          <div data-audit="detail-chips" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {/* Artboard chip order, all four detail artboards (dc.html #p3/#p5/#p7/#p9): band pill,
+                then the item's own type/mode/topic chips, then the TIER square LAST, immediately
+                before the header stat ("Action · <= 6 months" · Regulation · Ocean · Emissions · T1 ·
+                "7 sources · T1 primary"). The build rendered the tier second; fixed here once, in the
+                shared header, rather than four times in the four surfaces. */}
             <BandChip band={band} />
-            {typeof tier === "number" && <TierChip tier={tier} />}
             {extraChips}
-          </div>
-          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
-        </div>
-        {(actions || headerStat) && (
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 10, maxWidth: "100%" }}>
+            {typeof tier === "number" && <TierChip tier={tier} />}
+            {/* The stat is the LAST child of the chip row on every detail artboard, not a
+                right-aligned line above the action row (which is where the build put it). */}
             {headerStat && (
               <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{headerStat}</span>
             )}
-            {actions && (
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-end", maxWidth: "100%" }}>{actions}</div>
-            )}
           </div>
+          {tagRow && <div style={{ marginTop: 10 }}>{tagRow}</div>}
+        </div>
+        {actions && (
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", maxWidth: "100%" }}>{actions}</div>
         )}
       </div>
     </header>
@@ -257,7 +265,9 @@ export function DetailExposure({ items }: { items: ExposureItem[] }) {
             <p style={{ fontSize: "var(--fs-95)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 6px" }}>
               {it.label}
             </p>
-            <div style={{ fontSize: "var(--fs-125)", lineHeight: 1.5, color: "var(--ink)", overflowWrap: "anywhere" }}>{it.value}</div>
+            <div data-audit="exposure-value" style={{ fontSize: "var(--fs-125)", lineHeight: 1.5, color: "var(--ink)", overflowWrap: "anywhere" }}>
+              {it.value}
+            </div>
           </div>
         ))}
       </div>
@@ -709,8 +719,61 @@ export function DetailLayout({ children, rail }: { children: React.ReactNode; ra
         }
       `}</style>
       <div style={{ minWidth: 0 }}>{children}</div>
-      <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>{rail}</div>
+      <div data-audit="detail-rail" style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
+        {rail}
+      </div>
     </div>
+  );
+}
+
+// ── Rail order: the ONE slot contract ───────────────────────────────────
+//
+// Lane details60 (2026-09-08, fold report Addendum 86 postscript 14: "the rail
+// puts IN THIS LIST FIRST where the artboard puts AT A GLANCE first",
+// consistently across all four detail artboards). Measured from the artboard
+// markup rather than from that prose — the rail card heads in document order
+// are:
+//
+//   03  At a glance · Impact assessment · Relevance · Owner & team ·
+//       In this list · Connections · Legend
+//   05  At a glance · Impact assessment · Relevance · Your notes ·
+//       In this list · Legend
+//   07  At a glance · Impact assessment · Relevance · Connections ·
+//       Cluster synthesis · Legend
+//   09  At a glance · Impact assessment · Relevance · Related in Asia · Legend
+//
+// So the invariant shared by all four is: AT A GLANCE, IMPACT ASSESSMENT,
+// RELEVANCE, then the page's own designed cards in artboard order, then
+// LEGEND last. This component is that order, expressed once; a detail surface
+// names its cards by slot and cannot reorder them. Cards the artboard does not
+// draw at all (ruling R7 features: the place-keeping card on 07/09, the
+// connections card on 05/09, affected lanes) go in `undesigned`, after the
+// last designed region of the column, exactly where R7 puts them.
+export interface DetailRailProps {
+  /** Artboard slot 1 on every detail artboard. */
+  atAGlance?: React.ReactNode;
+  /** Artboard slot 2. */
+  impact?: React.ReactNode;
+  /** Artboard slot 3 (ruling 3.4: the live HIGH RELEVANCE chip, unstyled, as is). */
+  relevance?: React.ReactNode;
+  /** The page's own cards between RELEVANCE and LEGEND, in artboard order. */
+  designed?: React.ReactNode;
+  /** Artboard slot last. */
+  legend?: React.ReactNode;
+  /** R7: features the artboard does not draw, after the last designed region. */
+  undesigned?: React.ReactNode;
+}
+
+export function DetailRail({ atAGlance, impact, relevance, designed, legend, undesigned }: DetailRailProps) {
+  return (
+    <>
+      {atAGlance}
+      {impact}
+      {relevance}
+      {designed}
+      {legend}
+      {undesigned}
+    </>
   );
 }
 

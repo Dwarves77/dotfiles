@@ -22,6 +22,7 @@
  */
 
 import type { Resource } from "@/types/resource";
+import { TRANSPORT_MODES } from "@/lib/contracts/vocabularies.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { dueInfo } from "@/lib/dashboard/row-fields";
 
@@ -37,7 +38,21 @@ export interface FacetOption {
 }
 
 /** Every distinct mode across the loaded rows, with a loaded-row count each,
- *  ordered by count descending then alphabetically. */
+ *  ordered by count descending then alphabetically.
+ *
+ *  The option's `label` is the mode's DISPLAY label from the TRANSPORT_MODES vocabulary
+ *  ("Road", "Rail", "Ocean", "Air"), which is what artboards 02/04/06/08/11 all draw in the
+ *  FILTERS rail card. It used to be the raw canonical token, so the rail read "road / rail /
+ *  ocean / air" in lower case against the artboard's title case, and against its own JURISDICTION
+ *  and TOPIC groups, which are already title case. Found by eye in train 60's visual pass; no
+ *  spec measured it.
+ *
+ *  `value` is UNCHANGED and is still the canonical token. The canonical transport mode is `ocean`
+ *  (operator ruling 2026-08-12, migration 263) and nothing here writes, stores, filters or
+ *  round-trips the label: the filter callbacks, the URL state and every count still key on
+ *  `value`. This is a display form for one rail card, never a second vocabulary. A mode with no
+ *  registry entry (an unexpected token from data) falls back to printing itself rather than
+ *  being dropped or renamed. */
 export function modeFacetOptions(rows: Resource[]): FacetOption[] {
   const counts = new Map<string, number>();
   for (const r of rows) {
@@ -48,8 +63,13 @@ export function modeFacetOptions(rows: Resource[]): FacetOption[] {
     }
   }
   return Array.from(counts.entries())
-    .map(([value, count]) => ({ value, label: value, count }))
+    .map(([value, count]) => ({ value, label: modeDisplayLabel(value), count }))
     .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
+}
+
+function modeDisplayLabel(code: string): string {
+  const entry = (TRANSPORT_MODES as Record<string, { label: string } | undefined>)[code];
+  return entry?.label ?? code;
 }
 
 /** Every distinct topic across the loaded rows, with a loaded-row count each (artboard 02/id="p2"

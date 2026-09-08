@@ -32,7 +32,7 @@
 import { isBriefStale } from "../connections/brief-staleness.mjs";
 
 /**
- * @typedef {{ id: string, member_ids: string[] }} ConnectionThemeRow
+ * @typedef {{ id: string, member_ids: string[], density?: number|null }} ConnectionThemeRow
  * @typedef {{ theme_id: string, title: string, brief_md: string, member_hash: string, generated_at: string }} ThemeBriefRow
  * @typedef {{
  *   themeId: string,
@@ -40,6 +40,7 @@ import { isBriefStale } from "../connections/brief-staleness.mjs";
  *   briefMd: string,
  *   generatedAt: string,
  *   memberCount: number,
+ *   density: number|null,
  *   stale: boolean,
  * }} ThemeBriefView
  */
@@ -84,6 +85,11 @@ export function selectThemeBriefForItem(itemId, themes, briefs) {
     briefMd: brief.brief_md,
     generatedAt: brief.generated_at,
     memberCount: theme.member_ids.length,
+    // Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items · density 0.180". `density` is
+    // the cluster's intra-theme edge density (src/lib/connections/cluster.mjs F3), stored on
+    // connection_themes.density and already selected by api/admin/themes/route.ts. Null when the
+    // caller did not select it or the row predates it — the card omits the segment, never renders 0.
+    density: typeof theme.density === "number" ? theme.density : null,
     stale: isBriefStale(brief.member_hash, theme.member_ids),
   };
 }

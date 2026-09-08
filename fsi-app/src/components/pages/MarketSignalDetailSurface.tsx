@@ -81,6 +81,7 @@ import {
   AtAGlanceCard,
   RailLegend,
   InThisListStat,
+  DetailRail,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
 import { GfmSection } from "@/components/shared/GfmSection";
@@ -413,27 +414,40 @@ export function MarketSignalDetailSurface({
 
         <DetailLayout
           rail={
-            <>
-              <InThisListStat backHref="/market" backLabel="Back to list" band={band} />
-              <AtAGlanceCard
-                rows={[
-                  { label: "Band", value: `${band.label} · ${band.window}` },
-                  { label: "Kind", value: SEVERITY_LABEL[severity] },
-                  { label: "Corporate band", value: `B${BAND_NUM[signalBand]} · ${BAND_LABEL[signalBand]}` },
-                  { label: "Jurisdiction", value: jurisLabel },
-                  { label: "Topic", value: r.topic },
-                  { label: "Status", value: promotion.label },
-                  { label: "Published", value: r.added ? fullDate(r.added) : null },
-                  { label: "Next release", value: priceBoard.find((p) => p.nextReleaseAt)?.nextReleaseAt ? shortDate(priceBoard.find((p) => p.nextReleaseAt)!.nextReleaseAt!) : null },
-                ]}
-              />
-              <ImpactRailCard scores={impact} />
-              <RelevanceBadgeClient itemId={r.id} />
-              <NotesField itemId={r.id} initialNote={initialNote} />
-              <RailLegend />
-              <AffectedLanesCard resource={r} />
-              <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
-            </>
+            <DetailRail
+              atAGlance={
+                <AtAGlanceCard
+                  rows={[
+                    { label: "Band", value: `${band.label} · ${band.window}` },
+                    { label: "Kind", value: SEVERITY_LABEL[severity] },
+                    { label: "Corporate band", value: `B${BAND_NUM[signalBand]} · ${BAND_LABEL[signalBand]}` },
+                    { label: "Jurisdiction", value: jurisLabel },
+                    { label: "Topic", value: r.topic },
+                    { label: "Status", value: promotion.label },
+                    { label: "Published", value: r.added ? fullDate(r.added) : null },
+                    { label: "Next release", value: priceBoard.find((p) => p.nextReleaseAt)?.nextReleaseAt ? shortDate(priceBoard.find((p) => p.nextReleaseAt)!.nextReleaseAt!) : null },
+                  ]}
+                />
+              }
+              impact={<ImpactRailCard scores={impact} />}
+              relevance={<RelevanceBadgeClient itemId={r.id} />}
+              /* Artboard 05's page-specific cards, in its own order:
+                 YOUR NOTES, then IN THIS LIST. */
+              designed={
+                <>
+                  <NotesField itemId={r.id} initialNote={initialNote} />
+                  <InThisListStat backHref="/market" backLabel="Back to list" band={band} />
+                </>
+              }
+              legend={<RailLegend />}
+              /* R7 — artboard 05 draws neither. */
+              undesigned={
+                <>
+                  <AffectedLanesCard resource={r} />
+                  <ItemConnectionsCard connections={connections} supersessions={supersessions} selfId={r.id} resourceLookup={resourceLookup} />
+                </>
+              }
+            />
           }
         >
           <DetailSection id="summary" title="Summary" aside="Generated · 30-second read">

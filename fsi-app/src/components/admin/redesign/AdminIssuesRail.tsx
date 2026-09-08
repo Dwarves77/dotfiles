@@ -57,12 +57,35 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
     total: 0,
   };
 
+  // dc.html p13's ISSUES QUEUE rows, in the artboard's own order: the four
+  // attention rows (provisional, platform integrity flags, auto-approved
+  // spot-check, integrity flags) first, then the four quiet ones. The order is
+  // the artboard's, not a sort, a count that changes must not reorder the list
+  // under the operator's eye. Reordered by lane admin60, 2026-09-08.
   const rows: RailRow[] = [
     {
       key: "provisional",
       title: "Provisional sources pending review",
       count: c.provisional_sources_pending,
       target: { section: "Sources", tab: "Provisional review" },
+    },
+    {
+      key: "platform",
+      title: "Platform integrity flags open",
+      count: c.platform_integrity_flags_open,
+      target: { section: "Ingest", tab: "Flags & rejections" },
+    },
+    {
+      key: "spotcheck",
+      title: "Auto-approved awaiting spot-check",
+      count: c.auto_approved_awaiting_spotcheck,
+      target: { section: "Sources", tab: "Spot-check" },
+    },
+    {
+      key: "integrity",
+      title: "Integrity flags unresolved",
+      count: c.integrity_flags_unresolved,
+      target: { section: "Ingest", tab: "Flags & rejections" },
     },
     {
       key: "staged",
@@ -77,28 +100,10 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
       target: { section: "Ingest", tab: "Staged updates" },
     },
     {
-      key: "integrity",
-      title: "Integrity flags unresolved",
-      count: c.integrity_flags_unresolved,
-      target: { section: "Ingest", tab: "Flags & rejections" },
-    },
-    {
-      key: "platform",
-      title: "Platform integrity flags open",
-      count: c.platform_integrity_flags_open,
-      target: { section: "Ingest", tab: "Flags & rejections" },
-    },
-    {
       key: "attribution",
       title: "Source attribution mismatches",
       count: c.source_attribution_mismatches,
       target: { section: "Sources", tab: "Source registry" },
-    },
-    {
-      key: "spotcheck",
-      title: "Auto-approved awaiting spot-check",
-      count: c.auto_approved_awaiting_spotcheck,
-      target: { section: "Sources", tab: "Spot-check" },
     },
     {
       key: "coverage",
@@ -107,6 +112,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
       target: { section: "Coverage", tab: "Jurisdiction review" },
     },
   ];
+
 
   // COMPUTED total — sum of the exact rows rendered below. This is the
   // binding invariant: the badge equals its list, always.

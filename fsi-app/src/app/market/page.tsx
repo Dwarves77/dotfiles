@@ -60,6 +60,7 @@ import { MarketComparativeRibbon } from "@/components/market/MarketComparativeRi
 // moment any lane adds a distance producer, a licence-clear payload convention, or the eex-eua
 // market_series producer, with zero further code change here.
 import { carbonCostPerFeu } from "@/lib/market/carbon-cost-per-feu.mjs";
+import { summariseCarbonCorridors } from "@/lib/market/market-rail-select.mjs";
 import { CarbonCostOverlay, type CarbonCostOverlayEntry } from "@/components/market/CarbonCostOverlay";
 import desnzEmissionFactors from "../../../scripts/gen/fixtures/emission-factors/desnz-modal-defaults-2025.json";
 // Lane SCOPE-READER (2026-09-06): entity_scope's first real reader (docs/specs/08-flywheel-design.md
@@ -158,6 +159,11 @@ export default async function Market() {
     getCachedCorridorScopes(),
   ]);
 
+  // Built ONCE and read twice: the rail's compact CARBON COST PER FEU card (artboard 04's own
+  // region) and the fuller <CarbonCostOverlay/> section below the ledger (ruling R7: an app feature
+  // the artboard does not draw, kept exactly as it is, after the last designed region).
+  const carbonOverlays = buildCarbonCostOverlays(corridorScopes);
+
   return (
     <>
       {/* UILISTS lane (2026-09-06): MarketIntelLedger now renders its own Masthead (UI system
@@ -174,13 +180,17 @@ export default async function Market() {
         seriesBoard={seriesBoard}
         nowIso={renderNowIso()}
         headlineSeries={<MarketComparativeRibbon board={seriesBoard} embedded />}
+        /* Artboard 04/id="p4" rail card CARBON COST PER FEU (lane lists60, 2026-09-08). The SAME
+           overlay entries the <CarbonCostOverlay/> section below already receives, reduced to the
+           card's rows — one computation, two views, no second read. */
+        carbonCorridors={summariseCarbonCorridors(carbonOverlays)}
       />
       {/* Carbon cost per FEU overlay (spec 02 §6 item 3): built from a static emission-factor fixture +
           every live corridor entity (entity_scope's first real reader, lane SCOPE-READER 2026-09-06),
           never a fetch inside the component itself (CORR write set — the fetch lives in this page).
           Renders today's honest gap state per corridor until a distance producer, a licence-clear
           payload convention, or the eex-eua market_series producer lands. */}
-      <CarbonCostOverlay overlays={buildCarbonCostOverlays(corridorScopes)} />
+      <CarbonCostOverlay overlays={carbonOverlays} />
       {/* PERF-11 (2026-09-04): trimmed the same way /regulations' first-paint and remainder rows are —
           see toLedgerRowPayload's own header for the field accounting (confirmed by grep against
           MarketIntelLedger.tsx: it reads none of the fields the trim blanks). NOT a pagination change:

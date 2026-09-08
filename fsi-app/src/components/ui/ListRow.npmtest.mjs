@@ -23,16 +23,32 @@ const SOURCE = readFileSync(
 // inline `{endStat ? (...) : (...)}` expression into a `tailContent = endStat ? (...) : (...)`
 // variable (so both the desktop columns AND the mobile line-2 flex row can reuse the identical
 // JSX) — the branch itself, and everything it guards, is unchanged.
-test("endStat is optional and defaults to the original four-cell anatomy", () => {
-  assert.match(SOURCE, /endStat\?:\s*\{[^}]*\}\s*\|\s*null;/, "endStat must be an optional prop (undefined-safe)");
-  assert.match(SOURCE, /const tailContent = endStat \? \(/, "rendering must branch on endStat rather than always taking the new path");
-  // The original four cells must still exist verbatim in the non-endStat branch.
+test("the list anatomy is the default: no variant means the original four cells", () => {
+  assert.match(SOURCE, /variant\?:\s*"list"\s*\|\s*"register";/, "variant must be an optional prop (undefined-safe)");
+  assert.match(SOURCE, /variant = "list"/, "the default must be the list anatomy, so every existing caller is unaffected");
+  // The original four cells must still exist verbatim in the list branch.
   assert.match(SOURCE, /<ImpactMeter scores=\{impact\} \/>/);
   assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> : <Absence reason="not in primary source" \/>/);
 });
 
-test("endStat replaces columns 4-7 as one merged band-coloured stat, never a fifth column", () => {
-  assert.match(SOURCE, /gridColumn:\s*"4 \/ span 4"/);
+// UPDATED (lane map60, 2026-09-08): `endStat` used to render inside the EIGHT-column list grid as
+// one merged `gridColumn: "4 / span 4"` cell, an approximation of artboard 10's register that
+// map-register.json's own note called "a genuine layout-strategy difference" from what p10 draws.
+// `variant="register"` now reproduces p10's six-column grid exactly, and the merged-cell branch is
+// DELETED rather than kept as a second way to render the same row (CLAUDE.md rule 13). This test
+// guards the replacement, not the shape it replaced.
+test("the register variant is p10's own six-column grid, and the merged 8-column approximation is gone", () => {
+  assert.match(SOURCE, /const REGISTER_GRID = "3px 1fr 1fr 110px 80px 40px";/);
+  assert.doesNotMatch(SOURCE, /gridColumn:\s*"4 \/ span 4"/, "the merged endStat cell must not come back");
+  assert.match(SOURCE, /if \(variant === "register" && endStat\)/, "the register anatomy branches on the variant");
+});
+
+test("a register row is one click target and ends in the artboard's arrow glyph", () => {
+  const registerBlock = SOURCE.slice(SOURCE.indexOf('if (variant === "register" && endStat)'), SOURCE.indexOf("const tailContent"));
+  assert.equal((registerBlock.match(/<Link/g) || []).length, 1, "exactly one navigable Link per register row");
+  assert.match(registerBlock, /cl-row-register-arrow/);
+  assert.match(registerBlock, /→/);
+  assert.match(registerBlock, /aria-hidden="true"[\s\S]{0,120}cl-row-register-arrow/, "the arrow is decoration, not a second target");
 });
 
 // UPDATED (lane moblist, 2026-09-07): the operator's binding mobile-390 spec landed (this lane's
@@ -62,9 +78,16 @@ test("mobile reflow uses `display: contents` sub-wrappers so >=768px stays the o
   assert.match(SOURCE, /className="cl-row-line2" style=\{\{ display: "contents" \}\}/);
 });
 
+// The INVARIANT is unchanged (one click target per rendered row); only its mount is adapted (lane
+// map60, 2026-09-08). ListRow now has two mutually exclusive branches, the list anatomy and the
+// register anatomy, so a whole-file count of 2 is correct and a per-branch count of 1 is the
+// assertion that still means what the original one meant.
 test("the whole row stays the one click target — no second nested Link/button wraps the row", () => {
-  const linkMatches = SOURCE.match(/<Link\b/g) || [];
-  assert.equal(linkMatches.length, 1, "exactly one <Link> (the full-row overlay) — never a second competing click target");
+  const registerBranch = SOURCE.slice(SOURCE.indexOf('if (variant === "register" && endStat)'), SOURCE.indexOf("const tailContent"));
+  const listBranch = SOURCE.slice(SOURCE.indexOf("const tailContent"));
+  assert.equal((registerBranch.match(/<Link\b/g) || []).length, 1, "exactly one <Link> in the register branch");
+  assert.equal((listBranch.match(/<Link\b/g) || []).length, 1, "exactly one <Link> in the list branch");
+  assert.equal((SOURCE.match(/<Link\b/g) || []).length, 2, "two branches, one Link each, never a third");
 });
 
 // ── tags (lane uitags, 2026-09-07, README "Workspace tags" / ruling R6) ──

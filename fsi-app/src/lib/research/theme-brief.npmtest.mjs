@@ -125,3 +125,40 @@ test("theme-brief: defensive on missing/malformed inputs", () => {
   assert.equal(selectThemeBriefForItem("a", null, null), null);
   assert.equal(selectThemeBriefForItem("", [{ id: "t", member_ids: ["a"] }], []), null);
 });
+
+// ── density (lane details60, 2026-09-08) ────────────────────────────────────────────────────────
+// Artboard 07's CLUSTER SYNTHESIS meta line reads "85 items · density 0.180". `density` is the
+// cluster's intra-theme edge density, already stored on connection_themes and already selected by
+// api/admin/themes/route.ts; the research detail's own read now selects it too. It is carried
+// through the view-model, and it is NULL — never 0 — when the caller did not select it, so the card
+// omits the segment rather than rendering a fabricated zero density.
+
+test("density is carried through to the view-model when the theme row has one", () => {
+  const members = ["item-1", "item-2"];
+  const theme = { id: "t1", member_ids: members, density: 0.18 };
+  const brief = {
+    theme_id: "t1",
+    title: "Maritime decarbonisation",
+    brief_md: "body",
+    member_hash: createHash("md5").update([...members].sort().join("")).digest("hex"),
+    generated_at: "2026-05-01T00:00:00.000Z",
+  };
+  const view = selectThemeBriefForItem("item-1", [theme], [brief]);
+  assert.equal(view.density, 0.18);
+  assert.equal(view.memberCount, 2);
+});
+
+test("a theme row selected without density yields null, never 0", () => {
+  const members = ["item-1"];
+  const theme = { id: "t1", member_ids: members };
+  const brief = {
+    theme_id: "t1",
+    title: "Maritime decarbonisation",
+    brief_md: "body",
+    member_hash: createHash("md5").update([...members].sort().join("")).digest("hex"),
+    generated_at: "2026-05-01T00:00:00.000Z",
+  };
+  const view = selectThemeBriefForItem("item-1", [theme], [brief]);
+  assert.equal(view.density, null);
+  assert.notEqual(view.density, 0);
+});
