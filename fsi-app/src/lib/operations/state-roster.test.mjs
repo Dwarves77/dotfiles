@@ -4,10 +4,13 @@
 // item D3: the By-state sub-list that was its only caller is gone from /operations). The
 // STATE_LABELS population contract below is NOT a test of that sub-list — it is the roster the
 // COVERAGE GAPS rail card artboard 08 draws counts against — so it stays.
+// The formatFactStatus proofs went the same way in the round's finishing pass: that function was
+// [CONFIRMED] dead at the round's own base commit (no consumer outside this module and this file),
+// so its proofs were testing something no surface could reach.
 // Executed via the src/lib/operations glob in fsi-app/.discipline/run-test-suite.sh.
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { STATE_LABELS, formatFactStatus } from "./state-roster.mjs";
+import { STATE_LABELS } from "./state-roster.mjs";
 
 // Live-confirmed 2026-08-30 (SELECT DISTINCT state_code FROM state_cost_facts): exactly these 13
 // codes carry a sourced cost fact today. This test locks that population in as the contract the
@@ -25,14 +28,4 @@ test("STATE_LABELS carries a label for every live state_cost_facts code, plus NC
   }
   assert.equal(STATE_LABELS["US-NC"], "North Carolina");
   assert.equal(Object.keys(STATE_LABELS).length, 14, "13 cost-fact states + NC, no silent extras");
-});
-
-test("formatFactStatus trims and omits blank/whitespace-only values as null, never an empty badge", () => {
-  assert.equal(formatFactStatus("Constrained"), "Constrained");
-  assert.equal(formatFactStatus("  Tight pool  "), "Tight pool");
-  assert.equal(formatFactStatus(""), null);
-  assert.equal(formatFactStatus("   "), null);
-  assert.equal(formatFactStatus(null), null);
-  assert.equal(formatFactStatus(undefined), null);
-  assert.equal(formatFactStatus(42), null);
 });

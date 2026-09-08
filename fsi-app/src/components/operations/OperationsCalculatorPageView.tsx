@@ -29,7 +29,10 @@ export function OperationsCalculatorPageView({
   itemCount,
 }: {
   dateLabel: string;
-  nowIso?: string;
+  /** The server's render instant. REQUIRED, not optional: besides the masthead's date line it is the
+   *  calculator's only clock, and the calculator may not read the host clock during render (see
+   *  AutomateVsHireCalculator.tsx's header and src/lib/render-clock.npmtest.mjs). */
+  nowIso: string;
   /** The Operations corpus size, so this page's command bar states the same scope every other
    *  Operations surface does rather than inventing one of its own. */
   itemCount: number;
@@ -73,7 +76,7 @@ export function OperationsCalculatorPageView({
         `}</style>
         <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <div data-audit="calculator-column" style={{ minWidth: 0 }}>
-          <AutomateVsHireCalculator />
+          <AutomateVsHireCalculator nowIso={nowIso} />
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
           <LegendRailCard />

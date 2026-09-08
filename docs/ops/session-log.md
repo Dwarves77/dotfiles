@@ -15157,3 +15157,58 @@ is introduced anywhere; every 44px minimum the lanes set is preserved and the St
 target grew from 24px to 28px. The rendering guard passes at every viewport including 375.
 
 2026-09-08, lane ci62: rotated DASHBOARD_DATA_CACHE_KEY from `app-data-7b3d90e4` to `app-data-e1ae7713`, the hash rule 021 computes on this tree, because this train changed the DashboardData payload shape (briefdata rows, the due-next read, and the reconciled complianceDeadline field) and the unstable_cache key must rotate so no old-shape cross-deployment entry can reach the new code.
+
+## 2026-09-08, lane regopscope (train 62): items D2 and D3, finishing pass
+
+**Where this picked up.** The branch `lane/regopscope-2026-09-08` already carried three commits
+(`f1020bf3` D2, `aa44a7b2` D3, `deeae1f6` the audit evidence) from a run the coordinator interrupted
+mid-flight, not a run that failed. The working tree also held a PARTIAL audit artefact: `results.json`
+and `AUDIT-2026-09-07.md` rewritten from a 5-spec run instead of the full 72, which is what an
+interrupted `audit:design` leaves behind. Those were reverted rather than committed, and the full
+audit was re-run at the end. That partial file is the one thing an interrupted lane can hand the next
+train that looks like evidence and is not.
+
+**What was already done, with the evidence rather than a redo.**
+- D2's removals and the move are landed. Artboard 02 (`screens/02-regulations-list.png`, read this
+  session) draws the rail's "Obligations · next 30 days" card with its own "Calendar →" link, and
+  draws no horizontal obligations strip and no register table below the band groups. The strip is
+  removed, the register lives at `/regulations/register`, and the rail card's Calendar link is the
+  route to it.
+- The next-due sort is a genuine READ-level ordering, not a page-local one. `NEXT_DUE_SEGMENTS` is
+  three ordered segments (upcoming ascending, past descending, undated), each exact-counted with
+  `head: true` so no rows cross the wire for the count, each given its own `.range()` cut by
+  `planRegisterPageSegments`, each with an `id` tiebreaker, and the results concatenated in segment
+  order with no post-fetch re-sort anywhere. `read-register.test.mjs:494` walks the page boundary
+  itself and asserts a one-row page at each offset returns the globally correct row, which a
+  page-local sort could not produce. This is the defect class train 61 closed for the 1000-row cap.
+- D3's moves are landed. Artboard 08 ends at "All 19 awareness · end of list" with no calculator, no
+  recalculations list, no footnotes and no by-state strip; artboard 09's S-section pattern (numbered
+  head, right-hand aside qualifier, sticky index) is the shape the three moved panels were given.
+
+**The operations matrix was NOT touched, and that was checked rather than assumed.** No added or
+removed line in `aa44a7b2` mentions `RegionDimensionMatrix`; the only matrix-adjacent lines the diff
+removes are prose comments describing where the deleted By-state sub-list sat relative to it. The
+frozen artboard-08 redesign is unaffected by this lane.
+
+**Two defects this pass found and fixed.**
+1. A REAL hydration hazard, [CONFIRMED] red-then-green. Item D3 renamed the calculator into
+   `src/components/operations/`, which is inside `render-clock.npmtest.mjs`'s scan scope for the
+   first time, and the guard went red: `makeSyntheticValue` read `new Date().toISOString()` inside a
+   `useMemo`, evaluated once by SSR and again at hydration with a different clock. Fixed the way that
+   guard's own header prescribes: the instant comes from the server as `nowIso` and threads through
+   `OperationsCalculatorPageView` as a REQUIRED prop on both hops, with no default, since a fallback
+   would be the same host-clock read wearing another name. Latent rather than live today
+   (`EstimatedFigure` reads neither `assertedAt` nor `computedAt`), and recorded that way so the fix
+   is not overstated.
+2. `formatFactStatus` deleted with its proofs. [CONFIRMED] dead at this round's own base commit, so
+   pre-existing rather than orphaned by the By-state removal, and deleted anyway under rule 13.
+   `STATE_LABELS` stays: `OperationsLedger` counts the Coverage-gaps roster against it.
+
+**Left alone deliberately.** The "Counts are live for the current selection" sentence is untouched in
+all five ledgers and `ListSurfaceShell`; lane communitynav2 owns its removal across every rail, and a
+`git log -S` over this branch's three commits confirms none of them moved it.
+
+**Gates.** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 fixture checks,
+97 SM smoke, 216 UX smoke); `audit:design` 72 specs / 2065 checks, 2065 MATCH and 0 MISMATCH at both
+1440 and 390; the CI npmtest glob 1039 pass / 0 fail (it was RED before fix 1 above);
+`run-test-suite.sh` 5973 tests / 0 fail; `next build --webpack` clean with both new routes present.

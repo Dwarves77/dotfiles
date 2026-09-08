@@ -7,6 +7,13 @@
 // live: STATE_LABELS is what the COVERAGE GAPS rail card artboard 08 draws counts its roster against
 // (OperationsLedger.tsx).
 //
+// `formatFactStatus` went with it (same round, finishing pass). It was [CONFIRMED] dead BEFORE this
+// round too. A repo-wide search at the round's own base commit finds no consumer outside this
+// module and its test, so it is pre-existing dead code rather than a casualty of the By-state
+// removal. It is deleted here because rule 13 does not care which commit orphaned a thing, and this
+// round is the one holding the file open. Its test block goes with it: a proof of a function nothing
+// calls proves nothing.
+//
 // `state_cost_facts.state_label` is a live, populated column (confirmed 2026-08-30) but is not
 //    in `fetchStateCostFacts`'s select list in supabase-server.ts (a reader-lane file this lane may
 //    read but not write). Rather than adding a second reader-lane dependency for one more column,
@@ -35,17 +42,3 @@ export const STATE_LABELS = {
   "US-WA": "Washington",
 };
 
-/**
- * Normalize a `regional_data_facts.status` value for display. Returns null (never an empty string
- * or whitespace) so a caller can omit the badge cleanly with a single truthiness check — most of
- * the table's non-null-but-empty edge cases collapse to the same "don't render" outcome as an
- * actual null, rather than rendering a blank badge.
- *
- * @param {unknown} status
- * @returns {string|null}
- */
-export function formatFactStatus(status) {
-  if (typeof status !== "string") return null;
-  const trimmed = status.trim();
-  return trimmed.length > 0 ? trimmed : null;
-}
