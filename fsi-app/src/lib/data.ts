@@ -31,6 +31,8 @@ import {
   getServiceSupabase,
   isSupabaseConfigured,
   SEED_FALLBACK_ERROR,
+  ReadTimeoutError,
+  isReadTimeout,
   type ScopeFilter,
   type CategoryRoutedResult,
   type SourceCitationStat,
@@ -180,14 +182,9 @@ const cachedAppData = unstable_cache(
     // Removing them saves ~2.1 MB and gets the cache payload back under
     // the 2 MB threshold.
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getAppData timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
-    const dashboardData = await Promise.race([
-      fetchDashboardData(orgId),
-      timeout.then(() => {
-        throw new Error("timeout");
-      }),
-    ]);
+    const dashboardData = await Promise.race([fetchDashboardData(orgId), timeout]);
     return dashboardData;
   }),
   // Shape-stamped key (rule 021): rotates whenever the DashboardData
@@ -243,8 +240,8 @@ export async function getAppData() {
     return data;
   } catch (e) {
     console.error("getAppData failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/");
-    return appDataSeedFallback("exception");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/");
+    return appDataSeedFallback(isReadTimeout(e) ? "timeout" : "exception");
   }
 }
 
@@ -307,11 +304,11 @@ export async function getResourcesOnly(page?: ResourcePage): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getResourcesOnly timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
     const dataPromise = readThroughFallbackGuard(() => cachedResourcesOnly(orgId, page));
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getResourcesOnly ${Date.now() - t0}ms`);
     // SF-2 Phase 1: route-agnostic since this fetcher serves multiple
     // surfaces (/operations, /market). Use the generic surface ref.
@@ -319,13 +316,13 @@ export async function getResourcesOnly(page?: ResourcePage): Promise<{
     return result;
   } catch (e) {
     console.error("getResourcesOnly failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/operations|/market");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/operations|/market");
     return {
       resources: [],
       archived: [],
       overrides: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -354,23 +351,23 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getListingsOnly timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
     const dataPromise = readThroughFallbackGuard(() => cachedListingsOnly(orgId, page));
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");
     return result;
   } catch (e) {
     console.error("getListingsOnly failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/regulations");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/regulations");
     return {
       resources: [],
       archived: [],
       overrides: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -423,21 +420,21 @@ export async function getPublicResourcesOnly(page?: ResourcePage): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getPublicResourcesOnly timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const dataPromise = readThroughFallbackGuard(() => cachedPublicResourcesOnly(page));
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getPublicResourcesOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/operations|/market");
     return result;
   } catch (e) {
     console.error("getPublicResourcesOnly failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/operations|/market");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/operations|/market");
     return {
       resources: [],
       archived: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -451,21 +448,21 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getPublicListingsOnly timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const dataPromise = readThroughFallbackGuard(() => cachedPublicListingsOnly(page));
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getPublicListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");
     return result;
   } catch (e) {
     console.error("getPublicListingsOnly failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/regulations");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/regulations");
     return {
       resources: [],
       archived: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -610,17 +607,17 @@ export async function getMapData(): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getMapData timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
     const dataPromise = fetchMapData(orgId);
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getMapData ${Date.now() - t0}ms`);
     alertIfFallback(result, "/map");
     return result;
   } catch (e) {
     console.error("getMapData failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/map");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/map");
     return {
       resources: [],
       archived: [],
@@ -628,7 +625,7 @@ export async function getMapData(): Promise<{
       disputes: {},
       supersessions: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -651,17 +648,17 @@ export async function getListingsMapData(): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getListingsMapData timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
     const dataPromise = fetchListingsMapData(orgId);
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getListingsMapData ${Date.now() - t0}ms`);
     alertIfFallback(result, "/map");
     return result;
   } catch (e) {
     console.error("getListingsMapData failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/map");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/map");
     return {
       resources: [],
       archived: [],
@@ -669,7 +666,7 @@ export async function getListingsMapData(): Promise<{
       disputes: {},
       supersessions: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
@@ -691,23 +688,23 @@ export async function getSettingsData(): Promise<{
   const t0 = Date.now();
   try {
     const timeout = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("getSettingsData timeout")), 10000)
+      setTimeout(() => reject(new ReadTimeoutError(10000)), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
     const dataPromise = fetchSettingsData(orgId);
-    const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
+    const result = await Promise.race([dataPromise, timeout]);
     console.log(`[perf] getSettingsData ${Date.now() - t0}ms`);
     alertIfFallback(result, "/settings");
     return result;
   } catch (e) {
     console.error("getSettingsData failed, using fallback:", e);
-    void recordSeedFallbackFlag("exception", "/settings");
+    void recordSeedFallbackFlag(isReadTimeout(e) ? "timeout" : "exception", "/settings");
     return {
       resources: [],
       archived: [],
       supersessions: [],
       _error: SEED_FALLBACK_ERROR,
-      _fallbackTrigger: "exception",
+      _fallbackTrigger: isReadTimeout(e) ? "timeout" : "exception",
     };
   }
 }
