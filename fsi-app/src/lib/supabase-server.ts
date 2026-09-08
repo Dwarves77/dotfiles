@@ -931,6 +931,16 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
       originClass: row.origin_class ?? undefined,
       sourceId: row.source_id || undefined,
       isArchived: row.effective_archived || false,
+      // Lane BRIEFDATA (2026-09-08) [CONFIRMED gap, live measurement below]: every RPC this mapper
+      // serves (get_workspace_intelligence / _slim / _dashboard / _listings) has projected
+      // `ii.compliance_deadline` since migration 077, and this mapper dropped it on the floor.
+      // `dueInfo` (src/lib/dashboard/row-fields.ts) reads `r.complianceDeadline` FIRST and only
+      // then timeline milestones, so on every list surface and on the dashboard's Due-next card
+      // the deadline half of "next binding date" was structurally invisible: only an item carrying
+      // an `item_timelines` milestone could ever render a due cell. Measured against the live
+      // corpus 2026-09-08: 1,518 active items, 5 with a future compliance_deadline, 69 with a
+      // future milestone.
+      complianceDeadline: row.compliance_deadline || undefined,
     };
 
     if (resource.isArchived) {
@@ -941,6 +951,212 @@ async function mapWorkspaceItemRows(items: any[]): Promise<{
   }
 
   return { active, archived, uuidToUiId };
+}
+
+// ── The dashboard brief's own bounded reads (lane BRIEFDATA, 2026-09-08) ───────────────────────
+//
+// THE DEFECT THESE CLOSE. `get_workspace_intelligence_dashboard` is `LIMIT 50` ordered by priority
+// band, then added_date DESC (migration 077, projection widened by 272/310). That 50-row slice is
+// the ONLY corpus `src/app/page.tsx` had, and both of the dashboard's cards were derived from it:
+//
+//   - "What changed" reads `get_workspace_recent_changes` (migration 232), a DATE-windowed feed
+//     that is deliberately NOT priority-capped, then looked each changed item up in the 50-row
+//     slice. Measured against the live workspace 2026-09-08 (org a0000000-…-0001): 6 of 6 rendered
+//     change rows resolved to NOTHING in that slice, so every one of them took brief-rows.ts's
+//     degrade branch and rendered UNSCORED / PENDING / not-in-primary-source. That is the exact
+//     state the operator photographed.
+//   - "Due next" sorted the 50-row slice by nearest future date. The slice is chosen by PRIORITY,
+//     so an item with the nearest binding date in the whole corpus is in the card only by
+//     coincidence. Same measurement: 23 of the 50 carried a future milestone, so the card was
+//     populated by luck, and one quiet week of high-priority additions empties it.
+//
+// Both are fixed by reading the ROWS THE CARDS ACTUALLY RENDER, by id, in a bounded `.in()` — the
+// same shape (and the same F38/F39 justification) as the source-tier enrichment this module
+// already runs for the ≤11 brief rows. Nothing is invented: every row returned here is a real
+// workspace item resolved through the SAME mapper (`mapWorkspaceItemRows`) the RPC path uses.
+
+/**
+ * The `get_workspace_intelligence_dashboard` projection, as base-table columns.
+ *
+ * IDENTICAL column list to that RPC's RETURNS TABLE (migration 272's body, read 2026-09-08) minus
+ * the two override-derived columns, which are merged in below exactly the way
+ * `_workspace_active_items` (migration 117) derives them: effective_priority =
+ * COALESCE(override.priority_override, ii.priority), effective_archived =
+ * COALESCE(override.is_archived, ii.is_archived).
+ */
+const BRIEF_ITEM_COLUMNS =
+  "id, legacy_id, title, summary, tags, domain, category, item_type, source_id, source_url, " +
+  "jurisdictions, transport_modes, verticals, status, severity, confidence, priority, " +
+  "entry_into_force, compliance_deadline, next_review_date, added_date, last_verified, " +
+  "is_archived, jurisdiction_iso";
+
+/**
+ * Hard ceiling on every read in this section. The two cards render at most 11 rows between them
+ * (DUE_NEXT_CAP 5 + CHANGED_CAP 6); this is deliberately larger so candidates dropped by the
+ * workspace scope predicate (archived, override-archived, unverified) do not thin the card, and
+ * still small enough that a `.in()` at this size can never approach the PostgREST URL length that
+ * `mapWorkspaceItemRows`'s own chunking comment records.
+ */
+const BRIEF_READ_CAP = 40;
+
+/** Today's UTC calendar date, the same instant convention `dueInfo` compares against. */
+function utcToday(): string {
+  return new Date().toISOString().slice(0, 10);
+}
+
+/**
+ * Resolve a bounded set of workspace items to full `Resource`s by id, applying THIS org's
+ * overrides and the workspace scope predicate `_workspace_active_items` applies
+ * (`NOT COALESCE(override.is_archived, ii.is_archived)` AND `provenance_status = 'verified'`).
+ *
+ * `ids` may mix UI ids (legacy_id) and uuids — the What-changed feed carries `legacy_id || id`.
+ * They are split by shape and read with two encoded `.in()` calls rather than one interpolated
+ * `.or()`, for the same reason `fetchWatchlist` gives: non-uuid text against a uuid column raises
+ * 22P02, and interpolating caller text into a PostgREST filter lets an id rewrite the filter.
+ */
+export function splitBriefIdsByShape(ids: string[]): {
+  bounded: string[];
+  uuidIds: string[];
+  legacyIds: string[];
+} {
+  const bounded = Array.from(new Set(ids)).slice(0, BRIEF_READ_CAP);
+  return {
+    bounded,
+    uuidIds: bounded.filter((id) => WATCHLIST_UUID_RE.test(id)),
+    legacyIds: bounded.filter((id) => !WATCHLIST_UUID_RE.test(id)),
+  };
+}
+
+/**
+ * The override merge `_workspace_active_items` (migration 117) performs in SQL, performed here over
+ * the override rows this request already read — no second overrides query, and no second definition
+ * of "effective". Rows the merge resolves as archived are DROPPED, which is that function's
+ * `WHERE NOT COALESCE(wo.is_archived, ii.is_archived)` clause. Pure; proven directly.
+ */
+export function mergeBriefOverrides(
+  rows: Array<Record<string, unknown>>,
+  overrides: OverrideRowsRaw
+): Array<Record<string, unknown>> {
+  const overrideByItemId = new Map(overrides.rows.map((o) => [o.item_id, o]));
+  return rows
+    .map((row) => {
+      const o = overrideByItemId.get(String(row.id));
+      return {
+        ...row,
+        effective_priority: o?.priority_override ?? row.priority,
+        effective_archived: o?.is_archived ?? row.is_archived ?? false,
+      };
+    })
+    .filter((row) => !row.effective_archived);
+}
+
+async function fetchBriefResourcesByIds(
+  ids: string[],
+  overrides: OverrideRowsRaw
+): Promise<Resource[]> {
+  const { bounded, uuidIds, legacyIds } = splitBriefIdsByShape(ids);
+  if (bounded.length === 0) return [];
+  const svc = getServiceSupabase();
+  const reads: Array<PromiseLike<{ data: unknown; error: unknown }>> = [];
+  if (uuidIds.length) {
+    reads.push(
+      svc
+        .from("intelligence_items")
+        .select(BRIEF_ITEM_COLUMNS)
+        .eq("provenance_status", "verified")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
+        .in("id", uuidIds)
+    );
+  }
+  if (legacyIds.length) {
+    reads.push(
+      svc
+        .from("intelligence_items")
+        .select(BRIEF_ITEM_COLUMNS)
+        .eq("provenance_status", "verified")
+        // fitness-allow: F39 (derived from one server-rendered page's own bounded row fetch, not corpus-scale)
+        .in("legacy_id", legacyIds)
+    );
+  }
+  const responses = await Promise.all(reads);
+  const rows: Array<Record<string, unknown>> = [];
+  for (const resp of responses) {
+    if (resp.error) {
+      console.warn(
+        `[supabase-server] brief row backfill read failed (those rows keep the degrade shape): ${describeSupabaseError(
+          resp.error as Parameters<typeof describeSupabaseError>[0]
+        )}`
+      );
+      continue;
+    }
+    rows.push(...((resp.data || []) as Array<Record<string, unknown>>));
+  }
+  if (rows.length === 0) return [];
+  const { active } = await mapWorkspaceItemRows(mergeBriefOverrides(rows, overrides));
+  return active;
+}
+
+/**
+ * The ids of the items with the NEAREST future binding dates, corpus-wide, soonest first.
+ *
+ * "Binding date" is whatever `dueInfo` reads, and it reads two things: the item's own
+ * `compliance_deadline` and its `item_timelines` milestones. Both are read here, bounded and
+ * date-ordered, and merged in date order — so the candidate set really is "the nearest N", not
+ * "the nearest N of whichever kind happened to be indexed first".
+ *
+ * Deliberately NOT window-limited. The operator's ruling is that the card stays populated; rule 2
+ * forbids inventing a row to fill it; so the resolution is to take the nearest future dates however
+ * far out they run and to SAY SO in the card's own window label
+ * (`dueNextWindowLabel`, src/lib/dashboard/brief-rows.ts). Never padded with undated items.
+ */
+async function fetchDueNextCandidateIds(): Promise<string[]> {
+  const svc = getServiceSupabase();
+  const today = utcToday();
+  const [milestones, deadlines] = await Promise.all([
+    svc
+      .from("item_timelines")
+      .select("item_id, milestone_date")
+      .gte("milestone_date", today)
+      .order("milestone_date", { ascending: true })
+      .limit(BRIEF_READ_CAP),
+    svc
+      .from("intelligence_items")
+      .select("id, compliance_deadline")
+      .eq("provenance_status", "verified")
+      .gte("compliance_deadline", today)
+      .order("compliance_deadline", { ascending: true })
+      .limit(BRIEF_READ_CAP),
+  ]);
+  if (milestones.error) {
+    console.warn(
+      `[supabase-server] due-next milestone candidates failed: ${describeSupabaseError(milestones.error)}`
+    );
+  }
+  if (deadlines.error) {
+    console.warn(
+      `[supabase-server] due-next deadline candidates failed: ${describeSupabaseError(deadlines.error)}`
+    );
+  }
+  const dated: Array<{ id: string; date: string }> = [
+    ...((milestones.data || []) as Array<{ item_id: string; milestone_date: string }>).map((r) => ({
+      id: r.item_id,
+      date: r.milestone_date,
+    })),
+    ...((deadlines.data || []) as Array<{ id: string; compliance_deadline: string }>).map((r) => ({
+      id: r.id,
+      date: r.compliance_deadline,
+    })),
+  ];
+  dated.sort((a, b) => a.date.localeCompare(b.date));
+  const ids: string[] = [];
+  const seen = new Set<string>();
+  for (const d of dated) {
+    if (seen.has(d.id)) continue;
+    seen.add(d.id);
+    ids.push(d.id);
+    if (ids.length >= BRIEF_READ_CAP) break;
+  }
+  return ids;
 }
 
 // ── Workspace aggregates (migration 068) ─────────────────────
@@ -2207,7 +2423,7 @@ interface RecentChangeRpcRow {
 // A shape change reached through a nested type (Resource, Supersession, …)
 // does not rotate the key mechanically — additions through nested types MUST
 // be optional fields, or rotate this key by hand in the same commit.
-export const DASHBOARD_DATA_CACHE_KEY = "app-data-6c3e4c27";
+export const DASHBOARD_DATA_CACHE_KEY = "app-data-fe126cc0";
 
 export interface DashboardData {
   resources: Resource[];
@@ -2221,6 +2437,15 @@ export interface DashboardData {
   intelligenceChanges: IntelligenceChange[];
   sectorDisplayNames: SectorDisplayName[];
   overrides: WorkspaceOverrideRow[];
+  /**
+   * Lane BRIEFDATA (2026-09-08): the workspace items the dashboard's two brief cards need that the
+   * LIMIT-50 dashboard slice above does NOT contain — the changed items outside it, and the items
+   * carrying the nearest future binding dates corpus-wide. Real rows, read by id through the same
+   * mapper, scoped by the same predicate; `src/app/page.tsx` merges them with `resources` into ONE
+   * corpus before selecting rows, so a brief row is never built from less than the list surfaces
+   * build theirs from. See fetchBriefResourcesByIds for the measurement that made this necessary.
+   */
+  briefResources: Resource[];
   /**
    * SF-2 Phase 1 (2026-05-27): set when the fetcher fell back to an
    * empty payload instead of live data. Customer-visible page renders
@@ -2325,6 +2550,7 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
     intelligenceChanges: [],
     sectorDisplayNames: [],
     overrides: [],
+    briefResources: [],
   };
 
   if (!isSupabaseConfigured()) {
@@ -2488,9 +2714,42 @@ export async function fetchDashboardData(orgId: string | null): Promise<Dashboar
       domain: recentTypeById.get(r.id)?.domain ?? null,
     }));
 
+    // Lane BRIEFDATA (2026-09-08): the two brief cards' own bounded backfill. `resources` above is
+    // the LIMIT-50 priority slice; these are the rows the cards render that are NOT in it — the
+    // changed items the What-changed card will actually show (its cap is applied on the ordered
+    // feed, so the ids taken here are exactly the ids that card renders) and the nearest
+    // future-dated items corpus-wide for Due next. Both reads are bounded and both fail soft: on
+    // an error the cards fall back to exactly the behaviour they had before this lane.
+    const missingChangedIds = recentChanges
+      .filter((c) => !resources.some((r) => r.id === c.id))
+      .map((c) => c.id)
+      .slice(0, BRIEF_READ_CAP);
+    const [changedBackfill, dueNextIds] = await Promise.all([
+      fetchBriefResourcesByIds(missingChangedIds, overridesRaw).catch((e) => {
+        console.warn("[supabase-server] changed-row backfill failed:", e);
+        return [] as Resource[];
+      }),
+      fetchDueNextCandidateIds().catch((e) => {
+        console.warn("[supabase-server] due-next candidate read failed:", e);
+        return [] as string[];
+      }),
+    ]);
+    const dueNextBackfill = await fetchBriefResourcesByIds(dueNextIds, overridesRaw).catch((e) => {
+      console.warn("[supabase-server] due-next backfill failed:", e);
+      return [] as Resource[];
+    });
+    const briefSeen = new Set(resources.map((r) => r.id));
+    const briefResources: Resource[] = [];
+    for (const r of [...changedBackfill, ...dueNextBackfill]) {
+      if (briefSeen.has(r.id)) continue;
+      briefSeen.add(r.id);
+      briefResources.push(r);
+    }
+
     return {
       resources,
       archived,
+      briefResources,
       recentChanges,
       changelog,
       disputes,
@@ -3899,7 +4158,16 @@ async function readPersonalWatchRows(
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
+  // Lane BRIEFDATA (2026-09-08): a FAILED read raises; it does not return []. Both are "no rows"
+  // to a caller that cannot tell them apart, and `cachedWatchlist`/`cachedWatchlistFull` in
+  // lib/data.ts hand this function's result to `unstable_cache` — which stores whatever RESOLVES
+  // (the mechanism lib/cache/fallback-guard.ts documents in full). So one transient failure used
+  // to write an empty watchlist into the cache entry and every later request for the next 60s was
+  // told, with no error anywhere, that the user watches nothing. Rejecting instead means the entry
+  // is never written and the next request runs the real read. `!data` with no error stays [] —
+  // that is a genuine empty result, not a failure.
+  if (error) throw new Error(`user_watchlist read failed: ${describeSupabaseError(error)}`);
+  if (!data) return [];
   return (data as Array<{
     item_type: WatchlistItemType;
     item_id: string;
@@ -3960,7 +4228,10 @@ async function readTeamWatchRows(
     .eq("org_id", orgId)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
+  // Same rule as readPersonalWatchRows above, same reason: a failed team read must not be
+  // indistinguishable from an empty team watchlist, and must never be what the cache stores.
+  if (error) throw new Error(`org_watchlist read failed: ${describeSupabaseError(error)}`);
+  if (!data) return [];
   return (data as Array<{
     item_type: WatchlistItemType;
     item_id: string;
@@ -4255,8 +4526,15 @@ export async function fetchWatchlist(
       };
     });
   } catch (e) {
-    console.error("fetchWatchlist failed, returning empty:", e);
-    return [];
+    // Lane BRIEFDATA (2026-09-08): RE-RAISED, not swallowed into []. This function is the body of
+    // two `unstable_cache` entries (lib/data.ts's cachedWatchlist / cachedWatchlistFull), and a
+    // resolved [] is CACHED for the entry's whole TTL — so swallowing here turned one transient
+    // Supabase failure into a minute of "Nothing watched yet" for a user who watches things, with
+    // nothing distinguishing it from an honest empty list. The rejection leaves the cache entry
+    // unwritten; the callers in lib/data.ts still degrade to [] for the render, so the page's
+    // behaviour on a failure is unchanged and only the caching of it is removed.
+    console.error("fetchWatchlist failed:", e);
+    throw e;
   }
 }
 

@@ -205,6 +205,12 @@ function appDataSeedFallback(_fallbackTrigger?: SeedFallbackTrigger) {
   return {
     resources: [] as Resource[],
     archived: [] as Resource[],
+    // Lane BRIEFDATA (2026-09-08): the brief cards' bounded by-id backfill, empty here for the
+    // same reason every other array is — this shape IS the failure payload, and a failed read has
+    // no rows to offer. `_error` is what tells the two cards to render their failure state rather
+    // than their honest-empty one (brief-rows.ts's briefCardState), so an empty array here is no
+    // longer indistinguishable from an empty corpus.
+    briefResources: [] as Resource[],
     recentChanges: [] as import("@/lib/supabase-server").RecentChangeRow[],
     changelog: {} as Record<string, ChangeLogEntry[]>,
     disputes: {} as Record<string, Dispute>,

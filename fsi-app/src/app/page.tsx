@@ -28,7 +28,13 @@ import { DashboardMasthead } from "@/components/dashboard/DashboardMasthead";
 import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
 import { formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
-import { buildDueNextRows, buildChangedRows, selectBriefResources } from "@/lib/dashboard/brief-rows";
+import {
+  buildDueNextRows,
+  buildChangedRows,
+  selectBriefResources,
+  mergeBriefCorpus,
+  dueNextWindowLabel,
+} from "@/lib/dashboard/brief-rows";
 import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
 
 export default async function Home() {
@@ -66,10 +72,24 @@ export default async function Home() {
   // as ready ListRow field sets built by the SHARED derivation the list ledgers use
   // (src/lib/list-row-fields.ts), so one item cannot read "6/12 · T1" on /regulations and
   // "UNSCORED · not in primary source" here on the same load.
+  //
+  // Lane BRIEFDATA (2026-09-08): both cards are now built from ONE corpus — this route's own
+  // LIMIT-50 payload PLUS `data.briefResources`, the bounded by-id backfill the fetcher read for
+  // exactly the rows these cards render (the changed items outside the slice, and the nearest
+  // future-dated items corpus-wide). Measured on the live workspace the same day: all 6 rendered
+  // change rows were outside the slice, so every one of them was taking brief-rows.ts's degrade
+  // branch and rendering the Absence convention in four cells. See that module's header.
   const now = new Date(nowIso);
-  await enrichRowSourceChips(selectBriefResources(data.resources, data.recentChanges, now));
-  const dueNextRows = buildDueNextRows(data.resources, now);
-  const changedRows = buildChangedRows(data.recentChanges, data.resources, now);
+  const corpus = mergeBriefCorpus(data.resources, data.briefResources);
+  await enrichRowSourceChips(selectBriefResources(corpus, data.recentChanges, now));
+  const dueNextRows = buildDueNextRows(corpus, now);
+  const changedRows = buildChangedRows(data.recentChanges, corpus, now);
+  // The card's own aside, extended when the selected rows run past the week it names — the widened
+  // window, said out loud rather than left implied (brief-rows.ts, cause 2).
+  const dueNextWindow = dueNextWindowLabel(
+    dueNextRows,
+    formatLocaleDate(now, { month: "short", day: "numeric", timeZone: "UTC" }),
+  );
 
   // True workspace totals (migration 068), fail-soft to the row payload only
   // when aggregates report zero (anon / seed / RPC error).
@@ -97,6 +117,7 @@ export default async function Home() {
       </div>
       <DashboardBrief
         dueNextRows={dueNextRows}
+        dueNextWindow={dueNextWindow}
         changedRows={changedRows}
         aggregates={aggregates}
         bandCounts={regulationsCounts}
