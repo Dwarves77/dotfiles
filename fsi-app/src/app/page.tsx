@@ -28,7 +28,13 @@ import { DashboardMasthead } from "@/components/dashboard/DashboardMasthead";
 import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
 import { formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
-import { buildDueNextRows, buildChangedRows, selectBriefResources } from "@/lib/dashboard/brief-rows";
+import {
+  buildDueNextRows,
+  buildChangedRows,
+  selectBriefResources,
+  mergeBriefCorpus,
+  dueNextWindowLabel,
+} from "@/lib/dashboard/brief-rows";
 import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
 
 export default async function Home() {
@@ -66,10 +72,47 @@ export default async function Home() {
   // as ready ListRow field sets built by the SHARED derivation the list ledgers use
   // (src/lib/list-row-fields.ts), so one item cannot read "6/12 · T1" on /regulations and
   // "UNSCORED · not in primary source" here on the same load.
+  //
+  // Lane BRIEFDATA (2026-09-08): both cards are now built from ONE corpus — this route's own
+  // LIMIT-50 payload PLUS `data.briefResources`, the bounded by-id backfill the fetcher read for
+  // exactly the rows these cards render (the changed items outside the slice, and the nearest
+  // future-dated items corpus-wide). Measured on the live workspace the same day: all 6 rendered
+  // change rows were outside the slice, so every one of them was taking brief-rows.ts's degrade
+  // branch and rendering the Absence convention in four cells. See that module's header.
   const now = new Date(nowIso);
-  await enrichRowSourceChips(selectBriefResources(data.resources, data.recentChanges, now));
-  const dueNextRows = buildDueNextRows(data.resources, now);
-  const changedRows = buildChangedRows(data.recentChanges, data.resources, now);
+  // FOLD 62 (2026-09-08): ONE corpus, from all three reads, because lanes briefdata and duenext
+  // each fixed a different half of the same starvation and both halves are needed.
+  //
+  //   * `data.resources` is the priority-ordered LIMIT-50 dashboard slice
+  //     (`get_workspace_intelligence_dashboard`): the right answer to "what matters most" and the
+  //     wrong answer to "what is due soonest" or "what changed".
+  //   * `data.briefResources` (lane briefdata) is the bounded BY-ID backfill of the change rows
+  //     this route will actually render but the slice does not contain. Measured live 2026-09-08:
+  //     all 6 rendered change rows were outside the slice, so every one of them was taking
+  //     brief-rows.ts's degrade branch and rendering the Absence convention in four cells.
+  //   * `data.dueNext` (lane duenext, migration 315) is the nearest-future-binding-date read,
+  //     `get_workspace_due_next(org, limit)`, date-ordered in SQL. It is the SURVIVING due-next
+  //     read: lane briefdata had built a second one, a two-step id read
+  //     (`fetchDueNextCandidateIds`), which this fold removed rather than run both.
+  //
+  // Merged by id, slice first, so a row present in more than one read renders once, and the whole
+  // is handed to the SAME selection functions unchanged: `buildDueNextRows`'s `dueInfo` filter and
+  // nearest-first sort now run over a pool that actually contains the nearest-dated items. When
+  // migration 315 is missing `data.dueNext` is empty and the pool degrades to briefdata's own
+  // behaviour, which is why the read and the selection are kept separate.
+  const corpus = mergeBriefCorpus(
+    mergeBriefCorpus(data.resources, data.briefResources),
+    data.dueNext ?? [],
+  );
+  await enrichRowSourceChips(selectBriefResources(corpus, data.recentChanges, now));
+  const dueNextRows = buildDueNextRows(corpus, now);
+  const changedRows = buildChangedRows(data.recentChanges, corpus, now);
+  // The card's own aside, extended when the selected rows run past the week it names: the widened
+  // window, said out loud rather than left implied (brief-rows.ts, cause 2).
+  const dueNextWindow = dueNextWindowLabel(
+    dueNextRows,
+    formatLocaleDate(now, { month: "short", day: "numeric", timeZone: "UTC" }),
+  );
 
   // True workspace totals (migration 068), fail-soft to the row payload only
   // when aggregates report zero (anon / seed / RPC error).
@@ -97,6 +140,7 @@ export default async function Home() {
       </div>
       <DashboardBrief
         dueNextRows={dueNextRows}
+        dueNextWindow={dueNextWindow}
         changedRows={changedRows}
         aggregates={aggregates}
         bandCounts={regulationsCounts}

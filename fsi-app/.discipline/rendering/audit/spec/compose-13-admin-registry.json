@@ -1,0 +1,140 @@
+{
+  "part": "Page composition, Admin (13), Sources / Source registry",
+  "mount": "compose-admin-registry",
+  "viewport": 1440,
+  "artboards": ["13-admin"],
+  "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (the artboard's own TIER column and tab row); the operator's /admin layout fix, 2026-09-08, items 3, 4 and 6",
+  "notes": [
+    "The Source registry sub-tab has NO artboard of its own: artboard 13 draws the Provisional review state (compose-13-admin measures that one). This spec measures the region the operator's report was about, and it exists because nothing measured it before: the registry body rendered five loose blocks straight into the content column (a 'Source Intelligence' h2, the B.2 progress card, a full-width orange scraping box, a 'Source Tiers, how we rank authority' explainer, a T1-T7 summary card strip) and at 1024 that strip overflowed the column by 336px and painted under the rail.",
+    "Item 3 is a REMOVAL and a re-shape. Artboard 13 makes tier a COLUMN in the source table, not a card set, so the T1-T7 cards and the explainer go. The vocabulary lands in three places, all reachable by vertical scroll or Tab, per the operator's absolute rule that nothing may require a horizontal reach: the header legend (a square per tier, its authority label as tooltip and accessible name), a 'Tier definitions' overlay carrying the full lines, and the per-tier COUNTS in the table's facet row, where clicking one filters the table.",
+    "The facet is built from the filter mechanism that already existed and had never been mounted: `sourceStore.toggleTierFilter` + `filterSources`, which has always matched on `effective_tier ?? base_tier`. The counts are derived through that same key (`facetTierOf`), so a chip can never name a number its own click would not return. Nothing new was invented to hold the counts.",
+    "Item 4 pulls the other three regions in: the h2 + subtitle became the card head (title and count), B.2 became the neutral regeneration state-note strip under the tab row (its 'By format / By priority / Tag coverage / Recent' placeholder columns are gone), and the orange scraping box became the Action-band state-note strip at the card foot with Cadence / Save / Emergency stop as its 44px action row. Both strips are the SHARED StateNote, the same part the provisional card's pipeline note uses; there is no second strip component.",
+    "The card's view tab row uses TabRow's PAGE placement inside the card's own 16px inset rather than the card-head placement artboard 13 gives the provisional row. The card-head placement never wraps, which is right for that artboard's five tabs on one line at 1440 and wrong for these seven views: measured 938px of tabs in a 764px card, i.e. a horizontal scroller, which is exactly what the operator's accessibility rule forbids. Wrapping keeps every view reachable.",
+    "The scraping strip is NOT asserted here: `GlobalPauseToggle` renders nothing until /api/admin/sources/pause-global answers, and this sandbox has no live Supabase project (DEVIATION-LOG.md). Its structure is measured by eye in the built screenshots; a row that would report NOT BUILT against a correct component is a false finding, not a strict check (CLAUDE.md rule 14)."
+  ],
+  "selector": "[data-audit=\"registry-card\"]",
+  "expect": { "count": "1" },
+  "children": [
+    {
+      "name": "region 1, the registry is ONE card, and it is the card the shared parts build",
+      "selector": "[data-audit=\"registry-card\"]",
+      "expect": { "count": "1", "border-radius": "10px", "overflow-x": "hidden" }
+    },
+    {
+      "name": "region 1a, the card head carries the artboard's title vocabulary",
+      "selector": "[data-audit=\"registry-head\"]",
+      "expect": { "count": "1" },
+      "textMatch": "Sources · Source registry"
+    },
+    {
+      "name": "region 1b, the count sits in the header right (item 4: no separate h2 outside a card)",
+      "selector": "[data-audit=\"registry-head\"]",
+      "expect": {},
+      "textMatch": "re:\\d+ sources · \\d+ domains"
+    },
+    {
+      "name": "region 2, the tier legend is in the card header, one square per tier",
+      "selector": "[data-audit=\"tier-legend\"] .cl-tier-chip",
+      "expect": { "count": "7" },
+      "note": "SEVEN, not the operator's eight: the source tier vocabulary is T1-T7 (src/lib/tier-labels.ts, the SoT under the tier-labels drift guard). Logged in DEVIATION-LOG.md rather than an eighth square invented to match the count in the instruction."
+    },
+    {
+      "name": "region 2a, each legend square carries its authority label as its accessible name",
+      "selector": "[data-audit=\"tier-legend\"] [role=\"img\"][aria-label=\"T1, Binding Law\"]",
+      "expect": { "count": "1" }
+    },
+    {
+      "name": "region 2b, the Tier definitions trigger",
+      "selector": "[data-audit=\"tier-legend\"] button",
+      "expect": { "count": "1" },
+      "textMatch": "Tier definitions"
+    },
+    {
+      "name": "region 3, the regeneration state note sits under the card's tab row",
+      "selector": "[data-audit=\"registry-regeneration-note\"]",
+      "expect": { "count": "1" },
+      "textMatch": "Regeneration"
+    },
+    {
+      "name": "region 3a, it is the shared StateNote in its neutral variant, not a second strip",
+      "selector": "[data-audit=\"registry-regeneration-note\"] > div",
+      "expect": {
+        "count": "1",
+        "border-left-width": "3px",
+        "border-left-color": "#5A5552",
+        "border-radius": "0px 6px 6px 0px",
+        "padding-top": "9px",
+        "padding-left": "12px"
+      }
+    },
+    {
+      "name": "region 4, the tier counts live in the facet row, one chip per tier",
+      "selector": "[data-audit=\"tier-facet\"] .cl-filter-chip",
+      "expect": { "count": "7" }
+    },
+    {
+      "name": "region 4a, each facet chip states its own live count",
+      "selector": "[data-audit=\"tier-facet\"] .cl-filter-chip",
+      "expect": {},
+      "textMatch": "T1 2",
+      "note": "The mount seeds three sources at T1, T1 and T5, so T1 reads 2 against a fixture that would show 0 if the count were read off anything but the registry."
+    },
+    {
+      "name": "region 4b, the facet chip is a real filter control, not a label",
+      "selector": "[data-audit=\"tier-facet\"] .cl-filter-chip[aria-pressed]",
+      "expect": { "count": "7" }
+    },
+    {
+      "name": "region 5, the facet group keeps its label attached (the shared FilterChipGroup)",
+      "selector": "[data-audit=\"tier-facet\"] .cl-filter-group-label",
+      "expect": { "count": "1" },
+      "textMatch": "Tier"
+    },
+    {
+      "name": "region 6, the view tab row is inside the card and wraps rather than scrolling",
+      "selector": "[data-audit=\"registry-card\"] [role=\"tablist\"]",
+      "expect": { "count": "1", "flex-wrap": "wrap" }
+    },
+    {
+      "name": "region 7, the registry rows still render (the body the card now holds)",
+      "selector": "[data-audit=\"registry-card\"] button[aria-expanded], [data-audit=\"registry-card\"] .space-y-2 > div",
+      "expect": { "count": "3" }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no T1-T8 tier card strip",
+      "selector": "[data-audit=\"admin\"] .lg\\:grid-cols-7",
+      "reason": "Item 3: artboard 13 makes tier a column in the source table, not a card set. The strip was also the region that overflowed the content column by 336px at 1024 and painted under the rail: a Tailwind grid keyed to the viewport inside a 352px column."
+    },
+    {
+      "name": "no 'Source Tiers, how we rank authority' explainer block",
+      "selector": "[data-audit=\"admin\"] p",
+      "textMatch": "Source Tiers",
+      "reason": "Item 3: it is the header legend plus the Tier definitions overlay now."
+    },
+    {
+      "name": "no 'Source Intelligence' heading outside a card",
+      "selector": "[data-audit=\"admin\"] h2",
+      "textMatch": "Source Intelligence",
+      "reason": "Item 4: the card title is 'SOURCES · SOURCE REGISTRY' with the count in the header right. No separate h2 outside a card."
+    },
+    {
+      "name": "no B.2 progress card with its chart placeholders",
+      "selector": "[data-audit=\"admin\"] *",
+      "textMatch": "B.2 Regeneration Progress",
+      "reason": "Item 4: it is the neutral state-note strip under the tab row. The card carried 'By format / By priority / Tag coverage / Recent' columns the artboard has no place for."
+    },
+    {
+      "name": "no arrow control for reaching content sideways",
+      "selector": "[data-audit=\"admin\"] button[aria-label*=\"scroll\"]",
+      "reason": "The operator's accessibility rule, which is wider than this page: nothing in the product may require an arrow button to scroll horizontally to reach it."
+    },
+    {
+      "name": "no Export queue control",
+      "selector": "[data-audit=\"admin-readonly-controls\"] button",
+      "textMatch": "Export queue",
+      "reason": "Item 5 builds it only if an export-queue function exists. Re-grepped src/app/api and src/lib this lane: the only hits are bulk-import's CSV PARSER, spec09's CSV UPLOAD contract and `parseCsvFilter` query-string helpers. Nothing exports a queue, so the button is not drawn (ruling 1.1) and is logged in DEVIATION-LOG.md."
+    }
+  ]
+}

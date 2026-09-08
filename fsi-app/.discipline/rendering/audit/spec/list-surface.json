@@ -1,13 +1,20 @@
 {
-  "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+  "part": "ListSurfaceShell \u2014 facets card, Legend rail card, DismissedStash foot",
   "mount": "list-surface-1440",
   "viewport": 1440,
-  "artboards": ["02-regulations-list (Filters card, Legend rail card)", "18-section-treatments (ruling 5.1)"],
+  "artboards": [
+    "02-regulations-list (Filters card, Legend rail card)",
+    "18-section-treatments (ruling 5.1)"
+  ],
   "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
   "notes": [
-    "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
-    "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
-    "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
+    "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right \u2014 same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
+    "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper \u2014 the SAME structure `page-frame.json`'s dashboard cards already use.",
+    "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number \u2014 CLAUDE.md rule 2 (never fabricate).",
+    "RAIL FACET GEOMETRY (lane railfacets, train 62, 2026-09-08, operator items C1/C2/C3). Every value in the six rows below is quoted from artboard 02/id=\"p2\"'s FILTERS card markup, which artboards 04/06/08 repeat character for character: group `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`; group label `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`; row `display:flex;justify-content:space-between;align-items:center;padding:4px 0;font-size:12.5px`; checkbox `width:13px;height:13px`; count `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`.",
+    "THREE ITEM-LIST VALUES THE ARTBOARD DOES NOT SAY, resolved by the RULE OF PRECEDENCE (\"the artboard image wins over prose where they disagree\") and logged in DEVIATION-LOG.md: the item list states a 14px checkbox (artboard: `width:13px;height:13px`, in all four list artboards), a rgba(0,0,0,.08) group rule (artboard: `rgba(0,0,0,.06)`), and 14px of space above the group label (artboard: the group's own `padding-top:10px`, which is also exactly what the same item list's C2 states as \"10px either side\" of the rule). The rows below assert the artboard values.",
+    "ROW HEIGHT AND THE 44px TOUCH TARGET. `line-height:16px` on the row has no artboard source (the artboard leaves it `normal`); it is the mechanism that makes 4px + 16px + 4px exactly the 24px the item list states, rather than a per-font 23-25px. The 44px hit target is not traded away: `.cl-facet-row`/`.cl-facet-more` take `min-height:44px` below 768px from globals.css, so 24px is the desktop measure this 1440 spec asserts and 44px is the phone measure mobile-11-watchlist.json asserts on the one surface that still draws this card at 390.",
+    "The mount grew a SECOND facet group, the second one past the six-option cap (mounts.mjs, LISTSURFACE_ENTRY). The one-group fixture could reach neither the group separator (which needs a group below the first) nor the \"+ N more\" row (which needs more options than FiltersRailCard's VISIBLE_OPTIONS_CAP of 6)."
   ],
   "selector": "[data-audit=\"legend-rail\"] > div",
   "expect": {
@@ -19,7 +26,7 @@
   },
   "children": [
     {
-      "name": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "name": "Legend rail card \u2014 the 3px graduated rule above the card (ruling 5.1)",
       "selector": "[data-audit=\"legend-rail\"] .cl-section-rule",
       "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. FIXED (B163): RailCard.tsx now mounts SectionRule as its first child.",
       "expect": {
@@ -27,9 +34,9 @@
       }
     },
     {
-      "name": "Legend rail card — title label",
+      "name": "Legend rail card \u2014 title label",
       "selector": "[data-audit=\"legend-rail\"] p:first-child",
-      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C.",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 \u2014 a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C.",
       "expect": {
         "font-size": "10.5px",
         "letter-spacing": "0.12em",
@@ -38,9 +45,9 @@
       }
     },
     {
-      "name": "Filters rail card — content padding",
+      "name": "Filters rail card \u2014 content padding",
       "selector": "[data-audit=\"filters-rail\"] > div:last-child",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px \u2014 the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
       "expect": {
         "padding-top": "14px",
         "padding-right": "16px",
@@ -49,7 +56,7 @@
       }
     },
     {
-      "name": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "name": "Filters rail card \u2014 the 3px graduated rule above the card (ruling 5.1)",
       "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
       "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide.",
       "expect": {
@@ -57,17 +64,90 @@
       }
     },
     {
-      "name": "Filters rail card — checkbox rows carry live counts, not chip pills",
+      "name": "Filters rail card \u2014 checkbox rows carry live counts, not chip pills",
       "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
       "note": "artboard 02/id=\"p2\" FILTERS card: MODE / JURISDICTION / TOPIC / WORKSPACE TAGS as checkbox lists with right-aligned counts, not the FilterChip pill rendering the content column used to carry.",
       "expect": {}
     },
     {
-      "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
+      "name": "DismissedStash \u2014 Restore control hit target (general 44px rule, not an artboard value)",
       "selector": "[data-audit=\"dismissed-stash\"] button",
       "note": "README general rule: '44 px hit targets.' DismissedStash.tsx: minHeight 44 on the Restore button. Checked against the sitewide rule, not against an artboard (this part is not in the artboards).",
       "expect": {
         "min-height": "44px"
+      }
+    },
+    {
+      "name": "Facet group \u2014 10px either side of the 1px rule (C2)",
+      "selector": "[data-audit=\"facet-mode\"]",
+      "note": "Artboard: `padding:10px 0;border-bottom:1px solid rgba(0,0,0,.06)`. BEFORE this lane the groups carried no rule at all and were separated by a 14px flex gap on the container.",
+      "expect": {
+        "padding-top": "10px",
+        "padding-bottom": "10px",
+        "border-bottom-width": "1px",
+        "border-bottom-color": "rgba(0,0,0,.06)"
+      }
+    },
+    {
+      "name": "Facet group label \u2014 10px uppercase .12em/700 #7A6E6C, 6px below (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-group-label",
+      "note": "Artboard: `font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:#7A6E6C;font-weight:700;margin-bottom:6px`. BEFORE: 10.5px/800/.1em. The item list's \"14px above\" is not an artboard value (see this spec's notes); the space above the label is the group's own 10px padding-top, asserted in the row above.",
+      "expect": {
+        "font-size": "10px",
+        "font-weight": "700",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C",
+        "margin-bottom": "6px",
+        "margin-top": "0px"
+      }
+    },
+    {
+      "name": "Facet row \u2014 24px tall, 4px either side, label 12.5px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-row",
+      "note": "Artboard: `padding:4px 0;font-size:12.5px` around a 13px checkbox, which is 24px. BEFORE: `min-height:44px` with an 11px label, which the operator measured on the built pages as a ~33px row with the checkbox floating in an empty band. The 44px touch target moves to <768px (globals.css, `.cl-facet-row`); it is not lost.",
+      "expect": {
+        "height": "24px",
+        "min-height": "24px",
+        "padding-top": "4px",
+        "padding-bottom": "4px",
+        "font-size": "12.5px",
+        "line-height": "16px",
+        "justify-content": "space-between",
+        "column-gap": "8px"
+      }
+    },
+    {
+      "name": "Facet checkbox \u2014 13px (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-check",
+      "note": "Artboard: `width:13px;height:13px`, identically in artboards 02, 04, 06 and 08. The item list says 14px; the artboard wins (see this spec's notes). Already 13px on this lane's base, so this row is not a fix but a lock: the value cannot drift back without going red.",
+      "expect": {
+        "width": "13px",
+        "height": "13px"
+      }
+    },
+    {
+      "name": "Facet count \u2014 11px muted, right-aligned, tabular (C1)",
+      "selector": "[data-audit=\"facet-mode\"] .cl-facet-count",
+      "note": "Artboard: `font-size:11px;color:#7A6E6C;font-variant-numeric:tabular-nums`, pushed right by the row's own `justify-content:space-between` (asserted on the row above). BEFORE: the count carried no size of its own and inherited the row's then-11px by accident, so it would have grown to 12.5px the moment the row took its artboard size.",
+      "expect": {
+        "font-size": "11px",
+        "color": "#7A6E6C",
+        "font-variant-numeric": "tabular-nums"
+      }
+    },
+    {
+      "name": "\"+ N more\" \u2014 a link row at the same 24px height, 12px (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more",
+      "note": "Operator item C3. BEFORE: 11px/700 muted with a 4px margin-top and no row height of its own. The artboard draws this row with a checkbox square beside it like any other option; that square has no facet value behind it, so ruling 1.1's class (a dead control is not built) and C3's own wording (\"a link row\") settle it as a bare link. The forbid below proves the square is not drawn.",
+      "expect": {
+        "height": "24px",
+        "min-height": "24px",
+        "font-size": "12px",
+        "padding-top": "4px",
+        "padding-bottom": "4px",
+        "line-height": "16px",
+        "text-decoration-line": "underline"
       }
     }
   ],
@@ -77,6 +157,11 @@
       "selector": "[data-audit=\"dismissed-stash\"] span",
       "textMatch": "UNSCORED",
       "reason": "General rule (operator 2.1): the literal token never appears anywhere in the product."
+    },
+    {
+      "name": "the \"+ N more\" row carries no checkbox of its own (C3)",
+      "selector": "[data-audit=\"facet-jurisdiction\"] .cl-facet-more input",
+      "reason": "C3: it is a link row, not an option row. A checkbox here would be a control with no facet value behind it (ruling 1.1)."
     }
   ]
 }

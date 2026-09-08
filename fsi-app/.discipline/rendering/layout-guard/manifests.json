@@ -1,0 +1,252 @@
+{
+  "generatedFrom": "docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html",
+  "generatedAt": "2026-09-08",
+  "manifests": {
+    "/": {
+      "artboard": "p1",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Due next · 5 items",
+        "What changed"
+      ],
+      "rail": [
+        "Across the platform",
+        "Watchlist · 1",
+        "Legend"
+      ]
+    },
+    "/regulations": {
+      "artboard": "p2",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026"
+      ],
+      "rail": [
+        "Filters",
+        "Obligations · next 30 days",
+        "Legend"
+      ]
+    },
+    "/regulations/[slug]": {
+      "artboard": "p3",
+      "cards": [
+        "EU Emissions Trading System (ETS) extension to maritime transport",
+        "Action · ≤ 6 months ▾",
+        "Summary",
+        "Obligations · issues requiring action",
+        "Timeline · obligations by deadline",
+        "Penalties",
+        "Sources"
+      ],
+      "rail": [
+        "At a glance",
+        "Impact assessment",
+        "Relevance to Dietl / Rockit",
+        "Owner & team",
+        "In this list",
+        "Connections · 3",
+        "Legend"
+      ]
+    },
+    "/market": {
+      "artboard": "p4",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Headline series"
+      ],
+      "rail": [
+        "Filters",
+        "Carbon cost per FEU",
+        "Next data drops",
+        "Legend"
+      ]
+    },
+    "/market/[slug]": {
+      "artboard": "p5",
+      "cards": [
+        "Packaging material input costs",
+        "Action · ≤ 6 months ▾",
+        "Summary",
+        "Drivers & trajectory",
+        "Cost impact by mode",
+        "Do now"
+      ],
+      "rail": [
+        "At a glance",
+        "Impact assessment",
+        "Relevance to Dietl / Rockit",
+        "Your notes",
+        "In this list",
+        "Legend"
+      ]
+    },
+    "/research": {
+      "artboard": "p6",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Fuels & SAF",
+        "Last-mile electrification",
+        "Disclosure regimes",
+        "Nothing in the last 7 days"
+      ],
+      "rail": [
+        "Filters",
+        "Source coverage",
+        "Legend"
+      ]
+    },
+    "/research/[slug]": {
+      "artboard": "p7",
+      "cards": [
+        "Mission Innovation Shipping Mission: Net-Zero Industries Award 2024 and MI-9 Global Collaboration Framework",
+        "Awareness · background ▾",
+        "What the research found",
+        "Why it matters operationally"
+      ],
+      "rail": [
+        "At a glance",
+        "Impact assessment",
+        "Relevance to Dietl / Rockit",
+        "Connections · 24",
+        "Cluster synthesis",
+        "Legend"
+      ]
+    },
+    "/operations": {
+      "artboard": "p8",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Regions side by side"
+      ],
+      "rail": [
+        "Filters",
+        "Coverage gaps",
+        "Legend"
+      ]
+    },
+    "/operations/[slug]": {
+      "artboard": "p9",
+      "cards": [
+        "Singapore regional operations profile",
+        "Awareness · background ▾",
+        "Operational cost baseline",
+        "Feasibility of specific operational choices"
+      ],
+      "rail": [
+        "At a glance",
+        "Impact assessment",
+        "Relevance to Dietl / Rockit",
+        "Related in Asia",
+        "Legend"
+      ]
+    },
+    "/map": {
+      "artboard": "p10",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Immediate · 3 jurisdictions",
+        "Coverage gaps",
+        "Legend"
+      ],
+      "rail": [
+        "Regulatory map",
+        "Jurisdiction register"
+      ]
+    },
+    "/watchlist": {
+      "artboard": "p11",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "Watched · 1",
+        "Recalculation notices"
+      ],
+      "rail": [
+        "Share with workspace",
+        "Legend"
+      ]
+    },
+    "/community": {
+      "artboard": "p12",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026",
+        "EU",
+        "US",
+        "UK",
+        "APAC",
+        "LATAM",
+        "MEAF",
+        "Global room",
+        "New post · Global"
+      ],
+      "rail": [
+        "Who's here · Global",
+        "Verifier sign-off",
+        "Why post here"
+      ]
+    },
+    "/admin": {
+      "artboard": "p13",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026 · Operator view",
+        "Workspaces",
+        "Ingest",
+        "Coverage",
+        "Research pipeline",
+        "Community pickups",
+        "Runtime",
+        "Emission factors",
+        "Sources · provisional review",
+        "Organizations"
+      ],
+      "rail": [
+        "Issues queue",
+        "Companies",
+        "Read-only controls"
+      ]
+    },
+    "/profile": {
+      "artboard": "p14",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026 · Personal",
+        "Members & roles",
+        "Organization"
+      ],
+      "rail": [
+        "Sectors followed",
+        "Admin",
+        "Quick links"
+      ]
+    },
+    "/settings": {
+      "artboard": "p15",
+      "cards": [
+        "Vol IV · No. 36 · Sunday 6 September 2026 · Personal",
+        "Dashboard defaults",
+        "Freight sectors",
+        "Notifications"
+      ],
+      "rail": [
+        "Briefing schedule",
+        "Appearance",
+        "Data & supersessions"
+      ]
+    },
+    "/login": {
+      "artboard": "p16",
+      "cards": [],
+      "rail": [],
+      "note": "frame has no content column"
+    },
+    "/signup": {
+      "artboard": "p16",
+      "cards": [],
+      "rail": [],
+      "note": "frame has no content column"
+    },
+    "/onboarding": {
+      "artboard": "p17",
+      "cards": [],
+      "rail": [],
+      "note": "frame has no content column"
+    }
+  }
+}

@@ -33,6 +33,11 @@ import { measureUx, assertUxClean } from "./ux-assert.mjs";
 // pages + /map — see exemptions-375.mjs's own header for the full mechanism and why it is not a
 // global viewport relaxation.
 import { RENDERING_375_EXEMPTIONS, isExempt375, activeExemptions } from "./exemptions-375.mjs";
+import {
+  LAW2_DESKTOP_EXEMPTIONS,
+  isExemptLaw2Desktop,
+  activeLaw2Exemptions,
+} from "./exemptions-law2-desktop.mjs";
 import { latestTrainWave } from "../fitness/functions/F25-module-liveness.mjs";
 import { getRepoRoot } from "../lib/context.mjs";
 import { runSmoke as runWatchlistTeamSmoke } from "./smoke/watchlist-team-smoke.mjs";
@@ -53,10 +58,20 @@ import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
 // that inspects the request, which is why the 401 that killed the feature in production was
 // invisible to every other leg.
 import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
+// lane BRIEFDATA, 2026-09-08: the WATCH WRITE against an auth-enforcing, state-keeping route stub.
+// See that module's header for the live measurement (org_watchlist: 0 rows; user_watchlist: 1 row)
+// and for why an api fixture that fulfils every request cannot prove a write path.
+import { runSmoke as runWatchlistWriteSmoke } from "./smoke/watchlist-write-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
 import { UX_SMOKE_SPECS } from "./smoke/ux-smoke-specs.mjs";
+// SITE-WIDE LAYOUT GUARD (lane layoutguard, 2026-09-08, operator dispatch "SITE-WIDE LAYOUT GUARD":
+// "Add the guard to the 1440/1024 rendering check so no train lands with a failure"). Rules L1-L12
+// over all 17 routes at 1440 and 1024, on the design audit's OWN mounts and in THIS chromium
+// instance, so the whole guard costs no extra process. See layout-guard/rules.mjs for the rule
+// set and its per-rule provenance, and layout-guard/allowlists.mjs for the exceptions as data.
+import { runLayoutGuard } from "./layout-guard/run-layout-guard.mjs";
 
 // playwright is a hoisted/global install in some environments (this repo's own container included)
 // that a plain ESM `import "playwright"` cannot see — Node's ESM resolver, unlike CJS `require`,
@@ -179,6 +194,7 @@ async function main() {
     { name: "auth-onboarding", run: runAuthOnboardingSmoke },
     { name: "hydration", run: runHydrationSmoke },
     { name: "workspace-tags", run: runWorkspaceTagsSmoke },
+    { name: "watchlist-write", run: runWatchlistWriteSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];
@@ -211,6 +227,21 @@ async function main() {
   checks += uxChecks;
   failures.push(...uxFailures);
 
+  // ── Site-wide layout guard (2026-09-08): 17 routes × 2 widths × 12 rules, in this same browser.
+  // Its failure lines already name the rule, the route, the element and the measured numbers, so
+  // they go straight into this runner's own list without reformatting. ───────────────────────────
+  let layoutChecks = 0;
+  const layoutFailures = [];
+  try {
+    const { checks: c, failures: f } = await runLayoutGuard(browser);
+    layoutChecks = c;
+    layoutFailures.push(...f);
+  } catch (err) {
+    layoutFailures.push(`layout-guard: threw: ${err?.stack || err}`);
+  }
+  checks += layoutChecks;
+  failures.push(...layoutFailures);
+
   await browser.close();
 
   // Addendum item 8: split off failures covered by a still-active, dated, per-page 375 exemption
@@ -222,10 +253,20 @@ async function main() {
     latestWave = latestTrainWave(getRepoRoot());
   } catch { /* best-effort, same posture as F25's own oracle — an unreadable git history exempts nothing */ }
   const active = activeExemptions(RENDERING_375_EXEMPTIONS, latestWave);
+  // Operator item C1 (2026-09-08): the rail facet row is the artboard's 24px at desktop widths and
+  // the 44px touch target below 768px. See exemptions-law2-desktop.mjs for the full statement and
+  // both measurements — like the 375 list above it is dated, expires against the same
+  // `latestTrainWave()` oracle, and can only ever cover a law-2 line that names nothing else.
+  const activeLaw2 = activeLaw2Exemptions(LAW2_DESKTOP_EXEMPTIONS, latestWave);
   const exempted375 = [];
+  const exemptedLaw2 = [];
   const realFailures = failures.filter((f) => {
     if (isExempt375(f, active)) {
       exempted375.push(f);
+      return false;
+    }
+    if (isExemptLaw2Desktop(f, activeLaw2)) {
+      exemptedLaw2.push(f);
       return false;
     }
     return true;
@@ -234,6 +275,7 @@ async function main() {
   console.log(`\n===== RENDERING GUARD (browser) =====`);
   console.log(`fixtures: ${fixtures.length}  viewports: ${VIEWPORTS.join(",")}  checks: ${checks}`);
   console.log(`SM smoke specs: ${SMOKE_SPECS.length} (${SMOKE_SPECS.map((s) => s.name).join(", ")})  smoke checks: ${smokeChecks}`);
+  console.log(`layout guard: ${layoutChecks} route×width measurement(s), ${layoutFailures.length} finding(s)`);
   console.log(`UX smoke specs: ${UX_SMOKE_SPECS.length} (${UX_SMOKE_SPECS.map((s) => s.name).join(", ") || "none registered"})  ux checks: ${uxChecks}`);
   if (newMobileFindings.length) {
     console.log(`\nNEW mobile/tablet overflow findings (< 480px, missed by the 1297px audit):`);
@@ -244,6 +286,12 @@ async function main() {
       `\n${exempted375.length} failure(s) covered by a dated 375px per-page exemption (addendum item 8, latest landed wave: ${latestWave ?? "unknown"}, entries expire at wave58):`
     );
     for (const f of exempted375) console.log(`  ~ ${f}`);
+  }
+  if (exemptedLaw2.length) {
+    console.log(
+      `\n${exemptedLaw2.length} failure(s) covered by a dated law-2 desktop component exemption (operator item C1, latest landed wave: ${latestWave ?? "unknown"}, entries expire at wave${LAW2_DESKTOP_EXEMPTIONS.map((e) => e.expiryWave).join("/")}):`
+    );
+    for (const f of exemptedLaw2) console.log(`  ~ ${f}`);
   }
   if (realFailures.length === 0) {
     console.log(`\nALL fixtures pass: GREEN fixtures clean at every viewport; RED fixtures reproduced their defect (in-browser red-then-green).`);

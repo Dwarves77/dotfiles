@@ -14,27 +14,31 @@ const SOURCE = readFileSync(
   "utf8"
 );
 
-test("imports the shared SectionRule, ruling 5.1's own part", () => {
-  assert.match(SOURCE, /import \{ SectionRule \} from "@\/components\/ui\/SectionRule";/);
+// UPDATED (fold 62, 2026-09-08). These four assertions described RailCard as a card it TYPED:
+// its own five declarations plus a hand-mounted `<SectionRule/>` above a padded inner wrapper.
+// Lane cardrule moved every card in the product onto the shared `SectionCard` (operator item A1:
+// the rule "is part of the card component, not a decoration"), so the rule, the border, the
+// radius, the shadow and `overflow: hidden` are no longer this file's to get right, and asserting
+// that it still types them would be asserting the defect. What the assertions protect is
+// unchanged and is now guaranteed by construction: this card comes from the shared shell, its
+// content is padded by an INNER wrapper so the rule still sits at the true top edge, and the
+// audit hook still reaches the outer card element. F42 closes the class mechanically.
+test("RailCard is the shared SectionCard, not a card shell typed here", () => {
+  assert.match(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard";/);
+  assert.doesNotMatch(SOURCE, /import \{ SectionRule \}/);
+  // The chrome belongs to SectionCard now: no local copy of any of it.
+  const cardBlock = SOURCE.slice(SOURCE.indexOf("export function RailCard"), SOURCE.indexOf("</SectionCard>"));
+  assert.doesNotMatch(cardBlock, /boxShadow: "var\(--shadow-card\)"/);
+  assert.doesNotMatch(cardBlock, /borderRadius: "var\(--radius-card\)"/);
 });
 
-test("RailCard mounts SectionRule as the outer card's first child, before a separate padded content wrapper", () => {
-  assert.match(SOURCE, /<SectionRule \/>\s*\n\s*<div style=\{\{ padding: "14px 16px" \}\}>/);
+test("RailCard's content is padded by an INNER wrapper, so the shared rule still spans the true top edge", () => {
+  assert.match(SOURCE, /<SectionCard dataAudit=\{dataAudit\}>\s*\n\s*<div style=\{\{ padding: "14px 16px" \}\}>/);
 });
 
-test("the outer card div carries no padding of its own (moved to the inner wrapper so the rule sits at the true top edge)", () => {
-  const cardBlock = SOURCE.slice(SOURCE.indexOf("export function RailCard"), SOURCE.indexOf("<SectionRule"));
-  assert.doesNotMatch(cardBlock, /padding:/);
-  assert.match(cardBlock, /overflow: "hidden",/);
-});
-
-// dataAudit prop (lane compose-lists, 2026-09-08): a design-audit selector hook for callers like
-// LegendRailCard that mount RailCard with no wrapper div of their own, so a compose-*.json spec can
-// address the REAL page composition, not just a mount fixture's own invented wrapper.
-test("RailCard accepts an optional dataAudit prop and sets it as data-audit on the outer card div", () => {
+test("RailCard accepts an optional dataAudit prop and passes it to the card element", () => {
   assert.match(SOURCE, /dataAudit\?:\s*string/);
-  const cardBlock = SOURCE.slice(SOURCE.indexOf("export function RailCard"), SOURCE.indexOf("<SectionRule"));
-  assert.match(cardBlock, /data-audit=\{dataAudit\}/);
+  assert.match(SOURCE, /<SectionCard dataAudit=\{dataAudit\}>/);
 });
 
 test('LegendRailCard passes dataAudit="legend-rail" through to its RailCard', () => {

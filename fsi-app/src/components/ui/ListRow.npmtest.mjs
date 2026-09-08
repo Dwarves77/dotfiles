@@ -40,9 +40,14 @@ test("the list anatomy is the default: no variant means the original four cells"
   // phrase wrapped over three lines in this 40px track on production and doubled the row height;
   // lane mobfix61 (D-M4) made WHETHER that cell speaks depend on the row's single reason. Both
   // survive: the vocabulary is unchanged, the branch that renders it is unchanged.
-  assert.match(SOURCE, /<ImpactMeter scores=\{impact\} reason=\{reasonSlot === "impact" \? rowAbsence : null\} \/>/);
+  assert.match(SOURCE, /<ImpactMeter scores=\{impact\} \/>/);
   assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> :/);
-  assert.match(SOURCE, /<Absence reason=\{rowAbsence\} variant="narrow" \/>/, "the 40px tier track draws the dash, per dc.html p2/p8");
+  // UPDATED (items B3/B4/B5, operator 2026-09-08): the tier cell's fallback is now the DASH
+  // variant unconditionally, not the `narrow` variant gated on a slot. `narrow` swaps back to
+  // the spelled-out words below 768px, which would put a second token on a mobile row now that
+  // the meta line carries the reason at every width. The vocabulary is unchanged; only the
+  // placement is, and it is the operator's.
+  assert.match(SOURCE, /<Absence reason=\{rowAbsence \?\? "not in primary source"\} variant="dash" \/>/, "the 40px tier track draws the dash");
 });
 
 // D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]: the impact, due and
@@ -50,16 +55,20 @@ test("the list anatomy is the default: no variant means the original four cells"
 // plus "UNSCORED" plus "PENDING" plus "NOT IN PRIMARY SOURCE". Ruling 2.1 and the mobile 390 spec
 // both allow exactly one reason. The structural guarantee is `reasonSlot`: at most one of the
 // three cells can be the slot, so at most one token can render, whatever the data.
-test("a row renders AT MOST ONE absence token, chosen once by Absence.tsx's precedence", () => {
+test("a row renders AT MOST ONE absence WORD, and every empty value cell draws a dash", () => {
   assert.match(SOURCE, /import \{ Absence, pickAbsenceReason, type AbsenceReason \}/);
   assert.match(SOURCE, /const rowAbsence: AbsenceReason \| null = pickAbsenceReason\(\[/);
-  assert.match(SOURCE, /const reasonSlot: "impact" \| "due" \| "tier" \| null =/);
-  // Every <Absence> in the row is gated on this row being that reason's slot - no unconditional
-  // token anywhere, which is what let three of them stack.
-  const absences = SOURCE.match(/<Absence [^/]*\/>/g) ?? [];
-  assert.equal(absences.length, 2, "only the due and tier slots render a token directly (impact goes through ImpactMeter's reason prop)");
-  for (const a of absences) assert.match(a, /reason=\{rowAbsence\}/, `absence token must carry the row's single reason: ${a}`);
-  assert.doesNotMatch(SOURCE, /<Absence reason="/, "no hardcoded per-cell reason may return");
+  // ITEMS B3/B4/B5 (operator 2026-09-08). `reasonSlot` is gone: there is no cell to choose any
+  // more, because the reason has ONE home, the title cell's meta line, and every value cell that
+  // has nothing to show draws a dash instead. The one-token guarantee is therefore stronger than
+  // it was, not weaker: one render site rather than a three-way choice.
+  assert.doesNotMatch(SOURCE, /const reasonSlot|reasonSlot ===/, "the slot mechanism is deleted, not left dormant (rule 13); only the comment explaining its removal may name it");
+  assert.match(SOURCE, /const metaReason: AbsenceReason \| null = rowAbsence && rowAbsence !== "unscored" \? rowAbsence : null;/);
+  const words = SOURCE.match(/<Absence reason=\{metaReason\} \/>/g) ?? [];
+  assert.equal(words.length, 1, "exactly one small-caps reason renders, on the meta line");
+  const dashes = SOURCE.match(/<Absence [^/]*variant="dash" \/>/g) ?? [];
+  assert.equal(dashes.length, 2, "the due and tier cells each draw a dash (the impact dash is ImpactMeter's own)");
+  assert.doesNotMatch(SOURCE, /<Absence[^/]*variant="narrow"/, "the narrow variant's mobile word-swap must not return to the row");
 });
 
 // UPDATED (lane map60, 2026-09-08): `endStat` used to render inside the EIGHT-column list grid as
@@ -176,7 +185,7 @@ test("B56: the due-date label is fs-125 (12.5px)", () => {
 });
 
 test("B60: the tier cell is text-align:center", () => {
-  assert.match(SOURCE, /className="cl-row-tier" style=\{\{ display: "flex", alignItems: "center", textAlign: "center",/);
+  assert.match(SOURCE, /className="cl-row-tier" style=\{\{ display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center",/);
 });
 
 test("B61: the desktop overflow-cell divider is --line-2 (rgba(0,0,0,.08)), not --line-3", () => {
@@ -190,7 +199,7 @@ test("the row's meta line can actually shrink, so its own ellipsis is the thing 
   // with no `minWidth: 0` is inert (a flex item's default `min-width: auto` refuses to shrink below
   // its content), so the span never narrowed, its ellipsis never fired, and the PARENT's
   // `overflow: hidden` did the cutting. Both declarations must be present together.
-  const meta = SOURCE.slice(SOURCE.indexOf("{meta && ("), SOURCE.indexOf("{tags && tags.length > 0 && ("));
+  const meta = SOURCE.slice(SOURCE.indexOf("{meta && ("), SOURCE.indexOf("{metaReason && ("));
   assert.match(meta, /textOverflow: "ellipsis"/);
   assert.match(meta, /flexShrink: 1/);
   assert.match(meta, /minWidth: 0/, "without this the flexShrink above does nothing");

@@ -104,7 +104,48 @@ export const ABSENCE_TEXT_STYLE = {
  * which the guard's own scan skips, so a bare `—` anywhere else in the product
  * still fails the guard exactly as it should.
  */
-export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" }) {
+/**
+ * THE DASH VARIANT (item B3/B4/B5, operator UI fix round 2026-09-08).
+ *
+ * The operator's ruling of 2026-09-08 moves the row's single small-caps reason
+ * OUT of the value cells and into the title cell's meta line, and puts an em
+ * dash in each value cell that has nothing to show: "the meter column gets the
+ * 30px dashed baseline with an em dash in the score slot", "the tier cell gets
+ * an em dash", "the date cell gets an em dash". dc.html p1's own second list
+ * row draws exactly that (impact `—` at 11px #7A6E6C, next-date `—` at 12.5px
+ * #7A6E6C), so artboard and ruling agree here.
+ *
+ * This variant is that dash and nothing else: no word at any viewport (unlike
+ * `narrow`, which swaps to the word below 768 — that swap would put a SECOND
+ * token on a mobile row now that the meta line carries the reason). It still
+ * carries the closed-vocabulary reason on `aria-label`/`title`, and it declares
+ * itself with `data-absence` so the rendering guard's placeholder-literal scan
+ * skips it while a bare `—` anywhere else still fails.
+ *
+ * It deliberately does NOT carry the `cl-absence` class: that class is the
+ * countable "one reason per row" token (impactmeter.json forbids
+ * `[data-audit="row-unscored"] .cl-absence`, and the D-M4 forbid counts cells
+ * carrying it). A dash is a value placeholder, not a reason token, so it gets
+ * its own `cl-absence-dash` class and is measured separately.
+ *
+ * Size and weight are inherited from the cell, because the artboard gives the
+ * dash a different size in each column (11px in impact and timeline, 12.5px in
+ * next-date). Only the colour is fixed here.
+ */
+export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" | "dash" }) {
+  if (variant === "dash") {
+    return (
+      <span
+        className="cl-absence-dash"
+        data-absence="dash"
+        aria-label={reason}
+        title={reason}
+        style={{ fontSize: "inherit", color: "var(--ink-3)", fontVariantNumeric: "tabular-nums" }}
+      >
+        {"—"}
+      </span>
+    );
+  }
   if (variant === "narrow") {
     return (
       <span

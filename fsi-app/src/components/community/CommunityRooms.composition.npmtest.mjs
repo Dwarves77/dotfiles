@@ -15,8 +15,15 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(HERE, "CommunityRooms.tsx"), "utf8");
 const PAGE = readFileSync(resolve(HERE, "..", "..", "app", "community", "page.tsx"), "utf8");
 
+// UPDATED (fold 62, 2026-09-08): the shared part this page takes its card from is `SectionCard`,
+// not `SectionRule` directly. Lane cardrule made the rule a property of the card (operator item
+// A1), so a page that imported SectionRule itself would now be the page-local copy this test
+// exists to forbid. Every audit hook below moved with it, from a literal `data-audit` attribute on
+// a hand-typed card div to SectionCard's own `dataAudit` prop, which renders the same attribute on
+// the same element: the assertions follow the source, and the rendered selectors the compose-12
+// spec addresses are unchanged.
 test("the page is assembled from the shared parts, never a page-local copy of them", () => {
-  for (const part of ["SectionRule", "SectionHeading", "CardFoot", "RowTable", "Absence", "Button"]) {
+  for (const part of ["SectionCard", "SectionHeading", "CardFoot", "RowTable", "Absence", "Button"]) {
     assert.match(SOURCE, new RegExp(`from "@/components/ui/${part === "RowTable" ? "RowTable" : part}"`));
   }
 });
@@ -39,11 +46,11 @@ test("R8: a row is the room INDEX — it keeps the #post-<id> anchor and opens n
 
 test("the composer is its own NEW POST card, not a control inside the discussions card", () => {
   const indexCard = SOURCE.slice(
-    SOURCE.indexOf('data-audit="room-index"'),
-    SOURCE.indexOf('data-audit="new-post"')
+    SOURCE.indexOf('dataAudit="room-index"'),
+    SOURCE.indexOf('dataAudit="new-post"')
   );
   assert.doesNotMatch(indexCard, /<textarea/);
-  assert.match(SOURCE, /data-audit="new-post"/);
+  assert.match(SOURCE, /dataAudit="new-post"/);
   assert.match(SOURCE, /title=\{`New post · \$\{roomName\}`\}/);
   assert.match(SOURCE, /aside=\{`Posts to the \$\{roomName\} room`\}/);
 });
@@ -51,7 +58,7 @@ test("the composer is its own NEW POST card, not a control inside the discussion
 test("the tiles carry the room NAME, never the 3-char short key", () => {
   const grid = SOURCE.slice(
     SOURCE.indexOf('gridTemplateColumns: "repeat(4,1fr)"'),
-    SOURCE.indexOf('data-audit="room-index"')
+    SOURCE.indexOf('dataAudit="room-index"')
   );
   assert.match(grid, /\{r\.name\}/);
   assert.doesNotMatch(grid, /\{r\.short\}/);
@@ -69,13 +76,13 @@ test("artboard 12 has no 'Regional rooms' heading above the tiles", () => {
 });
 
 test("R7 placement: the region card follows the new-post card, and Vertical groups is last in the rail", () => {
-  assert.ok(SOURCE.indexOf('data-audit="new-post"') < SOURCE.indexOf('data-audit="region-card"'));
-  assert.ok(SOURCE.indexOf('data-audit="why-post-here"') < SOURCE.indexOf("<VerticalGroupsRailPanel"));
+  assert.ok(SOURCE.indexOf('dataAudit="new-post"') < SOURCE.indexOf('dataAudit="region-card"'));
+  assert.ok(SOURCE.indexOf('dataAudit="why-post-here"') < SOURCE.indexOf("<VerticalGroupsRailPanel"));
 });
 
 test("rail order is the artboard's: Who's here, Verifier sign-off, Why post here", () => {
-  const rail = SOURCE.slice(SOURCE.indexOf('data-audit="whos-here"'));
-  assert.ok(rail.indexOf("<SignoffRailPanel") < rail.indexOf('data-audit="why-post-here"'));
+  const rail = SOURCE.slice(SOURCE.indexOf('dataAudit="whos-here"'));
+  assert.ok(rail.indexOf("<SignoffRailPanel") < rail.indexOf('dataAudit="why-post-here"'));
 });
 
 test("relative times come from the server instant, never from the client's own clock", () => {

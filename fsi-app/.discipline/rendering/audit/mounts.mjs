@@ -104,6 +104,7 @@ ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { ListRow, ListRowColumnHeader } from '@/components/ui/ListRow';
+import { PriorityDropdown } from '@/components/regulations/PriorityDropdown';
 import { BAND_ORDER } from '@/lib/urgency/bands';
 
 const action = BAND_ORDER.find((b) => b.key === 'action');
@@ -132,6 +133,30 @@ window.__mount = () => {
           ],
           tier: 1,
           overflow: React.createElement('button', { type: 'button', 'aria-label': 'Row actions', style: { width: 28, height: 28 } }, '\\u22ef'),
+        })),
+      // Items B1-B5 (operator UI fix round 2026-09-08). dc.html p1's SECOND list row: an item with
+      // no impact score, no next date, no timeline and no tier, i.e. every absence dimension at
+      // once — which is precisely the row the operator photographed carrying three tokens. It also
+      // carries p4's kind chip (\`kind\`) and the REAL overflow control (PriorityDropdown, the
+      // component all six list surfaces pass into \`overflow\`) so B1 and B2 are measured on the
+      // thing that ships, not on a stub button.
+      React.createElement('div', { 'data-audit': 'row-absent' },
+        React.createElement(ListRow, {
+          href: '/regulations/road-traffic-vehicle-emissions',
+          band: BAND_ORDER.find((b) => b.key === 'monitor'),
+          jurisdiction: 'GB',
+          title: 'The Road Traffic (Vehicle Emissions) (Fixed Penalty) Regulations 1997',
+          kind: 'Monitoring',
+          meta: 'Catalogue record \\u00b7 Road \\u00b7 transport',
+          impact: null,
+          due: null,
+          timeline: null,
+          tier: null,
+          overflow: React.createElement(PriorityDropdown, {
+            variant: 'card',
+            showPriorityActions: false,
+            ariaLabel: 'Row actions',
+          }),
         })),
       React.createElement('div', { 'data-audit': 'row-endstat' },
         React.createElement(ListRow, {
@@ -248,11 +273,29 @@ import { LegendRailCard } from '@/components/list-surface/ListSurfaceRailCards';
 import { DismissedStash } from '@/components/regulations/DismissedStash';
 import { BAND_ORDER } from '@/lib/urgency/bands';
 
+// TWO groups, the second past the six-option cap (lane railfacets, 2026-09-08, items C1/C2/C3).
+// The one-group fixture this replaced could not reach either of the two things the round's item
+// list names: a group SEPARATOR needs a second group below the first, and the "+ N more" link row
+// only exists once a group has more options than FiltersRailCard's VISIBLE_OPTIONS_CAP of 6. The
+// values are artboard 02/id="p2"'s own FILTERS card data (Mode: Air 212 / Ocean 388, Jurisdiction:
+// European Union 778 / United States 23 / United Kingdom 233 / Global 549, then the tail the
+// artboard itself collapses behind a "+ N more" row), so the audit measures the composition the
+// image draws rather than an audit-invented shape.
 const facetGroups = [
   { key: 'mode', label: 'Mode', options: [
       { value: 'air', label: 'Air', count: 212 },
       { value: 'ocean', label: 'Ocean', count: 388 },
     ], selected: 'ocean', onSelect: () => {} },
+  { key: 'jurisdiction', label: 'Jurisdiction', options: [
+      { value: 'eu', label: 'European Union', count: 778 },
+      { value: 'us', label: 'United States', count: 23 },
+      { value: 'uk', label: 'United Kingdom', count: 233 },
+      { value: 'global', label: 'Global', count: 549 },
+      { value: 'ca', label: 'Canada', count: 41 },
+      { value: 'jp', label: 'Japan', count: 37 },
+      { value: 'sg', label: 'Singapore', count: 29 },
+      { value: 'au', label: 'Australia', count: 18 },
+    ], selected: null, onSelect: () => {} },
 ];
 
 const dismissed = [
@@ -576,10 +619,40 @@ const PAGE_FRAME_FIXTURES = {
         tags: [],
       },
     ],
-    // Non-empty so the "What changed" card renders its ListRow rows (always `impact={null}` —
-    // DashboardBrief.tsx — i.e. always the unscored branch) instead of the empty-state StateNote.
+    // Non-empty so the "What changed" card renders its ListRow rows instead of the empty-state
+    // StateNote.
+    //
+    // Lane BRIEFDATA (2026-09-08): the note that used to sit here said these rows are "always
+    // `impact={null}` ... always the unscored branch". That was true, and it was the DEFECT, not a
+    // property of the card: the changed item is never in the LIMIT-50 payload, so every change row
+    // took brief-rows.ts's degrade branch. Measured live the same day, 6 of 6 production change
+    // rows were in that state. The route now merges a bounded by-id backfill into the corpus
+    // before selecting rows (src/app/page.tsx), so this fixture carries that backfill too — a
+    // fixture that keeps modelling the degrade path is a fixture that proves the defect passes.
     recentChanges: [
       { id: 'c0', title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods', priority: 'HIGH', added: '2026-09-06', itemType: 'regulation', domain: 1 },
+    ],
+    // DashboardData.briefResources: the changed item, read back by id precisely because it is
+    // outside the 50-row payload. Same shape as `resources` above, because it comes back through
+    // the same mapper.
+    briefResources: [
+      {
+        id: 'c0',
+        title: 'Delegated Regulation (EU) 2016/2071 — CO2 monitoring methods',
+        priority: 'HIGH',
+        jurisdiction: 'EU',
+        jurisdictionIso: ['EU'],
+        sourceTier: 3,
+        complianceDeadline: '2027-03-15',
+        impactScores: { cost: 2, compliance: 3, client: 1, operational: 2 },
+        timeline: [],
+        domain: 1,
+        type: 'regulation',
+        modes: ['Ocean'],
+        topic: 'monitoring',
+        note: '',
+        tags: [],
+      },
     ],
     auditDate: '2026-09-07',
     aggregates: {
@@ -677,7 +750,7 @@ import { AppShell } from '@/components/AppShell';
 import { DashboardBrief } from '@/components/dashboard/DashboardBrief';
 import { RegulationDetailSurface } from '@/components/regulations/RegulationDetailSurface';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
-import { buildDueNextRows, buildChangedRows } from '@/lib/dashboard/brief-rows';
+import { buildDueNextRows, buildChangedRows, mergeBriefCorpus, dueNextWindowLabel } from '@/lib/dashboard/brief-rows';
 
 // 'owner' so Sidebar's nav-card footer renders BOTH rows (Account + the
 // role-gated Admin row, R2) — sidebar.json's footer assertions need both
@@ -694,17 +767,37 @@ let root = null;
 window.__mount = () => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
+  // ONE SURFACE OR BOTH (lane layoutguard, 2026-09-08). This entry has always rendered the
+  // dashboard AND the regulation detail stacked in one AppShell, which is right for a component
+  // audit reading getComputedStyle per selector and wrong for a per-ROUTE layout guard: two page
+  // bodies in one content column make every card-vs-column and card-order measurement meaningless.
+  // \`window.__ONLY_AUDIT\` lets the two route mounts render one surface each from this SAME entry
+  // and these SAME fixtures rather than forking a second copy of either. Unset (every existing
+  // caller) renders both, exactly as before.
+  const only = window.__ONLY_AUDIT || null;
+  const want = (name) => !only || only === name;
   root.render(
     React.createElement(AppShell, null,
-      React.createElement('div', { 'data-audit': 'dashboard' },
+      want('dashboard') && React.createElement('div', { 'data-audit': 'dashboard' },
         React.createElement(DashboardBrief, {
           // FOLD-59: <DashboardBrief/> takes SERVER-SELECTED BriefRow[] since HYDRATION-59, not a
           // Resource[] it derives from itself. The fixture keeps its Resource rows and runs them
           // through the SAME derivation the route runs (src/lib/dashboard/brief-rows.ts) against
           // one fixed instant, so this mount measures the real shape rather than rows hand-shaped
           // to match it.
-          dueNextRows: buildDueNextRows(F.dashboard.resources, new Date(NOW_ISO)),
-          changedRows: buildChangedRows(F.dashboard.recentChanges, F.dashboard.resources, new Date(NOW_ISO)),
+          // Lane BRIEFDATA (2026-09-08): ONE corpus, assembled exactly as src/app/page.tsx
+          // assembles it — the route's own payload plus the bounded by-id backfill — so this mount
+          // measures the rows the route really produces rather than the degrade path.
+          ...(() => {
+            const now = new Date(NOW_ISO);
+            const corpus = mergeBriefCorpus(F.dashboard.resources, F.dashboard.briefResources);
+            const dueNextRows = buildDueNextRows(corpus, now);
+            return {
+              dueNextRows,
+              changedRows: buildChangedRows(F.dashboard.recentChanges, corpus, now),
+              dueNextWindow: dueNextWindowLabel(dueNextRows, 'Sep 7'),
+            };
+          })(),
           totalChanges: F.dashboard.recentChanges.length,
           aggregates: F.dashboard.aggregates,
           // COUNTS-61: the band tiles read the regulations surface's own counts, because that is
@@ -717,12 +810,19 @@ window.__mount = () => {
           nowIso: NOW_ISO,
           watchlistPromise: Promise.resolve([]),
         })),
-      React.createElement('div', { 'data-audit': 'regulation-detail' },
+      want('regulation-detail') && React.createElement('div', { 'data-audit': 'regulation-detail' },
         React.createElement(RegulationDetailSurface, F.regulation)),
     ),
   );
 };
 `;
+
+// ── Per-ROUTE page mounts for the site-wide layout guard (lane layoutguard, 2026-09-08) ──────────
+// Same entry, same fixtures, one surface each - see the `window.__ONLY_AUDIT` comment inside
+// PAGE_FRAME_ENTRY for why a per-route guard cannot measure the stacked pair. The prelude sits
+// before the entry's imports, which ESM allows and esbuild preserves.
+const DASHBOARD_ROUTE_ENTRY = `window.__ONLY_AUDIT = 'dashboard';\n${PAGE_FRAME_ENTRY}`;
+const REGULATION_DETAIL_ROUTE_ENTRY = `window.__ONLY_AUDIT = 'regulation-detail';\n${PAGE_FRAME_ENTRY}`;
 
 // ── Market / research / operations detail — page-composition mounts ──────────────────────────────
 // Lane compose-dashboard-details (2026-09-08). Mirrors the regulation-detail fixture above,
@@ -1123,6 +1223,64 @@ window.__mount = () => {
   );
 };
 `;
+
+// ── Admin (13), the SOURCE REGISTRY sub-tab ──────────────────────────────────────────────────────
+// Lane adminlayout (2026-09-08). compose-admin measures artboard 13's DEFAULT landing state
+// (Sources / Provisional review). The registry sub-tab is the state the operator's own report was
+// about and the one this lane rebuilt, and no spec had ever rendered it — which is why a region
+// that overflowed its column by 336px at 1024 and painted under the rail was never measured.
+// Same real tree, same fixtures, plus three real Source records so the tier facet has counts to
+// measure, and the mount then activates the sub-tab exactly as an operator does: by clicking it.
+const ADMIN_REGISTRY_SOURCES = [1, 1, 5].map((tier, i) => ({
+  id: 'src-' + (i + 1),
+  name: ['EUR-Lex', 'Federal Register', 'Plastics News'][i],
+  url: ['https://eur-lex.europa.eu', 'https://federalregister.gov', 'https://plasticsnews.com'][i],
+  description: '',
+  notes: '',
+  domains: [1],
+  jurisdictions: [],
+  status: 'active',
+  base_tier: tier,
+  effective_tier: tier,
+  trust_score: { overall: 80 },
+  trust_metrics: {
+    accuracy_rate: 1,
+    confirmation_count: 0,
+    accessibility_rate: 1,
+    total_checks: 0,
+    independent_citers: 0,
+    conflict_count: 0,
+    conflict_total: 0,
+  },
+  update_frequency: 'weekly',
+  access_method: 'html',
+  last_checked: null,
+  next_scheduled_check: null,
+  paywalled: false,
+}));
+
+const COMPOSE_ADMIN_REGISTRY_ENTRY = COMPOSE_ADMIN_ENTRY.replace(
+  '          initialProvisionalSources: PROVISIONAL,',
+  '          initialProvisionalSources: PROVISIONAL,\n          initialSources: ' +
+    JSON.stringify(ADMIN_REGISTRY_SOURCES) +
+    ','
+).replace(
+  '};\n',
+  `};
+const __activateRegistry = () => {
+  const b = Array.from(document.querySelectorAll('button[role="tab"]')).find(
+    (x) => (x.textContent || '').trim().startsWith('Source registry'),
+  );
+  if (b) b.click();
+  else setTimeout(__activateRegistry, 30);
+};
+const __mountBase = window.__mount;
+window.__mount = () => {
+  __mountBase();
+  setTimeout(__activateRegistry, 0);
+};
+`
+);
 
 // ── Account (14) full-page composition mount ─────────────────────────────────────────────────────
 // Reuses the SAME real UserProfilePage the /profile route mounts (README screen 14 / dc.html p14),
@@ -2634,6 +2792,30 @@ export const AUDIT_MOUNTS = {
     },
     apiRoutes: EMPTY_API,
   },
+  'compose-01-dashboard': {
+    id: 'compose-01-dashboard',
+    description: 'The real AppShell frame wrapping DashboardBrief ALONE - the /-route mount the site-wide layout guard measures (artboard 01/id="p1").',
+    viewport: 1440,
+    entry: DASHBOARD_ROUTE_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-03-regulation-detail': {
+    id: 'compose-03-regulation-detail',
+    description: 'The real AppShell frame wrapping RegulationDetailSurface ALONE - the /regulations/[slug] mount the site-wide layout guard measures (artboard 03/id="p3").',
+    viewport: 1440,
+    entry: REGULATION_DETAIL_ROUTE_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
   'page-frame-1440': {
     id: 'page-frame-1440',
     description: 'The real AppShell frame wrapping DashboardBrief and RegulationDetailSurface.',
@@ -2840,12 +3022,26 @@ export const AUDIT_MOUNTS = {
     },
     apiRoutes: EMPTY_API,
   },
+
   'compose-admin': {
     id: 'compose-admin',
     description: 'Full-page composition mount: AppShell + the real AdminDashboard (own internal Masthead), populated fixture data, README screen 13 / dc.html p13.',
     viewport: 1440,
     entry: COMPOSE_ADMIN_ENTRY,
     needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'compose-admin-registry': {
+    id: 'compose-admin-registry',
+    description: "Full-page composition mount: AppShell + the real AdminDashboard on the Sources / Source registry sub-tab, the region lane adminlayout rebuilt (operator's items 3 and 4).",
+    viewport: 1440,
+    entry: COMPOSE_ADMIN_REGISTRY_ENTRY,
+    needsCompiledCss: true,
+    dataAudit: 'admin',
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,

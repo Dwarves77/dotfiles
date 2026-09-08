@@ -1,289 +1,298 @@
 {
-  "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
-  "mount": "compose-11-watchlist",
-  "viewport": 390,
-  "compiledCss": true,
-  "artboards": [
-    "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
-  ],
-  "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
-  "notes": [
-    "Same mount as the compose-* spec for this surface, at 390 instead of 1440. The mobile 390 spec's own framing is 'No new components. Every part is the desktop part at a smaller measure', so a second mount would duplicate one that already exists.",
-    "`compiledCss: true` is required on every mobile-* spec: AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind utility classes (`hidden md:flex`, `md:hidden`), which the raw globals.css read the 1440 specs use leaves un-expanded. Opt-in per spec so the 43 green 1440 specs on the same mounts are not re-baselined. See run-audit.mjs at the addStyleTag call.",
-    "Rows below 768 drop the 76px timeline column and nothing else; every other cell of the desktop row is still measured here, at its mobile measure.",
-    "The rail folds under the content (one grid track below 1280), which is the spec's BREAKPOINTS behaviour; the rail's FILTERS card specifically is not drawn, because the mobile spec designs its own single filter surface (the chip-group strip plus the Filters sheet) and two live controls over the same facets is the duplication CLAUDE.md rule 13 forbids.",
-    "This mount is the page component itself (the same one its compose-* spec measures), not the AppShell frame, so the TOP BAR and DRAWER regions are measured once by mobile-01-dashboard.json and mobile-18-drawer.json rather than repeated on all five surfaces.",
-    "`.cl-facets-desktop` and `.cl-list-row-header` are asserted as forbids rather than as hidden elements here: the list surfaces do not render either at any width (the desktop facet strip was retired when the filters moved to the rail; the column header is a dashboard/watchlist card part), so a `display: none` expectation would report NOT BUILT rather than the truth.",
-    "The watchlist artboard (11/id=\"p11\") draws no band tile row and no facet chip strip: its facets live in the rail's FILTERS card. Those regions are therefore not asserted here, and the rail card is asserted PRESENT rather than hidden."
-  ],
-  "selector": ".cl-list-surface-grid",
-  "expect": {
-    "display": "grid"
+ "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+ "mount": "compose-11-watchlist",
+ "viewport": 390,
+ "compiledCss": true,
+ "artboards": [
+  "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+ ],
+ "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+ "notes": [
+  "Same mount as the compose-* spec for this surface, at 390 instead of 1440. The mobile 390 spec's own framing is 'No new components. Every part is the desktop part at a smaller measure', so a second mount would duplicate one that already exists.",
+  "`compiledCss: true` is required on every mobile-* spec: AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind utility classes (`hidden md:flex`, `md:hidden`), which the raw globals.css read the 1440 specs use leaves un-expanded. Opt-in per spec so the 43 green 1440 specs on the same mounts are not re-baselined. See run-audit.mjs at the addStyleTag call.",
+  "Rows below 768 drop the 76px timeline column and nothing else; every other cell of the desktop row is still measured here, at its mobile measure.",
+  "The rail folds under the content (one grid track below 1280), which is the spec's BREAKPOINTS behaviour; the rail's FILTERS card specifically is not drawn, because the mobile spec designs its own single filter surface (the chip-group strip plus the Filters sheet) and two live controls over the same facets is the duplication CLAUDE.md rule 13 forbids.",
+  "This mount is the page component itself (the same one its compose-* spec measures), not the AppShell frame, so the TOP BAR and DRAWER regions are measured once by mobile-01-dashboard.json and mobile-18-drawer.json rather than repeated on all five surfaces.",
+  "`.cl-facets-desktop` and `.cl-list-row-header` are asserted as forbids rather than as hidden elements here: the list surfaces do not render either at any width (the desktop facet strip was retired when the filters moved to the rail; the column header is a dashboard/watchlist card part), so a `display: none` expectation would report NOT BUILT rather than the truth.",
+  "The watchlist artboard (11/id=\"p11\") draws no band tile row and no facet chip strip: its facets live in the rail's FILTERS card. Those regions are therefore not asserted here, and the rail card is asserted PRESENT rather than hidden.",
+  "RAIL FACET ROWS AT 390 (lane railfacets, train 62, 2026-09-08, operator item C1). The desktop facet row took artboard 02's 24px this round. /watchlist is the one surface that still draws the rail FILTERS card at 390 (the four list surfaces hide it in favour of the mobile chip strip and the Filters sheet, MOBILE-60), so it is the one place the touch rule has to be proven. `.cl-facet-row`/`.cl-facet-more` take `min-height:44px` below 768px from globals.css; the row below is what stops a future round from taking the artboard measure to every width and quietly losing the target. Only `.cl-facet-row` is asserted here: the watchlist fixtures facet groups are all inside the six-option cap, so no `.cl-facet-more` element exists on this mount to measure, and a spec row against an element the mount cannot build reports NOT BUILT forever rather than guarding anything. The two selectors share ONE declaration in globals.css, so this row firing proves the declaration fires; that the declaration names both is asserted by ListSurfaceRailCards.facets.npmtest.mjs beside the component."
+ ],
+ "selector": ".cl-list-surface-grid",
+ "expect": {
+  "display": "grid"
+ },
+ "children": [
+  {
+   "name": "Masthead wrapper carries no desktop side padding at 390 (the masthead's own 16px is the page margin)",
+   "selector": ".cl-list-surface-masthead",
+   "expect": {
+    "padding-left": "0px",
+    "padding-right": "0px",
+    "padding-top": "0px"
+   }
   },
-  "children": [
-    {
-      "name": "Masthead wrapper carries no desktop side padding at 390 (the masthead's own 16px is the page margin)",
-      "selector": ".cl-list-surface-masthead",
-      "expect": {
-        "padding-left": "0px",
-        "padding-right": "0px",
-        "padding-top": "0px"
-      }
-    },
-    {
-      "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
-      "selector": ".cl-masthead-body",
-      "expect": {
-        "padding-top": "14px",
-        "padding-left": "16px",
-        "padding-right": "16px",
-        "padding-bottom": "16px"
-      },
-      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
-    },
-    {
-      "name": "Masthead VOL line 9.5px uppercase .14em/700",
-      "selector": ".cl-masthead-eyebrow",
-      "expect": {
-        "font-size": "9.5px",
-        "font-weight": "700",
-        "letter-spacing": "1.33px",
-        "text-transform": "uppercase",
-        "color": "rgb(122, 110, 108)"
-      }
-    },
-    {
-      "name": "Masthead title Anton 24px uppercase, line-height 1.08, margin-top 5px",
-      "selector": ".cl-masthead-title",
-      "expect": {
-        "font-size": "24px",
-        "line-height": "25.92px",
-        "margin-top": "5px",
-        "text-transform": "uppercase"
-      }
-    },
-    {
-      "name": "Masthead scope line 12px, line-height 1.45",
-      "selector": ".cl-masthead-dek",
-      "expect": {
-        "font-size": "12px",
-        "line-height": "17.4px"
-      }
-    },
-    {
-      "name": "Masthead row stacks so the command bar takes a full-width line of its own",
-      "selector": ".cl-masthead-row",
-      "expect": {
-        "flex-direction": "column",
-        "align-items": "stretch",
-        "gap": "12px"
-      }
-    },
-    {
-      "name": "Command bar is 44px high, radius 8",
-      "selector": ".cl-command-bar",
-      "expect": {
-        "height": "44px",
-        "border-radius": "8px"
-      }
-    },
-    {
-      "name": "Command bar search glyph 15px",
-      "selector": ".cl-command-bar .cl-search-glyph",
-      "expect": {
-        "font-size": "15px",
-        "color": "rgb(122, 110, 108)"
-      }
-    },
-    {
-      "name": "The Cmd-K hint is dropped at 390",
-      "selector": ".cl-command-bar .cl-cmdk-hint",
-      "expect": {
-        "display": "none"
-      }
-    },
-    {
-      "name": "Content container padding 14px 16px 16px, one column below 768",
-      "selector": ".cl-list-surface-grid",
-      "expect": {
-        "padding": "14px 16px 16px",
-        "grid-template-columns": "*"
-      }
-    },
-    {
-      "name": "The rail FILTERS card IS drawn at 390 on the watchlist (its only filter surface) and folds under the content",
-      "selector": "[data-audit=\"filters-rail\"]",
-      "expect": {
-        "display": "block"
-      },
-      "note": "The other four list surfaces hide this card below 768 because they render the mobile chip strip and the Filters sheet instead. The watchlist renders neither, so hiding it would leave the page with no filter surface at all at 390 — logged in DEVIATION-LOG.md as a coordinator default. The shell gates the hide rule on its own --mobile-facets class."
-    },
-    {
-      "name": "List row grid 3px 1fr, min-height 76",
-      "selector": ".cl-list-row",
-      "expect": {
-        "grid-template-columns": "3px *",
-        "min-height": "76px",
-        "padding-right": "44px"
-      }
-    },
-    {
-      "name": "3px full-bleed band spine",
-      "selector": ".cl-list-row > .cl-row-spine",
-      "expect": {
-        "width": "3px"
-      }
-    },
-    {
-      "name": "Row content padding 10px 6px 10px 12px, a flex column of two lines",
-      "selector": ".cl-list-row .cl-row-content",
-      "expect": {
-        "padding": "10px 6px 10px 12px",
-        "display": "flex",
-        "flex-direction": "column"
-      }
-    },
-    {
-      "name": "Line 1 jurisdiction code 10.5px/.06em",
-      "selector": ".cl-list-row .cl-row-juris",
-      "expect": {
-        "font-size": "10.5px",
-        "letter-spacing": "0.63px"
-      }
-    },
-    {
-      "name": "Line 1 title 13.5px/1.35, wraps, no ellipsis",
-      "selector": ".cl-list-row .cl-row-title-text",
-      "expect": {
-        "font-size": "13.5px",
-        "line-height": "18.23px",
-        "white-space": "normal",
-        "text-overflow": "clip"
-      }
-    },
-    {
-      "name": "Line 2 gap 9px, margin-top 7px, wrapping",
-      "selector": ".cl-list-row .cl-row-line2",
-      "expect": {
-        "gap": "9px",
-        "margin-top": "7px",
-        "flex-wrap": "wrap"
-      }
-    },
-    {
-      "name": "Impact bars are 8px wide",
-      "selector": ".cl-list-row .cl-impact-bar",
-      "expect": {
-        "width": "8px"
-      }
-    },
-    {
-      "name": "Date + days 11.5px/700",
-      "selector": ".cl-list-row .cl-row-due-label",
-      "expect": {
-        "font-size": "11.5px",
-        "font-weight": "700"
-      }
-    },
-    {
-      "name": "The days figure is 11.5px/500 muted",
-      "selector": ".cl-list-row .cl-row-due-days",
-      "expect": {
-        "font-size": "11.5px",
-        "font-weight": "500"
-      }
-    },
-    {
-      "name": "Tier square 9.5px/800 .06em in a 1px rgba(0,0,0,.2) radius-4 box",
-      "selector": ".cl-list-row .cl-tier-chip",
-      "expect": {
-        "font-size": "9.5px",
-        "font-weight": "800",
-        "letter-spacing": "0.57px",
-        "border-radius": "4px",
-        "border-top": "1px solid rgba(0, 0, 0, 0.2)"
-      }
-    },
-    {
-      "name": "Overflow control is a 44x44 target pinned to the row's right edge, with a left rule",
-      "selector": ".cl-list-row .cl-row-overflow",
-      "expect": {
-        "width": "44px",
-        "height": "44px",
-        "border-left": "1px solid rgba(0, 0, 0, 0.08)",
-        "position": "absolute",
-        "right": "0px"
-      },
-      "note": "MOBILE-60: it was an ordinary item of the wrapping line-2 flow, so at 390 it wrapped onto a line of its own in every row and rendered as a 44px box with a dangling left rule. The row reserves its width with padding-right; the grid itself is still the spec's 3px 1fr."
-    },
-    {
-      "name": "The 76px timeline column is the only thing dropped at this width",
-      "selector": ".cl-list-row .cl-row-timeline",
-      "expect": {
-        "display": "none"
-      }
-    }
-  ],
-  "forbid": [
-    {
-      "name": "no literal UNSCORED token anywhere",
-      "selector": "body",
-      "textMatch": "UNSCORED",
-      "reason": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
-    },
-    {
-      "name": "no NOT SCORED wording",
-      "selector": "body",
-      "textMatch": "NOT SCORED",
-      "reason": "Mobile 390 spec, LIST ROW: 'never a second row, never \"NOT SCORED\"'."
-    },
-    {
-      "name": "no bare fabricated 0/12 impact sum on an unscored row",
-      "selector": ".cl-list-row",
-      "textMatch": "re:(^|[^0-9])0/12",
-      "reason": "An unscored row renders the Absence convention, never a fabricated zero (regex, not substring, so a real 10/12 is not a false finding)."
-    },
-    {
-      "name": "no floating Ask AI control",
-      "selector": "body",
-      "textMatch": "Ask AI",
-      "reason": "Operator ruling P1 2.2: the masthead command bar is the ask; no floating control, at any width."
-    },
-    {
-      "name": "no desktop facet chip strip in the content column at any width",
-      "selector": ".cl-facets-desktop",
-      "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
-    },
-    {
-      "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
-    }
-  ],
-  "boundsCheck": [
-    {
-      "name": "no list-row cell overlaps a sibling or escapes its row at 390",
-      "container": ".cl-list-row",
-      "cells": ".cl-row-content > *",
-      "reason": "Same defect class at the narrowest supported width; 375 must not clip, so 390 must have headroom."
-    },
-    {
-      "name": "nothing in the content column is wider than the content column",
-      "container": ".cl-list-surface-grid",
-      "cells": ".cl-list-row, [data-audit=\"filters-rail\"]",
-      "reason": "MOBILE-60 regression guard: the watchlist built its own copy of the shell's frame and so carried none of the mobile page measures until this lane; it now renders the shell's own exported block."
-    },
-    {
-      "name": "D-M5: the masthead card contains its command bar",
-      "container": ".cl-masthead",
-      "cells": ".cl-command-bar",
-      "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
-    },
-    {
-      "name": "no absence token escapes its own row at 390",
-      "container": ".cl-list-row",
-      "cells": ".cl-absence",
-      "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
-    }
-  ]
+  {
+   "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+   "selector": ".cl-masthead-body",
+   "expect": {
+    "padding-top": "14px",
+    "padding-left": "16px",
+    "padding-right": "16px",
+    "padding-bottom": "16px"
+   },
+   "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
+  },
+  {
+   "name": "Masthead VOL line 9.5px uppercase .14em/700",
+   "selector": ".cl-masthead-eyebrow",
+   "expect": {
+    "font-size": "9.5px",
+    "font-weight": "700",
+    "letter-spacing": "1.33px",
+    "text-transform": "uppercase",
+    "color": "rgb(122, 110, 108)"
+   }
+  },
+  {
+   "name": "Masthead title Anton 24px uppercase, line-height 1.08, margin-top 5px",
+   "selector": ".cl-masthead-title",
+   "expect": {
+    "font-size": "24px",
+    "line-height": "25.92px",
+    "margin-top": "5px",
+    "text-transform": "uppercase"
+   }
+  },
+  {
+   "name": "Masthead scope line 12px, line-height 1.45",
+   "selector": ".cl-masthead-dek",
+   "expect": {
+    "font-size": "12px",
+    "line-height": "17.4px"
+   }
+  },
+  {
+   "name": "Masthead row stacks so the command bar takes a full-width line of its own",
+   "selector": ".cl-masthead-row",
+   "expect": {
+    "flex-direction": "column",
+    "align-items": "stretch",
+    "gap": "12px"
+   }
+  },
+  {
+   "name": "Command bar is 44px high, radius 8",
+   "selector": ".cl-command-bar",
+   "expect": {
+    "height": "44px",
+    "border-radius": "8px"
+   }
+  },
+  {
+   "name": "Command bar search glyph 15px",
+   "selector": ".cl-command-bar .cl-search-glyph",
+   "expect": {
+    "font-size": "15px",
+    "color": "rgb(122, 110, 108)"
+   }
+  },
+  {
+   "name": "The Cmd-K hint is dropped at 390",
+   "selector": ".cl-command-bar .cl-cmdk-hint",
+   "expect": {
+    "display": "none"
+   }
+  },
+  {
+   "name": "Content container padding 14px 16px 16px, one column below 768",
+   "selector": ".cl-list-surface-grid",
+   "expect": {
+    "padding": "14px 16px 16px",
+    "grid-template-columns": "*"
+   }
+  },
+  {
+   "name": "The rail FILTERS card IS drawn at 390 on the watchlist (its only filter surface) and folds under the content",
+   "selector": "[data-audit=\"filters-rail\"]",
+   "expect": {
+    "display": "block"
+   },
+   "note": "The other four list surfaces hide this card below 768 because they render the mobile chip strip and the Filters sheet instead. The watchlist renders neither, so hiding it would leave the page with no filter surface at all at 390 — logged in DEVIATION-LOG.md as a coordinator default. The shell gates the hide rule on its own --mobile-facets class."
+  },
+  {
+   "name": "List row grid 3px 1fr, min-height 76",
+   "selector": ".cl-list-row",
+   "expect": {
+    "grid-template-columns": "3px *",
+    "min-height": "76px",
+    "padding-right": "44px"
+   }
+  },
+  {
+   "name": "3px full-bleed band spine",
+   "selector": ".cl-list-row > .cl-row-spine",
+   "expect": {
+    "width": "3px"
+   }
+  },
+  {
+   "name": "Row content padding 10px 6px 10px 12px, a flex column of two lines",
+   "selector": ".cl-list-row .cl-row-content",
+   "expect": {
+    "padding": "10px 6px 10px 12px",
+    "display": "flex",
+    "flex-direction": "column"
+   }
+  },
+  {
+   "name": "Line 1 jurisdiction code 10.5px/.06em",
+   "selector": ".cl-list-row .cl-row-juris",
+   "expect": {
+    "font-size": "10.5px",
+    "letter-spacing": "0.63px"
+   }
+  },
+  {
+   "name": "Line 1 title 13.5px/1.35, wraps, no ellipsis",
+   "selector": ".cl-list-row .cl-row-title-text",
+   "expect": {
+    "font-size": "13.5px",
+    "line-height": "18.23px",
+    "white-space": "normal",
+    "text-overflow": "clip"
+   }
+  },
+  {
+   "name": "Line 2 gap 9px, margin-top 7px, wrapping",
+   "selector": ".cl-list-row .cl-row-line2",
+   "expect": {
+    "gap": "9px",
+    "margin-top": "7px",
+    "flex-wrap": "wrap"
+   }
+  },
+  {
+   "name": "Impact bars are 8px wide",
+   "selector": ".cl-list-row .cl-impact-bar",
+   "expect": {
+    "width": "8px"
+   }
+  },
+  {
+   "name": "Date + days 11.5px/700",
+   "selector": ".cl-list-row .cl-row-due-label",
+   "expect": {
+    "font-size": "11.5px",
+    "font-weight": "700"
+   }
+  },
+  {
+   "name": "The days figure is 11.5px/500 muted",
+   "selector": ".cl-list-row .cl-row-due-days",
+   "expect": {
+    "font-size": "11.5px",
+    "font-weight": "500"
+   }
+  },
+  {
+   "name": "Tier square 9.5px/800 .06em in a 1px rgba(0,0,0,.2) radius-4 box",
+   "selector": ".cl-list-row .cl-tier-chip",
+   "expect": {
+    "font-size": "9.5px",
+    "font-weight": "800",
+    "letter-spacing": "0.57px",
+    "border-radius": "4px",
+    "border-top": "1px solid rgba(0, 0, 0, 0.2)"
+   }
+  },
+  {
+   "name": "Overflow control is a 44x44 target pinned to the row's right edge, with a left rule",
+   "selector": ".cl-list-row .cl-row-overflow",
+   "expect": {
+    "width": "44px",
+    "height": "44px",
+    "border-left": "1px solid rgba(0, 0, 0, 0.08)",
+    "position": "absolute",
+    "right": "0px"
+   },
+   "note": "MOBILE-60: it was an ordinary item of the wrapping line-2 flow, so at 390 it wrapped onto a line of its own in every row and rendered as a 44px box with a dangling left rule. The row reserves its width with padding-right; the grid itself is still the spec's 3px 1fr."
+  },
+  {
+   "name": "The 76px timeline column is the only thing dropped at this width",
+   "selector": ".cl-list-row .cl-row-timeline",
+   "expect": {
+    "display": "none"
+   }
+  },
+  {
+   "name": "Facet rows keep the 44px touch target at 390 (the 24px artboard row is the desktop measure)",
+   "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+   "note": "globals.css `@media (max-width: 767px)`. At 1440 the same element measures 24px (list-surface.json, item C1).",
+   "expect": {
+    "min-height": "44px"
+   }
+  }
+ ],
+ "forbid": [
+  {
+   "name": "no literal UNSCORED token anywhere",
+   "selector": "body",
+   "textMatch": "UNSCORED",
+   "reason": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
+  },
+  {
+   "name": "no NOT SCORED wording",
+   "selector": "body",
+   "textMatch": "NOT SCORED",
+   "reason": "Mobile 390 spec, LIST ROW: 'never a second row, never \"NOT SCORED\"'."
+  },
+  {
+   "name": "no bare fabricated 0/12 impact sum on an unscored row",
+   "selector": ".cl-list-row",
+   "textMatch": "re:(^|[^0-9])0/12",
+   "reason": "An unscored row renders the Absence convention, never a fabricated zero (regex, not substring, so a real 10/12 is not a false finding)."
+  },
+  {
+   "name": "no floating Ask AI control",
+   "selector": "body",
+   "textMatch": "Ask AI",
+   "reason": "Operator ruling P1 2.2: the masthead command bar is the ask; no floating control, at any width."
+  },
+  {
+   "name": "no desktop facet chip strip in the content column at any width",
+   "selector": ".cl-facets-desktop",
+   "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+  },
+  {
+   "name": "D-M4: no list row carries more than one absence token",
+   "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+   "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+  }
+ ],
+ "boundsCheck": [
+  {
+   "name": "no list-row cell overlaps a sibling or escapes its row at 390",
+   "container": ".cl-list-row",
+   "cells": ".cl-row-content > *",
+   "reason": "Same defect class at the narrowest supported width; 375 must not clip, so 390 must have headroom."
+  },
+  {
+   "name": "nothing in the content column is wider than the content column",
+   "container": ".cl-list-surface-grid",
+   "cells": ".cl-list-row, [data-audit=\"filters-rail\"]",
+   "reason": "MOBILE-60 regression guard: the watchlist built its own copy of the shell's frame and so carried none of the mobile page measures until this lane; it now renders the shell's own exported block."
+  },
+  {
+   "name": "D-M5: the masthead card contains its command bar",
+   "container": ".cl-masthead",
+   "cells": ".cl-command-bar",
+   "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+  },
+  {
+   "name": "no absence token escapes its own row at 390",
+   "container": ".cl-list-row",
+   "cells": ".cl-absence",
+   "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+  }
+ ]
 }

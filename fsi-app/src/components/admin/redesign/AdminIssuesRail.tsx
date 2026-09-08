@@ -21,7 +21,7 @@
 
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber } from "@/lib/format";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 
 export interface IssueNavTarget {
   section: string;
@@ -119,19 +119,10 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
   const total = rows.reduce((t, r) => t + r.count, 0);
 
   return (
-    <div
-      data-audit="rail-card"
-      style={{
-        minWidth: 0,
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card, 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06))",
-        overflow: "hidden",
-      }}
-    >
-      {/* Ruling 5.1: the graduated rule above the section title, no divider below it. */}
-      <SectionRule />
+    // Operator item A1 (2026-09-08): the admin rail card ("Coverage gaps (critical)" among its
+    // rows) is the shared `SectionCard`, which owns the rule, the border, the radius and the
+    // shadow. Ruling 5.1 unchanged: rule above the title, no divider below it.
+    <SectionCard dataAudit="rail-card" style={{ minWidth: 0 }}>
       <div style={{ padding: "12px 16px 14px" }}>
         <div
           style={{
@@ -168,7 +159,13 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
           </span>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, fontSize: 12 }}>
+        {/* Lane adminlayout (2026-09-08), the operator's item 5: "Issues queue rows are 11 rows
+            tall at ~40px, design is 24px rows with the count right-aligned tabular; zero rows
+            muted." The rows were ~40px because each title WRAPPED to two lines in the 300px rail
+            and carried 8px of gap on top of that. The title is now one line at 24px with the
+            count right-aligned and tabular beside it, and the list gap is gone (each row's own
+            hairline is the separation). */}
+        <div style={{ display: "flex", flexDirection: "column", fontSize: 12 }}>
           {rows.map((r) => (
             <RailButton key={r.key} row={r} onNavigate={onNavigate} />
           ))}
@@ -188,7 +185,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
               : "Refreshes every 60s · zero-count rows stay quiet — a zero is a fact, not an alarm."}
         </p>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -201,6 +198,11 @@ function RailButton({
 }) {
   const zero = row.count === 0;
 
+  // 24px is the row's own line box. A non-zero row is a BUTTON, and the hit-target rule
+  // (>=44px in one dimension, >=28px in the other) floors an interactive box at 28: the 2px of
+  // vertical padding is exactly that floor and nothing more, so the 24px rhythm the operator
+  // asked for is what the eye reads and the target is still legal. A zero row is not
+  // interactive and sits at a flat 24.
   const base: React.CSSProperties = {
     fontFamily: "inherit",
     cursor: zero ? "default" : "pointer",
@@ -209,7 +211,9 @@ function RailButton({
     justifyContent: "space-between",
     gap: 10,
     alignItems: "center",
-    padding: "4px 0",
+    height: zero ? 24 : undefined,
+    minHeight: zero ? 24 : 28,
+    padding: zero ? 0 : "2px 0",
     background: "transparent",
     border: "none",
     borderBottom: "1px solid rgba(0,0,0,.06)",
@@ -222,7 +226,13 @@ function RailButton({
         style={{
           fontWeight: zero ? 500 : 700,
           color: zero ? "var(--ink-2)" : "var(--text)",
+          lineHeight: "20px",
+          minWidth: 0,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
         }}
+        title={row.title}
       >
         {row.title}
       </span>
@@ -230,8 +240,10 @@ function RailButton({
         style={{
           fontFamily: "var(--font-display)",
           fontSize: 16,
-          color: zero ? "var(--text)" : "var(--sev-critical)",
+          lineHeight: "20px",
+          color: zero ? "var(--ink-3)" : "var(--sev-critical)",
           fontVariantNumeric: "tabular-nums",
+          textAlign: "right",
           flexShrink: 0,
         }}
       >

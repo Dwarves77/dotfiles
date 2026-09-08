@@ -43,7 +43,7 @@ import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
 import { ImpactMeter, isImpactScored } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
-import { TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
+import { TagChip, TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
 import { Absence, pickAbsenceReason, type AbsenceReason } from "@/components/ui/Absence";
 
 export interface ListRowProps {
@@ -52,6 +52,19 @@ export interface ListRowProps {
   jurisdiction: string;
   title: string;
   meta?: ReactNode;
+  /**
+   * Additive extension (item B1, operator 2026-09-08): the row's KIND chip
+   * ("Monitoring", "Cost alert", "Background"), rendered as the first thing on
+   * the meta line exactly as dc.html p4 line 517 draws it — a neutral tag, no
+   * border, at the row size (`TagChip variant="row"`).
+   *
+   * It is a prop rather than something a page composes into `meta` because the
+   * operator's item is that the CHIP is wrong everywhere, not that three pages
+   * are wrong: with the chip built here, no list surface can build one of its
+   * own and drift. Undefined renders nothing extra, so callers with no kind
+   * (Watchlist, the dashboard tables) are unaffected.
+   */
+  kind?: ReactNode;
   impact?: ImpactScores | null;
   /** Due date label (e.g. "Nov 18 2026") + days-until label (e.g. "73 days"). */
   due?: { label: string; days: string } | null;
@@ -332,6 +345,15 @@ const RESPONSIVE_CSS = `
     .cl-row-title-text { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; font-size: 13.5px !important; line-height: 1.35 !important; }
     .cl-row-line1 .cl-row-juris { font-size: 10.5px !important; letter-spacing: 0.06em !important; color: var(--ink-2) !important; }
     .cl-row-meta-tags { display: none !important; }
+    /* B3/B4/B5 (2026-09-08): the row's single absence reason now lives on this line at every
+       width, and this line is hidden at 390 (the mobile 390 spec's two-line row has no meta
+       line). Hiding it wholesale would lose the reason on mobile, where the value cells now draw
+       dashes and nothing would explain them — which is the same "no explanation" defect from the
+       other side. So the line comes back for a row that HAS a reason, carrying the reason alone:
+       the meta text, kind chip and tags stay hidden exactly as the spec has them, and the tags
+       still re-render in line 2 (.cl-row-tags-mobile) unchanged. */
+    .cl-row-meta-tags:has(> .cl-row-absence-slot) { display: flex !important; }
+    .cl-row-meta-tags > *:not(.cl-row-absence-slot) { display: none !important; }
     .cl-row-line2 { display: flex !important; align-items: center; flex-wrap: wrap; gap: 9px; margin-top: 7px; }
     .cl-row-due { flex-direction: row !important; align-items: baseline !important; gap: 5px; }
     .cl-row-due-label { font-size: 11.5px !important; font-weight: 700 !important; }
@@ -365,7 +387,7 @@ const RESPONSIVE_CSS = `
   }
 `;
 
-export function ListRow({ href, band, jurisdiction, title, meta, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56, variant = "list" }: ListRowProps) {
+export function ListRow({ href, band, jurisdiction, title, meta, kind, impact, due, timeline, tier, overflow, endStat, tags, minHeight = 56, variant = "list" }: ListRowProps) {
   if (variant === "register" && endStat) {
     return (
       <div
@@ -500,19 +522,36 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
   // dimension, so the token still sits under the column it explains and the other cells stay
   // empty. `reasonSlot` is what makes "at most one" structural rather than a convention.
   //
-  // FOLD-61: lane opsclip's narrow-cell rule is the PRESENTATION half of this same mechanism, not
-  // a second one. This block decides WHICH reason a row shows and WHERE; `variant="narrow"`
-  // decides how that one reason is drawn in a cell too small to hold the phrase. They meet in the
-  // tier cell, the only 40px fixed track of the three, and the artboard decides what it shows:
-  // dc.html p2 and p8 draw a dash there and explain it once in the card foot, so the tier slot
-  // renders the dash while the impact and due slots, which have room, render the words.
+  // ITEMS B3/B4/B5 (operator UI fix round 2026-09-08) SUPERSEDE the placement half of the above,
+  // and only the placement half. The precedence and the "exactly one reason per row" guarantee are
+  // unchanged and still live in Absence.tsx; what changes is WHERE each piece renders, because the
+  // operator measured the consequences of putting the reason in the value cells:
+  //
+  //   B4 "NOT IN PRIMARY SOURCE wrapping to three lines inside the tier cell (Dashboard) ...
+  //       the absence reason goes in the meta line of the title cell, small caps 10.5px, never in
+  //       the tier column."
+  //   B5 "PENDING plus a flat grey line in the date and timeline columns. Date cell shows an em
+  //       dash; timeline cell shows the empty-track variant."
+  //   B3 "... em dash in the score slot. Reason word only when the reason is not 'unscored'."
+  //
+  // So: every value cell that has nothing to show draws a DASH (or, for the timeline, its own
+  // empty track), and the one reason word sits once, on the meta line, where it has the width to
+  // be read. `reasonSlot` is gone — there is no slot to choose any more, which is why it is
+  // deleted rather than left as a second, now-unused mechanism (CLAUDE.md rule 13).
+  //
+  // `variant="narrow"` (lane opsclip's dash-in-a-40px-cell rule) is no longer used by the row: it
+  // swaps back to the WORD below 768px, which would put a second token on a mobile row now that
+  // the meta line carries the reason at every width. The operations matrix still uses it, which is
+  // why it stays in Absence.tsx.
   const impactScored = isImpactScored(impact);
   const rowAbsence: AbsenceReason | null = pickAbsenceReason([
     tier == null ? "not in primary source" : null,
     !due || !impactScored ? "pending" : null,
   ]);
-  const reasonSlot: "impact" | "due" | "tier" | null =
-    rowAbsence === null ? null : rowAbsence === "not in primary source" ? "tier" : !due ? "due" : "impact";
+  // B3's "only when the reason is not 'unscored'". ABSENCE_PRECEDENCE never returns "unscored"
+  // (see Absence.tsx: the dashed baseline already draws that state), so this is belt and braces
+  // that stays honest if the vocabulary is ever re-ordered.
+  const metaReason: AbsenceReason | null = rowAbsence && rowAbsence !== "unscored" ? rowAbsence : null;
 
   const tailContent = (
     <>
@@ -529,7 +568,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           tried here during this fix clipped "not in primary source" mid-word instead of letting it
           wrap, a regression caught in this lane's own screenshot check, not a fix. */}
       <span className="cl-row-impact" style={{ display: "flex", alignItems: "center", minWidth: 0, overflow: "hidden" }}>
-        <ImpactMeter scores={impact} reason={reasonSlot === "impact" ? rowAbsence : null} />
+        <ImpactMeter scores={impact} />
       </span>
       <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end", minWidth: 0 }}>
         {due ? (
@@ -539,22 +578,30 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
             </span>
             <span className="cl-row-due-days" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
           </>
-        ) : reasonSlot === "due" && rowAbsence ? (
-          <Absence reason={rowAbsence} />
-        ) : null}
+        ) : (
+          // B5: "Date cell shows an em dash". dc.html p1's own unscored row draws it at 12.5px
+          // #7A6E6C, right-aligned, which is the date label's own size in the muted colour.
+          <span className="cl-row-due-dash" style={{ fontSize: "var(--fs-125)", lineHeight: 1 }}>
+            <Absence reason={rowAbsence ?? "pending"} variant="dash" />
+          </span>
+        )}
       </span>
       <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
+        {/* B5: "timeline cell shows the empty-track variant (1px rgba(0,0,0,.12), no dots)".
+            MilestoneTimeline already renders exactly that for an empty entry list, so nothing here
+            changes; it is the operator's own item and is verified by a spec row rather than
+            rebuilt. dc.html p1's unscored row draws an em dash in this column instead — the
+            operator's later item wins, and the divergence is logged in DEVIATION-LOG.md. */}
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
       </span>
-      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", textAlign: "center", minWidth: 0 }}>
-        {/* DEFECT 3 (lane opsclip, train 61): the TIER column is a 40px fixed track, and
-            "NOT IN PRIMARY SOURCE" wrapped over three lines inside it, doubling the row's height
-            on the dashboard. `variant="narrow"` is the Absence part's own rule for a cell this
-            size, the dash, with the same closed-vocabulary reason on `aria-label`/`title`.
-            D-M4 (lane mobfix61) decides WHETHER this cell is the one that speaks: the dash is
-            drawn only when the row's single reason belongs to the tier dimension, so a row whose
-            reason is "pending" leaves this cell empty rather than adding a second token. */}
-        {tier != null ? <TierChip tier={tier} /> : reasonSlot === "tier" && rowAbsence ? <Absence reason={rowAbsence} variant="narrow" /> : null}
+      <span className="cl-row-tier" style={{ display: "flex", alignItems: "center", justifyContent: "center", textAlign: "center", minWidth: 0, fontSize: "var(--fs-11)" }}>
+        {/* B4: "Tier cell shows an em dash when there is no tier." Before this the cell drew the
+            dash only when the row's single reason happened to belong to the tier dimension and was
+            otherwise EMPTY, and below 768px that same element swapped to the words "NOT IN PRIMARY
+            SOURCE" (Absence's `narrow` variant). Both are superseded: the cell now always says
+            something honest about the tier dimension, and never says the reason, which lives once
+            on the meta line. */}
+        {tier != null ? <TierChip tier={tier} /> : <Absence reason={rowAbsence ?? "not in primary source"} variant="dash" />}
       </span>
     </>
   );
@@ -644,7 +691,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                 `tags` re-renders below in .cl-row-line2 (mobile spec's line-2 item order) instead —
                 logged in DEVIATION-LOG.md: the mobile spec is silent on `meta`'s own position, so it
                 is left exactly where it already sat rather than invented a new placement. */}
-            {(meta || (tags && tags.length > 0)) && (
+            {(meta || kind || metaReason || (tags && tags.length > 0)) && (
               <span
                 className="cl-row-meta-tags"
                 style={{
@@ -655,8 +702,13 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                   marginTop: 2,
                 }}
               >
+                {/* B1: the kind chip is the first thing on the meta line, exactly as dc.html p4
+                    line 517 draws it — the neutral row-size TagChip, built here so no page builds
+                    one. */}
+                {kind && <TagChip variant="row">{kind}</TagChip>}
                 {meta && (
                   <span
+                    className="cl-row-meta-text"
                     style={{
                       fontSize: "var(--fs-11)",
                       color: "var(--ink-3)",
@@ -677,6 +729,15 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                     }}
                   >
                     {meta}
+                  </span>
+                )}
+                {/* B3/B4/B5: the row's ONE small-caps reason, here and nowhere else. It is
+                    `flexShrink: 0` so the meta TEXT beside it ellipsises first — the reason is the
+                    thing the operator asked to be readable, and it is short and fixed-vocabulary,
+                    while the meta text is long and already truncating. */}
+                {metaReason && (
+                  <span className="cl-row-absence-slot" style={{ display: "inline-flex", flexShrink: 0 }}>
+                    <Absence reason={metaReason} />
                   </span>
                 )}
                 {tags && tags.length > 0 && (

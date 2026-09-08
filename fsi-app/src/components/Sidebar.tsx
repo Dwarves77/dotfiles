@@ -355,6 +355,12 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
           // class-only `align-self` would be silently inert there (and unverifiable)
           // even though it works in the real, fully-built app. Inline style is the
           // one form that is true in both.
+          // fitness-allow: F42 (THE NAV CARD. Ruling 5.2 (2026-09-07) names the nav card cap as
+          // one of exactly three places sitewide that carry the BAND-coloured 3px rule
+          // (BandGradientRule below), so this card must NOT mount SectionRule; it is the one card
+          // whose top edge is a different rule by ruling, not by omission. Operator 2026-09-08:
+          // "Do not touch: band tiles, band-block rules, masthead type, command bar, the frame
+          // widths".)
           alignSelf: "stretch",
           // Operator audit item 4.2 (2026-09-07, CLOSED ruling): "Nav card top margin becomes 20px
           // (margin: 20px 0 16px 16px) so it aligns with the content column's 20px top padding."
@@ -370,6 +376,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
           <Link href="/" prefetch={false} className="block">
             <h1
               className="text-xl uppercase"
+              data-guard-display="wordmark"
               style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em" }}
             >
               {APP_NAME}
@@ -410,6 +417,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               <Link href="/" prefetch={false} onClick={onDrawerClose} className="block">
                 <h1
                   className="uppercase"
+                  data-guard-display="wordmark"
                   style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em", fontSize: 19 }}
                 >
                   {APP_NAME}

@@ -136,6 +136,15 @@ const PRIORITY_TOKENS: Record<
 
 const PRIORITY_ORDER: PriorityValue[] = ["CRITICAL", "HIGH", "MODERATE", "LOW"];
 
+// Item B2 (operator, 2026-09-08). dc.html p1's row-end glyph carries
+// `style-hover="background:#F5F2EE"` on the 28px box — the hover lives on the GLYPH, not on the
+// 44px hit target, so the feedback the reader sees is the artboard's small rounded square rather
+// than a 44px block lighting up. Inline styles cannot express :hover, so it is one rule on the
+// one component that renders this control.
+const OVERFLOW_GLYPH_CSS = `
+  .cl-overflow-trigger:hover .cl-overflow-glyph { background: #F5F2EE; }
+`;
+
 export function PriorityDropdown({
   currentPriority,
   isDismissed = false,
@@ -207,36 +216,70 @@ export function PriorityDropdown({
       // explicit stopPropagation on the trigger ever misses a path.
       onClick={(e) => e.stopPropagation()}
     >
+      {/* Outside the button on purpose: a <style> child's textContent is read by the rendering
+          guard's row-control assertions, which is how a stylesheet ended up being reported as the
+          control's label the first time this rule was written. */}
+      <style>{OVERFLOW_GLYPH_CSS}</style>
       {/* Law-2 floor (44 CSS px, or 24px with 8px clearance): this button sits inside the row's
           own <Link> (the whole regulation row is a navigation target), so the button's box always
           overlaps its containing anchor — the clearance branch can never pass. ROOT CAUSE (screenshot
           05-regulations-upcoming, confirmed): a 24x24 button here, labelled but under the floor.
-          The tap target grows to 44x44; the visible "..." glyph stays the same small size, centered. */}
+          The tap target is therefore 44x44 and stays 44x44.
+
+          ITEM B2 (operator, 2026-09-08): "The overflow control is a 28px CIRCLE with a border. It
+          is a bare '...' glyph, #7A6E6C, 28px optical, inside a 44px cell, with a 1px
+          rgba(0,0,0,.08) left divider on the cell. No circle, no border."
+
+          dc.html p1 draws exactly two boxes here and this build had collapsed them into one: the
+          CELL (44px wide, carrying the divider — ListRow owns that and already had it right) and
+          the GLYPH box, `width:28px;height:28px;border-radius:6px;color:#7A6E6C` with a `#F5F2EE`
+          hover and NO border. What shipped instead was a single 44x44 element carrying
+          `border-radius:999px` plus `1px solid var(--color-border)`, which is the bordered circle
+          the operator photographed.
+
+          So the two boxes are separated again rather than one traded for the other: the BUTTON is
+          the 44x44 hit target, transparent and borderless, and the artboard's 28x28 glyph box sits
+          centred inside it. The hit target law-2 measures is unchanged; only the paint changes. */}
       <button
         type="button"
         aria-label={ariaLabel}
         aria-haspopup="menu"
         aria-expanded={open}
         onClick={handleToggle}
+        className="cl-overflow-trigger"
         style={{
           width: 44,
           height: 44,
-          borderRadius: 999,
-          border: "1px solid var(--color-border)",
-          background: "var(--color-surface)",
-          color: "var(--color-text-secondary)",
+          borderRadius: 0,
+          border: "none",
+          background: "transparent",
           cursor: "pointer",
           display: "inline-flex",
           alignItems: "center",
           justifyContent: "center",
-          fontSize: 14,
           lineHeight: 1,
           padding: 0,
           fontFamily: "inherit",
         }}
       >
-        {/* Unicode "horizontal ellipsis" — not an emoji */}
-        {"⋯"}
+        <span
+          aria-hidden="true"
+          className="cl-overflow-glyph"
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            color: "#7A6E6C",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: 14,
+            lineHeight: 1,
+          }}
+        >
+          {/* Unicode "horizontal ellipsis" — not an emoji */}
+          {"⋯"}
+        </span>
       </button>
 
       {open && (

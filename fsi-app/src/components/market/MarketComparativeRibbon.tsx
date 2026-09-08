@@ -23,7 +23,7 @@
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
 import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { formatNumber } from "@/lib/format";
 
 interface MarketComparativeRibbonProps {
@@ -85,26 +85,13 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
   const shown = rows.slice(0, MAX_METRICS);
   const hiddenCount = rows.length - shown.length;
 
-  const embeddedCardStyle = {
-    background: "var(--card)",
-    border: "1px solid var(--line-1)",
-    borderRadius: "var(--radius-card)",
-    boxShadow: "var(--shadow-card)",
-    overflow: "hidden",
-  };
-
-  return (
-    <div
-      data-audit={embedded ? "headline-series" : undefined}
-      style={
-        embedded ? embeddedCardStyle : { maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }
-      }
-    >
-      {/* Ruling 5.1 (2026-09-07, CLOSED): the graduated rule sits ABOVE the title, full card
-          width, no radius, and there is NO divider below the title — a solid border-bottom under
-          "Comparative ribbon" was the exact defect 5.1 names. Section title itself: Anton
-          uppercase, no divider, no underline. */}
-      {embedded && <SectionRule />}
+  // Operator item A1 (2026-09-08): "Headline series" is one of the eighteen listed cards. Its card
+  // shell used to be a local style object plus a conditional `<SectionRule/>`; both are gone, and
+  // the embedded form is the shared `SectionCard`, which mounts the rule itself. Ruling 5.1
+  // (2026-09-07, CLOSED) is unchanged and now unskippable: rule above the title, no divider below
+  // it (a solid border-bottom under this title was the defect 5.1 names).
+  const body = (
+    <>
       <div
         style={{
           display: "flex",
@@ -174,7 +161,13 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           ))}
         </div>
       </MoreBelowDisclosure>
-    </div>
+    </>
+  );
+
+  return embedded ? (
+    <SectionCard dataAudit="headline-series">{body}</SectionCard>
+  ) : (
+    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>{body}</div>
   );
 }
 

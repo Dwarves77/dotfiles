@@ -328,3 +328,4 @@ The current surface-spec set (all DRAFT for operator review, 2026-08-12). Specs 
 ## Audits
 
 - `docs/audits/full-read-audit-2026-08-31.md` — the 100% full-read audit (19 lanes, 1,199 files, coordinator-verified): defects, unwired, dead, never-ran, schema drift, action queue. Evidence: `docs/audits/full-read-2026-08-31/`.
+- [layout-guard-2026-09-08](audits/layout-guard-2026-09-08.md) - the site-wide layout guard's first full run: L1 to L12 over all 17 routes at 1440 and 1024, by rule and by route, with the owning part named for every group of findings.

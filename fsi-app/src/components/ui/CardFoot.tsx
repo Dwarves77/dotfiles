@@ -63,7 +63,13 @@ function FootLink({ href, children }: { href: string; children: ReactNode }) {
         textDecoration: "underline",
         textUnderlineOffset: 2,
         display: "inline-block",
-        padding: "8px 0",
+        // L9 (site-wide layout guard, lane layoutguard 2026-09-08): "every interactive element
+        // >= 44px in one dimension and >= 28px in the other". At 8px these links measured 24px
+        // tall on every card foot in the product, 4px under the floor. 10px vertical padding on
+        // the same 12px line box is 28px exactly, and changes nothing else about the strip: the
+        // padding is transparent, and the text baseline and the foot's own 10px padding are
+        // untouched.
+        padding: "10px 0",
       }}
     >
       {children}

@@ -111,8 +111,16 @@ test("the mobile page frame is the list shell's own exported block, not a second
   assert.match(SRC, /import \{ LIST_SURFACE_MOBILE_CSS \} from "@\/components\/list-surface\/ListSurfaceShell"/);
   assert.match(SRC, /<style>\{LIST_SURFACE_MOBILE_CSS\}<\/style>/);
   assert.match(SRC, /className="cl-list-surface-masthead"/);
-  // The <=1280 single-track override keeps the minmax(0, ...) floor: a bare 1fr is
-  // minmax(auto, 1fr), whose auto minimum is min-content, and the track then grows past the
-  // viewport (the defect measured on the dashboard at 390).
-  assert.match(SRC, /\.cl-list-surface-grid \{ grid-template-columns: minmax\(0, 1fr\) !important; \}/);
+  // UPDATED (lane layoutguard, 2026-09-08). The <=1280 single-track override used to be written
+  // here, inline, and this assertion read it here. It is now <PageFrame/>'s, along with the rest of
+  // README §0.3's grid - nine surfaces carried their own copy of that frame and the copies had
+  // drifted, which is the same rule-13 argument this test itself makes one paragraph above about
+  // LIST_SURFACE_MOBILE_CSS. The invariant is unchanged and is asserted where it now lives: this
+  // surface mounts the shared frame, and the shared frame keeps the minmax(0, ...) floor (a bare
+  // 1fr is minmax(auto, 1fr), whose auto minimum is min-content, and the track then grows past the
+  // viewport - the defect measured on the dashboard at 390).
+  assert.match(SRC, /<PageFrame className="cl-list-surface-grid">/);
+  assert.doesNotMatch(SRC, /gridTemplateColumns: "minmax\(0,1fr\) 300px"/, "the frame is mounted, never restated");
+  const FRAME = readFileSync(resolve(here, "../layout/PageFrame.tsx"), "utf8");
+  assert.match(FRAME, /grid-template-columns: minmax\(0, 1fr\) !important/);
 });

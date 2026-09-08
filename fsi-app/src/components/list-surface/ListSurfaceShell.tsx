@@ -39,7 +39,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
@@ -315,31 +315,10 @@ function FilterSheet({
   );
 }
 
-function Card({ children, noRule }: { children: ReactNode; noRule?: boolean }) {
-  // Ruling 5.1 (2026-09-07): every panel/section card gets the dark-grey graduated top rule. The
-  // per-band Card (BandSectionHeader inside it) already carries its own top-edge 3px band-colour
-  // accent, which is a data-grouping marker (which band this row group is), not a page-level
-  // "section title" rule in 5.1's sense — `noRule` lets that one caller skip a doubled-up top edge
-  // rather than stacking two 3px rules. The loading/empty-state Cards (no band header) still get it.
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      {!noRule && <SectionRule />}
-      {children}
-    </div>
-  );
-}
-
 function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total: number; showing: number }) {
   return (
     <div
+      data-audit="band-header"
       style={{
         display: "flex",
         alignItems: "baseline",
@@ -351,12 +330,32 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
         background: "var(--card)",
       }}
     >
+      {/* Operator item A2 (2026-09-08), verbatim: "the band-block header text ('IMMEDIATE <= 90
+          days') must be 11px/800 .08em uppercase in the band colour, dot 7px, window 11px muted,
+          currently too small". Measured before: dot 6px, label letter-spacing .1em, window 10.5px.
+          The label's own size and weight (11px/800, band colour, uppercase) were already right.
+          A2's values differ from what artboard 02's own band-block header draws (8px dot, .1em,
+          11.5px window); the operator's 2026-09-08 item is the later ruling and wins over the
+          artboard, per the precedence rule. Logged in DEVIATION-LOG.md with both values.
+          A2 states three values and nothing else, so the row's `alignItems: "baseline"` and its
+          8px gap stay exactly as they are (the artboard draws centre alignment and a 10px gap);
+          logged, not improvised. The band-coloured 3px rule above is correct today and untouched
+          (ruling 5.2's one coloured rule per screen). */}
       <span style={{ display: "flex", alignItems: "baseline", gap: 8 }}>
-        <span aria-hidden="true" style={{ width: 6, height: 6, borderRadius: "50%", background: band.cssVar, display: "inline-block" }} />
-        <span style={{ fontSize: "var(--fs-11)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: band.cssVar }}>
+        <span
+          aria-hidden="true"
+          data-audit="band-header-dot"
+          style={{ width: 7, height: 7, borderRadius: "50%", background: band.cssVar, display: "inline-block" }}
+        />
+        <span
+          data-audit="band-header-label"
+          style={{ fontSize: "var(--fs-11)", fontWeight: 800, letterSpacing: "0.08em", textTransform: "uppercase", color: band.cssVar }}
+        >
           {band.label}
         </span>
-        <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{band.window}</span>
+        <span data-audit="band-header-window" style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
+          {band.window}
+        </span>
       </span>
       <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
         showing {formatNumber(showing)} of {formatNumber(total)}
@@ -498,19 +497,19 @@ export function ListSurfaceShell({
               rowsByBand's own per-band arrays already carry, concatenated into one unheaded list;
               still virtualized past the threshold, still each row's own true band colouring. */}
           {loadingFirstPage ? (
-            <Card>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</Card>
+            <SectionCard>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</SectionCard>
           ) : !anyRows ? (
-            <Card>
+            <SectionCard>
               {/* A caller-supplied empty state carries its own padding (artboard 06/id="p6":
                   28px 20px, centred, Anton title). The default StateNote gets the 16px inset it
                   has always had. */}
               {emptyState ?? <div style={{ padding: 16 }}><StateNote>Nothing matches these filters right now.</StateNote></div>}
-            </Card>
+            </SectionCard>
           ) : flat ? (
             (() => {
               const flatRows = rowsByBand.flatMap((section) => section.rows);
               return (
-                <Card noRule>
+                <SectionCard suppressRuleForBandGrouping>
                   {flatRows.length > VIRTUALIZE_THRESHOLD ? (
                     <VirtualizedRowList
                       rows={flatRows}
@@ -527,7 +526,7 @@ export function ListSurfaceShell({
                       return <ListRow key={key} {...rowProps} />;
                     })
                   )}
-                </Card>
+                </SectionCard>
               );
             })()
           ) : (
@@ -538,7 +537,7 @@ export function ListSurfaceShell({
                 const cap = expanded ? section.rows.length : perBandCap;
                 const visible = section.rows.slice(0, cap);
                 return (
-                  <Card key={section.band.key} noRule>
+                  <SectionCard key={section.band.key} suppressRuleForBandGrouping>
                     <BandSectionHeader band={section.band} total={section.total} showing={visible.length} />
                     {visible.length > VIRTUALIZE_THRESHOLD ? (
                       // PERF-12 (restored UILISTS2 lane, 2026-09-07): a band expanded to its full
@@ -623,7 +622,7 @@ export function ListSurfaceShell({
                       const foot = sectionFoot?.(section.band.key, nextSection ? nextSection.band.key : null);
                       return foot ? <div style={{ margin: "0 16px 14px" }}>{foot}</div> : null;
                     })()}
-                  </Card>
+                  </SectionCard>
                 );
               })
           )}

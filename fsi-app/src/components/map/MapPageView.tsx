@@ -53,7 +53,7 @@ import { BAND_ORDER, bandFromPriority, type UrgencyBand, type UrgencyBandKey } f
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { formatNumber } from "@/lib/format";
@@ -109,17 +109,6 @@ function bandOf(items: Resource[]): UrgencyBand {
     if (items.some((r) => bandFromPriority(r.priority).key === b.key)) return b;
   }
   return BAND_ORDER[BAND_ORDER.length - 1];
-}
-
-function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", overflow: "hidden" }}>
-      {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no divider
-          below the title — see CardHead below, whose borderBottom this removes. */}
-      <SectionRule />
-      {children}
-    </div>
-  );
 }
 
 export function MapPageView(props: MapPageViewProps) {
@@ -360,7 +349,7 @@ export function MapPageView(props: MapPageViewProps) {
         )}
 
         {/* Regulatory map */}
-        <Card>
+        <SectionCard>
           <SectionHeading
             title="Regulatory map"
             aside={`${chartedRows.length} charted of ${liveJurisdictions} live · ${chartedItemCount} of ${totalActiveCount} items`}
@@ -387,10 +376,10 @@ export function MapPageView(props: MapPageViewProps) {
               />
             </div>
           </div>
-        </Card>
+        </SectionCard>
 
         {/* Jurisdiction register — one ListRow per jurisdiction. */}
-        <Card>
+        <SectionCard>
           <SectionHeading
             title="Jurisdiction register"
             aside={
@@ -447,7 +436,7 @@ export function MapPageView(props: MapPageViewProps) {
               </StateNote>
             </div>
           )}
-        </Card>
+        </SectionCard>
       </div>
 
       {/* Rail, the SHARED RailCard/LegendRailCard (src/components/list-surface/

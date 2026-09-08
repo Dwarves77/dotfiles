@@ -97,21 +97,49 @@ export function TierChip({ tier, max = 6 }: { tier: number; max?: number }) {
   );
 }
 
-/** Neutral kind/mode/topic tag on --tag. */
-export function TagChip({ children }: { children: React.ReactNode }) {
+/**
+ * Neutral kind/mode/topic tag on --tag. NO border at either size — the tier
+ * square is the only bordered chip (chip family rule 2.5, operator 2026-09-07,
+ * restated in item B1 of 2026-09-08).
+ *
+ * Two sizes, because the artboards draw two and only two:
+ *
+ *  - `variant="detail"` (default, unchanged): the detail header's chip row,
+ *    dc.html p5 line 292 — `padding:3px 8px;border-radius:4px;background:
+ *    #F5F2EE;font-weight:600;font-size:10.5px;letter-spacing:.04em;
+ *    text-transform:uppercase`. Every existing caller keeps this byte for byte.
+ *  - `variant="row"` (item B1, operator 2026-09-08): the LIST ROW's kind chip,
+ *    dc.html p4 line 517 — `padding:1px 6px;border-radius:3px;background:
+ *    #F5F2EE;font-weight:700;font-size:9.5px;letter-spacing:.06em;
+ *    text-transform:uppercase;color:#1A1A1A`. The operator's item states the
+ *    vertical padding as 2px, not the artboard's 1px, and his item list is the
+ *    later and explicit instruction ("exact values ... are not to be rounded,
+ *    adjusted or improved"), so 2px 6px is built and the artboard's 1px is
+ *    logged in DEVIATION-LOG.md. Colour is the artboard's #1A1A1A (the item
+ *    does not name a colour; the artboard is the authority where it is silent).
+ *
+ * The list row selects the row size itself, from `ListRow`'s `kind` prop — no
+ * page builds a chip of its own, so no page can drift.
+ */
+export function TagChip({ children, variant = "detail" }: { children: React.ReactNode; variant?: "detail" | "row" }) {
+  const row = variant === "row";
   return (
     <span
+      className={row ? "cl-tag-chip cl-tag-chip-row" : "cl-tag-chip"}
       style={{
         display: "inline-flex",
         alignItems: "center",
-        fontSize: "var(--fs-105)",
-        fontWeight: 600,
-        color: "var(--ink-2)",
+        fontSize: row ? "var(--fs-95)" : "var(--fs-105)",
+        fontWeight: row ? 700 : 600,
+        color: row ? "var(--ink)" : "var(--ink-2)",
         background: "var(--tag)",
-        borderRadius: 4,
+        borderRadius: row ? 3 : 4,
         textTransform: "uppercase",
-        letterSpacing: "0.04em",
-        padding: "3px 8px",
+        letterSpacing: row ? "0.06em" : "0.04em",
+        padding: row ? "2px 6px" : "3px 8px",
+        // Row-only: the row's meta line is a single nowrap/ellipsis line (dc.html p4 line 517), so
+        // the chip inside it must not wrap. The detail variant is left exactly as it was.
+        ...(row ? { whiteSpace: "nowrap" as const, flexShrink: 0 } : null),
       }}
     >
       {children}

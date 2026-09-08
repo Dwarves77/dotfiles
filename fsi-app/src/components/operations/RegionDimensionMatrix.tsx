@@ -51,7 +51,7 @@
 import { Fragment, useMemo, useState } from "react";
 import type { OperationsFact, OperationsCoverageRow } from "@/lib/supabase-server";
 import { Absence } from "@/components/ui/Absence";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import {
   buildRegionGrid,
   orderRegions,
@@ -204,17 +204,11 @@ export function RegionDimensionMatrix({
   if (regions.length === 0 || dimensions.length === 0) return null;
 
   return (
-    <section
-      data-audit="ops-matrix-card"
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    // Operator items A1 + E4 (2026-09-08): "Regions side by side" is one of the eighteen listed
+    // cards, and E4 rules its 3px rule the dark grey gradation like every other card, never red.
+    // Both are now structural rather than a caller's choice: `SectionCard` mounts the one rule
+    // (SectionRule, ruling 5.2's dark grey), and this file can no longer choose a colour for it.
+    <SectionCard as="section" dataAudit="ops-matrix-card">
       {/* Artboard 08/id="p8" head strip: Anton section title left, the coverage/affordance meta
           right, one hairline below. The prose paragraph that used to sit under the title carried
           the same three facts in sentence form; it is gone, not duplicated. */}
@@ -650,7 +644,7 @@ export function RegionDimensionMatrix({
         </span>
         <span style={{ color: "var(--ink-3)" }}>An empty cell = no sourced fact yet, never an estimate</span>
       </div>
-    </section>
+    </SectionCard>
   );
 }
 

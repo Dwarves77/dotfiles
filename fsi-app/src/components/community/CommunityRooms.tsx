@@ -46,7 +46,7 @@ import { Absence, ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 import { Button } from "@/components/ui/Button";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { SectionHeading } from "@/components/ui/SectionHeading";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import {
   RowTable,
   RowTableOverflow,
@@ -169,12 +169,13 @@ const EYEBROW: React.CSSProperties = {
   color: "var(--color-text-muted)",
   margin: 0,
 };
-const CARD: React.CSSProperties = {
-  background: "var(--surface)",
-  border: "1px solid var(--color-border)",
-  borderRadius: 8,
-  overflow: "hidden",
-};
+// Operator items A1 + A3 (2026-09-08). This file used to carry its own `CARD` style object:
+// radius 8 and NO shadow, against the artboard's radius 10 and
+// `0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06)`, and each caller mounted (or
+// forgot) `<SectionRule/>` by hand. That is precisely the defect A1/A3 name: a card shell retyped
+// per file drifts, and a rule each caller must remember goes missing. Every card here is now the
+// shared `SectionCard`, so the community rail cards, the Global room card and the New post card
+// carry the same rule, radius, border and shadow as every other card in the product.
 /** The rail-card eyebrow, dc.html p12 verbatim: 10.5px / .12em / uppercase / 700 / --ink-3. */
 const RAIL_EYEBROW: React.CSSProperties = {
   fontSize: "var(--fs-105)",
@@ -931,8 +932,7 @@ export function CommunityRooms({
             </div>
 
             {/* ══ Room index — artboard 12's table ══ */}
-            <div style={CARD} data-audit="room-index">
-              <SectionRule />
+            <SectionCard dataAudit="room-index">
               <SectionHeading
                 title={`${roomName} room`}
                 aside={`${threads.length} discussion${threads.length === 1 ? "" : "s"} · ${threads.length} shown · ${selected.roster.length} member${selected.roster.length === 1 ? "" : "s"} here`}
@@ -965,11 +965,10 @@ export function CommunityRooms({
                   </Button>
                 }
               />
-            </div>
+            </SectionCard>
 
             {/* ══ New post ══ */}
-            <div style={CARD} data-audit="new-post">
-              <SectionRule />
+            <SectionCard dataAudit="new-post">
               <SectionHeading
                 title={`New post · ${roomName}`}
                 aside={`Posts to the ${roomName} room`}
@@ -1047,13 +1046,12 @@ export function CommunityRooms({
                   </p>
                 )}
               </div>
-            </div>
+            </SectionCard>
 
             {/* ══ R7: the room's own header and ledger strip. Artboard 12 has no region for
                 either, so both keep R7 placement — after the last designed region of this
                 column — rather than being removed or restyled. ══ */}
-            <div style={CARD} data-audit="region-card">
-              <SectionRule />
+            <SectionCard dataAudit="region-card">
               <SectionHeading
                 title={`${roomName} region`}
                 aside={
@@ -1138,15 +1136,14 @@ export function CommunityRooms({
                   .
                 </p>
               </div>
-            </div>
+            </SectionCard>
           </div>
 
           {/* ══ Rail — artboard order: Who's here, Verifier sign-off, Why post here.
               Vertical groups is R7 (no artboard region) and sits after them. ══ */}
           <div style={{ display: "flex", flexDirection: "column", gap: 14, minWidth: 0 }}>
             {/* Who's here */}
-            <div style={CARD} data-audit="whos-here">
-              <SectionRule />
+            <SectionCard dataAudit="whos-here">
               <div style={{ padding: "12px 16px 14px" }}>
                 <div
                   style={{
@@ -1214,7 +1211,7 @@ export function CommunityRooms({
                   .
                 </p>
               </div>
-            </div>
+            </SectionCard>
 
             {/* Verifier sign-off */}
             <SignoffRailPanel
@@ -1227,8 +1224,7 @@ export function CommunityRooms({
             />
 
             {/* Why post here */}
-            <div style={CARD} data-audit="why-post-here">
-              <SectionRule />
+            <SectionCard dataAudit="why-post-here">
               <div style={{ padding: "12px 16px 14px" }}>
                 <p style={{ ...RAIL_EYEBROW, margin: "0 0 8px" }}>Why post here</p>
                 <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>
@@ -1247,7 +1243,7 @@ export function CommunityRooms({
                 }
                 right={null}
               />
-            </div>
+            </SectionCard>
 
             {/* R7: Vertical groups — no artboard region, kept and placed last. */}
             <VerticalGroupsRailPanel groups={groupState} onCreate={() => setCreateOpen(true)} />
@@ -1340,8 +1336,7 @@ function SignoffRailPanel({
   });
 
   return (
-    <div style={CARD} data-audit="verifier-signoff">
-      <SectionRule />
+    <SectionCard dataAudit="verifier-signoff">
       <div style={{ padding: "12px 16px 14px" }}>
       <p style={{ ...RAIL_EYEBROW, margin: "0 0 8px" }}>Verifier sign-off</p>
       <p style={{ fontSize: 12, lineHeight: 1.5, color: "var(--ink-2)", margin: 0 }}>
@@ -1437,7 +1432,7 @@ function SignoffRailPanel({
         </div>
       )}
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -1481,7 +1476,7 @@ function VerticalGroupsRailPanel({
   onCreate: () => void;
 }) {
   return (
-    <div style={CARD}>
+    <SectionCard>
       <div
         style={{
           ...PLATE_HEAD,
@@ -1599,7 +1594,7 @@ function VerticalGroupsRailPanel({
           </Link>
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -1651,6 +1646,8 @@ function CreateGroupModal({
         padding: 16,
       }}
     >
+      {/* fitness-allow: F42 (undesigned OVERLAY, the "start a vertical group" modal. Same reason
+          as MembersPanel's: overlay styling is not invented before its artboard.) */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
@@ -1821,7 +1818,7 @@ function NotSeededState({
           gap: 14,
         }}
       >
-        <div style={{ ...CARD, padding: "13px 16px" }}>
+        <SectionCard padding="13px 16px">
           <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Why post here</p>
           <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
             The ledger prints what&rsquo;s verified. The room holds what operators know first. High-engagement
@@ -1831,15 +1828,15 @@ function NotSeededState({
             </Link>{" "}
             → platform brief.
           </p>
-        </div>
-        <div style={{ ...CARD, padding: "13px 16px" }}>
+        </SectionCard>
+        <SectionCard padding="13px 16px">
           <p style={{ ...EYEBROW, margin: "0 0 5px" }}>Verifier sign-off</p>
           <p style={{ fontSize: 11.5, lineHeight: 1.6, color: "var(--color-text-secondary)", margin: 0 }}>
             A verifier checks a post&rsquo;s claim against a primary document; signed-off claims become
             citable.{" "}
             {verifierStatus === "active" ? "You are an active verifier." : "You are not a verifier yet."}
           </p>
-        </div>
+        </SectionCard>
         <PendingFrame
           eyebrow="Vertical groups"
           body="Rooms are regional; groups cut across them by vertical (fine art, live events, automotive…). Members create them from inside a room once the rooms are live."

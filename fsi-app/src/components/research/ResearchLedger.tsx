@@ -42,7 +42,6 @@ import { ResearchThemeCards } from "@/components/research/ResearchThemeCards";
 import { ListSurfaceSortRow } from "@/components/list-surface/ListSurfaceSortRow";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { StateNote } from "@/components/ui/StateNote";
-import { TagChip } from "@/components/ui/Chips";
 import { ListSurfaceShell, type ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
@@ -207,12 +206,11 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
             deriveSeverity([r.title, r.whatIsIt, r.whyMatters].filter(Boolean).join(" "), r.added, r.severity) as string
           ];
           const metaText = [r.type, themeLabel, r.sub || (r.modes ?? []).join(", ")].filter(Boolean).join(" · ");
-          const meta = (
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-              {severityLabel && <TagChip>{severityLabel}</TagChip>}
-              <span>{metaText || metaLine(r)}</span>
-            </span>
-          );
+          // ITEM B1 (operator, 2026-09-08): the severity chip is no longer composed here. `ListRow`
+          // renders it from the `kind` prop with the artboard's row-size neutral tag, so this page
+          // cannot drift from the chip family; the wrapper span that held chip and text together is
+          // deleted rather than left doing nothing (CLAUDE.md rule 13).
+          const meta = metaText || metaLine(r);
           return {
             key: r.id,
             href: withListPosition(baseHref, LIST_KEY, i + 1, bandRows.length, {
@@ -223,6 +221,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
             jurisdiction: jurisdictionCode(r),
             title: r.title,
             meta,
+            kind: severityLabel || undefined,
             impact: r.impactScores ?? scoreResource(r),
             due: due ? { label: due.label, days: `${due.days}` } : null,
             timeline: r.timeline ?? null,

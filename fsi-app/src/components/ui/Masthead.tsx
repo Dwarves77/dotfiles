@@ -21,7 +21,7 @@
 
 import type { ReactNode } from "react";
 import { CommandBar } from "@/components/ui/CommandBar";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { nowFrom } from "@/lib/render-now";
 
 const EDITORIAL_VOLUME = "IV";
@@ -83,21 +83,12 @@ export interface MastheadProps {
 export function Masthead({ title, size = "list", dek, dateLabel, commandBar, volNumber, eyebrowSuffix, nowIso, notice }: MastheadProps) {
   const weekNo = volNumber ?? isoWeekNumber(nowFrom(nowIso));
   return (
-    <header
-      className="cl-masthead"
-      data-masthead-size={size}
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      {/* Ruling 5.2 (2026-09-07): the masthead's own 3px rule is the dark grey gradation from 5.1,
-          never the band-coloured rule (that stays confined to the nav card cap / mobile top bar /
-          drawer). */}
-      <SectionRule />
+    // Operator item A1 (2026-09-08): the masthead card is one of the eighteen the operator listed;
+    // it is now the shared `SectionCard` rather than a hand-typed copy of the same five
+    // declarations. Ruling 5.2 (2026-09-07) is unchanged and is now structural: the rule the card
+    // mounts is the dark grey gradation, never the band-coloured rule (which stays confined to the
+    // nav card cap / mobile top bar / drawer).
+    <SectionCard as="header" className="cl-masthead" dataAttributes={{ "data-masthead-size": size }}>
       <div className="cl-masthead-body" style={{ padding: "18px 24px 20px" }}>
       {/* Mobile spec (MASTHEAD): padding 14px 16px 0, VOL line 9.5px/700,
           title 24px/line-height 1.08 margin-top 5px, scope line 12px, the
@@ -195,6 +186,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         <div className="cl-masthead-titleblock" style={{ minWidth: 0, flex: "1 1 auto" }}>
           <h1
             data-guard-title
+            data-guard-display="page-title"
             className="cl-masthead-title"
             style={{
               fontFamily: "var(--font-display)",
@@ -255,6 +247,6 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           )}
         </div>
       )}
-    </header>
+    </SectionCard>
   );
 }

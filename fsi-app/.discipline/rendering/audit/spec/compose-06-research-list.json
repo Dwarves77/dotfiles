@@ -1,140 +1,149 @@
 {
-  "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
-  "mount": "compose-06-research",
-  "viewport": 1440,
-  "artboards": [
-    "06-research-list"
-  ],
-  "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
-  "notes": [
-    "Written for the operator's own complaint ('you are NOT matching the images directly'): this spec measures COMPOSITION, which regions exist, in what document order, with which strings, not one part's pixel values, which the part-level specs (bandtile/listrow/masthead/railcards/statenote) already carry.",
-    "Placement is asserted with sibling-combinator selectors ('A ~ B' matches only when A's node precedes B's), because 'present but in the wrong place' was the original defect, not absence.",
-    "Fixture is invented sample data in the real Resource shape (mounts.mjs, compose-06-research); the audit asserts geometry/placement/labels, never fixture values. Its `added` dates are fixed, not clock-relative, so the Window row's buckets do not drift between runs.",
-    "Three artboard regions have no data path in this corpus and are logged in DEVIATION-LOG.md rather than invented: the rail's VERTICAL facet (no per-item vertical/sector field; workspace_settings.sector_profile is a workspace-level list), the rail's SOURCE CLASS facet, and the Source coverage card's source-class axis (getResearchSourceCoverage returns transport modes). The Source coverage card is asserted here for placement and its artboard geometry, not for the four class labels it cannot have."
-  ],
-  "selector": "[data-audit=\"theme-cards\"]",
-  "expect": {
-    "display": "grid",
-    "grid-template-columns": "* * * *",
-    "gap": "12px"
+ "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+ "mount": "compose-06-research",
+ "viewport": 1440,
+ "artboards": [
+  "06-research-list"
+ ],
+ "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+ "notes": [
+  "Written for the operator's own complaint ('you are NOT matching the images directly'): this spec measures COMPOSITION, which regions exist, in what document order, with which strings, not one part's pixel values, which the part-level specs (bandtile/listrow/masthead/railcards/statenote) already carry.",
+  "Placement is asserted with sibling-combinator selectors ('A ~ B' matches only when A's node precedes B's), because 'present but in the wrong place' was the original defect, not absence.",
+  "Fixture is invented sample data in the real Resource shape (mounts.mjs, compose-06-research); the audit asserts geometry/placement/labels, never fixture values. Its `added` dates are fixed, not clock-relative, so the Window row's buckets do not drift between runs.",
+  "Three artboard regions have no data path in this corpus and are logged in DEVIATION-LOG.md rather than invented: the rail's VERTICAL facet (no per-item vertical/sector field; workspace_settings.sector_profile is a workspace-level list), the rail's SOURCE CLASS facet, and the Source coverage card's source-class axis (getResearchSourceCoverage returns transport modes). The Source coverage card is asserted here for placement and its artboard geometry, not for the four class labels it cannot have."
+ ],
+ "selector": "[data-audit=\"theme-cards\"]",
+ "expect": {
+  "display": "grid",
+  "grid-template-columns": "* * * *",
+  "gap": "12px"
+ },
+ "children": [
+  {
+   "name": "theme cards precede the Window row in the content column (artboard order: band tiles, theme cards, Window row, band sections)",
+   "selector": "[data-audit=\"theme-cards\"] ~ [data-audit=\"sort-row\"]",
+   "note": "Sibling combinator: matches only when the theme card row's node precedes the Window row's.",
+   "expect": {
+    "display": "flex"
+   }
   },
-  "children": [
-    {
-      "name": "theme cards precede the Window row in the content column (artboard order: band tiles, theme cards, Window row, band sections)",
-      "selector": "[data-audit=\"theme-cards\"] ~ [data-audit=\"sort-row\"]",
-      "note": "Sibling combinator: matches only when the theme card row's node precedes the Window row's.",
-      "expect": {
-        "display": "flex"
-      }
-    },
-    {
-      "name": "one theme card per theme present, each a real control (the theme facet IS this row)",
-      "selector": "[data-audit=\"theme-cards\"] > button",
-      "expect": {
-        "count": "4",
-        "border-radius": "10px",
-        "padding-top": "12px",
-        "padding-left": "14px"
-      }
-    },
-    {
-      "name": "the Window row's control label is WINDOW, not SORT (artboard 06 carries the window control where 02/04 carry sort)",
-      "selector": "[data-audit=\"sort-row\"] span",
-      "textMatch": "Window",
-      "expect": {
-        "text-transform": "uppercase",
-        "font-weight": "700"
-      }
-    },
-    {
-      "name": "the Window row offers exactly the artboard's four buckets",
-      "selector": "[data-audit=\"sort-row\"] button",
-      "expect": {
-        "count": "4"
-      }
-    },
-    {
-      "name": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
-      "selector": "[data-audit=\"band-foot\"]",
-      "expect": {
-        "display": "flex",
-        "background-color": "#FAFAF8",
-        "border-top-width": "1px",
-        "padding-top": "10px",
-        "padding-left": "16px"
-      }
-    },
-    {
-      "name": "the last band's foot row says 'end of list'",
-      "selector": "[data-audit=\"band-foot\"] span",
-      "textMatch": "end of list",
-      "expect": {
-        "text": "end of list"
-      }
-    },
-    {
-      "name": "a foot row names the next band ('then <band> · N')",
-      "selector": "[data-audit=\"band-foot\"] span",
-      "textMatch": "then Awareness",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "masthead scope line states the live counts the artboard states ('N active findings · N themes · ...')",
-      "selector": ".cl-masthead-dek",
-      "textMatch": "active findings",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "rail order, Filters card first",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"source-coverage-rail\"]",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "rail order, Source coverage sits between Filters and Legend (artboard 06 rail, top to bottom)",
-      "selector": "[data-audit=\"source-coverage-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "Filters rail card carries checkbox rows, the artboard's own facet rendering",
-      "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
-      "expect": {}
-    }
-  ],
-  "forbid": [
-    {
-      "name": "no Theme facet group in the rail, the theme cards ARE the theme facet",
-      "selector": "[data-audit=\"filters-rail\"] p",
-      "textMatch": "Theme",
-      "reason": "Artboard 06's own caption: 'themes are a second facet row, not a second tile system'. One control per facet: the theme card row selects the theme, so a duplicate Theme checkbox group in the rail would be a second control for the same state."
-    },
-    {
-      "name": "no content-column facet chip strip above the rows",
-      "selector": ".cl-facets-desktop",
-      "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The desktop facets live in the rail's Filters card on every list surface."
-    },
-    {
-      "name": "the literal word UNSCORED anywhere",
-      "selector": "body",
-      "textMatch": "UNSCORED",
-      "reason": "Operator ruling P1 2.1: the literal uppercase token never appears; Absence renders the fixed-vocabulary reason in lowercase text with small-caps/uppercase CSS, so textContent never reads the bare word."
-    },
-    {
-      "name": "no theme card row rendered as a second BandTile system",
-      "selector": "[data-audit=\"theme-cards\"] [data-audit=\"tile\"]",
-      "reason": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
-    },
-    {
-      "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-    }
-  ]
+  {
+   "name": "one theme card per theme present, each a real control (the theme facet IS this row)",
+   "selector": "[data-audit=\"theme-cards\"] > button",
+   "expect": {
+    "count": "4",
+    "border-radius": "10px",
+    "padding-top": "12px",
+    "padding-left": "14px"
+   }
+  },
+  {
+   "name": "the Window row's control label is WINDOW, not SORT (artboard 06 carries the window control where 02/04 carry sort)",
+   "selector": "[data-audit=\"sort-row\"] span",
+   "textMatch": "Window",
+   "expect": {
+    "text-transform": "uppercase",
+    "font-weight": "700"
+   }
+  },
+  {
+   "name": "the Window row offers exactly the artboard's four buckets",
+   "selector": "[data-audit=\"sort-row\"] button",
+   "expect": {
+    "count": "4"
+   }
+  },
+  {
+   "name": "every band section card closes with the foot row (artboard: #FAFAF8 ground, 1px top rule, 10px 16px)",
+   "selector": "[data-audit=\"band-foot\"]",
+   "expect": {
+    "display": "flex",
+    "background-color": "#FAFAF8",
+    "border-top-width": "1px",
+    "padding-top": "10px",
+    "padding-left": "16px"
+   }
+  },
+  {
+   "name": "the last band's foot row says 'end of list'",
+   "selector": "[data-audit=\"band-foot\"] span",
+   "textMatch": "end of list",
+   "expect": {
+    "text": "end of list"
+   }
+  },
+  {
+   "name": "a foot row names the next band ('then <band> · N')",
+   "selector": "[data-audit=\"band-foot\"] span",
+   "textMatch": "then Awareness",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "masthead scope line states the live counts the artboard states ('N active findings · N themes · ...')",
+   "selector": ".cl-masthead-dek",
+   "textMatch": "active findings",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "rail order, Filters card first",
+   "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"source-coverage-rail\"]",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "rail order, Source coverage sits between Filters and Legend (artboard 06 rail, top to bottom)",
+   "selector": "[data-audit=\"source-coverage-rail\"] ~ [data-audit=\"legend-rail\"]",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "Filters rail card carries checkbox rows, the artboard's own facet rendering",
+   "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+   "expect": {}
+  },
+  {
+   "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+   "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+   "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+   "expect": {
+    "height": "24px",
+    "font-size": "12.5px"
+   }
+  }
+ ],
+ "forbid": [
+  {
+   "name": "no Theme facet group in the rail, the theme cards ARE the theme facet",
+   "selector": "[data-audit=\"filters-rail\"] p",
+   "textMatch": "Theme",
+   "reason": "Artboard 06's own caption: 'themes are a second facet row, not a second tile system'. One control per facet: the theme card row selects the theme, so a duplicate Theme checkbox group in the rail would be a second control for the same state."
+  },
+  {
+   "name": "no content-column facet chip strip above the rows",
+   "selector": ".cl-facets-desktop",
+   "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The desktop facets live in the rail's Filters card on every list surface."
+  },
+  {
+   "name": "the literal word UNSCORED anywhere",
+   "selector": "body",
+   "textMatch": "UNSCORED",
+   "reason": "Operator ruling P1 2.1: the literal uppercase token never appears; Absence renders the fixed-vocabulary reason in lowercase text with small-caps/uppercase CSS, so textContent never reads the bare word."
+  },
+  {
+   "name": "no theme card row rendered as a second BandTile system",
+   "selector": "[data-audit=\"theme-cards\"] [data-audit=\"tile\"]",
+   "reason": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
+  },
+  {
+   "name": "D-M4: no list row carries more than one absence token",
+   "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+   "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+  }
+ ]
 }

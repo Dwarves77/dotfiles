@@ -1,16 +1,17 @@
 {
-  "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+  "part": "Market page composition \u2014 MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
   "mount": "compose-04-market",
   "viewport": 1440,
   "artboards": [
     "04-market-list"
   ],
-  "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+  "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals \u00b7 grouped by band \u00b7 Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right \u2014 same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
   "notes": [
-    "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
+    "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real \u03941w/\u03941m percentages) \u2014 the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
     "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
-    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
-    "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED — an app feature no artboard draws — to after Legend, the last designed card of the column, per ruling R7."
+    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') \u2014 the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage.",
+    "Artboard 04's rail is FOUR cards top to bottom: Filters, CARBON COST PER FEU, NEXT DATA DROPS, Legend. The build carried SOURCES TRACKED where the two middle cards belong; lane lists60 (2026-09-08) built both from data the page already loads (the per-corridor carbonCostPerFeu() results page.tsx computes for the CarbonCostOverlay section, and the market_series board buildSeriesBoard() returns) and moved SOURCES TRACKED \u2014 an app feature no artboard draws \u2014 to after Legend, the last designed card of the column, per ruling R7.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
   ],
   "selector": "[data-audit=\"filters-rail\"]",
   "expect": {
@@ -87,7 +88,7 @@
     {
       "name": "a corridor with missing inputs states them as a small-caps pending token, never a fabricated figure",
       "selector": "[data-audit=\"carbon-feu-pending\"]",
-      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) — which is exactly the state artboard 04 itself draws.",
+      "note": "carbon-cost-per-feu.mjs returns four named GAPs for every live corridor today (no emission factor, no routing distance, no licence-clear tonnes-per-FEU convention, no carbon price feed) \u2014 which is exactly the state artboard 04 itself draws.",
       "expect": {
         "font-size": "10.5px",
         "font-weight": "700",
@@ -99,7 +100,7 @@
       "selector": "[data-audit=\"carbon-feu-foot\"]",
       "expect": {
         "font-size": "11px",
-        "text": "No emission factor · no corridor distance · no tonnes-per-FEU convention · no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor."
+        "text": "No emission factor \u00b7 no corridor distance \u00b7 no tonnes-per-FEU convention \u00b7 no carbon price feed. Stated once, here, instead of a four-line GAP box per corridor."
       }
     },
     {
@@ -128,7 +129,7 @@
       "name": "a NEXT DATA DROPS date is the producer's own registered cadence applied to its latest observed period, in the artboard's 'Mon Sep 7' form",
       "selector": "[data-audit=\"next-drop-date\"]",
       "textMatch": "re:^[A-Z][a-z]{2} [A-Z][a-z]{2} \\d{1,2}$",
-      "note": "The fixture's eu-oil-bulletin group observes through 2026-09-03 and the registry gives it cadenceDays 7, so its row reads 'Thu Sep 10' — the SAME derivation deriveDisplayRows writes into published_price_statistics.next_release_at, never a second prediction (spec 02 §9). The regex measures the artboard's own weekday-month-day form with NO comma, which a single locale-pinned formatLocaleDate would have produced as 'Mon, Sep 8'.",
+      "note": "The fixture's eu-oil-bulletin group observes through 2026-09-03 and the registry gives it cadenceDays 7, so its row reads 'Thu Sep 10' \u2014 the SAME derivation deriveDisplayRows writes into published_price_statistics.next_release_at, never a second prediction (spec 02 \u00a79). The regex measures the artboard's own weekday-month-day form with NO comma, which a single locale-pinned formatLocaleDate would have produced as 'Mon, Sep 8'.",
       "expect": {
         "font-weight": "700"
       }
@@ -154,13 +155,106 @@
       "expect": {
         "grid-template-columns": "75.7031px 180.297px"
       }
+    },
+    {
+      "name": "A1 rule on the Headline series card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"headline-series\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Headline series card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"headline-series\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Carbon cost per FEU rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"carbon-feu-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Carbon cost per FEU rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"carbon-feu-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Next data drops rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"next-drops-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Next data drops rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"next-drops-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Legend rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"legend-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Legend rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"legend-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+      "expect": {
+        "height": "24px",
+        "font-size": "12.5px"
+      }
     }
   ],
   "forbid": [
     {
       "name": "no content-column facet chip strip above the rows (the original defect)",
       "selector": ".cl-facets-desktop",
-      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
+      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right \u2014 same on every page.' Applies identically to Market."
     },
     {
       "name": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
@@ -183,7 +277,12 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "CLASS CLOSURE (market list): a card element that renders no 3px rule",
+      "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
+      "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
     }
   ]
 }

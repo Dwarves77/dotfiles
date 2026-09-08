@@ -14354,3 +14354,806 @@ cannot be reproduced locally and is not claimed to be; the coordinator confirms 
 **Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks, up from
 445); node --test rendering globs 82 pass / 0 fail; audit:design 70 specs / 2018 MATCH; run-test-suite
 5975 tests / 0 fail.
+
+## 2026-09-08 - Lane layoutguard: the site-wide layout guard (L1 to L12)
+
+ACCOMPLISHED. Built the operator's SITE-WIDE LAYOUT GUARD as a named guard inside the existing
+rendering engine (`fsi-app/.discipline/rendering/layout-guard/`), not a thirteenth harness: it mounts
+all 17 routes on the design audit's OWN mounts, at 1440 and 1024, collects one measurement bundle per
+route and width, and judges it with twelve pure detectors that the node --test suite proves without a
+browser. Reports by RULE and by ROUTE; every failure line names the rule, the route, the element and
+the measured numbers. Ran it, published the failure table
+(`docs/audits/layout-guard-2026-09-08.md`), fixed the shared parts, routed the rest, and wired it
+into the rendering guard so no train can land with a NEW finding.
+
+Provenance: L3 and L11 already covered, L2 and L9 extended, the other eight new. Full argument in
+DEVIATION-LOG.md, this lane's section.
+
+FIXED (shared parts, before and after measured by the guard itself):
+- `components/ui/Card.tsx` - THE card. Four byte-for-byte identical local `function Card()`
+  definitions (DashboardBrief, ListSurfaceShell, MapPageView, WatchlistSurface) replaced by one
+  import each. Rule 13, and the reason L6 was unenforceable: with four definitions there was no one
+  place a card's chrome could be asserted.
+- `components/layout/PageFrame.tsx` - THE frame, README 0.3's grid plus the below-1280 stack.
+  Adopted by DashboardBrief and WatchlistSurface. Nine surfaces carried their own copy and the copies
+  had already drifted.
+- `/profile` frame padding `16px 40px 80px` to artboard p14's `18px 40px 40px`.
+- `CommandBar` input gains `text-overflow: ellipsis`: L12 went from 26 findings (13 routes at both
+  widths, placeholders of 339 to 546px cut inside a 283px input with no ellipsis) to 0.
+- `StateNote`'s action link and `DashboardRailCard`'s links to a 28px short axis: measured 24px,
+  4px under the operator's L9 floor, on every surface that declares a state.
+- `CardFoot`'s foot links to 28px, same rule.
+- L5 went 8 to 0 (the map's markers are inside the declared clipping viewport, geography not layout);
+  L8 went 6 to 0 (both were prose containing the word "pending").
+  Total: 941 findings to 783.
+
+ROUTED, with the owning part named in the audit document's routing table: the admin frame (the
+operator's own root cause, and his T1-T8 strip, which L4 measures at 387px of unreachable content at
+1024), the detail shell's frame and its section cards, CommunityRooms' frame, the settings page's
+split frame and its overlapping controls, the filter chips and list-surface controls.
+
+DECISIONS. L1 is a computed-style test, not a grep. L2's exclusions are four named cases, proven
+against a real overlap. L5 excuses contained decoration only. L7's allowlist is declared by the
+components that draw display type. L8 reads rendered text. L10's manifests come from the artboards.
+The 783 remaining findings are held by a dated baseline that expires at wave 65, the same mechanism
+and the same oracle `exemptions-375.mjs` uses, so they are a dated debt with a mechanical due date
+rather than a guard switched off.
+
+UX COMPLIANCE. Every `.tsx` in the write set was measured by this lane's own guard at 1440 and 1024
+and by the existing rendering guard at all twelve viewports: no overflow, no clipped text, no target
+below law 2's floor, and the three parts changed for hit targets (StateNote, CardFoot,
+DashboardRailCard) were changed UP, from 24px to 28px, which satisfies law 2 and L9 together. The
+design audit reads 2018/2018 MATCH at 1440 and 390 after the change; no spec went stale.
+
+GATES. tsc 0 · fitness 35 checked, 0 violations · rendering guard PASS (layout guard 36
+measurements, 0 blocking) · audit:design 2018 MATCH, 0 MISMATCH · audit:overflow 0px on every mount
+· npmtest glob 986 pass, 0 fail · run-test-suite.sh 5975 tests, 0 fail · next build --webpack clean.
+
+NEXT. The routing table names six owners. When each clears its rules it reruns
+`--write-baseline` and commits the shrunken file; the diff is the proof. The baseline dies at
+wave 65 whether or not that happens.
+## 2026-09-08: LANE CARDRULE (train 62, UI fix round 2026-09-08): items A1, A2, A3, E4
+
+**What the round asked.** The operator compared twelve pages against the Claude Design package and
+ruled, verbatim: "Fix the SHARED PART once; do not patch pages. Each item names the component."
+A1: the 3px graduated rule is missing on eighteen listed card types and "is part of the card
+component, not a decoration". A3: the card shadow, border and radius on those cards. A2: the band
+block's header TEXT (not its rule). E4: the rule above "Regions side by side" is dark grey, not red.
+
+**A1/A3 was one defect with one cause: there was no card component.** The same five declarations
+were retyped in fifteen files and each caller mounted `<SectionRule/>` by hand. Measured before the
+fix: `CommunityRooms.tsx`'s local `CARD` object carried radius 8 against the artboard's 10 and no
+box-shadow at all across five cards; `AccountPrimitives`, `ProvisionalReviewTable` and two
+`AdminDashboard` cards carried no shadow; `UserProfilePage`'s stat card had a hand-typed literal
+shadow and no rule; three further cards had no rule. `src/components/ui/SectionCard.tsx` is the card
+now, carrying dc.html's own values (84 identical occurrences: #fff, 1px rgba(0,0,0,.12), radius 10,
+the two-part shadow, overflow hidden, first child a 3px gradient div). Twenty files render it. It
+picks between two rule layouts itself so no card's geometry moved, which the byte-identical
+regeneration of `compose-01-dashboard-brief.png` confirms.
+
+**The class is closed twice, and both proofs were attacked.** F42 (`card-shell-outside-SectionCard`,
+invariant RD-67, skill Section 4 category 42) fails CI on a card shell assembled anywhere but the
+card component; its own first cut had a regexp defect (`\b` after a quoted token) that made it see
+2 of 9 known shells, found by attack and kept as a named regression test. At the rendered level,
+each listed card gains two audit rows (the rule's EXACT gradient at 3px, and the shadow/border/
+radius), plus a per-page forbid on a card element rendering no rule in either position SectionCard
+mounts it in. Attacking SectionCard (making it skip the rule) fired that forbid on all five composed
+pages and turned every per-card row NOT BUILT.
+
+**A2** is three values: dot 6px to 7px, label letter-spacing .1em to .08em, window 10.5px to 11px.
+They differ from what artboard 02 draws (8px, .1em, 11.5px); the operator's item is the later ruling
+and wins, and both sets are in DEVIATION-LOG. The row's baseline alignment and 8px gap are not
+mentioned by A2 and are logged unchanged rather than improvised.
+
+**E4 was already correct on this base and is not rebuilt.** The rule measures
+`linear-gradient(90deg, rgb(90,85,82), rgb(90,85,82) 22%, rgba(90,85,82,0.18))`. What was missing
+was the check: the existing spec row asserted height and count only, which a red rule passes.
+Recolouring the shared gradient to #DC2626 left that row green and turned only the new row red.
+
+**A test that was ratifying the defect.** `SectionRule.coverage.npmtest.mjs` locked per-file rule
+mount counts, fully green while eighteen card types shipped ruleless. A per-caller count measures
+the callers that exist, not the property that must hold. Rewritten to the structure and stronger.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`SectionCard.tsx` (new),
+`Masthead.tsx`, `DashboardBrief.tsx`, `ListSurfaceShell.tsx`, `ListSurfaceRailCards.tsx`,
+`DetailShell.tsx`, `MapPageView.tsx`, `WatchlistSurface.tsx`, `CommunityRooms.tsx`,
+`MarketComparativeRibbon.tsx`, `RegionDimensionMatrix.tsx`, `OperationsLedger.tsx`,
+`OperationsDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`, `MarketSignalDetailSurface.tsx`,
+`UserProfilePage.tsx`, `AccountPrimitives.tsx`, `ProvisionalReviewTable.tsx`, `AdminDashboard.tsx`,
+`AdminIssuesRail.tsx`, `WorkspacesUsageRow.tsx`, `Sidebar.tsx`, `Skeleton.tsx`, `AuthPanel.tsx`, the
+two auth pages, `MembersPanel.tsx`). Every value applied is the operator's own literal from the item
+list, itself the artboard's (the gradient, 3px, radius 10, the two-part shadow, 1px rgba(0,0,0,.12),
+and A2's 11px/.08em/7px/11px); nothing was rounded or improved. No interactive target was introduced
+and none moved: the card shell carries no controls, and the rail card's 44px facet rows, the command
+bar's 44 and the row overflow's 44x44 are untouched. The migration is DOM-shape-preserving for every
+card that already had a rule (same element order, same padding wrapper), which is why the 43
+pre-existing 1440 specs and every mobile 390 spec stay green unchanged; the cards that GAINED a rule
+gained 3px of height at the top edge inside their own `overflow: hidden`, which the rendering guard
+measured at every viewport with no new failure and no target below the 44px floor. Visual pass at
+1440 on the regenerated side-by-sides for dashboard, regulations, market, research, operations,
+community, watchlist, map, admin, account and settings: no overflow, no collision, no orphan line
+introduced; a 6x corner render of the rail card against the artboard's own markup confirms the rule
+follows the card's radius with no square corners.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean, exit 0; fitness runner
+**36 functions, 0 violations**, no allowlist expiries (F42 new); design audit **70 specs, 2165
+checks, 2165 MATCH**, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC at both 1440 and 390 (the +65 checks
+over the base's 2100 are this lane's card rows and the five closure forbids); rendering guard
+**PASS** (11 fixtures, 445 checks, 8 SM + 12 UX smoke specs, 97 + 216 checks); `run-test-suite.sh`
+**5983 tests, 5978 pass, 0 fail, 5 skipped** (the base's known kill-switch failure does not reproduce
+here); `next build --webpack` exit 0. Attack proofs run and reverted for A1/A3 (rule suppressed),
+A2 (three values reverted) and E4 (gradient recoloured red).
+## LANE LISTROW — UI fix round 2026-09-08, train 62, items B1-B7 and F2
+
+The one `ListRow` and everything that renders inside it. Every change is in a shared part; no page
+carries a copy, and the two ledgers that used to compose a chip of their own no longer can.
+
+- **B1** `TagChip` had ONE size, the detail header's (10.5/600, radius 4, padding 3px 8px), and the
+  list rows reused it, which is why the row chip read as a grey box against dc.html p4's much
+  smaller tag. It now has two sizes and only two, because the artboards draw two: the detail size
+  unchanged, and `variant="row"` at the artboard's 9.5/700 .06em uppercase, radius 3, #F5F2EE, no
+  border, colour #1A1A1A, padding 2px 6px (the operator's number; the artboard's 1px is logged).
+  `ListRow` renders it itself from a new `kind` prop, so `MarketIntelLedger` and `ResearchLedger`
+  hand over a string and can no longer drift. The rest of the family was swept as asked and has not
+  drifted; the measurements are in DEVIATION-LOG.
+- **B2** the row-end control was a single 44x44 element carrying `border-radius: 999px` and a 1px
+  border: the bordered circle. It is the artboard's two boxes again, a transparent borderless 44x44
+  hit target (law-2's floor untouched) holding a 28x28 glyph box, radius 6, #7A6E6C, hover #F5F2EE.
+  Fixed once in `PriorityDropdown`, which every list surface and now the dashboard mounts.
+- **B3/B4/B5** the absence model from train 61 keeps its structure and changes where each piece
+  renders: em dash in the meter's score slot beside the 30px dashed baseline, em dash in the date
+  cell, em dash in the tier cell, the empty track in the timeline cell, and the ONE small-caps
+  reason on the title cell's meta line at 10.5px. `reasonSlot` and `ImpactMeter`'s `reason` prop are
+  deleted, not left dormant; a new `Absence variant="dash"` carries the closed-vocabulary reason on
+  aria-label/title and declares itself to the guard's placeholder scan. The three surfaces the
+  operator named (dashboard "What changed", the Operations action block, the Regulations monitor
+  block) are fixed by that one change, and the side-by-sides show it.
+- **B6/B7** already correct on this base and verified rather than rebuilt: the row measures
+  `3px 56px 1fr 88px 84px 76px 40px 44px`, gap `0 14px`, min-height 56px, title 14px/600 ellipsised
+  on one line, meta 11px; the spine is 3px with the row's own padding-left at 0. The 390 rules are
+  untouched and every mobile spec stays green.
+- **F2** the dashboard's two tables already rendered through `ListRow` (F2's stated duplication
+  defect did not exist here), so nothing was rebuilt; what was missing is the control artboard 1
+  draws at the end of those rows. They now mount the same overflow control the lists do, carrying
+  the same Watch toggle, with the item's watchlist type derived by the one surface classifier the
+  row's href already uses.
+
+Evidence: every value above is an audit spec row in
+`.discipline/rendering/audit/spec/listrow.json`, `compose-01-dashboard.json` and
+`market-research-rows.json`, and each was proven by attack — the fixes reverted, the specs read red
+on exactly the reverted values (14 MISMATCH, 4 NOT BUILT, 3 forbid hits), the fixes restored, 123
+MATCH. The listrow mount gained a third row, dc.html p1's own second row (no impact, no date, no
+timeline, no tier) with the kind chip and the REAL overflow control, so B1 and B2 are measured on
+what ships rather than on a stub.
+
+**UX compliance**: this lane touched `.tsx`/`.ts` under `fsi-app/src` in eight files. One new
+interactive element exists in the product as a result: the dashboard rows' overflow control, which
+is the existing 44x44 `PriorityDropdown` shell holding the existing `WatchButton` — goal, watch an
+item from the brief; path, one tap on the row-end glyph, one tap on Watch; primary action, Watch,
+44px; feedback, the button's own optimistic state and its error path, unchanged. No control was
+built without a function behind it (ruling 1.1). `PriorityDropdown`'s trigger keeps its 44x44 box,
+its aria-label, aria-haspopup and aria-expanded; only its paint changed, so no hit target moved.
+The row's single click target is unchanged. Gates: tsc clean, fitness 0 violations, rendering guard
+PASS at every viewport including 375, `npm run audit:design` 2067 checks / 0 MISMATCH / 0 NOT BUILT,
+test suite 5967 pass 0 fail, `next build --webpack` exit 0.
+## LANE RAILFACETS — train 62, UI fix round 2026-09-08, operator items C1/C2/C3
+
+The rail facet rows, fixed once in `src/components/list-surface/ListSurfaceRailCards.tsx`
+(`FacetSection`, inside `FiltersRailCard`). Every list surface and /watchlist mounts that one
+component, so no page was edited and no page-local facet row exists (asserted mechanically by
+`ListSurfaceRailCards.facets.npmtest.mjs`, which walks `src/components` and fails on any other file
+declaring a `cl-facet-*` class).
+
+C1. Row was `min-height: 44px` with a 11px label and an unsized count, which the operator measured
+on the built pages as roughly 33px with the checkbox adrift. It is now artboard 02/id="p2"'s own row:
+`padding:4px 0`, `line-height:16px`, `font-size:12.5px`, `justify-content:space-between`, 24px tall,
+with a 13px checkbox and an 11px muted tabular count. The group label went 10.5px/800/.1em to the
+artboard's 10px/700/.12em `#7A6E6C` with 6px below.
+
+C2. The groups were separated by a 14px flex gap and no rule. They now carry the artboard's
+`padding:10px 0` and `border-bottom:1px solid rgba(0,0,0,.06)`, and the container gap is 0 so the
+10px either side of the rule is the whole separation. The Filters foot line lost its own top border,
+which would have doubled the last group's rule.
+
+C3. "+ N more" was 11px/700 muted with a 4px margin and no row height. It is now a 12px underlined
+link row at the same 24px height, with no checkbox square (a `forbid` row fails if one returns).
+
+**UX compliance**: one interactive element changed size, deliberately and in both directions. The
+facet row is the artboard's 24px at desktop widths and keeps the 44px touch target below 768px
+(`.cl-facet-row` / `.cl-facet-more` in `globals.css`, the breakpoint `LIST_SURFACE_MOBILE_CSS`
+already uses); both ends are measured, 24px at 1440 by `spec/list-surface.json` and the five
+`compose-*.json` specs, 44px at 390 by `spec/mobile-11-watchlist.json`. The whole row remains the
+click target and the checkbox is still activated anywhere in it (native `<label>` semantics). The
+"+ N more" control gained a row height rather than losing one. No new interactive element, no
+control without a function: the artboard's dead checkbox on the "+ N more" row is deliberately not
+built. The rendering guard passes at every viewport; its law-2 floor is suppressed for this one
+target above 768px only, under a dated entry that expires at wave 70 and can never cover a failure
+line naming anything else.
+
+**Gates**: tsc 0 errors; fitness 35 functions / 0 violations; rendering guard PASS (4 lines covered
+by the dated law-2 desktop exemption, printed in full by the guard); design audit 70 specs / 2061
+checks / 2061 MATCH at both 1440 and 390; CI npmtest glob + named list 1046 tests / 0 fail;
+run-test-suite.sh exit 0 / fail 0; `next build --webpack` succeeded.
+## Addendum, lane adminlayout (2026-09-08): the /admin layout fix, items 1 to 6
+
+The operator's report: "the admin content column is not constrained by the frame grid. Every card
+below the tab row spans the full page width and runs UNDER the right rail, so the rail cards sit on
+top of them and the T-cards are clipped at the frame edge with no way to reach T4-T8. Fix the frame,
+not the cards."
+
+**The root cause, measured before anything was changed.** Half of the stated cause is [REFUTED] and
+half is [CONFIRMED], and the difference decided the fix.
+
+[REFUTED, measured at 1440 in a real browser on the real page tree]: the two COLUMNS were already
+right. `grid-template-columns: minmax(0, 1fr) 300px`, `align-items: start`, content column
+`min-width: 0`. Measured: content column 768px at x=308, rail 300px at x=1100,
+`document.scrollWidth` 1440. No card exceeded its column and no card intersected the rail. A fix
+aimed only at the tracks would have changed nothing the operator could see.
+
+[CONFIRMED, measured at 1024, and it reproduces the screenshot exactly]: the Sources / Source
+registry body overflowed its own column by 336px (`scrollWidth` 688 against a 352px column) and
+painted under the rail, which is later in the DOM and therefore on top. The mechanism was not the
+frame: it was the T1-T7 tier card strip, a Tailwind `lg:grid-cols-7` keyed to the VIEWPORT (1024, so
+the rule applied) inside a column of 352, with grid items at the default `min-width: auto` that
+floored the row at its content width. At 1440 the same strip fits the column but squeezes each card
+to 97px and clips its label at 111px, which is the "clipped at the frame edge" the operator saw
+there. There is no arrow control anywhere in the build: [REFUTED] by grep across `src/components`
+(no `scrollBy`, no `ChevronLeft`/`ChevronRight` in this region). The horizontal reach the operator
+described was the browser's own overflow, not a control, so nothing was removed for it.
+
+What WAS wrong at the frame, and is fixed: the page split its padding across a `20px 40px 0`
+masthead wrapper and a `16px 40px 40px` grid, ran `gap: 24` where the frame is 28, and collapsed at
+960 to a bare `1fr`, dropping the `minmax(0, ...)` floor (MOBILE-60's measured defect class). It is
+ONE grid now, at the shared frame's own values, with the masthead spanning both tracks and the
+collapse at 1280, which is the breakpoint DashboardBrief already uses. After: 1440 gives 764 + 300
+at gap 28 with `scrollWidth` 1440; 1024 gives one `minmax(0,1fr)` column of 676 with the rail
+stacked below it and `scrollWidth` 1024. No card over its column, no overlap, at either width.
+
+**Item 3, a removal.** The T1-T7 card strip and the "Source Tiers" explainer are gone: artboard 13
+makes tier a COLUMN in the source table, not a card set. The vocabulary lands in three places, all
+reachable by vertical scroll or Tab: seven squares in the registry card header carrying each
+authority label as tooltip and accessible name, a "Tier definitions" overlay with the full lines,
+and the per-tier COUNTS in the table's facet row, where clicking one filters. The facet was built
+from the filter mechanism that already existed and had never been mounted anywhere:
+`sourceStore.toggleTierFilter` plus `filterSources`, which has always matched on
+`effective_tier ?? base_tier`. The counts derive through that same key, so a chip cannot name a
+number its own click would not return. SEVEN squares, not the eight the instruction says: the source
+tier vocabulary is T1-T7 (`src/lib/tier-labels.ts`, the SoT under the tier-labels drift guard). An
+eighth was not invented to match the count.
+
+**Item 4, three regions into the ruled architecture.** The "Source Intelligence" h2 and subtitle
+became the card head, "SOURCES · SOURCE REGISTRY" with the count in the header right. B.2 became a
+neutral state-note strip under the card's tab row carrying the operator's own line
+("Regeneration · N / N at current contract · N never regenerated", action "Open queue"); the
+progress card and its "By format / By priority / Tag coverage / Recent" placeholder columns are
+deleted, not hidden. The "Scraping is OFF" box became the Action-band strip at the card foot with
+Cadence, Save and Emergency stop as a 44px action row. Both strips are the shared `StateNote`; no
+second strip component was written.
+
+**Item 5, the rail.** Issues-queue rows were ~40px because each title wrapped to two lines in the
+300px rail with an 8px list gap on top. They are a 24px line box now, one line, count right-aligned
+and tabular, with the zero row's numeral muted (the artboard draws it in full ink). A non-zero row
+carries a 28px minimum because it is a button and that is the hit-target floor, which is 2px of
+padding over the 24px line and nothing more. "Export queue" is NOT built: re-grepped
+`src/app/api` and `src/lib` this lane, and the only hits are bulk-import's CSV parser, spec09's CSV
+upload contract and `parseCsvFilter` query-string helpers. No queue-export function exists, so the
+button would be a dead control (ruling 1.1). Logged, and a forbid row keeps a dead one from
+appearing.
+
+**Item 6.** "Source registry" now carries the registry's own count and "Tier disagreements" the
+count from `get_tier_opinion_disagreements(90)`, the same aggregator
+`/api/admin/sources/tier-opinions` calls for the panel itself, so neither tab can name a number its
+panel would contradict.
+
+**The site-wide layout guard.** On this route the change closes L1 (one shared frame, measured by
+three new rows in compose-13's spec), L2 (no intersection at either width), L3 (`scrollWidth` equals
+the viewport at 1440, 1024 and 390; no card scrolls sideways), L4 (the strip that needed a
+horizontal reach is gone, every view reachable by scroll and by Tab) and L5 (nothing inside the
+frame computes to absolute, fixed or sticky; the definitions overlay is the one fixed box and it is
+an overlay). Handed to lane layoutguard rather than fixed here: `compose-onboarding` reports five
+clipped text runs at 1024 in the overflow sweep, untouched by this lane and on a route it does not
+own.
+
+**UX compliance.** Checked at 1440 and 1024 in a real browser, before and after, with the shots in
+`docs/design/handoff-2026-09-06/built/adminlayout-{before,after}-{1440,1024}.png`. The one clipped
+run this lane introduces is the rail row label, a single-line ellipsis carrying its full text on the
+element's own `title`, which is the one clipped form the rules allow and the direct consequence of
+the 24px row the operator asked for.
+
+**Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks);
+audit:design 71 specs / 2068 MATCH (up from 70 / 2060, and the six rows this lane made stale are
+updated to the new values with the artboard's own recorded beside them); overflow sweep 0px page
+overflow on every mount at 1440, 1024 and 390, both admin mounts clean; npmtest glob 1041 pass / 0
+fail; run-test-suite 5975 tests / 0 fail; `next build --webpack` exit 0.
+## Addendum — lane briefdata (train 61, 2026-09-08): the two brief cards' data path, and why the watchlist is empty
+## Addendum: lane briefdata (train 61, 2026-09-08): the two brief cards' data path, and why the watchlist is empty
+
+Operator, today, verbatim: **"do next and whats changed need to stay populated"**, and mid-flight,
+**"watchlist also not populated"**. Write set: the data path only (`src/lib/dashboard/brief-rows.ts`,
+`src/app/page.tsx`, `src/lib/supabase-server.ts`, `src/lib/data.ts`, their proofs), because the
+sibling lane listrow is rewriting the dashboard's row rendering at the same time. Every prop threaded
+into `DashboardBrief.tsx` is declared in DEVIATION-LOG.md.
+
+### Cause 1, the degrade path. [CONFIRMED, live query]
+
+`get_workspace_intelligence_dashboard` is `LIMIT 50` ordered by priority band (migration 077);
+`get_workspace_recent_changes` is date-windowed and NOT priority-capped (migration 232).
+`buildChangedRows` resolved each changed item against the 50-row slice and, where it was absent,
+degraded to what the change feed carries: id, title, priority, classification. Measured against the
+live workspace (org a0000000-…-0001, 1,518 active items, 1,109 added in the last seven days):
+**6 of the 6 rendered change rows were absent from the slice**, so the degrade branch was not an
+edge case, it was the entire card. That is the state the operator photographed.
+
+Fixed by reading the missing ids back: one bounded `.in()` per id shape over `intelligence_items`,
+the dashboard RPC's own column list, the workspace scope predicate `_workspace_active_items` applies
+(`NOT COALESCE(override.is_archived, ii.is_archived)` and `provenance_status = 'verified'`), and the
+org override merged from the override rows the request already read. It arrives as
+`DashboardData.briefResources` and `src/app/page.tsx` merges it with `data.resources` into ONE
+corpus, so a change row is now built from the same `Resource` through the same `toListRowFields` the
+list ledgers use. The degrade branch stays as the last resort for an id the corpus genuinely cannot
+resolve; it still invents nothing.
+
+### Cause 2, Due next could legitimately empty, and had a second cause nobody had named.
+
+The widening was needed and is done: the card no longer draws from the priority-capped slice at all.
+`fetchDueNextCandidateIds` reads the nearest future dates corpus-wide from BOTH sources `dueInfo`
+consults (`item_timelines.milestone_date` and `intelligence_items.compliance_deadline`), bounded and
+date-ordered, and those items are resolved through the same by-id read. No item without a date is
+ever admitted.
+
+The card's stated window is its own aside, "By next binding date · week of Sep 8". Widening makes
+that sentence false, so the label now says how far the card reaches:
+
+> `By next binding date · week of Sep 7, reaching to Jan 1, 2027`
+
+The base form is unchanged when every row is inside the week. Live, the extension is the real case:
+the nearest five binding dates on 2026-09-08 are Sep 8, Sep 30, Sep 30, Sep 30, Oct 1.
+
+**The second cause, not in the dispatch and the most valuable thing in this report.**
+`mapWorkspaceItemRows`, the mapper behind the dashboard, listings, slim and full workspace RPCs,
+never mapped `compliance_deadline` onto `Resource.complianceDeadline`, although every one of those
+RPCs has projected the column since migration 077. `dueInfo` reads `r.complianceDeadline` FIRST and
+then timeline milestones, so on the dashboard AND on every list surface the deadline half of "next
+binding date" was structurally invisible: only an item carrying an `item_timelines` milestone could
+ever render a due cell. [CONFIRMED by code read plus live counts: 5 active items carry a future
+compliance_deadline, 69 carry a future milestone, and none of the 5 was in the dashboard's slice.]
+One line in the mapper closes it.
+
+Due next was NOT empty at the moment of the report (23 of the 50 loaded items carried a future
+milestone), so cause 2 was latent rather than live. Reported that way rather than claimed as a fix
+for what the operator saw.
+
+### Cause 3, an infrastructure failure must not look like an empty corpus.
+
+Lane rsc503's cache guard is on this base and the dashboard path IS guarded: `cachedAppData` wraps
+`refuseToCacheFallback` and `getAppData` reads through `readThroughFallbackGuard` [CONFIRMED by
+read]. The other half was open: on a live failure both cards rendered their honest-empty copy, the
+Due-next card carried the failure note beside its empty state, and the What-changed card carried no
+failure signal at all. `briefCardState(rowCount, fetchError)` now decides `rows | empty | failed`
+once, for both cards; `failed` renders the sentinel, the `describeFallbackTrigger` reason clause and
+a **Retry** that calls `router.refresh()`, a retry that re-reads, because rsc503 removed the
+poisoned entry that used to answer it. The one honest empty state now says which corpus it looked
+at ("No item in this workspace's corpus carries a future binding date") instead of borrowing the
+failure copy.
+
+**A fourth path to an empty card, found while doing cause 3.** `cachedWatchlist` /
+`cachedWatchlistFull` are `unstable_cache` entries whose body returned `[]` on ANY read error, and
+`unstable_cache` stores what resolves, so one transient Supabase failure cached an empty watchlist
+for the entry's whole TTL, indistinguishable from watching nothing. It is the same class
+fallback-guard.ts exists for, in a fetcher the guard was never applied to. `readPersonalWatchRows`,
+`readTeamWatchRows` and `fetchWatchlist` now RAISE on a failed read; the callers in `lib/data.ts`
+still degrade to `[]` for the render, so behaviour on a failure is unchanged and only the caching of
+it is removed.
+
+### Item 4, the watchlist. The write path verdict, plainly.
+
+**Was watching broken? Yes.** [CONFIRMED, git read.] Before train 61's lane TAGS-401, WatchButton
+built its own header as `Bearer ${session?.access_token || ""}` (859bbe5b). Sent before the browser
+session resolves, that is a well-formed-looking header carrying no identity: `requireAuth`'s
+`startsWith("Bearer ")` passes, `getClaims()` fails, the write 401s and nothing is written. One
+correction to the coordinator's hypothesis: the old button did REVERT its optimistic star and set
+`failed`, so it did not look like it worked, the failure was visible only as a tooltip.
+
+**Does the base fix it? Yes**, and this lane proves it rather than assuming it. WatchButton now goes
+through `authHeaders()`, which makes NO REQUEST without a token. The proof is
+`.discipline/rendering/smoke/watchlist-write-smoke.mjs`, built on workspace-tags-smoke.mjs's shape:
+the route stub replicates `requireAuth`'s contract AND keeps a row store, so the assertions are "did
+the row land", not "did the star change colour". A second leg mounts the same button against a
+no-session Supabase stub and asserts that nothing is written and the control does not claim
+otherwise.
+
+**Is the read path splitting scopes? No.** [REFUTED.] `fetchWatchlist` reads `user_watchlist` AND
+`org_watchlist` and merges them; the route writes personal to the first and team to the second. The
+surface reads the scope the button writes. The one live row (user 2b7d21eb…, `reg`/`g2`, EU PPWR
+2025/40, verified and unarchived) resolves through that path.
+
+**But the smoke spec found a THIRD defect, unreported anywhere, and it is the one that would have
+kept the operator's watchlist looking broken even after the auth fix.** [CONFIRMED in a real
+chromium.] `src/lib/watchlist/membership.ts` called `options.fetchImpl(url, init)`, a method call,
+so the real `fetch` ran with `this === options`, and Chrome refuses it: *"Failed to execute 'fetch'
+on 'Window': Illegal invocation"*. The function's own catch swallowed the TypeError and resolved an
+empty map, so every WatchButton falling back to the client path (the four detail-page surfaces)
+rendered "Watch" for an item the reader IS watching, on every load since PERF-3 landed the cache on
+2026-09-03. No unit test could catch it: every test injects a plain function as `fetchImpl`, and only
+the real `fetch` cares what `this` is. All three shapes were measured in the shipped bundle:
+`opts.fetchImpl(url)` throws, `const f = opts.fetchImpl; f(url)` returns 200, `f.bind(globalThis)`
+returns 200. Destructuring first is the fix, and it is the shape `authed-fetch.ts` already used.
+
+**What "populated" means here.** A watchlist with nothing watched is legitimately empty and nothing
+was pre-populated, seeded or auto-watched. The empty state artboard 11 draws was already honest and
+useful ("Nothing watched yet. Watch an item from its ⋯ menu on any list page, or the Watch button on
+a detail page" plus "Browse what to watch →") and is unchanged. If the operator wants a starting set,
+that is a data decision, not a code one.
+
+### The proofs that bite
+
+The reason this shipped is that every existing proof mounted these cards against a fixture that
+already contained matching items, so the degrade path never fired in a test, and the audit mount's
+own fixture comment described that path as a property of the card ("always `impact={null}`") rather
+than as the defect. Added: `brief-rows.npmtest.mjs` gains a fixture whose change feed names items
+OUTSIDE the loaded slice and asserts the pre-backfill rows really are degraded before asserting the
+post-backfill rows are full; a fewer-than-five-in-the-week fixture asserting the card still fills and
+the label says so; an absence budget (no brief row may carry more than one absent cell); and the
+failed-vs-empty distinction. `supabase-server-brief-backfill.npmtest.mjs` proves the id split by
+shape and the override merge, including the COALESCE direction that a naive `override || item` gets
+wrong. The rendering guard gains `dashboard-brief`'s `populated` and `failed` states (both cards
+non-empty; a failed fetch named on BOTH cards with a real Retry) and the `watchlist-write` SM spec.
+compose-01-dashboard.json gains two count rows and one forbid: neither card renders zero rows against
+the populated fixture, and no What-changed row renders the Absence token in its tier cell.
+## Lane duenext (2026-09-08), the dashboard's two dead cards
+
+The operator's report: DUE NEXT reads "0 ITEMS" and WHAT CHANGED reads "no detection pass on
+record" on production, while /regulations renders 1,317 active regulations with deadlines of
+Sep 30, Nov 18 and Dec 30 2026 sitting right there. Three root causes, each measured against the
+live database and the live platform-flags queue, not read off the code.
+
+**1. Due next was fed a read that answers a different question.** [CONFIRMED, Supabase MCP,
+2026-09-08] The card consumes `get_workspace_intelligence_dashboard`, whose ORDER BY is
+`CASE effective_priority WHEN 'CRITICAL' THEN 1 ... END, added_date DESC, id ASC LIMIT 50`: a slice
+chosen by PRIORITY. For org a0000000-0000-0000-0000-000000000001 the active verified set is 1,433
+rows and exactly 45 of them carry a future binding date under the rule the UI applies (`dueInfo`,
+`src/lib/dashboard/row-fields.ts`): 5 via `compliance_deadline >= current_date`, 40 via a future
+`item_timelines.milestone_date`. The priority slice held 23 of the 45 and none of the 5. The
+coordinator's own measurement, that zero of the 50 carry a future value in
+`compliance_deadline`/`entry_into_force`/`next_review_date`, is confirmed and is the same finding
+seen through the item's date COLUMNS; the 23 reach the card only through the separately-read
+timelines. Either way nothing keeps the overlap non-zero: a priority reshuffle alone empties the
+card with no data change.
+
+Migration 315 adds `get_workspace_due_next(p_org_id, p_limit)` beside the existing RPCs: ordered by
+the binding date itself ascending with an id tiebreak, `p_limit` defaulting to 24 and hard-clamped
+to [1,100] inside the function (F38/F39), sourced from `public._workspace_active_items(p_org_id)`
+so it goes through the same membership assert and the same customer read gate as every other
+workspace read, and projecting the dashboard RPC's exact column list plus one trailing
+`next_binding_date`, so `mapWorkspaceItemRows` maps its rows unchanged. Verified live before the
+report: 24 rows, first `next_binding_date` 2026-09-08 on a LOW-priority item that the priority
+slice could never have surfaced, then 2026-09-30 x3, 2026-10-01, 2026-11-18, 2026-11-21,
+2026-11-29, 2026-11-30, 2026-12-30 (EUDR), 2026-12-31 x2. Those are the operator's dates.
+
+**A second half of the same defect:** `mapWorkspaceItemRows` never set
+`Resource.complianceDeadline`, although every RPC it maps projects `ii.compliance_deadline` and
+`dueInfo` reads that field as one of its two candidates. The field was undefined on every list and
+dashboard row in the app. Five live items depend on it. One line.
+
+**Where the SQL and the UI differ, stated rather than hidden.** The brief describes the binding date
+as a coalesce across three columns. `dueInfo`'s candidate list is two: `r.complianceDeadline` and
+`r.timeline[].date`. No Resource field carries `entry_into_force` or `next_review_date`, so the UI
+cannot see them, and a read selecting on them would return rows `buildDueNextRows` filters straight
+back out. Migration 315 therefore uses `LEAST(compliance_deadline when future, MIN(milestone_date
+when future))` and says so in its header. Widening what "due" means is a product decision, and if it
+is taken the SQL and `dueInfo` must widen in the same change.
+
+**2. What changed was never broken.** [CONFIRMED, live `integrity_flags`] `auditDate` is the empty
+string on exactly one payload, `fetchDashboardData`'s `emptyFallback`, and that is the only input
+for which the card renders "no detection pass on record". So the card was reporting its payload
+correctly, and the payload was the fallback. The proof is in the platform's own queue:
+`integrity_flags` carries rows at 2026-09-08T09:36:35Z and 2026-09-08T16:18:47Z with `subject_ref`
+"/", `created_by` "seed-fallback-trigger" and description "Seed-fallback activated on /. Trigger:
+rpc_error." Meanwhile `get_workspace_recent_changes(org, 7)` matches 1,109 rows live and returns its
+500-row cap, which is the "All 500 changes in the last 7 days" the operator saw earlier the same
+day. One defect, not two: both cards were blank for the same reason, and defect 3 is why.
+
+**3. The fallback that lies.** `fetchDashboardData` ended its happy path with
+`if (!resources.length) return { ...emptyFallback, _error, _fallbackTrigger: "rpc_error" }`, and
+`fetchWorkspaceResources` returned the same empty tuple whether the RPC had errored or had simply
+returned nothing, so the caller could only guess and guessed "broken". `fetchWorkspaceResources` now
+reports `failed` explicitly; only a genuinely failed read returns the fallback payload with its
+banner and its platform flag, and a successful empty read returns the REAL payload with no `_error`,
+so the surfaces render their own honest-empty states. This is the half about what the payload SAYS;
+lane rsc503's `refuseToCacheFallback` is the half about it not being CACHED.
+
+The audit date was fabricated on both code paths and both are fixed. `fetchDashboardData` seeded it
+with TODAY and raised it only by a changelog entry later than today, which none can be, so the card
+asserted a detection pass every day regardless; live, `item_changelog` holds 9 rows with a newest
+`change_date` of 2026-03-01 and the cadence is held OFF (rule 16). `data.ts`'s failure factory used a
+constant baked into the bundle. Both now take the date from evidence, falling back to the empty
+string, which on a hard failure is true. `src/data/audit-date.ts` lost its last importer and was
+deleted with F25's help rather than left dormant (rule 13).
+
+**The proofs that would have failed.** Every pre-existing dashboard test mounts these cards against
+fixtures that already contain matching rows, so none ever asked whether the READ can supply them.
+Added: `src/lib/dashboard/due-next-read.npmtest.mjs` (the read is ordered by nearest future date and
+carries none of the priority ranking; its LEAST() uses exactly `dueInfo`'s two sources and neither of
+the other two columns; it is bounded, clamped and membership-scoped; a payload whose own rows carry
+no future date still populates the card once the due-next read feeds the pool, asserted through the
+SHARED `buildDueNextRows` rather than a copy of it; the mapper populates `complianceDeadline`) and
+`src/lib/dashboard/honest-empty.npmtest.mjs` (an empty result no longer routes to the failure
+payload; exactly four failure exits remain, each naming a real failure; no path invents an audit
+date). Plus two rows in `compose-01-dashboard.json` asserting a NON-ZERO row count in each card
+against the populated fixture, proven by attack: moving the fixture's deadlines into the past takes
+both from MATCH to NOT BUILT.
+
+**Sibling-lane surface.** Lane briefdata owns `src/lib/dashboard/brief-rows.ts`. This lane did not
+touch that file at all: the union happens in `src/app/page.tsx` and the shared selection functions
+are called unchanged, so the two lanes meet at one call site and nowhere else.
+
+**Files touched.** `fsi-app/supabase/migrations/315_workspace_due_next.sql` (new),
+`fsi-app/src/lib/supabase-server.ts`, `fsi-app/src/lib/data.ts`, `fsi-app/src/app/page.tsx`,
+`fsi-app/src/data/audit-date.ts` (deleted),
+`fsi-app/src/lib/dashboard/due-next-read.npmtest.mjs` (new),
+`fsi-app/src/lib/dashboard/honest-empty.npmtest.mjs` (new),
+`fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json`,
+`docs/inventories/migrations.md`, `docs/design/handoff-2026-09-06/DEVIATION-LOG.md`,
+`docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` + `.discipline/rendering/audit/results.json`
+(regenerated by the audit run).
+
+**UX compliance.** No `.tsx` or `.css` under `src/components` was touched; `src/app/page.tsx`'s
+change is server-side row selection only, no markup and no style. The two cards' own layout, type
+and 375px behaviour are unchanged, and the rendering guard's UX smoke slot (`dashboard-brief`)
+passes at every viewport, 216 UX checks.
+
+**Gates, all from the worktree root.** `npx tsc --noEmit` clean. Fitness 35 functions, 0 violations
+(F25 initially reported the orphaned `src/data/audit-date.ts`; deleted, re-run clean). Rendering
+guard PASS: 11 fixtures, 12 viewports, 445 checks, 97 SM smoke, 216 UX smoke. `npm run audit:design`
+70 specs, 2,020 checks, 2,020 MATCH, 0 anything else. CI npmtest glob 996 tests, 996 pass, 0 fail
+(984 before this lane's 12). `run-test-suite.sh` 5,972 tests, 5,967 pass, 0 fail, exit 0.
+`npx next build --webpack` exit 0.
+
+## Addendum 86, postscript 18: train 62, the seven-lane fold, one due-next read where there were two, one card where there were two (2026-09-08, coordinator, lane FOLD-62)
+
+Train 61 landed as `24bef1dd`. Seven lanes were dispatched against it, and this is their fold: 24
+cherry-picks on `train/wave62-2026-09-08`, plus the fold's own reconciliation.
+
+**Why cherry-pick and not merge.** The usual reason, unchanged since postscript 14: master carries
+the squash, so its TREE equals `train/wave61-2026-09-08`'s while its ancestry does not, and a merge
+would argue about ancestry for every file. `git cherry-pick -x` applies by content and leaves each
+origin commit traceable in the landed trailer.
+
+**Order applied.** The two lanes that CREATE shared parts first, because everything downstream
+renders through them: layoutguard (1) then cardrule (4). Then listrow (5), railfacets (4),
+adminlayout (1), briefdata (6) and duenext (3). briefdata deliberately before duenext, so the
+surviving due-next read lands last and the removal is visible in the diff rather than in a comment.
+
+**THE DEDUP, which is why this fold needed judgement.** Lanes briefdata and duenext were dispatched
+an hour apart on the same production defect and each built a due-next read.
+
+- REMOVED: briefdata's `fetchDueNextCandidateIds` and its call site in `fetchDashboardData` (a
+  bounded date-ordered scan of `item_timelines` and `intelligence_items`, merged in date order in
+  TypeScript, then re-read by id through `fetchBriefResourcesByIds`), plus its private helper
+  `utcToday`, whose only caller it was. Three round trips, and a second definition of "binding
+  date" in TypeScript.
+- SURVIVOR: duenext's migration 315 `get_workspace_due_next(p_org_id, p_limit)`, one bounded
+  date-ordered RPC computing the binding date in SQL the way `dueInfo` computes it in TypeScript,
+  workspace-scoped through the same `_workspace_active_items` seam as every other workspace read,
+  and ALREADY APPLIED to production (verified by the coordinator; not re-applied here, the file is
+  in the tree for the inventory).
+- KEPT, every line, because none of it is duplicated: the by-id backfill of change rows
+  (`fetchBriefResourcesByIds`, `splitBriefIdsByShape`, `mergeBriefOverrides`, `mergeBriefCorpus`,
+  `DashboardData.briefResources`), the `compliance_deadline` mapper line, the `briefCardState`
+  model and its failure/empty split, `dueNextWindowLabel`, the watchlist cache guard
+  (`readPersonalWatchRows` / `readTeamWatchRows` / `fetchWatchlist` rejecting instead of resolving
+  `[]`), and the membership destructuring fix.
+- The mapper line was itself a DUPLICATE: both lanes added
+  `complianceDeadline: row.compliance_deadline || undefined` to `mapWorkspaceItemRows`, at
+  different anchors, and `tsc` caught it as TS1117 (an object literal cannot have two properties of
+  one name). One copy survives, carrying both lanes' live measurements.
+- `src/app/page.tsx` now builds ONE corpus from all three reads (the LIMIT-50 priority slice, the
+  by-id change backfill, the due-next RPC) through briefdata's own `mergeBriefCorpus`, and hands it
+  to the same three selection calls unchanged. A row present in more than one read renders once;
+  when migration 315 is absent `data.dueNext` is empty and the pool degrades to briefdata's own
+  behaviour. `DASHBOARD_DATA_CACHE_KEY` was rotated ONCE for the union of both lanes' shape changes
+  rather than taking either lane's key. CORRECTION, in place per rule 13's corollary: the hand-typed
+  value this fold first wrote (`app-data-7b3d90e4`) was not the one rule [021] computes from the
+  `DashboardData` interface on this tree, and the rule caught it over the commit range; the landed
+  key is `app-data-e1ae7713`, the interface's own hash. The reasoning was right and the value was
+  invented, which is exactly what that rule exists to catch.
+- The removal is now guarded, not just done: `due-next-read.npmtest.mjs` gains "there is exactly ONE
+  due-next read in the server module", proven red-then-green (planting a call to the removed
+  function turns it red; restored, green).
+
+**THE SECOND DEDUP, the one the operator will see.** Lanes layoutguard and cardrule each created a
+shared card component on the same day, for the same defect: `ui/Card.tsx` and `ui/SectionCard.tsx`.
+SectionCard survives and Card.tsx is deleted. It is the superset (polymorphic tag, a padded layout
+that keeps the rule spanning the full card width, the `dataAudit` hook, caller data attributes) and
+it is the file fitness function F42 already names as the one legal home for a card shell. Card.tsx's
+four callers moved onto it, `noRule` became `suppressRuleForBandGrouping`, and `data-guard-card`
+moved with them so the layout guard's L6 and L10 still name a card that came from the shared shell.
+DashboardBrief mounts `SectionCard` DIRECTLY rather than through a one-line local wrapper, so no
+file in the product has a second name for a card. Four proofs followed the structure rather than the
+old shape (`SectionRule.npmtest`, `SectionRule.coverage.npmtest`, `ListSurfaceRailCards.npmtest`,
+`AdminIssuesRail.npmtest`), and each is stronger than what it replaced: a card that cannot be built
+without its rule cannot lose it.
+
+**Every other conflict, and how it was resolved.** The rule throughout: a conflict is a merge
+artifact, not a disagreement, unless two lanes built the same thing.
+
+- `DEVIATION-LOG.md`, `session-log.md`: chronological unions, both sides whole, never a choice.
+- `AUDIT-2026-09-07.md`, `results.json`, the `built/*.png` composites: never hand-merged; one side
+  taken as a placeholder at each pick and every one regenerated at the end.
+- `spec/compose-01-dashboard.json` (listrow vs cardrule vs briefdata vs duenext, four times): all
+  four lanes appended rows at the same tail anchor. Unioned BY NAME through a small structural
+  merge rather than by text, so a row one lane added cannot be lost to another lane's formatting;
+  the spec went 22 -> 31 checks and every row of every lane is present.
+- `spec/compose-02/04/08` and `spec/list-surface.json` (railfacets): the lane had rewritten these
+  files' whitespace, so git conflicted on the whole file while the SEMANTIC change was six rows and
+  four notes. Merged by name, same tool, with the 2-space escaped formatting the other specs use.
+- `StateNote.tsx`: both lanes fixed the action link's hit target from opposite ends. layoutguard's
+  L9 measured it at 90.4x24 and 157.6x24 against the operator's 28px floor; briefdata's law-2 run
+  found the same box at 375 and 1280 and gave it `inline-flex` with `minHeight: 24`. ONE box now,
+  taking the stricter of the two floors (`minHeight: 28`, `padding: 8px 0`, horizontal padding 0 so
+  the link stays flush with the strip's right edge as README 0.4 draws it), declared once for both
+  element types.
+- `DashboardBrief.tsx` (four lanes): cardrule's per-card `dataAudit` hooks, listrow's F2 overflow
+  control, briefdata's card-state model and window label, and layoutguard's PageFrame adoption all
+  survive. The one thing NOT kept is cardrule's local `Card` wrapper, for the reason above.
+- `data.ts` / `supabase-server.ts`: `briefResources` and `dueNext` are both fields on the payload
+  and both on the failure factory; only the due-next READ was deduplicated.
+- **No file was reported BINARY.** Checked first, as train 59 taught: zero NUL bytes under `src/`
+  and `.discipline/`, zero source files git treats as binary anywhere in this fold's diff.
+
+**The fold's own defects, and their class.** Every one was invisible to the lane that owned it and
+visible only with all seven in one tree.
+
+1. **A hand-typed card shell on /admin (product).** F42 failed on the source registry card: lane
+   adminlayout built it the same day lane cardrule made the card a component, so it typed the five
+   declarations itself, on `--surface`/`--color-border` rather than the card tokens, and shipped
+   with NO box-shadow, which is operator item A3 exactly. It renders `SectionCard` now. The Tier
+   definitions overlay in the same module takes a `fitness-allow: F42` marker with its reason, the
+   convention the two other undesigned overlays already carry. Fitness 36/36, 0 violations.
+2. **A card head that overflowed its card at 1024 (product).** [CONFIRMED, measured in chromium:
+   clientWidth 674, scrollWidth 740, +66px] The band between 768 and 1279 had no rule at all in
+   `SectionHeading`, and it is the band where the content column is NARROWEST on a desktop, because
+   below 1280 the rail stacks (674px against 778px at 1440). Lane briefdata's window label states
+   the span the SELECTED ROWS cover, which is longer than the fixed "week of <date>" it replaced,
+   and lane layoutguard brought the L3 rule that measures it. The aside wraps below 1280 now; the
+   Anton title keeps `nowrap` at every width.
+3. **A mobile rule that had never applied (product, found while fixing 2).** The same aside sets
+   `white-space: nowrap` as an INLINE style, which beats any stylesheet rule without `!important`.
+   MOBILE-60's own 390 wrap rule for this element therefore never applied, at any width, since the
+   day it landed. Measured before and after: the aside computed `nowrap` at 390 and at 1024, and
+   computes `normal` at both now.
+4. **L1's rule 4 was vacuous on every route that adopted the shared frame (harness).** The check
+   read `frameEl.children[0]` and asked whether its computed `width` was "not auto". `PageFrame`
+   renders a `<style>` element as its first child, so on every adopting route the check measured a
+   `display:none` element and passed; and getComputedStyle().width returns the USED width in px for
+   every rendered box, so the one route whose first child was a real box (/admin, whose style block
+   sits outside the frame) failed on a value every route has. It now skips non-rendered children and
+   full-span bands (`grid-column: 1 / -1`, the /admin masthead) and asserts what the rule says: the
+   content column's box EQUALS the frame's content track. Rule 15's own failure mode, in the guard
+   that shipped to enforce rule 15.
+5. **L6 read the wrapper, not the rule (harness).** In `SectionCard`'s padded layout the rule is
+   carried by an absolutely positioned wrapper at the card's top edge, so the collector found a 3px
+   box with a TRANSPARENT background and reported "top rule background rgba(0, 0, 0, 0)" against
+   cards whose rule is drawn correctly. It descends to the element that actually paints now. This
+   alone dissolved 62 findings across the four detail surfaces and /admin, every one a false
+   positive created by the two lanes meeting.
+6. **Two guards, one operator ruling (harness).** Lane railfacets put the desktop facet row at the
+   artboard's 24px (operator item C1) and carried a dated, component-scoped exemption for the
+   rendering guard's law-2 floor. The site-wide layout guard's L9 is a SECOND floor over the same
+   element (44 long, 28 short) and fired 100 times on it. Both guards read the SAME entry now, so
+   the exemption cannot expire in one and live in the other, and it still covers only that target,
+   only at or above 768px, only until wave 70. Proven by attack: at 390, for any other control, for
+   a name that merely begins the same way, and past the expiry wave, the finding returns.
+7. **Seven R7 cards the guard could not read (docs).** L10's designed escape is a dated deviation
+   entry, which `manifests.mjs` parses out of the DEVIATION-LOG's own five-column rows. The cards
+   are /settings' SAVED SEARCHES, DATA SUMMARY, UPLOAD OPERATIONAL DATA CSV, SUPERSESSION HISTORY
+   and ARCHIVE and /community's VERTICAL GROUPS and GLOBAL REGION, all R7 placements trains 60 and
+   61 recorded IN PROSE. They became blocking findings at this fold for a reason worth stating: lane
+   cardrule moved every card onto one shell, so cards the guard could not previously SEE as cards
+   now identify themselves. The rule did not change and the pages did not change; the guard's
+   eyesight did, which is what a shared part is supposed to produce.
+
+**The layout-guard baseline, and what moved in it.** The lane landed 783 findings under a dated
+baseline expiring at wave 65. Over the folded tree the guard measures 792, and the movement is
+stated rather than absorbed: 71 keys dropped (the 62 false L6 rule readings above, plus /admin's L1
+pair and four /admin L2/L9 findings that the frame and card fixes closed) and 83 appeared, every one
+of them a /settings or /profile L2 overlap the baseline ALREADY carried under a different element
+name, because the R7 regions those pairs involve are now real cards and the collector names the card
+rather than the link inside it. [HYPOTHESIS, and labelled: I could not confirm a user-visible
+collision for that class. The two boxes intersect in the layout, but the region renders cleanly in a
+full-height capture at 1024, and both boxes sit below the document height the mount produces.] It
+stays where lane layoutguard put it, with the owner the routing table already names
+(`SettingsPage.tsx`) and the same wave-65 due date. **Blocking findings: 0.**
+
+**Gates** (this container; the coordinator lands). Every figure re-run over the FINAL tree.
+
+- `tsc --noEmit` **clean**
+- fitness runner **36/36, 0 violations** (F42 included, red-then-green on the /admin card)
+- rendering guard **PASS**: 14 fixtures at 12 viewports, 549 checks; 9 SM smoke specs, 113 checks;
+  12 UX smoke specs, 232 checks; **layout-guard slot 36 route x width measurements, 0 findings**
+  (792 covered by the dated baseline, 4 law-2 desktop exemptions printed in full)
+- design audit **71 specs, 2343 checks, 2343 MATCH, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC**
+- overflow sweep **1440: 51 page mounts, 0px horizontal page overflow, 0 clipped runs**
+- overflow sweep **390: 18 page mounts, 0px horizontal page overflow, 0 clipped runs** (34
+  component mounts reported pinned)
+- CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) **1045/1045 PASS**
+- `node --test` over the rendering, rendering/audit and rules globs **157/157 PASS**
+- `run-test-suite.sh` **5997 tests, 5992 pass, 0 fail, 5 skipped, exit 0**
+- closure-gate **PASS on all four checks**; `override-check` **exit 0, no drift**; consistency
+  tests **12/12**
+- `invariant-coverage.mjs` **PASS**, 122 invariants + 63 doctrines wired
+- `next build --webpack` **exit 0** with no `.env.local`
+- mount/spec bijection **52 mounts, 50 named by a design spec, 2 named by the layout guard's own
+  routes.mjs, 0 named by nothing, 0 readers naming a mount that does not exist**
+
+**One spec updated, not weakened.** compose-01's "Due next renders a NON-ZERO row count" expected 2
+and measures 3. Lane duenext wrote it against its own pool; lane briefdata's by-id backfill is part
+of the SAME corpus now, and its third future-dated fixture item reaches the card. The row keeps an
+exact count and still fails on any drop toward zero, and now also fails if either lane's read is
+silently lost.
+
+**The visual pass.** Every side-by-side was regenerated from the folded code and read beside its
+artboard. It found one harness defect of its own: `capture-compose-dashboard.mjs` still shoots the
+`page-frame-1440` mount, which renders DashboardBrief AND a regulation detail with raw globals.css,
+so artboard 01's composite carried an unstyled nav card and the MOBILE top bar at 1440 (train 59's
+own compiled-CSS class, on the one page nobody re-shot since). Artboard 01 is captured from lane
+layoutguard's `compose-01-dashboard` mount now, which is the real AppShell frame with the compiled
+stylesheet, and the composite shows the product.
+
+**The six /market shared-part items the operator listed, each with its measurement.**
+
+1. **The card top rule: CLOSED.** Every card on /market carries the 3px rule at its top edge, and
+   the audit asserts the EXACT gradient rather than a 3px presence:
+   `linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))`,
+   height 3px, count 1, on Headline series, Carbon cost per FEU, Next data drops and Legend. The
+   CLASS CLOSURE forbid (a card element that renders no 3px rule) is absent on /market and on four
+   other pages.
+2. **The literal PENDING in the date column: CLOSED.** The DUE cell renders the real date and its
+   day count ("Sep 14, 2026 / 6 days"). The row's one reason word sits on the title cell's meta
+   line, 10.5px/600 #7A6E6C uppercase, count 1, which is the operator's own B3/B4 placement, and
+   D-M4's "no list row carries more than one absence token" is absent on /market.
+3. **The bordered circle overflow control: CLOSED.** The 44px hit target has border-width 0,
+   border-radius 0 and a transparent background; the glyph inside it is the artboard's bare 28px
+   box, #7A6E6C, radius 6px, text U+22EF. The forbid "the overflow control is never a bordered
+   circle again" is absent.
+4. **The bordered kind chip: CLOSED.** 9.5px/700, letter-spacing 0.06em, uppercase, radius 3px,
+   padding 2px/6px, fill #F5F2EE on #1A1A1A, and all FOUR border widths measured 0px.
+5. **The band-block header phrasing: CLOSED.** A2's measures are asserted on the shared
+   `BandSectionHeader` (label 11px/800/.08em uppercase in the band colour, 7px dot, 11px muted
+   window) and /market renders that shared part: "IMMEDIATE / <= 90 days ... showing 5 of 8".
+6. **The row height: CLOSED.** `min-height: 56px`, grid `3px 56px * 88px 84px 76px 40px 44px`,
+   column-gap 14px, row-gap 0, padding-left 0, on the shared row and on the dashboard's two tables.
+
+**What still differs from the artboard, per page, after this fold.** Only the deltas this fold
+changed are restated; everything else stands as postscript 17 left it.
+
+- **01 Dashboard**: the composite is the real frame now. Due next carries THREE rows with real
+  impact meters, dates, timelines and tier chips, and its aside names the widened window out loud
+  ("BY NEXT BINDING DATE - WEEK OF SEP 7, REACHING TO MAR 15, 2027"). What changed carries a FULL
+  row where it used to carry the Absence convention in four cells: the by-id backfill working, which
+  is lane briefdata's whole point. Still differs: the masthead is out of frame (this mount is the
+  brief alone), ACROSS THE PLATFORM reads 0 for four surfaces and the Watchlist rail card can shoot
+  before its Suspense promise resolves, both fixture.
+- **02 / 04 / 06 / 08 lists**: rail facet rows are the artboard's 24px at 1440 with the 44px touch
+  target intact at 390, and the six /market items above are closed on all four. Still differs as
+  postscript 17 recorded.
+- **13 Admin**: the frame is the shared one, the tier card strip is gone with its legend in the
+  registry card's header and its counts in the source table's facets, the registry card now carries
+  the rule and the shadow it shipped without, and the two state-note strips sit where the operator
+  put them. Still differs: READ-ONLY CONTROLS has Refresh but not Export queue (no queue-export
+  function exists anywhere); "Pipeline - last full extraction run PENDING" where the artboard reads
+  a time and a count, which is the fixture.
+- **11 Watchlist / 12 Community / 14 Account / 15 Settings / 10 Map / details**: unchanged by this
+  fold beyond the shared card and row, both of which they render through; recaptured and read.
+
+**UX compliance**: this fold touched `.tsx`/`.ts` under `fsi-app/src` beyond the lanes' own work in
+five places, every one a containment, a dedup or a count fix with no new interactive element:
+`ui/SectionCard.tsx` (the survivor, plus `data-guard-card`), `ui/StateNote.tsx` (ONE action target
+box at the stricter of two floors), `ui/SectionHeading.tsx` (the aside wraps below 1280; the title
+does not), `sources/SourceHealthDashboard.tsx` and `sources/SourceTierLegend.tsx` (the shared card,
+and one marked overlay), plus `dashboard/DashboardBrief.tsx`, `app/page.tsx`, `lib/data.ts` and
+`lib/supabase-server.ts` for the due-next dedup, which is data-path only. No new interactive element
+is introduced anywhere; every 44px minimum the lanes set is preserved and the StateNote action's
+target grew from 24px to 28px. The rendering guard passes at every viewport including 375.
+
+2026-09-08, lane ci62: rotated DASHBOARD_DATA_CACHE_KEY from `app-data-7b3d90e4` to `app-data-e1ae7713`, the hash rule 021 computes on this tree, because this train changed the DashboardData payload shape (briefdata rows, the due-next read, and the reconciled complianceDeadline field) and the unstable_cache key must rotate so no old-shape cross-deployment entry can reach the new code.

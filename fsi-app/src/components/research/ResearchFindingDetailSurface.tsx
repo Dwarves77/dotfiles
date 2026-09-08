@@ -36,7 +36,7 @@ import type { Resource, ItemConnection, Supersession } from "@/types/resource";
 import type { IntelligenceItemSectionRow } from "@/lib/supabase-server";
 import type { ItemRelevance } from "@/lib/workspace/profile";
 import { GfmSection } from "@/components/shared/GfmSection";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { WatchButton } from "@/components/ui/WatchButton";
 import { ActionRow, shareResource, downloadMarkdownBrief } from "@/components/ui/ActionRow";
 import { StateNote } from "@/components/ui/StateNote";
@@ -435,16 +435,7 @@ function RecordFactCard({ fact }: { fact: RecordFactRow }) {
 function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
   if (!brief) return null;
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard>
       <div style={{ padding: "12px 16px 14px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
           <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
@@ -465,7 +456,7 @@ function ThemeBriefCard({ brief }: { brief: ThemeBriefView }) {
           )}
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 

@@ -1,223 +1,232 @@
 {
-  "part": "Watchlist page composition \u2014 the real WatchlistSurface (not a shell primitive fed invented props)",
-  "mount": "compose-11-watchlist",
-  "viewport": 1440,
-  "artboards": [
-    "11-watchlist"
-  ],
-  "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched \u00b7 personal \u00b7 M shared by the workspace', command bar placeholder 'Search your watchlist \u2014 or ask \"what changed on my watched items?\"'), then a 1fr/300px body \u2014 content column: Watched card (SectionHeading 'Watched \u00b7 N' + 'Sorted by next date', column header Juris./Title \u00b7 type \u00b7 modes/Impact low \u2192 high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations \u2192', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
-  "notes": [
-    "This spec exists per the operator's own composition complaint ('you are NOT matching the images directly'): it measures the page REGION BY REGION IN DOCUMENT ORDER, so a future regression that drops the column header, drops the card foot, drops the notices card, or puts the filters back into the content column is caught here rather than in a screenshot review.",
-    "Placement is asserted with sibling-combinator selectors wherever 'present but in the wrong place' is the defect being guarded \u2014 order, not mere presence.",
-    "Artboard 11's rail draws only two cards. The Filters card is the app's own scope/type/tag facets, which the artboard does not draw at all: ruling R7 keeps the feature and the operator's 2026-09-07 filters ruling puts it in the rail, so it is asserted here in rail position 1 exactly as on the other four list surfaces. Logged in DEVIATION-LOG.md.",
-    "Fixture data is invented with the real prop shape (6 WatchlistItems, 4 notices, 2 workspace tags) and is never shipped and never asserted on; the assertions are geometry, placement and the components' own static labels."
-  ],
-  "selector": "[data-audit=\"watched-card\"]",
-  "expect": {
-    "display": "block"
+ "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+ "mount": "compose-11-watchlist",
+ "viewport": 1440,
+ "artboards": [
+  "11-watchlist"
+ ],
+ "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+ "notes": [
+  "This spec exists per the operator's own composition complaint ('you are NOT matching the images directly'): it measures the page REGION BY REGION IN DOCUMENT ORDER, so a future regression that drops the column header, drops the card foot, drops the notices card, or puts the filters back into the content column is caught here rather than in a screenshot review.",
+  "Placement is asserted with sibling-combinator selectors wherever 'present but in the wrong place' is the defect being guarded — order, not mere presence.",
+  "Artboard 11's rail draws only two cards. The Filters card is the app's own scope/type/tag facets, which the artboard does not draw at all: ruling R7 keeps the feature and the operator's 2026-09-07 filters ruling puts it in the rail, so it is asserted here in rail position 1 exactly as on the other four list surfaces. Logged in DEVIATION-LOG.md.",
+  "Fixture data is invented with the real prop shape (6 WatchlistItems, 4 notices, 2 workspace tags) and is never shipped and never asserted on; the assertions are geometry, placement and the components' own static labels."
+ ],
+ "selector": "[data-audit=\"watched-card\"]",
+ "expect": {
+  "display": "block"
+ },
+ "children": [
+  {
+   "name": "masthead scope line ('N watched · personal · M shared by the workspace') is present",
+   "selector": "[data-audit=\"scope-line\"]",
+   "textMatch": "shared by the workspace",
+   "note": "dc.html p11 line 35. It was absent before this composition pass — the masthead rendered no dek at all.",
+   "expect": {
+    "display": "inline"
+   }
   },
-  "children": [
-    {
-      "name": "masthead scope line ('N watched \u00b7 personal \u00b7 M shared by the workspace') is present",
-      "selector": "[data-audit=\"scope-line\"]",
-      "textMatch": "shared by the workspace",
-      "note": "dc.html p11 line 35. It was absent before this composition pass \u2014 the masthead rendered no dek at all.",
-      "expect": {
-        "display": "inline"
-      }
-    },
-    {
-      "name": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
-      "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
-      "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase.",
-      "expect": {
-        "font-size": "20px",
-        "letter-spacing": "0.04em",
-        "text-transform": "uppercase"
-      }
-    },
-    {
-      "name": "the head's right-hand aside is 10.5px/.12em uppercase muted",
-      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
-      "textMatch": "Sorted by next date",
-      "note": "dc.html p11 line 53.",
-      "expect": {
-        "font-size": "10.5px",
-        "letter-spacing": "0.12em",
-        "text-transform": "uppercase",
-        "color": "#7A6E6C"
-      }
-    },
-    {
-      "name": "the column header row exists inside the Watched card, on the row grid",
-      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
-      "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header.",
-      "expect": {
-        "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
-        "height": "30px",
-        "padding-right": "12px"
-      }
-    },
-    {
-      "name": "the column header row precedes the first row (header above rows, not below)",
-      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header ~ .cl-list-row",
-      "note": "Sibling-combinator placement check: only matches when the header's node precedes a row's.",
-      "expect": {
-        "display": "grid"
-      }
-    },
-    {
-      "name": "the header's date column is labelled 'Next date' (not the dashboard's 'Due')",
-      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(5)",
-      "textMatch": "Next date",
-      "expect": {
-        "text-align": "right"
-      }
-    },
-    {
-      "name": "the header's title column carries artboard 11's own label",
-      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(3)",
-      "textMatch": "Title \u00b7 type \u00b7 modes",
-      "expect": {
-        "text-transform": "uppercase"
-      }
-    },
-    {
-      "name": "the card foot strip sits on the page tint with the header-weight divider above it",
-      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
-      "textMatch": "Watch an item from its",
-      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on.",
-      "expect": {
-        "background-color": "#FAFAF8",
-        "font-size": "12px",
-        "border-top-width": "1px",
-        "border-top-color": "rgba(0,0,0,.08)",
-        "padding-left": "16px",
-        "padding-top": "10px"
-      }
-    },
-    {
-      "name": "the card foot carries the 'Browse regulations \u2192' link on its right",
-      "selector": "[data-audit=\"watched-card\"] .cl-card-foot a",
-      "textMatch": "Browse regulations",
-      "expect": {
-        "font-weight": "600"
-      }
-    },
-    {
-      "name": "the changed-since-last-visit state note sits INSIDE the Watched card, after its foot",
-      "selector": "[data-audit=\"watched-card\"] .cl-card-foot ~ [data-audit=\"changed-note\"]",
-      "note": "dc.html p11 line 115. Absent entirely before this pass. The sibling combinator is the placement assertion: below the foot, still inside the card.",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "the Recalculation notices card exists and follows the Watched card",
-      "selector": "[data-audit=\"watched-card\"] ~ [data-audit=\"recalculation-notices\"]",
-      "note": "dc.html p11 lines 121-131. The whole card was missing before this pass.",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
-      "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
-      "textMatch": "Since ",
-      "note": "SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the aside used to be the literal \"Since your last visit\", printed a second time in the card's own empty line and never carrying a date. The product tracks no last visit -- GET /api/notices applies a fixed 30-day window and no caller sends ?since= -- so the aside now states the window the FEED reports, \"Since <date>\". The spec anchors on the invariant part of that label rather than on a claim the data never supported.",
-      "expect": {
-        "font-size": "10.5px",
-        "letter-spacing": "0.12em"
-      }
-    },
-    {
-      "name": "rail card 1 is Filters (the app's own facets, relocated out of the content column)",
-      "selector": "[data-audit=\"filters-rail\"]",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "Filters rail card carries checkbox rows, the same control the other list surfaces use",
-      "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
-      "expect": {}
-    },
-    {
-      "name": "rail order: Filters before Share with workspace",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"share-rail\"]",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "rail order: Share with workspace before Legend (artboard 11's own rail order)",
-      "selector": "[data-audit=\"share-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "note": "dc.html p11 lines 134-195: Share with workspace, then Legend.",
-      "expect": {
-        "display": "block"
-      }
-    },
-    {
-      "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
-      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
-      "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
-      "expect": {
-        "width": "44px",
-        "height": "44px"
-      }
-    },
-    {
-      "name": "every row ends in the artboard's \u22ef overflow glyph, the same control the Regulations rows use",
-      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
-      "textMatch": "\u22ef",
-      "note": "Artboard 11/id=\"p11\" ends each row with `\u22ef`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} \u2014 a watchlist row has no manual priority retag \u2014 holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5).",
-      "expect": {
-        "width": "44px",
-        "height": "44px"
-      }
-    },
-    {
-      "name": "the changed-since strip names the window as a clause, with the month cased as the head cases it",
-      "selector": "[data-audit=\"changed-note\"]",
-      "expect": {
-        "display": "block"
-      },
-      "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing.",
-      "textMatch": "re:changed since [A-Z][a-z]{2} \\d{1,2}, \\d{4}"
-    }
-  ],
-  "forbid": [
-    {
-      "name": "no filter control in the content column (native selects)",
-      "selector": "select",
-      "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right \u2014 same on every page.' The watchlist's Scope/Type selects sat above the rows; they are now checkbox rows in the rail's Filters card."
-    },
-    {
-      "name": "no filter chip strip in the content column",
-      "selector": ".cl-filter-group",
-      "reason": "Same ruling: the Workspace-tags FilterChipGroup card that sat above the rows is gone; the same data is the rail Filters card's 'Workspace tags' group."
-    },
-    {
-      "name": "the literal word UNSCORED anywhere on the page",
-      "selector": "body",
-      "textMatch": "UNSCORED",
-      "reason": "Operator ruling P1 2.1: this literal token never appears; Absence renders the fixed-vocabulary reason in small caps via CSS on lowercase text."
-    },
-    {
-      "name": "no floating Ask control",
-      "selector": ".cl-ask-fab",
-      "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
-    },
-    {
-      "name": "D-M4: no list row carries more than one absence token",
-      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
-    },
-    {
-      "name": "the changed-since strip never reads 'changed in since'",
-      "selector": "[data-audit=\"changed-note\"]",
-      "textMatch": "changed in since",
-      "reason": "FOLD-61, found by eye at 1440. COUNTS-61 gave the recalculation window ONE label, 'Since Aug 8, 2026', correctly for the card head, and reused it lower-cased inside this strip, which produced 'changed in since aug 8, 2026' under a head that uppercases the same date. The date is derived once and presented twice now, as a head label and as a clause. This forbid is the recurrence check."
-    }
-  ]
+  {
+   "name": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+   "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
+   "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase.",
+   "expect": {
+    "font-size": "20px",
+    "letter-spacing": "0.04em",
+    "text-transform": "uppercase"
+   }
+  },
+  {
+   "name": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+   "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+   "textMatch": "Sorted by next date",
+   "note": "dc.html p11 line 53.",
+   "expect": {
+    "font-size": "10.5px",
+    "letter-spacing": "0.12em",
+    "text-transform": "uppercase",
+    "color": "#7A6E6C"
+   }
+  },
+  {
+   "name": "the column header row exists inside the Watched card, on the row grid",
+   "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+   "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header.",
+   "expect": {
+    "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+    "height": "30px",
+    "padding-right": "12px"
+   }
+  },
+  {
+   "name": "the column header row precedes the first row (header above rows, not below)",
+   "selector": "[data-audit=\"watched-card\"] .cl-list-row-header ~ .cl-list-row",
+   "note": "Sibling-combinator placement check: only matches when the header's node precedes a row's.",
+   "expect": {
+    "display": "grid"
+   }
+  },
+  {
+   "name": "the header's date column is labelled 'Next date' (not the dashboard's 'Due')",
+   "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(5)",
+   "textMatch": "Next date",
+   "expect": {
+    "text-align": "right"
+   }
+  },
+  {
+   "name": "the header's title column carries artboard 11's own label",
+   "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(3)",
+   "textMatch": "Title · type · modes",
+   "expect": {
+    "text-transform": "uppercase"
+   }
+  },
+  {
+   "name": "the card foot strip sits on the page tint with the header-weight divider above it",
+   "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+   "textMatch": "Watch an item from its",
+   "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass. SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the textMatch was \"Watch from any row\", which read as a control on the watchlist page itself; the copy now names where the menu is (\"Watch an item from its ... menu on any list page\"). Geometry unchanged, only the string this anchors on.",
+   "expect": {
+    "background-color": "#FAFAF8",
+    "font-size": "12px",
+    "border-top-width": "1px",
+    "border-top-color": "rgba(0,0,0,.08)",
+    "padding-left": "16px",
+    "padding-top": "10px"
+   }
+  },
+  {
+   "name": "the card foot carries the 'Browse regulations →' link on its right",
+   "selector": "[data-audit=\"watched-card\"] .cl-card-foot a",
+   "textMatch": "Browse regulations",
+   "expect": {
+    "font-weight": "600"
+   }
+  },
+  {
+   "name": "the changed-since-last-visit state note sits INSIDE the Watched card, after its foot",
+   "selector": "[data-audit=\"watched-card\"] .cl-card-foot ~ [data-audit=\"changed-note\"]",
+   "note": "dc.html p11 line 115. Absent entirely before this pass. The sibling combinator is the placement assertion: below the foot, still inside the card.",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "the Recalculation notices card exists and follows the Watched card",
+   "selector": "[data-audit=\"watched-card\"] ~ [data-audit=\"recalculation-notices\"]",
+   "note": "dc.html p11 lines 121-131. The whole card was missing before this pass.",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
+   "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
+   "textMatch": "Since ",
+   "note": "SPEC UPDATE, lane counts 2026-09-08 (COUNTS-61): the aside used to be the literal \"Since your last visit\", printed a second time in the card's own empty line and never carrying a date. The product tracks no last visit -- GET /api/notices applies a fixed 30-day window and no caller sends ?since= -- so the aside now states the window the FEED reports, \"Since <date>\". The spec anchors on the invariant part of that label rather than on a claim the data never supported.",
+   "expect": {
+    "font-size": "10.5px",
+    "letter-spacing": "0.12em"
+   }
+  },
+  {
+   "name": "rail card 1 is Filters (the app's own facets, relocated out of the content column)",
+   "selector": "[data-audit=\"filters-rail\"]",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "Filters rail card carries checkbox rows, the same control the other list surfaces use",
+   "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+   "expect": {}
+  },
+  {
+   "name": "rail order: Filters before Share with workspace",
+   "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"share-rail\"]",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "rail order: Share with workspace before Legend (artboard 11's own rail order)",
+   "selector": "[data-audit=\"share-rail\"] ~ [data-audit=\"legend-rail\"]",
+   "note": "dc.html p11 lines 134-195: Share with workspace, then Legend.",
+   "expect": {
+    "display": "block"
+   }
+  },
+  {
+   "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
+   "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+   "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
+   "expect": {
+    "width": "44px",
+    "height": "44px"
+   }
+  },
+  {
+   "name": "every row ends in the artboard's ⋯ overflow glyph, the same control the Regulations rows use",
+   "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+   "textMatch": "⋯",
+   "note": "Artboard 11/id=\"p11\" ends each row with `⋯`, exactly as artboard 02 does. The row used to render WatchButton's glyph-only star variant here, which put a second star in the product where the star belongs to the detail action row's Watch control alone (ruling R5/3.5). The control is PriorityDropdown's 44px kebab with showPriorityActions={false} — a watchlist row has no manual priority retag — holding the WatchButton in its popover, so Unwatch lives in the menu (ruling 3.5).",
+   "expect": {
+    "width": "44px",
+    "height": "44px"
+   }
+  },
+  {
+   "name": "the changed-since strip names the window as a clause, with the month cased as the head cases it",
+   "selector": "[data-audit=\"changed-note\"]",
+   "expect": {
+    "display": "block"
+   },
+   "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing.",
+   "textMatch": "re:changed since [A-Z][a-z]{2} \\d{1,2}, \\d{4}"
+  },
+  {
+   "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+   "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+   "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+   "expect": {
+    "height": "24px",
+    "font-size": "12.5px"
+   }
+  }
+ ],
+ "forbid": [
+  {
+   "name": "no filter control in the content column (native selects)",
+   "selector": "select",
+   "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The watchlist's Scope/Type selects sat above the rows; they are now checkbox rows in the rail's Filters card."
+  },
+  {
+   "name": "no filter chip strip in the content column",
+   "selector": ".cl-filter-group",
+   "reason": "Same ruling: the Workspace-tags FilterChipGroup card that sat above the rows is gone; the same data is the rail Filters card's 'Workspace tags' group."
+  },
+  {
+   "name": "the literal word UNSCORED anywhere on the page",
+   "selector": "body",
+   "textMatch": "UNSCORED",
+   "reason": "Operator ruling P1 2.1: this literal token never appears; Absence renders the fixed-vocabulary reason in small caps via CSS on lowercase text."
+  },
+  {
+   "name": "no floating Ask control",
+   "selector": ".cl-ask-fab",
+   "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
+  },
+  {
+   "name": "D-M4: no list row carries more than one absence token",
+   "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+   "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+  },
+  {
+   "name": "the changed-since strip never reads 'changed in since'",
+   "selector": "[data-audit=\"changed-note\"]",
+   "textMatch": "changed in since",
+   "reason": "FOLD-61, found by eye at 1440. COUNTS-61 gave the recalculation window ONE label, 'Since Aug 8, 2026', correctly for the card head, and reused it lower-cased inside this strip, which produced 'changed in since aug 8, 2026' under a head that uppercases the same date. The date is derived once and presented twice now, as a head label and as a clause. This forbid is the recurrence check."
+  }
+ ]
 }

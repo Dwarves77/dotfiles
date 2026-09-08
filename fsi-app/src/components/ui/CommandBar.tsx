@@ -116,6 +116,15 @@ export function CommandBar({ itemCount, onSearch, scope, placeholder }: CommandB
           fontFamily: "inherit",
           fontSize: "var(--fs-13)",
           color: "var(--ink)",
+          // L12 (site-wide layout guard, lane layoutguard 2026-09-08) [CONFIRMED by measurement on
+          // 13 of the 17 routes at 1440 and 1024]: the placeholder is 339-546px of text in a 283px
+          // input, so on every one of them a native <input> cut it mid-word with no sign that
+          // anything was missing - "Search or ask across 1,434 item", "Search sources, workspaces,
+          // fla". The ARTBOARD draws this same prompt with `white-space:nowrap;overflow:hidden;
+          // text-overflow:ellipsis` (dc.html, every masthead), so trailing off is designed; cutting
+          // a character silently is the defect, and it is the same rule L11 holds every other text
+          // run to. One declaration, in the one command bar.
+          textOverflow: "ellipsis",
         }}
       />
       <span

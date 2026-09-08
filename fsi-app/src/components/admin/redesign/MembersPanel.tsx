@@ -482,6 +482,9 @@ function TypedConfirmDialog({
         padding: 16,
       }}
     >
+      {/* fitness-allow: F42 (undesigned OVERLAY. Ruling R7 and the operator's own overlays list
+          keep overlay styling uninvented until an artboard lands; a modal is not a section card
+          and carries no section rule.) */}
       <div
         onClick={(e) => e.stopPropagation()}
         style={{

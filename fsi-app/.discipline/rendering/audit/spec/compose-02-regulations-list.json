@@ -1,16 +1,17 @@
 {
-  "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+  "part": "Regulations page composition \u2014 RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
   "mount": "compose-02-regulations",
   "viewport": 1440,
   "artboards": [
     "02-regulations-list"
   ],
-  "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations · next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+  "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations \u00b7 grouped by band \u00b7 Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then 'Obligations \u00b7 next 30 days', then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right \u2014 same on every page; you are NOT matching the images directly') \u2014 it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
   "notes": [
     "The pre-existing list-surface.json spec measures ListSurfaceShell/ListSurfaceRailCards in isolation via the 'list-surface-1440' mount (a minimal fixture: one facetGroup, no sortRow, no topic/tier). This spec measures the REAL RegulationsLedger composition (24-row fixture, matching capture-compose-lists-screenshots.mjs), so the sort row, the Topic/Source-tier facets, and the rail's actual top-to-bottom order are all exercised end to end.",
     "Fixture is invented sample data with the real shape (same helper as the evidence screenshot); the audit asserts geometry/placement/labels, never fixture values.",
-    "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) — asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence.",
-    "The rail's OBLIGATIONS · NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar →' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs."
+    "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) \u2014 asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence.",
+    "The rail's OBLIGATIONS \u00b7 NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar \u2192' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
   ],
   "selector": "[data-audit=\"filters-rail\"]",
   "expect": {
@@ -20,7 +21,7 @@
     {
       "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
       "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
-      "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check.",
+      "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's \u2014 this is the placement check, not a style check.",
       "expect": {
         "display": "block"
       }
@@ -55,7 +56,7 @@
       }
     },
     {
-      "name": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
+      "name": "Sort row carries the real 'My order' option (all four options \u2014 Regulations is the one surface with 'My order')",
       "selector": "[data-audit=\"sort-row\"] button",
       "textMatch": "My order",
       "expect": {
@@ -81,19 +82,19 @@
       "name": "Obligations rail card head carries the artboard's exact label",
       "selector": "[data-audit=\"obligations-rail\"] p",
       "expect": {
-        "text": "Obligations · next 30 days"
+        "text": "Obligations \u00b7 next 30 days"
       }
     },
     {
-      "name": "Obligations rail card head carries the artboard's 'Calendar →' link",
+      "name": "Obligations rail card head carries the artboard's 'Calendar \u2192' link",
       "selector": "[data-audit=\"obligations-rail\"] a",
       "expect": {
-        "text": "Calendar →",
+        "text": "Calendar \u2192",
         "display": "flex",
         "font-size": "11px",
         "font-weight": "600"
       },
-      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` — that is the value a browser computes, and the value asserted here."
+      "note": "The link is authored `inline-flex` (so its 24px hit box centres on the head baseline); the head is itself a flex container, so CSS blockifies the flex ITEM's display to `flex` \u2014 that is the value a browser computes, and the value asserted here."
     },
     {
       "name": "Obligations rail card renders the artboard's four dated rows, and no more (the fifth fixture event is 90 days out, outside the 30-day window)",
@@ -128,19 +129,121 @@
       "expect": {},
       "textMatch": "Ocean",
       "note": "Artboard 02/id=\"p2\" draws the FILTERS card's MODE rows as Air / Road / Ocean / Rail, title case, like its own JURISDICTION and TOPIC groups. The build printed the raw canonical token, so the group read 'air / ocean / road / rail' in lower case and was the only lower-case group in the card. Found by eye in train 60's visual pass; no spec measured it. The label now comes from TRANSPORT_MODES (the vocabulary that already owns it), and the option's `value` is untouched, so the stored/filtered token is still the canonical `ocean` of the 2026-08-12 ruling. This row asserts the DISPLAY form only. The match is a CASE-SENSITIVE substring, which is exactly the distinction under test: the lower-case token 'ocean' does not contain 'Ocean'. (Authoring note, fold 60: this row first used a `re:` regex with \\b word boundaries and reported NOT BUILT against a correct product, because in JSON \\b is the escape for BACKSPACE, so the parsed pattern searched for control characters. A regex in a spec file needs its backslashes doubled; a plain substring needs none, and is enough here.)"
+    },
+    {
+      "name": "A1 rule on the Filters rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"filters-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Filters rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Obligations rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"obligations-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Obligations rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"obligations-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Legend rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"legend-rail\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Legend rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"legend-rail\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A2 band-block header: label 11px/800/.08em uppercase in the band colour",
+      "selector": "[data-audit=\"band-header-label\"]",
+      "note": "Operator item A2 (2026-09-08), verbatim: \"the band-block header text ('IMMEDIATE <= 90 days') must be 11px/800 .08em uppercase in the band colour, dot 7px, window 11px muted, currently too small\". Measured before the fix: dot 6px, label letter-spacing .1em, window 10.5px; the label's size, weight, colour and casing were already correct. A2's three values differ from what artboard 02's own band-block header draws (8px dot, .1em label tracking, 11.5px window); the operator's 2026-09-08 item is the later ruling and wins over the artboard per the precedence rule, and both values are recorded in DEVIATION-LOG.md. A2 states nothing about the row's alignment or gap, so `align-items: baseline` and the 8px gap stay as they are (the artboard draws centre and 10px) and are logged rather than improvised. The band-coloured 3px rule above this header is correct today (ruling 5.2's one coloured rule per screen) and is untouched.",
+      "expect": {
+        "font-size": "11px",
+        "font-weight": "800",
+        "letter-spacing": "0.08em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "A2 band-block header: dot 7px",
+      "selector": "[data-audit=\"band-header-dot\"]",
+      "note": "Operator item A2 (2026-09-08): dot 7px. Was 6px.",
+      "expect": {
+        "width": "7px",
+        "height": "7px",
+        "border-radius": "50%"
+      }
+    },
+    {
+      "name": "A2 band-block header: window 11px muted",
+      "selector": "[data-audit=\"band-header-window\"]",
+      "note": "Operator item A2 (2026-09-08): window 11px muted. Was 10.5px.",
+      "expect": {
+        "font-size": "11px",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "Rail facet row is the artboard's 24px on this surface too (C1, shared part)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-facet-row",
+      "note": "Lane railfacets, train 62, 2026-09-08. The geometry is FiltersRailCard's, fixed once (ListSurfaceRailCards.tsx) and measured in full by list-surface.json; this one row per surface is the proof that every caller inherited it rather than that one page was patched.",
+      "expect": {
+        "height": "24px",
+        "font-size": "12.5px"
+      }
     }
   ],
   "forbid": [
     {
       "name": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
       "selector": ".cl-facets-desktop",
-      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
+      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right \u2014 same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
     },
     {
       "name": "the literal word UNSCORED anywhere in a row",
       "selector": "body",
       "textMatch": "UNSCORED",
-      "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
+      "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word \u2014 textContent reads the real, lowercase, DOM text)."
     },
     {
       "name": "no trailing 'N regulations tracked across N jurisdictions' line below the band cards",
@@ -153,6 +256,11 @@
       "selector": "[data-audit=\"facet-mode\"] label span",
       "textMatch": "re:^(ocean|road|rail|air)$",
       "reason": "The lower-case token is the storage form, not a label. Its reappearance here is exactly the regression this fold fixed, and it is invisible to every other row because the counts and the click behaviour are unchanged when only the case is wrong."
+    },
+    {
+      "name": "CLASS CLOSURE (regulations list): a card element that renders no 3px rule",
+      "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
+      "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
     }
   ]
 }

@@ -12,55 +12,49 @@
  * this file actually mounts them, not just defines them.
  */
 
-import { Suspense, useMemo } from "react";
-import type { ReactNode } from "react";
+import { Suspense } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
+import { WatchButton } from "@/components/ui/WatchButton";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { countNoun, formatNumber, formatLocaleDate } from "@/lib/format";
-import { nowFrom } from "@/lib/render-now";
+import { countNoun, formatNumber } from "@/lib/format";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
-import type { BriefRow } from "@/lib/dashboard/brief-rows";
+import { briefCardState, type BriefRow } from "@/lib/dashboard/brief-rows";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
 import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
+import { PageFrame } from "@/components/layout/PageFrame";
 
-
-function Card({ children }: { children: ReactNode }) {
-  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings, artboard 18): every panel/section
-  // card sitewide gets the 3px top gradient rule (full card width, top edge, no radius on it) and
-  // loses the divider that used to sit below the section title — see `<SectionRule/>`'s own header
-  // for the shared value and `SectionHeading` above for the removed divider.
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
-      {children}
-    </div>
-  );
-}
 
 export interface DashboardBriefProps {
   /** Rows SELECTED AND SHAPED ON THE SERVER (src/lib/dashboard/brief-rows.ts) through the shared
    *  `toListRowFields` derivation the list ledgers use — see that module for defect D3, and
    *  src/lib/render-now.ts for why no row derivation may run against this component's own clock. */
   dueNextRows: BriefRow[];
+  /**
+   * The Due-next card's aside, BUILT ON THE SERVER (src/lib/dashboard/brief-rows.ts's
+   * `dueNextWindowLabel`, called from src/app/page.tsx).
+   *
+   * It was computed here, from `nowIso`, until lane BRIEFDATA (2026-09-08) — and before
+   * HYDRATION-59 it was computed from this client component's OWN host clock with no timezone pin,
+   * which is the [CONFIRMED] root cause of this route's React #418 (SSR in the UTC container said
+   * "week of Sep 7", the browser in its own zone said "week of Sep 8"). Both reasons point the
+   * same way: the label states which window the SELECTED ROWS actually span, so it belongs where
+   * the rows are selected, and passing it as a prop keeps this component's render free of both the
+   * clock and the selection.
+   */
+  dueNextWindow: string;
   changedRows: BriefRow[];
   /** Total changes in the last detection pass (the card foot's figure) — the rows themselves are
    *  capped at CHANGED_CAP. */
@@ -96,6 +90,7 @@ export interface DashboardBriefProps {
 
 export function DashboardBrief({
   dueNextRows,
+  dueNextWindow,
   changedRows,
   totalChanges,
   aggregates,
@@ -108,25 +103,33 @@ export function DashboardBrief({
   fetchError,
   fetchErrorReason,
 }: DashboardBriefProps) {
-  // HYDRATION-59 [CONFIRMED root cause of this route's React #418]: this label was
-  // `formatLocaleDate(new Date(), { month: "short", day: "numeric" })` — a client component
-  // reading its OWN host clock in render, with no timezone pin. The SSR pass (UTC container) and
-  // the hydration pass (the viewer's zone) resolve a different calendar date for part of every
-  // day, so the SSR HTML said "week of Sep 7" and the browser said "week of Sep 8" — reproduced
-  // this lane in a Pacific/Kiritimati Playwright context, verbatim React text-mismatch diff. Now
-  // derived from the SERVER's instant (`nowIso`) and UTC-pinned: identical string, both passes.
-  const weekOfLabel = useMemo(
-    () => formatLocaleDate(nowFrom(nowIso), { month: "short", day: "numeric", timeZone: "UTC" }),
-    [nowIso],
+  const router = useRouter();
+  // Lane BRIEFDATA (2026-09-08): each card's state is ONE decision, made in
+  // src/lib/dashboard/brief-rows.ts, because "no rows" and "the read failed" are opposite facts
+  // that rendered as the same pixels — see briefCardState's own header.
+  const dueState = briefCardState(dueNextRows.length, fetchError);
+  const changedState = briefCardState(changedRows.length, fetchError);
+  const failureNote = (
+    <StateNote
+      band={bandFromPriority("CRITICAL")}
+      action={{ label: "Retry", onClick: () => router.refresh() }}
+    >
+      {fetchError}
+      {fetchErrorReason && (
+        <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>{fetchErrorReason}</span>
+      )}
+    </StateNote>
   );
   const immediateTotal = bandCounts.byPriority.CRITICAL ?? 0;
   const actionTotal = bandCounts.byPriority.HIGH ?? 0;
   const monitorTotal = bandCounts.byPriority.MODERATE ?? 0;
 
   return (
-    // Content column top padding is 20px (README §0.3), matching operator ruling 4.2's nav-card
-    // margin-top (fix58-tokens, 2026-09-07, page-frame.json B171) so the two align.
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
+    // THE SHARED FRAME (lane layoutguard, 2026-09-08). This surface used to carry its own copy of
+    // README §0.3's grid; it now takes it from <PageFrame/>, which is the one definition. The
+    // 20px content-column top padding still matches operator ruling 4.2's nav-card margin-top
+    // (fix58-tokens, 2026-09-07, page-frame.json B171), because that is the value the frame holds.
+    <PageFrame className="cl-brief-outer">
       <style>{`
         /* MOBILE-60 (2026-09-08) [CONFIRMED root cause, measured at 390 by
            .discipline/rendering/audit/spec/mobile-01-dashboard.json]: this override
@@ -178,15 +181,19 @@ export function DashboardBrief({
 
         {/* Due next */}
         <section>
-          <Card>
-            <SectionHeading
-              title={`Due next · ${dueNextRows.length} items`}
-              aside={`By next binding date · week of ${weekOfLabel}`}
-            />
-            {dueNextRows.length === 0 ? (
+          <SectionCard dataAudit="due-next-card">
+            <SectionHeading title={`Due next · ${dueNextRows.length} items`} aside={dueNextWindow} />
+            {dueState === "failed" ? (
+              <div style={{ padding: 16 }}>{failureNote}</div>
+            ) : dueState === "empty" ? (
               <div style={{ padding: 16 }}>
-                <StateNote>
-                  Nothing with a dated deadline right now. Items appear here as they enter scope and are verified.
+                {/* The ONE honest empty state (brief-rows.ts, cause 2): the selection window is no
+                    longer capped at a week, so reaching this line means the workspace corpus holds
+                    no future-dated item at all. It says which corpus it looked at — it is not the
+                    failure copy, which now has its own state above. */}
+                <StateNote action={{ label: "Open the ledger →", href: "/regulations" }}>
+                  No item in this workspace&apos;s corpus carries a future binding date. Items appear
+                  here as they enter scope and are verified.
                 </StateNote>
               </div>
             ) : (
@@ -204,6 +211,24 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    overflow={
+                      // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
+                      // the same row component as the lists (B), including the 56px rows and the
+                      // overflow cell." The cell and its divider already rendered (ListRow draws
+                      // them); what the dashboard never passed was a control to put in it, so
+                      // artboard 1's own row-end glyph was missing on both tables. It is the SAME
+                      // control the five list surfaces mount, holding the SAME Watch toggle, so
+                      // there is one row-actions control in the product and no new component.
+                      // Ruling 1.1 is satisfied because Watch is a real action on a real item:
+                      // `row.watchType` comes from the one classifier that already decides which
+                      // surface owns an item (list-row-fields.ts).
+                      <PriorityDropdown
+                        variant="card"
+                        showPriorityActions={false}
+                        ariaLabel={`Actions for ${row.title}`}
+                        menuTopContent={<WatchButton variant="row" itemType={row.watchType} itemId={row.id} />}
+                      />
+                    }
                   />
                 ))}
                 <CardFoot
@@ -221,29 +246,23 @@ export function DashboardBrief({
                 />
               </>
             )}
-            {fetchError && (
-              <div style={{ padding: 12 }}>
-                <StateNote>
-                  {fetchError}
-                  {fetchErrorReason && (
-                    <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>
-                      {fetchErrorReason}
-                    </span>
-                  )}
-                </StateNote>
-              </div>
-            )}
-          </Card>
+          </SectionCard>
         </section>
 
         {/* What changed */}
         <section>
-          <Card>
+          <SectionCard dataAudit="what-changed-card">
             <SectionHeading
               title="What changed"
               aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
             />
-            {changedRows.length === 0 ? (
+            {changedState === "failed" ? (
+              // Lane BRIEFDATA (2026-09-08): this card used to render its honest-empty line on a
+              // FAILED read, with no error anywhere on it — the failure note lived only on the
+              // sibling card above. A reader could not tell "nothing changed" from "we could not
+              // look".
+              <div style={{ padding: 16 }}>{failureNote}</div>
+            ) : changedState === "empty" ? (
               <div style={{ padding: 16 }}>
                 <StateNote>
                   Nothing added or updated in the last detection pass.
@@ -257,9 +276,13 @@ export function DashboardBrief({
                     "UNSCORED · PENDING · not in primary source" while the SAME item on
                     /regulations showed its score and tier. They are now the SHARED row shape
                     (src/lib/dashboard/brief-rows.ts -> toListRowFields), resolved against the
-                    corpus payload this route already loads — no second query shape. A change
-                    whose item is outside the loaded slice still degrades to the Absence
-                    convention rather than an invented value. */}
+                    corpus payload this route already loads — no second query shape.
+                    Lane BRIEFDATA (2026-09-08): that payload is the LIMIT-50 priority slice, and
+                    measured against the live workspace ALL SIX rendered change rows fell outside
+                    it, so the degrade branch was not the exception, it was the whole card. The
+                    route now merges a bounded by-id backfill into the corpus before selecting
+                    (see page.tsx); the degrade branch remains as the last resort for an id the
+                    corpus genuinely cannot resolve, and still invents nothing. */}
                 {changedRows.map((row) => (
                   <ListRow
                     key={row.id}
@@ -272,6 +295,24 @@ export function DashboardBrief({
                     due={row.due}
                     timeline={row.timeline}
                     tier={row.tier}
+                    overflow={
+                      // ITEM F2 (operator, 2026-09-08): "'Due next' and 'What changed' must use
+                      // the same row component as the lists (B), including the 56px rows and the
+                      // overflow cell." The cell and its divider already rendered (ListRow draws
+                      // them); what the dashboard never passed was a control to put in it, so
+                      // artboard 1's own row-end glyph was missing on both tables. It is the SAME
+                      // control the five list surfaces mount, holding the SAME Watch toggle, so
+                      // there is one row-actions control in the product and no new component.
+                      // Ruling 1.1 is satisfied because Watch is a real action on a real item:
+                      // `row.watchType` comes from the one classifier that already decides which
+                      // surface owns an item (list-row-fields.ts).
+                      <PriorityDropdown
+                        variant="card"
+                        showPriorityActions={false}
+                        ariaLabel={`Actions for ${row.title}`}
+                        menuTopContent={<WatchButton variant="row" itemType={row.watchType} itemId={row.id} />}
+                      />
+                    }
                   />
                 ))}
                 <CardFoot
@@ -287,13 +328,13 @@ export function DashboardBrief({
                 />
               </>
             )}
-          </Card>
+          </SectionCard>
         </section>
       </div>
 
       {/* Rail */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Card>
+        <SectionCard dataAudit="across-platform-card">
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Across the platform
@@ -316,17 +357,17 @@ export function DashboardBrief({
               )}
             </div>
           </div>
-        </Card>
+        </SectionCard>
 
-        <Card>
+        <SectionCard dataAudit="watchlist-rail-card">
           <div style={{ padding: "14px 16px" }}>
             <Suspense fallback={<SkeletonListRow />}>
               <DashboardWatchlist promise={watchlistPromise} />
             </Suspense>
           </div>
-        </Card>
+        </SectionCard>
 
-        <Card>
+        <SectionCard dataAudit="dashboard-legend-card">
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Legend
@@ -352,9 +393,9 @@ export function DashboardBrief({
               </div>
             </dl>
           </div>
-        </Card>
+        </SectionCard>
       </div>
-    </div>
+    </PageFrame>
   );
 }
 

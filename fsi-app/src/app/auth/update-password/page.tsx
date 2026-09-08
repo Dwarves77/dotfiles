@@ -54,6 +54,8 @@ export default function UpdatePasswordPage() {
         </div>
 
         {done ? (
+          // fitness-allow: F42 (auth confirmation note inside artboard 16's panel, not a section
+          // card, same reason as reset-password/page.tsx.)
           <div
             style={{
               borderRadius: "var(--radius-card)",

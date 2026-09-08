@@ -46,6 +46,7 @@ import { STATE_LABELS, buildStateRoster } from "@/lib/operations/state-roster.mj
 import { isRegulationItem } from "@/lib/regulation-item-types";
 import { LIST_FIRST_PAGE_SIZE } from "@/lib/list-pagination";
 import { RegionDimensionMatrix } from "@/components/operations/RegionDimensionMatrix";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
@@ -552,15 +553,11 @@ function ByStateSubList({ regs, stateCosts }: { regs: Resource[]; stateCosts: Ma
   if (states.length === 0) return null;
 
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
+    // Operator item A1 (2026-09-08): the by-state disclosure is a card, so it is a `SectionCard` and
+    // gains the 3px rule every card carries. Ruling R7 keeps the FEATURE exactly as it is (no
+    // artboard draws it); A1 governs the SHELL it is drawn in, which is the point of moving the
+    // rule into the card component: a card that no artboard drew still cannot be built without it.
+    <SectionCard>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -639,6 +636,6 @@ function ByStateSubList({ regs, stateCosts }: { regs: Resource[]; stateCosts: Ma
           </div>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }

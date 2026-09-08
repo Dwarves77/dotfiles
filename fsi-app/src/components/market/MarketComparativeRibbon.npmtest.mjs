@@ -22,9 +22,15 @@ test("MarketComparativeRibbon accepts an `embedded` prop, defaulting to false", 
   assert.match(SOURCE, /embedded\s*=\s*false/);
 });
 
-test("embedded mode mounts a SectionRule (ruling 5.1) and drops the standalone page-section chrome", () => {
-  assert.match(SOURCE, /import \{ SectionRule \} from "@\/components\/ui\/SectionRule"/);
-  assert.match(SOURCE, /\{embedded && <SectionRule \/>\}/);
+// UPDATED (fold 62, 2026-09-08): embedded mode no longer mounts the rule itself. Lane cardrule
+// made the rule a property of the card (operator item A1), so the embedded form IS the shared
+// `SectionCard` and the rule comes with it, along with the border, the radius and the shadow this
+// ribbon used to draw without. Same invariant, stronger guarantee: a card that cannot be built
+// without its rule cannot lose it, and the standalone form still draws no card chrome at all.
+test("embedded mode renders the shared SectionCard (which mounts ruling 5.1's rule) and drops the standalone page-section chrome", () => {
+  assert.match(SOURCE, /import \{ SectionCard \} from "@\/components\/ui\/SectionCard"/);
+  assert.doesNotMatch(SOURCE, /import \{ SectionRule \}/);
+  assert.match(SOURCE, /return embedded \? \(\s*\n\s*<SectionCard dataAudit="headline-series">/);
 });
 
 test("no borderBottom divider under the title row (ruling 5.1/4.1 — a divider below the title was the exact defect named)", () => {

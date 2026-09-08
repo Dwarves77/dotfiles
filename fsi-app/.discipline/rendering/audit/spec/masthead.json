@@ -2,12 +2,17 @@
   "part": "Masthead + CommandBar",
   "mount": "masthead",
   "viewport": 1440,
-  "artboards": ["00-system-sheet §0.3", "01-dashboard", "14-account", "15-settings"],
-  "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
+  "artboards": [
+    "00-system-sheet \u00a70.3",
+    "01-dashboard",
+    "14-account",
+    "15-settings"
+  ],
+  "source": "docs/design/handoff-2026-09-06/README.md \u00a70.3 'The frame'; 'Caros Ledge UI System.dc.html' the dashboard (p1) masthead block and the account/settings (p14/p15) mastheads (identical shape, different eyebrow suffix and command-bar placeholder); operator rulings 2.3 (no second ask bar) and 5.1/5.2 (the masthead card's own top rule)",
   "notes": [
     "Masthead.tsx is a pure-inline-style component (no Tailwind utility classes), so every property below is a real product value, not a harness artefact.",
-    "The masthead CARD ITSELF carries no background/border/radius/shadow/top-rule of its own in Masthead.tsx — those live on whatever wraps it per page. The dc.html artboard wraps the masthead content in the SAME white radius-10 card shell every panel gets, WITH the ruling 5.1 3px dark-grey graduated rule above it (`linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`) as its first child (dc.html p1). This is a real gap between the shared part and the artboard, but this mount has no selector into the page-level wrapper that supplies (or should supply) that shell, so it is recorded here as a note rather than a false-precision selector target; the page-frame spec's section-rule check is the one that measures whether a given page's masthead wrapper carries the rule.",
-    "Command bar border: the artboard states `border:1px solid rgba(0,0,0,.25)` on the search bar; CommandBar.tsx uses `var(--line-1)` = rgba(0,0,0,.12) (theme.css). A real token-vs-artboard gap, not a harness artefact."
+    "Command bar border: the artboard states `border:1px solid rgba(0,0,0,.25)` on the search bar; CommandBar.tsx uses `var(--line-1)` = rgba(0,0,0,.12) (theme.css). A real token-vs-artboard gap, not a harness artefact.",
+    "UI FIX ROUND 2026-09-08, item A1 (lane cardrule). This note used to read that 'the masthead CARD ITSELF carries no background/border/radius/shadow/top-rule of its own in Masthead.tsx', recording a real gap between the shared part and dc.html p1, which wraps the masthead content in the same white radius-10 card shell every panel gets with the 3px dark-grey graduated rule as its first child. The operator's item A1 names 'the masthead card' among the eighteen card types missing the rule, so the gap is closed: Masthead.tsx now renders `SectionCard` as its root, and the two rows below measure the shell and the rule on the shared part itself."
   ],
   "selector": ".cl-masthead-eyebrow",
   "expect": {
@@ -21,7 +26,7 @@
     {
       "name": "title (list size, 34px)",
       "selector": ".cl-masthead-title",
-      "note": "dc.html p1: font-family Anton, text-transform uppercase, letter-spacing .04em, font-size 34px, line-height 1.08. Masthead.tsx sets line-height 1.05 (its own documented choice for both sizes), not stated by the artboard as a divergence — logged as a note, not asserted, to avoid a false MISMATCH on a value the artboard doesn't actually contrast against a differing built intent.",
+      "note": "dc.html p1: font-family Anton, text-transform uppercase, letter-spacing .04em, font-size 34px, line-height 1.08. Masthead.tsx sets line-height 1.05 (its own documented choice for both sizes), not stated by the artboard as a divergence \u2014 logged as a note, not asserted, to avoid a false MISMATCH on a value the artboard doesn't actually contrast against a differing built intent.",
       "expect": {
         "font-family": "contains:Anton",
         "font-weight": "400",
@@ -31,7 +36,7 @@
       }
     },
     {
-      "name": "command bar — outer form",
+      "name": "command bar \u2014 outer form",
       "selector": ".cl-command-bar",
       "note": "dc.html p1: height 40px, border 1px solid rgba(0,0,0,.25), border-radius 8px, background #fff.",
       "expect": {
@@ -44,25 +49,32 @@
       }
     },
     {
-      "name": "command bar — search glyph",
+      "name": "command bar \u2014 search glyph",
       "selector": ".cl-search-glyph",
       "note": "dc.html p1: padding 0 12px, color #7A6E6C, font-size 14px.",
-      "expect": { "font-size": "14px", "color": "#7A6E6C" }
+      "expect": {
+        "font-size": "14px",
+        "color": "#7A6E6C"
+      }
     },
     {
-      "name": "command bar — input font size",
+      "name": "command bar \u2014 input font size",
       "selector": ".cl-command-bar input",
       "note": "dc.html p1: the search text is 13px. The artboard's #7A6E6C colour paints the PLACEHOLDER glyph in its static markup (there is no typed-vs-placeholder distinction in a static mock); this input's inline `color` governs text the reader TYPES, which the product correctly renders in ink for legibility, so colour is not asserted here (asserting it would compare the wrong thing, not a real design statement about typed-text colour).",
-      "expect": { "font-size": "13px" }
+      "expect": {
+        "font-size": "13px"
+      }
     },
     {
-      "name": "command bar — placeholder text (default, item-count form)",
+      "name": "command bar \u2014 placeholder text (default, item-count form)",
       "selector": ".cl-command-bar input",
-      "note": "README §0.3: placeholder 'Search or ask across 1,434 items…'. CommandBar formats the count with the app's own thousands separator. Read via the `placeholder` DOM property (an input's textContent is always empty).",
-      "expect": { "placeholder": "Search or ask across 1,434 items…" }
+      "note": "README \u00a70.3: placeholder 'Search or ask across 1,434 items\u2026'. CommandBar formats the count with the app's own thousands separator. Read via the `placeholder` DOM property (an input's textContent is always empty).",
+      "expect": {
+        "placeholder": "Search or ask across 1,434 items\u2026"
+      }
     },
     {
-      "name": "command bar — ⌘K hint",
+      "name": "command bar \u2014 \u2318K hint",
       "selector": ".cl-cmdk-hint",
       "note": "dc.html p1: font-size 10px, font-family ui-monospace/monospace, color #7A6E6C, padding 0 10px.",
       "expect": {
@@ -72,7 +84,7 @@
       }
     },
     {
-      "name": "command bar — Ask button",
+      "name": "command bar \u2014 Ask button",
       "selector": ".cl-command-bar button",
       "note": "dc.html p1: height 100% (=40px, the bar's own height), padding 0 14px, background #5A5552, color #fff, font-size 12.5px, font-weight 700. CommandBar.tsx builds the button at a fixed 30px height inside the 40px bar (not the full-height artboard treatment) and padding 0 16px.",
       "expect": {
@@ -86,10 +98,33 @@
       }
     },
     {
-      "name": "command bar — Ask button label",
+      "name": "command bar \u2014 Ask button label",
       "selector": ".cl-command-bar button",
       "note": "dc.html p1: the button's own text.",
-      "expect": { "text": "Ask" }
+      "expect": {
+        "text": "Ask"
+      }
+    },
+    {
+      "name": "A1: the masthead card carries the 3px graduated rule as its first child",
+      "selector": ".cl-masthead > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08). The exact gradient is asserted, not just a 3px height.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3: the masthead card's own shell (shadow, 1px rgba(0,0,0,.12) border, radius 10)",
+      "selector": ".cl-masthead",
+      "note": "Operator item A3 (2026-09-08), supplied by SectionCard rather than by this caller.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
     }
   ]
 }

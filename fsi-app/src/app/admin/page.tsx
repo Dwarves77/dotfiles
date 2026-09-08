@@ -137,6 +137,24 @@ export default async function AdminPage() {
     }
   };
 
+  // Tier-disagreements tab count (lane adminlayout, 2026-09-08, the operator's item 6:
+  // artboard 13's tab row reads "Tier disagreements · 12"). Calls the SAME
+  // `get_tier_opinion_disagreements(90)` aggregator that
+  // /api/admin/sources/tier-opinions calls for the panel itself, so the tab's number and the
+  // rows the panel lists come from one read and cannot disagree. Soft-fail to 0 like every
+  // other counter above; the tab renders bare at 0 rather than a fabricated figure.
+  const fetchTierDisagreementCount = async (): Promise<number> => {
+    try {
+      const { data, error } = await supabase.rpc("get_tier_opinion_disagreements", {
+        window_days: 90,
+      });
+      if (error || !Array.isArray(data)) return 0;
+      return data.length;
+    } catch {
+      return 0;
+    }
+  };
+
   const [
     sourceData,
     orgsRes,
@@ -148,6 +166,7 @@ export default async function AdminPage() {
     researchPipelineCount,
     communityPickupsCount,
     emissionFactorsLiveCount,
+    tierDisagreementCount,
   ] = await Promise.all([
     fetchSourceData(true),
     supabase
@@ -183,6 +202,7 @@ export default async function AdminPage() {
     fetchResearchPipelineCount(),
     fetchCommunityPickupsCount(),
     fetchEmissionFactorsLiveCount(),
+    fetchTierDisagreementCount(),
   ]);
 
   console.log(`[perf] /admin data ${Date.now() - t0}ms`);
@@ -212,6 +232,7 @@ export default async function AdminPage() {
       initialResearchPipelineCount={researchPipelineCount}
       initialCommunityPickupsCount={communityPickupsCount}
       initialEmissionFactorsLiveCount={emissionFactorsLiveCount}
+      initialTierDisagreementCount={tierDisagreementCount}
     />
   );
 }
