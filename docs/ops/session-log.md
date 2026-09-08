@@ -13897,3 +13897,92 @@ with no new failures.
 specs, 1722 checks, 1722 MATCH, 0 MISMATCH, 0 NOT BUILT, 0 NOT IN SPEC; the sibling `.npmtest.mjs`
 files for every touched component plus the new `mobile-390-specs.test.mjs` pass; `run-test-suite.sh`
 5926 tests, 0 fail, exit 0; `next build --webpack` exit 0 with no `.env.local`.
+
+## Addendum — lane mobfix61 (2026-09-08): the operator's mobile report, measured and closed
+
+The operator photographed production (train 58, `3230c7d2`, VOL IV NO. 37) on his phone this
+morning: "the mobile pages are completly misspaced. search bar touched bounding box, words go off
+page. awareness text is in wrong place and numbers inside box hit outside. all text spacing is off.
+map page complete overlaps sections." Five screenshots. The first task was to establish WHICH of
+those the sibling lane (mobile60, `15791be5`) had already closed — **by measurement, not by reading
+its report**: all five pages were captured at 390 on this lane's base and put beside his screenshot
+of the same page.
+
+**Already closed on the base** (verified at 390, not assumed): the four-across band tile row on the
+five list surfaces (his "awareness text is in wrong place and numbers inside box hit outside"); the
+list-row column header's 489px of fixed tracks (his "words go off page"); the hardcoded 40px page
+padding. **Still open, and closed by this lane:**
+
+- **D-M4 — the absence stack. [CONFIRMED at 1440 AND at 390, by attack.]** The impact, due and tier
+  cells each rendered their own `<Absence>`, so a row missing all three drew a dashed baseline, then
+  UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own. It is not a mobile defect:
+  it renders identically at 1440. **The audit could not see it because its own guard was vacuous** —
+  eight specs' `textMatch: "UNSCORED"` forbids compared against `textContent`, which is the source
+  text ("unscored"); the uppercase comes from CSS `text-transform`. Every one of those forbids had
+  matched nothing for as long as it existed, and reported MATCH while the operator was photographing
+  the literal. That is CLAUDE.md rule 15's exact failure mode, so the harness was fixed first
+  (`run-audit.mjs`'s `renderedText`, matching the union of source and rendered text — rendered-only
+  broke 35 ordinary targets that legitimately narrow a selector by source text). With the guard
+  honest, `compose-04/06/08` went red at 1440 and `mobile-01/03/04/06/08` at 390. The fix is in the
+  shared parts for both widths: `Absence.tsx` gains `ABSENCE_PRECEDENCE`
+  (`connect data` > `not in primary source` > `pending`) and `pickAbsenceReason`; `ImpactMeter` takes
+  an additive `reason` prop and no longer names the unscored state itself (ruling 2.1: the 30px
+  dashed baseline IS that state, so naming it too is the tautological second token); `ListRow`
+  chooses ONE reason and renders it in the cell that owns that dimension, with `reasonSlot` making
+  "at most one" structural rather than a convention. Re-proved by attack: reintroducing the
+  per-cell tokens turns five specs red again.
+- **D-M3 — the map page. [CONFIRMED root cause, twice over.]** `MapPageView.tsx`'s only media query
+  named `.cl-map-grid`; the two-column grid is `.cl-map-outer`, and `.cl-map-grid` is the inner
+  content column, a `display:flex` element on which `grid-template-columns` is inert. The 300px rail
+  track survived at every width, so at 390 the rail cards were laid out over the chip rows —
+  reproduced exactly on this lane's base before the fix. Fixed with the same one-track rule every
+  other page shell uses; the dead rule is deleted, not left dormant.
+- **D-M5 — the command bar. [CONFIRMED by measurement.]** Before: masthead card bottom 186.3, body
+  bottom 185.3, command bar bottom 185.3 — the bar sat ON the card's own 1px border with zero
+  padding beneath it. The mobile spec's "padding 14px 16px 0" describes where the body's content
+  starts, not the card's padding below its last child. After: card bottom 202.3, bar bottom 185.3.
+- **D-M1 — the duplicated tile row.** Closed for the list surfaces by the sibling lane, but the row
+  was still hand-written at three call sites and the onboarding preview had no class at all, so it
+  kept four 67px tiles across at 390 with labels clipped to IMMEDIAT / AWARENE. Now one shared
+  `BandTileRow`; desktop DOM byte-identical for the two callers that already had the class.
+- **D-M6 — "all text spacing is off".** Not guessed at: every value the mobile 390 spec states is
+  now asserted at 390 by the audit and green (VOL 9.5, title 24/1.08, scope 12/1.45, tile label 10,
+  numeral 30, row title 13.5/1.35, line-2 gap 9, due 11.5, tier 9.5, chips 12/600, group shell 36).
+  The one surviving miss the captures found: `ListSurfaceSortRow` had no mobile treatment, so its
+  segmented control wrapped and stranded "My order" away from its SORT label. Fixed in that shared
+  part as one non-wrapping sideways-scrolling line.
+
+**Mechanised so it cannot come back**: **F40 `dead-media-query-class`** (invariant
+`RD-65`, skill section 4 category 40) asserts every `cl-*` class targeted inside an `@media` block
+in a `.tsx` is carried by an element in the same file. Nothing in the toolchain could see D-M3: a
+CSS selector matching no element is not an error in any language involved. F40's first run found a
+**second live instance** — `.cl-facets-desktop` in `ListSurfaceShell.tsx`, a rule for a strip retired
+when the filters moved to the rail — which is the class signal; that rule is deleted. Alongside it:
+a new `mobile-10-map.json` spec (the map was the only surface with no 390 spec, and the one his
+screenshot showed worst), D-M4/D-M5/D-M6 spec rows and boundsChecks across the mobile specs, and a
+`:has()` forbid that matches a row carrying tokens in two of the three cells — the defect and
+nothing else, since a document-wide count reads 16 on a 16-row surface that is entirely correct.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`Absence.tsx`, `ImpactMeter.tsx`,
+`ListRow.tsx`, `BandTileRow.tsx` (new), `Masthead.tsx`, `DashboardBrief.tsx`, `ListSurfaceShell.tsx`,
+`ListSurfaceSortRow.tsx`, `OnboardingWizard.tsx`, `MapPageView.tsx`). Every layout value applied is
+the mobile 390 spec's own literal (16 for the container bottom padding, 358 = 390 - 2x16 for the
+folded map track, 36/8/10 for the option group) except the masthead's 16px bottom padding, which is
+the one deviation from the spec's literal text and is logged in DEVIATION-LOG with the measured
+before/after. No new interactive target was introduced and none moved below the 44px floor: the
+command bar stays 44, the row overflow control 44x44, the option buttons unchanged. Every change is
+inside a `max-width: 767px` (or `1280px`) query, or is a shared-part extraction whose desktop DOM is
+byte-identical, so nothing at 768 and above moved — the 43 pre-existing 1440 specs are unchanged and
+still green, and the one 1440 change (D-M4's single absence token) is the operator's own ruling 2.1
+applied at the width it was always meant to bind. Rendering guard PASS with no new failures,
+including law-2 targets at 375 and 1280 and the bounds/overlap assertions.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean, exit 0; fitness runner
+**34 functions, 0 violations**, no allowlist expiries (F40 new); design audit **69 specs, 1814
+checks, 1814 MATCH**, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC (mobile-10-map new; the +90 checks
+over the base's 1724 are this lane's spec rows and boundsChecks); rendering guard **PASS** (11
+fixtures, 431 checks, 7 SM + 12 UX smoke specs, 83 + 216 checks); `run-test-suite.sh` **5935 tests,
+5930 pass, 0 fail, 5 skipped** (the base's one known kill-switch failure does not reproduce here);
+`next build --webpack` **succeeds with no `.env.local`**. Exit evidence:
+`docs/design/handoff-2026-09-06/built/mobile390-{dashboard,regulations,research,map}.png`, each
+captured at 390 and read back against the operator's screenshot of the same page.
