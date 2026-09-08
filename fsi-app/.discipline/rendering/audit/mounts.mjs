@@ -1183,6 +1183,64 @@ window.__mount = () => {
 };
 `;
 
+// ── Admin (13), the SOURCE REGISTRY sub-tab ──────────────────────────────────────────────────────
+// Lane adminlayout (2026-09-08). compose-admin measures artboard 13's DEFAULT landing state
+// (Sources / Provisional review). The registry sub-tab is the state the operator's own report was
+// about and the one this lane rebuilt, and no spec had ever rendered it — which is why a region
+// that overflowed its column by 336px at 1024 and painted under the rail was never measured.
+// Same real tree, same fixtures, plus three real Source records so the tier facet has counts to
+// measure, and the mount then activates the sub-tab exactly as an operator does: by clicking it.
+const ADMIN_REGISTRY_SOURCES = [1, 1, 5].map((tier, i) => ({
+  id: 'src-' + (i + 1),
+  name: ['EUR-Lex', 'Federal Register', 'Plastics News'][i],
+  url: ['https://eur-lex.europa.eu', 'https://federalregister.gov', 'https://plasticsnews.com'][i],
+  description: '',
+  notes: '',
+  domains: [1],
+  jurisdictions: [],
+  status: 'active',
+  base_tier: tier,
+  effective_tier: tier,
+  trust_score: { overall: 80 },
+  trust_metrics: {
+    accuracy_rate: 1,
+    confirmation_count: 0,
+    accessibility_rate: 1,
+    total_checks: 0,
+    independent_citers: 0,
+    conflict_count: 0,
+    conflict_total: 0,
+  },
+  update_frequency: 'weekly',
+  access_method: 'html',
+  last_checked: null,
+  next_scheduled_check: null,
+  paywalled: false,
+}));
+
+const COMPOSE_ADMIN_REGISTRY_ENTRY = COMPOSE_ADMIN_ENTRY.replace(
+  '          initialProvisionalSources: PROVISIONAL,',
+  '          initialProvisionalSources: PROVISIONAL,\n          initialSources: ' +
+    JSON.stringify(ADMIN_REGISTRY_SOURCES) +
+    ','
+).replace(
+  '};\n',
+  `};
+const __activateRegistry = () => {
+  const b = Array.from(document.querySelectorAll('button[role="tab"]')).find(
+    (x) => (x.textContent || '').trim().startsWith('Source registry'),
+  );
+  if (b) b.click();
+  else setTimeout(__activateRegistry, 30);
+};
+const __mountBase = window.__mount;
+window.__mount = () => {
+  __mountBase();
+  setTimeout(__activateRegistry, 0);
+};
+`
+);
+
 // ── Account (14) full-page composition mount ─────────────────────────────────────────────────────
 // Reuses the SAME real UserProfilePage the /profile route mounts (README screen 14 / dc.html p14),
 // wrapped in AppShell for the nav card + Masthead's frame position. Seeds workspaceStore's
@@ -2923,12 +2981,26 @@ export const AUDIT_MOUNTS = {
     },
     apiRoutes: EMPTY_API,
   },
+
   'compose-admin': {
     id: 'compose-admin',
     description: 'Full-page composition mount: AppShell + the real AdminDashboard (own internal Masthead), populated fixture data, README screen 13 / dc.html p13.',
     viewport: 1440,
     entry: COMPOSE_ADMIN_ENTRY,
     needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: ADMIN_ISSUES_RAIL_API,
+  },
+  'compose-admin-registry': {
+    id: 'compose-admin-registry',
+    description: "Full-page composition mount: AppShell + the real AdminDashboard on the Sources / Source registry sub-tab, the region lane adminlayout rebuilt (operator's items 3 and 4).",
+    viewport: 1440,
+    entry: COMPOSE_ADMIN_REGISTRY_ENTRY,
+    needsCompiledCss: true,
+    dataAudit: 'admin',
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation-admin.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,

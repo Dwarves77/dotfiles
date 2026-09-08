@@ -14574,3 +14574,94 @@ line naming anything else.
 by the dated law-2 desktop exemption, printed in full by the guard); design audit 70 specs / 2061
 checks / 2061 MATCH at both 1440 and 390; CI npmtest glob + named list 1046 tests / 0 fail;
 run-test-suite.sh exit 0 / fail 0; `next build --webpack` succeeded.
+## Addendum, lane adminlayout (2026-09-08): the /admin layout fix, items 1 to 6
+
+The operator's report: "the admin content column is not constrained by the frame grid. Every card
+below the tab row spans the full page width and runs UNDER the right rail, so the rail cards sit on
+top of them and the T-cards are clipped at the frame edge with no way to reach T4-T8. Fix the frame,
+not the cards."
+
+**The root cause, measured before anything was changed.** Half of the stated cause is [REFUTED] and
+half is [CONFIRMED], and the difference decided the fix.
+
+[REFUTED, measured at 1440 in a real browser on the real page tree]: the two COLUMNS were already
+right. `grid-template-columns: minmax(0, 1fr) 300px`, `align-items: start`, content column
+`min-width: 0`. Measured: content column 768px at x=308, rail 300px at x=1100,
+`document.scrollWidth` 1440. No card exceeded its column and no card intersected the rail. A fix
+aimed only at the tracks would have changed nothing the operator could see.
+
+[CONFIRMED, measured at 1024, and it reproduces the screenshot exactly]: the Sources / Source
+registry body overflowed its own column by 336px (`scrollWidth` 688 against a 352px column) and
+painted under the rail, which is later in the DOM and therefore on top. The mechanism was not the
+frame: it was the T1-T7 tier card strip, a Tailwind `lg:grid-cols-7` keyed to the VIEWPORT (1024, so
+the rule applied) inside a column of 352, with grid items at the default `min-width: auto` that
+floored the row at its content width. At 1440 the same strip fits the column but squeezes each card
+to 97px and clips its label at 111px, which is the "clipped at the frame edge" the operator saw
+there. There is no arrow control anywhere in the build: [REFUTED] by grep across `src/components`
+(no `scrollBy`, no `ChevronLeft`/`ChevronRight` in this region). The horizontal reach the operator
+described was the browser's own overflow, not a control, so nothing was removed for it.
+
+What WAS wrong at the frame, and is fixed: the page split its padding across a `20px 40px 0`
+masthead wrapper and a `16px 40px 40px` grid, ran `gap: 24` where the frame is 28, and collapsed at
+960 to a bare `1fr`, dropping the `minmax(0, ...)` floor (MOBILE-60's measured defect class). It is
+ONE grid now, at the shared frame's own values, with the masthead spanning both tracks and the
+collapse at 1280, which is the breakpoint DashboardBrief already uses. After: 1440 gives 764 + 300
+at gap 28 with `scrollWidth` 1440; 1024 gives one `minmax(0,1fr)` column of 676 with the rail
+stacked below it and `scrollWidth` 1024. No card over its column, no overlap, at either width.
+
+**Item 3, a removal.** The T1-T7 card strip and the "Source Tiers" explainer are gone: artboard 13
+makes tier a COLUMN in the source table, not a card set. The vocabulary lands in three places, all
+reachable by vertical scroll or Tab: seven squares in the registry card header carrying each
+authority label as tooltip and accessible name, a "Tier definitions" overlay with the full lines,
+and the per-tier COUNTS in the table's facet row, where clicking one filters. The facet was built
+from the filter mechanism that already existed and had never been mounted anywhere:
+`sourceStore.toggleTierFilter` plus `filterSources`, which has always matched on
+`effective_tier ?? base_tier`. The counts derive through that same key, so a chip cannot name a
+number its own click would not return. SEVEN squares, not the eight the instruction says: the source
+tier vocabulary is T1-T7 (`src/lib/tier-labels.ts`, the SoT under the tier-labels drift guard). An
+eighth was not invented to match the count.
+
+**Item 4, three regions into the ruled architecture.** The "Source Intelligence" h2 and subtitle
+became the card head, "SOURCES · SOURCE REGISTRY" with the count in the header right. B.2 became a
+neutral state-note strip under the card's tab row carrying the operator's own line
+("Regeneration · N / N at current contract · N never regenerated", action "Open queue"); the
+progress card and its "By format / By priority / Tag coverage / Recent" placeholder columns are
+deleted, not hidden. The "Scraping is OFF" box became the Action-band strip at the card foot with
+Cadence, Save and Emergency stop as a 44px action row. Both strips are the shared `StateNote`; no
+second strip component was written.
+
+**Item 5, the rail.** Issues-queue rows were ~40px because each title wrapped to two lines in the
+300px rail with an 8px list gap on top. They are a 24px line box now, one line, count right-aligned
+and tabular, with the zero row's numeral muted (the artboard draws it in full ink). A non-zero row
+carries a 28px minimum because it is a button and that is the hit-target floor, which is 2px of
+padding over the 24px line and nothing more. "Export queue" is NOT built: re-grepped
+`src/app/api` and `src/lib` this lane, and the only hits are bulk-import's CSV parser, spec09's CSV
+upload contract and `parseCsvFilter` query-string helpers. No queue-export function exists, so the
+button would be a dead control (ruling 1.1). Logged, and a forbid row keeps a dead one from
+appearing.
+
+**Item 6.** "Source registry" now carries the registry's own count and "Tier disagreements" the
+count from `get_tier_opinion_disagreements(90)`, the same aggregator
+`/api/admin/sources/tier-opinions` calls for the panel itself, so neither tab can name a number its
+panel would contradict.
+
+**The site-wide layout guard.** On this route the change closes L1 (one shared frame, measured by
+three new rows in compose-13's spec), L2 (no intersection at either width), L3 (`scrollWidth` equals
+the viewport at 1440, 1024 and 390; no card scrolls sideways), L4 (the strip that needed a
+horizontal reach is gone, every view reachable by scroll and by Tab) and L5 (nothing inside the
+frame computes to absolute, fixed or sticky; the definitions overlay is the one fixed box and it is
+an overlay). Handed to lane layoutguard rather than fixed here: `compose-onboarding` reports five
+clipped text runs at 1024 in the overflow sweep, untouched by this lane and on a route it does not
+own.
+
+**UX compliance.** Checked at 1440 and 1024 in a real browser, before and after, with the shots in
+`docs/design/handoff-2026-09-06/built/adminlayout-{before,after}-{1440,1024}.png`. The one clipped
+run this lane introduces is the rail row label, a single-line ellipsis carrying its full text on the
+element's own `title`, which is the one clipped form the rules allow and the direct consequence of
+the 24px row the operator asked for.
+
+**Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks);
+audit:design 71 specs / 2068 MATCH (up from 70 / 2060, and the six rows this lane made stale are
+updated to the new values with the artboard's own recorded beside them); overflow sweep 0px page
+overflow on every mount at 1440, 1024 and 390, both admin mounts clean; npmtest glob 1041 pass / 0
+fail; run-test-suite 5975 tests / 0 fail; `next build --webpack` exit 0.

@@ -3,6 +3,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import { Pause, Play, Download, RefreshCw, Loader2, Shield, RotateCcw, Check } from "lucide-react";
+import { StateNote } from "@/components/ui/StateNote";
+import { ActionButton } from "@/components/ui/ActionRow";
+import { band } from "@/lib/urgency/bands";
 import { formatRelative, toDate } from "@/lib/relative-time";
 
 interface ToastState { kind: "ok" | "err"; message: string }
@@ -82,94 +85,132 @@ export function GlobalPauseToggle() {
   if (!state) return null;
   const isOff = state.cadence === "off";
   const scrapingOn = !isOff && !state.paused;
-  const warn = isOff || state.paused;
+
+  // Lane adminlayout (2026-09-08), the operator's item 4: this control used to draw a
+  // full-width orange bordered box of its own above the registry. It is now the Action-band
+  // state note strip at the FOOT of the source registry card, with Cadence / Save / Emergency
+  // stop as its 44px action row beneath it — the shared `StateNote` (the same part the
+  // regeneration strip and the provisional card's pipeline note use, never a second strip
+  // component) and the shared `ActionButton`, whose own chrome is already 44px tall.
+  //
+  // The band is Action while nothing scrapes (cadence off, or the emergency stop engaged),
+  // which is the state the strip exists to declare; when a cadence IS running the strip is
+  // neutral, because a running schedule is not a state to alarm about.
+  const stopped = isOff || state.paused;
 
   return (
-    <div className="space-y-2">
-      <div
-        className="p-3 rounded-lg border space-y-3"
-        style={{
-          borderColor: warn ? "var(--color-warning)" : "var(--color-border)",
-          backgroundColor: warn ? "rgba(255,165,0,0.08)" : "var(--color-surface)",
-        }}
-      >
-        {/* Status line */}
-        <div className="text-xs" style={{ color: "var(--color-text-secondary)" }}>
-          {state.paused ? (
-            <><strong style={{ color: "var(--color-warning)" }}>EMERGENCY STOP engaged.</strong> Nothing scrapes. Saved schedule: {isOff ? "off" : `${state.cadence} from ${state.start_date}`} (preserved).</>
-          ) : isOff ? (
-            <><strong style={{ color: "var(--color-warning)" }}>Scraping is OFF.</strong> Nothing scrapes — not the automated worker, not manual fetch-now. Set a cadence to turn it on.</>
-          ) : (
-            <><strong style={{ color: "var(--color-success)" }}>Scraping {state.cadence}</strong> from {state.start_date}. Next run: <strong>{state.next_scrape}</strong>. The whole system scrapes on that schedule.</>
-          )}
-        </div>
+    <div data-audit="registry-scrape-strip" style={{ display: "grid", gap: 10 }}>
+      <StateNote band={stopped ? band("action") : null}>
+        {state.paused ? (
+          <>
+            <b>Emergency stop engaged.</b> Nothing scrapes. Saved schedule:{" "}
+            {isOff ? "off" : `${state.cadence} from ${state.start_date}`} (preserved).
+          </>
+        ) : isOff ? (
+          <>
+            <b>Scraping is OFF.</b> Nothing scrapes — not the automated worker, not manual
+            fetch-now. Set a cadence to turn it on.
+          </>
+        ) : (
+          <>
+            <b>Scraping {state.cadence}</b> from {state.start_date}. Next run:{" "}
+            <b>{state.next_scrape}</b>. The whole system scrapes on that schedule.
+          </>
+        )}
+      </StateNote>
 
-        {/* Schedule editor */}
-        <div className="flex flex-wrap items-end gap-2">
-          <label className="flex flex-col gap-1">
-            <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>Cadence</span>
-            <select
-              value={cadence}
-              onChange={(e) => setCadence(e.target.value as "off" | "weekly" | "monthly")}
-              disabled={submitting}
-              className="px-2 py-1 text-xs rounded border"
-              style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text-primary)" }}
-            >
-              <option value="off">Not at all (off)</option>
-              <option value="weekly">Weekly</option>
-              <option value="monthly">Monthly</option>
-            </select>
-          </label>
-          {cadence !== "off" && (
-            <label className="flex flex-col gap-1">
-              <span className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: "var(--color-text-muted)" }}>
-                Start date {cadence === "weekly" ? "(sets the weekday)" : "(sets the day-of-month)"}
-              </span>
-              <input
-                type="date"
-                value={startDate}
-                onChange={(e) => setStartDate(e.target.value)}
-                disabled={submitting}
-                className="px-2 py-1 text-xs rounded border"
-                style={{ borderColor: "var(--color-border)", backgroundColor: "var(--color-surface)", color: "var(--color-text-primary)" }}
-              />
-            </label>
-          )}
-          <button
-            onClick={saveSchedule}
-            disabled={submitting}
-            className="px-3 py-1.5 text-xs font-semibold rounded border disabled:opacity-50"
-            style={{ borderColor: "var(--color-primary)", backgroundColor: "var(--color-primary)", color: "var(--color-invert-text)" }}
-          >
-            {submitting ? "Saving…" : "Save schedule"}
-          </button>
-        </div>
-
-        {/* Emergency stop (independent of the schedule) */}
-        <div className="flex items-center gap-3 pt-1" style={{ borderTop: "1px solid var(--color-border-subtle)" }}>
-          <button
-            onClick={toggleEmergency}
-            disabled={submitting}
-            className="px-3 py-1.5 text-xs font-semibold rounded border disabled:opacity-50 inline-flex items-center gap-1"
+      <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+        <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+          <span
             style={{
-              borderColor: state.paused ? "var(--color-warning)" : "var(--color-border)",
-              color: "var(--color-text-primary)",
-              backgroundColor: state.paused ? "var(--color-warning)" : "var(--color-surface-raised)",
+              fontSize: "var(--fs-10)",
+              fontWeight: 700,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--ink-3)",
             }}
           >
-            {state.paused ? <Play size={12} /> : <Pause size={12} />}
-            {submitting ? "Saving…" : state.paused ? "Release emergency stop" : "Emergency stop"}
-          </button>
-          <span className="text-[11px] flex-1" style={{ color: "var(--color-text-muted)" }}>
-            Hard-halt all scraping now, regardless of schedule — your saved cadence is preserved and resumes when released. {scrapingOn ? "" : "(Currently nothing scrapes.)"}
+            Cadence
           </span>
-        </div>
+          <select
+            value={cadence}
+            onChange={(e) => setCadence(e.target.value as "off" | "weekly" | "monthly")}
+            disabled={submitting}
+            style={{
+              fontFamily: "inherit",
+              fontSize: "var(--fs-115)",
+              minHeight: 44,
+              padding: "0 10px",
+              borderRadius: "var(--radius-control)",
+              border: "1px solid rgba(0,0,0,.25)",
+              background: "var(--card)",
+              color: "var(--ink)",
+            }}
+          >
+            <option value="off">Not at all (off)</option>
+            <option value="weekly">Weekly</option>
+            <option value="monthly">Monthly</option>
+          </select>
+        </label>
+        {cadence !== "off" && (
+          <label style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+            <span
+              style={{
+                fontSize: "var(--fs-10)",
+                fontWeight: 700,
+                letterSpacing: "0.12em",
+                textTransform: "uppercase",
+                color: "var(--ink-3)",
+              }}
+            >
+              {cadence === "weekly" ? "Start (weekday)" : "Start (day of month)"}
+            </span>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              disabled={submitting}
+              style={{
+                fontFamily: "inherit",
+                fontSize: "var(--fs-115)",
+                minHeight: 44,
+                padding: "0 10px",
+                borderRadius: "var(--radius-control)",
+                border: "1px solid rgba(0,0,0,.25)",
+                background: "var(--card)",
+                color: "var(--ink)",
+              }}
+            />
+          </label>
+        )}
+        <ActionButton variant="primary" onClick={saveSchedule} disabled={submitting}>
+          {submitting ? "Saving…" : "Save"}
+        </ActionButton>
+        <ActionButton
+          onClick={toggleEmergency}
+          disabled={submitting}
+          ariaPressed={state.paused}
+          title="Hard-halt all scraping now, regardless of schedule. The saved cadence is preserved and resumes when released."
+        >
+          {state.paused ? "Release emergency stop" : "Emergency stop"}
+        </ActionButton>
+        {toast && (
+          <span
+            role="status"
+            style={{
+              fontSize: "var(--fs-11)",
+              color: toast.kind === "ok" ? "var(--ink-2)" : "var(--sev-critical)",
+            }}
+          >
+            {toast.message}
+          </span>
+        )}
+        {!scrapingOn && (
+          <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
+            Currently nothing scrapes.
+          </span>
+        )}
       </div>
-      {toast && (
-        <div className="text-xs" style={{ color: toast.kind === "ok" ? "var(--color-success)" : "var(--color-error)" }}>
-          {toast.message}
-        </div>
-      )}
     </div>
   );
 }

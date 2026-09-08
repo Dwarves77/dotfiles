@@ -1,26 +1,14 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { cn } from "@/lib/cn";
 import { useSourceStore, filterSources } from "@/stores/sourceStore";
-import { SOURCE_TIER_DEFINITIONS } from "@/types/source";
-import type { Source, SourceTier } from "@/types/source";
+import type { Source } from "@/types/source";
 import { DOMAIN_LABELS, type Domain } from "@/lib/domains";
-import { TIER_LABELS } from "@/lib/tier-labels";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 
-// Dashboard-specific example gloss per tier (the authority NAME comes from TIER_LABELS, the SoT).
-const TIER_LEGEND_EXAMPLES: Record<number, string> = {
-  1: "Official legal text (gazettes, Federal Register)",
-  2: "Regulator guidance (FAQs, portals)",
-  3: "Intergovernmental (IGO datasets, trackers)",
-  4: "Expert analysis (think tanks, NGOs)",
-  5: "Industry standards (ISO, IATA)",
-  6: "Commercial intelligence (law firms, consultancies)",
-  7: "News & commentary (trade press)",
-};
 import {
-  Database, AlertTriangle, CheckCircle, XCircle,
+  Database, AlertTriangle, CheckCircle,
   Clock, Eye, Search, ChevronDown, ExternalLink,
   Shield, Activity,
 } from "lucide-react";
@@ -28,80 +16,18 @@ import { ProvisionalReviewTable } from "@/components/sources/ProvisionalReviewTa
 import { CanonicalSourceReview } from "@/components/sources/CanonicalSourceReview";
 import { IntersectionDetectionView } from "@/components/sources/IntersectionDetectionView";
 import { ThemesView } from "@/components/sources/ThemesView";
-import { B2ProgressBanner } from "@/components/sources/B2ProgressBanner";
+import { B2RegenerationNote } from "@/components/sources/B2RegenerationNote";
+import { SectionRule } from "@/components/ui/SectionRule";
+import { TabRow } from "@/components/ui/TabRow";
+import {
+  SourceTierLegend,
+  SourceTierFacet,
+  TierDefinitionsOverlay,
+  tierCounts,
+} from "@/components/sources/SourceTierLegend";
 import { GlobalPauseToggle, SourceRowControls, SourceTierOverrideControl } from "@/components/sources/SourceAdminControls";
 import { SourceTierAuditPanel } from "@/components/sources/SourceTierAuditPanel";
 import { UpcomingObligationsPanel } from "@/components/admin/UpcomingObligationsPanel";
-
-// ── Tier Summary Card ──
-
-function TierSummaryCard({ tier, sources }: { tier: SourceTier; sources: Source[] }) {
-  const def = SOURCE_TIER_DEFINITIONS[tier];
-  // Phase 1.5: base_tier per admin/registry default rule (structural
-  // inventory groups by classifier judgment; matches source_health_summary
-  // view's GROUP BY column choice). Admin needs the static tier counts.
-  const tierSources = sources.filter((s) => s.base_tier === tier);
-  const active = tierSources.filter((s) => s.status === "active").length;
-  const stale = tierSources.filter((s) => s.status === "stale").length;
-  const inaccessible = tierSources.filter((s) => s.status === "inaccessible").length;
-  const avgTrust = tierSources.length > 0
-    ? Math.round(tierSources.reduce((sum, s) => sum + s.trust_score.overall, 0) / tierSources.length)
-    : 0;
-
-  return (
-    <div
-      className="p-4 rounded-lg border"
-      style={{
-        borderColor: "var(--color-border)",
-        backgroundColor: "var(--color-surface)",
-      }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-semibold" style={{ color: "var(--color-text-primary)" }}>
-          T{tier}
-        </span>
-        <span className="text-xs font-medium tabular-nums" style={{ color: "var(--color-text-secondary)" }}>
-          {tierSources.length} source{tierSources.length !== 1 ? "s" : ""}
-        </span>
-      </div>
-      <p className="text-xs mb-3" style={{ color: "var(--color-text-secondary)" }}>
-        {def.label}
-      </p>
-      <div className="flex items-center gap-3 text-xs tabular-nums">
-        <span className="flex items-center gap-1" style={{ color: "var(--color-success)" }}>
-          <CheckCircle size={12} /> {active}
-        </span>
-        {stale > 0 && (
-          <span className="flex items-center gap-1" style={{ color: "var(--color-warning)" }}>
-            <Clock size={12} /> {stale}
-          </span>
-        )}
-        {inaccessible > 0 && (
-          <span className="flex items-center gap-1" style={{ color: "var(--color-error)" }}>
-            <XCircle size={12} /> {inaccessible}
-          </span>
-        )}
-      </div>
-      <div className="mt-3 flex items-center gap-2">
-        <div
-          className="flex-1 h-1.5 rounded-full overflow-hidden"
-          style={{ backgroundColor: "var(--color-surface-raised)" }}
-        >
-          <div
-            className="h-full rounded-full transition-all duration-300"
-            style={{
-              width: `${avgTrust}%`,
-              backgroundColor: avgTrust >= 70 ? "var(--color-success)" : avgTrust >= 40 ? "var(--color-warning)" : "var(--color-error)",
-            }}
-          />
-        </div>
-        <span className="text-[11px] tabular-nums font-medium" style={{ color: "var(--color-text-muted)" }}>
-          {avgTrust}
-        </span>
-      </div>
-    </div>
-  );
-}
 
 // ── Source Row ──
 
@@ -340,7 +266,17 @@ export interface SourceHealthDashboardProps {
 }
 
 export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, headTabs, pendingTotal = null }: SourceHealthDashboardProps = {}) {
-  const { sources, provisionalSources, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
+  const {
+    sources,
+    provisionalSources,
+    filters,
+    activeView,
+    setActiveView,
+    setSourceSearch,
+    setProvisionalSources,
+    toggleTierFilter,
+  } = useSourceStore();
+  const [definitionsOpen, setDefinitionsOpen] = useState(false);
 
   // Optimistically remove a provisional row from the list after a successful
   // approve/reject; defer keeps it but updates reviewer_notes server-side.
@@ -356,8 +292,15 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
     [sources]
   );
 
+  const domainCount = useMemo(() => new Set(sources.flatMap((s) => s.domains)).size, [sources]);
+  // Per-tier counts for the facet, keyed exactly as `filterSources` matches (see facetTierOf) so
+  // a chip can never name a number its own click would not return.
+  const counts = useMemo(() => tierCounts(sources), [sources]);
+
   const viewTabs = [
-    { id: "registry" as const, label: "Registry", count: sources.length },
+    // "Source registry" rather than "Registry": it is the page sub-tab's own vocabulary, and it
+    // makes this card's head read "SOURCES · SOURCE REGISTRY", the operator's item 4 title.
+    { id: "registry" as const, label: "Source registry", count: sources.length },
     { id: "health" as const, label: "Health", count: overdueSources.length },
     { id: "provisional" as const, label: "Provisional", count: provisionalSources.filter((ps) => ps.status === "pending_review").length },
     { id: "canonical" as const, label: "Canonical Source Issues", count: 0 },
@@ -365,6 +308,8 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
     { id: "themes" as const, label: "Themes", count: 0 },
     { id: "obligations" as const, label: "Upcoming obligations", count: 0 },
   ];
+
+  const activeTab = viewTabs.find((vt) => vt.id === activeView) ?? viewTabs[0];
 
   // dc.html p13's Provisional-review region is ONE card: the graduated rule, the
   // Anton head, the SOURCE/TIER/STATUS/DISCOVERED table with per-row Approve and
@@ -388,162 +333,193 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, 
     );
   }
 
+  // Lane adminlayout (2026-09-08), the operator's items 3 and 4. Every view this module owns
+  // other than the artboard's provisional card is now ONE card in the ruled architecture,
+  // instead of five sibling blocks stacked loose in the content column:
+  //
+  //   SectionRule · head ("SOURCES · <view>" + the count, and the tier legend) · the view tab
+  //   row in the card head · the regeneration state-note strip under it · the facet row (where
+  //   the per-tier counts live, and where clicking one filters) · the view body · the scraping
+  //   state-note strip at the foot with its 44px action row.
+  //
+  // What went, and where it went: the "Source Intelligence" h2 + subtitle became the card head
+  // (item 4); the B.2 progress card with its empty chart placeholders became the regeneration
+  // strip (item 4); the "Source Tiers, how we rank authority" explainer and the T1-T7 summary
+  // CARDS became the header legend, the Tier definitions overlay and the tier facet (item 3);
+  // the full-width orange scraping box became the Action-band strip at the card foot (item 4).
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h2 className="text-xl font-bold" style={{ color: "var(--color-text-primary)" }}>
-          Source Intelligence
-        </h2>
-        <p className="text-sm mt-1" style={{ color: "var(--color-text-secondary)" }}>
-          {sources.length} sources monitored across {[...new Set(sources.flatMap((s) => s.domains))].length} domains
-        </p>
-      </div>
+    <div
+      data-audit="registry-card"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-card)",
+        overflow: "hidden",
+        minWidth: 0,
+      }}
+    >
+      <SectionRule />
 
-      {/* B.2 regeneration progress (auto-refreshes every 30s) */}
-      <B2ProgressBanner />
-
-      {/* Global pause toggle for budget control */}
-      <GlobalPauseToggle />
-
-      {/* Tier explainer */}
-      <div className="cl-card p-3">
-        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-primary)" }}>
-          Source Tiers — How we rank authority
-        </p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-1 text-[11px]" style={{ color: "var(--color-text-muted)" }}>
-          {/* Authority label sourced from the single tier-vocabulary SoT (src/lib/tier-labels.ts)
-              so this legend stays under the tier-labels drift guard (audit CODE-4a F-06). The
-              parenthetical example is dashboard-specific detail. */}
-          {([1, 2, 3, 4, 5, 6, 7] as const).map((n) => (
-            <span key={n}><strong>T{n} · {TIER_LABELS[n]}</strong> — {TIER_LEGEND_EXAMPLES[n]}</span>
-          ))}
-        </div>
-        <p className="text-[11px] mt-1.5" style={{ color: "var(--color-text-muted)" }}>
-          <strong>Score</strong> measures reliability: freshness of last check, historical accuracy, and whether we can verify the source independently.
-        </p>
-      </div>
-
-      {/* Tier summary grid */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
-        {([1, 2, 3, 4, 5, 6, 7] as SourceTier[]).map((tier) => (
-          <TierSummaryCard key={tier} tier={tier} sources={sources} />
-        ))}
-      </div>
-
-      {/* View tabs */}
-      <div className="flex items-center gap-1 border-b" style={{ borderColor: "var(--color-border-subtle)" }}>
-        {viewTabs.map((vt) => (
-          <button
-            key={vt.id}
-            onClick={() => setActiveView(vt.id)}
-            className={cn(
-              "relative px-3 py-2 text-sm font-medium transition-colors duration-150 cursor-pointer",
-              activeView === vt.id
-                ? "text-[var(--color-text-primary)]"
-                : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"
-            )}
+      <div
+        data-audit="registry-head"
+        style={{
+          display: "grid",
+          gap: 10,
+          padding: "14px 16px 10px",
+          borderBottom: "1px solid var(--line-2)",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 16 }}>
+          <span
+            style={{
+              fontFamily: "var(--font-display)",
+              textTransform: "uppercase",
+              letterSpacing: "0.04em",
+              fontSize: 20,
+              color: "var(--ink)",
+              minWidth: 0,
+            }}
           >
-            {vt.label}
-            {vt.count > 0 && (
-              <span
-                className="ml-1.5 text-[11px] tabular-nums px-1.5 py-0.5 rounded-full"
-                style={{
-                  color: "var(--color-text-secondary)",
-                  backgroundColor: "var(--color-surface-raised)",
-                }}
-              >
-                {vt.count}
-              </span>
-            )}
-            {activeView === vt.id && (
-              <span
-                className="absolute bottom-0 left-2 right-2 h-[2px] rounded-full"
-                style={{ backgroundColor: "var(--color-primary)" }}
+            Sources · {activeTab.label}
+          </span>
+          <span
+            style={{
+              fontSize: "var(--fs-105)",
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--ink-3)",
+              fontWeight: 500,
+              textAlign: "right",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {formatNumber(sources.length)} sources · {formatNumber(domainCount)} domains
+          </span>
+        </div>
+        <SourceTierLegend onOpenDefinitions={() => setDefinitionsOpen(true)} />
+      </div>
+
+      {/* The row sits inside the card head on the card's own 16px inset, but at the PAGE
+          placement, which wraps. dc.html p13's card-head placement never wraps because the
+          artboard's five provisional tabs fit one line at 1440; this card's seven view tabs do
+          not (938px of tabs in a 764px card), and a nowrap row would have made them a
+          horizontal scroller — the exact thing the operator's accessibility rule forbids.
+          Wrapping keeps every view reachable by page scroll and by Tab. */}
+      <div style={{ padding: "0 16px" }}>
+      <TabRow
+        ariaLabel="Source registry views"
+        placement="page"
+        semantics="tablist"
+        tabs={viewTabs.map((vt) => ({
+          key: vt.id,
+          label: vt.count > 0 ? `${vt.label} · ${formatNumber(vt.count)}` : vt.label,
+          active: activeView === vt.id,
+          onClick: () => setActiveView(vt.id),
+        }))}
+      />
+      </div>
+
+      <div style={{ padding: "12px 16px 0" }}>
+        <B2RegenerationNote onOpenQueue={onOpenQueue} />
+      </div>
+
+      {(activeView === "registry" || activeView === "health") && (
+        <div style={{ padding: "12px 16px 0", display: "grid", gap: 10 }}>
+          <SourceTierFacet
+            counts={counts}
+            active={filters.tiers}
+            onToggle={toggleTierFilter}
+          />
+          <label style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0 }}>
+            <Search size={14} aria-hidden style={{ color: "var(--ink-3)", flexShrink: 0 }} />
+            <input
+              type="text"
+              aria-label="Filter the registry by name"
+              placeholder="Filter the registry by name"
+              value={filters.search}
+              onChange={(e) => setSourceSearch(e.target.value)}
+              style={{
+                flex: 1,
+                minWidth: 0,
+                fontFamily: "inherit",
+                fontSize: "var(--fs-12)",
+                minHeight: 44,
+                padding: "0 12px",
+                borderRadius: "var(--radius-control)",
+                border: "1px solid rgba(0,0,0,.2)",
+                background: "var(--card)",
+                color: "var(--ink)",
+              }}
+            />
+          </label>
+        </div>
+      )}
+
+      <div style={{ padding: "12px 16px 0", minWidth: 0 }}>
+        {/* Source list */}
+        {activeView === "registry" && (
+          <div className="space-y-2">
+            {filteredSources.length === 0 ? (
+              <EmptyState
+                title="No sources match your filters"
+                description="Try adjusting your search or filter criteria."
               />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="relative">
-        <Search
-          size={14}
-          className="absolute left-3 top-1/2 -translate-y-1/2"
-          style={{ color: "var(--color-text-muted)" }}
-        />
-        <input
-          type="text"
-          placeholder="Search sources..."
-          value={filters.search}
-          onChange={(e) => setSourceSearch(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 text-sm rounded-lg border"
-          style={{
-            borderColor: "var(--color-border)",
-            backgroundColor: "var(--color-surface)",
-            color: "var(--color-text-primary)",
-          }}
-        />
-      </div>
-
-      {/* Source list */}
-      {activeView === "registry" && (
-        <div className="space-y-2">
-          {filteredSources.length === 0 ? (
-            <EmptyState
-              title="No sources match your filters"
-              description="Try adjusting your search or filter criteria."
-            />
-          ) : (
-            filteredSources.map((source) => (
-              <SourceRow key={source.id} source={source} />
-            ))
-          )}
-        </div>
-      )}
-
-      {/* Health view */}
-      {activeView === "health" && (
-        <div className="space-y-4">
-          {overdueSources.length === 0 ? (
-            <EmptyState
-              title="All sources are on schedule"
-              description="No overdue checks. The monitoring queue is up to date."
-              icon={<CheckCircle size={24} style={{ color: "var(--color-success)" }} />}
-            />
-          ) : (
-            <>
-              <p className="text-sm" style={{ color: "var(--color-warning)" }}>
-                <AlertTriangle size={14} className="inline mr-1.5" />
-                {overdueSources.length} source{overdueSources.length !== 1 ? "s" : ""} overdue for checking
-              </p>
-              {overdueSources.map((source) => (
+            ) : (
+              filteredSources.map((source) => (
                 <SourceRow key={source.id} source={source} />
-              ))}
-            </>
-          )}
-        </div>
-      )}
+              ))
+            )}
+          </div>
+        )}
 
-      {/* Provisional sources render above, as the artboard's own card, the
-          early return at the top of this component. */}
+        {/* Health view */}
+        {activeView === "health" && (
+          <div className="space-y-4">
+            {overdueSources.length === 0 ? (
+              <EmptyState
+                title="All sources are on schedule"
+                description="No overdue checks. The monitoring queue is up to date."
+                icon={<CheckCircle size={24} style={{ color: "var(--color-success)" }} />}
+              />
+            ) : (
+              <>
+                <p className="text-sm" style={{ color: "var(--color-warning)" }}>
+                  <AlertTriangle size={14} className="inline mr-1.5" />
+                  {overdueSources.length} source{overdueSources.length !== 1 ? "s" : ""} overdue for checking
+                </p>
+                {overdueSources.map((source) => (
+                  <SourceRow key={source.id} source={source} />
+                ))}
+              </>
+            )}
+          </div>
+        )}
 
-      {/* Canonical source issues */}
-      {activeView === "canonical" && <CanonicalSourceReview />}
+        {/* Provisional sources render above, as the artboard's own card, the
+            early return at the top of this component. */}
 
-      {/* Intersection detection — surfaces pairs of items sharing
-          operational scenarios + compliance objects. Populated by B.2
-          regeneration emitting the new tag fields. */}
-      {activeView === "intersections" && <IntersectionDetectionView />}
-      {activeView === "themes" && <ThemesView />}
+        {/* Canonical source issues */}
+        {activeView === "canonical" && <CanonicalSourceReview />}
 
-      {/* Upcoming obligations — item_forward_events (migration 274/275, the forward-events harness,
-          rule 16(b)). Flywheel-adjacent, same posture as Themes: an admin-only read surface next to the
-          registry it draws from. Mounted here (lane FIX, 2026-09-01) after UpcomingObligationsPanel.tsx
-          shipped unmounted — this dashboard's own tab set + sourceStore's activeView union were the
-          named natural home, widened rather than routed around. */}
-      {activeView === "obligations" && <UpcomingObligationsPanel />}
+        {/* Intersection detection — surfaces pairs of items sharing
+            operational scenarios + compliance objects. Populated by B.2
+            regeneration emitting the new tag fields. */}
+        {activeView === "intersections" && <IntersectionDetectionView />}
+        {activeView === "themes" && <ThemesView />}
+
+        {/* Upcoming obligations — item_forward_events (migration 274/275, the forward-events harness,
+            rule 16(b)). Flywheel-adjacent, same posture as Themes: an admin-only read surface next to the
+            registry it draws from. Mounted here (lane FIX, 2026-09-01) after UpcomingObligationsPanel.tsx
+            shipped unmounted — this dashboard's own tab set + sourceStore's activeView union were the
+            named natural home, widened rather than routed around. */}
+        {activeView === "obligations" && <UpcomingObligationsPanel />}
+      </div>
+
+      <div style={{ padding: "14px 16px" }}>
+        <GlobalPauseToggle />
+      </div>
+
+      {definitionsOpen && <TierDefinitionsOverlay onClose={() => setDefinitionsOpen(false)} />}
     </div>
   );
 }

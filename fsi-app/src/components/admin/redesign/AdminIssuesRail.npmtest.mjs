@@ -43,3 +43,30 @@ test("zero-row label keeps dc.html's own second grey, #5A6B67 (--ink-2) — dist
   const body = SOURCE.slice(SOURCE.indexOf("function RailButton"));
   assert.match(body, /color:\s*zero \? "var\(--ink-2\)" : "var\(--text\)"/);
 });
+
+// Lane adminlayout (2026-09-08), the operator's item 5: "Issues queue rows are 11 rows tall at
+// ~40px, design is 24px rows with the count right-aligned tabular; zero rows muted."
+test("rows are a 24px line box: one-line label, no list gap, the interactive floor and nothing more", () => {
+  const body = SOURCE.slice(SOURCE.indexOf("function RailButton"));
+  // The label is one line: wrapping it to two is what made the rows ~40px.
+  assert.match(body, /whiteSpace:\s*"nowrap"/);
+  assert.match(body, /textOverflow:\s*"ellipsis"/);
+  assert.match(body, /lineHeight:\s*"20px"/);
+  // A zero row is not interactive, so it sits at a flat 24; a non-zero row is a button and
+  // carries the 28px hit-target floor over the same 24px line box, never more.
+  assert.match(body, /height:\s*zero \? 24 : undefined/);
+  assert.match(body, /minHeight:\s*zero \? 24 : 28/);
+  assert.match(body, /padding:\s*zero \? 0 : "2px 0"/);
+  // The list itself no longer adds an 8px gap between rows; each row's own hairline separates them.
+  const list = SOURCE.slice(SOURCE.indexOf("rows.map((r) =>") - 600, SOURCE.indexOf("rows.map((r) =>"));
+  assert.doesNotMatch(list, /gap:\s*8/);
+});
+
+test("the count is right-aligned and tabular, and a zero count is muted (item 5)", () => {
+  const body = SOURCE.slice(SOURCE.indexOf("function RailButton"));
+  assert.match(body, /textAlign:\s*"right"/);
+  assert.match(body, /fontVariantNumeric:\s*"tabular-nums"/);
+  // The artboard draws a zero row's numeral in full ink (#1A1A1A); "zero rows muted" makes it
+  // --ink-3. The zero row's LABEL keeps the artboard's own second grey (the test above).
+  assert.match(body, /color:\s*zero \? "var\(--ink-3\)" : "var\(--sev-critical\)"/);
+});

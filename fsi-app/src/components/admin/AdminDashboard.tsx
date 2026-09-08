@@ -78,6 +78,8 @@ interface AdminDashboardProps {
   initialResearchPipelineCount?: number;
   initialCommunityPickupsCount?: number;
   initialEmissionFactorsLiveCount?: number;
+  /** Tier-opinion disagreements in the 90-day window (item 6's "Tier disagreements · 12"). */
+  initialTierDisagreementCount?: number;
 }
 
 // ─── Section model (mock §6.8 sectionDefs) ──────────────────────────────────
@@ -162,11 +164,17 @@ export function AdminDashboard({
   initialResearchPipelineCount = 0,
   initialCommunityPickupsCount = 0,
   initialEmissionFactorsLiveCount = 0,
+  initialTierDisagreementCount = 0,
 }: AdminDashboardProps) {
   // Hydrate the source store with the admin-context unfiltered list (mirror of
   // the Dashboard pattern) so SourceHealthDashboard sees every source even on
   // a direct /admin entry.
   const { setSources, setProvisionalSources, setActiveView } = useSourceStore();
+  // The registry tab's own count (item 6). Reads the store the registry card renders from, with
+  // the server-hydrated prop as the pre-hydration value, so the server render and the first client
+  // render agree and the number never disagrees with the list beneath it.
+  const storeSourceCount = useSourceStore((s) => s.sources.length);
+  const registryCount = storeSourceCount || initialSources.length;
   useEffect(() => {
     if (initialSources.length > 0) setSources(initialSources);
     if (initialProvisionalSources.length > 0) setProvisionalSources(initialProvisionalSources);
@@ -298,10 +306,20 @@ export function AdminDashboard({
     return null;
   };
 
+  // Lane adminlayout (2026-09-08), the operator's item 6: dc.html p13's tab row reads
+  // "Provisional review · 489 · Source registry · 1,102 · Bulk add · Tier disagreements · 12 ·
+  // Spot-check · 6". Two of those five carried no count. Source registry reads the SAME registry
+  // list its own card renders (the source store, server-hydrated), and Tier disagreements reads
+  // the count the page fetched from `get_tier_opinion_disagreements(90)` — the one RPC
+  // TierOpinionDisagreementsView's own API route calls — so neither tab can name a number its
+  // panel would contradict. Bulk add has no queue and stays bare, as the artboard draws it.
   const subTabCount = (label: string): number | null => {
     if (label === "Provisional review") return provisionalCount > 0 ? provisionalCount : null;
     if (label === "Spot-check") return spotCheckCount > 0 ? spotCheckCount : null;
     if (label === "Flags & rejections") return flagsCount > 0 ? flagsCount : null;
+    if (label === "Source registry") return registryCount > 0 ? registryCount : null;
+    if (label === "Tier disagreements")
+      return initialTierDisagreementCount > 0 ? initialTierDisagreementCount : null;
     return null;
   };
 
@@ -364,14 +382,30 @@ export function AdminDashboard({
   return (
     <div style={{ minHeight: "100vh", background: "var(--color-background)" }}>
       <style>{`
-        .admin-t08-grid {
+        /* Lane adminlayout (2026-09-08). The frame is ONE grid, the same one every
+           other route composes itself on (README §0.3, DashboardBrief /
+           WatchlistSurface / ListSurfaceShell / MapPageView / SettingsPage):
+           padding 20px 40px 40px, minmax(0,1fr) 300px, gap 28, align-items start,
+           masthead spanning both tracks. This page used to split that into a
+           "20px 40px 0" masthead wrapper plus a "16px 40px 40px" grid at gap 24 —
+           the same two columns, but neither the frame's padding nor its gap, and a
+           collapse at 960 that no other route has. The collapse is now the app's own
+           1280 (DashboardBrief's), and it keeps the minmax(0, ...) floor rather than
+           dropping to a bare 1fr, which is MOBILE-60's measured defect class. */
+        .admin-t08-frame {
+          max-width: 1440px;
+          margin: 0 auto;
+          padding: 20px 40px 40px;
           display: grid;
           grid-template-columns: minmax(0, 1fr) 300px;
-          gap: 24px;
+          gap: 28px;
           align-items: start;
         }
-        @media (max-width: 960px) {
-          .admin-t08-grid { grid-template-columns: 1fr; }
+        @media (max-width: 1280px) {
+          .admin-t08-frame { grid-template-columns: minmax(0, 1fr); }
+        }
+        @media (max-width: 767px) {
+          .admin-t08-frame { padding: 14px 16px 16px; }
         }
         .admin-t08-sections { grid-template-columns: repeat(4, 1fr); }
         .cl-admin-stat-tile {
@@ -395,7 +429,11 @@ export function AdminDashboard({
         }
       `}</style>
 
-      <div style={{ padding: "20px 40px 0" }}>
+      <div className="admin-t08-frame">
+        {/* The masthead spans both tracks of the ONE frame grid (artboard 13 draws
+            it across the full frame above the columns), rather than living in its
+            own padding wrapper above a second grid. */}
+        <div style={{ gridColumn: "1 / -1", minWidth: 0 }}>
         <Masthead
           title="Platform admin"
           dateLabel={dateLabel}
@@ -413,10 +451,8 @@ export function AdminDashboard({
             placeholder: `Search sources, workspaces, flags — or ask "which provisional sources are T1?"`,
           }}
         />
-      </div>
+        </div>
 
-      <div style={{ padding: "16px 40px 40px" }}>
-        <div className="admin-t08-grid">
           {/* LEFT — counters + sub-nav + body */}
           <div style={{ minWidth: 0 }}>
             {/* Counter tiles (README screen 13: "counters are stat blocks,
@@ -475,16 +511,16 @@ export function AdminDashboard({
               dc.html p13 draws that explainer as the rail's own card (title,
               body, controls), not as a strip above the section body where it
               used to sit; moved, not duplicated. */}
-          <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
+          <div style={{ display: "grid", gap: 14, alignContent: "start", minWidth: 0 }}>
             <AdminIssuesRail onNavigate={handleIssueNavigate} />
             <div data-audit="admin-usage-rail">
               <WorkspacesUsageRow orgs={orgs} members={members} layout="rail" />
             </div>
             <ReadOnlyControlsCard onRefresh={loadData} />
           </div>
-        </div>
+      </div>
 
-        {/* Toast */}
+      {/* Toast */}
         {toast && (
           <div
             role="status"
@@ -504,10 +540,9 @@ export function AdminDashboard({
               maxWidth: 360,
             }}
           >
-            {toast}
-          </div>
-        )}
-      </div>
+          {toast}
+        </div>
+      )}
     </div>
   );
 
