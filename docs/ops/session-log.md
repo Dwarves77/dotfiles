@@ -14800,3 +14800,111 @@ wrong. The rendering guard gains `dashboard-brief`'s `populated` and `failed` st
 non-empty; a failed fetch named on BOTH cards with a real Retry) and the `watchlist-write` SM spec.
 compose-01-dashboard.json gains two count rows and one forbid: neither card renders zero rows against
 the populated fixture, and no What-changed row renders the Absence token in its tier cell.
+## Lane duenext (2026-09-08), the dashboard's two dead cards
+
+The operator's report: DUE NEXT reads "0 ITEMS" and WHAT CHANGED reads "no detection pass on
+record" on production, while /regulations renders 1,317 active regulations with deadlines of
+Sep 30, Nov 18 and Dec 30 2026 sitting right there. Three root causes, each measured against the
+live database and the live platform-flags queue, not read off the code.
+
+**1. Due next was fed a read that answers a different question.** [CONFIRMED, Supabase MCP,
+2026-09-08] The card consumes `get_workspace_intelligence_dashboard`, whose ORDER BY is
+`CASE effective_priority WHEN 'CRITICAL' THEN 1 ... END, added_date DESC, id ASC LIMIT 50`: a slice
+chosen by PRIORITY. For org a0000000-0000-0000-0000-000000000001 the active verified set is 1,433
+rows and exactly 45 of them carry a future binding date under the rule the UI applies (`dueInfo`,
+`src/lib/dashboard/row-fields.ts`): 5 via `compliance_deadline >= current_date`, 40 via a future
+`item_timelines.milestone_date`. The priority slice held 23 of the 45 and none of the 5. The
+coordinator's own measurement, that zero of the 50 carry a future value in
+`compliance_deadline`/`entry_into_force`/`next_review_date`, is confirmed and is the same finding
+seen through the item's date COLUMNS; the 23 reach the card only through the separately-read
+timelines. Either way nothing keeps the overlap non-zero: a priority reshuffle alone empties the
+card with no data change.
+
+Migration 315 adds `get_workspace_due_next(p_org_id, p_limit)` beside the existing RPCs: ordered by
+the binding date itself ascending with an id tiebreak, `p_limit` defaulting to 24 and hard-clamped
+to [1,100] inside the function (F38/F39), sourced from `public._workspace_active_items(p_org_id)`
+so it goes through the same membership assert and the same customer read gate as every other
+workspace read, and projecting the dashboard RPC's exact column list plus one trailing
+`next_binding_date`, so `mapWorkspaceItemRows` maps its rows unchanged. Verified live before the
+report: 24 rows, first `next_binding_date` 2026-09-08 on a LOW-priority item that the priority
+slice could never have surfaced, then 2026-09-30 x3, 2026-10-01, 2026-11-18, 2026-11-21,
+2026-11-29, 2026-11-30, 2026-12-30 (EUDR), 2026-12-31 x2. Those are the operator's dates.
+
+**A second half of the same defect:** `mapWorkspaceItemRows` never set
+`Resource.complianceDeadline`, although every RPC it maps projects `ii.compliance_deadline` and
+`dueInfo` reads that field as one of its two candidates. The field was undefined on every list and
+dashboard row in the app. Five live items depend on it. One line.
+
+**Where the SQL and the UI differ, stated rather than hidden.** The brief describes the binding date
+as a coalesce across three columns. `dueInfo`'s candidate list is two: `r.complianceDeadline` and
+`r.timeline[].date`. No Resource field carries `entry_into_force` or `next_review_date`, so the UI
+cannot see them, and a read selecting on them would return rows `buildDueNextRows` filters straight
+back out. Migration 315 therefore uses `LEAST(compliance_deadline when future, MIN(milestone_date
+when future))` and says so in its header. Widening what "due" means is a product decision, and if it
+is taken the SQL and `dueInfo` must widen in the same change.
+
+**2. What changed was never broken.** [CONFIRMED, live `integrity_flags`] `auditDate` is the empty
+string on exactly one payload, `fetchDashboardData`'s `emptyFallback`, and that is the only input
+for which the card renders "no detection pass on record". So the card was reporting its payload
+correctly, and the payload was the fallback. The proof is in the platform's own queue:
+`integrity_flags` carries rows at 2026-09-08T09:36:35Z and 2026-09-08T16:18:47Z with `subject_ref`
+"/", `created_by` "seed-fallback-trigger" and description "Seed-fallback activated on /. Trigger:
+rpc_error." Meanwhile `get_workspace_recent_changes(org, 7)` matches 1,109 rows live and returns its
+500-row cap, which is the "All 500 changes in the last 7 days" the operator saw earlier the same
+day. One defect, not two: both cards were blank for the same reason, and defect 3 is why.
+
+**3. The fallback that lies.** `fetchDashboardData` ended its happy path with
+`if (!resources.length) return { ...emptyFallback, _error, _fallbackTrigger: "rpc_error" }`, and
+`fetchWorkspaceResources` returned the same empty tuple whether the RPC had errored or had simply
+returned nothing, so the caller could only guess and guessed "broken". `fetchWorkspaceResources` now
+reports `failed` explicitly; only a genuinely failed read returns the fallback payload with its
+banner and its platform flag, and a successful empty read returns the REAL payload with no `_error`,
+so the surfaces render their own honest-empty states. This is the half about what the payload SAYS;
+lane rsc503's `refuseToCacheFallback` is the half about it not being CACHED.
+
+The audit date was fabricated on both code paths and both are fixed. `fetchDashboardData` seeded it
+with TODAY and raised it only by a changelog entry later than today, which none can be, so the card
+asserted a detection pass every day regardless; live, `item_changelog` holds 9 rows with a newest
+`change_date` of 2026-03-01 and the cadence is held OFF (rule 16). `data.ts`'s failure factory used a
+constant baked into the bundle. Both now take the date from evidence, falling back to the empty
+string, which on a hard failure is true. `src/data/audit-date.ts` lost its last importer and was
+deleted with F25's help rather than left dormant (rule 13).
+
+**The proofs that would have failed.** Every pre-existing dashboard test mounts these cards against
+fixtures that already contain matching rows, so none ever asked whether the READ can supply them.
+Added: `src/lib/dashboard/due-next-read.npmtest.mjs` (the read is ordered by nearest future date and
+carries none of the priority ranking; its LEAST() uses exactly `dueInfo`'s two sources and neither of
+the other two columns; it is bounded, clamped and membership-scoped; a payload whose own rows carry
+no future date still populates the card once the due-next read feeds the pool, asserted through the
+SHARED `buildDueNextRows` rather than a copy of it; the mapper populates `complianceDeadline`) and
+`src/lib/dashboard/honest-empty.npmtest.mjs` (an empty result no longer routes to the failure
+payload; exactly four failure exits remain, each naming a real failure; no path invents an audit
+date). Plus two rows in `compose-01-dashboard.json` asserting a NON-ZERO row count in each card
+against the populated fixture, proven by attack: moving the fixture's deadlines into the past takes
+both from MATCH to NOT BUILT.
+
+**Sibling-lane surface.** Lane briefdata owns `src/lib/dashboard/brief-rows.ts`. This lane did not
+touch that file at all: the union happens in `src/app/page.tsx` and the shared selection functions
+are called unchanged, so the two lanes meet at one call site and nowhere else.
+
+**Files touched.** `fsi-app/supabase/migrations/315_workspace_due_next.sql` (new),
+`fsi-app/src/lib/supabase-server.ts`, `fsi-app/src/lib/data.ts`, `fsi-app/src/app/page.tsx`,
+`fsi-app/src/data/audit-date.ts` (deleted),
+`fsi-app/src/lib/dashboard/due-next-read.npmtest.mjs` (new),
+`fsi-app/src/lib/dashboard/honest-empty.npmtest.mjs` (new),
+`fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json`,
+`docs/inventories/migrations.md`, `docs/design/handoff-2026-09-06/DEVIATION-LOG.md`,
+`docs/design/handoff-2026-09-06/AUDIT-2026-09-07.md` + `.discipline/rendering/audit/results.json`
+(regenerated by the audit run).
+
+**UX compliance.** No `.tsx` or `.css` under `src/components` was touched; `src/app/page.tsx`'s
+change is server-side row selection only, no markup and no style. The two cards' own layout, type
+and 375px behaviour are unchanged, and the rendering guard's UX smoke slot (`dashboard-brief`)
+passes at every viewport, 216 UX checks.
+
+**Gates, all from the worktree root.** `npx tsc --noEmit` clean. Fitness 35 functions, 0 violations
+(F25 initially reported the orphaned `src/data/audit-date.ts`; deleted, re-run clean). Rendering
+guard PASS: 11 fixtures, 12 viewports, 445 checks, 97 SM smoke, 216 UX smoke. `npm run audit:design`
+70 specs, 2,020 checks, 2,020 MATCH, 0 anything else. CI npmtest glob 996 tests, 996 pass, 0 fail
+(984 before this lane's 12). `run-test-suite.sh` 5,972 tests, 5,967 pass, 0 fail, exit 0.
+`npx next build --webpack` exit 0.
