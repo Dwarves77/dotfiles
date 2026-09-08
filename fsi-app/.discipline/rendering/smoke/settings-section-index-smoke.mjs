@@ -18,6 +18,8 @@
 import { bundleEntry, newSmokePage, mountBundle, measureGuard, assertGuardClean } from './harness.mjs';
 import { fullAppCss } from './smoke-fixtures.mjs';
 
+const KNOWN_SAFE_PLACEHOLDER_LITERALS = ['Action'];
+
 const STYLE_INJECT = `
 (() => {
   const style = document.createElement('style');
@@ -77,7 +79,12 @@ export async function runSmoke(browser) {
     const label = `settings-section-index[${viewport.width}px]`;
 
     checks++;
-    failures.push(...assertGuardClean(label, await measureGuard(page)));
+    // 'Action' is BAND_ORDER's own band label (src/lib/urgency/bands.ts), which artboard 15's
+    // "Alert bands" segmented control renders verbatim; it is an exact-text collision with
+    // HEADER_LITERALS' §3 action-COLUMN word and not a fabricated or missing value. Same disclosed
+    // carve-out dashboard-brief-smoke.mjs, regulations-rows-smoke.mjs and map-smoke.mjs already
+    // make for the identical word (lane settings60, 2026-09-08).
+    failures.push(...assertGuardClean(label, await measureGuard(page), KNOWN_SAFE_PLACEHOLDER_LITERALS));
 
     // Exactly one tab row (the merged Account TabRow) — no second-level tablist survives.
     const tabCount = await page.$$eval('[role="tablist"], nav[aria-label="Settings sections"]', (els) => els.length);

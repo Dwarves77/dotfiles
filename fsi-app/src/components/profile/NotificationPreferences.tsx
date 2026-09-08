@@ -77,30 +77,31 @@ const ROWS: Array<{
     key: "enabled",
     label: "Notifications enabled",
     description:
-      "Master switch. Turn this off and we won't send you anything except invites you've accepted.",
+      // dc.html p15 row descriptions, verbatim.
+      "Master switch",
   },
   {
     key: "on_mention",
     label: "Someone @mentions you",
     description:
-      "Direct mentions in any thread or group you can see. We recommend keeping this on.",
+      "Direct mentions in any room",
   },
   {
     key: "on_reply_in_my_threads",
     label: "Replies in your threads",
-    description: "When someone replies to a post you started.",
+    description: "When someone replies to a post you started",
   },
   {
     key: "on_new_post_in_joined_groups",
     label: "New posts in groups you've joined",
     description:
-      "Higher volume. Off by default — opt in if you want every new post in your groups.",
+      "Higher volume · off by default",
   },
   {
     key: "on_promote",
     label: "When a post gets promoted",
     description:
-      "Editorial promoted your post to a wider feed, or a verifier signed off on a disputed entry.",
+      "Editorial promoted your post or a verifier signed off",
   },
 ];
 
@@ -215,8 +216,7 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
       {/* Locked: on_invite. Always on — you must be reachable when invited. */}
       <NotifRow
         label="Workspace invitations"
-        lockedSuffix="always on"
-        description="Always on — you must be reachable when someone adds you to a group or workspace."
+        description="Always on · you must be reachable"
         on
         locked
         onFlip={() => {}}
@@ -230,7 +230,6 @@ export function NotificationPreferences({ userId, onSaved }: Props) {
           </span>
         )}
         {error && <span style={{ fontSize: "10.5px", color: "var(--color-error)" }}>Couldn&apos;t save: {error}</span>}
-        <span style={{ marginLeft: "auto", fontSize: "10.5px", color: "var(--color-text-muted)" }}>Channel: in-app</span>
       </div>
     </div>
   );
@@ -242,14 +241,12 @@ function NotifRow({
   on,
   onFlip,
   locked = false,
-  lockedSuffix,
 }: {
   label: string;
   description: string;
   on: boolean;
   onFlip: () => void;
   locked?: boolean;
-  lockedSuffix?: string;
 }) {
   return (
     <div
@@ -266,9 +263,6 @@ function NotifRow({
       <div style={{ minWidth: 0 }}>
         <p style={{ fontSize: "12.5px", fontWeight: 800, margin: 0, color: "var(--color-text-primary)" }}>
           {label}
-          {lockedSuffix && (
-            <span style={{ fontWeight: 700, color: "var(--color-text-muted)" }}> · {lockedSuffix}</span>
-          )}
         </p>
         <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "2px 0 0" }}>{description}</p>
       </div>

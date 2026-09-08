@@ -5,7 +5,7 @@ import { useSettingsStore } from "@/stores/settingsStore";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { JURISDICTIONS } from "@/lib/constants";
-import { Chip, TextInput } from "@/components/account/AccountPrimitives";
+import { Chip, SegmentedControl, type SegmentedOption } from "@/components/account/AccountPrimitives";
 
 // ───────────────────────────────────────────────────────────────────────────
 // BriefingScheduleSection — Account · Settings · Briefing schedule (T10).
@@ -35,7 +35,10 @@ const DEFAULT_SCHEDULE: ScheduleState = {
   jurisdictions: [],
 };
 
-const DAYS: Array<{ id: string; label: string }> = [
+// dc.html p15 draws Mon | Sun. `briefingDay`'s stored union is monday..friday, so Sunday is not a
+// value this schedule can hold; the five days the app actually persists are the segments
+// (DEVIATION-LOG 2026-09-08, lane settings60).
+const DAYS: ReadonlyArray<SegmentedOption<string>> = [
   { id: "monday", label: "Mon" },
   { id: "tuesday", label: "Tue" },
   { id: "wednesday", label: "Wed" },
@@ -43,9 +46,11 @@ const DAYS: Array<{ id: string; label: string }> = [
   { id: "friday", label: "Fri" },
 ];
 
-const CADENCE: Array<{ id: Cadence; label: string }> = [
-  { id: "daily", label: "Daily" },
+// dc.html p15 draws Weekly | Daily, in that order. Biweekly is a third cadence the app already
+// persists and the artboard does not draw: ruling R7 keeps it, as the trailing segment.
+const CADENCE: ReadonlyArray<SegmentedOption<Cadence>> = [
   { id: "weekly", label: "Weekly" },
+  { id: "daily", label: "Daily" },
   { id: "biweekly", label: "Biweekly" },
 ];
 
@@ -71,6 +76,17 @@ export function BriefingScheduleSection() {
   const [baseline, setBaseline] = useState<ScheduleState>({ ...DEFAULT_SCHEDULE, day: briefingDay });
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  // dc.html p15's time field reads "08:00 · Europe/London". The zone is the reader's own, which
+  // only the browser knows, so it is resolved after mount rather than guessed on the server (a
+  // render-time read would differ between SSR and hydration; see src/lib/render-now.ts).
+  const [timeZone, setTimeZone] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      setTimeZone(Intl.DateTimeFormat().resolvedOptions().timeZone || null);
+    } catch {
+      setTimeZone(null);
+    }
+  }, []);
 
   useEffect(() => {
     if (!orgId) return;
@@ -152,94 +168,121 @@ export function BriefingScheduleSection() {
   const canSave = dirty && canEdit && !!orgId && !saving;
 
   return (
-    <div>
-      <p style={{ fontSize: "11.5px", color: "var(--color-text-secondary)", margin: "0 0 14px" }}>
-        Tune how often the briefing lands, when, and which jurisdictions it weights.{" "}
-        <b>Schedule is workspace-scoped</b>
-        {orgName ? (
-          <>
-            {" "}— it persists to {orgName}.
-          </>
-        ) : (
-          <> — join or create a workspace to persist it.</>
-        )}
-      </p>
-
-      <div style={{ display: "flex", gap: 32, flexWrap: "wrap", margin: "0 0 16px" }}>
+    // dc.html p15's rail card: Cadence · Day · Time · note · Save schedule, stacked, gap 10.
+    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+      <div>
+        <FieldLabel>Cadence</FieldLabel>
+        <SegmentedControl
+          options={CADENCE}
+          selected={[schedule.cadence]}
+          onSelect={(id) => canEdit && update({ cadence: id })}
+          ariaLabel="Briefing cadence"
+          disabled={!canEdit}
+        />
+      </div>
+      {schedule.cadence !== "daily" && (
         <div>
-          <FieldLabel>Cadence</FieldLabel>
-          <div style={{ display: "flex", gap: 6 }}>
-            {CADENCE.map((c) => (
-              <Chip key={c.id} label={c.label} on={schedule.cadence === c.id} onClick={() => canEdit && update({ cadence: c.id })} />
-            ))}
-          </div>
+          <FieldLabel>Day</FieldLabel>
+          <SegmentedControl
+            options={DAYS}
+            selected={[schedule.day]}
+            onSelect={(id) => canEdit && update({ day: id })}
+            ariaLabel="Briefing day"
+            disabled={!canEdit}
+          />
         </div>
-        {schedule.cadence !== "daily" && (
-          <div>
-            <FieldLabel>Day</FieldLabel>
-            <div style={{ display: "flex", gap: 6 }}>
-              {DAYS.map((d) => (
-                <Chip key={d.id} label={d.label} on={schedule.day === d.id} onClick={() => canEdit && update({ day: d.id })} />
-              ))}
-            </div>
-          </div>
-        )}
-        <div>
-          <FieldLabel>Time (24h, your local timezone)</FieldLabel>
-          <TextInput
+      )}
+      <div>
+        <FieldLabel>Time · your local timezone</FieldLabel>
+        <div
+          style={{
+            border: "1px solid var(--color-border-medium)",
+            borderRadius: 6,
+            minHeight: 44,
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            padding: "0 10px",
+            background: "var(--surface)",
+            fontSize: 13,
+          }}
+        >
+          <input
             type="time"
             value={schedule.time}
             disabled={!canEdit}
             onChange={(e) => update({ time: e.target.value })}
-            style={{ width: 110, fontWeight: 700 }}
-          />
-        </div>
-      </div>
-
-      <div style={{ margin: "0 0 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 10, margin: "0 0 8px" }}>
-          <FieldLabel noMargin>Weight these jurisdictions</FieldLabel>
-          <span style={{ fontSize: "10.5px", color: "var(--color-text-muted)" }}>{weightNote}</span>
-        </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
-          {JURISDICTIONS.map((j) => (
-            <Chip key={j.id} label={j.label} pill on={schedule.jurisdictions.includes(j.id)} onClick={() => canEdit && toggleJurisdiction(j.id)} />
-          ))}
-        </div>
-      </div>
-
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <div style={{ background: "var(--color-bg-ai-strip)", border: "1px solid var(--color-active-border)", borderRadius: 6, padding: "10px 16px" }}>
-          <p style={{ fontSize: 12, fontWeight: 800, margin: 0, color: "var(--color-text-primary)" }}>Delivery · in-app</p>
-          <p style={{ fontSize: "10.5px", color: "var(--color-text-muted)", margin: "2px 0 0" }}>
-            Lands in your dashboard. Email and push follow the notifications channel work.
-          </p>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          {saved && !dirty && (
-            <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)" }}>
-              Saved to {orgName || "workspace"}.
-            </span>
-          )}
-          <button
-            type="button"
-            onClick={save}
-            disabled={!canSave}
+            aria-label="Briefing time"
             style={{
               fontFamily: "var(--font-sans)",
-              fontSize: "12.5px",
-              fontWeight: 800,
-              padding: "11px 20px",
-              borderRadius: 6,
-              border: canSave ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
-              background: canSave ? "var(--color-primary)" : "rgba(0,0,0,0.08)",
-              color: canSave ? "#FFFFFF" : "var(--color-text-muted)",
-              cursor: canSave ? "pointer" : "default",
+              fontSize: 13,
+              border: "none",
+              outline: "none",
+              background: "transparent",
+              color: "var(--color-text-primary)",
+              padding: 0,
             }}
-          >
-            {saving ? "Saving…" : "Save schedule"}
-          </button>
+          />
+          {timeZone && <span style={{ color: "var(--color-text-secondary)" }}>· {timeZone}</span>}
         </div>
+      </div>
+
+      {/* Ruling R7: jurisdiction weighting is a working feature the artboard draws no region for
+          (dc.html p15 points at "Account → Jurisdictions", where no weighting control exists), so
+          it stays exactly as it is as a card-foot disclosure — R7's own placement precedent. */}
+      <details>
+        <summary
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            color: "var(--color-text-secondary)",
+            cursor: "pointer",
+            minHeight: 24,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          Jurisdiction weighting
+        </summary>
+        <div style={{ margin: "8px 0 0" }}>
+          <p style={{ fontSize: "10.5px", color: "var(--color-text-muted)", margin: "0 0 6px" }}>{weightNote}</p>
+          <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+            {JURISDICTIONS.map((j) => (
+              <Chip key={j.id} label={j.label} pill on={schedule.jurisdictions.includes(j.id)} onClick={() => canEdit && toggleJurisdiction(j.id)} />
+            ))}
+          </div>
+          <p style={{ fontSize: 11, color: "var(--color-text-muted)", margin: "8px 0 0", lineHeight: 1.5 }}>
+            Delivery is in-app. Email and push follow the notifications channel work.
+          </p>
+        </div>
+      </details>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+        <button
+          type="button"
+          onClick={save}
+          disabled={!canSave}
+          style={{
+            fontFamily: "var(--font-sans)",
+            fontSize: "12.5px",
+            fontWeight: 700,
+            padding: "8px 14px",
+            minHeight: 44,
+            borderRadius: 6,
+            whiteSpace: "nowrap",
+            border: canSave ? "1px solid var(--color-primary)" : "1px solid var(--color-border)",
+            background: canSave ? "var(--color-primary)" : "rgba(0,0,0,0.08)",
+            color: canSave ? "#FFFFFF" : "var(--color-text-muted)",
+            cursor: canSave ? "pointer" : "default",
+          }}
+        >
+          {saving ? "Saving…" : "Save schedule"}
+        </button>
+        {saved && !dirty && (
+          <span style={{ fontSize: "11.5px", fontWeight: 700, color: "var(--color-success)" }}>
+            Saved to {orgName || "workspace"}.
+          </span>
+        )}
       </div>
     </div>
   );
