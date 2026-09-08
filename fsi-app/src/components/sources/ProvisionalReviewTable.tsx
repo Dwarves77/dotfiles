@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * ProvisionalReviewTable — the "SOURCES · PROVISIONAL REVIEW" card of artboard
+ * ProvisionalReviewTable, the "SOURCES · PROVISIONAL REVIEW" card of artboard
  * 13 (dc.html p13), built from the shared parts: SectionRule + RowTable +
  * TierChip + StateNote + Absence.
  *
@@ -22,7 +22,7 @@
  *   Reject   → decision "reject". Row is archived with the reviewer note.
  *   Re-tier  → decision "defer" with the chosen tier recorded in reviewerNotes.
  *              Defer writes reviewer_notes + reviewed_at and leaves status at
- *              'pending_review' — which is precisely the artboard's own legend,
+ *              'pending_review', which is precisely the artboard's own legend,
  *              "Re-tier = stays provisional". There is no in-place tier write
  *              for a provisional row: commit-tier-change returns 409 for
  *              kind:"provisional" and directs callers to promote (its own
@@ -54,7 +54,7 @@ export interface ProvisionalReviewTableProps {
   rows: ProvisionalSource[];
   /** Called after a successful write so the caller can drop the row from its list. */
   onActionDone: (id: string, decision: ProvisionalDecision) => void;
-  /** Staged updates awaiting review — the pipeline note's live count. */
+  /** Staged updates awaiting review, the pipeline note's live count. */
   stagedUpdatesCount?: number | null;
   /** Opens the ingest queue (Ingest / Staged updates). Omitted = no link rendered. */
   onOpenQueue?: () => void;
@@ -79,7 +79,7 @@ const STATUS_LABEL: Record<ProvisionalSource["status"], string> = {
 /**
  * The row's sub-line host. Derived through the entity spine's ONE normalizer
  * (`hostFromUrl`, src/lib/entities/entity-id.mjs) rather than a local
- * `new URL(...).host` — F30's `url_host_derivation` ratchet exists precisely to
+ * `new URL(...).host`, F30's `url_host_derivation` ratchet exists precisely to
  * stop N call-site reimplementations drifting from that seed function. Returns
  * null (not "") for an underivable URL so the cell renders Absence.
  */

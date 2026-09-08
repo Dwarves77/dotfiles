@@ -34,11 +34,18 @@ const ALL_DOMAINS = [
 interface Props {
   ps: ProvisionalSource & { recommended_classification?: Recommendation | null };
   onActionDone: (id: string, action: "approve" | "reject" | "defer") => void;
+  /** Open straight into the classification editor. Used by the artboard-13
+   *  provisional table, which reaches this card through the row's ⋯ menu and
+   *  renders it as a disclosure at the card foot (ruling R7), the operator has
+   *  already asked for the editor by then, so a second click to open it is a
+   *  step the queue view does not need. Defaults to the collapsed behaviour
+   *  every existing call site has. */
+  initiallyExpanded?: boolean;
 }
 
-export function ProvisionalReviewCard({ ps, onActionDone }: Props) {
+export function ProvisionalReviewCard({ ps, onActionDone, initiallyExpanded = false }: Props) {
   const supabase = createSupabaseBrowserClient();
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(initiallyExpanded);
   const [rec, setRec] = useState<Recommendation | null>(ps.recommended_classification || null);
   const [recLoading, setRecLoading] = useState(false);
   const [recError, setRecError] = useState<string | null>(null);

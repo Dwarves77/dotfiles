@@ -1,7 +1,7 @@
-// Structural regression test for src/components/sources/ProvisionalReviewTable.tsx — artboard 13
+// Structural regression test for src/components/sources/ProvisionalReviewTable.tsx, artboard 13
 // (dc.html p13) "SOURCES · PROVISIONAL REVIEW". Source-text regression plus a behavioural test of
 // the two pure helpers, which are exported precisely so they can be exercised here (no JSX render
-// harness in this repo — see WatchButton.npmtest.mjs's own header).
+// harness in this repo, see WatchButton.npmtest.mjs's own header).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
