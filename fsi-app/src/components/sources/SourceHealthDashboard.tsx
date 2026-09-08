@@ -328,9 +328,14 @@ export interface SourceHealthDashboardProps {
   stagedUpdatesCount?: number | null;
   /** Opens the ingest queue from the provisional card's pipeline note. */
   onOpenQueue?: () => void;
+  /**
+   * The Admin page's Sources sub-tab row, forwarded into the provisional card's
+   * head (dc.html p13 draws it inside that card). Lane admin60, 2026-09-08.
+   */
+  headTabs?: React.ReactNode;
 }
 
-export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue }: SourceHealthDashboardProps = {}) {
+export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue, headTabs }: SourceHealthDashboardProps = {}) {
   const { sources, provisionalSources, filters, activeView, setActiveView, setSourceSearch, setProvisionalSources } = useSourceStore();
 
   // Optimistically remove a provisional row from the list after a successful
@@ -373,6 +378,7 @@ export function SourceHealthDashboard({ stagedUpdatesCount = null, onOpenQueue }
         onActionDone={handleProvisionalAction}
         stagedUpdatesCount={stagedUpdatesCount}
         onOpenQueue={onOpenQueue}
+        headTabs={headTabs}
       />
     );
   }
