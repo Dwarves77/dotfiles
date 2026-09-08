@@ -22,7 +22,7 @@
  * rail total is sum(rows). A badge that can contradict its list is a bug.
  */
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createSupabaseBrowserClient } from "@/lib/supabase-browser";
 import { useWorkspaceStore } from "@/stores/workspaceStore";
 import { useSourceStore } from "@/stores/sourceStore";
@@ -33,7 +33,8 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Masthead } from "@/components/ui/Masthead";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { StateNote } from "@/components/ui/StateNote";
+import { SectionRule } from "@/components/ui/SectionRule";
+import { RowTableAction } from "@/components/ui/RowTable";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
 import { IssueFilterCaption, issueFilterLabel } from "@/components/admin/IssueFilterCaption";
 import { ProvenanceFailures, extractFailures } from "@/components/admin/ProvenanceFailures";
@@ -332,11 +333,6 @@ export function AdminDashboard({
 
   const totalTileCount = SECTIONS.reduce((t, s) => t + tileCount(s.name), 0) + initialEmissionFactorsLiveCount;
 
-  const crumb = useMemo(() => {
-    const firstTab = activeSection.tabs[0];
-    return sub && sub !== firstTab ? `${section} / ${sub}` : section;
-  }, [section, sub, activeSection]);
-
   const mtd = `$${(initialMtdSpendUsd || 0).toFixed(2)}`;
 
   return (
@@ -434,15 +430,6 @@ export function AdminDashboard({
               </Link>
             </div>
 
-            <div style={{ margin: "0 0 18px" }}>
-              <StateNote
-                action={{ label: "Refresh", onClick: loadData }}
-              >
-                Admin / <b>{crumb}</b> · platform-wide controls — per-org settings (members, billing)
-                live on each org owner&apos;s <a href="/profile" style={{ color: "inherit" }}>Account</a>.
-              </StateNote>
-            </div>
-
             {/* Sub-nav */}
             <div
               role="tablist"
@@ -507,8 +494,17 @@ export function AdminDashboard({
             {renderBody(section, sub)}
           </div>
 
-          {/* RIGHT — issues queue rail */}
-          <AdminIssuesRail onNavigate={handleIssueNavigate} />
+          {/* RIGHT, the rail: issues queue, then the read-only-controls explainer.
+              dc.html p13 draws that explainer as the rail's own card (title,
+              body, controls), not as a strip above the section body where it
+              used to sit; moved, not duplicated. */}
+          <div style={{ display: "grid", gap: 14, alignContent: "start" }}>
+            <AdminIssuesRail onNavigate={handleIssueNavigate} />
+            <div data-audit="admin-usage-rail">
+              <WorkspacesUsageRow orgs={orgs} members={members} layout="rail" />
+            </div>
+            <ReadOnlyControlsCard onRefresh={loadData} />
+          </div>
         </div>
 
         {/* Toast */}
@@ -544,7 +540,6 @@ export function AdminDashboard({
     if (sec === "Workspaces") {
       return (
         <div style={{ display: "grid", gap: 14 }}>
-          <WorkspacesUsageRow orgs={orgs} members={members} />
           <PlateCard title="Organizations" meta={`${orgs.length} org${orgs.length === 1 ? "" : "s"} · ${members.length} membership${members.length === 1 ? "" : "s"}`}>
             <OrganizationsTable orgs={orgs} members={members} />
           </PlateCard>
@@ -580,7 +575,13 @@ export function AdminDashboard({
           {issueFilter && (
             <IssueFilterCaption label={issueFilterLabel(issueFilter)} onClear={() => setIssueFilter(null)} />
           )}
-          <SourceHealthDashboard />
+          <SourceHealthDashboard
+            stagedUpdatesCount={stagedUpdates.length}
+            onOpenQueue={() => {
+              setSection("Ingest");
+              setSub("Staged updates");
+            }}
+          />
           <PlateCard title="Organizations" meta={`${orgs.length} org${orgs.length === 1 ? "" : "s"} · ${members.length} membership${members.length === 1 ? "" : "s"}`}>
             <OrganizationsTable orgs={orgs} members={members} />
           </PlateCard>
@@ -836,6 +837,57 @@ function PlateCard({
         {meta && <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>{meta}</span>}
       </div>
       {children}
+    </div>
+  );
+}
+
+/**
+ * ReadOnlyControlsCard, the rail's explainer box, dc.html p13 verbatim: the
+ * graduated rule, a small-caps "Read-only controls" label, the platform-wide /
+ * per-org sentence, then the controls.
+ *
+ * The artboard draws two buttons, Refresh and Export queue. Refresh is real
+ * (it re-runs the same reads the server hydrated the page with). There is NO
+ * queue-export endpoint anywhere under src/app/api/admin/, so "Export queue" is
+ * not rendered rather than drawn dead, logged in
+ * docs/design/handoff-2026-09-06/DEVIATION-LOG.md.
+ */
+function ReadOnlyControlsCard({ onRefresh }: { onRefresh: () => void }) {
+  return (
+    <div
+      data-audit="admin-readonly-controls"
+      style={{
+        background: "var(--surface)",
+        border: "1px solid var(--color-border)",
+        borderRadius: "var(--radius-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      <div style={{ padding: "12px 16px 14px" }}>
+        <div
+          style={{
+            fontSize: "var(--fs-105)",
+            letterSpacing: "0.12em",
+            textTransform: "uppercase",
+            color: "var(--ink-3)",
+            fontWeight: 700,
+            marginBottom: 8,
+          }}
+        >
+          Read-only controls
+        </div>
+        <p style={{ fontSize: "var(--fs-12)", color: "var(--ink-2)", lineHeight: 1.5, margin: 0 }}>
+          Platform-wide settings. Per-org settings (members, billing) live on each org owner&apos;s{" "}
+          <Link href="/profile" prefetch={false} style={{ color: "inherit" }}>
+            Account
+          </Link>
+          .
+        </p>
+        <div style={{ marginTop: 10, display: "flex", gap: 8 }}>
+          <RowTableAction label="Refresh" onClick={onRefresh} />
+        </div>
+      </div>
     </div>
   );
 }
