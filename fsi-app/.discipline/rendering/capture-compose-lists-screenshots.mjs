@@ -119,16 +119,80 @@ function marketRow(i) {
 }
 const MARKET_ROWS = Array.from({ length: 20 }, (_, i) => marketRow(i));
 
+function seriesRow(key, label, displayValue, pct1w) {
+  return {
+    seriesKey: key,
+    id: key,
+    label,
+    displayValue,
+    emptyReason: null,
+    asAtDate: '2026-09-03',
+    referencePeriod: null,
+    observationCount: 12,
+    sourceKey: 'fixture',
+    sourceRef: null,
+    unit: null,
+    currency: null,
+    derivation: null,
+    originClass: null,
+    methodVersion: null,
+    nObservations: 12,
+    deltas: {
+      count: 12,
+      latest: { date: '2026-09-03', value: 1, unit: null, currency: null },
+      sparkline: Array.from({ length: 6 }, (_, i) => ({ date: `2026-0${i + 1}-01`, value: 1 + i * 0.05 })),
+      delta1w: { value: pct1w / 100, pct: pct1w, fromDate: '2026-08-27' },
+      delta1m: { value: (pct1w * 2) / 100, pct: pct1w * 2, fromDate: '2026-08-03' },
+      deltaYoY: { insufficientHistory: true },
+      message: null,
+    },
+  };
+}
+const SERIES_BOARD = {
+  groups: [
+    {
+      keyPrefix: 'fixture',
+      name: 'Fixture producer',
+      implemented: true,
+      cadence: 'weekly',
+      sourceName: 'Fixture',
+      sourceUrl: '',
+      licenceStatus: 'ok',
+      state: 'populated',
+      series: [
+        seriesRow('diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+        seriesRow('e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+        seriesRow('hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+        seriesRow('rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+      ],
+    },
+  ],
+  unregistered: [],
+  totalObservedSeries: 4,
+  totalProducers: 1,
+  implementedProducerCount: 1,
+  isEmpty: false,
+};
+
+// SERIES_BOARD is embedded as a literal in the bundle entry (not passed through mountBundle's
+// props, which are structured-cloned across the page.evaluate boundary and cannot carry a React
+// element) so headlineSeries can be built INSIDE the bundle from the real MarketComparativeRibbon.
 const MARKET_ENTRY = `
 ${STYLE_INJECT}
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { MarketIntelLedger } from '@/components/market/MarketIntelLedger';
+import { MarketComparativeRibbon } from '@/components/market/MarketComparativeRibbon';
+const SERIES_BOARD = ${JSON.stringify(SERIES_BOARD)};
 let root = null;
 window.__mount = (props) => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
-  root.render(React.createElement(MarketIntelLedger, props));
+  root.render(React.createElement(MarketIntelLedger, {
+    ...props,
+    seriesBoard: SERIES_BOARD,
+    headlineSeries: React.createElement(MarketComparativeRibbon, { board: SERIES_BOARD, embedded: true }),
+  }));
 };
 `;
 

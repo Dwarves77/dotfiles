@@ -23,9 +23,19 @@
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
 import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
+import { SectionRule } from "@/components/ui/SectionRule";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
+  /** True when mounted inside ListSurfaceShell's `aboveRows` slot (artboard 04/id="p4": the
+   *  "Headline series" card nests BETWEEN the band tiles and the sort row, inside the content
+   *  column, not as its own full-bleed page section) — lane compose-lists, 2026-09-08, relocating
+   *  the placement this file's own header comment (and DEVIATION-LOG.md) already logged as
+   *  deferred. Drops the standalone page-section's own maxWidth/margin/padding so the card fills
+   *  the content column instead. The card's own border/radius/shadow/section-rule chrome (ruling
+   *  5.1) is added by MarketIntelLedger where this mounts, not here, so a future non-embedded
+   *  caller is unaffected. */
+  embedded?: boolean;
 }
 
 const MAX_METRICS = 10;
@@ -54,7 +64,7 @@ interface RibbonRow {
   deltas: SeriesDeltas;
 }
 
-export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps) {
+export function MarketComparativeRibbon({ board, embedded = false }: MarketComparativeRibbonProps) {
   const rows: RibbonRow[] = [];
   for (const g of board.groups) {
     if (g.state !== "populated") continue;
@@ -74,20 +84,39 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
   const shown = rows.slice(0, MAX_METRICS);
   const hiddenCount = rows.length - shown.length;
 
+  const embeddedCardStyle = {
+    background: "var(--card)",
+    border: "1px solid var(--line-1)",
+    borderRadius: "var(--radius-card)",
+    boxShadow: "var(--shadow-card)",
+    overflow: "hidden",
+  };
+
   return (
-    <div style={{ maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }}>
+    <div
+      style={
+        embedded ? embeddedCardStyle : { maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }
+      }
+    >
+      {/* Ruling 5.1 (2026-09-07, CLOSED): the graduated rule sits ABOVE the title, full card
+          width, no radius, and there is NO divider below the title — a solid border-bottom under
+          "Comparative ribbon" was the exact defect 5.1 names. Section title itself: Anton
+          uppercase, no divider, no underline. */}
+      {embedded && <SectionRule />}
       <div
         style={{
           display: "flex",
           alignItems: "baseline",
           justifyContent: "space-between",
           gap: 16,
-          borderBottom: "2px solid var(--color-text-primary)",
-          padding: "0 0 8px",
+          padding: embedded ? "14px 16px 0" : "0 0 8px",
           margin: "0 0 12px",
           flexWrap: "wrap",
         }}
       >
+        {/* artboard 04/id="p4": "HEADLINE SERIES" — this card's own title, not "Comparative
+            ribbon" (this file's pre-existing name, kept as the component/file identity, not the
+            rendered copy). */}
         <h2
           style={{
             fontFamily: "var(--font-display)",
@@ -98,7 +127,7 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
             margin: 0,
           }}
         >
-          Comparative ribbon
+          Headline series
         </h2>
         <span
           style={{
@@ -109,7 +138,10 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
             color: "var(--color-text-muted)",
           }}
         >
-          {shown.length} of {rows.length} headline series
+          {shown.length} of {rows.length} · dated, sourced observations ·{" "}
+          <a href="#market-series-board" style={{ color: "inherit", textDecoration: "underline" }}>
+            Series board →
+          </a>
         </span>
       </div>
 
@@ -118,6 +150,7 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: 12,
+          padding: embedded ? "0 16px 14px" : undefined,
         }}
       >
         {shown.map((row) => (
@@ -131,6 +164,7 @@ export function MarketComparativeRibbon({ board }: MarketComparativeRibbonProps)
             display: "grid",
             gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
             gap: 12,
+            padding: embedded ? "0 16px 14px" : undefined,
           }}
         >
           {rows.slice(MAX_METRICS).map((row) => (

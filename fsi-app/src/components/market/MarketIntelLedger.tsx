@@ -26,7 +26,7 @@
  * that page's own header (PERF-11).
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import type { MarketSeriesBoardVM, MarketSeriesProducerGroup } from "@/lib/supabase-server";
@@ -110,9 +110,14 @@ export interface MarketIntelLedgerProps {
   initialResources: Resource[];
   aggregates: WorkspaceAggregates;
   seriesBoard?: MarketSeriesBoardVM;
+  /** artboard 04/id="p4": the "Headline series" card, nested between the band tiles and the sort
+   *  row. The page passes its own <MarketComparativeRibbon board={seriesBoard} embedded /> here
+   *  (both already read the SAME seriesBoard fetch) rather than this component importing and
+   *  mounting it directly — page.tsx owns the fetch, this component owns only the placement slot. */
+  headlineSeries?: ReactNode;
 }
 
-export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, nowIso }: MarketIntelLedgerProps) {
+export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, nowIso, headlineSeries }: MarketIntelLedgerProps) {
   const [filter, setFilter] = useState<RowFilterState>(EMPTY_FILTER_STATE);
   const [kindFilter, setKindFilter] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Set<UrgencyBandKey>>(new Set());
@@ -230,6 +235,7 @@ export function MarketIntelLedger({ initialResources, aggregates, seriesBoard, n
       onSelectBand={(key) => setFilter((f) => ({ ...f, band: f.band === key ? null : key }))}
       facetGroups={facetGroups}
       secondaryFacetGroups={workspaceTagFacetGroups}
+      aboveRows={headlineSeries}
       sortRow={
         <ListSurfaceSortRow
           countLabel={
