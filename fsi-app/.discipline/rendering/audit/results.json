@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T01:54:19.488Z",
+  "runAt": "2026-09-08T02:05:03.872Z",
   "specs": [
     {
       "part": "Absence",
@@ -1114,6 +1114,79 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-15-settings.json",
       "__id": "compose-15-settings"
+    },
+    {
+      "part": "Page composition — Auth (16): /login, /signup",
+      "mount": "compose-login",
+      "viewport": 1440,
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "notes": [
+        "Region-composition check for /login (the primary illustrated state on the artboard, 'Sign in' tab active). Full page: the real LoginPage (src/app/login/page.tsx) inside AuthFrame — no AppShell/Sidebar, matching the artboard's own full-1440px split-screen frame (left identity panel / right form panel), no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+        "This lane found NO composition defects on this page — it was already built carefully by a prior lane (AuthFrame.tsx/AuthPanel.tsx/LoginPage.tsx headers), including correctly-reasoned, already-logged deviations from the artboard's own placeholder content: the artboard's headline ('What is binding on you, when it bites, and what it costs.') and its fabricated '1,434 items...' copy are explicitly marked placeholder in README ('Fidelity') and are not shipped (CLAUDE.md rule 2, never fabricate numbers) — the real tagline + the real BAND_ORDER urgency-band scale render in that slot instead, both real vocabulary. The artboard's 'Keep me signed in' checkbox is not built because src/lib/supabase-browser.ts's client has no session-only mode wired and that file is outside this lane's write set (logged). This spec exists to LOCK this already-correct composition in place, not to fix anything.",
+        "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected."
+      ],
+      "selector": "[data-audit=\"login\"]",
+      "expect": {
+        "count": "1"
+      },
+      "children": [
+        {
+          "name": "region 1 — identity panel: brand name + tagline",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Caro's Ledge"
+        },
+        {
+          "name": "region 2 — identity panel: urgency band scale (real vocabulary, not the artboard's placeholder headline)",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Every item, one of four urgency bands"
+        },
+        {
+          "name": "region 3 — Sign in / Create account tabs, Sign in active",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Create account"
+        },
+        {
+          "name": "region 4 — Work email + Password fields",
+          "selector": "[data-audit=\"login\"] input[type=\"password\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 5 — Forgot password link + Sign in button",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Forgot password?"
+        },
+        {
+          "name": "region 6 — magic link button below the divider",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Continue with a magic link"
+        },
+        {
+          "name": "region 7 — invitation note",
+          "selector": "[data-audit=\"login\"] *",
+          "expect": {},
+          "textMatch": "Invited to a workspace?"
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no floating Ask AI button — auth pages are logged out, no assistant surface",
+          "selector": "[data-audit=\"login\"] button",
+          "textMatch": "Ask AI",
+          "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-16-auth.json",
+      "__id": "compose-16-auth"
     },
     {
       "part": "DetailHeader",
@@ -7310,6 +7383,54 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "Page composition — Auth (16): /login, /signup",
+      "selector": "[data-audit=\"login\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "region 4 — Work email + Password fields",
+      "selector": "[data-audit=\"login\"] input[type=\"password\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-16-auth",
+      "part": "Page composition — Auth (16): /login, /signup",
+      "artboards": [
+        "16-auth"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
+      "viewport": 1440,
+      "target": "no floating Ask AI button — auth pages are logged out, no assistant surface",
+      "selector": "[data-audit=\"login\"] button [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
     },
     {
       "spec": "detailheader",

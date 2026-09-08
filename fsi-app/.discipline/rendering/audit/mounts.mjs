@@ -1091,6 +1091,43 @@ window.__mount = () => {
 // (General/Notifications/Saved searches/Data & supersessions/Archive/Help) are ALREADY correctly
 // built as one scrolling page under a sticky SectionIndex, not the artboard's literal 300px rail —
 // that structural deviation is binding and NOT reproduced/asserted against here.
+// ── Auth (16) full-page composition mounts (/login, /signup) ─────────────────────────────────────
+// Reuses the SAME real page components the routes mount (README screen 16 / dc.html p16), wrapped
+// in AppShell-free AuthFrame (both pages already render their own full-frame chrome, no Sidebar).
+const COMPOSE_LOGIN_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import LoginPage from '@/app/login/page';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'login' },
+      React.createElement(LoginPage, null),
+    ),
+  );
+};
+`;
+
+const COMPOSE_SIGNUP_ENTRY = `
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import SignupPage from '@/app/signup/page';
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(
+    React.createElement('div', { 'data-audit': 'signup' },
+      React.createElement(SignupPage, null),
+    ),
+  );
+};
+`;
+
 const COMPOSE_SETTINGS_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -2567,5 +2604,29 @@ export const AUDIT_MOUNTS = {
         }),
       },
     ],
+  },
+  'compose-login': {
+    id: 'compose-login',
+    description: 'Full-page composition mount: the real /login page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
+    viewport: 1440,
+    entry: COMPOSE_LOGIN_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-login.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-signup': {
+    id: 'compose-signup',
+    description: 'Full-page composition mount: the real /signup page (AuthFrame + AuthPanel), README screen 16 / dc.html p16.',
+    viewport: 1440,
+    entry: COMPOSE_SIGNUP_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-signup.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-auth.mjs`,
+    },
+    apiRoutes: EMPTY_API,
   },
 };
