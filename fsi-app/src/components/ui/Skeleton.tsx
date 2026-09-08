@@ -11,10 +11,38 @@ function shimmer(): React.CSSProperties {
   return { background: "var(--tag)", borderRadius: 6 };
 }
 
+// MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by the audit's mobile-* specs]:
+// SkeletonListRow repeats ListRow's desktop eight-track grid literally, which is the
+// point ("final geometry so nothing jumps"), but it carried no counterpart to
+// ListRow's own mobile reflow. So below 768 a real row became the two-line 3px/1fr
+// row while its skeleton stayed 489px wide (the fixed tracks alone) and ran past the
+// viewport — a skeleton in the WRONG final geometry, which is the one thing this
+// component exists not to do. Below 768 it now states the geometry the row actually
+// has at that width: full-bleed 3px spine, jurisdiction + title on line 1, the
+// remaining cells wrapping to line 2, min-height 76, the same 10px 6px 10px 12px
+// content padding, and the timeline cell dropped exactly as ListRow drops it.
+// (nth-of-type, not nth-child: the <style> tag below is itself a child of the row.)
+const SKELETON_ROW_MOBILE_CSS = `
+  @media (max-width: 767px) {
+    .cl-skeleton-row {
+      display: flex !important;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 9px;
+      min-height: 76px !important;
+      padding: 10px 6px 10px 12px !important;
+      position: relative;
+    }
+    .cl-skeleton-row > span:nth-of-type(1) { position: absolute; left: 0; top: 0; bottom: 0; width: 3px; }
+    .cl-skeleton-row > span:nth-of-type(6) { display: none !important; }
+  }
+`;
+
 export function SkeletonListRow() {
   return (
     <div
       aria-hidden="true"
+      className="cl-skeleton-row"
       style={{
         display: "grid",
         gridTemplateColumns: "3px 56px 1fr 88px 84px 76px 40px 44px",
@@ -25,6 +53,7 @@ export function SkeletonListRow() {
         padding: "0 8px",
       }}
     >
+      <style>{SKELETON_ROW_MOBILE_CSS}</style>
       <span style={{ ...shimmer(), alignSelf: "stretch", borderRadius: 0 }} />
       <span style={{ ...shimmer(), height: 16, width: 40 }} />
       <span style={{ ...shimmer(), height: 14, width: "70%" }} />

@@ -127,8 +127,19 @@ export function DashboardBrief({
     // margin-top (fix58-tokens, 2026-09-07, page-frame.json B171) so the two align.
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
       <style>{`
+        /* MOBILE-60 (2026-09-08) [CONFIRMED root cause, measured at 390 by
+           .discipline/rendering/audit/spec/mobile-01-dashboard.json]: this override
+           used to read "grid-template-columns: 1fr", dropping the minmax(0, ...)
+           floor the inline desktop value above carries. A bare 1fr is
+           minmax(auto, 1fr), and the auto MINIMUM is the item's min-content width,
+           so at 390 the single content track grew to 539px (the widest unbreakable
+           thing inside it) and the whole brief, band tiles included, ran 165px past
+           the viewport, clipped by the shell's own overflow. minmax(0, 1fr) restores
+           the floor: the track is exactly the container's width and every
+           minWidth:0 child below it can shrink. Same track as the desktop value, so
+           the >=1280 layout is unchanged. */
         @media (max-width: 1280px) {
-          .cl-brief-outer { grid-template-columns: 1fr !important; }
+          .cl-brief-outer { grid-template-columns: minmax(0, 1fr) !important; }
         }
         /* Mobile spec (BAND TILES, BREAKPOINTS): below 768 (theme.css's
            documented --bp-mobile) — one column, 2x2 band tiles, gap 10px,

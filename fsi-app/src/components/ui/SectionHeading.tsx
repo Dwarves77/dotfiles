@@ -49,6 +49,22 @@ export function SectionHeading({ title, aside }: SectionHeadingProps) {
         padding: "14px 16px 10px",
       }}
     >
+      {/* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
+          .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the title and the
+          aside are both `white-space: nowrap`, sized for the 778px content column. At
+          390 "DUE NEXT · 5 ITEMS" plus "SORTED BY NEXT DATE" is 286px past the card's
+          right edge, exactly the overflow/collision class the operator's visual-pass
+          standard forbids. Below 768 the head stacks (the same reflow globals.css's
+          `.cl-section-head` already uses for the detail surfaces' own heads) and the
+          aside is allowed to wrap. One rule on the shared part; the mobile 390 spec
+          states no measure for this head, so nothing else about it changes and the
+          deviation is logged. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-section-heading { flex-direction: column !important; align-items: flex-start !important; gap: 3px !important; }
+          .cl-section-heading .cl-section-heading-aside { white-space: normal; }
+        }
+      `}</style>
       <h2
         data-guard-title
         style={{

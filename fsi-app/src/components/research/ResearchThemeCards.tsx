@@ -39,7 +39,20 @@ export function ResearchThemeCards({
 }) {
   if (themes.length === 0) return null;
   return (
-    <div data-audit="theme-cards" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+    <div data-audit="theme-cards" className="cl-theme-cards" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+      {/* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
+          .discipline/rendering/audit/spec/mobile-06-research-list.json]: `repeat(4, 1fr)`
+          is `minmax(auto, 1fr)` four times, and the auto minimum is each card's
+          min-content width, so at 390 the row could not shrink below ~614px and the
+          theme facet ran a quarter of a screen past the page edge. Below 768 it takes
+          the same measure the mobile 390 spec gives the band tile row it sits under:
+          two columns, gap 10, with an explicit zero floor so the track can actually
+          shrink. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-theme-cards { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+        }
+      `}</style>
       {themes.map((theme) => {
         const isSelected = selected === theme.key;
         const description = (THEME_DESCRIPTIONS as Record<string, string | undefined>)[theme.key];

@@ -87,6 +87,19 @@ export function CardFoot({ left, right, leftHref, rightHref }: CardFootProps) {
         color: "var(--ink-3)",
       }}
     >
+      {/* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the right side is
+          white-space: nowrap, which is right in the 778px content column and wrong at
+          390, where the dashboard's own legend ("old band -> new band · NEW = first
+          seen this pass") ran past the card edge. Below 768 the strip wraps to two
+          lines and the right side may break. Nothing else about it changes, and in
+          particular the opsclip foot LINKS below are untouched: the media query is a
+          wrapping rule, not a content rule. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-card-foot { flex-wrap: wrap; }
+          .cl-card-foot > span { white-space: normal !important; min-width: 0; }
+        }
+      `}</style>
       <span>{leftHref ? <FootLink href={leftHref}>{left}</FootLink> : left}</span>
       <span style={{ whiteSpace: "nowrap" }}>{rightHref ? <FootLink href={rightHref}>{right}</FootLink> : right}</span>
     </div>

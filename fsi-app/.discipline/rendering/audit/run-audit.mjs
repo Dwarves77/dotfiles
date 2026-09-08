@@ -32,6 +32,7 @@ import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
+import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
@@ -428,24 +429,36 @@ async function main() {
       const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
       try {
         await page.setViewportSize({ width: spec.viewport, height: 1400 });
-        // TWO independent stylesheet mechanisms, both kept at the fold (train 60). They answer
-        // different questions and neither subsumes the other.
+        // THREE stylesheet mechanisms, all kept (trains 60 and 61). They answer different
+        // questions and none subsumes another.
         //
-        // `needsCompiledCss` (lane admin60) gives the mount the app's own compiled stylesheet,
-        // exactly as capture-compose-page.mjs gives it before shooting the same mount. Without it
-        // the eight AppShell page-composition mounts rendered with NO stylesheet at all: every
-        // `var(--fs-*)` fell back to the 16px default, so any measurement that depends on real type
-        // size (a bounds check, a wrapped header cell) was measuring a page the product never
-        // renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its 30px
-        // strip: real at 16px, impossible at the token's 9.5px.
+        // `mount.needsCompiledCss` (lane admin60) gives the mount the app's own compiled
+        // stylesheet, exactly as capture-compose-page.mjs gives it before shooting the same mount.
+        // Without it the eight AppShell page-composition mounts rendered with NO stylesheet at all:
+        // every `var(--fs-*)` fell back to the 16px default, so any measurement that depends on
+        // real type size (a bounds check, a wrapped header cell) was measuring a page the product
+        // never renders. Found when an ORGANIZATIONS bounds row reported a header cell escaping its
+        // 30px strip: real at 16px, impossible at the token's 9.5px.
+        //
+        // `spec.compiledCss` (lane mobile60) is the SAME stylesheet, opted in PER SPEC rather than
+        // per mount. The mobile 390 specs are the first that MUST see Tailwind's compiled utility
+        // output: the whole desktop/mobile switch in AppShell/Sidebar/TopBar is expressed as
+        // `hidden md:flex` / `md:hidden` utility classes, which a raw globals.css read leaves
+        // un-expanded, so without it the desktop nav card and the mobile top bar both render at
+        // every width and a 390 spec would measure a frame the product never shows. Keyed off the
+        // SPEC deliberately: the same mounts are already measured at 1440 by the composition specs,
+        // and silently changing the CSS under those would re-baseline them from a lane that is not
+        // auditing them. A mount that declares `needsCompiledCss` already loads it for every spec;
+        // this flag lets a single spec ask for it on a mount that does not.
         //
         // `styleFiles` (lane map60) adds a named stylesheet from node_modules, for a mount whose
         // esbuild alias table drops a bare `.css` import. The compose-map mount aliases
         // `leaflet/dist/leaflet.css` to an empty module, so leaflet built all four markers but
         // nothing gave `.leaflet-pane` its absolute positioning and the canvas photographed empty.
         //
-        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it.
-        if (mount.needsCompiledCss) {
+        // The app stylesheet goes on FIRST so a vendor sheet layers over the base, never under it,
+        // and it is added at most ONCE however many of the two flags ask for it.
+        if (mount.needsCompiledCss || spec.compiledCss) {
           await page.addStyleTag({ content: await fullAppCssCompiled() });
         }
         const extraCss = mountExtraCss(mount);

@@ -267,6 +267,16 @@ const RESPONSIVE_CSS = `
   .cl-list-row-register:hover { background: var(--row-hover); }
 
   @media (max-width: 767px) {
+    /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
+       .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the column header
+       keeps the desktop eight-track GRID, whose fixed tracks alone (3+56+88+84+76+
+       40+44 plus seven 14px gaps) need 489px before the 1fr title column gets a
+       single pixel — so at 390 it ran ~160px past the card and its IMPACT / DUE /
+       TIMELINE / TIER labels sat over the page edge. The mobile 390 spec has no
+       column header at all (the row is two-line and the timeline column is dropped),
+       so the header is not reflowed here, it is not shown: one rule on the shared
+       part, so every list surface and the dashboard get it once. */
+    .cl-list-row-header { display: none !important; }
     .cl-list-row { grid-template-columns: 3px 1fr !important; min-height: 76px !important; }
     .cl-row-link { right: 0 !important; grid-column: 2 / -1 !important; }
     .cl-row-content { display: flex !important; flex-direction: column; grid-column: 2 / -1; padding: 10px 6px 10px 12px; min-width: 0; }

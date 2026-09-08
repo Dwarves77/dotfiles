@@ -1,0 +1,292 @@
+{
+  "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+  "mount": "page-frame-1440",
+  "viewport": 390,
+  "compiledCss": true,
+  "artboards": [
+    "mobile-390 text spec (no artboard PNG exists yet)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+  "notes": [
+    "Same mount as compose-01-dashboard, at 390 instead of 1440 — the mobile frame is the SAME component tree at a smaller measure (the spec's own framing: 'No new components. Every part is the desktop part at a smaller measure'), so a second mount would be a duplicate of one that already exists.",
+    "`compiledCss: true` is required here and on every mobile-* spec: AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind utility classes (`hidden md:flex`, `md:hidden`), which the raw globals.css read every other spec uses leaves un-expanded. See run-audit.mjs's own comment at the addStyleTag call.",
+    "The drawer is closed in this mount (AppShell's own initial state), so DRAWER geometry is measured by mobile-18-drawer.json, which opens it.",
+    "Every interactive target in the top bar is asserted at 44x44 via boundsCheck plus explicit width/height, per the spec's 'All interactive targets >= 44px'."
+  ],
+  "selector": ".md\\:hidden > header",
+  "expect": {
+    "height": "56px",
+    "background-color": "rgb(255, 255, 255)",
+    "border-bottom": "1px solid rgba(0, 0, 0, 0.08)",
+    "padding-left": "6px",
+    "padding-right": "6px"
+  },
+  "children": [
+    {
+      "name": "Desktop 252px nav card is NOT rendered below 768 (the drawer replaces it)",
+      "selector": "aside.hidden",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "Top bar hamburger: 44x44 target, glyph 17px",
+      "selector": ".md\\:hidden > header button[aria-label=\"Open navigation\"]",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "color": "rgb(26, 26, 26)"
+      }
+    },
+    {
+      "name": "Top bar page title: Anton, uppercase, 16px, letter-spacing .04em, ellipsised",
+      "selector": ".md\\:hidden > header h1",
+      "expect": {
+        "font-size": "16px",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.64px",
+        "text-overflow": "ellipsis"
+      },
+      "note": "Text is not asserted here: the mount's next/navigation stub fixes one pathname for the whole tree, so the title reads that route's label rather than the fixture surface's. The title's TYPE and ellipsis are what the spec states."
+    },
+    {
+      "name": "Top bar search glyph sits in a 44x44 target",
+      "selector": ".md\\:hidden > header button[aria-label=\"Search\"]",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "Top bar avatar sits in a 44x44 target",
+      "selector": ".md\\:hidden > header a[href=\"/profile\"]",
+      "expect": {
+        "width": "44px",
+        "height": "44px"
+      }
+    },
+    {
+      "name": "3px band-proportion rule sits directly above the top bar, full width",
+      "selector": ".md\\:hidden > div[aria-hidden=\"true\"]",
+      "expect": {
+        "height": "3px",
+        "width": "390px"
+      }
+    },
+    {
+      "name": "Band tiles are a 2x2 grid, gap 10",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
+      "expect": {
+        "grid-template-columns": "* *",
+        "gap": "10px"
+      },
+      "note": "Exactly two tracks is the 2x2 assertion (four tiles, two columns). getComputedStyle resolves an fr track to its used pixel width, so the track count plus the 10px gap is the honest form of this check (see normalise.mjs's wildcard header)."
+    },
+    {
+      "name": "Band tile padding 12px 14px 0",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile",
+      "expect": {
+        "padding-top": "12px",
+        "padding-left": "14px",
+        "padding-right": "14px",
+        "padding-bottom": "0px",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "Band tile label 10px/800 .06em uppercase in the band colour",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-label",
+      "expect": {
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.6px",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "Band tile over-window line 10px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-window",
+      "expect": {
+        "font-size": "10px",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "Band tile numeral Anton 30px, line-height 1, margin 6px 0 8px",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-numeral",
+      "expect": {
+        "font-size": "30px",
+        "line-height": "30px",
+        "margin-top": "6px",
+        "margin-bottom": "8px"
+      }
+    },
+    {
+      "name": "Band tile 4px band rule pinned to the bottom edge (margin auto -14px 0)",
+      "selector": "[data-audit=\"dashboard\"] .cl-band-tile .cl-band-tile-rule",
+      "expect": {
+        "height": "4px",
+        "margin-left": "-14px",
+        "margin-right": "-14px",
+        "margin-bottom": "0px"
+      }
+    },
+    {
+      "name": "Dashboard page padding tightens to 16px at 390",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "expect": {
+        "padding-left": "16px",
+        "padding-right": "16px",
+        "padding-top": "14px",
+        "padding-bottom": "16px"
+      }
+    },
+    {
+      "name": "Due Next rows use the mobile two-line row: grid 3px 1fr, min-height 76",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "expect": {
+        "grid-template-columns": "3px *",
+        "min-height": "76px"
+      }
+    },
+    {
+      "name": "Row band spine is 3px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row > .cl-row-spine",
+      "expect": {
+        "width": "3px"
+      }
+    },
+    {
+      "name": "Row content padding 10px 6px 10px 12px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-content",
+      "expect": {
+        "padding": "10px 6px 10px 12px"
+      }
+    },
+    {
+      "name": "Row title wraps at this width (no ellipsis), 13.5px/1.35",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-title-text",
+      "expect": {
+        "font-size": "13.5px",
+        "line-height": "18.23px",
+        "white-space": "normal",
+        "text-overflow": "clip"
+      }
+    },
+    {
+      "name": "Row jurisdiction code 10.5px/700 .06em",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-juris",
+      "expect": {
+        "font-size": "10.5px",
+        "letter-spacing": "0.63px"
+      }
+    },
+    {
+      "name": "Row line 2 gap 9px, margin-top 7px",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-line2",
+      "expect": {
+        "gap": "9px",
+        "margin-top": "7px",
+        "flex-wrap": "wrap"
+      }
+    },
+    {
+      "name": "Impact bars 8px wide on a 1px rgba(0,0,0,.25) baseline",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-impact-bar",
+      "expect": {
+        "width": "8px"
+      }
+    },
+    {
+      "name": "Row due date + days 11.5px tabular-nums",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-due-label",
+      "expect": {
+        "font-size": "11.5px",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "Row overflow control is a 44x44 target pushed right, with a left rule",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-overflow",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "border-left": "1px solid rgba(0, 0, 0, 0.08)"
+      },
+      "note": "'Pushed right' is measured by the boundsCheck below (the cell's right edge is the row's), not by margin-left: getComputedStyle resolves `auto` to its used pixel value, which is data-dependent."
+    },
+    {
+      "name": "The 76px timeline column is dropped at this width (it lives on detail)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row .cl-row-timeline",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "The desktop column header row is not drawn at 390 (the mobile row is two-line; MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row-header",
+      "expect": {
+        "display": "none"
+      },
+      "note": "Before MOBILE-60 this kept the desktop eight-track grid (489px of fixed tracks) and ran ~160px past the card at 390."
+    },
+    {
+      "name": "Card foot wraps instead of running past the card edge at 390 (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-card-foot",
+      "expect": {
+        "flex-wrap": "wrap"
+      }
+    },
+    {
+      "name": "Section head stacks at 390 so its nowrap aside cannot overflow (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-section-heading",
+      "expect": {
+        "flex-direction": "column",
+        "align-items": "flex-start"
+      }
+    },
+    {
+      "name": "Brief content track keeps a zero floor so nothing can widen the page (MOBILE-60 fix)",
+      "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
+      "expect": {
+        "grid-template-columns": "*"
+      },
+      "note": "One track only below 1280. The floor itself (minmax(0,...)) is proven by the page-width boundsCheck below: with a bare 1fr the track measured 539px inside a 390px viewport."
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no literal UNSCORED token anywhere on the mobile dashboard",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
+    },
+    {
+      "name": "no bare fabricated 0/12 impact sum on an unscored row",
+      "selector": "[data-audit=\"dashboard\"] .cl-list-row",
+      "textMatch": "re:(^|[^0-9])0/12",
+      "reason": "An unscored row renders the Absence convention, never a fabricated zero (FOLD-59: the regex form, not a substring, so a real 10/12 is not a false finding)."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "no top-bar cell overlaps a sibling or escapes the 56px bar at 390",
+      "container": ".md\\:hidden > header",
+      "cells": "button, h1, a[href=\"/profile\"]",
+      "reason": "Operator, 2026-09-07: 'your text is too right and it overlays different areas' — the same cell-containment check the dashboard row grid now carries, applied to the mobile top bar, whose three targets plus a centred title are the tightest row in the product at 390."
+    },
+    {
+      "name": "no list-row cell overlaps a sibling or escapes its row at 390",
+      "container": "[data-audit=\"dashboard\"] .cl-list-row",
+      "cells": ".cl-row-content > *",
+      "reason": "Same defect class at the narrowest supported width: 375 must not clip, so 390 must have headroom."
+    },
+    {
+      "name": "nothing inside the brief escapes the 390 viewport",
+      "container": "[data-audit=\"dashboard\"] .cl-brief-grid",
+      "cells": ".cl-band-tiles, .cl-list-row, .cl-card-foot, .cl-section-heading",
+      "reason": "MOBILE-60 regression guard: the four fixes above (brief track floor, column header, section head, card foot) each showed up first as a child wider than its own container at 390. Operator standard 2026-09-07: 'a visual pass for overflow/collision/orphan lines on every page'."
+    }
+  ]
+}
