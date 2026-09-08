@@ -12,8 +12,11 @@
  * and red always right; the sum N/12 sits margin-left:7px beside it in
  * tabular numerals (audit item B29-B46, 2026-09-07, artboard #sys list-row
  * example). Unscored = a 30px dashed baseline (operator audit item
- * 2.1, 2026-09-07 ruling — one width, desktop and mobile) and the Absence
- * component's small-caps reason, never a second "NOT SCORED" row.
+ * 2.1, 2026-09-07 ruling — one width, desktop and mobile), never a second
+ * "NOT SCORED" row and never the literal "UNSCORED". The small-caps reason
+ * beside it is the COMPOSITE'S single reason, supplied by the row through the
+ * `reason` prop (lane mobfix61, 2026-09-08 — see that prop and Absence.tsx's
+ * ABSENCE_PRECEDENCE); the meter never names a reason of its own.
  *
  * Full variant (detail rail, dashboard): one continuous bar per dimension
  * over the full green→orange→red ramp, revealed from the left by the score.
@@ -30,7 +33,7 @@
  */
 
 import type { ImpactScores } from "@/types/resource";
-import { Absence } from "@/components/ui/Absence";
+import { Absence, type AbsenceReason } from "@/components/ui/Absence";
 
 const VALUE_COLOR: Record<number, string> = {
   1: "var(--awareness)",
@@ -51,9 +54,21 @@ export function isImpactScored(scores: ImpactScores | null | undefined): scores 
 export interface ImpactMeterProps {
   scores?: ImpactScores | null;
   variant?: "row" | "full";
+  /**
+   * The composite's SINGLE absence reason, when the composite has decided this is the cell that
+   * carries it (lane mobfix61, 2026-09-08, operator mobile report D-M4). Undefined or null means
+   * the unscored state renders the 30px dashed baseline ALONE.
+   *
+   * Before this the meter always rendered an Absence naming the "unscored" state itself, while
+   * the row's due and tier cells rendered their own absences beside it, so one unscored row put
+   * three tokens on screen — the stack the operator photographed. Ruling 2.1 forbids the literal
+   * "UNSCORED" regardless, and the dashed baseline IS the unscored state, so the meter no longer
+   * names it: the one reason a row shows is chosen by the ROW, from Absence.tsx's precedence.
+   */
+  reason?: AbsenceReason | null;
 }
 
-export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
+export function ImpactMeter({ scores, variant = "row", reason }: ImpactMeterProps) {
   const scored = isImpactScored(scores);
 
   if (!scored) {
@@ -93,7 +108,11 @@ export function ImpactMeter({ scores, variant = "row" }: ImpactMeterProps) {
             borderBottom: "1px dashed rgba(0,0,0,.3)",
           }}
         />
-        {variant === "row" ? <Absence reason="unscored" /> : <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>—</span>}
+        {variant === "row"
+          ? reason
+            ? <Absence reason={reason} />
+            : null
+          : <span style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>—</span>}
       </span>
     );
   }

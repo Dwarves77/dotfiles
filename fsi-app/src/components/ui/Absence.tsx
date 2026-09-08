@@ -9,6 +9,45 @@
 export type AbsenceReason = "not in primary source" | "pending" | "unscored" | "connect data";
 
 /**
+ * THE PRECEDENCE (lane mobfix61, 2026-09-08, operator mobile report D-M4).
+ *
+ * A composite element — a list row above all — can have several dimensions
+ * missing at once, and until now each part rendered its own token
+ * independently: the operator photographed one dashboard row carrying a
+ * dashed baseline, then "UNSCORED", then "PENDING", then "NOT IN PRIMARY
+ * SOURCE" on a line of its own. Ruling 2.1 (P1, operator, 2026-09-07) and
+ * the mobile 390 spec say the same thing — ONE small-caps reason, never a
+ * second row — so the vocabulary needs an ORDER. This is it, most specific
+ * (names the root cause) first:
+ *
+ *   1. "connect data"          nothing is connected, so nothing can be known
+ *   2. "not in primary source" the item is not in the source of record, which
+ *                              is WHY its later dimensions are missing
+ *   3. "pending"               a value is expected and not yet determined
+ *
+ * "unscored" is deliberately NOT in the order and is never chosen as a
+ * reason: it names the STATE the 30px dashed baseline already draws, so
+ * rendering it as a token too is exactly the tautological second token
+ * ruling 2.1 removes ("the literal UNSCORED is removed everywhere; unscored
+ * is a 30px dashed baseline plus ONE small-caps reason"). It stays in
+ * `AbsenceReason` because the vocabulary is the operator's; nothing in the
+ * row anatomy passes it.
+ */
+export const ABSENCE_PRECEDENCE: readonly AbsenceReason[] = ["connect data", "not in primary source", "pending"];
+
+/**
+ * Pick the single reason for a composite from the reasons its own dimensions
+ * support. Callers pass one candidate per missing dimension, in any order;
+ * the precedence above decides. Null when nothing is missing.
+ */
+export function pickAbsenceReason(candidates: (AbsenceReason | null | undefined)[]): AbsenceReason | null {
+  for (const reason of ABSENCE_PRECEDENCE) {
+    if (candidates.includes(reason)) return reason;
+  }
+  return null;
+}
+
+/**
  * The absence TYPE TREATMENT, exported so a component rendering a
  * sentence-shaped "nothing here" line the fixed vocabulary cannot express
  * (dc.html p11's "no recalculations on watched items since Sep 4") types it
@@ -48,6 +87,15 @@ export const ABSENCE_TEXT_STYLE = {
  * it without deforming the row, which is what the artboard governs. Logged in
  * DEVIATION-LOG.md.
  *
+ * FOLD-61: this variant and lane mobfix61's ONE-ABSENCE-PER-ROW precedence
+ * (ABSENCE_PRECEDENCE / pickAbsenceReason above) are the two halves of ONE
+ * mechanism, not two mechanisms. The precedence decides WHICH reason a row
+ * shows and which cell owns it; this variant decides how that one reason is
+ * DRAWN where the cell cannot hold the phrase. Both halves carry the
+ * `cl-absence` class, so the audit's `count: 1` assertion over
+ * `.cl-list-row .cl-absence` counts the dash too and a narrow cell can never
+ * be used to smuggle a second token past the check.
+ *
  * The dash is `—` (U+2014), which the app's own source-entry-filter SoT lists
  * in NO_DATA_TOKENS as a placeholder-name token. Two rendering-guard specs
  * already carve the honest-dash case out per spec (detail-surfaces-smoke.mjs's
@@ -66,6 +114,7 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         // closed-vocabulary reason is disclosed structurally, once, by the part that renders it,
         // while a bare "—" anywhere else in the product stays a placeholder literal and still
         // fails the guard.
+        className="cl-absence"
         data-absence="narrow"
         aria-label={reason}
         title={reason}
@@ -75,5 +124,13 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
       </span>
     );
   }
-  return <span style={ABSENCE_TEXT_STYLE}>{reason}</span>;
+  // `cl-absence` (lane mobfix61, 2026-09-08) is what makes "one reason per row" MECHANICALLY
+  // checkable: the audit asserts `count: 1` on `.cl-list-row .cl-absence`, so a part that begins
+  // rendering a second token is a red audit row rather than something the operator finds on his
+  // phone.
+  return (
+    <span className="cl-absence" style={ABSENCE_TEXT_STYLE}>
+      {reason}
+    </span>
+  );
 }

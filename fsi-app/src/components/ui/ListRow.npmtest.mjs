@@ -26,13 +26,40 @@ const SOURCE = readFileSync(
 test("the list anatomy is the default: no variant means the original four cells", () => {
   assert.match(SOURCE, /variant\?:\s*"list"\s*\|\s*"register";/, "variant must be an optional prop (undefined-safe)");
   assert.match(SOURCE, /variant = "list"/, "the default must be the list anatomy, so every existing caller is unaffected");
-  // The original four cells must still exist verbatim in the list branch.
-  assert.match(SOURCE, /<ImpactMeter scores=\{impact\} \/>/);
-  // UPDATED (lane opsclip, train 61, defect 3): the TIER cell's absence is unchanged in VOCABULARY
-  // and in which branch renders it; only its presentation in this 40px track moved to the Absence
-  // part's own `variant="narrow"` (the dash, reason on aria-label/title), because the spelled-out
-  // phrase wrapped over three lines here on production and doubled the row height.
-  assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> : <Absence reason="not in primary source" variant="narrow" \/>/);
+  assert.match(SOURCE, /endStat\?:\s*\{[^}]*\}\s*\|\s*null;/, "endStat must be an optional prop (undefined-safe)");
+  // FOLD-61: lane map60 made the `register` variant the ONLY consumer of endStat and deleted the
+  // old merged `4 / span 4` approximation, so the branch this assertion once read (`const
+  // tailContent = endStat ? (`) no longer exists. The invariant it guarded is unchanged and is
+  // asserted on the surviving structure: endStat takes its own branch, and the list anatomy is
+  // what every other caller gets.
+  assert.match(SOURCE, /if \(variant === "register" && endStat\) \{/, "endStat must take its own branch rather than deforming the list anatomy");
+  assert.match(SOURCE, /const tailContent = \(/, "the list anatomy must be the unconditional default");
+  // The original four cells must still exist verbatim in the list branch. UPDATED twice:
+  // lane opsclip (train 61, defect 3) moved the TIER cell's absence PRESENTATION to the Absence
+  // part's `variant="narrow"` (the dash, reason on aria-label/title), because the spelled-out
+  // phrase wrapped over three lines in this 40px track on production and doubled the row height;
+  // lane mobfix61 (D-M4) made WHETHER that cell speaks depend on the row's single reason. Both
+  // survive: the vocabulary is unchanged, the branch that renders it is unchanged.
+  assert.match(SOURCE, /<ImpactMeter scores=\{impact\} reason=\{reasonSlot === "impact" \? rowAbsence : null\} \/>/);
+  assert.match(SOURCE, /tier != null \? <TierChip tier=\{tier\} \/> :/);
+  assert.match(SOURCE, /<Absence reason=\{rowAbsence\} variant="narrow" \/>/, "the 40px tier track draws the dash, per dc.html p2/p8");
+});
+
+// D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]: the impact, due and
+// tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline
+// plus "UNSCORED" plus "PENDING" plus "NOT IN PRIMARY SOURCE". Ruling 2.1 and the mobile 390 spec
+// both allow exactly one reason. The structural guarantee is `reasonSlot`: at most one of the
+// three cells can be the slot, so at most one token can render, whatever the data.
+test("a row renders AT MOST ONE absence token, chosen once by Absence.tsx's precedence", () => {
+  assert.match(SOURCE, /import \{ Absence, pickAbsenceReason, type AbsenceReason \}/);
+  assert.match(SOURCE, /const rowAbsence: AbsenceReason \| null = pickAbsenceReason\(\[/);
+  assert.match(SOURCE, /const reasonSlot: "impact" \| "due" \| "tier" \| null =/);
+  // Every <Absence> in the row is gated on this row being that reason's slot - no unconditional
+  // token anywhere, which is what let three of them stack.
+  const absences = SOURCE.match(/<Absence [^/]*\/>/g) ?? [];
+  assert.equal(absences.length, 2, "only the due and tier slots render a token directly (impact goes through ImpactMeter's reason prop)");
+  for (const a of absences) assert.match(a, /reason=\{rowAbsence\}/, `absence token must carry the row's single reason: ${a}`);
+  assert.doesNotMatch(SOURCE, /<Absence reason="/, "no hardcoded per-cell reason may return");
 });
 
 // UPDATED (lane map60, 2026-09-08): `endStat` used to render inside the EIGHT-column list grid as

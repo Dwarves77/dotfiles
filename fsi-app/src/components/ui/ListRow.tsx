@@ -41,10 +41,10 @@ import Link from "next/link";
 import type { CSSProperties, ReactNode } from "react";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
 import type { UrgencyBand } from "@/lib/urgency/bands";
-import { ImpactMeter } from "@/components/ui/ImpactMeter";
+import { ImpactMeter, isImpactScored } from "@/components/ui/ImpactMeter";
 import { MilestoneTimeline } from "@/components/ui/MilestoneTimeline";
 import { TierChip, WorkspaceTagPill } from "@/components/ui/Chips";
-import { Absence } from "@/components/ui/Absence";
+import { Absence, pickAbsenceReason, type AbsenceReason } from "@/components/ui/Absence";
 
 export interface ListRowProps {
   href: string;
@@ -438,6 +438,36 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
   // genuine layout-strategy difference" from what p10 draws. The variant reproduces p10 exactly,
   // so the approximation is DELETED rather than left as a second way to render the same row
   // (CLAUDE.md rule 13). The list anatomy below is unchanged.
+  // ONE ABSENCE PER ROW (lane mobfix61, 2026-09-08, operator mobile report D-M4)
+  // [CONFIRMED root cause]: the impact, due and tier cells each rendered their own
+  // `<Absence>` independently, so a row missing all three drew a dashed baseline, then
+  // "UNSCORED", then "PENDING", then "NOT IN PRIMARY SOURCE" - three tokens, and at 390 the
+  // third wrapped onto a line of its own beside a dangling divider. That is what the operator
+  // photographed on 2026-09-08, and the design audit's own "no literal UNSCORED" forbids read
+  // source text rather than rendered text, so all of them reported MATCH while it shipped (the
+  // harness half of this defect is fixed in run-audit.mjs's `renderedText`).
+  //
+  // This is NOT a mobile defect: the same three tokens render at 1440 (measured), so the fix is
+  // in the shared part for both widths, per ruling 2.1 ("removed everywhere").
+  //
+  // The row asks Absence.tsx for the single reason, then renders it in the cell that OWNS that
+  // dimension, so the token still sits under the column it explains and the other cells stay
+  // empty. `reasonSlot` is what makes "at most one" structural rather than a convention.
+  //
+  // FOLD-61: lane opsclip's narrow-cell rule is the PRESENTATION half of this same mechanism, not
+  // a second one. This block decides WHICH reason a row shows and WHERE; `variant="narrow"`
+  // decides how that one reason is drawn in a cell too small to hold the phrase. They meet in the
+  // tier cell, the only 40px fixed track of the three, and the artboard decides what it shows:
+  // dc.html p2 and p8 draw a dash there and explain it once in the card foot, so the tier slot
+  // renders the dash while the impact and due slots, which have room, render the words.
+  const impactScored = isImpactScored(impact);
+  const rowAbsence: AbsenceReason | null = pickAbsenceReason([
+    tier == null ? "not in primary source" : null,
+    !due || !impactScored ? "pending" : null,
+  ]);
+  const reasonSlot: "impact" | "due" | "tier" | null =
+    rowAbsence === null ? null : rowAbsence === "not in primary source" ? "tier" : !due ? "due" : "impact";
+
   const tailContent = (
     <>
       {/* `minWidth: 0` on every fixed-width grid cell (D1, operator report 2026-09-07): a grid
@@ -453,7 +483,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
           tried here during this fix clipped "not in primary source" mid-word instead of letting it
           wrap, a regression caught in this lane's own screenshot check, not a fix. */}
       <span className="cl-row-impact" style={{ display: "flex", alignItems: "center", minWidth: 0, overflow: "hidden" }}>
-        <ImpactMeter scores={impact} />
+        <ImpactMeter scores={impact} reason={reasonSlot === "impact" ? rowAbsence : null} />
       </span>
       <span className="cl-row-due" style={{ display: "flex", flexDirection: "column", justifyContent: "center", alignItems: "flex-end", minWidth: 0 }}>
         {due ? (
@@ -463,9 +493,9 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
             </span>
             <span className="cl-row-due-days" style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", whiteSpace: "nowrap" }}>{due.days}</span>
           </>
-        ) : (
-          <Absence reason="pending" />
-        )}
+        ) : reasonSlot === "due" && rowAbsence ? (
+          <Absence reason={rowAbsence} />
+        ) : null}
       </span>
       <span className="cl-row-timeline" style={{ display: "flex", alignItems: "center", minWidth: 0 }}>
         <MilestoneTimeline entries={timeline} bandHex={band.cssVar} />
@@ -474,8 +504,11 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         {/* DEFECT 3 (lane opsclip, train 61): the TIER column is a 40px fixed track, and
             "NOT IN PRIMARY SOURCE" wrapped over three lines inside it, doubling the row's height
             on the dashboard. `variant="narrow"` is the Absence part's own rule for a cell this
-            size, the dash, with the same closed-vocabulary reason on `aria-label`/`title`. */}
-        {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" variant="narrow" />}
+            size, the dash, with the same closed-vocabulary reason on `aria-label`/`title`.
+            D-M4 (lane mobfix61) decides WHETHER this cell is the one that speaks: the dash is
+            drawn only when the row's single reason belongs to the tier dimension, so a row whose
+            reason is "pending" leaves this cell empty rather than adding a second token. */}
+        {tier != null ? <TierChip tier={tier} /> : reasonSlot === "tier" && rowAbsence ? <Absence reason={rowAbsence} variant="narrow" /> : null}
       </span>
     </>
   );
