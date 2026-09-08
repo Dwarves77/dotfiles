@@ -12039,3 +12039,74 @@ checks; 11 UX smoke specs, 182 checks); design audit 46 specs / 830 checks, 830 
 **Exit evidence**: `docs/design/handoff-2026-09-06/built/compose-06-research-list.png` (artboard |
 built at 1440 with populated fixture data). Eight deviations logged in DEVIATION-LOG.md, all
 data-driven or ruling-driven, none a page-local stylesheet.
+## 2026-09-08 — lane comp-11: /watchlist composed against artboard 11
+
+Branch `lane/comp-11-2026-09-08`, off `lane/compose-lists-2026-09-07` (ed0f3b3f). One page:
+`/watchlist` against artboard 11 (`docs/design/handoff-2026-09-06/screens/11-watchlist.png`,
+dc.html `id="p11"`), by the region method — region table from the artboard markup, the same table
+built from the mounted page, every differing row treated as a defect.
+
+**What was missing, not merely mis-styled.** The part-level audit was green while the PAGE was
+not composed: the masthead had no scope line and a generic command-bar placeholder; the rows had
+no column-header row; the card foot strip did not exist (a `StateNote` with no link stood where
+it goes); the changed-since-last-visit strip did not exist; the whole "Recalculation notices"
+card did not exist; and the Scope/Type/tag filters sat in the content column, where artboard 11
+draws nothing — the operator's own complaint, "the filters were not above the regulations, they
+were on the right, same on every page". All built or relocated from the shared parts.
+
+**Shared parts changed** (each additive; named here because they are shared): `SectionHeading`
+and `CardFoot` PROMOTED out of `DashboardBrief` into `src/components/ui/` — artboard 11 carries
+both regions byte-identically to artboard 1, so a watchlist copy would have been rule 13's
+duplication — and corrected to the values the two artboards agree on (the head's 20px title and
+600-weight aside, the foot's `#FAFAF8` ground, 12px type and centre alignment, none of which the
+page-local version carried). `ListRowColumnHeader` gains an optional `titleLabel` and takes the
+artboards' own `padding: 0 12px 0 0`, which is what aligns its last grid line with the rows
+beneath it. `WatchButton` gains an `icon` variant, the glyph-only 44x44 toggle a ListRow's 44px
+trailing cell can hold. `Absence` exports its type treatment; `RecalculationNotice` gains `bare`;
+`NoticesRail`'s fetch is extracted as `useRecalculationNotices`, so the strip's count and the
+card's list come off ONE call.
+
+**F35 learns to follow a delegated title.** Moving `SectionHeading` out of `DashboardBrief` left
+that file with zero `data-guard-title` occurrences while its rendered tree stayed fully
+measurable. F35 had hit this twice before and each time deleted the page's entry, which silently
+dropped the smoke-spec coverage half — the more valuable half. It now passes a tracked row
+component that MOUNTS a tracked title component and keeps the coverage requirement. Attacked, not
+asserted present: an unused import, a commented-out mount and a same-named page-local copy all
+still fail.
+
+**Two red proofs inherited and fixed, both structural.** `SectionRule.coverage.npmtest`'s
+"ListSurfaceShell mounts SectionRule 3 times" had been RED on the branch since the
+filters-to-the-rail relocation deleted that file's two facets cards; it described the old
+structure and now describes the product. `SectionRule.npmtest`'s borderBottom check was reading
+`DashboardBrief` for a function that no longer exists, so its slice was empty and it passed
+vacuously — exactly the proof-that-does-not-execute rule 15 names.
+
+**Honest about the data, three times, all logged**: the row meta's "All modes / packaging"
+segments are omitted (`WatchlistItem` carries no modes or topic); the state note says "changed",
+not "changed band" (no band-change history exists — `/api/notices` is the app's only such feed);
+and the artboard's "Create shared watchlist" button is not built (there is no such action, and a
+button wired to nothing is operator item P0 1.1's own defect).
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`WatchlistSurface.tsx`,
+`ListRow.tsx`, `WatchButton.tsx`, `Absence.tsx`, `DashboardBrief.tsx`, `RecalculationNotice.tsx`,
+`NoticesRail.tsx`, and the two new `ui/SectionHeading.tsx` / `ui/CardFoot.tsx`). Every value
+applied is the artboard's own literal number/hex/format read out of dc.html p11 (and p1 where the
+two agree), cited inline at each site — the head's `14px 16px 10px` and 20px/.04em title, the
+foot's `#FAFAF8` / 12px / `rgba(0,0,0,.08)` top rule, the column header's `0 12px 0 0` and its
+400-weight "low to high" run, the trailing cell's 28x28 glyph in a 44x44 target — never invented
+or improvised. Law-2's 44px floor is met on the one new control and is measured, not asserted:
+the composition spec caught it at 43px (ListRow's trailing column carries a 1px divider, so its
+content box is 43) and it was fixed, not waived. The rendering guard's 375px UX smoke slot and
+the watchlist SM smoke spec both pass, the latter with its filter assertions rewritten onto the
+relocated rail control and two new ones added (the foot link exists; a watched row never offers a
+bare "Watch", ruling 3.5).
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33,
+0 violations; design audit 46 specs / 840 checks / **840 MATCH** (the 45 pre-existing specs plus
+the new `compose-11-watchlist.json`, 35/35); rendering guard PASS (11 fixtures, 394 checks, 6 SM
+smoke + 11 UX smoke specs, 80 + 182 checks); `run-test-suite.sh` 5899 pass, **0 fail**, 5 skipped
+(the dispatch's known "kill switch ON but no DB creds" failure did not reproduce this run);
+`next build --webpack` clean, full route manifest, no `.env.local`.
+
+Evidence: `docs/design/handoff-2026-09-06/built/compose-11-watchlist.png` (artboard beside the
+built page at 1440, populated fixture). Commits: 581fac7c, f87c0acc, f8a9a4fb.
