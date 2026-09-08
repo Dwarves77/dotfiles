@@ -9,8 +9,9 @@
  * copy of the same JSX.
  */
 
-import type { ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { SectionRule } from "@/components/ui/SectionRule";
+import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
 
 // Ruling 5.1 (2026-09-07, CLOSED): every panel/section card carries the dark-grey graduated 3px
 // rule above its title, full card width, top edge, no radius on the rule. Design audit B163/B165/
@@ -44,6 +45,167 @@ export function RailCard({ title, children }: { title: string; children: ReactNo
           {title}
         </p>
         {children}
+      </div>
+    </div>
+  );
+}
+
+// FILTERS rail card (operator audit 2026-09-07: "the filters were not above the regulations, they
+// were on the right — same on every page"; artboard 02/id="p2" FILTERS card: title + "Clear N" link,
+// MODE / JURISDICTION / TOPIC / WORKSPACE TAGS sections as checkbox lists with right-aligned live
+// counts, "+ N more" disclosure past a visible cap). Built once here and mounted by ListSurfaceShell
+// itself (not per-page) from the SAME facetGroups/secondaryFacetGroups data and onSelect callbacks
+// each of the five list surfaces already passes in — the chip groups this replaced sat ABOVE the
+// list in the content column; this card is the one relocation point for all five surfaces at once.
+// A group with a single-select radio-style onSelect (current URL/state contract: one value or null)
+// renders as a checkbox list where checking a row selects it and checking the already-selected row
+// clears it — visually a checkbox, behaviourally the same single-select the chips already had, so no
+// list surface's filter semantics changed, only where the control lives.
+const VISIBLE_OPTIONS_CAP = 5;
+
+function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
+  const [expanded, setExpanded] = useState(false);
+  const visible = expanded ? group.options : group.options.slice(0, VISIBLE_OPTIONS_CAP);
+  const hidden = group.options.length - visible.length;
+  return (
+    <div>
+      <p
+        style={{
+          fontSize: "var(--fs-105)",
+          fontWeight: 800,
+          letterSpacing: "0.1em",
+          textTransform: "uppercase",
+          color: "var(--ink-3)",
+          margin: "0 0 6px",
+        }}
+      >
+        {group.label}
+      </p>
+      <div style={{ display: "flex", flexDirection: "column" }}>
+        {visible.map((opt) => {
+          const checked = group.selected === opt.value;
+          return (
+            <label
+              key={opt.value}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 8,
+                minHeight: 28,
+                cursor: "pointer",
+                fontSize: "var(--fs-11)",
+                color: "var(--ink)",
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={checked}
+                onChange={() => group.onSelect(checked ? null : opt.value)}
+                style={{ width: 13, height: 13, accentColor: "var(--brand)", flexShrink: 0 }}
+              />
+              <span style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                {opt.label}
+              </span>
+              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.count}</span>
+            </label>
+          );
+        })}
+      </div>
+      {hidden > 0 && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          style={{
+            marginTop: 4,
+            minHeight: 24,
+            display: "inline-flex",
+            alignItems: "center",
+            background: "none",
+            border: "none",
+            padding: 0,
+            fontSize: "var(--fs-11)",
+            fontWeight: 700,
+            color: "var(--ink-2)",
+            cursor: "pointer",
+            fontFamily: "inherit",
+          }}
+        >
+          + {hidden} more
+        </button>
+      )}
+    </div>
+  );
+}
+
+export function FiltersRailCard({
+  groups,
+  footnote,
+}: {
+  groups: ListSurfaceFacetGroup[];
+  /** README §"the band tiles above are the fourth facet" — shown once, at the card foot. */
+  footnote?: ReactNode;
+}) {
+  const activeCount = useMemo(() => groups.filter((g) => g.selected !== null).length, [groups]);
+  const clearAll = () => groups.forEach((g) => g.onSelect(null));
+  if (groups.length === 0) return null;
+  return (
+    <div
+      data-audit="filters-rail"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        overflow: "hidden",
+      }}
+    >
+      <SectionRule />
+      <div style={{ padding: "14px 16px" }}>
+        <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
+          <p
+            style={{
+              fontSize: "var(--fs-105)",
+              fontWeight: 800,
+              letterSpacing: "0.12em",
+              textTransform: "uppercase",
+              color: "var(--ink-3)",
+              margin: 0,
+            }}
+          >
+            Filters
+          </p>
+          {activeCount > 0 && (
+            <button
+              type="button"
+              onClick={clearAll}
+              style={{
+                minHeight: 24,
+                background: "none",
+                border: "none",
+                padding: 0,
+                fontSize: "var(--fs-11)",
+                fontWeight: 700,
+                color: "var(--ink)",
+                textDecoration: "underline",
+                textDecorationColor: "rgba(0,0,0,.3)",
+                cursor: "pointer",
+                fontFamily: "inherit",
+              }}
+            >
+              Clear {activeCount}
+            </button>
+          )}
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          {groups.map((group) => (
+            <FacetSection key={group.key} group={group} />
+          ))}
+        </div>
+        {footnote && (
+          <p style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)", margin: "12px 0 0", paddingTop: 10, borderTop: "1px solid var(--line-3)" }}>
+            {footnote}
+          </p>
+        )}
       </div>
     </div>
   );

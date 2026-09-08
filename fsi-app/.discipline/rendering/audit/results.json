@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-07T23:54:42.104Z",
+  "runAt": "2026-09-07T21:50:23.677Z",
   "specs": [
     {
       "part": "Absence",
@@ -1503,8 +1503,8 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "notes": [
-        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170): both cards now mount `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use. `.cl-facets-desktop` stays the OUTER (unpadded) div's class; its content padding now lives on an inner `<div>` (selector below updated to `.cl-facets-desktop > div`).",
-        "FIXED (fix58-lists, 2026-09-07, B164): the facets card's inner content wrapper is now `padding:'12px 16px 14px'`, matching p2's own stated value exactly.",
+        "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
+        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
         "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
       ],
       "selector": "[data-audit=\"legend-rail\"] > div",
@@ -1536,23 +1536,29 @@
           }
         },
         {
-          "name": "facets card — padding",
-          "selector": ".cl-facets-desktop > div:last-child",
-          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more.",
+          "name": "Filters rail card — content padding",
+          "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+          "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
           "expect": {
-            "padding-top": "12px",
+            "padding-top": "14px",
             "padding-right": "16px",
             "padding-bottom": "14px",
             "padding-left": "16px"
           }
         },
         {
-          "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
-          "selector": ".cl-facets-desktop .cl-section-rule",
-          "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child.",
+          "name": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
+          "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide.",
           "expect": {
             "height": "3px"
           }
+        },
+        {
+          "name": "Filters rail card — checkbox rows carry live counts, not chip pills",
+          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+          "note": "artboard 02/id=\"p2\" FILTERS card: MODE / JURISDICTION / TOPIC / WORKSPACE TAGS as checkbox lists with right-aligned counts, not the FilterChip pill rendering the content column used to carry.",
+          "expect": {}
         },
         {
           "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
@@ -2262,14 +2268,6 @@
           "expect": {
             "count": "1"
           }
-        }
-      ],
-      "boundsCheck": [
-        {
-          "name": "Due next / What changed ListRow cells — no cell escapes its 88px impact column or overlaps DUE (D1, operator report 2026-09-07)",
-          "container": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header",
-          "cells": ".cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
-          "reason": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
         }
       ],
       "forbid": [
@@ -10422,13 +10420,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-top",
-      "expected": "12px",
-      "actual": "12px",
+      "expected": "14px",
+      "actual": "14px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -10439,13 +10437,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -10456,13 +10454,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-bottom",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -10473,13 +10471,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -10490,13 +10488,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — the 3px graduated rule above the card (ruling 5.1)",
-      "selector": ".cl-facets-desktop .cl-section-rule",
+      "target": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
       "property": "height",
       "expected": "3px",
       "actual": "3px",
       "status": "MATCH",
-      "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child."
+      "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide."
     },
     {
       "spec": "list-surface",
@@ -14140,26 +14138,6 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Ruling 5.2: the band-proportion gradient stays in ONE place sitewide (the nav card cap and its mobile equivalents). Every other 3px rule uses the dark grey gradation from 5.1."
-    },
-    {
-      "spec": "page-frame",
-      "part": "Page frame (1440)",
-      "artboards": [
-        "00-system-sheet §0.3 'The frame'",
-        "01-dashboard",
-        "03-regulation-detail",
-        "18-section-treatments (ruling 5.1)",
-        "19-masthead-line-options (ruling 5.2)"
-      ],
-      "source": "docs/design/handoff-2026-09-06/README.md §0.3 'The frame'; 'Caros Ledge UI System.dc.html' page artboards (frame grid `252px 1fr`, content grid `padding:20px 40px 40px; grid-template-columns:minmax(0,1fr) 300px; gap:28px`); operator rulings 4.2 (nav card top margin), 5.1 (section treatment), 5.2 (one coloured rule per screen), 2.2/2.3/3.1 (the forbid list)",
-      "viewport": 1440,
-      "target": "Due next / What changed ListRow cells — no cell escapes its 88px impact column or overlaps DUE (D1, operator report 2026-09-07)",
-      "selector": "[data-audit=\"dashboard\"] .cl-list-row, [data-audit=\"dashboard\"] .cl-list-row-header > .cl-row-spine, .cl-row-juris, .cl-row-title, .cl-row-impact, .cl-row-due, .cl-row-timeline, .cl-row-tier, .cl-row-overflow",
-      "property": "(cell containment)",
-      "expected": "no cell overlaps a sibling or exceeds its row",
-      "actual": "clean across 5 row(s)",
-      "status": "MATCH",
-      "note": "Operator report 2026-09-07 ('your text is too right and it overlays different areas'): the impact column's unscored content ('- - - - UNSCORED') ran past its column into the DUE column and collided with the dates. `detectOverflows`-style container-scrollWidth checks cannot see this class of defect — the card never gained a horizontal scrollbar — so this checks each grid cell's own box against its row and its siblings directly. The mount's dashboard fixture (mounts.mjs PAGE_FRAME_FIXTURES.dashboard) carries one unscored Due-next resource and one What-changed row specifically so this check exercises ImpactMeter's unscored branch, not only the scored one."
     },
     {
       "spec": "railcards",

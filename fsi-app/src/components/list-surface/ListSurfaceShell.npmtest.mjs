@@ -1,30 +1,48 @@
-// Structural regression test for src/components/list-surface/ListSurfaceShell.tsx's ruling 5.1
-// fix on the facets card (lane fix58-lists, 2026-09-07, design audit B165/B164: list-surface.json
-// "facets card — the 3px graduated rule above the card" / "facets card — padding"). Text-level,
-// same convention as ListRow.npmtest.mjs's own header explains (no JSX mount infra for plain
-// `node --test`; the audit harness's own `list-surface-1440` mount and the rendering guard's
-// smoke specs are the real-DOM check).
+// Structural regression test for src/components/list-surface/ListSurfaceShell.tsx.
+//
+// REWRITTEN (lane compose-lists, 2026-09-07, operator audit "the filters were not above the
+// regulations, they were on the right — same on every page"; artboard 02/id="p2"): the desktop
+// facets cards this test used to guard (SectionRule + a padded `.cl-facets-desktop` card ABOVE the
+// row list, once per facet group set) were removed from the content column entirely — the same
+// facetGroups/secondaryFacetGroups data now renders as the rail's FiltersRailCard (checkbox lists,
+// live counts, "Clear N") in ListSurfaceRailCards.tsx. This file now guards that relocation stays
+// in place: no `.cl-facets-desktop` card in the content column, and the rail mounts FiltersRailCard
+// built from the same facetGroups/secondaryFacetGroups props. Text-level, same convention as
+// ListRow.npmtest.mjs's own header explains (no JSX mount infra for plain `node --test`; the audit
+// harness's own `list-surface-1440` mount and the rendering guard's smoke specs are the real-DOM
+// check).
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
-const SOURCE = readFileSync(
-  resolve(dirname(fileURLToPath(import.meta.url)), "ListSurfaceShell.tsx"),
-  "utf8"
-);
+const HERE = dirname(fileURLToPath(import.meta.url));
+const SHELL_SOURCE = readFileSync(resolve(HERE, "ListSurfaceShell.tsx"), "utf8");
+const RAIL_SOURCE = readFileSync(resolve(HERE, "ListSurfaceRailCards.tsx"), "utf8");
 
-test("both facets cards (primary and secondary) mount SectionRule before their padded content wrapper", () => {
-  const matches = SOURCE.match(/<SectionRule \/>\s*\n\s*<div style=\{\{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" \}\}>/g) || [];
-  assert.equal(matches.length, 2, "both the primary and secondary .cl-facets-desktop cards must mount SectionRule + a 12px 16px 14px content wrapper");
+test("the content column no longer mounts a .cl-facets-desktop facets card (relocated to the rail)", () => {
+  assert.doesNotMatch(
+    SHELL_SOURCE,
+    /className="cl-facets-desktop"/,
+    "desktop facet chip cards must not remain in the content column — the artboard puts Filters in the rail",
+  );
 });
 
-test("the facets card's content padding is 12px 16px 14px (p2's own stated value), not the old uniform 12px 16px", () => {
-  assert.doesNotMatch(SOURCE, /padding: "12px 16px",/, "the old, unringed padding shorthand must not remain anywhere in this file");
+test("the rail mounts FiltersRailCard built from facetGroups + secondaryFacetGroups", () => {
+  assert.match(SHELL_SOURCE, /import\s*\{\s*FiltersRailCard\s*\}\s*from\s*"@\/components\/list-surface\/ListSurfaceRailCards"/);
+  assert.match(SHELL_SOURCE, /<FiltersRailCard\s/);
+  assert.match(SHELL_SOURCE, /groups=\{allFacetGroups\}/, "FiltersRailCard must receive the same facetGroups + secondaryFacetGroups union every caller already computes");
 });
 
-test(".cl-facets-desktop stays the outer card's own class hook (mobile CSS still hides it as a whole)", () => {
-  const occurrences = SOURCE.match(/className="cl-facets-desktop"/g) || [];
-  assert.equal(occurrences.length, 2, "one per facets card (primary + secondary)");
+test("FiltersRailCard renders a Filters title, a Clear-N control, and checkbox rows with live counts", () => {
+  assert.match(RAIL_SOURCE, /Filters/);
+  assert.match(RAIL_SOURCE, /Clear \{activeCount\}/);
+  assert.match(RAIL_SOURCE, /type="checkbox"/);
+  assert.match(RAIL_SOURCE, /\{opt\.count\}/);
+});
+
+test("mobile strip + sheet mechanism (cl-facets-mobile / cl-filters-btn) is unchanged by the relocation", () => {
+  assert.match(SHELL_SOURCE, /cl-facets-mobile/);
+  assert.match(SHELL_SOURCE, /cl-filters-btn/);
 });

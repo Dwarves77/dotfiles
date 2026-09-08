@@ -48,6 +48,7 @@ import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChipGroup, FilterChip } from "@/components/ui/Chips";
 import { SkeletonListRow, SkeletonBandTile } from "@/components/ui/Skeleton";
+import { FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { BAND_ORDER, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 import type { FacetOption } from "./list-surface-helpers";
@@ -67,6 +68,11 @@ export interface ListSurfaceFacetGroup {
 export interface ListSurfaceShellProps {
   title: string;
   dek?: ReactNode;
+  /** The masthead scope line under the title (artboard 02/id="p2": "1,316 active · 32
+   *  jurisdictions · last sync Sep 4 · next obligation Sep 25 · EU Net-Zero Industry Act"), live
+   *  fields only — a caller with a field it cannot source omits that segment rather than inventing
+   *  it. Renders via Masthead's own `dek` slot when `dek` itself is not passed. */
+  scopeLine?: ReactNode;
   dateLabel: string;
   /** Server render instant (src/lib/render-now.ts) — threaded to <Masthead/> so the VOL week
    *  number is not recomputed from each host's own clock. See render-now.ts. */
@@ -301,6 +307,7 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
 export function ListSurfaceShell({
   title,
   dek,
+  scopeLine,
   dateLabel,
   nowIso,
   itemCount,
@@ -333,7 +340,7 @@ export function ListSurfaceShell({
   return (
     <>
       <div style={{ padding: "20px 40px 0" }}>
-        <Masthead title={title} dek={dek} dateLabel={dateLabel} nowIso={nowIso} commandBar={{ itemCount, onSearch, scope }} />
+        <Masthead title={title} dek={dek ?? scopeLine} dateLabel={dateLabel} nowIso={nowIso} commandBar={{ itemCount, onSearch, scope }} />
       </div>
       <div
         style={{
@@ -369,66 +376,11 @@ export function ListSurfaceShell({
             )}
           </div>
 
-          {/* Facets — always visible, live counts. Desktop (>=768px): the two cards below,
-              unchanged. Mobile (<768px, CSS-hidden here, MOBILE_FILTERS_CSS above): a compact
-              horizontally-scrolling strip (no counts) plus a "Filters" button opening the sheet
-              below with the SAME groups and their live counts. */}
-          <div
-            className="cl-facets-desktop"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--line-1)",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "var(--shadow-card)",
-              overflow: "hidden",
-            }}
-          >
-            <SectionRule />
-            <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
-              {facetGroups.map((group) => (
-                <FilterChipGroup key={group.key} label={group.label}>
-                  <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
-                    All
-                  </FilterChip>
-                  {group.options.map((opt) => (
-                    <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                      {opt.label} · {opt.count}
-                    </FilterChip>
-                  ))}
-                </FilterChipGroup>
-              ))}
-            </div>
-          </div>
-
-          {secondaryFacetGroups && secondaryFacetGroups.length > 0 && (
-            <div
-              className="cl-facets-desktop"
-              style={{
-                background: "var(--card)",
-                border: "1px solid var(--line-1)",
-                borderRadius: "var(--radius-card)",
-                boxShadow: "var(--shadow-card)",
-                overflow: "hidden",
-              }}
-            >
-              <SectionRule />
-              <div style={{ display: "flex", flexDirection: "column", gap: 10, padding: "12px 16px 14px" }}>
-                {secondaryFacetGroups.map((group) => (
-                  <FilterChipGroup key={group.key} label={group.label}>
-                    <FilterChip active={group.selected === null} onClick={() => group.onSelect(null)}>
-                      All
-                    </FilterChip>
-                    {group.options.map((opt) => (
-                      <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                        {opt.label} · {opt.count}
-                      </FilterChip>
-                    ))}
-                  </FilterChipGroup>
-                ))}
-              </div>
-            </div>
-          )}
-
+          {/* Facets — desktop: relocated to the rail's FILTERS card (operator audit 2026-09-07:
+              "the filters were not above the regulations, they were on the right — same on every
+              page"; artboard 02/id="p2"). Mobile (<768px): unchanged — a compact horizontally-
+              scrolling strip (no counts) plus a "Filters" button opening the sheet below, still
+              built from the SAME facetGroups/secondaryFacetGroups. */}
           {allFacetGroups.length > 0 && (
             <div className="cl-facets-mobile" data-guard-strip="true">
               {allFacetGroups.map((group) => (
@@ -535,8 +487,17 @@ export function ListSurfaceShell({
           {belowRows}
         </div>
 
-        {/* Rail */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>{rail}</div>
+        {/* Rail — FILTERS card first (artboard 02/id="p2" rail order: Filters, then the
+            surface-specific card, then Legend), built here once from the same facetGroups /
+            secondaryFacetGroups data every list surface already computes, so the relocation out
+            of the content column applies to all five surfaces without a per-page rail edit. */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <FiltersRailCard
+            groups={allFacetGroups}
+            footnote="Counts are live for the current selection. The band tiles above are the fourth facet."
+          />
+          {rail}
+        </div>
       </div>
     </>
   );

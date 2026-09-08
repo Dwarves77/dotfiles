@@ -70,7 +70,7 @@ import {
   useRemainderFetch,
   type ListSurfaceFacetGroup,
 } from "@/components/list-surface/ListSurfaceShell";
-import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
+import { LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import {
   EMPTY_FILTER_STATE,
@@ -202,10 +202,33 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   }, [filtered, filter.band, overrides, updatePriority, dismissResource, tagsFacet.tagsForItem]);
 
   const total = aggregates.totalItems || allRows.length;
+  const jurisdictionCount = aggregates.totalJurisdictions || regionOptions.length;
+
+  // Scope line (artboard 02/id="p2" masthead: "1,316 active · 32 jurisdictions · last sync Sep 4 ·
+  // next obligation Sep 25 · EU Net-Zero Industry Act"), live fields only — a field this surface
+  // cannot source (aggregates.lastUpdatedAt absent pre-apply) is omitted rather than invented.
+  const nextObligation = useMemo(() => {
+    let soonest: { days: number; due: ReturnType<typeof dueInfo>; title: string } | null = null;
+    for (const r of allRows) {
+      const due = dueInfo(r);
+      if (!due) continue;
+      if (!soonest || due.daysNum < soonest.days) soonest = { days: due.daysNum, due, title: r.title };
+    }
+    return soonest;
+  }, [allRows]);
+  const scopeLineParts = [
+    `${total.toLocaleString()} active`,
+    `${jurisdictionCount} jurisdictions`,
+    aggregates.lastUpdatedAt
+      ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
+      : null,
+    nextObligation ? `next obligation ${nextObligation.due!.label} · ${nextObligation.title}` : null,
+  ].filter(Boolean);
 
   return (
     <ListSurfaceShell
       title="Regulations"
+      scopeLine={scopeLineParts.join(" · ")}
       dateLabel={formatLocaleDate(nowFrom(nowIso), { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
       nowIso={nowIso}
       itemCount={total}
@@ -232,17 +255,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
         )
       }
       belowRows={<DismissedStash dismissed={dismissed} onRestore={restoreDismissed} />}
-      rail={
-        <>
-          <RailCard title="Filters">
-            <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-2)", margin: 0 }}>
-              Counts are live for the current selection. Use the band tiles and the Mode / Jurisdiction chips above to narrow
-              the list.
-            </p>
-          </RailCard>
-          <LegendRailCard />
-        </>
-      }
+      rail={<LegendRailCard />}
     />
   );
 }
