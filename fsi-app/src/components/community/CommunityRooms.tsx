@@ -3,14 +3,18 @@
 /**
  * CommunityRooms — redesign TEMPLATE 11 client surface.
  *
- * Composed against artboard 12 (dc.html id="p12", lane community60 2026-09-08).
- * Content column: the room tile grid (4 fixed columns, the dashed "+ New vertical
- * group" tile as its 8th slot) → the ROOM INDEX card (the artboard's JURIS. /
- * DISCUSSION / REPLIES / LAST ACTIVITY table on the shared RowTable, under an
- * Anton head, over the foot strip) → the NEW POST card. Rail: Who's here,
- * Verifier sign-off, Why post here. Two features artboard 12 has no region for
- * keep R7 placement: the room header + "Live in this region" card after the last
- * designed region of the content column, and Vertical groups last in the rail.
+ * Composed against artboard 12 (dc.html id="p12", lane community60 2026-09-08;
+ * amended by the operator ruling of 2026-09-08, lane communitynav2).
+ * Content column, and nothing after it: the room tile grid (4 fixed columns, the
+ * dashed "+ New vertical group" tile as its 8th slot) → the GLOBAL ROOM card (the
+ * artboard's JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY table on the shared
+ * RowTable, under an Anton head, over the foot strip that carries BOTH the empty
+ * state and "Start a discussion") → the NEW POST card. Rail: Who's here, Verifier
+ * sign-off, Why post here, then Vertical groups (R7: no artboard region).
+ *
+ * The "<ROOM> REGION" card and its "Live in this region" rows were REMOVED by that
+ * ruling, because the thread table supersedes them. Its live join/leave action moved to
+ * the composer it gates (DEVIATION-LOG).
  *
  * Data-bearing values arrive computed from the page (no mock snapshots).
  * Everything here is presentation + interaction against the existing
@@ -528,15 +532,14 @@ export function CommunityRooms({
   // ── render ──
   //
   // Region order is artboard 12's (dc.html id="p12"), top to bottom in the
-  // content column: room tile grid -> the ROOM INDEX (the artboard's table:
-  // JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY / overflow, under an Anton
-  // head, over a foot strip) -> the NEW POST card. The rail is Who's here,
-  // Verifier sign-off, Why post here, in that order.
+  // content column: room tile grid -> the GLOBAL ROOM card (the artboard's
+  // table: JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY / overflow, under an
+  // Anton head, over a foot strip) -> the NEW POST card, which is the foot of
+  // the column. The rail is Who's here, Verifier sign-off, Why post here, in
+  // that order.
   //
-  // Two app features the artboard has no region for keep R7 placement (leave
-  // as is, move to after the last designed region of the column): the room
-  // header with Join/leave plus "Live in this region" sits after NEW POST, and
-  // the Vertical groups card sits last in the rail.
+  // One app feature the artboard has no region for keeps R7 placement: the
+  // Vertical groups card sits last in the rail.
   const now = nowFrom(nowIso);
   const roomName = selected ? selected.name : "";
   const threads = selected ? selected.threads : [];
@@ -937,28 +940,24 @@ export function CommunityRooms({
                 title={`${roomName} room`}
                 aside={`${threads.length} discussion${threads.length === 1 ? "" : "s"} · ${threads.length} shown · ${selected.roster.length} member${selected.roster.length === 1 ? "" : "s"} here`}
               />
-              {threads.length === 0 ? (
-                <p
-                  style={{
-                    fontSize: 12,
-                    color: "var(--ink-2)",
-                    lineHeight: 1.6,
-                    margin: 0,
-                    padding: "0 16px 14px",
-                  }}
-                >
-                  Be first in the {roomName} room. No discussions here yet — post what you saw on
-                  the ground this week.
-                </p>
-              ) : (
+              {threads.length > 0 && (
                 <RowTable
                   columns={columns}
                   rows={rows}
                   metrics={{ paddingLeft: 14, rowMinHeight: 56, ruleAfterLastRow: true }}
                 />
               )}
+              {/* The empty state and "Start a discussion" both live in this card's FOOT,
+                  never in a second card (operator ruling 2026-09-08). Artboard 12 draws one
+                  foot strip on the GLOBAL ROOM card: a sentence on the left, the button on
+                  the right. With no threads the left sentence is the empty state; the strip
+                  itself, and the button in it, are the same ones. */}
               <CardFoot
-                left="Threads reference ledger items by link — the ledger keeps the scoring."
+                left={
+                  threads.length === 0
+                    ? `Be first in the ${roomName} room. No discussions here yet — post what you saw on the ground this week.`
+                    : "Threads reference ledger items by link — the ledger keeps the scoring."
+                }
                 right={
                   <Button className="min-h-[44px]" variant="secondary" onClick={focusComposer}>
                     Start a discussion
@@ -1040,28 +1039,25 @@ export function CommunityRooms({
                     Post
                   </Button>
                 </div>
-                {!selected.joined && (
-                  <p style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "8px 0 0" }}>
-                    Join the room to post.
+                {/* Join / leave. Artboard 12 draws membership only as the tile's "Joined"
+                    line, and the card that used to carry this control (the R7 "<ROOM>
+                    REGION" card) was REMOVED by the operator ruling of 2026-09-08. The
+                    action itself is live and must keep a home: without it a member can
+                    never join and this composer is permanently disabled, so it moves to
+                    the composer it gates, which is where the "Join the room to post."
+                    sentence it answers already lived. Logged in DEVIATION-LOG. */}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    gap: 10,
+                    marginTop: 8,
+                  }}
+                >
+                  <p style={{ fontSize: 10.5, color: "var(--ink-3)", margin: 0 }}>
+                    {selected.joined ? "You are in this room." : "Join the room to post."}
                   </p>
-                )}
-              </div>
-            </SectionCard>
-
-            {/* ══ R7: the room's own header and ledger strip. Artboard 12 has no region for
-                either, so both keep R7 placement — after the last designed region of this
-                column — rather than being removed or restyled. ══ */}
-            <SectionCard dataAudit="region-card">
-              <SectionHeading
-                title={`${roomName} region`}
-                aside={
-                  selected.itemCountKnown
-                    ? `${formatNumber(selected.itemCount)} active ${selected.itemCount === 1 ? "item" : "items"}`
-                    : "Ledger item count pending"
-                }
-              />
-              <div style={{ padding: "0 16px 14px" }}>
-                <div style={{ display: "flex", justifyContent: "flex-end", margin: "0 0 8px" }}>
                   <Button
                     className="min-h-[44px]"
                     variant={selected.joined ? "secondary" : "primary"}
@@ -1071,72 +1067,15 @@ export function CommunityRooms({
                     {selected.joined ? "Joined · leave room" : "Join room"}
                   </Button>
                 </div>
-                <p style={{ ...EYEBROW, margin: "0 0 10px" }}>
-                  Live in this region · from the ledger
-                </p>
-                {selected.liveItems.length === 0 ? (
-                  <p style={{ fontSize: 12, color: "var(--ink-3)", margin: 0 }}>
-                    &mdash; no verified ledger items tagged to this region yet.
-                  </p>
-                ) : (
-                  selected.liveItems.map((li) => (
-                    <Link
-                      key={li.id}
-                      href={li.href}
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        gap: 12,
-                        minHeight: 44,
-                        padding: "10px 0",
-                        borderTop: "1px solid var(--line-3)",
-                        textDecoration: "none",
-                      }}
-                    >
-                      <span style={{ minWidth: 0 }}>
-                        <span
-                          style={{ display: "block", fontSize: 13, fontWeight: 800, color: "var(--ink)" }}
-                        >
-                          {li.title}
-                        </span>
-                        <span
-                          style={{
-                            display: "block",
-                            fontSize: 11,
-                            color: "var(--ink-3)",
-                            marginTop: 2,
-                          }}
-                        >
-                          {li.meta}
-                        </span>
-                      </span>
-                      <span
-                        style={{
-                          fontSize: 11.5,
-                          fontWeight: 800,
-                          color: "var(--brand)",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        Open &rarr;
-                      </span>
-                    </Link>
-                  ))
-                )}
-                <p style={{ fontSize: 10.5, color: "var(--ink-3)", margin: "8px 0 0" }}>
-                  Full regional view on the{" "}
-                  <Link href="/regulations" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
-                    Regulations index
-                  </Link>{" "}
-                  and the{" "}
-                  <Link href="/map" style={{ color: "var(--brand)", fontWeight: 700, textDecoration: "none" }}>
-                    Map
-                  </Link>
-                  .
-                </p>
               </div>
             </SectionCard>
+
+            {/* The "<ROOM> REGION" card and its ledger-item rows are REMOVED (operator
+                ruling 2026-09-08): the discussion table above supersedes them, and the
+                content column ends at the NEW POST card exactly as artboard 12 draws it.
+                The ledger items themselves are not lost; they are the same
+                `selected.liveItems` the row overflow's "Cite source" attaches, and the two
+                links out (Regulations index, Map) are the nav's own. */}
           </div>
 
           {/* ══ Rail — artboard order: Who's here, Verifier sign-off, Why post here.

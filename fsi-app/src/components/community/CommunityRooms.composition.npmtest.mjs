@@ -75,9 +75,41 @@ test("artboard 12 has no 'Regional rooms' heading above the tiles", () => {
   assert.doesNotMatch(seededRender, /<h2/);
 });
 
-test("R7 placement: the region card follows the new-post card, and Vertical groups is last in the rail", () => {
-  assert.ok(SOURCE.indexOf('dataAudit="new-post"') < SOURCE.indexOf('dataAudit="region-card"'));
+test("the '<ROOM> REGION' card and its 'Live in this region' rows are gone (operator ruling 2026-09-08: the thread table supersedes them)", () => {
+  assert.doesNotMatch(SOURCE, /dataAudit="region-card"/);
+  // Scoped to the seeded render: NotSeededState, the pre-seed empty state no artboard
+  // covers, still describes the region ledger in prose (R7).
+  const seededRender = SOURCE.slice(
+    SOURCE.indexOf("// ── render ──"),
+    SOURCE.indexOf("function starterQuestions")
+  );
+  assert.doesNotMatch(seededRender, /Live in this region/);
+  assert.doesNotMatch(seededRender, /region`\}/);
+  // The content column ends at the NEW POST card, as the artboard draws it.
+  assert.ok(SOURCE.indexOf('dataAudit="new-post"') > SOURCE.indexOf('dataAudit="room-index"'));
+});
+
+test("the removed card's live join/leave action keeps a home rather than being dropped with it", () => {
+  const composer = SOURCE.slice(SOURCE.indexOf('dataAudit="new-post"'), SOURCE.indexOf("{/* The \"<ROOM> REGION\" card"));
+  assert.match(composer, /onClick=\{toggleJoin\}/);
+  assert.match(composer, /Joined · leave room/);
+});
+
+test("R7 placement: Vertical groups is last in the rail", () => {
   assert.ok(SOURCE.indexOf('dataAudit="why-post-here"') < SOURCE.indexOf("<VerticalGroupsRailPanel"));
+});
+
+test("the empty state and 'Start a discussion' both live in the card FOOT, never a second card", () => {
+  const indexCard = SOURCE.slice(
+    SOURCE.indexOf('dataAudit="room-index"'),
+    SOURCE.indexOf('dataAudit="new-post"')
+  );
+  assert.match(indexCard, /<CardFoot/);
+  assert.match(indexCard, /Be first in the \$\{roomName\} room/);
+  assert.match(indexCard, /Start a discussion/);
+  // The empty state is the foot's own left text, not a paragraph in the card body.
+  const foot = indexCard.slice(indexCard.indexOf("<CardFoot"));
+  assert.match(foot, /Be first in the/);
 });
 
 test("rail order is the artboard's: Who's here, Verifier sign-off, Why post here", () => {

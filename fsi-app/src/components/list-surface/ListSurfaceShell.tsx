@@ -636,12 +636,12 @@ export function ListSurfaceShell({
             secondaryFacetGroups data every list surface already computes, so the relocation out
             of the content column applies to all five surfaces without a per-page rail edit. */}
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <FiltersRailCard
-            groups={allFacetGroups}
-            /* Artboard 02/id="p2" Filters card foot, verbatim. The build had dropped the middle
-               sentence; lane lists60 restored it (2026-09-08). */
-            footnote="Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
-          />
+          {/* The Filters card has NO foot. "Counts are live for the current selection. Filters
+              never hide behind a button; the band tiles above are the fourth facet." was a note
+              written for the auditor and never UI. Operator ruling 2026-09-08: "gone everywhere ...
+              Remove from /regulations too; the artboard is corrected." That REVERSES lane lists60,
+              earlier the same day, which restored the sentence on /regulations from artboard 02. */}
+          <FiltersRailCard groups={allFacetGroups} />
           {rail}
         </div>
       </div>

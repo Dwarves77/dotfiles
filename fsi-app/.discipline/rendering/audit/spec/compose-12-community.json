@@ -12,7 +12,8 @@
     "Lane community60 (2026-09-08) closed six listed differences: the extra 'REGIONAL ROOMS' heading above the tiles is gone (the artboard has no such heading; its stat line is the masthead dek); tiles carry the room NAME, not the 3-char key; the stacked discussion feed became the artboard's TABLE, built on the shared RowTable (extended additively with a `metrics` prop for p12's 14px pad / 56px rows / trailing rule, plus per-row `id`/`onActivate`/`below`); the composer left the discussions card and became its own NEW POST card at the foot of the content column; the room header + 'Live in this region' card left its position between the tiles and the discussions for R7 placement after the last designed region; and the rail order is now the artboard's, with the R7 Vertical groups card after it.",
     "R8 holds: the thread PAGE is not built. The table is the room index and a row expands in place (the `#post-<id>` anchor the rail already emitted is now carried by the table row, so those links still resolve).",
     "Absence, logged in DEVIATION-LOG: the artboard's per-row QUESTION / PRACTICE / MARKET / TEMPLATE tag chip has no data path (community_posts, migration 030, has no kind/topic/tag column), so the Absence convention renders in its slot.",
-    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all.",
+    "Lane communitynav2 (2026-09-08) applied the operator's amendment to this artboard: the '<ROOM> REGION' card and its 'Live in this region' rows are REMOVED (the thread table supersedes them), so the content column ends at the NEW POST card; and the empty state moved into the room-index card's FOOT beside 'Start a discussion' rather than sitting in the card body. This reverses the R7 placement community60 gave the region card earlier the same day. The card's live join/leave action was not dropped with it: it moved to the composer it gates (DEVIATION-LOG), since without it a member can never join and the composer stays permanently disabled."
   ],
   "selector": "[data-audit=\"community\"]",
   "expect": {
@@ -175,7 +176,7 @@
       "name": "region 4a \u2014 its Anton head reads 'NEW POST \u00b7 <ROOM>'",
       "selector": "[data-audit=\"new-post\"] .cl-section-heading h2",
       "expect": {
-        "text": "New post \u00b7 Global",
+        "text": "New post · Global",
         "text-transform": "uppercase"
       }
     },
@@ -203,14 +204,7 @@
       "textMatch": "Post"
     },
     {
-      "name": "region 5 \u2014 R7: the room header + Live-in-this-region card sits AFTER the new-post card",
-      "selector": "[data-audit=\"new-post\"] + [data-audit=\"region-card\"]",
-      "expect": {
-        "count": "1"
-      }
-    },
-    {
-      "name": "rail 1 \u2014 Who's here is the rail's first card",
+      "name": "rail 1 — Who's here is the rail's first card",
       "selector": "[data-audit=\"whos-here\"]",
       "expect": {
         "count": "1"
@@ -390,6 +384,22 @@
       "selector": "[data-audit=\"community\"] span, [data-audit=\"community\"] p",
       "textMatch": "UNSCORED",
       "reason": "General sitewide rule: absence is a reason from the fixed vocabulary, never the literal token."
+    },
+    {
+      "name": "no '<ROOM> REGION' card",
+      "selector": "[data-audit=\"region-card\"]",
+      "reason": "Operator ruling 2026-09-08: the card is REMOVED, because the discussion table supersedes it. That reverses the R7 placement lane community60 gave it (after the new-post card) on the same artboard. The content column now ends at the NEW POST card, as artboard 12 draws it."
+    },
+    {
+      "name": "no 'Live in this region' ledger rows anywhere on the page",
+      "selector": "[data-audit=\"community\"] p, [data-audit=\"community\"] a",
+      "textMatch": "Live in this region",
+      "reason": "Same ruling: the region card's ledger rows go with it. The ledger items still reach the page through the row overflow's 'Cite source'."
+    },
+    {
+      "name": "the empty state is never a second card below the room index",
+      "selector": "[data-audit=\"room-index\"] + div + div",
+      "reason": "Operator ruling 2026-09-08: the empty state and 'Start a discussion' both live in the room-index card's own FOOT. The only sibling after that card is the NEW POST card."
     },
     {
       "name": "CLASS CLOSURE (community): a card element that renders no 3px rule",

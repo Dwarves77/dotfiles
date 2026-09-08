@@ -15246,3 +15246,69 @@ both 1440 and 390.
 97 SM smoke, 216 UX smoke); `audit:design` 72 specs / 2065 checks, 2065 MATCH and 0 MISMATCH at both
 1440 and 390; the CI npmtest glob 1039 pass / 0 fail (it was RED before fix 1 above);
 `run-test-suite.sh` 5973 tests / 0 fail; `next build --webpack` clean with both new routes present.
+## 2026-09-08, lane communitynav2 (branch `lane/communitynav2-2026-09-08`, off `train/wave61-2026-09-08`)
+
+Four operator rulings of 2026-09-08, two of them reversals of rulings landed earlier the same day.
+Every page touched was opened as its artboard PNG first (`screens/12-community.png`,
+`screens/01-dashboard.png`, `screens/16-auth.png`, `screens/17-onboarding.png`) and its dc.html
+section read before any prose.
+
+**Accomplished**
+
+1. **Artboard 12, /community.** The "<ROOM> REGION" card and its "Live in this region" rows are
+   removed: the thread table supersedes them, and the content column now ends at the NEW POST card
+   as the artboard draws it. The empty state moved out of the room card's body into that card's
+   FOOT, beside "Start a discussion", so there is one foot strip and never a second card. The
+   removed card's live join/leave action was NOT dropped with it (it is the only path to
+   `POST /api/community/groups/[id]/join` and gates the composer): it moved to the foot of the NEW
+   POST card, beside the "Join the room to post." sentence it answers. The four items already
+   closed by lane community60 (no REGIONAL ROOMS heading, tiles carry the room NAME, the artboard's
+   JURIS./DISCUSSION/REPLIES/LAST ACTIVITY table, the composer as its own card, the artboard rail
+   order) were verified still true against the image rather than re-done. Ruling R8 holds: the
+   thread page is not built.
+2. **Nav footer, two rows.** Reversing the 2026-09-07 one-row ruling: "Account" with the workspace
+   name right-aligned, and a role-gated "Admin" row with the OWNER badge, at dc.html p1's own
+   measures (44px rows, the nav card's 10px horizontal padding, 8px gaps, badge 9.5px/700/.08em in
+   a 1px rgba(0,0,0,.2) border at radius 4). The badge word is the caller's real role, never a
+   hardcoded OWNER. NOT reversed: "signout lives in account". The Account row still opens the menu
+   holding Workspace profile, Settings and Sign out, and the Admin row navigates to /admin carrying
+   its attention count, so the menu's own "Admin panel" item was removed as a duplicate destination.
+   One implementation drives the desktop card and the mobile drawer, so both moved together.
+3. **The disclaimer.** The page-wide "For informational purposes only" bar is gone from the in-app
+   pages entirely. It had exactly one mount (`AppShell.tsx`) and no page carried a copy, so it moved
+   once. No 10px line was added under the nav Admin row: the operator withdrew that suggestion.
+   Artboards 16 and 17 draw the line at the foot of the left panel and it stays there, in
+   `AuthFrame.tsx`, and only there. The approved wording is unchanged.
+4. **The auditor sentence.** "Counts are live for the current selection. Filters never hide behind a
+   button; the band tiles above are the fourth facet." is gone from every list rail, /regulations
+   included, reversing lane lists60's deliberate restore from artboard 02 earlier the same day. It
+   was one string on the shared `FiltersRailCard`, so one edit covers all five surfaces; the now
+   dormant `footnote` prop is deleted with it. The five COUNTS-61 comments that justified the live
+   facet counts by citing that caption were corrected in place rather than left asserting a string
+   that no longer exists.
+
+**Decisions**
+
+- The join/leave control's relocation is a coordinator default on top of the operator's ruling, not
+  a ruling: the operator removed a CARD, and dropping a live action that has no other entry point
+  would be a feature loss disguised as a composition change. Logged in DEVIATION-LOG with its
+  reasoning so it can be overruled cheaply.
+- Both reversals carry BOTH dates everywhere they are recorded (DEVIATION-LOG rows, the audit specs'
+  own notes, the source comments, the test headers), so a later session reads the reversal, not a
+  contradiction.
+- Specs made stale by these changes were updated to the new correct structure with the reason, never
+  weakened: `compose-12` lost its R7 region-card row and gained two forbids; `compose-02`'s verbatim
+  footnote assertion became a forbid on the same sentence; `sidebar.json` and `mobile-18-drawer.json`
+  went from one-row to two-row assertions, both keeping the forbid on a THIRD row.
+
+**Gates** (all from the worktree root, all green)
+
+`tsc --noEmit` clean · fitness runner 35 functions / 0 violations · rendering guard PASS (14
+fixtures, 12 viewports, 481 checks + 97 SM + 216 UX) · `npm run audit:design` 70 specs / 2029 checks
+/ 2029 MATCH, 0 otherwise, at 1440 and 390 · the CI npmtest glob plus the named list, 1045 tests /
+0 fail · `run-test-suite.sh` 5975 tests / 0 fail · `next build --webpack` clean.
+
+**Next steps**
+
+- The coordinator lands this branch; the container cannot push.
+- No blockers. Nothing in this lane depends on a live Supabase project.

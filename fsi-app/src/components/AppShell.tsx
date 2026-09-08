@@ -171,12 +171,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </a>
           </div>
         )}
+          {/* No page-wide disclaimer bar. Operator ruling 2026-09-08, which also
+              WITHDREW the earlier suggestion of a 10px line under the nav Admin
+              row: there is no disclaimer anywhere in the frame. The legal wording
+              itself is unchanged approved copy and keeps the ONE placement the
+              artboards draw: the foot of the left panel on artboards 16 (auth)
+              and 17 (onboarding), rendered by AuthFrame.tsx. */}
           <main className="flex-1 overflow-y-auto w-full">
             {children}
           </main>
-          <footer className="px-6 py-3 text-center" style={{ borderTop: "1px solid var(--line-3)", color: "var(--ink-3)" }}>
-            <p className="text-[10px]">For informational purposes only. Not legal advice. Regulations move fast, always verify with official sources before acting.</p>
-          </footer>
         </div>
       </div>
       {user && <AskAssistant />}

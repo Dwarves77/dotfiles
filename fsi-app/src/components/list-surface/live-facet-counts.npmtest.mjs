@@ -3,9 +3,11 @@
 // The production defect these would have caught (click-through audit 2026-09-08, /regulations):
 // with the `road` mode applied the list narrowed to "showing 5 of 8" while the band tiles stayed
 // 15 / 14 / 1,119 / 169 and the header stayed "1,317 regulations" — directly under the Filters
-// card's own caption, "Counts are live for the current selection." Every facet builder was called
-// with the unfiltered row set, and the band tiles preferred a corpus RPC bundle no client-side
-// filter can move at all.
+// card's then-live caption, "Counts are live for the current selection" (removed sitewide by
+// operator ruling later the same day: it was a note to the auditor and not UI; the live-count
+// invariant this file guards is the artboard's own and does not depend on it). Every facet builder
+// was called with the unfiltered row set, and the band tiles preferred a corpus RPC bundle no
+// client-side filter can move at all.
 //
 // Second invariant, same lane: a filtered view is linkable. Applying `road` left the URL at a bare
 // /regulations while the band facet wrote `?band=`. One panel, two contracts.

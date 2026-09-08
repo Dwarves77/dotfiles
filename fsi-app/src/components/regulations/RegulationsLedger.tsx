@@ -153,8 +153,9 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
     [allRows, filter, tagsFacet.matchesSelectedTag, sortKey]
   );
 
-  // COUNTS-61: ONE derivation for every facet count and the surface total, so the Filters card's
-  // own caption ("Counts are live for the current selection") is true. See liveFacetCounts.
+  // COUNTS-61: ONE derivation for every facet count and the surface total, so every count in the
+  // rail moves with the selection. (The Filters card's caption that first stated this was removed
+  // sitewide on 2026-09-08; the behaviour it described stands without it.) See liveFacetCounts.
   const counts = useMemo(
     () =>
       liveFacetCounts(allRows, filter, {

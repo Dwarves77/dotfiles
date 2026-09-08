@@ -339,9 +339,10 @@ export function filterByWindow(
 // PRODUCTION DEFECT (click-through audit of carosledge.com, 2026-09-08, /regulations). With the
 // `road` mode applied the list narrowed correctly to "showing 5 of 8", and NOTHING else moved: the
 // band tiles stayed 15 / 14 / 1,119 / 169, the header stayed "1,317 regulations", the footer stayed
-// "1317 regulations tracked across 32 jurisdictions" — directly under the Filters card's own
-// caption, "Counts are live for the current selection." The caption is the artboard's, so the
-// caption stands and the counts are what had to change.
+// "1317 regulations tracked across 32 jurisdictions", directly under the Filters card's then-live
+// caption, "Counts are live for the current selection." The counts are what had to change. (That
+// caption was itself removed sitewide on 2026-09-08, operator ruling: it was a note to the auditor,
+// not UI. The live-count behaviour below is the artboard's own and does not depend on it.)
 //
 // ROOT CAUSE [CONFIRMED by reading]: every facet builder above was called with `allRows`, the
 // UNFILTERED loaded set, and `bandFacetOptions` additionally preferred the corpus RPC bundle, which

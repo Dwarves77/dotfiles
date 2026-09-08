@@ -19,11 +19,13 @@
  * same icons, same hover styling, same a11y labels. Only the open-state
  * lives in the parent now (the parent decides when to mount this).
  *
- * Trigger, 2026-09-07 (operator ruling, superseding R2's two-row footer):
- * Sidebar.tsx's ONE nav-card footer row (the logged-in person's name) is
- * now this component's only trigger, on both the desktop card and the
- * mobile drawer — the separate Account/Admin rows are gone. Item rows
- * below are 44px min-height / 12px padding per that same ruling ("too
+ * Trigger: Sidebar.tsx's nav-card footer ACCOUNT row, on both the desktop
+ * card and the mobile drawer. Operator ruling 2026-09-08 restored the
+ * artboard's two footer rows (Account, Admin), reversing the 2026-09-07
+ * one-row ruling; what it did NOT reverse is "signout lives in account",
+ * so this menu is still where sign-out lives, alongside Workspace profile
+ * and Settings. Admin is a row of its own now and is not repeated here.
+ * Item rows below are 44px min-height / 12px padding (2026-09-07, "too
  * tight" against the old px-4 py-2 rows).
  */
 
@@ -34,8 +36,6 @@ interface UserMenuDropdownProps {
   user: User;
   orgName: string | null;
   isAdmin: boolean;
-  showAdminDot: boolean;
-  adminAttentionTotal: number;
   onClose: () => void;
   onSignOut: () => void;
 }
@@ -44,8 +44,6 @@ export default function UserMenuDropdown({
   user,
   orgName,
   isAdmin,
-  showAdminDot,
-  adminAttentionTotal,
   onClose,
   onSignOut,
 }: UserMenuDropdownProps) {
@@ -104,38 +102,11 @@ export default function UserMenuDropdown({
             <UserIcon size={14} />
             Workspace profile
           </a>
-          {isAdmin && (
-            <a
-              href="/admin"
-              className="flex items-center gap-2 text-sm transition-colors"
-              style={{ minHeight: 44, padding: 12, color: "var(--color-text-secondary)" }}
-              onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "var(--color-surface-raised)")}
-              onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
-              aria-label={
-                showAdminDot
-                  ? `Admin panel — ${adminAttentionTotal} item${
-                      adminAttentionTotal === 1 ? "" : "s"
-                    } need attention`
-                  : "Admin panel"
-              }
-            >
-              <Shield size={14} />
-              <span className="flex-1">Admin panel</span>
-              {showAdminDot && (
-                <span
-                  className="inline-flex items-center justify-center text-[10px] font-semibold px-1.5 rounded-full"
-                  style={{
-                    minWidth: 16,
-                    height: 16,
-                    backgroundColor: "var(--color-error)",
-                    color: "#fff",
-                  }}
-                >
-                  {adminAttentionTotal > 99 ? "99+" : adminAttentionTotal}
-                </span>
-              )}
-            </a>
-          )}
+          {/* No item for the admin surface here. Operator ruling 2026-09-08 restored
+              the nav footer's own second row, which links to /admin and carries the
+              attention count; a second entry in this menu would be the same
+              destination twice (CLAUDE.md rule 13). Sign out stays, per the
+              2026-09-07 ruling the two-row reversal does not touch. */}
           <a
             href="/settings"
             className="flex items-center gap-2 text-sm transition-colors"

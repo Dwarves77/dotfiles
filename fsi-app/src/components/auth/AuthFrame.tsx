@@ -191,9 +191,15 @@ export function AuthFrame({ children }: { children: ReactNode }) {
             </div>
           </div>
 
-          {/* App-approved legal disclaimer (AppShell.tsx footer), not the
-              mock's shortened "For informational purposes only. Not legal
-              advice. Privacy" placeholder — see DEVIATION-LOG.md. */}
+          {/* The app's ONE legal disclaimer, and the only place it appears
+              anywhere in the frame: artboards 16 (auth) and 17 (onboarding)
+              draw this line at the foot of the left panel, and nothing else
+              draws it (operator ruling 2026-09-08, which removed the page-wide
+              bar the in-app shell used to render and withdrew the suggestion of
+              a line under the nav Admin row). The approved wording is unchanged;
+              only its placement was ruled on. It is the full app wording, not
+              the mock's shortened "For informational purposes only. Not legal
+              advice. Privacy" placeholder; see DEVIATION-LOG.md. */}
           <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)" }}>
             For informational purposes only. Not legal advice. Regulations
             move fast, always verify with official sources before acting.{" "}

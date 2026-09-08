@@ -274,9 +274,11 @@ export function OperationsLedger({
     [initialResources, filter, tagsFacet.matchesSelectedTag]
   );
 
-  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so the
-  // Filters card's own caption ("Counts are live for the current selection") is true here too. See
-  // liveFacetCounts in list-surface-helpers.ts for the two regimes and why they are what they are.
+  // COUNTS-61 (2026-09-08): ONE derivation for every facet count and the surface total, so every
+  // count in the rail moves with the selection here too. (The Filters card's caption that first
+  // stated this was removed sitewide later the same day; the behaviour it described is the
+  // artboard's and stands without it.) See liveFacetCounts in list-surface-helpers.ts for the two
+  // regimes and why they are what they are.
   const counts = useMemo(
     () =>
       liveFacetCounts(initialResources, filter, {

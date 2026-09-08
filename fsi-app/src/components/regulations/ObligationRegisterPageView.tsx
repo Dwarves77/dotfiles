@@ -27,7 +27,7 @@
 
 import { useMemo, useState } from "react";
 import { Masthead } from "@/components/ui/Masthead";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { FiltersRailCard, LegendRailCard, ObligationsRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import type { ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
 import { LIST_SURFACE_MOBILE_CSS } from "@/components/list-surface/ListSurfaceShell";
@@ -171,27 +171,31 @@ export function ObligationRegisterPageView({
           }
         `}</style>
         <style>{LIST_SURFACE_MOBILE_CSS}</style>
-        <div
-          data-audit="register-card"
-          style={{
-            background: "var(--card)",
-            border: "1px solid var(--line-1)",
-            borderRadius: "var(--radius-card)",
-            boxShadow: "var(--shadow-card)",
-            overflow: "hidden",
-            minWidth: 0,
-          }}
-        >
-          <SectionRule />
+        {/* FOLD 63 (2026-09-08). This card shell was five hand-typed declarations plus a
+            hand-mounted `<SectionRule/>`, which is exactly the shape operator item A1 named and
+            fitness rule F42 forbids: a card shell assembled outside `SectionCard`. The lane that
+            built this page branched from wave 61, before `SectionCard` existed, so this is a base
+            difference, not a lane defect. Converted rather than exempted: the card's border,
+            radius, shadow, `overflow: hidden` and 3px rule now come from the one component, and
+            `minWidth: 0` (this card's own grid-cell property, which keeps the register's tables
+            from forcing the column open) is passed through the `style` escape hatch the component
+            provides for exactly that. */}
+        <SectionCard dataAudit="register-card" style={{ minWidth: 0 }}>
           <div style={{ padding: "14px 16px 16px" }}>
             <ObligationRegister variant="list" initialResult={initialResult} filters={filters} />
           </div>
-        </div>
+        </SectionCard>
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          <FiltersRailCard
-            groups={facetGroups}
-            footnote="Counts are live for the whole register, not the loaded page. Filters never hide behind a button."
-          />
+          {/* FOLD 63 (2026-09-08), cross-lane resolution. This lane shipped a `footnote` on this
+              card reading "Counts are live for the whole register, not the loaded page. Filters
+              never hide behind a button."; lane communitynav2, folded in the same train, DELETED
+              the `footnote` prop from FiltersRailCard on the operator ruling of 2026-09-08 ("gone
+              everywhere ... Remove from /regulations too; the artboard is corrected"), because
+              that sentence is a note to the auditor and was never UI. The ruling is sitewide, so
+              it governs this page too and the sentence goes with the prop. The BEHAVIOUR it
+              described is unchanged and still measured: `fetchRegisterFacetOptions` tallies the
+              whole `obligations` table, never the loaded page. */}
+          <FiltersRailCard groups={facetGroups} />
           <ObligationsRailCard nowIso={nowIso} />
           <LegendRailCard />
         </div>

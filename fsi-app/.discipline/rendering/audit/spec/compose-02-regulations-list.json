@@ -10,7 +10,8 @@
     "The pre-existing list-surface.json spec measures ListSurfaceShell/ListSurfaceRailCards in isolation via the 'list-surface-1440' mount (a minimal fixture: one facetGroup, no sortRow, no topic/tier). This spec measures the REAL RegulationsLedger composition (24-row fixture, matching capture-compose-lists-screenshots.mjs), so the sort row, the Topic/Source-tier facets, and the rail's actual top-to-bottom order are all exercised end to end.",
     "Fixture is invented sample data with the real shape (same helper as the evidence screenshot); the audit asserts geometry/placement/labels, never fixture values.",
     "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) — asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence.",
-    "The rail's OBLIGATIONS · NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar →' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs."
+    "The rail's OBLIGATIONS · NEXT 30 DAYS card (lane comp-oblig, 2026-09-08) is measured here for presence, DOM order between Filters and Legend, its head label and 'Calendar →' link, and its four-row cap: artboard 02/id=\"p2\" draws four dated rows, and the mount's obligation fixture deliberately includes a fifth event 90 days out so the card's own 30-day window is proven in the real composition, not only in obligation-rail-select.npmtest.mjs.",
+    "2026-09-08 (lane communitynav2): the row asserting the Filters card's footnote verbatim was REPLACED by a forbid on the same sentence. The operator withdrew it sitewide (\"a note to the auditor, not UI\") and had the artboard corrected, reversing the earlier same-day restore. The sentence is one string in the shared rail card, so its removal covers all five list surfaces at once."
   ],
   "selector": "[data-audit=\"filters-rail\"]",
   "expect": {
@@ -117,14 +118,6 @@
       }
     },
     {
-      "name": "Filters rail card foot carries artboard 02's own footnote, verbatim",
-      "selector": "[data-audit=\"filters-rail\"] p",
-      "textMatch": "Counts are live",
-      "expect": {
-        "text": "Counts are live for the current selection. Filters never hide behind a button; the band tiles above are the fourth facet."
-      }
-    },
-    {
       "name": "region 6a, the MODE facet reads the vocabulary's DISPLAY labels, title case as the artboard draws them",
       "selector": "[data-audit=\"facet-mode\"]",
       "expect": {},
@@ -155,6 +148,12 @@
       "selector": "[data-audit=\"facet-mode\"] label span",
       "textMatch": "re:^(ocean|road|rail|air)$",
       "reason": "The lower-case token is the storage form, not a label. Its reappearance here is exactly the regression this fold fixed, and it is invisible to every other row because the counts and the click behaviour are unchanged when only the case is wrong."
+    },
+    {
+      "name": "no auditor sentence in the Filters rail card",
+      "selector": "[data-audit=\"filters-rail\"] p, [data-audit=\"filters-rail\"] span",
+      "textMatch": "Counts are live for the current selection",
+      "reason": "Operator ruling 2026-09-08: \"gone everywhere. The sentence was a note to the auditor, not UI. Remove from /regulations too; the artboard is corrected.\" This REVERSES lane lists60, earlier the same day, which restored the sentence here from artboard 02 and which this row previously asserted verbatim. The Filters card now has no foot at all."
     }
   ]
 }

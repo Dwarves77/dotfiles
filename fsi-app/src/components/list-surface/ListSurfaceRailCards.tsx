@@ -239,14 +239,9 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
   );
 }
 
-export function FiltersRailCard({
-  groups,
-  footnote,
-}: {
-  groups: ListSurfaceFacetGroup[];
-  /** README §"the band tiles above are the fourth facet" — shown once, at the card foot. */
-  footnote?: ReactNode;
-}) {
+// The card has no `footnote` prop any more: its only text was the auditor sentence the operator
+// removed sitewide on 2026-09-08, and a prop no caller passes is dormant code (CLAUDE.md rule 13).
+export function FiltersRailCard({ groups }: { groups: ListSurfaceFacetGroup[] }) {
   // A facet group with no options has nothing to check and renders as a bare heading over empty
   // space (seen live on /research's Workspace tags group in a workspace with no tags, lane
   // comp-06 2026-09-08). None of the artboards draw an empty group; the group returns the moment
@@ -310,16 +305,6 @@ export function FiltersRailCard({
             <FacetSection key={group.key} group={group} />
           ))}
         </div>
-        {/* The foot line's own borderTop is gone with it: artboard 02/id="p2" ends the last facet
-            group with the same group rule as every other and follows it with a bare
-            `font-size:11px;color:#7A6E6C;padding-top:10px;line-height:1.5` line. Keeping the old
-            borderTop would have drawn a SECOND rule 10px under the last group's, a doubled edge this
-            lane's own C2 change would have introduced. */}
-        {footnote && (
-          <p style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", margin: 0, paddingTop: 10, lineHeight: 1.5 }}>
-            {footnote}
-          </p>
-        )}
       </div>
     </SectionCard>
   );

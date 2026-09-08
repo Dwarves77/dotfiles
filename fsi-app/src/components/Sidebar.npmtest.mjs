@@ -48,11 +48,12 @@ test("fix58-tokens: active nav row (card variant) uses the inset 3px spine box-s
 
 // Nav footer history: production first shipped THREE footer rows (Account, Admin, a third
 // "jasonlosh ▾" UserMenu utility row) against R2's two unlabelled rows — a coordinator default
-// collapsed that to two (Account as the menu trigger, Admin alongside it). Operator ruling
-// 2026-09-07 then superseded R2 itself: "signout lives in account, keep it there" / "we don't need
-// separate Account and Admin buttons visible if they pop up as options when you click the
-// logged-in person's name" / "too tight". The footer is now ONE row (both variants, one
-// implementation) — the logged-in person's name — opening the same UserMenuDropdown.
+// collapsed that to two, then the operator ruling of 2026-09-07 collapsed it to ONE (the logged-in
+// person's name, everything else inside its menu). The operator ruling of 2026-09-08 REVERSES that
+// one-row ruling and restores the artboard's TWO rows: "Account" with the workspace name
+// right-aligned, and "Admin" with the OWNER badge. What 2026-09-08 does NOT reverse is 2026-09-07's
+// "signout lives in account". The Account row still opens the menu that holds Workspace profile,
+// Settings and Sign out. A THIRD row stays forbidden throughout.
 
 test("the old UserMenu component (the coordinator-default lane's deleted third row) stays gone, not merely unmounted", () => {
   assert.throws(() => readFileSync(
@@ -63,41 +64,55 @@ test("the old UserMenu component (the coordinator-default lane's deleted third r
   assert.doesNotMatch(SOURCE, /from "@\/components\/auth\/UserMenu"/);
 });
 
-test("footer renders exactly one row: no separate Account link, no separate Admin link/OWNER badge, in EITHER variant", () => {
+test("footer renders TWO rows (2026-09-08, reversing 2026-09-07): an Account row and a role-gated Admin row carrying the role badge", () => {
   const footerBlock = SOURCE.slice(SOURCE.indexOf("const footer = (variant"), SOURCE.indexOf("return (\n    <>"));
-  // No role-gated Admin row left at all — `isAdmin &&` no longer gates any footer markup.
-  assert.doesNotMatch(footerBlock, /isAdmin &&/);
-  assert.doesNotMatch(footerBlock, />Admin</);
-  assert.doesNotMatch(footerBlock, /OWNER/);
-  // The two branches (signed-in trigger vs. signed-out fallback link) are the ONLY footer content —
-  // the block closes right after the ternary's fallback `</Link>`, no sibling row after it.
-  const afterFallbackClose = footerBlock.slice(footerBlock.lastIndexOf("</Link>"));
-  assert.match(afterFallbackClose, /^<\/Link>\s*\)\}\s*<\/div>\s*\);\s*};/);
+  assert.match(footerBlock, />Account</);
+  assert.match(footerBlock, /\{isAdmin && \(/);
+  assert.match(footerBlock, />Admin</);
+  assert.match(footerBlock, /href="\/admin"/);
+  // The badge word is the caller's real role, never a hardcoded OWNER.
+  assert.match(footerBlock, /\{userRole\}/);
+  assert.doesNotMatch(footerBlock, />OWNER</);
 });
 
-test("the footer row applies to BOTH variants (one implementation): the signed-in branch is not desktop-only", () => {
-  // Was `{!drawer && user ? (` (coordinator-default lane, desktop-only trigger) — operator ruling
-  // extends the single-row trigger to the drawer too.
+test("no THIRD footer row: the container's only children are the Account row and the isAdmin-gated Admin row", () => {
+  const footerBlock = SOURCE.slice(SOURCE.indexOf("const footer = (variant"), SOURCE.indexOf("return (\n    <>"));
+  // Everything after the Admin row's closing </Link> is the block's own close, with no sibling row.
+  const afterAdminClose = footerBlock.slice(footerBlock.lastIndexOf("</Link>"));
+  assert.match(afterAdminClose, /^<\/Link>\s*\)\}\s*<\/div>\s*\);\s*};/);
+  // Exactly two direct-child row constructs in the block: the ternary and the isAdmin gate.
+  assert.equal((footerBlock.match(/\{isAdmin && \(/g) || []).length, 1);
+});
+
+test("both rows apply to BOTH variants (one implementation): neither branch is desktop-only", () => {
   assert.doesNotMatch(SOURCE, /\{!drawer && user \? \(/);
   assert.match(SOURCE, /\{user \? \(/);
 });
 
-test("the footer row is the menu trigger: a <button> (not a <Link>) opening UserMenuDropdown, anchored to the row, when a user is present", () => {
+test("the Account row is the menu trigger: a <button> (not a <Link>) opening UserMenuDropdown, anchored to the row, when a user is present", () => {
   assert.match(SOURCE, /const UserMenuDropdownLazy = dynamic\(\(\) => import\("@\/components\/auth\/UserMenuDropdown"\)/);
   assert.match(SOURCE, /<button[\s\S]{0,400}?onClick=\{\(\) => setAccountMenuOpen/);
   assert.match(SOURCE, /aria-haspopup="menu"/);
   assert.match(SOURCE, /aria-expanded=\{accountMenuOpen\}/);
 });
 
-test("the row shows the logged-in person's name (avatar glyph + name) with the workspace name right-aligned, muted", () => {
-  assert.match(SOURCE, /import \{ User \} from "lucide-react"/);
-  assert.match(SOURCE, /<User size=\{16\}/);
-  assert.match(SOURCE, /const displayName = user\?\.email\?\.split\("@"\)\[0\] \|\| "User"/);
-  assert.match(SOURCE, /\{displayName\}/);
+test("the Account row reads 'Account' with the workspace name right-aligned, muted (artboard p1)", () => {
+  assert.match(SOURCE, /<span style=\{\{ fontSize: 14, fontWeight: 700 \}\}>Account<\/span>/);
   assert.match(SOURCE, /\{orgName \|\| "—"\}/);
 });
 
-test("the trigger's menu contains Sign out plus Workspace profile / Admin panel / Settings (via UserMenuDropdown's own props)", () => {
+test("the Admin row navigates to /admin carrying its attention count, and the menu no longer repeats Admin panel", () => {
+  assert.match(SOURCE, /showAdminDot[\s\S]{0,200}?need attention/);
+  assert.match(SOURCE, /formatNumber\(adminAttentionTotal\)/);
+  const dropdownSource = readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenuDropdown.tsx"),
+    "utf8",
+  );
+  assert.doesNotMatch(dropdownSource, /Admin panel/);
+  assert.doesNotMatch(dropdownSource, /href="\/admin"/);
+});
+
+test("the trigger's menu still holds Sign out, Workspace profile and Settings (2026-09-07 'signout lives in account', NOT reversed)", () => {
   assert.match(SOURCE, /<UserMenuDropdownLazy[\s\S]{0,400}?onSignOut=\{signOut\}/);
   const dropdownSource = readFileSync(
     resolve(dirname(fileURLToPath(import.meta.url)), "auth", "UserMenuDropdown.tsx"),
@@ -106,7 +121,6 @@ test("the trigger's menu contains Sign out plus Workspace profile / Admin panel 
   assert.match(dropdownSource, /onClick=\{onSignOut\}/);
   assert.match(dropdownSource, /Sign out/);
   assert.match(dropdownSource, /Workspace profile/);
-  assert.match(dropdownSource, /Admin panel/);
   assert.match(dropdownSource, /Settings/);
   // Menu anchored ABOVE the row ("opens upward at the foot, as production does").
   assert.match(dropdownSource, /bottom-full/);
@@ -114,8 +128,13 @@ test("the trigger's menu contains Sign out plus Workspace profile / Admin panel 
   assert.match(dropdownSource, /minHeight: 44, padding: 12,/);
 });
 
-test("the footer row keeps a 44px hit target, the nav card's 10px horizontal padding, 8px gaps, 14px text", () => {
-  assert.match(SOURCE, /minHeight: 44,\s*\n\s*padding: "0 10px",\s*\n\s*gap: 8,\s*\n\s*color: "var\(--ink\)",\s*\n\s*background: accountMenuOpen/);
+test("both footer rows keep a 44px hit target, the nav card's 10px horizontal padding and 8px gaps (dc.html p1 measures)", () => {
+  assert.match(SOURCE, /const rowStyle: React\.CSSProperties = \{\s*\n\s*minHeight: 44,\s*\n\s*padding: "0 10px",\s*\n\s*gap: 8,/);
+  assert.match(SOURCE, /style=\{rowStyle\}/);
   assert.match(SOURCE, /style=\{\{ fontSize: 14, fontWeight: 700 \}\}/);
-  assert.match(SOURCE, /style=\{\{ minHeight: 44, padding: "0 10px", gap: 8, color: "var\(--ink\)" \}\}/);
+});
+
+test("the OWNER badge carries dc.html p1's own measures: 9.5px / 700 / .08em in a 1px rgba(0,0,0,.2) border at radius 4", () => {
+  assert.match(SOURCE, /fontSize: 9\.5,\s*\n\s*fontWeight: 700,\s*\n\s*letterSpacing: "0\.08em",/);
+  assert.match(SOURCE, /border: "1px solid rgba\(0,0,0,\.2\)",\s*\n\s*borderRadius: 4,/);
 });
