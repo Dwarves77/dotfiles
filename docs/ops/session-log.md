@@ -14412,3 +14412,74 @@ measurements, 0 blocking) · audit:design 2018 MATCH, 0 MISMATCH · audit:overfl
 NEXT. The routing table names six owners. When each clears its rules it reruns
 `--write-baseline` and commits the shrunken file; the diff is the proof. The baseline dies at
 wave 65 whether or not that happens.
+## 2026-09-08: LANE CARDRULE (train 62, UI fix round 2026-09-08): items A1, A2, A3, E4
+
+**What the round asked.** The operator compared twelve pages against the Claude Design package and
+ruled, verbatim: "Fix the SHARED PART once; do not patch pages. Each item names the component."
+A1: the 3px graduated rule is missing on eighteen listed card types and "is part of the card
+component, not a decoration". A3: the card shadow, border and radius on those cards. A2: the band
+block's header TEXT (not its rule). E4: the rule above "Regions side by side" is dark grey, not red.
+
+**A1/A3 was one defect with one cause: there was no card component.** The same five declarations
+were retyped in fifteen files and each caller mounted `<SectionRule/>` by hand. Measured before the
+fix: `CommunityRooms.tsx`'s local `CARD` object carried radius 8 against the artboard's 10 and no
+box-shadow at all across five cards; `AccountPrimitives`, `ProvisionalReviewTable` and two
+`AdminDashboard` cards carried no shadow; `UserProfilePage`'s stat card had a hand-typed literal
+shadow and no rule; three further cards had no rule. `src/components/ui/SectionCard.tsx` is the card
+now, carrying dc.html's own values (84 identical occurrences: #fff, 1px rgba(0,0,0,.12), radius 10,
+the two-part shadow, overflow hidden, first child a 3px gradient div). Twenty files render it. It
+picks between two rule layouts itself so no card's geometry moved, which the byte-identical
+regeneration of `compose-01-dashboard-brief.png` confirms.
+
+**The class is closed twice, and both proofs were attacked.** F42 (`card-shell-outside-SectionCard`,
+invariant RD-67, skill Section 4 category 42) fails CI on a card shell assembled anywhere but the
+card component; its own first cut had a regexp defect (`\b` after a quoted token) that made it see
+2 of 9 known shells, found by attack and kept as a named regression test. At the rendered level,
+each listed card gains two audit rows (the rule's EXACT gradient at 3px, and the shadow/border/
+radius), plus a per-page forbid on a card element rendering no rule in either position SectionCard
+mounts it in. Attacking SectionCard (making it skip the rule) fired that forbid on all five composed
+pages and turned every per-card row NOT BUILT.
+
+**A2** is three values: dot 6px to 7px, label letter-spacing .1em to .08em, window 10.5px to 11px.
+They differ from what artboard 02 draws (8px, .1em, 11.5px); the operator's item is the later ruling
+and wins, and both sets are in DEVIATION-LOG. The row's baseline alignment and 8px gap are not
+mentioned by A2 and are logged unchanged rather than improvised.
+
+**E4 was already correct on this base and is not rebuilt.** The rule measures
+`linear-gradient(90deg, rgb(90,85,82), rgb(90,85,82) 22%, rgba(90,85,82,0.18))`. What was missing
+was the check: the existing spec row asserted height and count only, which a red rule passes.
+Recolouring the shared gradient to #DC2626 left that row green and turned only the new row red.
+
+**A test that was ratifying the defect.** `SectionRule.coverage.npmtest.mjs` locked per-file rule
+mount counts, fully green while eighteen card types shipped ruleless. A per-caller count measures
+the callers that exist, not the property that must hold. Rewritten to the structure and stronger.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`SectionCard.tsx` (new),
+`Masthead.tsx`, `DashboardBrief.tsx`, `ListSurfaceShell.tsx`, `ListSurfaceRailCards.tsx`,
+`DetailShell.tsx`, `MapPageView.tsx`, `WatchlistSurface.tsx`, `CommunityRooms.tsx`,
+`MarketComparativeRibbon.tsx`, `RegionDimensionMatrix.tsx`, `OperationsLedger.tsx`,
+`OperationsDetailSurface.tsx`, `ResearchFindingDetailSurface.tsx`, `MarketSignalDetailSurface.tsx`,
+`UserProfilePage.tsx`, `AccountPrimitives.tsx`, `ProvisionalReviewTable.tsx`, `AdminDashboard.tsx`,
+`AdminIssuesRail.tsx`, `WorkspacesUsageRow.tsx`, `Sidebar.tsx`, `Skeleton.tsx`, `AuthPanel.tsx`, the
+two auth pages, `MembersPanel.tsx`). Every value applied is the operator's own literal from the item
+list, itself the artboard's (the gradient, 3px, radius 10, the two-part shadow, 1px rgba(0,0,0,.12),
+and A2's 11px/.08em/7px/11px); nothing was rounded or improved. No interactive target was introduced
+and none moved: the card shell carries no controls, and the rail card's 44px facet rows, the command
+bar's 44 and the row overflow's 44x44 are untouched. The migration is DOM-shape-preserving for every
+card that already had a rule (same element order, same padding wrapper), which is why the 43
+pre-existing 1440 specs and every mobile 390 spec stay green unchanged; the cards that GAINED a rule
+gained 3px of height at the top edge inside their own `overflow: hidden`, which the rendering guard
+measured at every viewport with no new failure and no target below the 44px floor. Visual pass at
+1440 on the regenerated side-by-sides for dashboard, regulations, market, research, operations,
+community, watchlist, map, admin, account and settings: no overflow, no collision, no orphan line
+introduced; a 6x corner render of the rail card against the artboard's own markup confirms the rule
+follows the card's radius with no square corners.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean, exit 0; fitness runner
+**36 functions, 0 violations**, no allowlist expiries (F42 new); design audit **70 specs, 2165
+checks, 2165 MATCH**, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC at both 1440 and 390 (the +65 checks
+over the base's 2100 are this lane's card rows and the five closure forbids); rendering guard
+**PASS** (11 fixtures, 445 checks, 8 SM + 12 UX smoke specs, 97 + 216 checks); `run-test-suite.sh`
+**5983 tests, 5978 pass, 0 fail, 5 skipped** (the base's known kill-switch failure does not reproduce
+here); `next build --webpack` exit 0. Attack proofs run and reverted for A1/A3 (rule suppressed),
+A2 (three values reverted) and E4 (gradient recoloured red).
