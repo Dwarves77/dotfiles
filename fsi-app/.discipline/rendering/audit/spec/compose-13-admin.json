@@ -1,44 +1,136 @@
 {
-  "part": "Page composition — Admin (13)",
+  "part": "Page composition, Admin (13)",
   "mount": "compose-admin",
   "viewport": 1440,
-  "artboards": ["13-admin"],
+  "artboards": [
+    "13-admin"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
   "notes": [
-    "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-    "Artboard order: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED (bordered, no shadow) -> breadcrumb strip ('Admin / <selected section>') -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the provisional-review table -> Organizations section -> rail: Issues queue, Companies/Individuals/Newest join/Active this month tiles, read-only-controls note.",
-    "This lane fixed three real defects: (1) AdminDashboard defaulted to Workspaces/Organizations, not the artboard's default Sources/Provisional-review landing state — fixed by changing the initial section/sub state. (2) The Sources tab order was [Source registry, Provisional review, ...]; dc.html p13 lists Provisional review first — reordered. Also wired AdminDashboard to sync SourceHealthDashboard's own internal `activeView` (a zustand-store field the component never previously received from its caller, despite AdminDashboard's own comment claiming 'the sub-tab scopes the operator's intent') so picking 'Provisional review' actually opens SourceHealthDashboard's Provisional tab instead of always landing on Registry. (3) An ORGANIZATIONS card (PlateCard + OrganizationsTable) used to render ONLY under the Workspaces section — dc.html p13's own Sources/Provisional-review default view shows it stacked directly below the Sources table too; added a second render site in the Sources branch (same components, not a fork). This was caught only after a capture-script fix (see the next note) revealed the true render — this spec's region-3 check used to false-positive-match the WORKSPACES tile's own description text ('Organizations, members, invitations...'), which is present regardless, masking the missing card entirely; region 3 below now selects the actual `ORGANIZATIONS` card heading, not any element containing the word.",
-    "capture-compose-page.mjs fix (lane compose-other, 2026-09-08): AppShell's frame is `height:100vh` with its OWN internal scroll — the document body never grows past the viewport, so the capture script's original `page.screenshot({fullPage:true})` silently truncated any mount whose real content exceeds the 1400px viewport (Playwright's fullPage measures body scroll height, which never changes here). This admin mount's real content is 1665px tall; the truncated first capture cut off the Organizations card entirely, and the region-3 spec check below happened to still pass by matching stray 'Organizations' text elsewhere on the visible (truncated) page — a screenshot bug masking a real composition bug. Fixed the capture script to measure the mounted `[data-audit]` element's actual height and grow the viewport to fit before shooting (no longer `fullPage`, since the grown viewport already contains everything).",
-    "NOT FIXED, logged instead (DEVIATION-LOG 2026-09-08): SourceHealthDashboard itself — the component the Provisional-review tab renders — is a much larger, differently-composed surface than dc.html p13's simple 'SOURCES · PROVISIONAL REVIEW' table (SOURCE/TIER/STATUS/DISCOVERED columns, one Approve button per row). The shipped component renders its own 'Source Intelligence' header, a B.2 regeneration-progress bar, a Source Tiers legend block, a T1-T7 tile grid, and its own second Registry/Health/Provisional/Canonical/Intersections/Themes/Obligations tab bar — none of which the artboard shows for this region. Rebuilding SourceHealthDashboard's Provisional view to match the artboard is a component-level effort (the surface is shared beyond this one entry point) out of this page-composition pass's reach; this spec does not assert a fabricated match for that region's content, only for what the mount actually renders identically to the artboard (masthead, tile grid, tab selection/order, Organizations section, rail).",
-    "OrganizationsTable — no artboard region (fix58-account's own 2026-09-07 DEVIATION-LOG entry already established this; unaudited, left as-is, listed again here for this lane's own record)."
+    "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'], no live Supabase project reachable in this sandbox (DEVIATION-LOG.md). The mount now seeds dc.html p13's own four provisional rows as real ProvisionalSource records, so the default landing region renders with data rather than its empty state.",
+    "Artboard order, top to bottom: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the SOURCES · PROVISIONAL REVIEW card (head, SOURCE/TIER/STATUS/DISCOVERED table with a per-row Approve and the trailing overflow, legend foot, pipeline note) -> Organizations card. Rail, top to bottom: Issues queue, the Companies/Individuals/Newest join/Active-this-month card, Read-only controls.",
+    "Lane comp-admin (2026-09-08) closed the region the previous pass logged as NOT FIXED: SourceHealthDashboard's Provisional view rendered a 'Source Intelligence' module (its own header, a B.2 progress bar, a Source Tiers legend, a T1-T7 tile grid, a SECOND tab bar, a source search) where the artboard draws one table card. That view is now the artboard's card, built from the shared parts (SectionRule + the new shared ui/RowTable + TierChip + StateNote + Absence); the module's other views (registry/health/canonical/intersections/themes/obligations), which have no artboard, are untouched. The forbid list below is what stops the old composition coming back.",
+    "Actions stay real: Approve/Reject/Re-tier all POST /api/admin/sources/promote, the endpoint the review flow already owned (approve/reject/defer). 'Re-tier = stays provisional' is the artboard's own legend and is exactly what decision 'defer' does, there is no in-place tier write for a provisional row (commit-tier-change returns 409 for kind:\"provisional\").",
+    "Two artboard details are deliberately NOT asserted, both logged in DEVIATION-LOG.md 2026-09-08: the foot's 'All 489 provisional' LINK (the built card is the whole queue, so a link to a fuller list would be a dead control, ruling 1.1, and the text renders the live count instead), and the rail's 'Export queue' button (no queue-export endpoint exists anywhere under src/app/api/admin/; not drawn dead, not invented).",
+    "Also NOT asserted, logged: the artboard puts the Sources sub-tab row INSIDE the card head; the build keeps AdminDashboard's one sub-nav above the card, because that row is shared by all seven admin sections and moving it inside is a page-shell restructure beyond this pass.",
+    "OrganizationsTable's own row anatomy is still its pre-handoff one (fix58-account's 2026-09-07 DEVIATION-LOG entry left it as-is); region 6 asserts the card is present and in place, not its internals."
   ],
   "selector": "[data-audit=\"admin\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
-      "name": "region 1 — 8-tile stat grid present",
+      "name": "region 1, 8-tile stat grid present",
       "selector": "[data-audit=\"admin\"] .cl-admin-stat-tile",
-      "expect": {},
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Workspaces"
     },
     {
-      "name": "region 2 — Sources sub-tab bar, 'Provisional review' first and active",
-      "selector": "[data-audit=\"admin\"] button, [data-audit=\"admin\"] div",
-      "expect": {},
+      "name": "region 2, Sources sub-tab bar, 'Provisional review' first and active",
+      "selector": "[data-audit=\"admin\"] button[role=\"tab\"]",
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Provisional review"
     },
     {
-      "name": "region 3 — Organizations card, stacked directly below the Sources tab body",
-      "selector": "[data-audit=\"admin\"] .cl-admin-platecard-title",
-      "expect": { "count": "1" },
-      "textMatch": "Organizations",
-      "note": "Deliberately NOT `[data-audit=\"admin\"] *` (used to match here) — that false-positive-matched the WORKSPACES tile's own description text ('Organizations, members, invitations...'), which renders regardless of whether the real Organizations CARD does; this used to pass even when the card was entirely missing from the Sources view. `.cl-admin-platecard-title` (new, additive className on PlateCard's own title span — AdminDashboard.tsx) targets only the actual card heading; count:1 because this Sources view mounts exactly one PlateCard (Organizations)."
+      "name": "region 3, the SOURCES · PROVISIONAL REVIEW card exists, exactly one, and is the Sources body",
+      "selector": "[data-audit=\"provisional-card\"]",
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "region 4 — rail, Issues queue card",
-      "selector": "[data-audit=\"admin\"] *",
-      "expect": {},
+      "name": "region 3a, card head carries the artboard's title verbatim",
+      "selector": "[data-audit=\"provisional-head\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Sources · provisional review"
+    },
+    {
+      "name": "region 3b, card head's right meta is the artboard's line (count is live, the rest verbatim)",
+      "selector": "[data-audit=\"provisional-head\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "pending · approve, reject or re-tier on the row"
+    },
+    {
+      "name": "region 3e, every row carries its own Approve action (DP-1: every action on a source is on its row)",
+      "selector": "[data-audit=\"provisional-card\"] button",
+      "expect": {
+        "count": "4"
+      },
+      "textMatch": "Approve"
+    },
+    {
+      "name": "region 3f, every row carries the trailing overflow control, a 44px hit target",
+      "selector": "[data-audit=\"provisional-card\"] button[aria-haspopup=\"menu\"]",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "count": "4"
+      }
+    },
+    {
+      "name": "region 4, legend foot, the artboard's sentence verbatim",
+      "selector": "[data-audit=\"provisional-foot\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Approve = registry · Reject = archived with reason · Re-tier = stays provisional"
+    },
+    {
+      "name": "region 5, pipeline state note at the card foot",
+      "selector": "[data-audit=\"provisional-note\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Pipeline"
+    },
+    {
+      "name": "region 6, Organizations card, stacked directly below the provisional card",
+      "selector": "[data-audit=\"admin\"] .cl-admin-platecard-title",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Organizations"
+    },
+    {
+      "name": "region 7, rail, Issues queue card first",
+      "selector": "[data-audit=\"admin\"] h2",
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Issues queue"
+    },
+    {
+      "name": "region 8, rail, the Companies/Individuals/Newest join/Active-this-month card",
+      "selector": "[data-audit=\"admin-usage-rail\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Companies"
+    },
+    {
+      "name": "region 8a, that rail card mounts BEFORE the read-only-controls card (rail order)",
+      "selector": "[data-audit=\"admin-usage-rail\"] ~ [data-audit=\"admin-readonly-controls\"]",
+      "expect": {
+        "count": "1"
+      },
+      "note": "Sibling combinator: matches only when the usage card's DOM node precedes the controls card. Placement check, not a style check."
+    },
+    {
+      "name": "region 9, rail, Read-only controls explainer, the artboard's sentence verbatim",
+      "selector": "[data-audit=\"admin-readonly-controls\"]",
+      "expect": {
+        "count": "1"
+      },
+      "textMatch": "Platform-wide settings. Per-org settings (members, billing) live on each org owner"
     }
   ],
   "forbid": [
@@ -47,6 +139,35 @@
       "selector": "[data-audit=\"admin\"] button",
       "textMatch": "Ask AI",
       "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+    },
+    {
+      "name": "no 'Source Intelligence' module header in the provisional region",
+      "selector": "[data-audit=\"admin\"] h2",
+      "textMatch": "Source Intelligence",
+      "reason": "dc.html p13's Sources body is one card headed 'Sources · provisional review'. The module header belonged to SourceHealthDashboard's registry chrome and is not drawn for this region."
+    },
+    {
+      "name": "no Source Tiers legend block in the provisional region",
+      "selector": "[data-audit=\"admin\"] p",
+      "textMatch": "Source Tiers",
+      "reason": "Not in the artboard for this region; it is registry-view chrome."
+    },
+    {
+      "name": "no SECOND tab bar inside the Sources body",
+      "selector": "[data-audit=\"admin\"] button",
+      "textMatch": "Canonical Source Issues",
+      "reason": "The artboard has exactly one sub-tab row for this page. SourceHealthDashboard's own Registry/Health/Provisional/Canonical/... bar was a second one stacked under it."
+    },
+    {
+      "name": "no per-region source search input",
+      "selector": "[data-audit=\"admin\"] input[placeholder=\"Search sources...\"]",
+      "reason": "The masthead command bar is the only search surface on this page (ruling 2.2's sibling: no per-page ask or search panel)."
+    },
+    {
+      "name": "no literal UNSCORED anywhere (ruling 2.1)",
+      "selector": "[data-audit=\"admin\"] *",
+      "textMatch": "UNSCORED",
+      "reason": "Absence renders a reason from the fixed vocabulary, never the word UNSCORED."
     }
   ]
 }

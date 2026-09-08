@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T02:14:53.525Z",
+  "runAt": "2026-09-08T04:44:24.492Z",
   "specs": [
     {
       "part": "Absence",
@@ -733,181 +733,165 @@
       "__id": "community-table"
     },
     {
-      "part": "Page composition — Map (10)",
-      "mount": "compose-map",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "mount": "compose-02-regulations",
       "viewport": 1440,
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "notes": [
-        "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + MapPageView, all real components, mounted with populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-map'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-        "Artboard order top to bottom: Masthead (VOL line, REGULATORY MAP title, dek, page-scoped command bar) -> Mode/Band/Region filter row (ABOVE the map, not beside it — operator audit item, closed) -> Regulatory map card (map canvas + in-card KEY legend) -> Jurisdiction register card (table: JURISDICTION / ACTIVE THEMES / HIGHEST BAND / ITEMS, one ListRow per jurisdiction) -> Immediate strip foot -> rail: Immediate jurisdictions card, Coverage gaps card, Legend card, in that order alongside the two left-column cards (not below them).",
-        "Command bar placeholder is page-scoped: 'Search a jurisdiction — or ask \"where are my immediate items?\"' (dc.html p10 exact text) — this lane added the missing `placeholder` prop to src/app/map/page.tsx's Masthead call; before this lane it fell back to the generic 'Search or ask across N items…' copy.",
-        "The KEY box's fixture rows are limited to the mount's fixture data (6 resources across 4 jurisdictions) — the artboard shows 7 jurisdictions / 976 items from example data, never shipped (README: sample data in the mock is never shipped)."
+        "The pre-existing list-surface.json spec measures ListSurfaceShell/ListSurfaceRailCards in isolation via the 'list-surface-1440' mount (a minimal fixture: one facetGroup, no sortRow, no topic/tier). This spec measures the REAL RegulationsLedger composition (24-row fixture, matching capture-compose-lists-screenshots.mjs), so the sort row, the Topic/Source-tier facets, and the rail's actual top-to-bottom order are all exercised end to end.",
+        "Fixture is invented sample data with the real shape (same helper as the evidence screenshot); the audit asserts geometry/placement/labels, never fixture values.",
+        "The Filters rail card sits ABOVE the Legend rail card (p2's own top-to-bottom rail order) — asserted via a DOM-order sibling-combinator selector, since 'present but in the wrong place' was the exact original defect, not mere absence."
       ],
-      "selector": "[data-audit=\"map\"]",
+      "selector": "[data-audit=\"filters-rail\"]",
       "expect": {
-        "count": "1"
+        "display": "block"
       },
       "children": [
         {
-          "name": "region 1 — Masthead title 'Regulatory map'",
-          "selector": "[data-audit=\"map\"] h1, [data-audit=\"map\"] [class*=masthead] p, [data-audit=\"map\"] div div p",
-          "expect": {},
-          "note": "Checked precisely by the command-bar placeholder target below and by direct screenshot comparison — Masthead's own title element carries no stable hook here, so this row is evidence-only."
-        },
-        {
-          "name": "region 1a — command bar page-scoped placeholder (dc.html p10 exact text)",
-          "selector": "[data-audit=\"map\"] input[placeholder^=\"Search a jurisdiction\"]",
+          "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
+          "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check.",
           "expect": {
-            "count": "1"
+            "display": "block"
           }
         },
         {
-          "name": "region 2 — filter row (Mode/Band/Region) comes before the map card",
-          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] > div:first-child",
-          "expect": {},
-          "note": "Mode/Band/Region FilterChipGroups — presence + position (first child of the content column, above the map card) is what artboard 10 requires; the operator's audit item named filters landing beside content on other pages as the defect this checks against."
+          "name": "Filters rail card carries checkbox rows (not chip pills) for every facet group",
+          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+          "expect": {}
         },
         {
-          "name": "region 3 — Regulatory map card canvas",
-          "selector": "[data-audit=\"map\"] [data-testid=\"map-canvas\"]",
+          "name": "Filters rail card's facet groups include Topic (p2 rail: MODE / JURISDICTION / TOPIC / SOURCE TIER)",
+          "selector": "[data-audit=\"filters-rail\"] p",
+          "textMatch": "Topic",
+          "note": "Text-presence check narrowed to the group-heading paragraphs: confirms RegulationsLedger's facetGroups array actually includes the Topic group, not just Mode/Jurisdiction.",
           "expect": {
-            "count": "1"
+            "display": "block"
           }
         },
         {
-          "name": "region 4 — Jurisdiction register rows, after the map card",
-          "selector": "[data-audit=\"map\"] [data-testid=\"jurisdiction-register-rows\"]",
+          "name": "Filters rail card's facet groups include Source tier",
+          "selector": "[data-audit=\"filters-rail\"] p",
+          "textMatch": "Source tier",
           "expect": {
-            "count": "1"
+            "display": "block"
           }
         },
         {
-          "name": "region 5 — rail, Immediate jurisdictions card first",
-          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
-          "expect": {},
-          "textMatch": "Immediate ·"
+          "name": "Sort/count row renders above the rows, with the count + 'grouped by band'/flat-toggle text and Sort control",
+          "selector": "[data-audit=\"sort-row\"]",
+          "expect": {
+            "display": "flex"
+          }
         },
         {
-          "name": "region 6 — rail, Coverage gaps card second",
-          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
-          "expect": {},
-          "textMatch": "Coverage gaps"
-        },
-        {
-          "name": "region 7 — rail, Legend card third and last",
-          "selector": "[data-audit=\"map\"] [data-testid=\"map-register-column\"] ~ div p",
-          "expect": {},
-          "textMatch": "Legend"
+          "name": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
+          "selector": "[data-audit=\"sort-row\"] button",
+          "textMatch": "My order",
+          "expect": {
+            "display": "block"
+          }
         }
       ],
       "forbid": [
         {
-          "name": "no floating Ask AI button (ruling 2.2)",
-          "selector": "[data-audit=\"map\"] button",
-          "textMatch": "Ask AI",
-          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation."
+          "name": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
+          "selector": ".cl-facets-desktop",
+          "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
         },
         {
-          "name": "no second per-page ask/search bar (README §0.3)",
-          "selector": "[data-audit=\"map\"] input[type=\"search\"]",
-          "reason": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input.",
-          "note": "Presence-only forbid; MapPageView's own filter chips are buttons, not inputs, so this never legitimately matches."
+          "name": "the literal word UNSCORED anywhere in a row",
+          "selector": "body",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
         }
       ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-10-map.json",
-      "__id": "compose-10-map"
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-02-regulations-list.json",
+      "__id": "compose-02-regulations-list"
     },
     {
-      "part": "Page composition — Community (12)",
-      "mount": "compose-community",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "mount": "compose-04-market",
       "viewport": 1440,
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "notes": [
-        "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + CommunityRooms, real components, populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-community'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-        "Artboard order top to bottom: Masthead (VOL line, COMMUNITY title, dek, page-scoped command bar) -> 'Regional rooms' section (aside stat line) -> room tile grid, FIXED 4 columns (dc.html: grid-template-columns:repeat(4,1fr)), 7 room tiles + a dashed '+ New vertical group' tile as the grid's own 8th slot -> selected-room panel (GLOBAL header, Live-in-region ledger, Discussions card with composer + thread rows, foot) -> rail: Who's here, Why post here, Verifier sign-off, Vertical groups, in that order.",
-        "This lane fixed two real defects here: the room-tile grid used `repeat(auto-fit,minmax(165px,1fr))` (6 columns at 1440px, truncating theme text) instead of the artboard's fixed `repeat(4,1fr)`; and the dashed '+ New vertical group' tile — part of the SAME grid in the artboard — did not exist in the room grid at all (only a same-named trigger in the rail's Vertical groups card, kept, same handler reused).",
-        "Command bar placeholder is page-scoped: 'Search posts, groups, members — or ask \"what did the EU room flag this week?\"' (dc.html p12 exact text) — previously missing (generic 'Search or ask across N items…' fallback)."
+        "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
+        "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
+        "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage."
       ],
-      "selector": "[data-audit=\"community\"]",
+      "selector": "[data-audit=\"filters-rail\"]",
       "expect": {
-        "count": "1"
+        "display": "block"
       },
       "children": [
         {
-          "name": "region 1 — command bar page-scoped placeholder (dc.html p12 exact text)",
-          "selector": "[data-audit=\"community\"] input[placeholder^=\"Search posts, groups, members\"]",
+          "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
           "expect": {
-            "count": "1"
+            "display": "block"
           }
         },
         {
-          "name": "region 2 — 'Regional rooms' section heading",
-          "selector": "[data-audit=\"community\"] h2",
-          "expect": {},
-          "textMatch": "Regional rooms"
-        },
-        {
-          "name": "region 3 — room tile grid is fixed 4 columns, not auto-fit",
-          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
+          "name": "Headline Series card is embedded in the content column (mounts, with the ruling-5.1 SectionRule as its first child)",
+          "selector": "[data-audit=\"headline-series\"] .cl-section-rule",
+          "note": "Presence of the SectionRule inside the headline-series card confirms the embedded=true path (card chrome, ruling 5.1), not the old standalone full-bleed section (which never set data-audit or mounted a SectionRule).",
           "expect": {
-            "count": "1"
+            "height": "3px"
           }
         },
         {
-          "name": "region 3a — '+ New vertical group' dashed tile is the grid's own 8th cell",
-          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] button",
-          "expect": {},
-          "textMatch": "New vertical group"
+          "name": "Headline Series card title reads 'Headline series' (artboard copy, not the file's own 'Comparative ribbon' identity)",
+          "selector": "[data-audit=\"headline-series\"] h2",
+          "expect": {
+            "text": "Headline series"
+          }
         },
         {
-          "name": "region 4 — selected-room 'Discussions' card, after the tile grid",
-          "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] ~ div",
-          "expect": {},
-          "textMatch": "Discussions ·"
+          "name": "Headline Series card mounts before the Sort row (p4 order: band tiles, Headline Series, Sort row, rows)",
+          "selector": "[data-audit=\"headline-series\"] ~ [data-audit=\"sort-row\"]",
+          "note": "Sibling-combinator selector only matches when headline-series precedes sort-row in the DOM.",
+          "expect": {
+            "display": "flex"
+          }
         },
         {
-          "name": "region 5 — rail, 'Who's here' card",
-          "selector": "[data-audit=\"community\"] p",
-          "expect": {},
-          "textMatch": "here ·"
-        },
-        {
-          "name": "region 6 — rail, 'Verifier sign-off' card",
-          "selector": "[data-audit=\"community\"] p",
-          "expect": {},
-          "textMatch": "Verifier sign-off"
-        },
-        {
-          "name": "region 7 — rail, 'Vertical groups' card, last",
-          "selector": "[data-audit=\"community\"] p",
-          "expect": {},
-          "textMatch": "Vertical groups"
+          "name": "Sort/count row renders above the rows",
+          "selector": "[data-audit=\"sort-row\"]",
+          "expect": {
+            "display": "flex"
+          }
         }
       ],
       "forbid": [
         {
-          "name": "no floating Ask AI button (ruling 2.2)",
-          "selector": "[data-audit=\"community\"] button",
-          "textMatch": "Ask AI",
-          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+          "name": "no content-column facet chip strip above the rows (the original defect)",
+          "selector": ".cl-facets-desktop",
+          "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
         },
         {
-          "name": "no second per-page ask/search bar (README §0.3)",
-          "selector": "[data-audit=\"community\"] input[type=\"search\"]",
-          "reason": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
+          "name": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
+          "selector": "[data-audit=\"headline-series\"] h2",
+          "textMatch": "Comparative ribbon",
+          "reason": "Artboard 04/id=\"p4\" titles this card 'HEADLINE SERIES'. 'Comparative ribbon' is the component/file's own internal identity, kept as the export name but never the rendered copy."
+        },
+        {
+          "name": "the literal word UNSCORED anywhere in a row",
+          "selector": "body",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
         }
       ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-12-community.json",
-      "__id": "compose-12-community"
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json",
+      "__id": "compose-04-market-list"
     },
     {
-      "part": "Page composition — Admin (13)",
+      "part": "Page composition, Admin (13)",
       "mount": "compose-admin",
       "viewport": 1440,
       "artboards": [
@@ -915,12 +899,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
       "notes": [
-        "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-        "Artboard order: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED (bordered, no shadow) -> breadcrumb strip ('Admin / <selected section>') -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the provisional-review table -> Organizations section -> rail: Issues queue, Companies/Individuals/Newest join/Active this month tiles, read-only-controls note.",
-        "This lane fixed three real defects: (1) AdminDashboard defaulted to Workspaces/Organizations, not the artboard's default Sources/Provisional-review landing state — fixed by changing the initial section/sub state. (2) The Sources tab order was [Source registry, Provisional review, ...]; dc.html p13 lists Provisional review first — reordered. Also wired AdminDashboard to sync SourceHealthDashboard's own internal `activeView` (a zustand-store field the component never previously received from its caller, despite AdminDashboard's own comment claiming 'the sub-tab scopes the operator's intent') so picking 'Provisional review' actually opens SourceHealthDashboard's Provisional tab instead of always landing on Registry. (3) An ORGANIZATIONS card (PlateCard + OrganizationsTable) used to render ONLY under the Workspaces section — dc.html p13's own Sources/Provisional-review default view shows it stacked directly below the Sources table too; added a second render site in the Sources branch (same components, not a fork). This was caught only after a capture-script fix (see the next note) revealed the true render — this spec's region-3 check used to false-positive-match the WORKSPACES tile's own description text ('Organizations, members, invitations...'), which is present regardless, masking the missing card entirely; region 3 below now selects the actual `ORGANIZATIONS` card heading, not any element containing the word.",
-        "capture-compose-page.mjs fix (lane compose-other, 2026-09-08): AppShell's frame is `height:100vh` with its OWN internal scroll — the document body never grows past the viewport, so the capture script's original `page.screenshot({fullPage:true})` silently truncated any mount whose real content exceeds the 1400px viewport (Playwright's fullPage measures body scroll height, which never changes here). This admin mount's real content is 1665px tall; the truncated first capture cut off the Organizations card entirely, and the region-3 spec check below happened to still pass by matching stray 'Organizations' text elsewhere on the visible (truncated) page — a screenshot bug masking a real composition bug. Fixed the capture script to measure the mounted `[data-audit]` element's actual height and grow the viewport to fit before shooting (no longer `fullPage`, since the grown viewport already contains everything).",
-        "NOT FIXED, logged instead (DEVIATION-LOG 2026-09-08): SourceHealthDashboard itself — the component the Provisional-review tab renders — is a much larger, differently-composed surface than dc.html p13's simple 'SOURCES · PROVISIONAL REVIEW' table (SOURCE/TIER/STATUS/DISCOVERED columns, one Approve button per row). The shipped component renders its own 'Source Intelligence' header, a B.2 regeneration-progress bar, a Source Tiers legend block, a T1-T7 tile grid, and its own second Registry/Health/Provisional/Canonical/Intersections/Themes/Obligations tab bar — none of which the artboard shows for this region. Rebuilding SourceHealthDashboard's Provisional view to match the artboard is a component-level effort (the surface is shared beyond this one entry point) out of this page-composition pass's reach; this spec does not assert a fabricated match for that region's content, only for what the mount actually renders identically to the artboard (masthead, tile grid, tab selection/order, Organizations section, rail).",
-        "OrganizationsTable — no artboard region (fix58-account's own 2026-09-07 DEVIATION-LOG entry already established this; unaudited, left as-is, listed again here for this lane's own record)."
+        "Region-composition check for the full page: AppShell + the real AdminDashboard (its own internal Masthead), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-admin'], no live Supabase project reachable in this sandbox (DEVIATION-LOG.md). The mount now seeds dc.html p13's own four provisional rows as real ProvisionalSource records, so the default landing region renders with data rather than its empty state.",
+        "Artboard order, top to bottom: Masthead -> 8-tile stat grid (Workspaces/Sources/Ingest/Coverage/Research pipeline/Community pickups/Runtime/Emission factors), Sources tile SELECTED -> Sources sub-tab bar, 'Provisional review' FIRST and active -> the SOURCES · PROVISIONAL REVIEW card (head, SOURCE/TIER/STATUS/DISCOVERED table with a per-row Approve and the trailing overflow, legend foot, pipeline note) -> Organizations card. Rail, top to bottom: Issues queue, the Companies/Individuals/Newest join/Active-this-month card, Read-only controls.",
+        "Lane comp-admin (2026-09-08) closed the region the previous pass logged as NOT FIXED: SourceHealthDashboard's Provisional view rendered a 'Source Intelligence' module (its own header, a B.2 progress bar, a Source Tiers legend, a T1-T7 tile grid, a SECOND tab bar, a source search) where the artboard draws one table card. That view is now the artboard's card, built from the shared parts (SectionRule + the new shared ui/RowTable + TierChip + StateNote + Absence); the module's other views (registry/health/canonical/intersections/themes/obligations), which have no artboard, are untouched. The forbid list below is what stops the old composition coming back.",
+        "Actions stay real: Approve/Reject/Re-tier all POST /api/admin/sources/promote, the endpoint the review flow already owned (approve/reject/defer). 'Re-tier = stays provisional' is the artboard's own legend and is exactly what decision 'defer' does, there is no in-place tier write for a provisional row (commit-tier-change returns 409 for kind:\"provisional\").",
+        "Two artboard details are deliberately NOT asserted, both logged in DEVIATION-LOG.md 2026-09-08: the foot's 'All 489 provisional' LINK (the built card is the whole queue, so a link to a fuller list would be a dead control, ruling 1.1, and the text renders the live count instead), and the rail's 'Export queue' button (no queue-export endpoint exists anywhere under src/app/api/admin/; not drawn dead, not invented).",
+        "Also NOT asserted, logged: the artboard puts the Sources sub-tab row INSIDE the card head; the build keeps AdminDashboard's one sub-nav above the card, because that row is shared by all seven admin sections and moving it inside is a page-shell restructure beyond this pass.",
+        "OrganizationsTable's own row anatomy is still its pre-handoff one (fix58-account's 2026-09-07 DEVIATION-LOG entry left it as-is); region 6 asserts the card is present and in place, not its internals."
       ],
       "selector": "[data-audit=\"admin\"]",
       "expect": {
@@ -928,31 +913,116 @@
       },
       "children": [
         {
-          "name": "region 1 — 8-tile stat grid present",
+          "name": "region 1, 8-tile stat grid present",
           "selector": "[data-audit=\"admin\"] .cl-admin-stat-tile",
-          "expect": {},
+          "expect": {
+            "count": "1"
+          },
           "textMatch": "Workspaces"
         },
         {
-          "name": "region 2 — Sources sub-tab bar, 'Provisional review' first and active",
-          "selector": "[data-audit=\"admin\"] button, [data-audit=\"admin\"] div",
-          "expect": {},
+          "name": "region 2, Sources sub-tab bar, 'Provisional review' first and active",
+          "selector": "[data-audit=\"admin\"] button[role=\"tab\"]",
+          "expect": {
+            "count": "1"
+          },
           "textMatch": "Provisional review"
         },
         {
-          "name": "region 3 — Organizations card, stacked directly below the Sources tab body",
+          "name": "region 3, the SOURCES · PROVISIONAL REVIEW card exists, exactly one, and is the Sources body",
+          "selector": "[data-audit=\"provisional-card\"]",
+          "expect": {
+            "count": "1"
+          }
+        },
+        {
+          "name": "region 3a, card head carries the artboard's title verbatim",
+          "selector": "[data-audit=\"provisional-head\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "Sources · provisional review"
+        },
+        {
+          "name": "region 3b, card head's right meta is the artboard's line (count is live, the rest verbatim)",
+          "selector": "[data-audit=\"provisional-head\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "pending · approve, reject or re-tier on the row"
+        },
+        {
+          "name": "region 3e, every row carries its own Approve action (DP-1: every action on a source is on its row)",
+          "selector": "[data-audit=\"provisional-card\"] button",
+          "expect": {
+            "count": "4"
+          },
+          "textMatch": "Approve"
+        },
+        {
+          "name": "region 3f, every row carries the trailing overflow control, a 44px hit target",
+          "selector": "[data-audit=\"provisional-card\"] button[aria-haspopup=\"menu\"]",
+          "expect": {
+            "width": "44px",
+            "height": "44px",
+            "count": "4"
+          }
+        },
+        {
+          "name": "region 4, legend foot, the artboard's sentence verbatim",
+          "selector": "[data-audit=\"provisional-foot\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "Approve = registry · Reject = archived with reason · Re-tier = stays provisional"
+        },
+        {
+          "name": "region 5, pipeline state note at the card foot",
+          "selector": "[data-audit=\"provisional-note\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "Pipeline"
+        },
+        {
+          "name": "region 6, Organizations card, stacked directly below the provisional card",
           "selector": "[data-audit=\"admin\"] .cl-admin-platecard-title",
           "expect": {
             "count": "1"
           },
-          "textMatch": "Organizations",
-          "note": "Deliberately NOT `[data-audit=\"admin\"] *` (used to match here) — that false-positive-matched the WORKSPACES tile's own description text ('Organizations, members, invitations...'), which renders regardless of whether the real Organizations CARD does; this used to pass even when the card was entirely missing from the Sources view. `.cl-admin-platecard-title` (new, additive className on PlateCard's own title span — AdminDashboard.tsx) targets only the actual card heading; count:1 because this Sources view mounts exactly one PlateCard (Organizations)."
+          "textMatch": "Organizations"
         },
         {
-          "name": "region 4 — rail, Issues queue card",
-          "selector": "[data-audit=\"admin\"] *",
-          "expect": {},
+          "name": "region 7, rail, Issues queue card first",
+          "selector": "[data-audit=\"admin\"] h2",
+          "expect": {
+            "count": "1"
+          },
           "textMatch": "Issues queue"
+        },
+        {
+          "name": "region 8, rail, the Companies/Individuals/Newest join/Active-this-month card",
+          "selector": "[data-audit=\"admin-usage-rail\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "Companies"
+        },
+        {
+          "name": "region 8a, that rail card mounts BEFORE the read-only-controls card (rail order)",
+          "selector": "[data-audit=\"admin-usage-rail\"] ~ [data-audit=\"admin-readonly-controls\"]",
+          "expect": {
+            "count": "1"
+          },
+          "note": "Sibling combinator: matches only when the usage card's DOM node precedes the controls card. Placement check, not a style check."
+        },
+        {
+          "name": "region 9, rail, Read-only controls explainer, the artboard's sentence verbatim",
+          "selector": "[data-audit=\"admin-readonly-controls\"]",
+          "expect": {
+            "count": "1"
+          },
+          "textMatch": "Platform-wide settings. Per-org settings (members, billing) live on each org owner"
         }
       ],
       "forbid": [
@@ -961,85 +1031,39 @@
           "selector": "[data-audit=\"admin\"] button",
           "textMatch": "Ask AI",
           "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+        },
+        {
+          "name": "no 'Source Intelligence' module header in the provisional region",
+          "selector": "[data-audit=\"admin\"] h2",
+          "textMatch": "Source Intelligence",
+          "reason": "dc.html p13's Sources body is one card headed 'Sources · provisional review'. The module header belonged to SourceHealthDashboard's registry chrome and is not drawn for this region."
+        },
+        {
+          "name": "no Source Tiers legend block in the provisional region",
+          "selector": "[data-audit=\"admin\"] p",
+          "textMatch": "Source Tiers",
+          "reason": "Not in the artboard for this region; it is registry-view chrome."
+        },
+        {
+          "name": "no SECOND tab bar inside the Sources body",
+          "selector": "[data-audit=\"admin\"] button",
+          "textMatch": "Canonical Source Issues",
+          "reason": "The artboard has exactly one sub-tab row for this page. SourceHealthDashboard's own Registry/Health/Provisional/Canonical/... bar was a second one stacked under it."
+        },
+        {
+          "name": "no per-region source search input",
+          "selector": "[data-audit=\"admin\"] input[placeholder=\"Search sources...\"]",
+          "reason": "The masthead command bar is the only search surface on this page (ruling 2.2's sibling: no per-page ask or search panel)."
+        },
+        {
+          "name": "no literal UNSCORED anywhere (ruling 2.1)",
+          "selector": "[data-audit=\"admin\"] *",
+          "textMatch": "UNSCORED",
+          "reason": "Absence renders a reason from the fixed vocabulary, never the word UNSCORED."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-13-admin.json",
       "__id": "compose-13-admin"
-    },
-    {
-      "part": "Page composition — Account (14)",
-      "mount": "compose-account",
-      "viewport": 1440,
-      "artboards": [
-        "14-account"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
-      "notes": [
-        "Region-composition check for the full page: AppShell + the real UserProfilePage (its own internal Masthead + merged tab row), populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-account'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md); this mount's org endpoints (/api/orgs/org-1, /members, /invitations) are mocked with dc.html p14's own illustrated fixture (2 members, both Owner; Dietl / Rockit, enterprise plan) instead.",
-        "Artboard order: Masthead -> merged 8-entry tab row (Personal/Organization/Members & roles·2/Sector profile·6/Jurisdictions·30/Verifier badge/Activity/Settings) -> 2-column grid (content 1fr / 300px rail) -> left column: Members & roles card THEN Organization card stacked directly below it (dc.html's own illustrated tab is Members & roles, not Personal) -> rail: 2x2 stat grid (Sectors followed/Home jurisdictions/Member since/Plan) -> Admin card (owner/admin only) -> Quick links card (Dashboard / Settings / Watchlist, 3 items).",
-        "This lane fixed four real defects: (1) the page used to render a single-column layout — an owner-banner strip above a `repeat(4,1fr)` stat row above the tab body, no rail — replaced with dc.html's own 2-column grid (minmax(0,1fr) 300px) with the stat grid / Admin card / Quick links card as a RAIL persistent across every tab, not stacked above the content in one column. (2) The rail's 4th stat tile used to be a conditional 'Admin attention'/'Account role' tile; dc.html's 4th tile is 'Plan' (org billing plan) — added an `organizations.plan` read and swapped the tile. (3) QuickLinksRail (persistent in the rail now) used to duplicate itself inside the Personal tab's own body AND carried 5-6 two-line entries (Dashboard/Regulations/Market intel/Map/Settings/Admin panel) that dc.html does not show; fixed to dc.html's own exact 3 single-line links (Dashboard / Settings · notifications, briefing schedule / Watchlist), rendered once, persistently, in the rail only. (4) The Members & roles tab used to render only MembersPanel; dc.html p14 illustrates Organization stacked directly below it on that same tab (Organization keeps its own separate tab too, unaffected) — added.",
-        "Not a composition defect, left as the real page's own behavior: the Masthead's dateLabel here is computed from the live current date (Intl formatLocaleDate(new Date())), not a passed-in fixture string like Map/Community/Admin's mounts use — UserProfilePage.tsx has never taken a dateLabel prop, unlike AdminDashboard; changing that is a component-level decision outside this composition-only pass, and the visual difference (today's real weekday/date vs the artboard's fixed 'Sunday 6 September 2026') is expected and not asserted by this spec."
-      ],
-      "selector": "[data-audit=\"account\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — merged tab row, Members & roles present with count",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Members & roles"
-        },
-        {
-          "name": "region 2 — Members & roles card body",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Members & roles"
-        },
-        {
-          "name": "region 3 — Organization card stacked below Members & roles on the same tab",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Organization"
-        },
-        {
-          "name": "region 4 — rail 2x2 stat grid, Plan tile present",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Plan"
-        },
-        {
-          "name": "region 5 — rail Admin card",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Open admin"
-        },
-        {
-          "name": "region 6 — rail Quick links card, exactly 3 links",
-          "selector": "[data-audit=\"account\"] *",
-          "expect": {},
-          "textMatch": "Quick links"
-        },
-        {
-          "name": "region 6b — Quick links has exactly 3 entries (Dashboard / Settings / Watchlist), no duplicate elsewhere",
-          "selector": "[data-audit=\"account\"] a[href=\"/\"]",
-          "expect": {
-            "count": "1"
-          },
-          "note": "Dashboard's own '/' link — used to appear twice (once in the Personal-tab-local QuickLinksRail, once in the rail's persistent one) before this lane deduplicated it."
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no floating Ask AI button (ruling 2.2)",
-          "selector": "[data-audit=\"account\"] button",
-          "textMatch": "Ask AI",
-          "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-14-account.json",
-      "__id": "compose-14-account"
     },
     {
       "part": "Page composition — Settings (15)",
@@ -1114,148 +1138,6 @@
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-15-settings.json",
       "__id": "compose-15-settings"
-    },
-    {
-      "part": "Page composition — Auth (16): /login, /signup",
-      "mount": "compose-login",
-      "viewport": 1440,
-      "artboards": [
-        "16-auth"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
-      "notes": [
-        "Region-composition check for /login (the primary illustrated state on the artboard, 'Sign in' tab active). Full page: the real LoginPage (src/app/login/page.tsx) inside AuthFrame — no AppShell/Sidebar, matching the artboard's own full-1440px split-screen frame (left identity panel / right form panel), no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-        "This lane found NO composition defects on this page — it was already built carefully by a prior lane (AuthFrame.tsx/AuthPanel.tsx/LoginPage.tsx headers), including correctly-reasoned, already-logged deviations from the artboard's own placeholder content: the artboard's headline ('What is binding on you, when it bites, and what it costs.') and its fabricated '1,434 items...' copy are explicitly marked placeholder in README ('Fidelity') and are not shipped (CLAUDE.md rule 2, never fabricate numbers) — the real tagline + the real BAND_ORDER urgency-band scale render in that slot instead, both real vocabulary. The artboard's 'Keep me signed in' checkbox is not built because src/lib/supabase-browser.ts's client has no session-only mode wired and that file is outside this lane's write set (logged). This spec exists to LOCK this already-correct composition in place, not to fix anything.",
-        "This lane's own mount infrastructure needed one fix to render /signup at all: SignupPage.tsx calls `supabase.auth.getUser()` on mount to redirect an already-signed-in visitor away, which the pre-existing generic stub-supabase-browser.mjs (deliberately 'fake-but-authenticated' for OTHER mounts' click-fires-callback proofs) has no `getUser` method for at all — threw, blanking the whole mount. New stub-supabase-browser-auth.mjs (signed-out steady state: getSession/getUser both resolve null) used by both compose-login and compose-signup instead; the generic stub is untouched, so every mount that already depends on its authenticated shape is unaffected."
-      ],
-      "selector": "[data-audit=\"login\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — identity panel: brand name + tagline",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Caro's Ledge"
-        },
-        {
-          "name": "region 2 — identity panel: urgency band scale (real vocabulary, not the artboard's placeholder headline)",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Every item, one of four urgency bands"
-        },
-        {
-          "name": "region 3 — Sign in / Create account tabs, Sign in active",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Create account"
-        },
-        {
-          "name": "region 4 — Work email + Password fields",
-          "selector": "[data-audit=\"login\"] input[type=\"password\"]",
-          "expect": {
-            "count": "1"
-          }
-        },
-        {
-          "name": "region 5 — Forgot password link + Sign in button",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Forgot password?"
-        },
-        {
-          "name": "region 6 — magic link button below the divider",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Continue with a magic link"
-        },
-        {
-          "name": "region 7 — invitation note",
-          "selector": "[data-audit=\"login\"] *",
-          "expect": {},
-          "textMatch": "Invited to a workspace?"
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no floating Ask AI button — auth pages are logged out, no assistant surface",
-          "selector": "[data-audit=\"login\"] button",
-          "textMatch": "Ask AI",
-          "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-16-auth.json",
-      "__id": "compose-16-auth"
-    },
-    {
-      "part": "Page composition — Onboarding (17)",
-      "mount": "compose-onboarding",
-      "viewport": 1440,
-      "artboards": [
-        "17-onboarding"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
-      "notes": [
-        "Region-composition check for the real OnboardingWizard (its own `step` state defaults to 2, 'Modes & jurisdictions' — the artboard's own illustrated step, no forced navigation needed) inside AuthFrame, populated fixture aggregates via .discipline/rendering/audit/mounts.mjs['compose-onboarding'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
-        "This lane found NO composition defects — the wizard was already built carefully by a prior lane (OnboardingWizard.tsx's own header explains the 5→4-step replacement and every deviation, already logged). Artboard order confirmed present and in order: 4-pill stepper (Workspace done / Modes & jurisdictions active / Sectors / Briefing) -> 'Where do you move freight?' heading + scope copy -> Modes chip row -> Home jurisdictions chip grid + '+N more' -> Preview·your workspace today 4-tile band strip -> Skip for now / Continue → Sectors footer.",
-        "Step 4 'Briefing' has no artboard yet (operator ruling, dispatch instruction) — out of this mount's and this lane's scope, left as built.",
-        "This lane's own mount needed one infrastructure fix to show real counts: OnboardingWizard.tsx's profile-prefill effect awaits `supabase.from(\"profiles\")...` unconditionally on mount; the compose-login/signup `stub-supabase-browser-auth.mjs` (reused here) had no `.from` at all, which threw inside the effect before `setLoadingProfile(false)` ran, leaving the step-2 preview tiles stuck on their loading skeleton forever regardless of the `aggregates` fixture prop. Added the same empty-row `.from` shape the generic stub already carries — additive, does not change stub-supabase-browser-auth.mjs's signed-out `.auth` contract that /login and /signup depend on."
-      ],
-      "selector": "[data-audit=\"onboarding\"]",
-      "expect": {
-        "count": "1"
-      },
-      "children": [
-        {
-          "name": "region 1 — 4-pill stepper, Modes & jurisdictions active",
-          "selector": "[data-audit=\"onboarding\"] *",
-          "expect": {},
-          "textMatch": "Modes & jurisdictions"
-        },
-        {
-          "name": "region 2 — heading",
-          "selector": "[data-audit=\"onboarding\"] h1",
-          "expect": {
-            "count": "1"
-          },
-          "textMatch": "Where do you move freight?"
-        },
-        {
-          "name": "region 3 — Modes chip row",
-          "selector": "[data-audit=\"onboarding\"] button",
-          "expect": {},
-          "textMatch": "Ocean"
-        },
-        {
-          "name": "region 4 — Home jurisdictions chip grid",
-          "selector": "[data-audit=\"onboarding\"] *",
-          "expect": {},
-          "textMatch": "more jurisdictions"
-        },
-        {
-          "name": "region 5 — Preview band strip shows real fixture counts, not a stuck loading skeleton",
-          "selector": "[data-audit=\"onboarding\"] *",
-          "expect": {},
-          "textMatch": "611"
-        },
-        {
-          "name": "region 6 — footer: Skip for now / Continue",
-          "selector": "[data-audit=\"onboarding\"] *",
-          "expect": {},
-          "textMatch": "Continue"
-        }
-      ],
-      "forbid": [
-        {
-          "name": "no floating Ask AI button — onboarding renders no AppShell",
-          "selector": "[data-audit=\"onboarding\"] button",
-          "textMatch": "Ask AI",
-          "reason": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
-        }
-      ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-17-onboarding.json",
-      "__id": "compose-17-onboarding"
     },
     {
       "part": "DetailHeader",
@@ -2028,8 +1910,8 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "notes": [
-        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170): both cards now mount `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use. `.cl-facets-desktop` stays the OUTER (unpadded) div's class; its content padding now lives on an inner `<div>` (selector below updated to `.cl-facets-desktop > div`).",
-        "FIXED (fix58-lists, 2026-09-07, B164): the facets card's inner content wrapper is now `padding:'12px 16px 14px'`, matching p2's own stated value exactly.",
+        "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
+        "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
         "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
       ],
       "selector": "[data-audit=\"legend-rail\"] > div",
@@ -2061,23 +1943,29 @@
           }
         },
         {
-          "name": "facets card — padding",
-          "selector": ".cl-facets-desktop > div:last-child",
-          "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more.",
+          "name": "Filters rail card — content padding",
+          "selector": "[data-audit=\"filters-rail\"] > div:last-child",
+          "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
           "expect": {
-            "padding-top": "12px",
+            "padding-top": "14px",
             "padding-right": "16px",
             "padding-bottom": "14px",
             "padding-left": "16px"
           }
         },
         {
-          "name": "facets card — the 3px graduated rule above the card (ruling 5.1)",
-          "selector": ".cl-facets-desktop .cl-section-rule",
-          "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child.",
+          "name": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+          "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
+          "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide.",
           "expect": {
             "height": "3px"
           }
+        },
+        {
+          "name": "Filters rail card — checkbox rows carry live counts, not chip pills",
+          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+          "note": "artboard 02/id=\"p2\" FILTERS card: MODE / JURISDICTION / TOPIC / WORKSPACE TAGS as checkbox lists with right-aligned counts, not the FilterChip pill rendering the content column used to carry.",
+          "expect": {}
         },
         {
           "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
@@ -7150,190 +7038,286 @@
       "note": "General rule (operator 2.1): the literal token never appears anywhere in the product, artboard-covered or not."
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "Page composition — Map (10)",
-      "selector": "[data-audit=\"map\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "region 1a — command bar page-scoped placeholder (dc.html p10 exact text)",
-      "selector": "[data-audit=\"map\"] input[placeholder^=\"Search a jurisdiction\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "The sibling-combinator selector only matches when filters-rail's DOM node precedes legend-rail's — this is the placement check, not a style check."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Filters rail card's facet groups include Topic (p2 rail: MODE / JURISDICTION / TOPIC / SOURCE TIER)",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "Text-presence check narrowed to the group-heading paragraphs: confirms RegulationsLedger's facetGroups array actually includes the Topic group, not just Mode/Jurisdiction."
+    },
+    {
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "02-regulations-list"
+      ],
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
+      "viewport": 1440,
+      "target": "Filters rail card's facet groups include Source tier",
+      "selector": "[data-audit=\"filters-rail\"] p",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "region 3 — Regulatory map card canvas",
-      "selector": "[data-audit=\"map\"] [data-testid=\"map-canvas\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Sort/count row renders above the rows, with the count + 'grouped by band'/flat-toggle text and Sort control",
+      "selector": "[data-audit=\"sort-row\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "region 4 — Jurisdiction register rows, after the map card",
-      "selector": "[data-audit=\"map\"] [data-testid=\"jurisdiction-register-rows\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Sort row carries the real 'My order' option (all four options — Regulations is the one surface with 'My order')",
+      "selector": "[data-audit=\"sort-row\"] button",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "no floating Ask AI button (ruling 2.2)",
-      "selector": "[data-audit=\"map\"] button [text contains \"Ask AI\"]",
+      "target": "no content-column facet chip strip above the rows (the original defect: filters rendered as pill chips in the content column, not the rail)",
+      "selector": ".cl-facets-desktop",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide; a second floating control is a dead-region violation."
+      "note": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' The facet chip strip that used to sit above the row list in the content column is gone; the SAME data now renders as the rail's FiltersRailCard exclusively."
     },
     {
-      "spec": "compose-10-map",
-      "part": "Page composition — Map (10)",
+      "spec": "compose-02-regulations-list",
+      "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "10-map"
+        "02-regulations-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/10-map.png (artboard image is the authority per SETUP); dc.html id=\"p10\"; README screen 10",
+      "source": "dc.html p2 (#p2): masthead, band tiles, 'N regulations · grouped by band · Show as one list' + Sort row, rail (Filters card: MODE/JURISDICTION/TOPIC/SOURCE TIER, then Legend), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') — it measures the COMPOSED page, not a shell primitive fed invented props, so a future regression that puts the facets back in the content column, or drops the sort row, or reorders the rail, is caught here.",
       "viewport": 1440,
-      "target": "no second per-page ask/search bar (README §0.3)",
-      "selector": "[data-audit=\"map\"] input[type=\"search\"]",
+      "target": "the literal word UNSCORED anywhere in a row",
+      "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead CommandBar is the only search/ask surface; a page body carries no second search input."
+      "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product (Absence renders the fixed-vocabulary 'unscored' reason via small-caps CSS on the lowercase word, not the bare uppercase word — textContent reads the real, lowercase, DOM text)."
     },
     {
-      "spec": "compose-12-community",
-      "part": "Page composition — Community (12)",
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
-      "target": "Page composition — Community (12)",
-      "selector": "[data-audit=\"community\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-12-community",
-      "part": "Page composition — Community (12)",
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
-      "target": "region 1 — command bar page-scoped placeholder (dc.html p12 exact text)",
-      "selector": "[data-audit=\"community\"] input[placeholder^=\"Search posts, groups, members\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-12-community",
-      "part": "Page composition — Community (12)",
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
-      "target": "region 3 — room tile grid is fixed 4 columns, not auto-fit",
-      "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
+      "target": "Headline Series card is embedded in the content column (mounts, with the ruling-5.1 SectionRule as its first child)",
+      "selector": "[data-audit=\"headline-series\"] .cl-section-rule",
+      "property": "height",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": "Presence of the SectionRule inside the headline-series card confirms the embedded=true path (card chrome, ruling 5.1), not the old standalone full-bleed section (which never set data-audit or mounted a SectionRule)."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "Headline Series card title reads 'Headline series' (artboard copy, not the file's own 'Comparative ribbon' identity)",
+      "selector": "[data-audit=\"headline-series\"] h2",
+      "property": "text",
+      "expected": "Headline series",
+      "actual": "Headline series",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-12-community",
-      "part": "Page composition — Community (12)",
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
-      "target": "no floating Ask AI button (ruling 2.2)",
-      "selector": "[data-audit=\"community\"] button [text contains \"Ask AI\"]",
+      "target": "Headline Series card mounts before the Sort row (p4 order: band tiles, Headline Series, Sort row, rows)",
+      "selector": "[data-audit=\"headline-series\"] ~ [data-audit=\"sort-row\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": "Sibling-combinator selector only matches when headline-series precedes sort-row in the DOM."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "Sort/count row renders above the rows",
+      "selector": "[data-audit=\"sort-row\"]",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "no content-column facet chip strip above the rows (the original defect)",
+      "selector": ".cl-facets-desktop",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+      "note": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
     },
     {
-      "spec": "compose-12-community",
-      "part": "Page composition — Community (12)",
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
-        "12-community"
+        "04-market-list"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
       "viewport": 1440,
-      "target": "no second per-page ask/search bar (README §0.3)",
-      "selector": "[data-audit=\"community\"] input[type=\"search\"]",
+      "target": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
+      "selector": "[data-audit=\"headline-series\"] h2 [text contains \"Comparative ribbon\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
+      "note": "Artboard 04/id=\"p4\" titles this card 'HEADLINE SERIES'. 'Comparative ribbon' is the component/file's own internal identity, kept as the export name but never the rendered copy."
+    },
+    {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "the literal word UNSCORED anywhere in a row",
+      "selector": "body [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
     },
     {
       "spec": "compose-13-admin",
-      "part": "Page composition — Admin (13)",
+      "part": "Page composition, Admin (13)",
       "artboards": [
         "13-admin"
       ],
       "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
       "viewport": 1440,
-      "target": "Page composition — Admin (13)",
+      "target": "Page composition, Admin (13)",
       "selector": "[data-audit=\"admin\"]",
       "property": "count",
       "expected": "1",
@@ -7343,23 +7327,263 @@
     },
     {
       "spec": "compose-13-admin",
-      "part": "Page composition — Admin (13)",
+      "part": "Page composition, Admin (13)",
       "artboards": [
         "13-admin"
       ],
       "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
       "viewport": 1440,
-      "target": "region 3 — Organizations card, stacked directly below the Sources tab body",
+      "target": "region 1, 8-tile stat grid present",
+      "selector": "[data-audit=\"admin\"] .cl-admin-stat-tile",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 2, Sources sub-tab bar, 'Provisional review' first and active",
+      "selector": "[data-audit=\"admin\"] button[role=\"tab\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3, the SOURCES · PROVISIONAL REVIEW card exists, exactly one, and is the Sources body",
+      "selector": "[data-audit=\"provisional-card\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3a, card head carries the artboard's title verbatim",
+      "selector": "[data-audit=\"provisional-head\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3b, card head's right meta is the artboard's line (count is live, the rest verbatim)",
+      "selector": "[data-audit=\"provisional-head\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3e, every row carries its own Approve action (DP-1: every action on a source is on its row)",
+      "selector": "[data-audit=\"provisional-card\"] button",
+      "property": "count",
+      "expected": "4",
+      "actual": "4",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3f, every row carries the trailing overflow control, a 44px hit target",
+      "selector": "[data-audit=\"provisional-card\"] button[aria-haspopup=\"menu\"]",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3f, every row carries the trailing overflow control, a 44px hit target",
+      "selector": "[data-audit=\"provisional-card\"] button[aria-haspopup=\"menu\"]",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 3f, every row carries the trailing overflow control, a 44px hit target",
+      "selector": "[data-audit=\"provisional-card\"] button[aria-haspopup=\"menu\"]",
+      "property": "count",
+      "expected": "4",
+      "actual": "4",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 4, legend foot, the artboard's sentence verbatim",
+      "selector": "[data-audit=\"provisional-foot\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 5, pipeline state note at the card foot",
+      "selector": "[data-audit=\"provisional-note\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 6, Organizations card, stacked directly below the provisional card",
       "selector": "[data-audit=\"admin\"] .cl-admin-platecard-title",
       "property": "count",
       "expected": "1",
       "actual": "1",
       "status": "MATCH",
-      "note": "Deliberately NOT `[data-audit=\"admin\"] *` (used to match here) — that false-positive-matched the WORKSPACES tile's own description text ('Organizations, members, invitations...'), which renders regardless of whether the real Organizations CARD does; this used to pass even when the card was entirely missing from the Sources view. `.cl-admin-platecard-title` (new, additive className on PlateCard's own title span — AdminDashboard.tsx) targets only the actual card heading; count:1 because this Sources view mounts exactly one PlateCard (Organizations)."
+      "note": null
     },
     {
       "spec": "compose-13-admin",
-      "part": "Page composition — Admin (13)",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 7, rail, Issues queue card first",
+      "selector": "[data-audit=\"admin\"] h2",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 8, rail, the Companies/Individuals/Newest join/Active-this-month card",
+      "selector": "[data-audit=\"admin-usage-rail\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 8a, that rail card mounts BEFORE the read-only-controls card (rail order)",
+      "selector": "[data-audit=\"admin-usage-rail\"] ~ [data-audit=\"admin-readonly-controls\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": "Sibling combinator: matches only when the usage card's DOM node precedes the controls card. Placement check, not a style check."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "region 9, rail, Read-only controls explainer, the artboard's sentence verbatim",
+      "selector": "[data-audit=\"admin-readonly-controls\"]",
+      "property": "count",
+      "expected": "1",
+      "actual": "1",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
       "artboards": [
         "13-admin"
       ],
@@ -7374,52 +7598,84 @@
       "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
     },
     {
-      "spec": "compose-14-account",
-      "part": "Page composition — Account (14)",
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
       "artboards": [
-        "14-account"
+        "13-admin"
       ],
-      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
       "viewport": 1440,
-      "target": "Page composition — Account (14)",
-      "selector": "[data-audit=\"account\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-14-account",
-      "part": "Page composition — Account (14)",
-      "artboards": [
-        "14-account"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
-      "viewport": 1440,
-      "target": "region 6b — Quick links has exactly 3 entries (Dashboard / Settings / Watchlist), no duplicate elsewhere",
-      "selector": "[data-audit=\"account\"] a[href=\"/\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": "Dashboard's own '/' link — used to appear twice (once in the Personal-tab-local QuickLinksRail, once in the rail's persistent one) before this lane deduplicated it."
-    },
-    {
-      "spec": "compose-14-account",
-      "part": "Page composition — Account (14)",
-      "artboards": [
-        "14-account"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/14-account.png (artboard image is the authority per SETUP); dc.html id=\"p14\"; README screen 14",
-      "viewport": 1440,
-      "target": "no floating Ask AI button (ruling 2.2)",
-      "selector": "[data-audit=\"account\"] button [text contains \"Ask AI\"]",
+      "target": "no 'Source Intelligence' module header in the provisional region",
+      "selector": "[data-audit=\"admin\"] h2 [text contains \"Source Intelligence\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
+      "note": "dc.html p13's Sources body is one card headed 'Sources · provisional review'. The module header belonged to SourceHealthDashboard's registry chrome and is not drawn for this region."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "no Source Tiers legend block in the provisional region",
+      "selector": "[data-audit=\"admin\"] p [text contains \"Source Tiers\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Not in the artboard for this region; it is registry-view chrome."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "no SECOND tab bar inside the Sources body",
+      "selector": "[data-audit=\"admin\"] button [text contains \"Canonical Source Issues\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The artboard has exactly one sub-tab row for this page. SourceHealthDashboard's own Registry/Health/Provisional/Canonical/... bar was a second one stacked under it."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "no per-region source search input",
+      "selector": "[data-audit=\"admin\"] input[placeholder=\"Search sources...\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "The masthead command bar is the only search surface on this page (ruling 2.2's sibling: no per-page ask or search panel)."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "no literal UNSCORED anywhere (ruling 2.1)",
+      "selector": "[data-audit=\"admin\"] * [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Absence renders a reason from the fixed vocabulary, never the word UNSCORED."
     },
     {
       "spec": "compose-15-settings",
@@ -7452,102 +7708,6 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "The masthead command bar's 'Ask' is the only ask surface sitewide."
-    },
-    {
-      "spec": "compose-16-auth",
-      "part": "Page composition — Auth (16): /login, /signup",
-      "artboards": [
-        "16-auth"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
-      "viewport": 1440,
-      "target": "Page composition — Auth (16): /login, /signup",
-      "selector": "[data-audit=\"login\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-16-auth",
-      "part": "Page composition — Auth (16): /login, /signup",
-      "artboards": [
-        "16-auth"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
-      "viewport": 1440,
-      "target": "region 4 — Work email + Password fields",
-      "selector": "[data-audit=\"login\"] input[type=\"password\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-16-auth",
-      "part": "Page composition — Auth (16): /login, /signup",
-      "artboards": [
-        "16-auth"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/16-auth.png (artboard image is the authority per SETUP); dc.html id=\"p16\"; README screen 16",
-      "viewport": 1440,
-      "target": "no floating Ask AI button — auth pages are logged out, no assistant surface",
-      "selector": "[data-audit=\"login\"] button [text contains \"Ask AI\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
-    },
-    {
-      "spec": "compose-17-onboarding",
-      "part": "Page composition — Onboarding (17)",
-      "artboards": [
-        "17-onboarding"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
-      "viewport": 1440,
-      "target": "Page composition — Onboarding (17)",
-      "selector": "[data-audit=\"onboarding\"]",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-17-onboarding",
-      "part": "Page composition — Onboarding (17)",
-      "artboards": [
-        "17-onboarding"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
-      "viewport": 1440,
-      "target": "region 2 — heading",
-      "selector": "[data-audit=\"onboarding\"] h1",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-17-onboarding",
-      "part": "Page composition — Onboarding (17)",
-      "artboards": [
-        "17-onboarding"
-      ],
-      "source": "docs/design/handoff-2026-09-06/screens/17-onboarding.png (artboard image is the authority per SETUP); dc.html id=\"p17\"; README screen 17",
-      "viewport": 1440,
-      "target": "no floating Ask AI button — onboarding renders no AppShell",
-      "selector": "[data-audit=\"onboarding\"] button [text contains \"Ask AI\"]",
-      "property": "(forbidden element)",
-      "expected": "absent",
-      "actual": "absent",
-      "status": "MATCH",
-      "note": "AskAssistant only mounts for a signed-in AppShell viewer; this page renders no AppShell."
     },
     {
       "spec": "detailheader",
@@ -11339,13 +11499,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-top",
-      "expected": "12px",
-      "actual": "12px",
+      "expected": "14px",
+      "actual": "14px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -11356,13 +11516,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -11373,13 +11533,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-bottom",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -11390,13 +11550,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — padding",
-      "selector": ".cl-facets-desktop > div:last-child",
+      "target": "Filters rail card — content padding",
+      "selector": "[data-audit=\"filters-rail\"] > div:last-child",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": "p2 Filters card content wrapper: padding 12px 16px 14px. FIXED (B164): the content padding now lives on an inner div AFTER the card's own SectionRule (its first child, also a <div> — `:last-child` reaches the content wrapper, not the rule); `.cl-facets-desktop` itself (the outer, unpadded card border) carries no padding of its own any more."
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one)."
     },
     {
       "spec": "list-surface",
@@ -11407,13 +11567,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
       "viewport": 1440,
-      "target": "facets card — the 3px graduated rule above the card (ruling 5.1)",
-      "selector": ".cl-facets-desktop .cl-section-rule",
+      "target": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
       "property": "height",
       "expected": "3px",
       "actual": "3px",
       "status": "MATCH",
-      "note": "Same ruling as the Legend rail card above. FIXED (B165): ListSurfaceShell's inline facets block now mounts SectionRule as the card's first child."
+      "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide."
     },
     {
       "spec": "list-surface",

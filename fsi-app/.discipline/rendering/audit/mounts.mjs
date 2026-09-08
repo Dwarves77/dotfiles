@@ -952,74 +952,56 @@ const MAP_COVERAGE_GAPS = [
 // render Tailwind-utility-styled components (Sidebar/TopBar), which STYLE_INJECT's raw globals.css
 // read cannot style (see fullAppCssCompiled's header in smoke-fixtures.mjs) — capture-compose-
 // page.mjs injects the compiled CSS itself via page.addStyleTag before mounting.
-const COMPOSE_MAP_ENTRY = `
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { AppShell } from '@/components/AppShell';
-import { Masthead } from '@/components/ui/Masthead';
-import { MapPageView } from '@/components/map/MapPageView';
-
-const RESOURCES = ${JSON.stringify(MAP_FIXTURE_RESOURCES)};
-const COVERAGE_GAPS = ${JSON.stringify(MAP_COVERAGE_GAPS)};
-
-let root = null;
-window.__mount = () => {
-  const el = document.getElementById('smoke-root');
-  if (!root) root = createRoot(el);
-  root.render(
-    React.createElement(AppShell, null,
-      React.createElement('div', { 'data-audit': 'map' },
-        React.createElement('div', { style: { padding: '20px 40px 0' } },
-          React.createElement(Masthead, {
-            title: 'Regulatory map',
-            dateLabel: 'Sunday 6 September 2026',
-            dek: '3 jurisdictions live \\u00b7 6 active items \\u00b7 2 jurisdictions with immediate items \\u00b7 marker size = item count \\u00b7 colour = highest band present',
-            commandBar: { itemCount: 6, scope: 'map', placeholder: 'Search a jurisdiction \\u2014 or ask "where are my immediate items?"' },
-          }),
-        ),
-        React.createElement(MapPageView, {
-          resources: RESOURCES,
-          coverageGaps: COVERAGE_GAPS,
-          initialRegionFilter: null,
-          communityActivity: [],
-        }),
-      ),
-    ),
-  );
-};
-`;
-
-// ── Community (12) full-page composition mount ──────────────────────────────────────────────────
-const COMMUNITY_ROOMS_FIXTURE = [
-  {
-    key: 'GLOBAL', name: 'Global', short: 'GLO', groupId: 'g-global', joined: true, youHere: true,
-    itemCount: 9, itemCountKnown: true, hue: 'moderate', themes: ['Research', 'Fuels', 'Corridors'],
-    liveItems: [], roster: [{ name: 'Jason', isYou: true, isOwner: true }],
-    threads: [
-      { id: 't1', groupId: 'g-global', title: 'How are you handling the CH4 and N2O scope changes?', body: '', replyCount: 14, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-06T14:00:00Z', referencedItemIds: [], authorName: 'A. Weiss', isYou: false, isOwner: false, signedOff: false },
-      { id: 't2', groupId: 'g-global', title: 'Ocean rate spike: what your clients are asking this week', body: '', replyCount: 23, createdAt: '2026-09-04T09:00:00Z', lastActivityAt: '2026-09-04T09:00:00Z', referencedItemIds: [], authorName: 'S. Patel', isYou: false, isOwner: false, signedOff: false },
-      { id: 't3', groupId: 'g-global', title: 'Template: customer letter for the CBAM cost pass-through', body: '', replyCount: 5, createdAt: '2026-09-02T09:00:00Z', lastActivityAt: '2026-09-02T09:00:00Z', referencedItemIds: [], authorName: 'M. Ruiz', isYou: false, isOwner: false, signedOff: false },
-    ],
-  },
-  { key: 'EU', name: 'EU', short: 'EU', groupId: 'g-eu', joined: false, youHere: false, itemCount: 753, itemCountKnown: true, hue: 'critical', themes: ['Emissions', 'Reporting', 'Packaging'], liveItems: [], roster: [],
-    threads: [{ id: 't4', groupId: 'g-eu', title: 'FuelEU pooling — anyone modelled the 2027 penalty exposure?', body: '', replyCount: 8, createdAt: '2026-09-05T09:12:00Z', lastActivityAt: '2026-09-05T09:12:00Z', referencedItemIds: [], authorName: 'J. Nowak', isYou: false, isOwner: false, signedOff: false }] },
-  { key: 'US', name: 'US', short: 'US', groupId: 'g-us', joined: false, youHere: false, itemCount: 24, itemCountKnown: true, hue: 'high', themes: ['Reporting', 'Emissions', 'Transport'], liveItems: [], roster: [], threads: [] },
-  { key: 'UK', name: 'UK', short: 'UK', groupId: 'g-uk', joined: false, youHere: false, itemCount: 210, itemCountKnown: true, hue: 'moderate', themes: ['Transport', 'Research', 'Emissions'], liveItems: [], roster: [], threads: [] },
-  { key: 'APAC', name: 'APAC', short: 'APAC', groupId: 'g-apac', joined: false, youHere: false, itemCount: 2, itemCountKnown: true, hue: 'low', themes: ['Reporting'], liveItems: [], roster: [], threads: [] },
-  { key: 'LATAM', name: 'LATAM', short: 'LATAM', groupId: 'g-latam', joined: false, youHere: false, itemCount: 1, itemCountKnown: true, hue: 'low', themes: ['Emissions'], liveItems: [], roster: [], threads: [] },
-  { key: 'MEAF', name: 'MEAF', short: 'MEAF', groupId: 'g-meaf', joined: false, youHere: false, itemCount: 0, itemCountKnown: true, hue: 'low', themes: [], liveItems: [], roster: [], threads: [] },
-];
+// The map (10), community (12) and account (14) compose mounts of lane compose-other are NOT
+// carried on this branch: this lane cherry-picked only that lane's admin (13) and settings (15)
+// commits, so their fixtures and smoke stubs are not here. They land with their own lane.
 
 // ── Admin (13) full-page composition mount ───────────────────────────────────────────────────────
 // Reuses the SAME real AdminDashboard mount ADMIN_STAT_TILES_ENTRY already proved out (it needs no
 // STYLE_INJECT of its own here — the compiled-CSS path supplies it), wrapped in AppShell for the
 // nav card + Masthead's frame position, exactly as compose-map/compose-community do.
+// dc.html p13's own four provisional rows, shaped as real ProvisionalSource records so artboard
+// 13's table renders with populated data (Sources / Provisional review is the default landing
+// view). `created_at` is computed at mount time, not frozen, because the Discovered column is a
+// live RelativeTime.
+const ADMIN_PROVISIONAL_FIXTURE = [
+  { name: 'European Maritime Safety Agency — Reducing emissions', url: 'https://emsa.europa.eu/emissions', tier: 2, days: 2 },
+  { name: 'Maritime and Port Authority of Singapore — MSGI', url: 'https://mpa.gov.sg/msgi', tier: 2, days: 2 },
+  { name: 'Plastics News — resin price tracker', url: 'https://plasticsnews.com/resin', tier: 5, days: 5 },
+  { name: 'Federal Register — EPA Clean Trucks', url: 'https://federalregister.gov/epa-clean-trucks', tier: 1, days: 6 },
+];
+
 const COMPOSE_ADMIN_ENTRY = `
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { AppShell } from '@/components/AppShell';
 import { AdminDashboard } from '@/components/admin/AdminDashboard';
 import { useWorkspaceStore } from '@/stores/workspaceStore';
+
+const DAY = 86400000;
+const PROVISIONAL = ${JSON.stringify(ADMIN_PROVISIONAL_FIXTURE)}.map((r, i) => ({
+  id: 'prov-' + (i + 1),
+  name: r.name,
+  url: r.url,
+  domain: 1,
+  description: '',
+  discovered_via: 'citation_detection',
+  cited_by_source_id: 'src-1',
+  cited_by_source_tier: 1,
+  citation_count: 3,
+  independent_citers: 2,
+  citing_source_ids: ['src-1'],
+  highest_citing_tier: 1,
+  provisional_tier: r.tier,
+  recommended_tier: r.tier,
+  accessibility_verified: true,
+  publishes_structured_content: true,
+  entity_identified: true,
+  status: 'pending_review',
+  reviewer_notes: '',
+  created_at: new Date(Date.now() - r.days * DAY).toISOString(),
+  reviewed_at: null,
+}));
 
 useWorkspaceStore.getState().setUserRole('owner');
 
@@ -1035,6 +1017,7 @@ window.__mount = () => {
           userEmail: 'smoke@example.com',
           dateLabel: 'Sunday 6 September 2026',
           initialOrgs: [{ id: 'org-1', name: "Dietl / Rockit", slug: 'dietl-rockit', plan: 'enterprise', created_at: '2026-01-01' }],
+          initialProvisionalSources: PROVISIONAL,
           initialEmissionFactorsLiveCount: 13,
         }),
       ),
@@ -1190,49 +1173,6 @@ window.__mount = () => {
           supersessions: [],
           userId: 'audit-user',
           userEmail: 'jason@dietl-rockit.example',
-        }),
-      ),
-    ),
-  );
-};
-`;
-
-const COMPOSE_COMMUNITY_ENTRY = `
-import React from 'react';
-import { createRoot } from 'react-dom/client';
-import { AppShell } from '@/components/AppShell';
-import { Masthead } from '@/components/ui/Masthead';
-import { CommunityRooms } from '@/components/community/CommunityRooms';
-
-const ROOMS = ${JSON.stringify(COMMUNITY_ROOMS_FIXTURE)};
-
-let root = null;
-window.__mount = () => {
-  const el = document.getElementById('smoke-root');
-  if (!root) root = createRoot(el);
-  root.render(
-    React.createElement(AppShell, null,
-      React.createElement('div', { 'data-audit': 'community' },
-        React.createElement('div', { style: { padding: '20px 40px 0' } },
-          React.createElement(Masthead, {
-            title: 'Community',
-            dateLabel: 'Sunday 6 September 2026',
-            dek: '7 regional rooms \\u00b7 999 active items across them \\u00b7 you are in 1 \\u00b7 peer signal is unverified until a verifier signs off',
-            commandBar: { itemCount: 999, scope: 'community', placeholder: 'Search posts, groups, members \\u2014 or ask "what did the EU room flag this week?"' },
-          }),
-        ),
-        React.createElement(CommunityRooms, {
-          rooms: ROOMS,
-          seeded: true,
-          currentUserId: 'u1',
-          currentUserName: 'Jason',
-          currentUserIsOwner: true,
-          currentUserIsVerifier: false,
-          verifierStatus: 'none',
-          networkMemberCount: 1,
-          pendingPickups: 0,
-          verticalGroups: [],
-          verticalOptions: [],
         }),
       ),
     ),
@@ -2603,20 +2543,6 @@ export const AUDIT_MOUNTS = {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
     },
     apiRoutes: ADMIN_ISSUES_RAIL_API,
-  },
-  'compose-account': {
-    id: 'compose-account',
-    description: 'Full-page composition mount: AppShell + the real UserProfilePage (own internal Masthead), populated fixture data, README screen 14 / dc.html p14.',
-    viewport: 1440,
-    entry: COMPOSE_ACCOUNT_ENTRY,
-    needsCompiledCss: true,
-    alias: {
-      'next/navigation': `${SMOKE}stub-next-navigation-account.mjs`,
-      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
-      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-account.mjs`,
-      '@/lib/workspace/profile': `${SMOKE}stub-workspace-profile-account.mjs`,
-    },
-    apiRoutes: [...ADMIN_ISSUES_RAIL_API, ...ACCOUNT_ORG_API],
   },
   'compose-settings': {
     id: 'compose-settings',

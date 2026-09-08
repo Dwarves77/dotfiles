@@ -12168,3 +12168,67 @@ PASS with no new failures.
 checks); design audit 45 specs, 815 checks, 815 MATCH, 0 MISMATCH; `run-test-suite.sh` 5903 tests,
 0 fail, 5 skipped, exit 0 (the `audit-finding-status` informational report on pre-existing archived
 audits is unchanged); `next build --webpack` exit 0 with no `.env.local`.
+## 2026-09-08: lane comp-admin: Admin (13) Provisional review composed to the artboard
+
+**Scope**: one item. `/admin`'s default landing region (Sources / Provisional review) rebuilt to
+dc.html p13's table card, the rail composed to the artboard's three cards, the composition spec
+widened from 4 assertions to 23 measured rows plus a 6-entry forbid list. Base
+`lane/compose-lists-2026-09-07`; cherry-picked compose-other's `d162d9e8` (Admin 13 default view,
+sub-tab order, Organizations card placement) and `6b39fa48` (Settings 15 + Admin Organizations fix)
+first, as dispatched.
+
+**Built**: `src/components/ui/RowTable.tsx` (NEW shared part, the artboard's tabular row anatomy:
+30px small-caps header, 48px rows, the trailing 44px overflow with its 32px divider and 28px glyph;
+the table sibling of `ListRow`) and `src/components/sources/ProvisionalReviewTable.tsx`, assembled
+from SectionRule + RowTable + TierChip + StateNote + Absence + RelativeTime. Approve / Reject /
+Re-tier all post to `/api/admin/sources/promote`, the endpoint the review flow already owned
+(approve / reject / defer); no endpoint invented, no action dropped.
+
+**Deleted from the region**: `SourceHealthDashboard`'s "Source Intelligence" header, B.2 progress
+bar, Source Tiers legend, T1-T7 tile grid, its own second tab bar and its source-search input —
+none of which p13 draws. They still render for the registry/health/canonical/intersections/themes/
+obligations views, which have no artboard. The old `ProvisionalReviewCard` list-of-cards branch is
+removed, not left dormant; the card itself is reached from the row ⋯ menu as a card-foot disclosure
+(ruling R7).
+
+**Moved**: the Read-only controls explainer from a strip above the section body into the rail as
+p13's third card (crumb dropped, sentence verbatim); `WorkspacesUsageRow` from the Workspaces
+content column into the rail as p13's second card, via an additive `layout="rail"` variant.
+
+**Shared parts extended, all additive**: `TierChip({ max })` (source tiers run T1-T7, not the
+item-tier T1-T6 of ruling 2.5); `WorkspacesUsageRow({ layout })`; `ProvisionalReviewCard({
+initiallyExpanded })`; `SourceHealthDashboard({ stagedUpdatesCount, onOpenQueue })`. No default
+behaviour changed, so no existing call site or measured spec moves.
+
+**Root fix**: `hostFromUrl` split out of `src/lib/entities/entity-id.mjs` into
+`src/lib/entities/host-from-url.mjs`. The row's host sub-line must go through the spine's one
+normalizer (F30 `url_host_derivation`), but entity-id.mjs imports `node:crypto` at module top and
+broke the browser bundle. One definition still, re-exported, every importer unchanged.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (`RowTable.tsx`,
+`ProvisionalReviewTable.tsx`, `ProvisionalReviewCard.tsx`, `SourceHealthDashboard.tsx`,
+`AdminDashboard.tsx`, `WorkspacesUsageRow.tsx`, `Chips.tsx`). Every value applied is dc.html
+id="p13"'s own literal (grid `1fr 40px 160px 120px 90px 44px`, gap `0 14px`, padding
+`0 12px 0 16px`, header height 30px, row min-height 48px, action `8px 14px` / radius 6 /
+`1px solid rgba(0,0,0,.25)`, divider `1px x 32px`, glyph box 28px), never invented, never
+improvised; where the artboard and a rule collide the rule wins and is logged (the ⋯ control is a
+full 44x44 hit target carrying the artboard's 32/28 visuals). Every action is a real write on an
+existing endpoint; every absent value renders the Absence convention, never 0 and never a
+fabricated figure; no floating ask, no per-page search panel, no raw URL in running text (the row
+sub-line is the host, via the spine normalizer). Fourteen deviations logged in
+`docs/design/handoff-2026-09-06/DEVIATION-LOG.md`.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33,
+0 violations; rendering guard PASS (11 fixtures, 392 checks; 6 SM smoke specs, 78 checks; 11 UX
+smoke specs, 182 checks); `npm run audit:design` 47 specs / 830 checks, 830 MATCH, 0 MISMATCH,
+0 NOT BUILT, 0 NOT IN SPEC (compose-13-admin contributes 23 of them, up from 4); CI npmtest glob
+(`git ls-files 'fsi-app/src/**/*.npmtest.mjs'` + the 8 named proofs) 782/782 pass, 0 fail;
+`bash fsi-app/.discipline/run-test-suite.sh` exit 0; `npx next build --webpack` succeeds with no
+`.env.local`. The spec's own red was observed and fixed in the same session (region 7's first
+selector produced a NOT BUILT row, 829/1), so the new checks are proven to fail when the region is
+absent rather than passing vacuously.
+
+**Left to other lanes, named not silently skipped**: the Sources sub-tab row belongs inside the
+card head per p13 and is a page-shell restructure across all seven admin sections; the nav card's
+footer rows and its full-height stretch are lane navfoot59's; `OrganizationsTable`'s row anatomy is
+still its pre-handoff one (fix58-account's standing entry).
