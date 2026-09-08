@@ -12476,3 +12476,119 @@ one site this fold's own conflict resolution missed, because the clock read arri
 an annotation would have been a claim they are hydration-safe, and none of them is. The lesson for
 the next train is the mechanism, not the four sites: a lane's guard only guards what the gate that
 runs it can see, and this fold's own gate list was the narrower of the two.
+
+## Addendum 86, postscript 15: lane lists60, artboards 02/04/08/11/16/17 (2026-09-08, lane lists60)
+
+Page-composition train 60. Branch `lane/lists60-2026-09-08` off `train/wave59-2026-09-08`
+(`1e3f9435`). Every item worked here is one line from FOLD-59's own per-page "what still differs"
+list (postscript 14 above), and every one is now fixed, refuted with evidence, or logged with the
+data path that was checked. Nothing was left as an observation.
+
+**Six differences closed in shared code, so each is fixed once for five surfaces.**
+
+1. **The Filters rail card's "Clear" link.** It rendered only while a facet was active, so the
+   composition capture showed no link where artboard 02 draws one. Both artboards that draw this
+   card draw the link: 02 as `Clear 1`, 04 as a bare `Clear`. It is unconditional now, with the
+   count appended when there is one, and `disabled` when there is nothing to clear rather than a
+   press that silently does nothing (operator audit P0 1.1's class).
+2. **The Filters card's footnote** had dropped the middle sentence of artboard 02's own text.
+   Restored verbatim.
+3. **The trailing count line** below the band cards is gone from /regulations, /market and
+   /operations. No artboard draws anything there, and every figure the line restated is already in
+   the masthead scope line, the item total again in the sort row. One shared `stateNote` slot,
+   three surfaces, one removal. /regulations keeps its remainder-fetch note: that reports a live
+   loading state and clears when the fetch lands.
+4. **Artboard 04's rail** draws CARBON COST PER FEU and NEXT DATA DROPS between Filters and Legend;
+   the build had SOURCES TRACKED there. Both are built, from data the page already loads, with no
+   new read. SOURCES TRACKED, which no artboard draws, moved to after Legend per ruling R7.
+5. **Artboard 08's expanded dimension row** no longer carries a "Facts" label in its leading cell.
+   The artboard leaves it empty; the cell stays so column alignment holds.
+6. **Artboard 11's rows** end in the same `⋯` overflow kebab artboard 02's rows end with, holding
+   the WatchButton in its popover, not a star. The star belongs to the detail action row's Watch
+   control alone (R5); a second star put the same mark on two different meanings. Ruling 3.5 is
+   unchanged and now proven in both directions.
+
+**The two new rail cards, and why neither fabricates anything.** CARBON COST PER FEU reduces the
+per-corridor `carbonCostPerFeu()` results `/market`'s page component already computes for the
+`<CarbonCostOverlay/>` section below the ledger: one computation, two views. Every live corridor is
+in the four-named-GAP state today (no emission factor for the mode, no licence-clear routing
+distance, no licence-clear tonnes-per-FEU convention with GLEC and ISO 14083 both `prohibited` in
+migration 258's register, no ETS price with `eex-eua` still `implemented: false`), which is exactly
+the state the ARTBOARD ITSELF draws, "4 inputs pending". The card lights up with a real figure the
+moment any one lands, with no change in the component. NEXT DATA DROPS reads the `market_series`
+board `fetchMarketSeriesBoard()` already returns, and its date is not a new prediction: it is the
+same latest-observed-period plus registered-`cadenceDays` derivation the product already publishes
+as `published_price_statistics.next_release_at`, through the same `addDaysIso`. A producer with no
+registered cadence, no producer script, or no observation is OMITTED, so the card can never imply a
+scheduler that does not exist, which is what spec 02 section 9 calls dishonest. Both selections are
+pure, time-injected and proven by `src/lib/market/market-rail-select.npmtest.mjs` (11 tests,
+including the two "omit rather than guess" cases and the refusal to read a host clock).
+
+**Two items from the fold's list were REFUTED, and are corrected in place (rule 13's corollary).**
+
+- "16 and 17 centre their panel vertically where the artboard sits it higher." `AuthFrame.tsx`
+  already builds the artboard's own geometry: dc.html p16/p17 give the grid `min-height:900px` and
+  the right column `align-items:center;justify-content:center;padding:48px`, which is what the
+  component declares. The difference was in the CAPTURE. At the harness's default 1400px viewport,
+  AuthFrame's outer `min-height:100vh` box became 1400 tall, so the panel centred at 700 instead of
+  450. The three auth mounts pin `captureHeight: 900` now, and both specs assert the frame height
+  and the centring so this cannot drift unseen again.
+- "17 lacks the artboard's Back link." The link exists and is wired to the wizard's own `goBack`.
+  It renders from step 3 on and not at step 2, correctly: this wizard STARTS at step 2, because
+  step 1 (Workspace) is a separate completed flow the stepper marks with a check and which has no
+  route back. A Back there would navigate nowhere. Both halves are held mechanically now, an
+  npmtest for the link's existence and wiring, a compose-17 forbid row for its absence on the first
+  step, so a later lane cannot "match the image" by adding a dead control.
+
+**Two items are logged as NOT BUILT, with the grep behind each.** Artboard 11's "Create shared
+watchlist" button: there is no shared-watchlist creation function anywhere in the product. The API
+is a single GET/POST/DELETE over `user_watchlist`/`org_watchlist` for one item at a time; what
+exists is a per-item TEAM SCOPE, and the card's prose states that real action instead. Artboard
+16's "Keep me signed in": the surface of a session-persistence decision, not a control that can be
+built ahead of it. No forbid row for either, so both can be built the day their function lands.
+
+**One fixture per page.** `capture-compose-lists-screenshots.mjs` carried its own row builders,
+obligation route, series board and aggregates beside the identical fixtures in the audit mount
+registry, so a compose spec and its own evidence PNG could measure different pages while both
+stayed green. That is the drift FOLD-59 found the hard way when two entries silently lost their
+`artboard` key and the script wrote nothing at all. Every entry names an `AUDIT_MOUNTS` id now and
+the local copies are deleted, not left dormant. `capture-compose-11-watchlist.mjs`, which wrote a
+bare PNG and left the side-by-side to be assembled by hand, composites through the shared module.
+
+**What the visual pass caught that no spec did.** Reading the regenerated side-by-sides against the
+artboards found three things beyond the dispatched items, all fixed and all now measured. Artboard
+04's masthead stated neither of its two live counts and carried the generic command-bar placeholder
+where the artboard writes its own. Artboard 02's next-obligation segment rendered a full
+"Sep 8, 2026" where the artboard writes "Sep 25", and the extra width wrapped the entire command bar
+onto its own row at 1440. And NEXT DATA DROPS broke "Thu Sep 10" across two lines in the artboard's
+70px date column, orphaning the "10", which is exactly the class of wrap the operator's 2026-09-07
+standing order rules out.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src`: `ListSurfaceRailCards.tsx`,
+`ListSurfaceShell.tsx`, `RegulationsLedger.tsx`, `MarketIntelLedger.tsx`, `OperationsLedger.tsx`,
+`RegionDimensionMatrix.tsx`, `WatchlistSurface.tsx`, and `market/page.tsx`. Three interactive
+elements changed. The Filters card's Clear link keeps the 24px minimum box it already had and gains
+a disabled state, no new target. The watchlist row's trailing control REPLACES a 44x44 star with the
+44x44 kebab the other four list surfaces already use, so the row's one action cell is unchanged in
+size and gains the artboard's own glyph; the watch action moves into that kebab's popover, where
+`PriorityDropdown` already meets law-2 for its menu rows. The two new rail cards introduce no
+control at all: both are text and figures, and every value in them is either live or the fixed
+Absence vocabulary. Rendering guard PASS with no new failures, including law-2 targets at 375 and
+1280, the bounds and overlap assertions, and the masthead-balance spec. The one guard failure this
+lane produced was `watchlist-team[one-row]`, whose check read the row's trailing control directly;
+its INVARIANT (ruling 3.5, a watched row never offers a bare "Watch") is unchanged and is now
+asserted in both directions, with the mount adapted to open the menu.
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33,
+**0 violations**; design audit 60 specs, **1030 checks, 1030 MATCH**, 0 MISMATCH / 0 NOT BUILT /
+0 NOT IN SPEC (up from 990, so 40 new measured rows, one per difference closed or decision held);
+rendering guard **PASS** (11 fixtures, 433 checks, 7 SM smoke specs 85 checks, 12 UX smoke specs 216
+checks); the CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`) **811/811 PASS**;
+`run-test-suite.sh` 5917 tests, 5912 pass, **0 fail**, 5 skipped, exit 0 (the known "kill switch ON
+but no DB creds" failure did not reproduce; the `audit-finding-status` informational report on
+pre-existing archived audits is unchanged); `next build --webpack` **exit 0** with no `.env.local`.
+
+**Exit evidence**: six regenerated side-by-sides under `docs/design/handoff-2026-09-06/built/`
+(`compose-02-regulations-list.png`, `compose-04-market-list.png`, `compose-06-research-list.png`,
+`compose-08-operations-list.png`, `compose-11-watchlist.png`, `compose-16-login.png`,
+`compose-17-onboarding.png`), each read against its artboard before this entry was written.
