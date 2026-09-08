@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T09:33:40.997Z",
+  "runAt": "2026-09-08T10:07:33.974Z",
   "specs": [
     {
       "part": "Absence",
@@ -819,6 +819,11 @@
           "selector": "[data-audit=\"dashboard\"] .cl-list-row-header ~ * span",
           "textMatch": "re:(^|[^0-9])0/12",
           "reason": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score. The regex form is deliberate: a plain \"0/12\" substring also matches the legitimate \"10/12\", which made this forbid report a passing product as a defect."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-01-dashboard.json",
@@ -1098,6 +1103,11 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-04-market-list.json",
@@ -1308,6 +1318,11 @@
           "name": "no theme card row rendered as a second BandTile system",
           "selector": "[data-audit=\"theme-cards\"] [data-audit=\"tile\"]",
           "reason": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-06-research-list.json",
@@ -1528,6 +1543,11 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json",
@@ -1883,6 +1903,11 @@
           "name": "no floating Ask control",
           "selector": ".cl-ask-fab",
           "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-11-watchlist.json",
@@ -3065,11 +3090,11 @@
           }
         },
         {
-          "name": "row unscored — Absence reason (operator ruling 2.1, supersedes the artboard's plain em-dash)",
-          "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored > span:last-child",
-          "note": "Operator 2.1: 'the small-caps absence reason from the fixed vocabulary ... at 10.5px uppercase/600 #7A6E6C'. Absence.tsx uses font-variant:small-caps (not text-transform:uppercase) at font-size var(--fs-105)=10.5px, weight 600, color var(--ink-3)=#7A6E6C. Selector reaches the Absence element specifically (not the wrapper), which also contains a mobile <style> tag whose CSS text would otherwise pollute textContent.",
+          "name": "row unscored — the meter renders the dashed baseline and NO reason of its own (D-M4)",
+          "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored",
+          "note": "UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4). This asserted the meter's own text was \"unscored\". It was: the meter named the state itself while the row's due and tier cells named their own absences beside it, so one unscored row rendered three tokens — a dashed baseline, then UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own, which is what the operator photographed on 2026-09-08. Ruling 2.1 forbids the literal outright and allows exactly ONE reason per row. The meter no longer names a reason; the composite hands it one through `reason`, chosen by Absence.tsx's ABSENCE_PRECEDENCE. A spec pinning the old literal would be preserving the defect, so it asserts the unscored container instead, and the one-token invariant is asserted where it belongs, on the ROW (listrow.json / the mobile-* specs' `.cl-list-row .cl-absence` count).",
           "expect": {
-            "text": "unscored"
+            "display": "flex"
           }
         },
         {
@@ -3098,6 +3123,11 @@
           "selector": "[data-audit=\"row-unscored\"] span, [data-audit=\"full-unscored\"] span",
           "textMatch": "NOT SCORED",
           "reason": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+        },
+        {
+          "name": "the meter never renders an absence token of its own accord",
+          "selector": "[data-audit=\"row-unscored\"] .cl-absence",
+          "reason": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/impactmeter.json",
@@ -3460,6 +3490,11 @@
           "name": "a second click target competing with the row link",
           "selector": ".cl-row-title a",
           "reason": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/listrow.json",
@@ -4000,6 +4035,15 @@
             "grid-template-columns": "*"
           },
           "note": "One track only below 1280. The floor itself (minmax(0,...)) is proven by the page-width boundsCheck below: with a bare 1fr the track measured 539px inside a 390px viewport."
+        },
+        {
+          "name": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+          "selector": ".cl-band-tiles",
+          "expect": {
+            "grid-template-columns": "* *",
+            "gap": "10px"
+          },
+          "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
         }
       ],
       "forbid": [
@@ -4014,6 +4058,11 @@
           "selector": "[data-audit=\"dashboard\"] .cl-list-row",
           "textMatch": "re:(^|[^0-9])0/12",
           "reason": "An unscored row renders the Absence convention, never a fabricated zero (FOLD-59: the regex form, not a substring, so a real 10/12 is not a false finding)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -4071,14 +4120,15 @@
           }
         },
         {
-          "name": "Masthead body padding 14px 16px 0",
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
           "selector": ".cl-masthead-body",
           "expect": {
             "padding-top": "14px",
             "padding-left": "16px",
             "padding-right": "16px",
-            "padding-bottom": "0px"
-          }
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
         },
         {
           "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -4390,6 +4440,24 @@
           "expect": {
             "display": "none"
           }
+        },
+        {
+          "name": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+          "selector": ".cl-sort-row .cl-sort-options",
+          "expect": {
+            "flex-wrap": "nowrap",
+            "overflow-x": "auto"
+          },
+          "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+        },
+        {
+          "name": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+          "selector": ".cl-sort-row",
+          "expect": {
+            "flex-direction": "column",
+            "flex-wrap": "nowrap",
+            "gap": "8px"
+          }
         }
       ],
       "forbid": [
@@ -4421,6 +4489,11 @@
           "name": "no desktop facet chip strip in the content column at any width",
           "selector": ".cl-facets-desktop",
           "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -4435,6 +4508,24 @@
           "container": ".cl-list-surface-grid",
           "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
           "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+        },
+        {
+          "name": "no absence token escapes its own row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-absence",
+          "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+        },
+        {
+          "name": "D-M6: the sort/window option set is contained by its row",
+          "container": ".cl-sort-row",
+          "cells": ".cl-sort-options",
+          "reason": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-02-regulations-list.json",
@@ -4646,6 +4737,11 @@
           "selector": "body",
           "textMatch": "UNSCORED",
           "reason": "Operator ruling P1 2.1."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -4704,14 +4800,15 @@
           }
         },
         {
-          "name": "Masthead body padding 14px 16px 0",
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
           "selector": ".cl-masthead-body",
           "expect": {
             "padding-top": "14px",
             "padding-left": "16px",
             "padding-right": "16px",
-            "padding-bottom": "0px"
-          }
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
         },
         {
           "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -5024,6 +5121,24 @@
             "width": "30px",
             "border-bottom": "1px dashed rgba(0, 0, 0, 0.25)"
           }
+        },
+        {
+          "name": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+          "selector": ".cl-sort-row .cl-sort-options",
+          "expect": {
+            "flex-wrap": "nowrap",
+            "overflow-x": "auto"
+          },
+          "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+        },
+        {
+          "name": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+          "selector": ".cl-sort-row",
+          "expect": {
+            "flex-direction": "column",
+            "flex-wrap": "nowrap",
+            "gap": "8px"
+          }
         }
       ],
       "forbid": [
@@ -5055,6 +5170,11 @@
           "name": "no desktop facet chip strip in the content column at any width",
           "selector": ".cl-facets-desktop",
           "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -5069,6 +5189,24 @@
           "container": ".cl-list-surface-grid",
           "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
           "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+        },
+        {
+          "name": "no absence token escapes its own row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-absence",
+          "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+        },
+        {
+          "name": "D-M6: the sort/window option set is contained by its row",
+          "container": ".cl-sort-row",
+          "cells": ".cl-sort-options",
+          "reason": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-04-market-list.json",
@@ -5107,14 +5245,15 @@
           }
         },
         {
-          "name": "Masthead body padding 14px 16px 0",
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
           "selector": ".cl-masthead-body",
           "expect": {
             "padding-top": "14px",
             "padding-left": "16px",
             "padding-right": "16px",
-            "padding-bottom": "0px"
-          }
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
         },
         {
           "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -5427,6 +5566,24 @@
             "width": "30px",
             "border-bottom": "1px dashed rgba(0, 0, 0, 0.25)"
           }
+        },
+        {
+          "name": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+          "selector": ".cl-sort-row .cl-sort-options",
+          "expect": {
+            "flex-wrap": "nowrap",
+            "overflow-x": "auto"
+          },
+          "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+        },
+        {
+          "name": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+          "selector": ".cl-sort-row",
+          "expect": {
+            "flex-direction": "column",
+            "flex-wrap": "nowrap",
+            "gap": "8px"
+          }
         }
       ],
       "forbid": [
@@ -5458,6 +5615,11 @@
           "name": "no desktop facet chip strip in the content column at any width",
           "selector": ".cl-facets-desktop",
           "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -5472,6 +5634,24 @@
           "container": ".cl-list-surface-grid",
           "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
           "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+        },
+        {
+          "name": "no absence token escapes its own row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-absence",
+          "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+        },
+        {
+          "name": "D-M6: the sort/window option set is contained by its row",
+          "container": ".cl-sort-row",
+          "cells": ".cl-sort-options",
+          "reason": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-06-research-list.json",
@@ -5510,14 +5690,15 @@
           }
         },
         {
-          "name": "Masthead body padding 14px 16px 0",
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
           "selector": ".cl-masthead-body",
           "expect": {
             "padding-top": "14px",
             "padding-left": "16px",
             "padding-right": "16px",
-            "padding-bottom": "0px"
-          }
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
         },
         {
           "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -5861,6 +6042,11 @@
           "name": "no desktop facet chip strip in the content column at any width",
           "selector": ".cl-facets-desktop",
           "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -5875,10 +6061,216 @@
           "container": ".cl-list-surface-grid",
           "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
           "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+        },
+        {
+          "name": "no absence token escapes its own row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-absence",
+          "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-08-operations-list.json",
       "__id": "mobile-08-operations-list"
+    },
+    {
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "mount": "compose-map",
+      "viewport": 390,
+      "compiledCss": true,
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "notes": [
+        "THE SPEC THIS LANE ADDS (mobfix61, 2026-09-08). The map page was the one surface with no 390 spec at all, and it was the surface the operator's own screenshot showed worst: its rail cards were drawn ON TOP of the MODE / BAND / REGION chip rows.",
+        "[CONFIRMED root cause, twice over] MapPageView.tsx's outer div is the two-column grid (`minmax(0,1fr) 300px`, className `cl-map-outer`), and the file's only media query named `.cl-map-grid` — the INNER content column, which is a `display: flex` element on which `grid-template-columns` does nothing at all. So the rule was dead twice over and the 300px rail track survived at every width. Nothing in the toolchain could see it: a CSS selector matching no element is not an error in any language involved. That is why the fix ships with F40 (.discipline/fitness/functions/F40-dead-media-query-class.mjs) rather than with a spec row alone.",
+        "The boundsCheck below is the part that cannot be satisfied by accident: it asserts every direct child of the outer grid is contained by it, which is exactly the assertion the overlapping rail failed.",
+        "`compiledCss: true` for the same reason every other mobile-* spec sets it — AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind `md:` utilities that a raw globals.css read leaves un-expanded."
+      ],
+      "selector": ".cl-map-outer",
+      "expect": {
+        "display": "grid",
+        "grid-template-columns": "*",
+        "padding": "14px 16px 16px"
+      },
+      "children": [
+        {
+          "name": "D-M3: the outer grid is ONE track at 390 — the rail folds under the content, it does not overlap it",
+          "selector": ".cl-map-outer",
+          "expect": {
+            "grid-template-columns": "358px"
+          },
+          "note": "One track, at the full content width inside the 16px page padding (390 - 32 = 358). Before the fix this read `minmax(0,1fr) 300px` at every width and the two tracks were laid out over each other."
+        },
+        {
+          "name": "The content column fills that single track",
+          "selector": "[data-testid=\"map-register-column\"]",
+          "expect": {
+            "width": "358px"
+          }
+        },
+        {
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+          "selector": ".cl-masthead-body",
+          "expect": {
+            "padding-top": "14px",
+            "padding-left": "16px",
+            "padding-right": "16px",
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5. The mobile 390 spec writes \"14px 16px 0\", which left the command bar's bottom edge on the card's own 1px bottom border; the 0 describes where the body's content starts, not the card's padding below its last child. See DEVIATION-LOG.md."
+        },
+        {
+          "name": "Masthead title Anton 24px uppercase, line-height 1.08",
+          "selector": ".cl-masthead-title",
+          "expect": {
+            "font-size": "24px",
+            "line-height": "25.92px",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "Command bar is 44px high, radius 8",
+          "selector": ".cl-command-bar",
+          "expect": {
+            "height": "44px",
+            "border-radius": "8px"
+          }
+        },
+        {
+          "name": "The register still uses the one shared ListRow, at its mobile measure",
+          "selector": ".cl-list-row",
+          "expect": {
+            "grid-template-columns": "3px *",
+            "min-height": "76px"
+          }
+        },
+        {
+          "name": "Masthead VOL line 9.5px uppercase .14em/700",
+          "selector": ".cl-masthead-eyebrow",
+          "expect": {
+            "font-size": "9.5px",
+            "font-weight": "700",
+            "letter-spacing": "1.33px",
+            "text-transform": "uppercase",
+            "color": "rgb(122, 110, 108)"
+          }
+        },
+        {
+          "name": "Masthead scope line 12px, line-height 1.45",
+          "selector": ".cl-masthead-dek",
+          "expect": {
+            "font-size": "12px",
+            "line-height": "17.4px"
+          }
+        },
+        {
+          "name": "Masthead row stacks so the command bar takes a full-width line of its own",
+          "selector": ".cl-masthead-row",
+          "expect": {
+            "flex-direction": "column",
+            "align-items": "stretch",
+            "gap": "12px"
+          }
+        },
+        {
+          "name": "The Cmd-K hint is dropped at 390",
+          "selector": ".cl-command-bar .cl-cmdk-hint",
+          "expect": {
+            "display": "none"
+          }
+        },
+        {
+          "name": "Register row: 3px full-bleed band spine",
+          "selector": ".cl-list-row > .cl-row-spine",
+          "expect": {
+            "width": "3px"
+          }
+        },
+        {
+          "name": "Register row content padding 10px 6px 10px 12px, a flex column of two lines",
+          "selector": ".cl-list-row .cl-row-content",
+          "expect": {
+            "padding": "10px 6px 10px 12px",
+            "display": "flex",
+            "flex-direction": "column"
+          }
+        },
+        {
+          "name": "Register row title 13.5px/1.35, wraps, no ellipsis",
+          "selector": ".cl-list-row .cl-row-title-text",
+          "expect": {
+            "font-size": "13.5px",
+            "line-height": "18.23px",
+            "white-space": "normal",
+            "text-overflow": "clip"
+          }
+        },
+        {
+          "name": "Filter chip group shell 36px, radius 8 — a group never loses its label",
+          "selector": ".cl-filter-group",
+          "expect": {
+            "min-height": "36px",
+            "border-radius": "8px"
+          }
+        },
+        {
+          "name": "Filter chips 12px/600 radius 6",
+          "selector": ".cl-filter-chip",
+          "expect": {
+            "font-size": "12px",
+            "font-weight": "600",
+            "border-radius": "6px"
+          }
+        }
+      ],
+      "forbid": [
+        {
+          "name": "no literal UNSCORED token anywhere",
+          "selector": "body",
+          "textMatch": "UNSCORED",
+          "reason": "Operator ruling P1 2.1. Matched against RENDERED text (run-audit.mjs's renderedText) — the source writes it lower case and CSS uppercases it, which is how nineteen specs' worth of this forbid matched nothing for as long as they existed."
+        },
+        {
+          "name": "no floating Ask AI control",
+          "selector": "body",
+          "textMatch": "Ask AI",
+          "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface, at any width."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+        }
+      ],
+      "boundsCheck": [
+        {
+          "name": "D-M3: nothing in the map page escapes the outer grid at 390",
+          "container": ".cl-map-outer",
+          "cells": ".cl-map-outer > div",
+          "reason": "The defect exactly: with the 300px rail track alive at 390 the rail column was laid out outside and over the content column. A direct child wider than its own grid is the recurrence."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix on a sibling surface: card bottom 186.3, bar bottom 185.3 — the bar sat on the card's border."
+        },
+        {
+          "name": "no list-row cell overlaps a sibling or escapes its row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-row-content > *",
+          "reason": "The register rows are the same shared ListRow every list surface uses; the same bounds rule applies here."
+        }
+      ],
+      "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-10-map.json",
+      "__id": "mobile-10-map"
     },
     {
       "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
@@ -5913,14 +6305,15 @@
           }
         },
         {
-          "name": "Masthead body padding 14px 16px 0",
+          "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
           "selector": ".cl-masthead-body",
           "expect": {
             "padding-top": "14px",
             "padding-left": "16px",
             "padding-right": "16px",
-            "padding-bottom": "0px"
-          }
+            "padding-bottom": "16px"
+          },
+          "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
         },
         {
           "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -6134,6 +6527,11 @@
           "name": "no desktop facet chip strip in the content column at any width",
           "selector": ".cl-facets-desktop",
           "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+        },
+        {
+          "name": "D-M4: no list row carries more than one absence token",
+          "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+          "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
         }
       ],
       "boundsCheck": [
@@ -6148,6 +6546,18 @@
           "container": ".cl-list-surface-grid",
           "cells": ".cl-list-row, [data-audit=\"filters-rail\"]",
           "reason": "MOBILE-60 regression guard: the watchlist built its own copy of the shell's frame and so carried none of the mobile page measures until this lane; it now renders the shell's own exported block."
+        },
+        {
+          "name": "D-M5: the masthead card contains its command bar",
+          "container": ".cl-masthead",
+          "cells": ".cl-command-bar",
+          "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+        },
+        {
+          "name": "no absence token escapes its own row at 390",
+          "container": ".cl-list-row",
+          "cells": ".cl-absence",
+          "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/mobile-11-watchlist.json",
@@ -11107,6 +11517,22 @@
       "note": "An unscored row's impact cell must render ImpactMeter's dashed baseline + Absence reason, never a fabricated zero score. The regex form is deliberate: a plain \"0/12\" substring also matches the legitimate \"10/12\", which made this forbid report a passing product as a defect."
     },
     {
+      "spec": "compose-01-dashboard",
+      "part": "Page composition — Dashboard (01)",
+      "artboards": [
+        "01-dashboard"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
       "spec": "compose-02-regulations-list",
       "part": "Regulations page composition — RegulationsLedger (real page component, not the ListSurfaceShell primitive)",
       "artboards": [
@@ -11683,6 +12109,22 @@
       "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
     },
     {
+      "spec": "compose-04-market-list",
+      "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+      "artboards": [
+        "04-market-list"
+      ],
+      "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
       "spec": "compose-05-market-detail",
       "part": "Page composition — Market signal detail (05)",
       "artboards": [
@@ -12211,6 +12653,22 @@
       "note": "Artboard 06's caption again: the theme row is a facet row, not a second tile system. A BandTile inside the theme row would be exactly the regression the caption forbids."
     },
     {
+      "spec": "compose-06-research-list",
+      "part": "Research page composition, ResearchLedger (the real page component, not a shell primitive fed invented props)",
+      "artboards": [
+        "06-research-list"
+      ],
+      "source": "dc.html p6 (#p6), region by region: masthead (VOL line, Anton title, '39 active findings · 4 themes · ...' scope line, 'Search findings and themes — or ask ...' placeholder, Ask) -> band tile row -> THEME CARD row (4 across, label + count + '+N new' + one-line description) -> the 'N of M findings · <theme> · Clear theme' + 'WINDOW 7d|30d|90d|All' row -> band section cards, each closed by a foot row ('All N <band> →' left, 'then <next band> · N' right, 'end of list' on the last) with the Awareness transition strip under the section that precedes Awareness -> rail: Filters, Source coverage, Legend.",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
       "spec": "compose-07-research-detail",
       "part": "Page composition — Research finding detail (07)",
       "artboards": [
@@ -12673,6 +13131,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+    },
+    {
+      "spec": "compose-08-operations-list",
+      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "artboards": [
+        "08-operations-list"
+      ],
+      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {
       "spec": "compose-09-operations-profile",
@@ -13457,6 +13931,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {
       "spec": "compose-12-community",
@@ -17247,13 +17737,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
       "viewport": 1440,
-      "target": "row unscored — Absence reason (operator ruling 2.1, supersedes the artboard's plain em-dash)",
-      "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored > span:last-child",
-      "property": "text",
-      "expected": "unscored",
-      "actual": "unscored",
+      "target": "row unscored — the meter renders the dashed baseline and NO reason of its own (D-M4)",
+      "selector": "[data-audit=\"row-unscored\"] .cl-impact-unscored",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
       "status": "MATCH",
-      "note": "Operator 2.1: 'the small-caps absence reason from the fixed vocabulary ... at 10.5px uppercase/600 #7A6E6C'. Absence.tsx uses font-variant:small-caps (not text-transform:uppercase) at font-size var(--fs-105)=10.5px, weight 600, color var(--ink-3)=#7A6E6C. Selector reaches the Absence element specifically (not the wrapper), which also contains a mobile <style> tag whose CSS text would otherwise pollute textContent."
+      "note": "UPDATED (lane mobfix61, 2026-09-08, operator mobile report D-M4). This asserted the meter's own text was \"unscored\". It was: the meter named the state itself while the row's due and tier cells named their own absences beside it, so one unscored row rendered three tokens — a dashed baseline, then UNSCORED, then PENDING, then NOT IN PRIMARY SOURCE on a line of its own, which is what the operator photographed on 2026-09-08. Ruling 2.1 forbids the literal outright and allows exactly ONE reason per row. The meter no longer names a reason; the composite hands it one through `reason`, chosen by Absence.tsx's ABSENCE_PRECEDENCE. A spec pinning the old literal would be preserving the defect, so it asserts the unscored container instead, and the one-token invariant is asserted where it belongs, on the ROW (listrow.json / the mobile-* specs' `.cl-list-row .cl-absence` count)."
     },
     {
       "spec": "impactmeter",
@@ -17362,6 +17852,24 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "README §0.4 #sys note: 'Hollow when unscored — no NOT SCORED text anywhere.' Operator 2.1 restates the same rule for the literal word UNSCORED."
+    },
+    {
+      "spec": "impactmeter",
+      "part": "ImpactMeter",
+      "artboards": [
+        "00-system-sheet (row anatomy inside the list-row example; 'Impact meter — full' block)",
+        "02-regulations-list / 04-market-list / 06-research-list / 08-operations-list / 11-watchlist (row, inside every ListRow)",
+        "01-dashboard, 03-regulation-detail (full, rail)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys: the list-row example's impact cell (row variant, scored + unscored) and the 'Impact meter — full' block; README.md §0.4 'Meters and timeline on every row'",
+      "viewport": 1440,
+      "target": "the meter never renders an absence token of its own accord",
+      "selector": "[data-audit=\"row-unscored\"] .cl-absence",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 / ruling 2.1: the 30px dashed baseline IS the unscored state; naming it too is the tautological second token. The one reason a row shows is chosen by the row, not by the meter."
     },
     {
       "spec": "inthisliststat",
@@ -19191,6 +19699,28 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "README §0.4: 'the whole row is the click target (the audit found two competing click affordances — this is the only one)'. A nested anchor inside the title cell is the second one."
+    },
+    {
+      "spec": "listrow",
+      "part": "ListRow (1440, every cell)",
+      "artboards": [
+        "00-system-sheet (the row is defined once here, two example rows)",
+        "02-regulations-list",
+        "04-market-list",
+        "06-research-list",
+        "08-operations-list",
+        "11-watchlist",
+        "01-dashboard (Due next / What changed)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' #sys, the list-row block (column-header row + two example rows); README.md §0.4 'List row — one anatomy' and the type scale",
+      "viewport": 1440,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {
       "spec": "map-register",
@@ -21495,6 +22025,38 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
       "viewport": 390,
+      "target": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+      "selector": ".cl-band-tiles",
+      "property": "grid-template-columns",
+      "expected": "* *",
+      "actual": "174px 174px",
+      "status": "MATCH",
+      "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M1: band tiles are two columns at 390, on every surface that renders them",
+      "selector": ".cl-band-tiles",
+      "property": "gap",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "Lane mobfix61: the row is now the shared BandTileRow part, so the class — and with it this rule — cannot be forgotten at a call site. It had been, three times over; the onboarding preview still rendered four 67px tiles across at 390 with its labels clipped to IMMEDIAT / AWARENE."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
       "target": "no literal UNSCORED token anywhere on the mobile dashboard",
       "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -21518,6 +22080,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "An unscored row renders the Absence convention, never a fabricated zero (FOLD-59: the regex form, not a substring, so a real 10/12 is not a false finding)."
+    },
+    {
+      "spec": "mobile-01-dashboard",
+      "part": "Mobile 390 — dashboard frame (top bar, drawer, masthead, band tiles 2x2, Due Next rows)",
+      "artboards": [
+        "mobile-390 text spec (no artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07): TOP BAR, MASTHEAD, BAND TILES, LIST ROW sections. No artboard PNG has reached the repo; when one arrives the image wins over this text and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     },
     {
       "spec": "mobile-01-dashboard",
@@ -21639,13 +22217,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-top",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-02-regulations-list",
@@ -21655,13 +22233,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-02-regulations-list",
@@ -21671,13 +22249,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-02-regulations-list",
@@ -21687,13 +22265,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-bottom",
-      "expected": "0px",
-      "actual": "0px",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-02-regulations-list",
@@ -23367,6 +23945,86 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "overflow-x",
+      "expected": "auto",
+      "actual": "auto",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "gap",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no literal UNSCORED token anywhere",
       "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -23447,6 +24105,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no list-row cell overlaps a sibling or escapes its row at 390",
       "selector": ".cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
@@ -23470,6 +24144,54 @@
       "actual": "clean across 1 row(s)",
       "status": "MATCH",
       "note": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "no absence token escapes its own row at 390",
+      "selector": ".cl-list-row > .cl-absence",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 16 row(s)",
+      "status": "MATCH",
+      "note": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+    },
+    {
+      "spec": "mobile-02-regulations-list",
+      "part": "Mobile 390 — Regulations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "02-regulations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the sort/window option set is contained by its row",
+      "selector": ".cl-sort-row > .cl-sort-options",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
     },
     {
       "spec": "mobile-03-regulation-detail",
@@ -24439,6 +25161,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-03-regulation-detail",
+      "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
+      "artboards": [
+        "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no top-bar cell overlaps a sibling or escapes the 56px bar at 390",
       "selector": ".md\\:hidden > header > button, h1, a[href=\"/profile\"]",
       "property": "(cell containment)",
@@ -24551,13 +25289,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-top",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-04-market-list",
@@ -24567,13 +25305,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-04-market-list",
@@ -24583,13 +25321,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-04-market-list",
@@ -24599,13 +25337,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-bottom",
-      "expected": "0px",
-      "actual": "0px",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-04-market-list",
@@ -26295,6 +27033,86 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "overflow-x",
+      "expected": "auto",
+      "actual": "auto",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "gap",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no literal UNSCORED token anywhere",
       "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -26375,6 +27193,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no list-row cell overlaps a sibling or escapes its row at 390",
       "selector": ".cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
@@ -26398,6 +27232,54 @@
       "actual": "clean across 1 row(s)",
       "status": "MATCH",
       "note": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "no absence token escapes its own row at 390",
+      "selector": ".cl-list-row > .cl-absence",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 16 row(s)",
+      "status": "MATCH",
+      "note": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+    },
+    {
+      "spec": "mobile-04-market-list",
+      "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the sort/window option set is contained by its row",
+      "selector": ".cl-sort-row > .cl-sort-options",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
     },
     {
       "spec": "mobile-06-research-list",
@@ -26471,13 +27353,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-top",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-06-research-list",
@@ -26487,13 +27369,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-06-research-list",
@@ -26503,13 +27385,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-06-research-list",
@@ -26519,13 +27401,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-bottom",
-      "expected": "0px",
-      "actual": "0px",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-06-research-list",
@@ -28215,6 +29097,86 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the labelled sort/window option set is ONE non-wrapping line that scrolls sideways — a group never loses its label",
+      "selector": ".cl-sort-row .cl-sort-options",
+      "property": "overflow-x",
+      "expected": "auto",
+      "actual": "auto",
+      "status": "MATCH",
+      "note": "Lane mobfix61, 2026-09-08. This row had no mobile treatment, so at 390 its flexWrap:wrap broke the segmented control across two lines and stranded the last option (\"My order\") away from the SORT label that gives it meaning. The mobile 390 spec's FILTERS rule applies to every labelled option set on the page: \"chip groups scroll sideways as whole units so a group never loses its label\"."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "flex-wrap",
+      "expected": "nowrap",
+      "actual": "nowrap",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the count line and the option set take a line each at 390 rather than competing for one row",
+      "selector": ".cl-sort-row",
+      "property": "gap",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no literal UNSCORED token anywhere",
       "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
@@ -28295,6 +29257,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no list-row cell overlaps a sibling or escapes its row at 390",
       "selector": ".cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
@@ -28318,6 +29296,54 @@
       "actual": "clean across 1 row(s)",
       "status": "MATCH",
       "note": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "no absence token escapes its own row at 390",
+      "selector": ".cl-list-row > .cl-absence",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 13 row(s)",
+      "status": "MATCH",
+      "note": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+    },
+    {
+      "spec": "mobile-06-research-list",
+      "part": "Mobile 390 — Research list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "06-research-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M6: the sort/window option set is contained by its row",
+      "selector": ".cl-sort-row > .cl-sort-options",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Regression guard: the group must scroll inside the row, never overflow it or wrap out of it."
     },
     {
       "spec": "mobile-08-operations-list",
@@ -28391,13 +29417,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-top",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-08-operations-list",
@@ -28407,13 +29433,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-08-operations-list",
@@ -28423,13 +29449,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-08-operations-list",
@@ -28439,13 +29465,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-bottom",
-      "expected": "0px",
-      "actual": "0px",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-08-operations-list",
@@ -30215,6 +31241,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-08-operations-list",
+      "part": "Mobile 390 — Operations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "08-operations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no list-row cell overlaps a sibling or escapes its row at 390",
       "selector": ".cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
@@ -30238,6 +31280,774 @@
       "actual": "clean across 1 row(s)",
       "status": "MATCH",
       "note": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    },
+    {
+      "spec": "mobile-08-operations-list",
+      "part": "Mobile 390 — Operations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "08-operations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "spec": "mobile-08-operations-list",
+      "part": "Mobile 390 — Operations list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "08-operations-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "no absence token escapes its own row at 390",
+      "selector": ".cl-list-row > .cl-absence",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 11 row(s)",
+      "status": "MATCH",
+      "note": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "selector": ".cl-map-outer",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "selector": ".cl-map-outer",
+      "property": "grid-template-columns",
+      "expected": "*",
+      "actual": "358px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "selector": ".cl-map-outer",
+      "property": "padding",
+      "expected": "14px 16px 16px",
+      "actual": "14px 16px 16px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "D-M3: the outer grid is ONE track at 390 — the rail folds under the content, it does not overlap it",
+      "selector": ".cl-map-outer",
+      "property": "grid-template-columns",
+      "expected": "358px",
+      "actual": "358px",
+      "status": "MATCH",
+      "note": "One track, at the full content width inside the 16px page padding (390 - 32 = 358). Before the fix this read `minmax(0,1fr) 300px` at every width and the two tracks were laid out over each other."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "The content column fills that single track",
+      "selector": "[data-testid=\"map-register-column\"]",
+      "property": "width",
+      "expected": "358px",
+      "actual": "358px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+      "selector": ".cl-masthead-body",
+      "property": "padding-top",
+      "expected": "14px",
+      "actual": "14px",
+      "status": "MATCH",
+      "note": "D-M5. The mobile 390 spec writes \"14px 16px 0\", which left the command bar's bottom edge on the card's own 1px bottom border; the 0 describes where the body's content starts, not the card's padding below its last child. See DEVIATION-LOG.md."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+      "selector": ".cl-masthead-body",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "D-M5. The mobile 390 spec writes \"14px 16px 0\", which left the command bar's bottom edge on the card's own 1px bottom border; the 0 describes where the body's content starts, not the card's padding below its last child. See DEVIATION-LOG.md."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+      "selector": ".cl-masthead-body",
+      "property": "padding-right",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "D-M5. The mobile 390 spec writes \"14px 16px 0\", which left the command bar's bottom edge on the card's own 1px bottom border; the 0 describes where the body's content starts, not the card's padding below its last child. See DEVIATION-LOG.md."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
+      "selector": ".cl-masthead-body",
+      "property": "padding-bottom",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "D-M5. The mobile 390 spec writes \"14px 16px 0\", which left the command bar's bottom edge on the card's own 1px bottom border; the 0 describes where the body's content starts, not the card's padding below its last child. See DEVIATION-LOG.md."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead title Anton 24px uppercase, line-height 1.08",
+      "selector": ".cl-masthead-title",
+      "property": "font-size",
+      "expected": "24px",
+      "actual": "24px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead title Anton 24px uppercase, line-height 1.08",
+      "selector": ".cl-masthead-title",
+      "property": "line-height",
+      "expected": "25.92px",
+      "actual": "25.92px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead title Anton 24px uppercase, line-height 1.08",
+      "selector": ".cl-masthead-title",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Command bar is 44px high, radius 8",
+      "selector": ".cl-command-bar",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Command bar is 44px high, radius 8",
+      "selector": ".cl-command-bar",
+      "property": "border-radius",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "The register still uses the one shared ListRow, at its mobile measure",
+      "selector": ".cl-list-row",
+      "property": "grid-template-columns",
+      "expected": "3px *",
+      "actual": "3px 295px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "The register still uses the one shared ListRow, at its mobile measure",
+      "selector": ".cl-list-row",
+      "property": "min-height",
+      "expected": "76px",
+      "actual": "76px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "property": "font-size",
+      "expected": "9.5px",
+      "actual": "9.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "property": "font-weight",
+      "expected": "700",
+      "actual": "700",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "property": "letter-spacing",
+      "expected": "1.33px",
+      "actual": "1.33px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "property": "color",
+      "expected": "rgb(122, 110, 108)",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead scope line 12px, line-height 1.45",
+      "selector": ".cl-masthead-dek",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead scope line 12px, line-height 1.45",
+      "selector": ".cl-masthead-dek",
+      "property": "line-height",
+      "expected": "17.4px",
+      "actual": "17.4px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead row stacks so the command bar takes a full-width line of its own",
+      "selector": ".cl-masthead-row",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead row stacks so the command bar takes a full-width line of its own",
+      "selector": ".cl-masthead-row",
+      "property": "align-items",
+      "expected": "stretch",
+      "actual": "stretch",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Masthead row stacks so the command bar takes a full-width line of its own",
+      "selector": ".cl-masthead-row",
+      "property": "gap",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "The Cmd-K hint is dropped at 390",
+      "selector": ".cl-command-bar .cl-cmdk-hint",
+      "property": "display",
+      "expected": "none",
+      "actual": "none",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row: 3px full-bleed band spine",
+      "selector": ".cl-list-row > .cl-row-spine",
+      "property": "width",
+      "expected": "3px",
+      "actual": "3px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row content padding 10px 6px 10px 12px, a flex column of two lines",
+      "selector": ".cl-list-row .cl-row-content",
+      "property": "padding",
+      "expected": "10px 6px 10px 12px",
+      "actual": "10px 6px 10px 12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row content padding 10px 6px 10px 12px, a flex column of two lines",
+      "selector": ".cl-list-row .cl-row-content",
+      "property": "display",
+      "expected": "flex",
+      "actual": "flex",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row content padding 10px 6px 10px 12px, a flex column of two lines",
+      "selector": ".cl-list-row .cl-row-content",
+      "property": "flex-direction",
+      "expected": "column",
+      "actual": "column",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row title 13.5px/1.35, wraps, no ellipsis",
+      "selector": ".cl-list-row .cl-row-title-text",
+      "property": "font-size",
+      "expected": "13.5px",
+      "actual": "13.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row title 13.5px/1.35, wraps, no ellipsis",
+      "selector": ".cl-list-row .cl-row-title-text",
+      "property": "line-height",
+      "expected": "18.23px",
+      "actual": "18.225px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row title 13.5px/1.35, wraps, no ellipsis",
+      "selector": ".cl-list-row .cl-row-title-text",
+      "property": "white-space",
+      "expected": "normal",
+      "actual": "normal",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Register row title 13.5px/1.35, wraps, no ellipsis",
+      "selector": ".cl-list-row .cl-row-title-text",
+      "property": "text-overflow",
+      "expected": "clip",
+      "actual": "clip",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Filter chip group shell 36px, radius 8 — a group never loses its label",
+      "selector": ".cl-filter-group",
+      "property": "min-height",
+      "expected": "36px",
+      "actual": "36px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Filter chip group shell 36px, radius 8 — a group never loses its label",
+      "selector": ".cl-filter-group",
+      "property": "border-radius",
+      "expected": "8px",
+      "actual": "8px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Filter chips 12px/600 radius 6",
+      "selector": ".cl-filter-chip",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Filter chips 12px/600 radius 6",
+      "selector": ".cl-filter-chip",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "Filter chips 12px/600 radius 6",
+      "selector": ".cl-filter-chip",
+      "property": "border-radius",
+      "expected": "6px",
+      "actual": "6px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "no literal UNSCORED token anywhere",
+      "selector": "body [text contains \"UNSCORED\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.1. Matched against RENDERED text (run-audit.mjs's renderedText) — the source writes it lower case and CSS uppercases it, which is how nineteen specs' worth of this forbid matched nothing for as long as they existed."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "no floating Ask AI control",
+      "selector": "body [text contains \"Ask AI\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.2: the masthead command bar is the only ask surface, at any width."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "D-M3: nothing in the map page escapes the outer grid at 390",
+      "selector": ".cl-map-outer > .cl-map-outer > div",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "The defect exactly: with the 300px rail track alive at 390 the rail column was laid out outside and over the content column. A direct child wider than its own grid is the recurrence."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix on a sibling surface: card bottom 186.3, bar bottom 185.3 — the bar sat on the card's border."
+    },
+    {
+      "spec": "mobile-10-map",
+      "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+      "artboards": [
+        "10-map (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
+      "viewport": 390,
+      "target": "no list-row cell overlaps a sibling or escapes its row at 390",
+      "selector": ".cl-list-row > .cl-row-content > *",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 4 row(s)",
+      "status": "MATCH",
+      "note": "The register rows are the same shared ListRow every list surface uses; the same bounds rule applies here."
     },
     {
       "spec": "mobile-11-watchlist",
@@ -30311,13 +32121,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-top",
       "expected": "14px",
       "actual": "14px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-11-watchlist",
@@ -30327,13 +32137,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-left",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-11-watchlist",
@@ -30343,13 +32153,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-right",
       "expected": "16px",
       "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-11-watchlist",
@@ -30359,13 +32169,13 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
-      "target": "Masthead body padding 14px 16px 0",
+      "target": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "property": "padding-bottom",
-      "expected": "0px",
-      "actual": "0px",
+      "expected": "16px",
+      "actual": "16px",
       "status": "MATCH",
-      "note": null
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "spec": "mobile-11-watchlist",
@@ -31319,6 +33129,22 @@
       ],
       "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
       "viewport": 390,
+      "target": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "mobile-11-watchlist",
+      "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
       "target": "no list-row cell overlaps a sibling or escapes its row at 390",
       "selector": ".cl-list-row > .cl-row-content > *",
       "property": "(cell containment)",
@@ -31342,6 +33168,38 @@
       "actual": "clean across 1 row(s)",
       "status": "MATCH",
       "note": "MOBILE-60 regression guard: the watchlist built its own copy of the shell's frame and so carried none of the mobile page measures until this lane; it now renders the shell's own exported block."
+    },
+    {
+      "spec": "mobile-11-watchlist",
+      "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "D-M5: the masthead card contains its command bar",
+      "selector": ".cl-masthead > .cl-command-bar",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 1 row(s)",
+      "status": "MATCH",
+      "note": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "spec": "mobile-11-watchlist",
+      "part": "Mobile 390 — Watchlist list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+      "artboards": [
+        "11-watchlist (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+      ],
+      "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+      "viewport": 390,
+      "target": "no absence token escapes its own row at 390",
+      "selector": ".cl-list-row > .cl-absence",
+      "property": "(cell containment)",
+      "expected": "no cell overlaps a sibling or exceeds its row",
+      "actual": "clean across 6 row(s)",
+      "status": "MATCH",
+      "note": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
     },
     {
       "spec": "mobile-18-drawer",

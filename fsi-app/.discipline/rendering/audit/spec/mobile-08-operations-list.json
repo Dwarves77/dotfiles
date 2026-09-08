@@ -31,14 +31,15 @@
       }
     },
     {
-      "name": "Masthead body padding 14px 16px 0",
+      "name": "Masthead body padding 14px 16px 16px (the card contains its command bar)",
       "selector": ".cl-masthead-body",
       "expect": {
         "padding-top": "14px",
         "padding-left": "16px",
         "padding-right": "16px",
-        "padding-bottom": "0px"
-      }
+        "padding-bottom": "16px"
+      },
+      "note": "D-M5 (lane mobfix61, 2026-09-08, operator: \"search bar touched bounding box\"): the mobile 390 spec writes the masthead body's padding as \"14px 16px 0\", but that 0 left the command bar's bottom edge sitting ON the card's own 1px bottom border (measured at 390: card bottom 186.3, bar bottom 185.3). The spec's \"0\" describes where the body's content starts; the card still needs its own padding below its last child, which is what the artboard draws. 16px matches the same spec's bottom measure for the tile/content container directly beneath. Logged in DEVIATION-LOG.md."
     },
     {
       "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -382,6 +383,11 @@
       "name": "no desktop facet chip strip in the content column at any width",
       "selector": ".cl-facets-desktop",
       "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+    },
+    {
+      "name": "D-M4: no list row carries more than one absence token",
+      "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third wrapping onto a line of its own at 390 beside a dangling divider. Ruling 2.1 and the mobile 390 spec both allow exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else; a document-wide count cannot express \"per row\" and would read 16 on a 16-row surface that is entirely correct. The structural guarantee is ListRow's `reasonSlot`."
     }
   ],
   "boundsCheck": [
@@ -396,6 +402,18 @@
       "container": ".cl-list-surface-grid",
       "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
       "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    },
+    {
+      "name": "D-M5: the masthead card contains its command bar",
+      "container": ".cl-masthead",
+      "cells": ".cl-command-bar",
+      "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix: card bottom 186.3, bar bottom 185.3 — the bar sat ON the card's 1px border. A card must contain its content."
+    },
+    {
+      "name": "no absence token escapes its own row at 390",
+      "container": ".cl-list-row",
+      "cells": ".cl-absence",
+      "reason": "D-M4 regression guard: the third token was pushed out of the row's line-2 flow before it was removed. A token wider than, or outside, its row is the shape of the defect returning."
     }
   ]
 }
