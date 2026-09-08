@@ -73,14 +73,18 @@ export function RailCard({
 // renders as a checkbox list where checking a row selects it and checking the already-selected row
 // clears it — visually a checkbox, behaviourally the same single-select the chips already had, so no
 // list surface's filter semantics changed, only where the control lives.
-const VISIBLE_OPTIONS_CAP = 5;
+// 6, not 5: artboard 08/id="p8"'s DIMENSION group lists all six dimensions D1-D6 with no "+ N more"
+// disclosure, and the disclosure is what this cap exists to trigger.
+const VISIBLE_OPTIONS_CAP = 6;
 
 function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
   const [expanded, setExpanded] = useState(false);
   const visible = expanded ? group.options : group.options.slice(0, VISIBLE_OPTIONS_CAP);
   const hidden = group.options.length - visible.length;
   return (
-    <div>
+    // data-audit: a stable per-group selector so a compose-*.json spec can assert the rail's facet
+    // ORDER (the operator's complaint was placement), not merely that a group exists.
+    <div data-audit={`facet-${group.key}`}>
       <p
         style={{
           fontSize: "var(--fs-105)",
@@ -121,7 +125,7 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
               <span style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {opt.label}
               </span>
-              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.count}</span>
+              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.countLabel ?? opt.count}</span>
             </label>
           );
         })}

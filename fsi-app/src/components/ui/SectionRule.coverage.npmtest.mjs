@@ -65,9 +65,16 @@ test("ListSurfaceShell's per-band Card skips SectionRule (noRule) to avoid stack
   assert.match(text, /<Card key=\{section\.band\.key\} noRule>/);
 });
 
-test("ListSurfaceShell.tsx mounts SectionRule 3 times (the per-ledger Card, and the primary + secondary facets cards)", () => {
+// Was 3 (the per-ledger Card plus a primary and a secondary facets card). The desktop facets cards
+// are gone — lane compose-lists (2026-09-07/08) relocated every list surface's facets to the rail's
+// FiltersRailCard on the operator's own audit ("the filters were not above the regulations, they
+// were on the right"), and that card carries its own SectionRule (asserted above, and by
+// list-surface.json). The INVARIANT is unchanged: every card this shell renders with a title gets
+// ruling 5.1's rule, and the per-band Card deliberately opts out (noRule, asserted above). Only the
+// count of cards this file owns changed.
+test("ListSurfaceShell.tsx mounts SectionRule once (the per-ledger Card; the facets moved to the rail's own card)", () => {
   const text = readFileSync(resolve(ROOT, "components/list-surface/ListSurfaceShell.tsx"), "utf8");
-  assert.equal(countRealMounts(text), 3);
+  assert.equal(countRealMounts(text), 1);
 });
 
 const NO_BORDER_BOTTOM_UNDER_TITLE = [

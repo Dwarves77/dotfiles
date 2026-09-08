@@ -39,7 +39,11 @@ test("FiltersRailCard renders a Filters title, a Clear-N control, and checkbox r
   assert.match(RAIL_SOURCE, /Filters/);
   assert.match(RAIL_SOURCE, /Clear \{activeCount\}/);
   assert.match(RAIL_SOURCE, /type="checkbox"/);
-  assert.match(RAIL_SOURCE, /\{opt\.count\}/);
+  // `countLabel ?? count` since lane comp-08 (2026-09-08): the live count is still what renders;
+  // a facet whose count is a ratio rather than a tally (artboard 08's DIMENSION group, "3/5")
+  // supplies its own display string. The invariant guarded here is unchanged — the rail row prints
+  // the group's real count, never a static label.
+  assert.match(RAIL_SOURCE, /\{opt\.countLabel \?\? opt\.count\}/);
 });
 
 test("mobile strip + sheet mechanism (cl-facets-mobile / cl-filters-btn) is unchanged by the relocation", () => {

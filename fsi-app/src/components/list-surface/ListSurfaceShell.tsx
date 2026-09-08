@@ -77,9 +77,9 @@ export interface ListSurfaceShellProps {
   itemCount: number;
   scope: string;
   onSearch?: (q: string) => void;
-  /** Masthead command-bar placeholder. Artboard 06/id="p6" scopes it per surface ("Search
-   *  findings and themes, or ask ..."); omitted, CommandBar keeps its generic item-count
-   *  placeholder. */
+  /** Page-scoped command-bar prompt (each list artboard writes its own, e.g. artboard 08/id="p8":
+   *  'Search regions and dimensions ...'). Omitted, CommandBar's generic item-count placeholder
+   *  stands. Pass-through only: the ask surface is still the one CommandBar in the Masthead. */
   searchPlaceholder?: string;
 
   bandCounts: Record<UrgencyBandKey, number> | null;
@@ -325,6 +325,14 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
   );
 }
 
+/** Band card foot strip, right side (artboards 02/08): the transition into the next populated band,
+ *  or "end of list" on the last card. Reads the sections actually rendered, so a band with no rows
+ *  is never named as "next". */
+function transitionLabel(sections: Array<{ band: UrgencyBand; total: number }>, index: number): string {
+  const next = sections[index + 1];
+  return next ? `then ${next.band.label} \u00b7 ${next.total}` : "end of list";
+}
+
 export function ListSurfaceShell({
   title,
   dek,
@@ -356,6 +364,7 @@ export function ListSurfaceShell({
   rail,
 }: ListSurfaceShellProps) {
   const anyRows = rowsByBand.some((b) => b.rows.length > 0);
+  const populatedSections = useMemo(() => rowsByBand.filter((section) => section.total > 0), [rowsByBand]);
   const [filterSheetOpen, setFilterSheetOpen] = useState(false);
   const allFacetGroups = useMemo(
     () => [...facetGroups, ...(secondaryFacetGroups ?? [])],
@@ -478,8 +487,7 @@ export function ListSurfaceShell({
               );
             })()
           ) : (
-            rowsByBand
-              .filter((section) => section.total > 0)
+            populatedSections
               .map((section, sectionIndex, rendered) => {
                 const nextSection = rendered[sectionIndex + 1] ?? null;
                 const expanded = expandedBands?.has(section.band.key) ?? false;
@@ -560,11 +568,9 @@ export function ListSurfaceShell({
                           All {section.total} {section.band.label.toLowerCase()} →
                         </button>
                       ) : (
-                        <span />
+                        <span style={{ minHeight: 24, display: "inline-flex", alignItems: "center" }} />
                       )}
-                      <span style={{ color: "var(--ink-3)" }}>
-                        {nextSection ? `then ${nextSection.band.label} \u00b7 ${nextSection.total}` : "end of list"}
-                      </span>
+                      <span style={{ color: "var(--ink-3)" }}>{transitionLabel(populatedSections, sectionIndex)}</span>
                     </div>
                     {(() => {
                       // The transition strip is per-band and often absent; only the band that has
