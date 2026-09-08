@@ -288,7 +288,7 @@ export function MapPageView(props: MapPageViewProps) {
            holds the two-column layout is THIS one, .cl-map-outer, and nothing addressed it: the
            300px rail track survived at every width, so at 390 the rail cards were laid out on top
            of the MODE / BAND / REGION chip rows. A media query naming a class no element in the
-           file carries is a silent no-op, which is why this shipped; F40 in
+           file carries is a silent no-op, which is why this shipped; F41 in
            .discipline/fitness/functions is the mechanical check that the class named in an @media
            block exists on an element in the same file, so this class of defect cannot come back.
 

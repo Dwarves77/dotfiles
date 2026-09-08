@@ -203,6 +203,16 @@ export const SKILL_MARKER_BASELINE = {
   // authenticated fetcher ..."). TRIAGE: new invariant RD-65-authed-api-fetch (enforcedBy fitness:F40
   // + its selftest). Source: the workspace-tags feature 401'd for every signed-in user in production
   // from the day it landed while every gate stayed green.
+  // 49→50 (2026-09-08, lane mobfix61, operator mobile report D-M3): added Section 4 category 41 (a
+  // responsive `@media` rule naming a class no element carries is a silent no-op — the map page's
+  // 300px rail track survived at every width because the only media query in the file named a class
+  // the page does not use, and nothing in the toolchain can see a CSS selector that matches nothing)
+  // and its one-line anchor ("Every `cl-*` class targeted inside an `@media` block ... MUST be carried
+  // by an element in the same file ..."). TRIAGE: new invariant RD-66-dead-media-query-class
+  // (enforcedBy fitness:F41 + its selftest).
+  // FOLD-61: this category and its invariant arrived numbered 40 / RD-65 / F40, colliding with
+  // lane TAGS-401's above. Renumbered to 41 / RD-66 / F41 at the fold; both are kept, and TAGS-401
+  // kept its number because it landed first and was cited in more places.
   'remediation-discipline': 49,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
@@ -1414,5 +1424,14 @@ export const INVARIANTS = [
     anchor: '### Section 4 — category 40: a browser call to a requireAuth-guarded route attaches the session token in ONE place, never at the call site',
     enforcedBy: ['fitness:F40', 'selftest:fsi-app/.discipline/fitness/functions/F40-authed-api-fetch.test.mjs'],
     residual: 'F40 is a LEXICAL scanner over `fsi-app/src/**/*.{ts,tsx}` (test files excluded), and its two rules carry different strengths. Rule (a) — no hand-rolled `Bearer ${` outside the named allowlist — is fully decidable and is the one that closes the class. Rule (b) — a `fetch()` on a literal `/api/` path whose route calls requireAuth must be `authedFetch` or sit in a file importing the helper — CANNOT prove by dataflow that the `headers` value a bare `fetch()` receives actually came from `authHeaders()`; it verifies only that the file has the helper in scope. That gap is closed by rule (a) rather than by rule (b), because the only way to produce a bearer header in this codebase without tripping (a) is to call the shared builder. A dynamically-built request path (`fetch(url)` where `url` is a variable) is invisible to rule (b) entirely; rule (a) still binds it, and the route\'s own requireAuth still rejects an unauthenticated call, so such a failure is loud at the call site rather than silent. F40 also does not see a non-browser caller (a script or worker using a service key), which is a different auth surface with its own gates (F19, worker-auth).',
+  },
+  {
+    id: 'RD-66-dead-media-query-class',
+    skill: 'remediation-discipline',
+    section: 'Section 4 — category 41: a responsive `@media` rule naming a class no element carries is a silent no-op',
+    text: 'Every `cl-*` class targeted inside an `@media` block in a `.tsx` under fsi-app/src must be carried by an element in the same file, be a registered shared-part class rendered by another component, or carry a same-line or preceding-line `// fitness-allow: F41 (reason)` marker naming the component that renders it. [CONFIRMED, operator mobile report 2026-09-08, D-M3]: MapPageView.tsx\'s only media query named `.cl-map-grid` while the page\'s two-column grid was `.cl-map-outer`, and `.cl-map-grid` was a `display:flex` element on which `grid-template-columns` is inert — dead twice over, so the 300px rail track survived at every width and at 390 the rail cards were laid out on top of the filter chip rows. A CSS selector matching no element is not an error in any language involved: tsc does not read CSS strings, no fitness rule covered it, the rendering guard did not mount that page at that width, and the design audit had no map spec at 390. The gate\'s first run found a second live instance (`.cl-facets-desktop` in ListSurfaceShell.tsx, a retired strip), which is the class signal.',
+    anchor: '### Section 4 — category 41: a responsive `@media` rule naming a class no element carries is a silent no-op',
+    enforcedBy: ['fitness:F41', 'selftest:fsi-app/.discipline/fitness/functions/F41-dead-media-query-class.test.mjs'],
+    residual: 'F41 is a LEXICAL scanner over `fsi-app/src/**/*.tsx` (test files and `/_archive/` excluded): it brace-balances each `@media` block, collects the `cl-*` class selectors inside it, and asserts each appears as a class on an element in the same file (any className attribute or class-building string, with the `<style>` blocks stripped first so a selector cannot vouch for itself). It checks EXISTENCE of the class, not that the rule\'s declarations are meaningful on the element that carries it — MapPageView\'s rule was ALSO inert because `grid-template-columns` does nothing on a flex container, and F41 would not have caught that half on its own; the bounds checks in the audit\'s mobile-* specs are what measure the rendered result. Scope is deliberately limited to rules INSIDE `@media`: non-responsive rules are a far larger surface with a cosmetic failure mode, while the defect this gate exists for is a responsive rule that silently never fires. CROSS_COMPONENT_CLASSES is a hardcoded, path-annotated list (F33/F35\'s posture): a shared-part class newly targeted from another file is covered only when it is added there or marked inline.',
   },
 ];
