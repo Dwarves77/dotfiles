@@ -7,6 +7,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   detectClippedOverflow,
+  detectClippedText,
   detectSmallTargets,
   detectSqueezedTitles,
   assertUxClean,
@@ -78,4 +79,66 @@ test('RED: an element past the right edge with no scrolling ancestor is clipped;
   ]);
   assert.deepEqual(hits.map((h) => h.name), ['table[Dimension]']);
   assert.match(assertUxClean('ops@390', { clipped: hits })[0], /clipped past the viewport/);
+});
+
+// ── detectClippedText (opsclip, train 61, defects 2 and 6) ────────────────────
+// RED: each shape below is one of the five production clippings the operator's own click-through
+// found on 2026-09-08. Nothing in the suite failed on any of them before this lane.
+test("detectClippedText flags a run clipped horizontally with text-overflow: clip", () => {
+  const hits = detectClippedText([
+    { name: 'span[IMPACT LOW → H]', overflowX: 25, overflowY: 0, textOverflow: 'clip', clamped: false, inStrip: false },
+  ]);
+  assert.equal(hits.length, 1);
+});
+
+test("detectClippedText flags a run clipped vertically", () => {
+  assert.equal(
+    detectClippedText([{ name: 'div[meta]', overflowX: 0, overflowY: 14, textOverflow: 'clip', clamped: false, inStrip: false }]).length,
+    1,
+  );
+});
+
+test("detectClippedText passes a run that declares its truncation with an ellipsis", () => {
+  assert.deepEqual(
+    detectClippedText([{ name: 'span[title…]', overflowX: 40, overflowY: 0, textOverflow: 'ellipsis', clamped: false, inStrip: false }]),
+    [],
+  );
+});
+
+test("detectClippedText passes a line-clamped run (the clamp draws its own ellipsis)", () => {
+  assert.deepEqual(
+    detectClippedText([{ name: 'p[body]', overflowX: 0, overflowY: 30, textOverflow: 'clip', clamped: true, inStrip: false }]),
+    [],
+  );
+});
+
+test("detectClippedText passes a run inside a declared scrolling strip", () => {
+  assert.deepEqual(
+    detectClippedText([{ name: 'span[chip]', overflowX: 20, overflowY: 0, textOverflow: 'clip', clamped: false, inStrip: true }]),
+    [],
+  );
+});
+
+test("detectClippedText passes a run that fits, and is total on bad input", () => {
+  assert.deepEqual(
+    detectClippedText([{ name: 'span[fits]', overflowX: 0, overflowY: 0, textOverflow: 'clip', clamped: false, inStrip: false }]),
+    [],
+  );
+  assert.deepEqual(detectClippedText(null), []);
+});
+
+test("detectClippedText holds a column header to fitting outright, ellipsis or not (defect 2)", () => {
+  // Production shipped "IMPACT LOW → HIGH" as "IMPACT LOW → H" inside an 88px column with
+  // `text-overflow: ellipsis`, so the declared-truncation carve-out above would have excused it.
+  // A column header's text is fixed and known at build time; it must fit.
+  const hits = detectClippedText([
+    { name: 'span[IMPACT LOW → HIGH]', overflowX: 25, overflowY: 0, textOverflow: 'ellipsis', clamped: false, inStrip: false, mustFit: true },
+  ]);
+  assert.equal(hits.length, 1);
+  assert.deepEqual(
+    detectClippedText([
+      { name: 'span[IMPACT LOW → HIGH]', overflowX: 0, overflowY: 0, textOverflow: 'clip', clamped: false, inStrip: false, mustFit: true },
+    ]),
+    [],
+  );
 });

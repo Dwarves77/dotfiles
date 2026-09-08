@@ -24,6 +24,7 @@ import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
 import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 import { SectionRule } from "@/components/ui/SectionRule";
+import { formatNumber } from "@/lib/format";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
@@ -139,7 +140,7 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
             color: "var(--color-text-muted)",
           }}
         >
-          {shown.length} of {rows.length} · dated, sourced observations ·{" "}
+          {formatNumber(shown.length)} of {formatNumber(rows.length)} · dated, sourced observations ·{" "}
           <a href="#market-series-board" style={{ color: "inherit", textDecoration: "underline" }}>
             Series board →
           </a>

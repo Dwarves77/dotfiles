@@ -38,6 +38,7 @@ import { useMemo } from "react";
 import { formatLocaleDate } from "@/lib/format";
 import { RowTable } from "@/components/ui/RowTable";
 import { Absence } from "@/components/ui/Absence";
+import { formatNumber } from "@/lib/format";
 
 type OrgRow = {
   id: string;
@@ -83,11 +84,11 @@ export interface OrganizationsTableProps {
 
 /** "2 · owners", the artboard's MEMBERS cell: the count then its role summary. */
 export function membersCellLabel(count: number, roles: RoleSummary | undefined): string {
-  if (!roles || count === 0) return String(count);
+  if (!roles || count === 0) return formatNumber(count);
   const present = ROLE_KEYS.filter((k) => roles[k] > 0).map((k) => `${k}s`);
   if (roles.other > 0) present.push("other");
-  if (present.length === 0) return String(count);
-  return `${count} · ${present.join(", ")}`;
+  if (present.length === 0) return formatNumber(count);
+  return `${formatNumber(count)} · ${present.join(", ")}`;
 }
 
 export function OrganizationsTable({ orgs, members }: OrganizationsTableProps) {

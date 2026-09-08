@@ -26,6 +26,7 @@ import { createCommunityPost } from "./api-client";
 import { validateEntityBinding } from "./identity-format";
 import { EntityPicker } from "./EntityPicker";
 import type { CommunityEntityRef, CommunityGuardAggregateRoute } from "./types";
+import { formatNumber } from "@/lib/format";
 
 interface CommunityPostAuthor {
   user_id: string;
@@ -294,7 +295,7 @@ export function PostComposer({
                 : "var(--color-text-muted, var(--color-text-secondary))",
           }}
         >
-          {body.length} / {MAX_BODY_LEN} characters
+          {formatNumber(body.length)} / {formatNumber(MAX_BODY_LEN)} characters
         </span>
         <div style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
           {error && (

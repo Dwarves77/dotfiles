@@ -23,6 +23,7 @@ import Link from "next/link";
 import { Calendar } from "lucide-react";
 import { formatEventDate } from "@/lib/connections/forward-event-format.mjs";
 import { itemDetailHref } from "@/lib/item-links";
+import { formatNumber } from "@/lib/format";
 
 export const KIND_LABELS: Record<string, string> = {
   entry_into_force: "Entry into force",
@@ -158,7 +159,7 @@ function Header({ count }: { count?: number }) {
       </h2>
       {typeof count === "number" && (
         <span style={{ fontSize: 11.5, color: "var(--color-text-muted)" }}>
-          {count} {count === 1 ? "event" : "events"}
+          {formatNumber(count)} {count === 1 ? "event" : "events"}
         </span>
       )}
     </div>

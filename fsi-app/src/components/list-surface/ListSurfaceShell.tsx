@@ -49,6 +49,11 @@ import { FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards"
 import { BAND_ORDER, type UrgencyBand, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { VirtualizedRowList } from "@/components/ledger/VirtualizedRowList";
 import type { FacetOption } from "./list-surface-helpers";
+// Lane opsclip (train 61, defect 4): every RENDERED count on this shell goes through the
+// locale-pinned helper (F36, src/lib/format.ts). Before this pass the band tiles were separated and
+// nothing else was, so one /regulations screen carried "1,317 regulations" and "showing 5 of 1031"
+// on the same fold, plus "All 1031 monitor" and "then Monitor · 1031".
+import { formatNumber } from "@/lib/format";
 
 // PERF-12: only worth windowing once a band's expanded row count clears the perBandCap-collapsed
 // case by a wide margin. 30 rows unwindowed is cheap; a band expanded to hundreds is not.
@@ -263,7 +268,7 @@ function FilterSheet({
                 </FilterChip>
                 {group.options.map((opt) => (
                   <FilterChip key={opt.value} active={group.selected === opt.value} onClick={() => group.onSelect(opt.value)}>
-                    {opt.label} · {opt.count}
+                    {opt.label} · {opt.countLabel ?? formatNumber(opt.count)}
                   </FilterChip>
                 ))}
               </FilterChipGroup>
@@ -319,7 +324,7 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
         <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{band.window}</span>
       </span>
       <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>
-        showing {showing} of {total}
+        showing {formatNumber(showing)} of {formatNumber(total)}
       </span>
     </div>
   );
@@ -330,7 +335,7 @@ function BandSectionHeader({ band, total, showing }: { band: UrgencyBand; total:
  *  is never named as "next". */
 function transitionLabel(sections: Array<{ band: UrgencyBand; total: number }>, index: number): string {
   const next = sections[index + 1];
-  return next ? `then ${next.band.label} \u00b7 ${next.total}` : "end of list";
+  return next ? `then ${next.band.label} \u00b7 ${formatNumber(next.total)}` : "end of list";
 }
 
 export function ListSurfaceShell({
@@ -565,7 +570,7 @@ export function ListSurfaceShell({
                             fontFamily: "inherit",
                           }}
                         >
-                          All {section.total} {section.band.label.toLowerCase()} →
+                          All {formatNumber(section.total)} {section.band.label.toLowerCase()} →
                         </button>
                       ) : (
                         <span style={{ minHeight: 24, display: "inline-flex", alignItems: "center" }} />

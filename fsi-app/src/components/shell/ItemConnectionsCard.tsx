@@ -23,6 +23,7 @@
 
 import type { Supersession, ItemConnection } from "@/types/resource";
 import { buildAllConnectionRows } from "@/lib/connections/connection-view-model.mjs";
+import { formatNumber } from "@/lib/format";
 
 interface ItemConnectionsCardProps {
   connections: ItemConnection[];
@@ -76,7 +77,7 @@ export function ItemConnectionsCard({
       >
         <span>{title}</span>
         <span style={{ fontSize: 9, fontWeight: 600, letterSpacing: "0.08em", color: "var(--text-2)" }}>
-          {rows.length}
+          {formatNumber(rows.length)}
         </span>
       </div>
 

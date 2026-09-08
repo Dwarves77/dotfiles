@@ -134,9 +134,28 @@ export function ListRowColumnHeader({
   // 76px timeline, 40px tier). `minWidth: 0` overrides the flex/grid item default of `min-width:
   // auto`, which otherwise refuses to shrink below its content's intrinsic width — the exact
   // mechanism that let "Impact low → high" push past its 88px column and collide with the DUE
-  // column's dates (operator report 2026-09-07, D1). `whiteSpace: nowrap` + `textOverflow:
-  // ellipsis` + `overflow: hidden` keep every label on ONE line, clipped inside its own column
-  // rather than wrapping into a second line or bleeding into the next column.
+  // column's dates (operator report 2026-09-07, D1).
+  //
+  // DEFECT 2, lane opsclip (train 61, 2026-09-08). The D1 fix above was correct; the `whiteSpace:
+  // nowrap` + `textOverflow: ellipsis` that shipped WITH it was not. Measured on production at
+  // 1440, the IMPACT header rendered as "IMPACT LOW → H" on the dashboard and on /watchlist — the
+  // word HIGH cut to one letter, one defect traded for another. The label cannot fit an 88px
+  // column on one line at 9.5px/.12em (it measures ~113px), and the artboard does not ask it to:
+  // dc.html p1/p11 give this header cell the SAME 88px track and the SAME type with no nowrap at
+  // all, and render it over two lines inside the 30px row. Two 9.5px lines at line-height 1.2
+  // measure 22.8px, which fits the artboard's own `height:30px` with room to spare.
+  //
+  // So the cell WRAPS, exactly as the artboard draws it, and stays inside its own 88px column
+  // because `minWidth: 0` (the real D1 fix) is untouched. `alignItems: center` centres the
+  // two-line block against the single-line labels beside it.
+  //
+  // The wrapping treatment goes on the cells that need it (`wrappingCellStyle`), not on
+  // `cellStyle`: JURIS. / TITLE / DUE / TIMELINE / TIER each fit their track on one line and keep
+  // the ellipsis as their honest last resort.
+  //
+  // NOTE FOR THE MOBILE LANE (mobfix61 is editing RESPONSIVE_CSS in this file concurrently): this
+  // change adds `wrappingCellStyle`/`impactCellStyle` and uses them on header spans. It touches no
+  // media query, no class name, and no line of RESPONSIVE_CSS.
   const cellStyle: CSSProperties = {
     fontSize: "var(--fs-95)",
     fontWeight: 700,
@@ -150,10 +169,28 @@ export function ListRowColumnHeader({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
   };
+  const wrappingCellStyle: CSSProperties = {
+    ...cellStyle,
+    whiteSpace: "normal",
+    textOverflow: "clip",
+    lineHeight: 1.2,
+    overflowWrap: "anywhere",
+  };
+  const impactCellStyle: CSSProperties = wrappingCellStyle;
   if (variant === "register") {
     // dc.html p10: same 30px height, same 9.5/.12em/700/--ink-3 type, the register grid, and the
     // ITEMS label right-aligned over its right-aligned numerals. The spine and arrow columns carry
     // no label, exactly as the artboard leaves them blank.
+    //
+    // DEFECT 2's class, lane opsclip (train 61): "HIGHEST BAND" measured 146px against its own
+    // 110px track and shipped truncated, exactly as the IMPACT header did — found by the new
+    // column-header fit rule, not by the operator, which is the point. The artboard's own markup
+    // for this row (dc.html p10, the register card's header div) carries no `nowrap` either and
+    // draws the label over two lines, so these cells take the same wrapping treatment. `height`
+    // becomes `minHeight` so the row is the artboard's 30px at every width where two 9.5px lines
+    // fit inside it (every desktop width), and grows rather than clipping at the narrow widths
+    // /map has no artboard for. `overflowWrap: anywhere` lets a single long label break at those
+    // widths instead of running out of its column.
     return (
       <div
         className="cl-list-row-header cl-list-row-header-register"
@@ -161,16 +198,16 @@ export function ListRowColumnHeader({
           display: "grid",
           gridTemplateColumns: REGISTER_GRID,
           gap: "0 14px",
-          height: 30,
+          minHeight: 30,
           padding: REGISTER_PADDING,
           borderBottom: "1px solid var(--line-2)",
         }}
       >
         <span aria-hidden="true" />
-        <span style={cellStyle}>Jurisdiction</span>
-        <span style={cellStyle}>Active themes</span>
-        <span style={cellStyle}>Highest band</span>
-        <span style={{ ...cellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
+        <span style={wrappingCellStyle}>Jurisdiction</span>
+        <span style={wrappingCellStyle}>Active themes</span>
+        <span style={wrappingCellStyle}>Highest band</span>
+        <span style={{ ...wrappingCellStyle, justifyContent: "flex-end", textAlign: "right" }}>Items</span>
         <span aria-hidden="true" />
       </div>
     );
@@ -198,7 +235,7 @@ export function ListRowColumnHeader({
       {/* dc.html p1 line 121 / p11 line 60: "low → high" is a nested span at
           weight 400 / letter-spacing .04em inside the 700/.12em "Impact" label,
           not one uniform run. */}
-      <span style={cellStyle}>
+      <span style={impactCellStyle}>
         Impact&nbsp;
         <span style={{ fontWeight: 400, letterSpacing: "0.04em" }}>low → high</span>
       </span>

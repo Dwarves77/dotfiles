@@ -163,7 +163,7 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
               <span style={{ flex: "1 1 auto", minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {opt.label}
               </span>
-              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.countLabel ?? opt.count}</span>
+              <span style={{ color: "var(--ink-3)", flexShrink: 0, fontVariantNumeric: "tabular-nums" }}>{opt.countLabel ?? formatNumber(opt.count)}</span>
             </label>
           );
         })}
@@ -187,7 +187,7 @@ function FacetSection({ group }: { group: ListSurfaceFacetGroup }) {
             fontFamily: "inherit",
           }}
         >
-          + {hidden} more
+          + {formatNumber(hidden)} more
         </button>
       )}
     </div>

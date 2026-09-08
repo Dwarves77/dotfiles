@@ -251,7 +251,7 @@ export function RegulationsLedger({ initialResources, aggregates, hasMore, initi
   }, [allRows]);
   const scopeLineParts = [
     `${formatNumber(total)} active`,
-    `${jurisdictionCount} jurisdictions`,
+    `${formatNumber(jurisdictionCount)} jurisdictions`,
     aggregates.lastUpdatedAt
       ? `last sync ${formatLocaleDate(new Date(aggregates.lastUpdatedAt), { month: "short", day: "numeric", timeZone: "UTC" })}`
       : null,

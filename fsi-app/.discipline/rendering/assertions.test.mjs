@@ -17,6 +17,7 @@ import {
   cellExceedsContainer,
   rectsOverlap,
   detectBoundsViolations,
+  findUnseparatedThousands,
 } from "./assertions.mjs";
 import {
   buildFixtures,
@@ -189,4 +190,56 @@ test("detectBoundsViolations containmentOnly keeps containment and drops sibling
   const v = detectBoundsViolations(container, escaped, undefined, { containmentOnly: true });
   assert.equal(v.length, 1, "containmentOnly still reports a cell outside its container");
   assert.match(v[0], /extends outside its container/);
+});
+
+// ── findUnseparatedThousands (opsclip, train 61, defect 4) ─────────────────────
+// RED-THEN-GREEN: every string below was read verbatim off production carosledge.com on
+// 2026-09-08 (audit CLICKTHROUGH-2026-09-08.md §3(g)) except where noted. Before this lane the
+// detector did not exist and nothing in the suite failed on any of them.
+test("findUnseparatedThousands flags the production strings train 59's tile-only fix missed", () => {
+  const hits = findUnseparatedThousands([
+    "showing 5 of 1031",
+    "All 1031 monitor →",
+    "then Monitor · 1031",
+    "T1 1049",
+    "1317 regulations tracked across 32 jurisdictions.",
+    "Monitor — 6–12 months, 1135 items",
+  ]);
+  assert.equal(hits.length, 6, `expected all six flagged, got ${JSON.stringify(hits)}`);
+});
+
+test("findUnseparatedThousands passes the separated forms of the same numbers", () => {
+  assert.deepEqual(
+    findUnseparatedThousands([
+      "showing 5 of 1,031",
+      "1,317 regulations · grouped by band",
+      "Monitor — 6–12 months, 1,135 items",
+      "5 of 999",
+    ]),
+    [],
+  );
+});
+
+test("findUnseparatedThousands does not flag years, ISO dates, decimals or identifiers", () => {
+  assert.deepEqual(
+    findUnseparatedThousands([
+      "Sep 30, 2026",
+      "2026-09-08",
+      "Vol IV · No. 37 · Tuesday, September 8, 2026",
+      "a0764ff3-9c21-4e6a-bb10-1234abcd5678 · owner",
+      "v1.2.3456",
+      "€40.4 / hr",
+      "1.894M tonnes",
+    ]),
+    [],
+  );
+});
+
+test("findUnseparatedThousands honours the caller's known allowlist", () => {
+  assert.deepEqual(findUnseparatedThousands(["T1 1049"], ["T1 1049"]), []);
+});
+
+test("findUnseparatedThousands is total on non-array and non-string input", () => {
+  assert.deepEqual(findUnseparatedThousands(null), []);
+  assert.deepEqual(findUnseparatedThousands([undefined, 1234, {}]), []);
 });

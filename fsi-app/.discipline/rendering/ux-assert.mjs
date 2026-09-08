@@ -95,10 +95,45 @@ export function detectClippedOverflow(boxes, tolerance = 2) {
 }
 
 /**
+ * TEXT CLIPPED WITHOUT AN ELLIPSIS (opsclip, train 61, defects 2 and 6). The class the operator
+ * found on production himself, on five surfaces at once: the dashboard and /watchlist column
+ * header shipped as "IMPACT LOW → H"; /research row meta as "Last-mile electrifica"; the
+ * /operations and /regulations section index as "S6 Operational requirem" and a bare "S7"; the
+ * /regulations UPCOMING OBLIGATIONS fifth card cut mid-word. Every one of them is a text run
+ * whose own box hides its overflow with `text-overflow: clip` — a character is lost and the
+ * reader is given no sign that anything is missing.
+ *
+ * The rule: a text run may overflow its own box only when it says so, i.e. `text-overflow:
+ * ellipsis` (or a `-webkit-line-clamp`, which draws its own ellipsis). Otherwise it must fit,
+ * wrap, or scroll inside a DECLARED strip.
+ *
+ * A COLUMN HEADER (`mustFit`) is held to a stricter rule: it must fit outright, ellipsis or not.
+ * Its text is fixed, short and known at build time, so there is no reader-supplied string that
+ * could ever justify truncating it — and an ellipsis is exactly how defect 2 hid itself, shipping
+ * "IMPACT LOW → HIGH" as "IMPACT LOW → H" while every truncation detector stayed green because the
+ * truncation was declared.
+ *
+ * Input: [{ name, overflowX, overflowY, textOverflow, clamped, inStrip, mustFit }] from
+ * `measureUx`. `overflowX`/`overflowY` are scrollWidth-clientWidth / scrollHeight-clientHeight
+ * in px. Pure.
+ */
+export function detectClippedText(runs, tolerance = 1) {
+  if (!Array.isArray(runs)) return [];
+  return runs.filter(
+    (r) =>
+      r &&
+      !r.clamped &&
+      !r.inStrip &&
+      (r.mustFit === true || r.textOverflow !== 'ellipsis') &&
+      (Number(r.overflowX) > tolerance || Number(r.overflowY) > tolerance),
+  );
+}
+
+/**
  * Human-readable failure strings for one measured page (empty = clean). `targets`, `titles` and
  * `clipped` are the collector outputs; `label` prefixes each line for the caller's summary. Pure.
  */
-export function assertUxClean(label, { targets = [], titles = [], clipped = [] } = {}) {
+export function assertUxClean(label, { targets = [], titles = [], clipped = [], textRuns = [] } = {}) {
   const failures = [];
   const off = detectClippedOverflow(clipped);
   if (off.length > 0) {
@@ -113,6 +148,16 @@ export function assertUxClean(label, { targets = [], titles = [], clipped = [] }
       .join(', ');
     failures.push(
       `${label}: ${small.length} interactive target(s) below the law-2 floor (≥${TARGET_MIN_PX}px, or ≥${TARGET_SMALL_MIN_PX}px with ${TARGET_CLEARANCE_PX}px clearance) — ${detail}${small.length > 8 ? ', …' : ''}`,
+    );
+  }
+  const clippedText = detectClippedText(textRuns);
+  if (clippedText.length > 0) {
+    const detail = clippedText
+      .slice(0, 8)
+      .map((r) => `${r.name} +${Math.round(Math.max(r.overflowX, r.overflowY))}px`)
+      .join(', ');
+    failures.push(
+      `${label}: ${clippedText.length} text run(s) clipped with no ellipsis — ${detail}${clippedText.length > 8 ? ', …' : ''}`,
     );
   }
   const squeezed = detectSqueezedTitles(titles);
@@ -193,7 +238,41 @@ export async function measureUx(page) {
           lines: Math.max(1, Math.round(r.height / lh)),
         });
       }
-      return { targets, titles, clipped };
+      // Text runs (opsclip, defects 2 and 6): every element that IS a run of text — it has visible
+      // text and every element child of its own is inline — measured against its own box. A card or
+      // a column whose children are blocks is not a text run and is not swept here; that case is
+      // what `clipped` above and `detectOverflows` already cover.
+      const textRuns = [];
+      for (const el of document.querySelectorAll('body *')) {
+        if (textRuns.length >= 60) break;
+        const text = (el.textContent || '').trim();
+        if (!text || !visible(el)) continue;
+        const cs = getComputedStyle(el);
+        if (cs.overflowX !== 'hidden' && cs.overflowY !== 'hidden') continue;
+        let inlineOnly = true;
+        for (const child of el.children) {
+          const d = getComputedStyle(child).display;
+          if (d !== 'inline' && d !== 'inline-block' && d !== 'inline-flex' && d !== 'contents') { inlineOnly = false; break; }
+        }
+        if (!inlineOnly) continue;
+        const clamped = cs.webkitLineClamp !== undefined && cs.webkitLineClamp !== 'none' && cs.webkitLineClamp !== '';
+        let inStrip = false;
+        for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+          if (p.hasAttribute('data-guard-strip')) { inStrip = true; break; }
+          const ox = getComputedStyle(p).overflowX;
+          if (ox === 'auto' || ox === 'scroll') { inStrip = true; break; }
+        }
+        textRuns.push({
+          name: nameOf(el),
+          overflowX: el.scrollWidth - el.clientWidth,
+          overflowY: el.scrollHeight - el.clientHeight,
+          textOverflow: cs.textOverflow,
+          clamped,
+          inStrip,
+          mustFit: !!el.closest('.cl-list-row-header'),
+        });
+      }
+      return { targets, titles, clipped, textRuns };
     },
     { selector: TARGET_SELECTOR },
   );

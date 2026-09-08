@@ -50,7 +50,7 @@ import { buildRegionGrid } from "@/lib/operations/region-grid.mjs";
 import { resolveRegionCode } from "@/lib/operations/region-crosswalk.mjs";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
@@ -437,8 +437,8 @@ export function OperationsLedger({
       title="Operations Intelligence"
       scopeLine={
         <>
-          <b style={{ color: "var(--ink)" }}>{total}</b> active items ·{" "}
-          <b style={{ color: "var(--ink)" }}>{jurisdictionCount}</b> jurisdictions · six dimensions per
+          <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active items ·{" "}
+          <b style={{ color: "var(--ink)" }}>{formatNumber(jurisdictionCount)}</b> jurisdictions · six dimensions per
           region · every fact carries a source and date
         </>
       }

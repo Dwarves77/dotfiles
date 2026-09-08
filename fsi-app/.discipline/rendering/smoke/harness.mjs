@@ -148,7 +148,18 @@ export async function measureGuard(page) {
       const t = (cell.textContent || '').trim();
       if (t) texts.push(t);
     }
-    return { measurements, texts };
+    // LEAF text only (opsclip, train 61, defect 4). `texts` above deliberately includes ancestors,
+    // which is right for the placeholder-literal scan and wrong for the thousands scan: an ancestor's
+    // textContent CONCATENATES its children, so a due cell holding "Jun 1, 2027" over "266 days"
+    // reads as the string "Jun 1, 2027266 days" and manufactures a five-digit number that is not on
+    // the screen. A run with no element children of its own cannot do that.
+    const leafTexts = [];
+    for (const el of document.body.querySelectorAll('*')) {
+      if (el.children.length > 0) continue;
+      const t = (el.textContent || '').trim();
+      if (t) leafTexts.push(t);
+    }
+    return { measurements, texts, leafTexts };
   });
 }
 

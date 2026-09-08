@@ -1,6 +1,7 @@
 "use client";
 
 import { formatLocaleDate } from "@/lib/format";
+import { formatNumber } from "@/lib/format";
 
 // AssumptionRegisterPanel — admin Runtime -> Assumptions surface (WO-20 spec §4's minimum first reader,
 // wired by lane W71-WIRE, 2026-09-05, plan §W7.1).
@@ -91,7 +92,7 @@ export function AssumptionRegisterPanel({ rows }: AssumptionRegisterPanelProps) 
           Assumption register
         </span>
         <span style={{ fontSize: 10.5, fontWeight: 700, color: "var(--text-2)" }}>
-          {rows.length} constant{rows.length === 1 ? "" : "s"} · {subsystems.length} subsystem
+          {formatNumber(rows.length)} constant{rows.length === 1 ? "" : "s"} · {formatNumber(subsystems.length)} subsystem
           {subsystems.length === 1 ? "" : "s"} · WO-20
         </span>
       </div>

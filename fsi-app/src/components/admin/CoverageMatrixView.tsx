@@ -40,6 +40,7 @@ import {
   RefreshCw,
   PlusCircle,
 } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 // ── Types matching /api/admin/coverage response ─────────────────────────────
 
@@ -748,8 +749,8 @@ function CellTd({
     : null;
   const titleParts = [
     palette.label,
-    `${count} item${count === 1 ? "" : "s"}`,
-    `${sourceCount} active source${sourceCount === 1 ? "" : "s"}`,
+    `${formatNumber(count)} item${count === 1 ? "" : "s"}`,
+    `${formatNumber(sourceCount)} active source${sourceCount === 1 ? "" : "s"}`,
     recent ? `most recent ${recent}` : null,
   ].filter(Boolean);
 
@@ -771,7 +772,7 @@ function CellTd({
         {state === "gap-no-source" && (
           <AlertTriangle size={10} aria-hidden="true" />
         )}
-        <span>{count}</span>
+        <span>{formatNumber(count)}</span>
       </div>
     </td>
   );

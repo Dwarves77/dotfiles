@@ -32,7 +32,7 @@ import type { Resource } from "@/types/resource";
 import type { WorkspaceAggregates } from "@/lib/data";
 import { BAND_ORDER, bandFromPriority, type UrgencyBandKey } from "@/lib/urgency/bands";
 import { scoreResource } from "@/lib/scoring";
-import { formatLocaleDate } from "@/lib/format";
+import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { itemDetailHref } from "@/lib/item-links";
 import { dueInfo, jurisdictionCode, metaLine } from "@/lib/dashboard/row-fields";
@@ -259,7 +259,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
       title="Research"
       scopeLine={
         <>
-          <b style={{ color: "var(--ink)" }}>{total}</b> active findings · <b style={{ color: "var(--ink)" }}>{themeCards.length}</b>{" "}
+          <b style={{ color: "var(--ink)" }}>{formatNumber(total)}</b> active findings · <b style={{ color: "var(--ink)" }}>{themeCards.length}</b>{" "}
           themes · peer-reviewed journals, think tanks, quantified-climate research, analytical press
         </>
       }
@@ -280,7 +280,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
           countLabel={
             <>
               <b style={{ color: "var(--ink)" }}>
-                {shown} of {total}
+                {formatNumber(shown)} of {formatNumber(total)}
               </b>{" "}
               findings{theme ? ` · ${themeLabelOf(theme)}` : ""}
             </>
@@ -335,7 +335,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
               : `Nothing in the last ${windowDays(windowKey)} days`}
           </div>
           <div style={{ fontSize: "var(--fs-125)", color: "var(--ink-2)", marginTop: 6, lineHeight: 1.45 }}>
-            0 of {total} findings match{theme ? ` ${themeLabelOf(theme)} · ` : " "}
+            0 of {formatNumber(total)} findings match{theme ? ` ${themeLabelOf(theme)} · ` : " "}
             {windowLabel}.{" "}
             {widerWindow && (
               <>
@@ -401,7 +401,7 @@ export function ResearchLedger({ resources, aggregates, sourceCoverage, nowIso, 
                 {coverageBySource.map(([mode, count]) => (
                   <Fragment key={mode}>
                     <span style={{ color: "var(--ink)" }}>{mode}</span>
-                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--ink)" }}>{count}</span>
+                    <span style={{ fontFamily: "var(--font-display)", fontSize: 16, color: "var(--ink)" }}>{formatNumber(count)}</span>
                   </Fragment>
                 ))}
               </div>

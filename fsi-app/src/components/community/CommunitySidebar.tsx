@@ -36,6 +36,7 @@ import type {
   CommunityTopicSummary,
   CommunityCurrentUser,
 } from "./types";
+import { formatNumber } from "@/lib/format";
 
 interface CommunitySidebarProps {
   currentUser: CommunityCurrentUser;
@@ -463,7 +464,7 @@ function SidebarSection({
               color: "var(--color-text-muted)",
             }}
           >
-            {count}
+            {formatNumber(count)}
           </span>
         )}
         {actionHref && (

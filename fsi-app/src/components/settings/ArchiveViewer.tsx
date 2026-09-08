@@ -5,6 +5,7 @@ import type { Resource } from "@/types/resource";
 import { useResourceStore } from "@/stores/resourceStore";
 import { useNavigationStore } from "@/stores/navigationStore";
 import { Search, RotateCcw, Users, User } from "lucide-react";
+import { formatNumber } from "@/lib/format";
 
 // Dual-scope archive (migration 235). Two different things land a row in this
 // list and they restore through different routes, so the row has to say which:
@@ -115,7 +116,7 @@ export function ArchiveViewer() {
   return (
     <div className="space-y-3">
       <h3 className="text-xs font-semibold tracking-wider uppercase text-text-primary">
-        Archive ({rows.length})
+        Archive ({formatNumber(rows.length)})
       </h3>
 
       {/* Search + Filter */}

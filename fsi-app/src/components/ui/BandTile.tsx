@@ -142,7 +142,7 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
 }
 
 export function BandTile({ band, count, loading, selected, onSelect, href }: BandTileProps) {
-  const label = `${band.label} — ${band.window}${count != null ? `, ${count} items` : ""}`;
+  const label = `${band.label} — ${band.window}${count != null ? `, ${formatNumber(count)} items` : ""}`;
   const body = <BandTileBody band={band} count={count} loading={loading} />;
   const boxStyle = tileBoxStyle(selected, Boolean(onSelect || href));
 

@@ -148,3 +148,42 @@ export function isNowIndependent(formatFn, iso) {
     Date.now = realNow;
   }
 }
+
+// ── 6. Unseparated-thousands detector (opsclip, train 61, defect 4) ────────────
+// The production defect this exists to catch: train 59 gave the four band tiles a thousands
+// separator and nothing else, so ONE /regulations screen rendered "1,317 regulations · grouped by
+// band" and, thirty pixels below it, "1317 regulations tracked across 32 jurisdictions", plus
+// "showing 5 of 1031", "All 1031 monitor" and the tiles' own aria-labels reading "1135 items".
+// A reader cannot tell whether two differently-formatted numbers are the same number.
+//
+// The rule this encodes: a rendered INTEGER of four or more digits carries the locale-pinned
+// separator (src/lib/format.ts formatNumber, F36). It is a text-level check because that is the
+// only level at which the defect is visible; a source-level check cannot see aria-labels built by
+// template literal, which is exactly the half train 59's fix missed.
+//
+// What is deliberately NOT a violation, each because it is not a count:
+//   - a four-digit YEAR (1500-2199) standing alone, or inside an ISO date/time;
+//   - a digit run touching a letter, `-`, `/`, `:`, `.`, `_` or `#` (identifiers, slugs, hashes,
+//     ISO dates, decimals, version strings, "T1", ratios) — a count is a bare numeral;
+//   - anything the caller discloses in `known`.
+// The year carve-out means a COUNT that happens to equal 2026 slips through. That is a known,
+// bounded hole (one value in a thousand), taken deliberately over the alternative of failing every
+// date on every surface.
+const THOUSANDS_TOKEN = /(?<![\w,.\-/:#])\d{4,}(?![\w,.\-/:#])/g;
+const YEAR_LIKE = /^(1[5-9]\d\d|20\d\d|21\d\d)$/;
+
+/** Given rendered text strings, return the ones carrying an unseparated integer >= 1000.
+ *  Pure: no DOM. Empty array = clean. */
+export function findUnseparatedThousands(texts, known = []) {
+  if (!Array.isArray(texts)) return [];
+  const knownSet = new Set(known);
+  const hits = [];
+  for (const t of texts) {
+    if (typeof t !== "string" || knownSet.has(t)) continue;
+    const matches = t.match(THOUSANDS_TOKEN);
+    if (!matches) continue;
+    if (matches.every((m) => YEAR_LIKE.test(m))) continue;
+    hits.push(t);
+  }
+  return hits;
+}
