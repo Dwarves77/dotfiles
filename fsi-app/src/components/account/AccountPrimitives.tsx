@@ -72,7 +72,7 @@ export function SubTabBar<T extends string>({
   );
 }
 
-// ── Card with a #F5F2EE plate header (bg-plate) ──────────────────────────
+// ── Card with an Anton title head (dc.html p14/p15) ──────────────────────
 
 export function AccountCard({
   title,
@@ -80,12 +80,20 @@ export function AccountCard({
   children,
   maxWidth,
   bodyPad = true,
+  bodyPadding,
+  foot,
 }: {
   title: string;
   meta?: ReactNode;
   children: ReactNode;
   maxWidth?: number;
   bodyPad?: boolean;
+  /** Overrides the default body padding. Artboard 15 (dc.html id="p15") pads its card bodies
+   *  `14px 16px 16px`, not the `16px 20px` the profile cards use. */
+  bodyPadding?: string;
+  /** Optional foot strip below the body (dc.html p15 Freight sectors: `10px 16px`, top border,
+   *  `#FAFAF8` ground). */
+  foot?: ReactNode;
 }) {
   return (
     <section
@@ -105,7 +113,8 @@ export function AccountCard({
         style={{
           padding: "14px 16px 10px",
           borderBottom: "1px solid rgba(0,0,0,.08)",
-          background: "var(--color-surface-raised)",
+          // dc.html p14 and p15 both draw this head on the card's own white, with only the
+          // hairline below it. The tinted plate it used to carry is in neither artboard.
           display: "flex",
           justifyContent: "space-between",
           alignItems: "baseline",
@@ -137,8 +146,110 @@ export function AccountCard({
           </span>
         )}
       </div>
-      <div style={bodyPad ? { padding: "16px 20px" } : undefined}>{children}</div>
+      <div style={bodyPadding ? { padding: bodyPadding } : bodyPad ? { padding: "16px 20px" } : undefined}>
+        {children}
+      </div>
+      {foot != null && (
+        <div
+          style={{
+            padding: "10px 16px",
+            borderTop: "1px solid rgba(0,0,0,.08)",
+            background: "var(--color-surface-raised)",
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 12,
+            fontSize: 12,
+            flexWrap: "wrap",
+          }}
+        >
+          {foot}
+        </div>
+      )}
     </section>
+  );
+}
+
+// ── Segmented control (dc.html p15: joined options in one 1px box, active
+//    filled ink-on-white) ───────────────────────────────────────────────────
+// The artboard uses this form five times on Settings alone (Default sort,
+// Default export, Alert bands, Cadence, Day), so it is one part, not five
+// inline copies. Multi-select groups (Alert bands) pass `multiple` so the
+// buttons carry aria-pressed instead of aria-checked on a radiogroup.
+
+export interface SegmentedOption<T extends string> {
+  id: T;
+  label: string;
+}
+
+export function SegmentedControl<T extends string>({
+  options,
+  selected,
+  onSelect,
+  ariaLabel,
+  multiple = false,
+  disabled = false,
+}: {
+  options: ReadonlyArray<SegmentedOption<T>>;
+  /** The selected option ids. Single-select groups pass exactly one. */
+  selected: ReadonlyArray<T>;
+  onSelect: (id: T) => void;
+  ariaLabel: string;
+  multiple?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <div
+      role={multiple ? "group" : "radiogroup"}
+      aria-label={ariaLabel}
+      style={{
+        display: "inline-flex",
+        // A group whose segments cannot fit its column wraps onto a second line rather than being
+        // clipped by the card edge (operator, 2026-09-07: "your text ... overlays different
+        // areas"; no cell may overflow its column).
+        flexWrap: "wrap",
+        border: "1px solid var(--color-border-medium)",
+        borderRadius: 6,
+        overflow: "hidden",
+        maxWidth: "100%",
+      }}
+    >
+      {options.map((option, index) => {
+        const on = selected.includes(option.id);
+        return (
+          <button
+            key={option.id}
+            type="button"
+            role={multiple ? undefined : "radio"}
+            aria-checked={multiple ? undefined : on}
+            aria-pressed={multiple ? on : undefined}
+            disabled={disabled}
+            onClick={() => onSelect(option.id)}
+            style={{
+              fontFamily: SANS,
+              // dc.html p15 draws `6px 12px`, which lands at ~30px tall. Same 24px minimum box the
+              // list surfaces' own sort options and the band-card foot link already carry, rather
+              // than inflating the control to 44px and losing the artboard's geometry. 10px, not
+              // the artboard's 12px: the built content column is 764px where the artboard's is 780
+              // (AppShell puts the nav card's 16px margin outside its 252px track), and at 12px the
+              // Alert bands group ran 10px past its own column.
+              padding: "6px 10px",
+              minHeight: 24,
+              fontSize: 12,
+              fontWeight: 600,
+              whiteSpace: "nowrap",
+              border: "none",
+              borderLeft: index === 0 ? "none" : "1px solid rgba(0,0,0,.15)",
+              background: on ? "var(--color-primary)" : "transparent",
+              color: on ? "#FFFFFF" : "var(--color-text-secondary)",
+              cursor: disabled ? "default" : "pointer",
+            }}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
 

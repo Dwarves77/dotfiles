@@ -128,6 +128,17 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           .cl-masthead .cl-masthead-row { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .cl-masthead .cl-masthead-cmdbar { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }
         }
+        /* dc.html's own masthead row, at the width every artboard is drawn at. */
+        @media (min-width: 1440px) {
+          .cl-masthead .cl-masthead-row {
+            display: grid !important;
+            grid-template-columns: minmax(0,1fr) 420px !important;
+            align-items: end !important;
+            gap: 10px 24px !important;
+          }
+          .cl-masthead .cl-masthead-titleblock { flex: none !important; }
+          .cl-masthead .cl-masthead-cmdbar { flex: none !important; min-width: 0 !important; }
+        }
       `}</style>
       <p
         className="cl-masthead-eyebrow"
@@ -143,8 +154,23 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         VOL {EDITORIAL_VOLUME} · No. {weekNo} · {dateLabel}
         {eyebrowSuffix ? ` · ${eyebrowSuffix}` : ""}
       </p>
-      <div className="cl-masthead-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}>
-        <div style={{ minWidth: 0, flex: "1 1 auto" }}>
+      {/* dc.html declares this row as a GRID on 15 of the 17 artboards
+          (`grid-template-columns:minmax(0,1fr) 420px; gap:10px 24px; align-items:end`), not a
+          wrapping flex row: the flex version pushed the WHOLE command bar onto a second line
+          whenever the dek's max-content ran past the remaining space (caught on /settings, whose
+          scope line is one long sentence), where the grid wraps the DEK inside its own column and
+          keeps the bar on the title's row, as every artboard draws it.
+          The grid is applied AT the artboards' own width and not below it (the `min-width: 1440px`
+          rule in the stylesheet above). Every artboard is drawn at 1440 and none of them defines a
+          narrower layout (ruling R10: no responsive rules are invented), and the flat 420px track
+          is a 1440 value: carried down to 1280 it left a long detail title at 55% of its card,
+          which is the squeeze the rendering guard's law-2 measurement exists to catch. Below 1440
+          the pre-existing shrink-then-wrap behaviour is unchanged. */}
+      <div
+        className="cl-masthead-row"
+        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 24, flexWrap: "wrap" }}
+      >
+        <div className="cl-masthead-titleblock" style={{ minWidth: 0, flex: "1 1 auto" }}>
           <h1
             data-guard-title
             className="cl-masthead-title"
