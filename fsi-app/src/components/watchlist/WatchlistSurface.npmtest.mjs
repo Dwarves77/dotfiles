@@ -65,8 +65,20 @@ test("no region on this page claims a 'last visit' the product does not record",
   // Comments are stripped first: this file's own prose explains the defect and would match itself.
   const code = SRC.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
   assert.doesNotMatch(code, /last visit/i, "no rendered string claims a last visit");
-  // The window is stated ONCE, from the instant the feed itself reports, and mounted twice.
-  assert.equal(code.split("noticesWindowLabel").length - 1, 3, "one derivation, two mounts");
+  // The window's DATE is derived ONCE, from the instant the feed itself reports, and the two
+  // places that name it are two presentations OF that one date. UPDATED AT FOLD-61: this counted
+  // occurrences of `noticesWindowLabel` and read 3 (one derivation, two mounts). The card head and
+  // the strip are different SENTENCES and cannot share a phrase - reusing the head's label inside
+  // the strip rendered "4 watched items changed in since aug 8, 2026", found by eye in the fold's
+  // visual pass. The invariant is unchanged and is asserted on the date instead: one derivation,
+  // two presentations built from it, no second read of the feed's instant.
+  // Five occurrences, and the arithmetic is the assertion: ONE `const noticesWindowDate = ...`,
+  // then each of the two presentations naming it twice (its own null test and its interpolation).
+  assert.equal(code.split("noticesWindowDate").length - 1, 5, "one date derivation, two presentations");
+  assert.equal(code.split("const noticesWindowDate").length - 1, 1, "derived in exactly one place");
+  assert.match(code, /noticesWindowLabel = noticesWindowDate \?/, "the head label is built from that one date");
+  assert.match(code, /noticesWindowClause = noticesWindowDate \?/, "the strip clause is built from that same date");
+  assert.equal(code.split("formatLocaleDate(new Date(noticesSince)").length - 1, 1, "the instant is formatted exactly once");
   assert.match(code, /noticesSince/, "the label is derived from the feed's own since");
 });
 

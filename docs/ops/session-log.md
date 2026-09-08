@@ -13986,3 +13986,329 @@ fixtures, 431 checks, 7 SM + 12 UX smoke specs, 83 + 216 checks); `run-test-suit
 `next build --webpack` **succeeds with no `.env.local`**. Exit evidence:
 `docs/design/handoff-2026-09-06/built/mobile390-{dashboard,regulations,research,map}.png`, each
 captured at 390 and read back against the operator's screenshot of the same page.
+
+---
+
+## Addendum 86, postscript 17: train 61, the six-lane fold, the F40 collision, and the 390 defects two trains could not see (2026-09-08, coordinator, lane FOLD-61)
+
+Train 60 landed as `e5eadc83`. Six lanes were dispatched against it, and this is their fold: 31
+cherry-picks plus two fold commits, one branch, `train/wave61-2026-09-08`.
+
+**Why cherry-pick and not merge, and this train's own hazard.** The usual reason first: master
+carries the squash, so a merge would argue about ancestry for every file while `git cherry-pick -x`
+applies by content and keeps each origin commit traceable. This train adds a second reason. FOUR
+lanes (tags401, rsc503, opsclip, counts) were cut from wave60, whose tree is byte-identical to the
+base, and applied essentially clean. TWO, the mobile pair, were cut from wave59, one train BEHIND
+the base, and they change the same shared parts train 60's six composition lanes changed. They were
+applied LAST, deliberately, and every conflict in them was resolved by keeping BOTH sides.
+
+**Order applied, and what each lane landed.**
+
+- **tags401 (4)** the workspace-tags API returned 401 for every signed-in user, because `requireAuth`
+  reads only the `Authorization` bearer header and the tags client sent cookies. The lane found the
+  class is 25 files and four spellings, 21 of which interpolate an absent token and send the literal
+  string `Bearer undefined`. ONE shared `src/lib/api/authed-fetch.ts`, all 25 moved onto it, the
+  copies deleted, plus fitness function F40 `authed-api-fetch` and a workspace-tags smoke spec that
+  is the only api fixture in the engine which inspects the request.
+- **rsc503 (7)** the dashboard's intermittent failure state: five cached fetchers RESOLVED an
+  all-empty payload carrying a `SEED_FALLBACK_ERROR` sentinel, and Next's `unstable_cache` stores any
+  resolved value, so one transient Supabase failure poisoned the org's cache entry and every later
+  request was served the failure. `src/lib/cache/fallback-guard.ts` makes a fallback REJECT, so the
+  cache never stores it. Also the `SeedFallbackTrigger` "timeout" writer that never existed, and a
+  reason line under the operator-locked failure sentence.
+- **opsclip (3)** the operations matrix overflowed its container by 198px because the expanded Facts
+  row rendered into each region's own cell, so a fact's prose set that column's width; the artboard's
+  expanded row is ONE colspan cell holding a grid. Also the IMPACT LOW to HIGH header truncation, the
+  absence-token presentation in narrow cells, thousands separators everywhere including aria-labels,
+  two dead controls, and several clipped-without-ellipsis strings.
+- **counts (5)** the contradicting counts: the map's two jurisdiction keyings unified; the three
+  Monitor counts (the dashboard tile read a five-surface aggregate while its href opens one surface;
+  the list's 1031 was a silent PostgREST 1000-row cap on a single `.range()` call); the admin 489 vs
+  491; stale facet counts under filtering plus URL state for every facet; the room-count and
+  pluralisation defects. Migration 314 is ALREADY APPLIED to production and verified by the
+  coordinator; the file is in the tree for the inventory and was not re-applied.
+- **mobile60 (5)** eleven mobile overflow and measure defects fixed in the shared parts, eight audit
+  specs at viewport 390, and a per-spec `compiledCss` flag in `run-audit.mjs`.
+- **mobfix61 (7 of its 12)** the operator's own phone screenshots: the absence stack (proven a 1440
+  defect too, and the audit's eight UNSCORED forbids were VACUOUS because `textMatch` compared source
+  text against a CSS `text-transform`, so the harness was fixed first), the map page's dead media
+  query, the command bar's box, the sort row. It adds shared part `BandTileRow`, `ABSENCE_PRECEDENCE`
+  in `Absence.tsx`, `rowAbsence`/`reasonSlot` in `ListRow`, and a second fitness function.
+
+**THE F40 COLLISION, and how it was resolved.** tags401 and mobfix61 EACH added a fitness function
+numbered F40, with different names and both claiming invariant RD-65. Both functions are good and
+both stay. **mobfix61's was renumbered to F41 / RD-66 / skill Section 4 category 41**, and the reason
+is mechanical rather than aesthetic: tags401 landed first in this train and its number was already
+cited by four discipline files, a smoke spec and a skill section, so renumbering it would have
+touched strictly more citations. Renumbered with it: the function and selftest filenames, the
+runner's registry import and export list, the invariant record and its `enforcedBy` pair, the
+`fitness-allow: F41` marker the function reads in source, the skill's category heading and rule line,
+`MapPageView`'s own citation of it, and the skill contract map's `contentHash`, re-pinned ONCE over
+the union of both new sections. The normative-marker baseline is **50**, not the 49 each lane wrote:
+each counted its own single marker and the fold carries both.
+
+Then, because a renumbering is a claim until it is executed, **both selftests were re-run
+red-then-green**. F40 green at 15/15; a hand-rolled `` `Bearer ${` `` planted in `src/lib/tags/client.ts`
+turns its live census RED; restored, green. F41 green at 9/9; renaming `.cl-map-outer` inside
+MapPageView's own 1280 media query to a class no element carries turns it RED with one violation at
+that line; restored, green. The F41 attack also found that its own "the live tree is clean" test
+asserted only that `enumerate()` returned SOMETHING, so it would have stayed green with every file
+in the tree violating: it runs `check()` over each enumerated file now, which is what its name
+claims.
+
+**Every conflict, and how it was resolved.** The rule throughout: a conflict is a merge artifact, not
+a disagreement, unless two lanes built the same thing.
+
+- `DEVIATION-LOG.md` and `session-log.md` (many): chronological unions, both sides kept whole.
+- `AUDIT-2026-09-07.md` and `results.json` (many): never hand-merged, one side taken as a placeholder
+  at each pick and the pair regenerated at the end.
+- `spec/compose-04` and `spec/compose-08` (opsclip vs mobfix61): both forbids kept; the trailing-count
+  forbids and D-M4's "no row carries more than one absence token" are independent assertions that
+  happened to be inserted at the same anchor.
+- `regulations/page.tsx` + `RegulationsLedger.tsx` (opsclip vs counts, and rsc503 underneath): the
+  only conflict where two lanes really did touch the same state. counts moved every FACET into the
+  URL through one `useListSurfaceFilter` hook; opsclip added a server-resolved `?sort=` deep link;
+  rsc503 added the failure state's reason. All three survive, and the seam between them is stated in
+  the file: sort is ORDERING, not a facet, and is the one piece of view state that hook does not own,
+  so it stays server-resolved and lands on the right ordering at FIRST paint. `initialBand` was
+  DELETED rather than kept: under counts the hook reads `?band=` itself, so the prop had no reader
+  left and a prop nothing reads is dead code.
+- `run-audit.mjs` (three mechanisms, all kept): `mount.needsCompiledCss` (admin60) loads the app's
+  compiled stylesheet for a mount; `spec.compiledCss` (mobile60) loads the SAME sheet for one spec on
+  a mount that does not declare it, which is what lets the mobile 390 specs run against the compose
+  mounts without editing them; `styleFiles` (map60) loads a named vendor stylesheet. The app sheet is
+  added at most once and always first. The fold's own first attempt at this union left a DUPLICATE
+  `fullAppCssCompiled` import that made the whole audit throw on load, which is why the first audit
+  run after the mobile picks produced no numbers at all.
+- `CardFoot.tsx`: mobile60's below-768 wrap rule and opsclip's foot LINKS both survive; the media
+  query is a wrapping rule, not a content rule.
+- `capture-compose-page.mjs`: lists60's `captureHeight` pin and mobile60's `--width` / `--compiled-css`
+  / `--measure` flags all survive; a mount that pinned its height still keeps it.
+- `ListRow.tsx` (the big one, exactly as predicted): opsclip's desktop header cells and narrow tier
+  presentation, map60's `variant="register"` early return, and mobfix61's D-M4 absence derivation all
+  survive. mobfix61's own `tailContent = endStat ? (...)` was NOT kept: map60 made the register
+  variant the only consumer of `endStat` and deleted the old merged-cell approximation, so keeping
+  mobfix61's version would have restored a second way to render the same row. opsclip's own note that
+  it touched no line of `RESPONSIVE_CSS` held: every conflict there was textual proximity.
+- `Absence.tsx`: mobfix61's precedence model is the survivor and opsclip's narrow-cell rule folded
+  INTO it as the presentation half, with the artboard ruling the one place they meet (below).
+- `mounts.mjs`: no conflict at all, which is the case that hides a silent loss, so it was checked
+  mechanically instead of trusted. **49 mounts, 49 named by a spec, 70 specs, 0 dangling either way.**
+- `manifest.mjs`, `invariants.mjs`, `skill-contract-map.mjs`, `SKILL.md`: the F40 collision, above.
+- **No file was reported BINARY.** Train 59's literal-NUL class was checked first: zero NUL bytes
+  under `src/` and `.discipline/`, zero source files git treats as binary in this fold's whole diff.
+
+**The Absence ruling, because two good rules appeared to disagree.** opsclip: a cell too small to
+hold the phrase draws the dash. mobfix61 and the mobile 390 spec: "Absence keeps its small-caps
+reason." Both are right, about different widths, and the disagreement is only apparent, because
+"narrow" is a property of the CELL and not of the page. The precedence model decides WHICH reason a
+row shows and which cell owns it; the narrow variant decides how that one reason is DRAWN where the
+cell cannot hold it. They meet in the tier cell, the only 40px fixed track of the three: above 768
+dc.html p2 and p8 draw a dash there and explain it once in the card foot, and below 768 the row
+reflows to `3px 1fr`, the cell is no longer narrow, and the operator's own spec asks for the words.
+So it is ONE token in ONE element taking the form its cell can hold, swapped by a media query on a
+pseudo-element rather than by a second span, because the design audit counts ELEMENTS (`count: 1` on
+`.cl-list-row .cl-absence`) and two spans would defeat the guarantee D-M4 exists to make. The
+`aria-label` and `title` carry the closed-vocabulary reason at both widths, so ruling 2.1's
+vocabulary does not depend on the viewport.
+
+**The fold's own defects, and their class.**
+
+1. **A real product defect at 390 (product).** Artboard 10's jurisdiction register computed its NAME
+   column to **18.5px**: six tracks needing 303px of fixed width and gap inside a 356px row, so both
+   flexible tracks got 18.5px and the jurisdiction name rendered as roughly one character and an
+   ellipsis. Neither lane could see it. map60 built the variant when no 390 spec existed; mobfix61's
+   mobile-10-map spec was written against the shared `.cl-list-row` that variant replaced, so its
+   four register rows reported NOT BUILT against the row that actually shipped. Fixed under the
+   operator's own rule ("the frame collapses; every part is the desktop part at a smaller measure"):
+   name over meta in one flexible column, band over count in a narrow one, the 40px arrow full
+   height, every part still present. The band column is **84px and not `max-content`** on purpose:
+   68px, the first value tried, clipped IMMEDIATE to "IMMEDIAT" with no ellipsis, and `max-content`
+   would make the resolved track list depend on which bands the data happens to contain.
+2. **That fix's own regression, caught by the guard within minutes (product).** The row's stretched
+   click overlay is an absolutely positioned GRID ITEM, so its containing block is the grid AREA it
+   sits in and its `grid-row: 1 / -1` counts lines in the EXPLICIT grid. With the new rows implicit,
+   `-1` resolved to line 2 and the overlay measured 24px inside a 51px row: four targets under the
+   law-2 44px floor at 375. The rows are declared now. Worth its line because the mechanism is not
+   obvious and the next lane adding a mobile grid to a row with an overlay will hit it.
+3. **A correct fix the guard could not see (harness disclosure).** mobfix61's D-M6 makes the sort
+   options scroll sideways below 768, correctly, but never marked the strip, so `ux-assert.mjs`
+   measured "My order" at right=410 on a 375 viewport with no strip to carry it and reported three
+   UX-smoke failures on /regulations. One attribute, the convention five other strips already carry.
+4. **A forbid that was right in its own worktree and wrong here (harness).** mobile60's
+   `mobile-390-specs.test.mjs` forbade `mount.needsCompiledCss` in `run-audit.mjs`, to keep the 1440
+   specs measuring the CSS they were calibrated against. Train 60 then LANDED that reader and
+   re-calibrated the 1440 specs against it, /map's four register rows among them, so on this tree the
+   forbid would have removed the stylesheet those specs are now measured with. Both mechanisms kept;
+   the lane's real invariant asserted instead (a SPEC can ask for the compiled CSS on a mount that
+   does not declare it, and must not WRITE the mount flag).
+5. **Five stale proofs, each followed to the product rather than pinned to the old shape (harness).**
+   `Absence.npmtest` and `ListRow.npmtest` for D-M4's one-reason-per-row and the dash moving to a
+   pseudo-element; `ListSurfaceShell.npmtest` twice for opsclip's thousands separators;
+   `OrganizationsTable.npmtest`, whose transpile shim strips imports and therefore stripped the same
+   `formatNumber`, fixed by re-declaring it from the SoT's own `FIXED_LOCALE` with a new test
+   asserting the two still agree; `ProvisionalReviewTable.npmtest` and `WatchlistSurface.npmtest` for
+   the two count/copy fixes below.
+6. **Two specs updated to the new correct structure, neither weakened.** mobile-03's folded-rail row
+   expected "In this list" first; details60 fixed the detail rail order ONCE in DetailShell's slot
+   contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw,
+   so the row follows the artboards. mobile-10-map's four register rows were repointed at the
+   structure map60 built. Same assertions, real elements, with the reason written into each row.
+
+**Three product differences found BY EYE or by sweep, which no spec measured.**
+
+- **/watchlist read "changed in since aug 8, 2026".** Lane counts correctly replaced the card's
+  doubled "SINCE YOUR LAST VISIT" with the window's real start date and built ONE label, "Since Aug 8,
+  2026", for the card head; the strip beside it reused that label lower-cased. The head and the strip
+  are different sentences and cannot share a phrase: the DATE is derived once now and presented twice.
+  Two spec rows added, a forbid and a positive, both proven by attack.
+- **/admin showed two numbers for one queue, at a third site.** Lane counts fixed the badge by making
+  `admin_attention_counts()` count the queue AS RENDERED (migration 314, 491 = 489 + 2) and pointing
+  the tab at it; the provisional card's own head still read `rows.length`, the loaded PAGE. The screen
+  read "Provisional review · 489" over "4 pending". Both come from the queue now, and a card holding
+  fewer rows than the queue has SAYS so ("N pending · showing M") rather than renaming the queue after
+  its own page. Proven by attack in both directions.
+- **The shared RowTable had no treatment below 768 at all**, and its callers are precisely the three
+  surfaces the mobile 390 work never reached: /admin's ORGANIZATIONS and SOURCES tables, /account's
+  member list, /community's discussion feed. Every column kept its designed px track at 390, so header
+  labels lost characters mid-word with NO ellipsis (Discussion 77px past its cell, Source 50px, Member
+  53px, Name 36px) and so did row sub-lines (plasticsnews.com 97px, emsa.europa.eu 89px). A column
+  header is the `mustFit` class opsclip established. The table scrolls sideways below 768 as one unit,
+  on the declared-strip mechanism five other strips already use, so every column keeps its artboard
+  width. Two further failures on the way there were the STRIP'S OWN PLACEMENT, not product
+  regressions: a wrapper element deepened `> div > div:first-child` for two composition specs, and
+  then a `<style>` element ahead of the header made `div:first-child` match nothing.
+- (One more, smaller: /settings' longest sector label, "Pharmaceutical", is 6px wider than its tile at
+  390 and was clipped rather than wrapped; `overflowWrap: break-word` breaks only a word that does not
+  otherwise fit.)
+
+**The sweep is a script now.** Trains 59 and 60 each ran a horizontal-overflow, clipped-text and
+orphan-line sweep by hand at the fold and neither left anything behind, so train 61 wrote it a third
+time and stopped: `.discipline/rendering/audit/overflow-sweep.mjs`, wired as `npm run audit:overflow`
+so F25's execution-wiring rule holds it. Its clipped-text detector is HORIZONTAL-only past a 3px
+floor, calibrated against its own first run, where 30-odd hits were all 2-3px VERTICAL overshoot on
+Anton display numerals: the glyph box exceeds its computed line box and nothing is lost, and a run
+that loses characters loses them horizontally. Mounts pinning their own viewport are component
+fixtures rather than pages and are reported as pinned instead of counted, which dissolved seven
+apparent 390 failures on the first run.
+
+**Gates** (this container; the coordinator lands). Every figure re-run over the FINAL tree, after the
+fold's own fixes, not carried forward from a first pass.
+
+- design audit **70 specs, 2018 checks, 2018 MATCH, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC**, at
+  both widths (43 specs at 1440, 9 mobile specs at 390, the rest component measures)
+- rendering guard **PASS**: 11 fixtures at 12 viewports, 445 checks; 8 SM smoke specs, 97 checks;
+  12 UX smoke specs, 216 checks
+- overflow sweep **1440: 48 mounts, 0px horizontal page overflow, 0 clipped text runs**
+- overflow sweep **390: 15 page mounts, 0px horizontal page overflow, 0 clipped text runs** (34
+  component mounts reported pinned at their own measure)
+- `tsc --noEmit` **clean**
+- fitness runner **35/35, 0 violations**, with F40 `authed-api-fetch` and F41 `dead-media-query-class`
+  both registered and both proven red-then-green
+- CI npmtest glob (`git ls-files '**/*.npmtest.mjs'`, 125 files) **984/984 PASS**
+- `node --test` over the rendering, rendering/audit and rules globs **143/143 PASS**
+- `run-test-suite.sh` **5972 tests, 5967 pass, 0 fail, 5 skipped, exit 0**
+- closure-gate **PASS on all four checks**; `override-check` **exit 0, no drift** (after migration 314
+  gained its inventory row); consistency tests **12/12**
+- `invariant-coverage.mjs` **PASS**, 121 invariants + 63 doctrines wired, marker baseline 50
+- all 17 workflow YAML files parse
+- `next build --webpack` **exit 0** with no `.env.local`
+- mount/spec bijection **49 mounts, 49 named by a spec, 70 specs, 0 dangling either way**
+
+**The visual pass.** Every side-by-side was regenerated from the folded code and read beside its
+artboard, and the five mobile pages were captured at 390 and read beside the operator's own
+screenshots at `/home/claude/briefs/`. All four defects he photographed are closed and were confirmed
+closed by eye: the command bar sitting on its card's border (D-M5) is inside the card; the four-across
+band tile row that clipped "AWARENE" and "backgroun" is a 2x2 grid with every label whole and every
+count separated; the MODE strip that pushed a second group half off the screen is one group whose row
+scrolls with its label; and the map page's rail cards laid out ON TOP of the filter chip rows (D-M3)
+now sit below the register. The absence stack he circled on the dashboard renders as exactly one
+token, and at 390 that token is the small-caps reason his own spec asks for.
+
+**What still differs from the artboard, per page, after this fold.** Geometry and type differences
+that were fixable were fixed; the rest are data-driven, named scope, or logged rulings.
+
+- **01 Dashboard**: band tiles, Due-next and What-changed cards, foot lines and rail order all match,
+  and the IMPACT LOW to HIGH header now WRAPS inside its 88px column where it used to ship as "IMPACT
+  LOW → H". What-changed rows carry exactly one absence token. Still differs: the capture mounts
+  DashboardBrief alone so the masthead is out of frame; What-changed rows render an empty JURIS. cell
+  because those change rows carry no jurisdiction in the fixture; the Watchlist rail card can shoot
+  before its Suspense promise resolves.
+- **02 Regulations**: masthead, band tiles, sort row, band cards, foot strips and rail order all
+  match; the Filters card has its Clear link, the MODE facets read title case, facet counts move with
+  the selection and every facet round-trips through the URL. Still differs: the band-to-band
+  transition strip does not appear (`sectionFoot` is wired and does render on /research, so this is
+  the fixture not warranting one).
+- **04 Market**: the Headline Series card sits between the band tiles and the sort row; the rail is
+  CARBON COST PER FEU and NEXT DATA DROPS with SOURCES TRACKED after Legend under R7. Corridor rows
+  use the app's own label form and the seeded corridor set, not the artboard's air lane.
+- **06 Research**: theme cards, Window row, band foot rows, the Awareness transition strip and the
+  rail all match. Still lacks the artboard's VERTICAL and SOURCE CLASS facet groups, the known open
+  item with no data behind them.
+- **08 Operations**: the matrix now FITS its card, because the expanded row is one colspan cell
+  holding a grid rather than prose in each region's own column; Anton head, sourced ratio, foot strip,
+  all six D1-D6 rows, rail facet order Region then Dimension, empty cells drawing the artboard's dash
+  and explained once in the foot. Still differs: the expanded facts cell is far taller than the
+  artboard's (7 facts per region against 1) and the sourced ratio reads 18 of 30 rather than 18 of 25,
+  both fixture; the by-state disclosure sits below the cards under R7.
+- **11 Watchlist**: card head, column header including TIMELINE, rows ending in the overflow kebab,
+  foot, the changed-since strip (now grammatical, with its window named once), the Recalculation
+  notices card and the rail order all match. Still differs: SHARE WITH WORKSPACE has the prose but not
+  the artboard's "Create shared watchlist" button, because no shared-watchlist creation function
+  exists and the button returns with the function.
+- **03 / 05 / 07 / 09 Details**: rail order is the artboards' own, the tier chip is last in the chip
+  row, the header stacks left-aligned, 07's CLUSTER SYNTHESIS and 09's RELATED IN ASIA-PACIFIC render,
+  and the workspace-tag row now has a live API behind it rather than a 401. Still differs: RELEVANCE
+  TO DIETL / ROCKIT is not built (ruling 3.4); 09 reads "Asia-Pacific" where the artboard reads
+  "Asia", the app's own vocabulary rather than a fabricated shorter word; section bodies and EXPOSURE
+  cells are thin because the fixtures are.
+- **10 Map**: the canvas renders its markers sized by item count, MODE and BAND share a line with
+  REGION on the second, the register has p10's headers, six-column grid and per-row arrow, and at 390
+  the register is readable rather than an 18.5px name column. Still differs: NO BASEMAP TILES, because
+  the tile layer is api-external and every request fails at this container's egress proxy (the
+  artboard itself draws a captioned hatch); the KEY's fifth entry and the zoom control are real states
+  the artboard does not draw, kept under R7; the rail LEGEND card still has no 80px sample column,
+  one shared-part edit for six artboards at once.
+- **12 Community**: tiles read the room name, the discussion feed is the artboard's table with its
+  four columns and a whole-row target, the composer is its own NEW POST card, the rail is the
+  artboard's order, and the room counts carry their separators. Still differs: every discussion row
+  renders the CONNECT DATA Absence token where the artboard draws a varied tag chip, because no tag
+  data path exists; the unread dot is absent for the same reason.
+- **13 Admin**: sub-tabs inside the card head on one line, ORGANIZATIONS contained with one track list
+  and no ROLES column, LAST ACTIVITY un-clipped, the ISSUES QUEUE in the artboard's order with every
+  figure separated, and the card head now naming the same queue as the tab badge above it. Still
+  differs: READ-ONLY CONTROLS has Refresh but not Export queue (no queue-export function exists
+  anywhere); the ORGANIZATIONS row holds its trailing 44px cell open and empty because no per-org row
+  action exists and a dead control is a defect; Source registry and Tier disagreements show no count
+  where the artboard shows one, which is the fixture.
+- **14 Account**: the invite row carries INVITE BY EMAIL, the member list is the artboard's table with
+  its headers and trailing overflow, the seat strip is built, the rail's four stats are one card.
+  Still differs: the seat clause reads the Absence vocabulary and "Manage seats" is not drawn, because
+  no seats column exists in the schema or any payload; the identity table moves below as an R7
+  disclosure; and MEMBER SINCE still wraps to two lines, the measured, decision-ready item train 60
+  delivered for a single ruling covering all three surfaces that render the shared `StatBlock`.
+- **15 Settings**: the artboard's two columns are built, Freight sectors has its "Show all"
+  disclosure, the segmented controls are one shared part, and the longest sector label no longer
+  clips at 390. Still differs: the S1-S6 section index sits below the tabs where the artboard has
+  none, and Saved searches, Data summary, CSV upload, Supersession history and Archive run full width
+  below the two columns, all R7 placements for regions the artboard does not draw; the DAY control
+  offers Monday to Friday because `briefingDay`'s stored union is monday..friday, a logged deviation
+  re-checked this fold.
+- **16 Auth / 17 Onboarding / signup**: stepper, headline, modes, jurisdictions, the band-scale
+  preview and the buttons all match, at the artboard's own 900px frame. The left panel still omits the
+  artboard's marketing headline and its "1,434 items" paragraph, the logged deviation citing the
+  README's own Fidelity note plus rule 2, since that paragraph states a count the build would have to
+  fabricate. 16 still lacks "Keep me signed in", the surface of a session-persistence decision, left
+  un-forbidden so it can be built the day that decision lands.
+
+**UX compliance**: this fold touched `.tsx`/`.ts` under `fsi-app/src` beyond the lanes' own work in
+six places, every one a containment or a count fix with no new interactive element:
+`ListRow.tsx` (the register's mobile measure and the tier slot's presentation),
+`Absence.tsx` (one token, two forms, same element), `ListSurfaceSortRow.tsx` (one attribute declaring
+an existing scroller), `RowTable.tsx` (the same declared-strip mechanism below 768),
+`WatchlistSurface.tsx` (one date, two presentations) and `SettingsPage.tsx` (one word-break). The
+count thread through `ProvisionalReviewTable` / `SourceHealthDashboard` / `AdminDashboard` is text
+only. Every 44px minimum the lanes set is preserved and one that had been lost was restored: the
+register row's click overlay, which this fold's own reflow had cut to 24px and the guard caught at
+375. The rendering guard passes at every viewport including 375, and the overflow sweep is 0px at both
+1440 and 390.

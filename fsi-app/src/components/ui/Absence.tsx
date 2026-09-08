@@ -120,7 +120,33 @@ export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason;
         title={reason}
         style={{ ...ABSENCE_TEXT_STYLE, fontSize: "var(--fs-12)", letterSpacing: "normal" }}
       >
-        {"—"}
+        {/* FOLD-61, and this is a RULING the two lanes needed and neither could make alone.
+            opsclip's narrow rule says a cell too small to hold the phrase draws the dash; the
+            mobile 390 spec's operator prose says, in his own words, "Absence keeps its small-caps
+            reason". Both are right, about different widths, and the disagreement is only apparent:
+            "narrow" is a property of the CELL, not of the page. The tier track is a hard 40px
+            above 768, which is where the phrase wrapped over three lines and doubled the row
+            height; below 768 the row reflows to `3px 1fr` and that cell is no longer narrow, so
+            there is room for the words and the operator's own spec asks for them.
+
+            So ONE token, in ONE element, taking the form its cell can hold: the dash above 768,
+            the small-caps reason below it. Two sibling spans inside this one `.cl-absence` would
+            be simpler to read but would not be one element, and the audit counts ELEMENTS
+            (`count: 1` on `.cl-list-row .cl-absence`, lane mobfix61's D-M4 guarantee), so the
+            swap is done with `content` on two pseudo-elements of this single span instead. The
+            aria-label and title carry the closed-vocabulary reason at BOTH widths regardless, so
+            nothing about ruling 2.1's vocabulary depends on the viewport. */}
+        <style>{`
+          .cl-absence[data-absence="narrow"]::after { content: "\\2014"; }
+          .cl-absence[data-absence="narrow"] > .cl-absence-word { display: none; }
+          @media (max-width: 767px) {
+            .cl-absence[data-absence="narrow"]::after { content: none; }
+            .cl-absence[data-absence="narrow"] > .cl-absence-word { display: inline; }
+          }
+        `}</style>
+        <span className="cl-absence-word" style={{ ...ABSENCE_TEXT_STYLE, fontSize: "inherit", letterSpacing: "0.06em" }}>
+          {reason}
+        </span>
       </span>
     );
   }

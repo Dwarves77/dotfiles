@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T14:18:26.317Z",
+  "runAt": "2026-09-08T15:32:28.259Z",
   "specs": [
     {
       "part": "Absence",
@@ -2366,6 +2366,15 @@
             "width": "44px",
             "height": "44px"
           }
+        },
+        {
+          "name": "the changed-since strip names the window as a clause, with the month cased as the head cases it",
+          "selector": "[data-audit=\"changed-note\"]",
+          "expect": {
+            "display": "block"
+          },
+          "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing.",
+          "textMatch": "re:changed since [A-Z][a-z]{2} \\d{1,2}, \\d{4}"
         }
       ],
       "forbid": [
@@ -2394,6 +2403,12 @@
           "name": "D-M4: no list row carries more than one absence token",
           "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
           "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+        },
+        {
+          "name": "the changed-since strip never reads 'changed in since'",
+          "selector": "[data-audit=\"changed-note\"]",
+          "textMatch": "changed in since",
+          "reason": "FOLD-61, found by eye at 1440. COUNTS-61 gave the recalculation window ONE label, 'Since Aug 8, 2026', correctly for the card head, and reused it lower-cased inside this strip, which produced 'changed in since aug 8, 2026' under a head that uppercases the same date. The date is derived once and presented twice now, as a head label and as a clause. This forbid is the recurrence check."
         }
       ],
       "__file": "fsi-app/.discipline/rendering/audit/spec/compose-11-watchlist.json",
@@ -2758,7 +2773,8 @@
           "expect": {
             "count": "1"
           },
-          "textMatch": "pending · approve, reject or re-tier on the row"
+          "textMatch": "re:\\d+ pending · showing \\d+ · approve, reject or re-tier on the row",
+          "note": "UPDATED AT FOLD-61. The line is unchanged in wording and the count is still live; what changed is WHICH count. The head read `rows.length`, the loaded PAGE, while the Sources tab badge directly above it read `admin_attention_counts().provisional_sources_pending` - one screen, two numbers for one queue, which is exactly the class lane counts fixed elsewhere and did not reach here (found by eye at 1440, no spec measured it). The head names the queue now and declares the page it is showing rather than renaming the queue after itself. Not weakened: the pattern still pins the artboard's verbatim tail, and it now also pins that BOTH numbers are stated."
         },
         {
           "name": "region 3e, every row carries its own Approve action (DP-1: every action on a source is on its row)",
@@ -2936,6 +2952,12 @@
           "selector": "[data-audit=\"admin-readonly-controls\"] button",
           "textMatch": "Export queue",
           "reason": "The artboard draws it, but no queue-export function exists anywhere under src/app/api or src/lib (re-checked 2026-09-08). A control with no function behind it is a dead control (ruling 1.1); logged in DEVIATION-LOG.md rather than drawn."
+        },
+        {
+          "name": "the provisional head never states a bare page count as the queue",
+          "selector": "[data-audit=\"provisional-head\"]",
+          "textMatch": "re:\\d+ pending · approve",
+          "reason": "FOLD-61 recurrence check: the defect was a head reading '4 pending' (this fixture's ROW count) directly under a tab badge reading 489 (its queue count). A head that goes straight from the number to 'approve' with no 'showing' clause is the page renaming the queue after its own page again."
         }
       ],
       "boundsCheck": [
@@ -7385,7 +7407,7 @@
           "name": "The register row is the shared part's `register` variant, at its 390 measure",
           "selector": ".cl-list-row-register",
           "expect": {
-            "grid-template-columns": "3px * 68px 40px",
+            "grid-template-columns": "3px 191px 84px 40px",
             "min-height": "44px"
           },
           "note": "UPDATED AT FOLD-61, because the structure this row described no longer exists. mobile60/mobfix61 were cut from wave59 and wrote this against `.cl-list-row`; train 60's lane map60 rebuilt the register on ListRow's own `variant=\"register\"` (dc.html p10's six-column grid) and DELETED the old approximation, so all four register rows here reported NOT BUILT against a row that renders correctly. The spec is repointed at the surviving structure, not weakened: it still asserts exact tracks. The 68px band/count column and the 40px arrow are the fold's measured mobile reflow of that grid (see ListRow.tsx's own comment) - the two flexible tracks computed to 18.5px each at 390 before it, which is one character and an ellipsis."
@@ -7439,7 +7461,7 @@
             "font-size": "13px",
             "font-weight": "600",
             "text-overflow": "ellipsis",
-            "width": "207px"
+            "width": "191px"
           },
           "note": "The name keeps p10's own type and its ellipsis; what the fold changed is the WIDTH of the track it sits in. The bounds row below is what proves the track, since an ellipsis makes a too-narrow column look deliberate. The 207px is resolved, not chosen: the 356px row less its 8px right padding leaves 348, less the 3px spine, the 68px band/count column, the 40px arrow and three 10px gaps."
         },
@@ -16378,6 +16400,22 @@
       ],
       "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
+      "target": "the changed-since strip names the window as a clause, with the month cased as the head cases it",
+      "selector": "[data-audit=\"changed-note\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "The positive half of the forbid above: the strip must still NAME the window, so the fix cannot be to drop the date. `textMatch` NARROWS the selector here rather than asserting a value, which is this harness's own mechanism, so prose that stops matching the pattern reports NOT BUILT on this row instead of quietly passing."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
       "target": "no filter control in the content column (native selects)",
       "selector": "select",
       "property": "(forbidden element)",
@@ -16449,6 +16487,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the changed-since strip never reads 'changed in since'",
+      "selector": "[data-audit=\"changed-note\"] [text contains \"changed in since\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "FOLD-61, found by eye at 1440. COUNTS-61 gave the recalculation window ONE label, 'Since Aug 8, 2026', correctly for the card head, and reused it lower-cased inside this strip, which produced 'changed in since aug 8, 2026' under a head that uppercases the same date. The date is derived once and presented twice now, as a head label and as a clause. This forbid is the recurrence check."
     },
     {
       "spec": "compose-12-community",
@@ -17280,7 +17334,7 @@
       "expected": "1",
       "actual": "1",
       "status": "MATCH",
-      "note": null
+      "note": "UPDATED AT FOLD-61. The line is unchanged in wording and the count is still live; what changed is WHICH count. The head read `rows.length`, the loaded PAGE, while the Sources tab badge directly above it read `admin_attention_counts().provisional_sources_pending` - one screen, two numbers for one queue, which is exactly the class lane counts fixed elsewhere and did not reach here (found by eye at 1440, no spec measured it). The head names the queue now and declares the page it is showing rather than renaming the queue after itself. Not weakened: the pattern still pins the artboard's verbatim tail, and it now also pins that BOTH numbers are stated."
     },
     {
       "spec": "compose-13-admin",
@@ -17697,6 +17751,22 @@
       "actual": "absent",
       "status": "MATCH",
       "note": "The artboard draws it, but no queue-export function exists anywhere under src/app/api or src/lib (re-checked 2026-09-08). A control with no function behind it is a dead control (ruling 1.1); logged in DEVIATION-LOG.md rather than drawn."
+    },
+    {
+      "spec": "compose-13-admin",
+      "part": "Page composition, Admin (13)",
+      "artboards": [
+        "13-admin"
+      ],
+      "source": "docs/design/handoff-2026-09-06/screens/13-admin.png (artboard image is the authority per SETUP); dc.html id=\"p13\"; README screen 13",
+      "viewport": 1440,
+      "target": "the provisional head never states a bare page count as the queue",
+      "selector": "[data-audit=\"provisional-head\"] [text contains \"re:\\d+ pending · approve\"]",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "FOLD-61 recurrence check: the defect was a head reading '4 pending' (this fixture's ROW count) directly under a tab badge reading 489 (its queue count). A head that goes straight from the number to 'approve' with no 'showing' clause is the page renaming the queue after its own page again."
     },
     {
       "spec": "compose-13-admin",
@@ -36034,8 +36104,8 @@
       "target": "The register row is the shared part's `register` variant, at its 390 measure",
       "selector": ".cl-list-row-register",
       "property": "grid-template-columns",
-      "expected": "3px * 68px 40px",
-      "actual": "3px 207px 68px 40px",
+      "expected": "3px 191px 84px 40px",
+      "actual": "3px 191px 84px 40px",
       "status": "MATCH",
       "note": "UPDATED AT FOLD-61, because the structure this row described no longer exists. mobile60/mobfix61 were cut from wave59 and wrote this against `.cl-list-row`; train 60's lane map60 rebuilt the register on ListRow's own `variant=\"register\"` (dc.html p10's six-column grid) and DELETED the old approximation, so all four register rows here reported NOT BUILT against a row that renders correctly. The spec is repointed at the surviving structure, not weakened: it still asserts exact tracks. The 68px band/count column and the 40px arrow are the fold's measured mobile reflow of that grid (see ListRow.tsx's own comment) - the two flexible tracks computed to 18.5px each at 390 before it, which is one character and an ellipsis."
     },
@@ -36306,8 +36376,8 @@
       "target": "Register row: the jurisdiction name gets a real column, not 18.5px",
       "selector": ".cl-list-row-register .cl-row-register-name",
       "property": "width",
-      "expected": "207px",
-      "actual": "207px",
+      "expected": "191px",
+      "actual": "191px",
       "status": "MATCH",
       "note": "The name keeps p10's own type and its ellipsis; what the fold changed is the WIDTH of the track it sits in. The bounds row below is what proves the track, since an ellipsis makes a too-narrow column look deliberate. The 207px is resolved, not chosen: the 356px row less its 8px right padding leaves 348, less the 3px spine, the 68px band/count column, the 40px arrow and three 10px gaps."
     },

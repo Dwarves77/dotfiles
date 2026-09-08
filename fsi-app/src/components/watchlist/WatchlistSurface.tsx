@@ -188,9 +188,17 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
   // reports, so the two places that name the window cannot say different things and neither claims
   // a "last visit" the product does not track. Absent while the feed is in flight (and if the route
   // ever stops reporting it), the label states the window's length instead of inventing a date.
-  const noticesWindowLabel = noticesSince
-    ? `Since ${formatLocaleDate(new Date(noticesSince), { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })}`
-    : "Recent changes";
+  // FOLD-61: ONE DATE, two presentations, because the card head and the strip are different
+  // sentences and cannot share a phrase. COUNTS-61 built a single `noticesWindowLabel` reading
+  // "Since Aug 8, 2026" for the card head and reused it, lower-cased, inside the strip, which
+  // rendered "4 watched items changed in since aug 8, 2026" - "in since", and a lower-cased month
+  // under a head that uppercases the same date. Found by eye in this fold's visual pass at 1440;
+  // no spec measured the strip's prose. The date itself is derived once and formatted once.
+  const noticesWindowDate = noticesSince
+    ? formatLocaleDate(new Date(noticesSince), { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" })
+    : null;
+  const noticesWindowLabel = noticesWindowDate ? `Since ${noticesWindowDate}` : "Recent changes";
+  const noticesWindowClause = noticesWindowDate ? `since ${noticesWindowDate}` : "recently";
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -428,7 +436,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
               {!noticesLoading && notices.length > 0 && (
                 <div style={{ margin: "10px 16px 14px" }} data-audit="changed-note">
                   <StateNote band={bandFromPriority("HIGH")} action={{ label: "Review changes →", href: "#recalculation-notices" }}>
-                    <b>Action</b> · {countNoun(notices.length, "watched item")} changed in {noticesWindowLabel.toLowerCase()}
+                    <b>Action</b> · {countNoun(notices.length, "watched item")} changed {noticesWindowClause}
                   </StateNote>
                 </div>
               )}

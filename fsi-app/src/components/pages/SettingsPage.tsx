@@ -565,7 +565,14 @@ function FreightSectorsCard() {
                   border: on ? "1.5px solid var(--color-primary)" : "1.5px solid var(--color-border-strong)",
                 }}
               />
-              <span style={{ minWidth: 0 }}>{sector.label}</span>
+              {/* FOLD-61 [CONFIRMED, measured at 390 by the fold's own overflow sweep]: `minWidth: 0`
+                  lets this cell shrink, and the label WRAPS between words, but the longest single
+                  word in the vocabulary ("Pharmaceutical") is 6px wider than the tile at 390, and a
+                  word that cannot fit its box is clipped rather than wrapped - characters lost with
+                  no ellipsis, the class lane opsclip fixed at 1440. `break-word` breaks ONLY a word
+                  that does not otherwise fit, so every shorter label is untouched at every width and
+                  the desktop rendering is unchanged. */}
+              <span style={{ minWidth: 0, overflowWrap: "break-word" }}>{sector.label}</span>
             </button>
           );
         })}

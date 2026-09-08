@@ -65,6 +65,22 @@ export interface ProvisionalReviewTableProps {
    * the row is passed in rather than reimplemented here. Omitted = no row.
    */
   headTabs?: React.ReactNode;
+  /**
+   * The QUEUE's own total, from the same `admin_attention_counts()` read the Sources tab badge
+   * beside this card uses. Additive and optional: omitted, the head names the rows it holds, which
+   * is what it did before.
+   *
+   * FOLD-61, found by eye at 1440, and it is COUNTS-61's own defect class at a third site the lane
+   * did not reach. That lane fixed "one screen, three numbers for one queue" by making
+   * `admin_attention_counts()` count the queue AS RENDERED (migration 314, 491 = 489
+   * pending_review + 2 needs_more_data) and pointing the tab badge at it. This head still read
+   * `rows.length`, the loaded PAGE, so the screen showed "Provisional review · 489" in the tab and
+   * "4 pending" directly under it against a four-row fixture, and would show 489 against a
+   * thousand-row page cap in production. Both numbers now come from the same queue, and when the
+   * card is holding fewer rows than the queue has, it SAYS so rather than quietly renaming the
+   * queue after its page.
+   */
+  pendingTotal?: number | null;
 }
 
 const COLUMNS = [
@@ -109,6 +125,7 @@ export function ProvisionalReviewTable({
   stagedUpdatesCount = null,
   onOpenQueue,
   headTabs,
+  pendingTotal = null,
 }: ProvisionalReviewTableProps) {
   const [busy, setBusy] = useState<string | null>(null);
   const [picked, setPicked] = useState<Record<string, number>>({});
@@ -195,7 +212,9 @@ export function ProvisionalReviewTable({
             lineHeight: 1.35,
           }}
         >
-          {formatNumber(rows.length)} pending · approve, reject or re-tier on the row
+          {formatNumber(pendingTotal ?? rows.length)} pending
+          {pendingTotal != null && pendingTotal !== rows.length ? ` · showing ${formatNumber(rows.length)}` : ""}
+          {" · approve, reject or re-tier on the row"}
         </span>
       </div>
 

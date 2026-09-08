@@ -67,7 +67,7 @@
       "name": "The register row is the shared part's `register` variant, at its 390 measure",
       "selector": ".cl-list-row-register",
       "expect": {
-        "grid-template-columns": "3px * 68px 40px",
+        "grid-template-columns": "3px 191px 84px 40px",
         "min-height": "44px"
       },
       "note": "UPDATED AT FOLD-61, because the structure this row described no longer exists. mobile60/mobfix61 were cut from wave59 and wrote this against `.cl-list-row`; train 60's lane map60 rebuilt the register on ListRow's own `variant=\"register\"` (dc.html p10's six-column grid) and DELETED the old approximation, so all four register rows here reported NOT BUILT against a row that renders correctly. The spec is repointed at the surviving structure, not weakened: it still asserts exact tracks. The 68px band/count column and the 40px arrow are the fold's measured mobile reflow of that grid (see ListRow.tsx's own comment) - the two flexible tracks computed to 18.5px each at 390 before it, which is one character and an ellipsis."
@@ -121,7 +121,7 @@
         "font-size": "13px",
         "font-weight": "600",
         "text-overflow": "ellipsis",
-        "width": "207px"
+        "width": "191px"
       },
       "note": "The name keeps p10's own type and its ellipsis; what the fold changed is the WIDTH of the track it sits in. The bounds row below is what proves the track, since an ellipsis makes a too-narrow column look deliberate. The 207px is resolved, not chosen: the 356px row less its 8px right padding leaves 348, less the 3px spine, the 68px band/count column, the 40px arrow and three 10px gaps."
     },

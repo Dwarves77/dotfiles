@@ -554,6 +554,10 @@ export function AdminDashboard({
           )}
           <SourceHealthDashboard
             headTabs={tabsInCardHead ? subNav("card-head") : undefined}
+            // FOLD-61: the same `provisional_sources_pending` this page already puts in the
+            // Sources tab badge and the issues-queue row, so the card head under those two cannot
+            // name a different number for the same queue (COUNTS-61's defect class, third site).
+            pendingTotal={provisionalCount}
             stagedUpdatesCount={stagedUpdates.length}
             onOpenQueue={() => {
               setSection("Ingest");

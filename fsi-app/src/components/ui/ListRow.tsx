@@ -280,10 +280,27 @@ const RESPONSIVE_CSS = `
      collapses; every part is the desktop part at a smaller measure". So every part stays - name,
      meta, band, count and the arrow all still render, in the same order and with the same type -
      and only the MEASURE changes: name over meta in one flexible column, band over count in a
-     narrow one, the 40px arrow full height. The desktop grid is untouched above 768. */
+     narrow one, the 40px arrow full height. The desktop grid is untouched above 768.
+
+     The band column is 84px, not sized to content: measured max-content for this fixture's widest
+     label is 79.5px ("IMMEDIATE" plus its 6px dot and 5px gap), and AWARENESS is the same nine
+     characters in wider glyphs, so 84px clears the whole four-word band vocabulary with margin.
+     "max-content" would fit too, but it would make the resolved track list depend on WHICH bands
+     the data happens to contain, which is not a thing an exact-equality spec row should measure.
+     At 68px, the first value tried, the label clipped to "IMMEDIAT" with no ellipsis - the same
+     class lane opsclip fixed on the IMPACT column header, in a cell whose text is fixed, short and
+     known at build time and therefore has to FIT. */
   @media (max-width: 767px) {
     .cl-list-row-register {
-      grid-template-columns: 3px minmax(0, 1fr) 68px 40px !important;
+      grid-template-columns: 3px minmax(0, 1fr) 84px 40px !important;
+      /* The two rows are DECLARED, not implicit, and that is load-bearing rather than tidy: the
+         row's stretched click overlay (.cl-row-link, README 0.4) is an absolutely positioned GRID
+         ITEM, so its containing block is the grid AREA it is placed in, not the row's padding box,
+         and its "grid-row: 1 / -1" counts lines in the EXPLICIT grid. With the rows implicit,
+         "-1" resolved to line 2 and the overlay measured 24px tall inside a 51px row - four
+         targets under the law-2 44px floor, which is how the rendering guard caught it at 375
+         within minutes of this reflow being written. Declared rows make "-1" line 3 again. */
+      grid-template-rows: auto auto !important;
       gap: 2px 10px !important;
       padding-right: 8px !important;
     }

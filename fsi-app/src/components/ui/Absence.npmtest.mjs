@@ -37,7 +37,15 @@ test("narrow variant renders the dash and still carries the closed-vocabulary re
   assert.match(SOURCE, /if \(variant === "narrow"\)/);
   assert.match(SOURCE, /aria-label=\{reason\}/);
   assert.match(SOURCE, /title=\{reason\}/);
-  assert.match(SOURCE, /\{"—"\}/);
+  // UPDATED AT FOLD-61: the dash is drawn by `content` on this span's ::after rather than as a
+  // JSX text child, because the same ONE element now shows the dash above 768 and the small-caps
+  // reason below it (the mobile 390 spec's "Absence keeps its small-caps reason", against
+  // opsclip's 40px tier track). U+2014 is asserted, in the form the stylesheet writes it.
+  assert.match(SOURCE, /content: "\\\\2014"/);
+  assert.match(SOURCE, /@media \(max-width: 767px\)/);
+  assert.match(SOURCE, /cl-absence-word/);
+  // and the reason itself is still rendered, so it is available to read at the width that has room
+  assert.match(SOURCE, /<span className="cl-absence-word"[\s\S]*?\{reason\}/);
 });
 
 test("the reason variant is unchanged: no dash, no aria-label, the ruling 2.1 treatment", () => {

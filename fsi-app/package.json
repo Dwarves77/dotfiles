@@ -25,7 +25,8 @@
     "capture:compose-details": "node .discipline/rendering/capture-compose-details.mjs",
     "capture:compose-page": "node .discipline/rendering/capture-compose-page.mjs",
     "verify:ppwr-title-style": "node .discipline/rendering/verify-ppwr-title-style.mjs",
-    "audit:design": "node .discipline/rendering/audit/run-audit.mjs"
+    "audit:design": "node .discipline/rendering/audit/run-audit.mjs",
+    "audit:overflow": "node .discipline/rendering/audit/overflow-sweep.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",

@@ -65,7 +65,13 @@ test("re-tier is decision 'defer', which is what keeps the row provisional", () 
 
 test("artboard strings are verbatim", () => {
   assert.match(SOURCE, /Sources · provisional review/);
-  assert.match(SOURCE, /pending · approve, reject or re-tier on the row/);
+  // UPDATED AT FOLD-61: the artboard's tail is unchanged and still asserted verbatim; what moved
+  // is that the head now names the QUEUE and, when it is holding fewer rows than the queue has,
+  // declares the page between the two ("N pending · showing M · approve, reject or re-tier on the
+  // row"). The clause is optional in the source, so both halves are asserted separately.
+  assert.match(SOURCE, /\{formatNumber\(pendingTotal \?\? rows\.length\)\} pending/);
+  assert.match(SOURCE, /· showing \$\{formatNumber\(rows\.length\)\}/);
+  assert.match(SOURCE, /· approve, reject or re-tier on the row/);
   assert.match(
     SOURCE,
     /Approve = registry · Reject = archived with reason · Re-tier = stays provisional/
