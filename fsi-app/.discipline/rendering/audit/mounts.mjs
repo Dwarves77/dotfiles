@@ -2391,8 +2391,31 @@ function composeMarketRow(i) {
     modes: modes[i % modes.length], sourceTier: (i % 6) + 1,
     severity: ['action_required', 'cost_alert', 'window_closing', 'competitive_edge', 'monitoring'][i % 5],
     tags: [], reasoning: '',
-    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
-    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+    // ROW STATES THIS FIXTURE MUST CONTAIN (lane market63, 2026-09-08). Artboard 04 draws four
+    // scored meters and one row with an em dash where its date and timeline would be, so a fixture
+    // in which EVERY row is unscored and EVERY row is dated cannot see either half of the row
+    // anatomy, every assertion about the meter or about a dateless row passes vacuously
+    // (CLAUDE.md rule 15). Three states are represented on purpose:
+    //   i % 4 === 0  unscored, which mobile-04-market-list.json measures as the 30px dashed
+    //                baseline and which must therefore stay present;
+    //   i === 7      scored on ONE dimension only ([0,0,0,2]), the case the operator describes as
+    //                "a meter with one bar and 2/12", four bars are emitted, three at 0 height;
+    //   otherwise    a fully scored row, the artboard's own four-bar meter.
+    impactScores:
+      i % 4 === 0
+        ? null
+        : i === 7
+          ? { cost: 0, compliance: 0, client: 0, operational: 2 }
+          : { cost: 1 + (i % 3), compliance: 1 + ((i + 1) % 3), client: 1 + ((i + 2) % 3), operational: 1 + (i % 2) },
+    // i === 8: no compliance deadline AND no timeline entry. This is artboard 04's own fourth
+    // ACTION row (The Loadstar feed), which draws "" in the date cell and "" where the timeline
+    // track would be. It exists here so the built row's treatment of that state is MEASURED rather
+    // than assumed; see this lane's report for what it currently renders. Index 8 specifically,
+    // and not an earlier one: the surface sorts by next date and pushes undated rows LAST, so a
+    // dateless row in a crowded band falls past the five-row per-band cap and renders nowhere.
+    // Index 8 lands in AWARENESS, which the fixture populates with two rows, so it is always drawn.
+    complianceDeadline: i === 8 ? null : `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: i === 8 ? [] : [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
   };
 }
 const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
@@ -2436,10 +2459,23 @@ const COMPOSE_SERIES_BOARD = {
     {
       keyPrefix: 'ecb-fx', name: 'ECB euro foreign exchange reference rates', implemented: true, cadence: 'daily',
       sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
-      series: [composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04')],
+      // SIXTEEN observed series, not five (lane market63, 2026-09-08). Artboard 04's HEADLINE
+      // SERIES head reads "10 OF 16" while the image draws exactly five cards, so a five-series
+      // fixture could never measure the card's cap, its head caption, or the horizontal scroll the
+      // remainder lives in, with five rows the card renders "5 of 5" and never overflows, and every
+      // assertion about the overflow passes vacuously (CLAUDE.md rule 15). The first five keep the
+      // artboard's own series in the artboard's own order, so the visible track at 1440 is still the
+      // image; the eleven behind them exist to be scrolled to. Producer COUNT stays two so the NEXT
+      // DATA DROPS card's own row assertions are untouched.
+      series: [
+        composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04'),
+        ...['GBP', 'JPY', 'CHF', 'CNY', 'SEK', 'NOK', 'PLN', 'CZK', 'DKK', 'HUF', 'CAD'].map((iso, i) =>
+          composeSeriesRow(`ecb-fx:eur${iso.toLowerCase()}`, `EUR/${iso} · ECB ref.`, `${(1 + i / 10).toFixed(2)}`, (i % 5) - 2, '2026-09-04'),
+        ),
+      ],
     },
   ],
-  unregistered: [], totalObservedSeries: 5, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
+  unregistered: [], totalObservedSeries: 16, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
 };
 
 // Artboard 04's CARBON COST PER FEU rows, in the shape summariseCarbonCorridors() returns from the
@@ -2447,9 +2483,14 @@ const COMPOSE_SERIES_BOARD = {
 // formatCorridorLabel() plus the count of inputs still missing. Both entries carry the four-gap
 // state every LIVE corridor is in today (see carbon-cost-per-feu.mjs's header), which is the state
 // the artboard itself draws.
+// Lane market63 (2026-09-08): the shape summariseCarbonCorridors() returns NOW, artboard 04's own
+// compact one-line label ("Shanghai – Rotterdam · ocean") plus the full spine label the row carries
+// on its `title`. The pair is what makes the one-line assertion below measurable: the fixture holds
+// the exact strings the page produces, so a regression to the full label in the visible cell shows
+// up as a measured height, not as a fixture that was quietly shortened to fit.
 const COMPOSE_CARBON_CORRIDORS = [
-  { label: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
-  { label: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai – Rotterdam · ocean', fullLabel: 'Shanghai (CN) → Rotterdam (NL), ocean', pending: 4, point: null, currency: null },
+  { label: 'Shanghai – Genoa · ocean', fullLabel: 'Shanghai (CN) → Genoa (IT), ocean', pending: 4, point: null, currency: null },
 ];
 
 const COMPOSE_MARKET_ENTRY = `
@@ -2571,8 +2612,31 @@ function composeOpsRow(i) {
     added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
     modes: [['ocean'], ['air'], ['road'], ['ocean', 'air']][i % 4], sourceTier: 2,
     tags: [], reasoning: '',
-    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
-    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+    // ROW STATES THIS FIXTURE MUST CONTAIN (lane market63, 2026-09-08). Artboard 04 draws four
+    // scored meters and one row with an em dash where its date and timeline would be, so a fixture
+    // in which EVERY row is unscored and EVERY row is dated cannot see either half of the row
+    // anatomy, every assertion about the meter or about a dateless row passes vacuously
+    // (CLAUDE.md rule 15). Three states are represented on purpose:
+    //   i % 4 === 0  unscored, which mobile-04-market-list.json measures as the 30px dashed
+    //                baseline and which must therefore stay present;
+    //   i === 7      scored on ONE dimension only ([0,0,0,2]), the case the operator describes as
+    //                "a meter with one bar and 2/12", four bars are emitted, three at 0 height;
+    //   otherwise    a fully scored row, the artboard's own four-bar meter.
+    impactScores:
+      i % 4 === 0
+        ? null
+        : i === 7
+          ? { cost: 0, compliance: 0, client: 0, operational: 2 }
+          : { cost: 1 + (i % 3), compliance: 1 + ((i + 1) % 3), client: 1 + ((i + 2) % 3), operational: 1 + (i % 2) },
+    // i === 8: no compliance deadline AND no timeline entry. This is artboard 04's own fourth
+    // ACTION row (The Loadstar feed), which draws "" in the date cell and "" where the timeline
+    // track would be. It exists here so the built row's treatment of that state is MEASURED rather
+    // than assumed; see this lane's report for what it currently renders. Index 8 specifically,
+    // and not an earlier one: the surface sorts by next date and pushes undated rows LAST, so a
+    // dateless row in a crowded band falls past the five-row per-band cap and renders nowhere.
+    // Index 8 lands in AWARENESS, which the fixture populates with two rows, so it is always drawn.
+    complianceDeadline: i === 8 ? null : `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: i === 8 ? [] : [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
   };
 }
 const COMPOSE_OPS_ROWS = Array.from({ length: 25 }, (_, i) => composeOpsRow(i));

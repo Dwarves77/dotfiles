@@ -434,7 +434,11 @@ export function ObligationsRailCard({ nowIso }: { nowIso?: string }) {
 // with a real figure the moment any one of the four lands, with no change here. With no corridor at
 // all the card renders the fixed-vocabulary Absence token rather than an empty shell.
 export interface CarbonCorridorRow {
+  /** Artboard 04's own compact form, e.g. "Shanghai – Rotterdam · ocean" (lane market63). */
   label: string;
+  /** The full spine label, e.g. "Shanghai (CN) → Rotterdam (NL), ocean", carried on the row's
+   *  `title` so the compact form above never costs a reader the corridor's country context. */
+  fullLabel?: string;
   pending: number;
   point: number | null;
   currency: string | null;
@@ -455,7 +459,17 @@ export function CarbonCostRailCard({ corridors }: { corridors: CarbonCorridorRow
           <div
             style={{
               display: "grid",
-              gridTemplateColumns: "1fr auto",
+              // p4 writes this as `1fr auto`, and every value below was chosen by measuring, not
+              // by reading (lane market63, 2026-09-08). The card's content box is 266px.
+              //   `auto`        sizes the token to its 125.4px max-content, leaving the name 128.6px
+              //                 and ellipsising the corridor's destination away.
+              //   `min-content` collapses the token to 59.6px, which breaks it over THREE lines
+              //                 ("4" / "INPUTS" / "PENDING"), one more than the artboard draws.
+              //   `64px`        breaks it over the artboard's own TWO lines ("4 INPUTS" /
+              //                 "PENDING") and leaves the name 190px, which is more than the 188px
+              //                 the longest compact corridor label needs. Both of the operator's
+              //                 constraints hold at once: the name is ONE line, and nothing is cut.
+              gridTemplateColumns: "1fr 64px",
               gap: "6px 12px",
               fontSize: "var(--fs-125)",
               marginTop: 8,
@@ -464,7 +478,20 @@ export function CarbonCostRailCard({ corridors }: { corridors: CarbonCorridorRow
           >
             {corridors.map((c) => (
               <Fragment key={c.label}>
-                <span data-audit="carbon-feu-corridor">{c.label}</span>
+                {/* ONE LINE (lane market63, 2026-09-08, operator instruction "corridor name on one
+                    line, not two"). Two things make that true and both are needed: the label is
+                    artboard 04's compact form (summariseCarbonCorridors), and the cell cannot wrap.
+                    Measured before the fix, in this 266px card: the full spine label ran to three
+                    lines (45px) and the artboard's own compact string still ran to two (30px), so
+                    shortening alone was not enough and `nowrap` alone would have ellipsised away a
+                    corridor's destination. The full label stays on `title`. */}
+                <span
+                  data-audit="carbon-feu-corridor"
+                  title={c.fullLabel ?? c.label}
+                  style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", minWidth: 0 }}
+                >
+                  {c.label}
+                </span>
                 <span style={{ fontWeight: 600, justifySelf: "end" }}>
                   {c.pending > 0 ? (
                     <span
@@ -475,7 +502,15 @@ export function CarbonCostRailCard({ corridors }: { corridors: CarbonCorridorRow
                         textTransform: "uppercase",
                         color: "var(--ink-3)",
                         fontWeight: 700,
-                        whiteSpace: "nowrap",
+                        // The TOKEN wraps and the NAME does not, which is the whole trick and is
+                        // measured, not guessed. In this 266px card the token's nowrap width is
+                        // 125.4px, which leaves the `1fr` name track 128.6px, less than the
+                        // 165px the compact corridor label needs, so the name ellipsised and a
+                        // reader lost the destination. Letting the token fall onto its own second
+                        // line (which is exactly what artboard 04 itself draws: "4 INPUTS" over
+                        // "PENDING") shrinks the `auto` track to ~89px and hands the name the room
+                        // to sit whole on ONE line. Both of the operator's constraints hold: the
+                        // corridor name is one line, and nothing is truncated.
                       }}
                     >
                       {c.pending} input{c.pending === 1 ? "" : "s"} pending

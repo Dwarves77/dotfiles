@@ -46,6 +46,12 @@ export interface CarbonCostOverlayEntry {
    *  removed `force-dynamic` deliberately). Optional — a caller with no spine id (should not happen once
    *  this page reads the loader, but kept honest rather than assumed) simply gets no anchor. */
   entityId?: string;
+  /** The corridor's parsed UN/LOCODE pair + mode (lane market63, 2026-09-08). Carried so a SECOND
+   *  view of these same entries, the rail's CARBON COST PER FEU card, can render artboard 04's
+   *  compact one-line label form from the same source this entry's `label` and `result` come from,
+   *  without re-parsing a string or reading anything again. Unused by this component itself, which
+   *  keeps rendering `label`. */
+  corridor?: { origin: string; dest: string; mode: string };
   /** Jurisdictions this corridor touches (entity_scope, lane SCOPE-READER 2026-09-06) — e.g.
    *  [{code:"CN",name:"China"},{code:"NL",name:"Netherlands"}]. Optional and rendered only when
    *  non-empty (nothing renders empty by design, plan §W5) — a caller with no entity-spine data for this

@@ -6,6 +6,7 @@ import {
   nameForLocode,
   nameForJurisdiction,
   formatCorridorLabel,
+  formatCorridorLabelCompact,
 } from "./unlocode-names.mjs";
 
 // Fixture: every corridor entity live in the spine at authoring time (Supabase project
@@ -64,4 +65,39 @@ test("JURISDICTION_NAMES is derived from UNLOCODE_NAMES, not a second hand-typed
   for (const entry of Object.values(UNLOCODE_NAMES)) {
     assert.equal(JURISDICTION_NAMES[entry.countryIso], entry.countryName);
   }
+});
+
+// ── formatCorridorLabelCompact (lane market63, 2026-09-08) ───────────────────────────────────────
+//
+// Artboard 04's rail card prints the corridor in a shorter form than the spine label, because the
+// rail is 300px wide. The two forms must stay derivable from the SAME UN/LOCODE table, never from
+// two hand-typed lists, and the compact one must degrade the same way.
+
+test("formatCorridorLabelCompact renders artboard 04's own rail string", () => {
+  assert.equal(
+    formatCorridorLabelCompact({ origin: "CNSHA", dest: "NLRTM", mode: "ocean" }),
+    "Shanghai – Rotterdam · ocean",
+  );
+});
+
+test("formatCorridorLabelCompact degrades to the raw code for an unseeded endpoint, never a name", () => {
+  assert.equal(
+    formatCorridorLabelCompact({ origin: "ZZZZ", dest: "NLRTM", mode: "ocean" }),
+    "ZZZZ – Rotterdam · ocean",
+  );
+});
+
+test("both label forms read the same table, so neither can drift from the other", () => {
+  for (const [code, entry] of Object.entries(UNLOCODE_NAMES)) {
+    const full = formatCorridorLabel({ origin: code, dest: code, mode: "ocean" });
+    const compact = formatCorridorLabelCompact({ origin: code, dest: code, mode: "ocean" });
+    assert.ok(full.includes(entry.place), `full label lost the place name for ${code}`);
+    assert.ok(compact.includes(entry.place), `compact label lost the place name for ${code}`);
+    // The compact form is the one that drops the country parenthetical; that IS its job.
+    assert.ok(!compact.includes(`(${entry.countryIso})`));
+  }
+});
+
+test("a corridor with no mode renders without a trailing separator in either form", () => {
+  assert.equal(formatCorridorLabelCompact({ origin: "CNSHA", dest: "NLRTM", mode: "" }), "Shanghai – Rotterdam");
 });

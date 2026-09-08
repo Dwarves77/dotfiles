@@ -641,6 +641,14 @@ export function ListSurfaceShell({
               written for the auditor and never UI. Operator ruling 2026-09-08: "gone everywhere ...
               Remove from /regulations too; the artboard is corrected." That REVERSES lane lists60,
               earlier the same day, which restored the sentence on /regulations from artboard 02. */}
+          {/* FOLD 63 (2026-09-08), cross-lane resolution. Lane market63 reached the same page from
+              artboard 04 and made the caption a per-surface `filtersFootnote` prop, defaulting to
+              the artboard-02 sentence and passed `null` by /market alone. The operator's ruling is
+              WIDER than that lane's evidence: the sentence goes from every surface, so a prop whose
+              only job is to suppress it on one has nothing left to do. The prop, its
+              `FILTERS_FOOTNOTE_ARTBOARD_02` default and /market's `filtersFootnote={null}` are all
+              removed rather than left dormant (rule 13). The two lanes agree on /market; this keeps
+              one implementation of the outcome instead of two paths to it. */}
           <FiltersRailCard groups={allFacetGroups} />
           {rail}
         </div>

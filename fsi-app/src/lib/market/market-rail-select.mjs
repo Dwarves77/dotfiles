@@ -22,6 +22,7 @@
 // PLAIN ESM, ZERO NPM DEPENDENCIES.
 
 import { producerFor } from "./series-registry.mjs";
+import { formatCorridorLabelCompact } from "../entities/unlocode-names.mjs";
 import { addDaysIso } from "./refresh-published-price-statistics.mjs";
 
 /** Artboard 04/id="p4" draws three NEXT DATA DROPS rows and two CARBON COST PER FEU rows. Both caps
@@ -39,16 +40,24 @@ export const CARBON_CORRIDOR_ROW_CAP = 2;
  * A corridor whose result IS `ok` carries a real figure and no pending count, so it is returned with
  * `pending: 0` and its computed point value for the card to render instead.
  *
- * @param {Array<{label: string, result: {ok: boolean, gaps?: string[], point?: number, currency?: string}}>} entries
+ * ONE LINE PER CORRIDOR (lane market63, 2026-09-08, operator instruction "corridor name on one
+ * line, not two"). The rail card is 300px wide and the full spine label needs three lines there
+ * (measured). When the caller passes the corridor's parsed `{origin, dest, mode}`, /market already
+ * has it, it is what it feeds carbonCostPerFeu(), this returns artboard 04's own compact form as
+ * `label` and keeps the full spine label as `fullLabel` for the row's title. A caller with no
+ * parsed corridor gets the full label in both, so nothing is ever invented and no caller breaks.
+ *
+ * @param {Array<{label: string, corridor?: {origin: string, dest: string, mode: string}, result: {ok: boolean, gaps?: string[], point?: number, currency?: string}}>} entries
  * @param {{cap?: number}} [opts]
- * @returns {Array<{label: string, pending: number, point: number|null, currency: string|null}>}
+ * @returns {Array<{label: string, fullLabel: string, pending: number, point: number|null, currency: string|null}>}
  */
 export function summariseCarbonCorridors(entries, { cap = CARBON_CORRIDOR_ROW_CAP } = {}) {
   return (Array.isArray(entries) ? entries : [])
     .filter((e) => e && typeof e.label === "string" && e.label.length > 0 && e.result)
     .slice(0, cap)
     .map((e) => ({
-      label: e.label,
+      label: e.corridor ? formatCorridorLabelCompact(e.corridor) : e.label,
+      fullLabel: e.label,
       pending: e.result.ok ? 0 : (e.result.gaps ?? []).length,
       point: e.result.ok && typeof e.result.point === "number" ? e.result.point : null,
       currency: e.result.ok ? (e.result.currency ?? null) : null,

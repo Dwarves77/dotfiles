@@ -15312,3 +15312,88 @@ fixtures, 12 viewports, 481 checks + 97 SM + 216 UX) · `npm run audit:design` 7
 
 - The coordinator lands this branch; the container cannot push.
 - No blockers. Nothing in this lane depends on a live Supabase project.
+## Addendum, lane MARKET63 (2026-09-08): /market matched to artboard 04, and the seven shared parts verified on the base
+
+**Instruction.** "MARKET PAGE, MATCH THE ARTBOARD, NOT THE PROSE... Every value you need (px, hex,
+radius, grid columns) is inline in that markup. Copy values from it." So this lane opened
+`docs/design/handoff-2026-09-06/screens/04-market-list.png` and `id="p4"` inside
+`Caros Ledge UI System.dc.html` before reading any written ruling, and then rendered that p4 section
+itself in chromium so the artboard side of the region table is a MEASUREMENT and not a reading. Two
+of the brief's own numbers lost to the artboard and are recorded as such in DEVIATION-LOG.md: the
+headline card is 140.797px, not "~105px", and its value is Anton 17px, not "18px".
+
+**What this lane owns, and fixed.**
+
+1. HEADLINE SERIES (`MarketComparativeRibbon.tsx`, /market only). Was ten tall cards in a wrapping
+   `repeat(auto-fit, minmax(220px,1fr))` grid, each with a sparkline and three stacked delta rows,
+   card height 119px, title 26px. Is now p4's single row of compact cards: track
+   `calc((100% - 40px) / 5)` with `grid-auto-flow: column` and `overflow-x: auto` so the remainder
+   scrolls sideways rather than wrapping; card 10px 12px / radius 10; label 9.5px/700/0.1em on one
+   ellipsised line; the Anton 17px value and its 11px/700 ink delta on ONE baseline row in p4's
+   `▼1.7% 1w` form; "as of <date>" 10px muted. Card height 86.844px, which is p4's. No sparkline, no
+   1m row, no YoY row, no "N more headline series below". Head caption is p4's "10 of 16 · dated,
+   sourced observations · Series board →" at 10.5px/600.
+2. The rail FILTERS caption is removed from /market and DELIBERATELY KEPT on /regulations. It was a
+   string literal in the shared `ListSurfaceShell`; it is a prop now with the artboard-02 sentence
+   as its default, and /market passes `null`.
+3. CARBON COST PER FEU rows put the corridor name on ONE line without truncating it, by rendering
+   artboard 04's own compact label form and sizing the pending token's track to 64px. Every value in
+   that sentence was measured; see DEVIATION-LOG.md for the three candidates and why 64px won.
+
+**What this lane verified but did NOT edit,** because sibling lanes cardrule / listrow /
+communitynav are editing exactly these parts on this same base. Measured on the base, at 1440:
+
+- CARD TOP RULE, CLOSED. The 3px `linear-gradient(90deg,#5A5552,#5A5552 22%,rgba(90,85,82,.18))`
+  is present on Headline series, Filters, Carbon cost, Next data drops, Legend AND Sources tracked.
+  The list band cards carry p4's own band-coloured `border-top: 3px solid <band>` instead, which is
+  what p4 draws there.
+- "PENDING" IN THE DATE COLUMN, PRESENT. `ListRow.tsx` renders `<Absence reason="pending" />` in
+  the due cell of a row with no due date. Measured on a purpose-built fixture row: the cell's text
+  is literally "PENDING". p4's equivalent row draws "".
+- FLAT LINE IN THE TIMELINE, PRESENT. `MilestoneTimeline.tsx` renders a 76x1px rgba(0,0,0,.12) bar
+  when there are no entries. p4 draws "" and no track.
+- THE METER, structurally CLOSED, visually PRESENT. `ImpactMeter` always emits FOUR
+  `.cl-impact-bar` spans, sorted ascending, coloured by value, on a 1px rgba(0,0,0,.25) baseline,
+  with the sum beside them: measured 6/12/12/18px green/orange/orange/red and "8/12", which is
+  p4's first row exactly. The operator's "one bar and 2/12" is reachable and was reproduced: a row
+  scored on one dimension emits four bars at 0/0/0/12px, so three of them are invisible and the eye
+  sees one. That is the residual, and it belongs to lane listrow.
+- THE OVERFLOW CONTROL, half PRESENT. The 44px cell and its 1px rgba(0,0,0,.08) left divider are
+  p4's exactly. The control inside it is a 44x44 button with a 1px border and `border-radius: 999px`
+  where p4 draws a bare 28x28 glyph at radius 6 with no border. The 44px is law-2's hit target and
+  must survive; the border and the circle are the defect.
+- THE KIND CHIP, the stated defect is REFUTED, the residual is type. Measured `border-style: none`
+  on #F5F2EE, so the chip has NO border today. What still differs from p4 is size and weight:
+  10.5px/600 at radius 4 with 3px 8px padding in ink-2, against p4's 9.5px/700 at radius 3 with
+  1px 6px padding in #1A1A1A. The meta words after it are already plain 11px #7A6E6C, as p4 draws
+  them.
+- THE BAND-BLOCK HEADER, the row height is CLOSED, the phrasing is PRESENT. Row `min-height` is
+  56px, p4's value. The head renders `band.window` ("≤ 6 months") where p4 writes "material impact
+  within 6 months", and its dot is 6px against p4's 8px. The trap here is that `window` is the SAME
+  field the band TILES render, and the operator has ruled the tiles' short window correct, so the
+  fix needs a second field on the band and not an edit to `window`.
+- THE NAV FOOTER, PRESENT, and it contradicts a recorded ruling. `Sidebar.tsx` renders ONE row,
+  the email local-part beside the workspace name, under a comment citing an operator ruling of
+  2026-09-07 that explicitly superseded R2's two-row footer. The instruction for this train asks for
+  R2's two rows back. Both are the operator's; the later one wins, but the coordinator should know
+  the code is not merely stale, it is following a written later ruling.
+- THE PAGE DISCLAIMER, PRESENT. `AppShell.tsx` renders it as a page-wide footer bar on every
+  in-app route.
+
+**Two artboard facts, both checked independently and both CONFIRMED.** (a) p4 contains no "Counts
+are live for the current selection" text at all, and artboard 02 contains it verbatim, so the
+removal is /market-only and removing it from /regulations would regress against 02. (b) No artboard
+from 01 to 15 draws the disclaimer; artboards 16 and 17 both draw "For informational purposes only.
+Not legal advice. Privacy" at the foot of their left panel, so it leaves the in-app frame and stays
+on auth and onboarding.
+
+**Fixture.** compose-04's fixture scored no row and dated every row, so every assertion about the
+impact meter or a dateless row passed vacuously (rule 15), and it carried five observed series where
+p4's head says sixteen. It now carries all four row states and sixteen series.
+
+**Gates.** `npx tsc --noEmit` clean; fitness 35 functions / 0 violations; rendering guard PASS;
+`npm run audit:design` 70 specs / 2057 checks / 2057 MATCH at 1440 and 390; the CI npmtest glob
+1041 pass / 0 fail; `run-test-suite.sh` 5979 tests / 0 fail / 5 skipped; `next build --webpack` OK.
+The thirteen new compose-04 rows and four new forbids were proven by attack: reverting the track
+flow, the title size, the card padding and the carbon grid turned six of them MISMATCH, and
+restoring them returned 68/68.

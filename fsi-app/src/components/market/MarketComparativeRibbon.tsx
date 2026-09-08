@@ -1,30 +1,51 @@
 /**
- * MarketComparativeRibbon — Lane SURF, spec 02 §6 item 1: "Comparative ribbon: 6 to 10 headline
- * metrics, each `level · Δ1w · Δ1m · ΔYoY · sparkline · as-of`. The 15-second 'has anything moved that
- * changes my week' read. The contract in its most literal form."
+ * MarketComparativeRibbon, the HEADLINE SERIES card of artboard 04 / dc.html `id="p4"`.
  *
- * Server component, no client state, no new fetch: reads the SAME `MarketSeriesBoardVM` the page
- * already fetches for <MarketSeriesBoard> (fetchMarketSeriesBoard → buildSeriesBoard). buildSeriesBoard
- * now attaches `deltas` to every populated series row (src/lib/market/series-board-view-model.mjs,
- * computed via src/lib/market/series-deltas.mjs from the FULL row history for that series_key) — this
- * component only renders that finished shape, exactly like MarketSeriesBoard's own header states for
- * value formatting.
+ * FILE IDENTITY vs RENDERED COPY. The export keeps its original name (spec 02 §6 item 1's
+ * "comparative ribbon"); the card's rendered title is the artboard's own, "HEADLINE SERIES".
  *
- * HONEST TODAY: `market_series` has 6 series keys, 1 row each, live [confirmed 2026-09-02]. Every card
- * below therefore renders the honest "one observation, no delta yet (history backfill pending)" state —
- * this is spec §9's own acceptance bar working as designed, not a placeholder: the ribbon becomes
- * comparative the moment a second observation lands per series, with no further code change.
+ * LANE MARKET63 (2026-09-08), EVERY NUMBER BELOW IS READ OFF `id="p4"`, MEASURED IN CHROMIUM,
+ * not taken from prose. The operator's instruction for this lane was "match the artboard, not the
+ * prose", so the artboard markup is the authority and each divergence from the brief's words is
+ * named here rather than silently resolved:
  *
- * NEVER FABRICATE. A delta that could not be computed (insufficient history, or a unit/currency change
- * across the compared pair) renders an explicit reason, never a dash indistinguishable from a real
- * zero-change delta (spec 00 §2's false-precision failure).
+ *   - ONE ROW OF FIVE compact cards. p4's grid is `repeat(5,1fr)` with `gap:10px` inside a card
+ *     whose content box is 744px at 1440, so each card measures 140.8px, NOT the "~105px" the
+ *     brief's prose estimates. The artboard value wins and 140.8px is what this renders.
+ *   - The cards past the fifth SCROLL HORIZONTALLY. p4 draws exactly five and captions the head
+ *     "10 of 16", so the image itself carries no scroller; the horizontal scroll is the operator's
+ *     own instruction for the remainder, and it is built so the FIRST FIVE land on p4's exact
+ *     140.8px track at 1440 and the rest are reachable without a second row.
+ *   - Card: 10px 12px padding, 10px radius, the standard card border/shadow.
+ *   - Label: 9.5px / 700 / 0.1em, uppercase, ONE LINE, ellipsised.
+ *   - Value + delta share ONE baseline row: Anton 17px (p4's value, not the brief's "18px") beside
+ *     an 11px/700 ink delta in p4's own `▼1.7% 1w` form.
+ *   - "as of <date>": 10px muted, 4px above.
+ *   - NO sparkline, NO 1m row, NO YoY row, NO "N more headline series below" disclosure. p4's card
+ *     contains none of them (measured: zero `<svg>` in the whole card).
+ *
+ * THE ONE PLACE THIS DOES NOT FOLLOW p4, and why. p4's card head carries
+ * `border-bottom:1px solid rgba(0,0,0,.08)` under the title. Operator ruling 5.1 (2026-09-07,
+ * CLOSED) says the opposite in as many words, "there is NO divider below the title", and a
+ * standing ruling outranks the image it was written against. No divider is rendered; the artboard
+ * value is recorded in compose-04-market-list.json's notes so the divergence stays visible.
+ *
+ * SERVER COMPONENT, NO NEW FETCH: reads the SAME `MarketSeriesBoardVM` the page already fetches for
+ * <MarketSeriesBoard> (fetchMarketSeriesBoard → buildSeriesBoard). `deltas` is attached upstream by
+ * src/lib/market/series-board-view-model.mjs from the FULL row history per series_key.
+ *
+ * NEVER FABRICATE. A 1w delta that could not be computed (insufficient history, a unit or currency
+ * change across the compared pair, a zero prior) renders p4's own dash-plus-small-caps absence
+ * shape, never a dash indistinguishable from a real zero-change delta (spec 00 §2). p4 writes that
+ * word as "BACKFILL"; the product's absence vocabulary is closed (Absence.tsx) and does not contain
+ * it, so the token is the vocabulary's own "pending" in p4's type treatment.
  */
 
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
-import { MoreBelowDisclosure } from "@/components/shared/MoreBelowDisclosure";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { formatNumber } from "@/lib/format";
+import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
 
 interface MarketComparativeRibbonProps {
   board: MarketSeriesBoardVM;
@@ -39,7 +60,22 @@ interface MarketComparativeRibbonProps {
   embedded?: boolean;
 }
 
+/** p4's head caption is "10 of 16", so ten is the card's own cap: five sit on the visible track at
+ *  1440 and the next five are reached by scrolling the row sideways. Everything past ten is the
+ *  Series board's job, which the head links to. */
 const MAX_METRICS = 10;
+
+/** p4's grid: five columns, 10px gutters. Written as an auto-column track so the sixth card and
+ *  beyond continue the SAME row into the horizontal scroller instead of wrapping onto a second
+ *  one. At 1440 the content column is 780px and the card's 16px side padding leaves 744px, so
+ *  `(100% - 4 * 10px) / 5` resolves to p4's measured 140.797px per card. */
+const HEADLINE_TRACK = "calc((100% - 40px) / 5)";
+
+/** Below 768 a fifth of the viewport is 60px, which cannot hold a €1,217/1000L value, so the track
+ *  stops dividing and becomes a fixed 150px card that scrolls sideways, the same one row, the same
+ *  card, sized to be legible. p4 is a 1440 artboard and draws no mobile state for this card; this is
+ *  the DP-1/RD-60 reflow rule applied to it, not a second design. */
+const HEADLINE_TRACK_MOBILE = "150px";
 
 interface DeltaPoint { date: string; value: number | null }
 interface WindowDelta {
@@ -83,7 +119,6 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
 
   if (rows.length === 0) return null;
   const shown = rows.slice(0, MAX_METRICS);
-  const hiddenCount = rows.length - shown.length;
 
   // Operator item A1 (2026-09-08): "Headline series" is one of the eighteen listed cards. Its card
   // shell used to be a local style object plus a conditional `<SectionRule/>`; both are gone, and
@@ -98,8 +133,10 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           alignItems: "baseline",
           justifyContent: "space-between",
           gap: 16,
-          padding: embedded ? "14px 16px 0" : "0 0 8px",
-          margin: "0 0 12px",
+          /* p4 head box: `padding:14px 16px 10px`. Its `border-bottom` is deliberately NOT
+             rendered, ruling 5.1, see this file's header. */
+          padding: embedded ? "14px 16px 10px" : "0 0 8px",
+          margin: 0,
           flexWrap: "wrap",
         }}
       >
@@ -110,8 +147,10 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           style={{
             fontFamily: "var(--font-display)",
             fontWeight: 400,
-            fontSize: 26,
-            letterSpacing: "0.02em",
+            /* p4, measured: Anton 20px / 0.04em. Was 26px. */
+            fontSize: 20,
+            letterSpacing: "0.04em",
+            whiteSpace: "nowrap",
             textTransform: "uppercase",
             margin: 0,
           }}
@@ -121,10 +160,12 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
         <span
           style={{
             fontSize: 10.5,
-            fontWeight: 800,
+            /* p4's head caption resolves to 600 (its inline style sets 700 then 600); was 800. */
+            fontWeight: 600,
             letterSpacing: "0.12em",
             textTransform: "uppercase",
             color: "var(--color-text-muted)",
+            whiteSpace: "nowrap",
           }}
         >
           {formatNumber(shown.length)} of {formatNumber(rows.length)} · dated, sourced observations ·{" "}
@@ -134,33 +175,32 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
         </span>
       </div>
 
+      {/* p4's five-across track, continued sideways rather than wrapped. `overflow-x: auto` is the
+          operator's instruction for the remainder; at 1440 with five or fewer series nothing
+          scrolls and the row is pixel-identical to the artboard. */}
+      {/* Outside the grid: a <style> element placed inside it would be the grid's FIRST auto
+          column, a zero-width card ahead of Diesel. Measured, not guessed. */}
+      <style>{`
+        @media (max-width: 767px) {
+          .cl-headline-track { grid-auto-columns: ${HEADLINE_TRACK_MOBILE} !important; }
+        }
+      `}</style>
       <div
+        className="cl-headline-track"
+        data-audit="headline-track"
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-          gap: 12,
-          padding: embedded ? "0 16px 14px" : undefined,
+          gridAutoFlow: "column",
+          gridAutoColumns: HEADLINE_TRACK,
+          gap: 10,
+          overflowX: "auto",
+          padding: embedded ? "0 16px 16px" : undefined,
         }}
       >
         {shown.map((row) => (
           <RibbonCard key={row.seriesKey} row={row} />
         ))}
       </div>
-
-      <MoreBelowDisclosure count={hiddenCount} itemNoun="more headline series">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-            gap: 12,
-            padding: embedded ? "0 16px 14px" : undefined,
-          }}
-        >
-          {rows.slice(MAX_METRICS).map((row) => (
-            <RibbonCard key={row.seriesKey} row={row} />
-          ))}
-        </div>
-      </MoreBelowDisclosure>
     </>
   );
 
@@ -171,115 +211,116 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
   );
 }
 
+/** ONE card of p4's headline row. Every value below is p4's, measured: 10px 12px padding, 10px
+ *  radius, a 9.5px/700/0.1em one-line ellipsised label, then a SINGLE baseline row carrying the
+ *  Anton 17px value beside its 11px/700 ink 1w delta, then "as of <date>" at 10px muted, 4px down.
+ *  p4 draws no sparkline, no 1m row and no YoY row, so this renders none. */
 function RibbonCard({ row }: { row: RibbonRow }) {
   const d = row.deltas;
   return (
     <div
+      data-audit="headline-card"
       style={{
-        border: "1px solid var(--color-border)",
-        borderRadius: 8,
-        background: "var(--color-bg-surface)",
-        padding: "12px 14px 10px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 6,
+        border: "1px solid var(--line-1)",
+        borderRadius: "var(--radius-card)",
+        boxShadow: "var(--shadow-card)",
+        background: "var(--card)",
+        padding: "10px 12px",
+        overflow: "hidden",
+        minWidth: 0,
       }}
     >
       <p
+        data-audit="headline-card-label"
         style={{
           fontSize: 9.5,
-          fontWeight: 800,
-          letterSpacing: "0.08em",
+          fontWeight: 700,
+          letterSpacing: "0.1em",
           textTransform: "uppercase",
-          color: "var(--color-text-muted)",
+          color: "var(--ink-3)",
           margin: 0,
+          // p4: `white-space:nowrap;overflow:hidden;text-overflow:ellipsis`, the series label is
+          // ONE line and is cut, never wrapped onto a second line that would deepen the card.
+          whiteSpace: "nowrap",
+          overflow: "hidden",
+          textOverflow: "ellipsis",
         }}
+        title={row.label}
       >
         {row.label}
       </p>
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 8 }}>
-        <span style={{ fontFamily: "var(--font-display)", fontSize: 19, color: "var(--color-text-primary)" }}>
+      {/* p4: `display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:6px`, the
+          value and its delta share ONE baseline. */}
+      <div
+        data-audit="headline-card-value-row"
+        style={{ display: "flex", flexWrap: "wrap", alignItems: "baseline", gap: "2px 8px", marginTop: 6 }}
+      >
+        <span style={{ fontFamily: "var(--font-display)", fontSize: 17, lineHeight: 1.05, color: "var(--ink)" }}>
           {row.displayValue}
         </span>
-        <Sparkline points={d.sparkline} />
+        <WeekDelta delta={d.delta1w} message={d.message} />
       </div>
-
-      {d.message ? (
-        <p style={{ fontSize: 10, color: "var(--color-text-muted)", margin: "2px 0 0", lineHeight: 1.4 }}>
-          {d.message}
-        </p>
-      ) : (
-        <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <DeltaChip label="1w" delta={d.delta1w} />
-          <DeltaChip label="1m" delta={d.delta1m} />
-          <DeltaChip label="YoY" delta={d.deltaYoY} />
-        </div>
-      )}
-
-      <p style={{ fontSize: 9, color: "var(--color-text-muted)", margin: "2px 0 0" }}>
+      <p data-audit="headline-card-asof" style={{ fontSize: 10, color: "var(--ink-3)", margin: "4px 0 0" }}>
         as of {d.latest?.date ?? "—"}
       </p>
     </div>
   );
 }
 
-function DeltaChip({ label, delta }: { label: string; delta: WindowDelta | null }) {
-  if (!delta) return null;
-  if (delta.unitMismatch) {
-    return (
-      <span style={{ fontSize: 10, color: "var(--brass)" }} title={`Unit changed since ${delta.fromDate} — comparison refused`}>
-        Δ{label} unit changed
-      </span>
-    );
-  }
-  if (delta.insufficientHistory || typeof delta.value !== "number") {
-    return (
-      <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
-        Δ{label} no data yet
-      </span>
-    );
-  }
-  if (typeof delta.pct !== "number") {
-    // Division-by-zero guard fired upstream (prior value was 0) — a % move is undefined here, and
-    // showing one would be exactly the fabrication this module refuses elsewhere. Say so plainly.
-    return (
-      <span style={{ fontSize: 10, color: "var(--color-text-muted)" }} title={`vs ${delta.fromDate}: prior value was zero`}>
-        Δ{label} n/a
-      </span>
-    );
-  }
-  const tone = delta.pct > 0 ? "var(--mi-cost, #D97706)" : delta.pct < 0 ? "var(--color-success)" : "var(--color-text-muted)";
-  // The series' own unit price change is expressed as a PERCENT move (quantity, never a ratio in
-  // pp — formatDelta's `kind` is required, never defaulted, per envelope.mjs's own header: "a default
-  // here would silently pick a side").
-  const formatted = formatDelta(delta.pct, "quantity");
-  return (
-    <span style={{ fontSize: 10, fontWeight: 700, color: tone }} title={`vs ${delta.fromDate}`}>
-      Δ{label} {formatted}
+/**
+ * p4's inline delta: `▼1.7% 1w` / `▲0.7% 1w` at 11px/700 in ink, tabular, one line.
+ *
+ * When the move cannot be computed, p4's own shape is an em dash followed by a small-caps reason
+ * word (it draws "BACKFILL"). The product's absence vocabulary is closed and does not carry that
+ * word, so the reason rendered is the vocabulary's "pending" in the same type treatment, never a
+ * bare dash, which would be indistinguishable from a real zero-change move (spec 00 §2).
+ */
+function WeekDelta({ delta, message }: { delta: WindowDelta | null; message: string | null }) {
+  const pending = (reason: string) => (
+    <span
+      data-audit="headline-card-delta"
+      className="cl-absence"
+      data-absence="narrow"
+      aria-label={reason}
+      title={reason}
+      style={{ fontSize: 11, fontWeight: 700, color: "var(--ink-3)", whiteSpace: "nowrap" }}
+    >
+      {/* The dash is p4's own glyph in this slot, not prose: `\u2014` (U+2014), the same character
+          ImpactMeter's narrow absence draws. The rendering guard's placeholder-literal scan skips
+          it because this span declares `data-absence`, exactly as Absence.tsx's own narrow variant
+          does, so a bare dash elsewhere in the product still fails the guard. */}
+      {"\u2014 "}
+      <span style={{ ...ABSENCE_TEXT_STYLE, fontSize: 9.5, letterSpacing: "0.06em" }}>pending</span>
     </span>
   );
-}
 
-function Sparkline({ points }: { points: DeltaPoint[] }) {
-  const vals = points.map((p) => p.value).filter((v): v is number => typeof v === "number");
-  if (vals.length === 0) return null;
-  if (vals.length === 1) {
-    return (
-      <svg width="40" height="16" aria-hidden style={{ flex: "0 0 auto" }}>
-        <circle cx="20" cy="8" r="2.5" fill="var(--color-text-muted)" />
-      </svg>
-    );
-  }
-  const min = Math.min(...vals);
-  const max = Math.max(...vals);
-  const span = max - min || 1;
-  const w = 60;
-  const h = 16;
-  const step = w / (vals.length - 1);
-  const coords = vals.map((v, i) => `${(i * step).toFixed(1)},${(h - ((v - min) / span) * h).toFixed(1)}`);
+  if (message) return pending(message);
+  if (!delta) return pending("pending");
+  if (delta.unitMismatch) return pending(`Unit changed since ${delta.fromDate}, comparison refused`);
+  if (delta.insufficientHistory || typeof delta.value !== "number") return pending("pending");
+  // Division-by-zero guard fired upstream (prior value was 0): a % move is undefined, and showing
+  // one would be exactly the fabrication this module refuses elsewhere.
+  if (typeof delta.pct !== "number") return pending(`vs ${delta.fromDate}: prior value was zero`);
+
+  // p4 writes DIRECTION as a glyph and MAGNITUDE unsigned, so the sign formatDelta emits is not
+  // wanted here; the arrow carries it. `kind` stays "quantity" (a percent move, never pp), it is
+  // required and never defaulted, per envelope.mjs's own header.
+  const arrow = delta.pct > 0 ? "▲" : delta.pct < 0 ? "▼" : "";
+  const magnitude = formatDelta(Math.abs(delta.pct), "quantity")?.replace(/^[+−]/, "") ?? "";
   return (
-    <svg width={w} height={h} aria-hidden style={{ flex: "0 0 auto" }}>
-      <polyline points={coords.join(" ")} fill="none" stroke="var(--color-primary)" strokeWidth="1.5" />
-    </svg>
+    <span
+      data-audit="headline-card-delta"
+      title={`vs ${delta.fromDate}`}
+      style={{
+        fontSize: 11,
+        fontWeight: 700,
+        color: "var(--ink)",
+        fontVariantNumeric: "tabular-nums",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {arrow}
+      {magnitude} 1w
+    </span>
   );
 }
