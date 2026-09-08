@@ -53,8 +53,9 @@
  * set has `RowTable`, which is a CSS-grid admin row anatomy with no sticky column and no card
  * chrome, and `.cl-table-cards` in globals.css, which is the stack-into-cards reflow this design
  * replaces). The scroller here is therefore built so a shared part can absorb it later without
- * touching this file's data code: every piece of it is markup and style in `MatrixScroller`'s three
- * elements plus the `stickyCell` style object below, and none of it reads this component's state.
+ * touching this file's data code: the whole pattern is the scroller `<div>`'s two classes and one
+ * attribute plus the `stickyCell` / `bodyCell` / `headCell` style objects and the two column floors
+ * at the foot of this file, and not one of those reads this component's state.
  *
  * SELECTION IS A FOCUS MODEL, NOT A HOVER. The table is a `role="grid"` with roving tabindex: the
  * selected cell is the single tab stop, arrow keys move the selection and the panel follows, and
