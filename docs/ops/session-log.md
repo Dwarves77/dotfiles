@@ -13698,3 +13698,118 @@ did not have before.
 fixture checks, 85 SM smoke, 216 UX smoke); `npm run audit:design` 61 specs, 1193 checks, 1193
 MATCH, 0 MISMATCH; `run-test-suite.sh` exit 0, 5939 tests, 0 fail (5921 on the base, so 18 new);
 `npx next build --webpack` exit 0.
+
+## Addendum: LANE COUNTS, train 61 — numbers that contradict each other on the same screen (2026-09-08)
+
+Branch `lane/counts-2026-09-08` off `train/wave60-2026-09-08` (42005ba8). Source: the click-through
+audit of production at `/home/claude/audit-2026-09-08/CLICKTHROUGH-2026-09-08.md`, run that morning
+against train 59 (master 69b1374). Six items, every one a trust defect in a product whose whole
+value is that its numbers are right. Root cause first in each case, then the fix at the source, then
+a test that pins the invariant.
+
+Where the base had already closed something, it is said so with the evidence rather than rebuilt.
+
+**Item 1 — /map showed three jurisdiction counts.** [CONFIRMED by reading both call sites] The
+masthead keyed every item `r.jurisdiction || "global"`; the register and the Immediate rail card
+keyed it `r.jurisdiction || getJurisdiction(r) || "global"`. An item whose jurisdiction column is
+blank but whose text names one collapsed to "global" for the masthead and resolved for the register,
+so "6 jurisdictions live" sat above "8 jurisdictions", and "4 jurisdictions with immediate items"
+sat beside "IMMEDIATE · 3 JURISDICTIONS" — one root cause, two symptoms. One module now,
+`src/lib/map/jurisdiction-rollup.ts`. Test: `jurisdiction-rollup.npmtest.mjs` keeps the old
+under-counting key as the counter-example, so the regression is legible.
+
+**Item 2 — three Monitor counts across two screens, and they had three DIFFERENT causes.**
+- 1,135 (dashboard tile): the tiles read `getWorkspaceAggregates()`, workspace-wide across all five
+  surfaces, while every tile's href is `/regulations?band=<key>`. They now read
+  `getPublicSurfaceCounts("regulations")`, the identical call the destination makes. [CONFIRMED]
+- 1,119 (/regulations tile): correct. `get_surface_counts(null,'regulations')` returns
+  CRITICAL 15 / HIGH 14 / MODERATE 1119 / LOW 169, total 1317 [CONFIRMED, live DB this session].
+- 1031 (the list): the CAP-1000 class this repo named on 2026-09-05 and fixed for
+  `getPublicSurfaceSlugs` while `/api/listings/rest` kept it. The route asked for the whole
+  remainder in one `.range(60, 5059)` call and PostgREST caps a single response at db-max-rows
+  (1000), silently. 60 + 1000 loaded rows, minus the 15 CRITICAL + 14 HIGH ahead of them in the
+  RPC's own priority order, is exactly 1031 — arithmetic, not a guess. The route now walks the
+  range one 1000-row page at a time.
+Two hypotheses were tested and REFUTED on the way: a different corpus slice (domain=1 vs
+`surface_of`, which gives the same 1119 for MODERATE) and workspace priority overrides (4 rows in
+the whole table). Both stated here because a wrong diagnosis that survives is worse than none.
+
+**Item 3 — /admin's 489 vs 491.** [CONFIRMED, live DB] `provisional_sources` holds 489
+`pending_review` and 2 `needs_more_data`; `fetchProvisionalSources` selects both and the table prints
+its own row count, while `admin_attention_counts` (migration 140) counted `pending_review` alone.
+The queue as rendered is the right population — a `needs_more_data` row is still awaiting the same
+three decisions. Migration 314 corrects the RPC and was APPLIED to production before this code
+committed, per the two-track policy, then verified (`provisional_sources_pending` = 491). The status
+vocabulary now lives once, in `src/lib/admin/provisional-review-queue.ts`, cited by the SQL.
+
+**Item 4 — stale facet counters, and a filter that wrote no URL.** [CONFIRMED by reading] Every
+facet builder was called with the unfiltered row set and the band tiles preferred a corpus RPC no
+client filter can move, so the panel's own caption ("Counts are live for the current selection") was
+false by construction. `liveFacetCounts` is now the one derivation for all four ledgers, in two
+regimes that each say which they are: corpus figures at rest, current-selection tallies under any
+facet, with each group's counts excluding its own selection so its other options stay switchable.
+Separately, `?band=` was the only facet writing URL state; `useListSurfaceFilter` extends that one
+contract to mode/region/topic/tier/q on all four surfaces.
+
+**Item 5 — "Community 1" over a page reading "7 regional rooms".** [CONFIRMED] Both the nav badge
+and the dashboard rail read `CommunitySurfaceCounts.activeGroups`, a count of groups the workspace's
+members had JOINED, under labels that say rooms. Split into `regionalRooms` (the `ROOMS` roster the
+/community page itself renders) and `joinedGroups`. The plural was independently broken ("1 regional
+rooms"), so `pluralize`/`countNoun` now live in `src/lib/format.ts` beside `formatNumber`, replacing
+a hand-written ternary at the site that got it wrong.
+
+**Item 6 — six labels that stated something the data does not say.**
+- FACT cards printed `"FACT: "…""` on three detail pages. [CONFIRMED against the live corpus] The
+  pipeline writes the label into the stored paragraph in three shapes and wraps the claim in
+  quotes; the parser stripped ANALYSIS and LEGAL tokens and had no FACT stripper, while `FactCard`
+  adds its own. Fixed in the one parser, at render time, with no published row touched.
+- /market/[id] printed its source name twice. [CONFIRMED] The page uses `publisher` for both the
+  breadcrumb and the deck's first part. `joinMetaSegments` now composes every detail sub-line; the
+  regulation sub-line had the same latent repetition.
+- /watchlist printed "SINCE YOUR LAST VISIT" twice and never a date. [CONFIRMED] The phrase was
+  false, not merely duplicated: `/api/notices` applies a fixed 30-day window and no caller sends
+  `?since=`. The route always returned the `since` it applied; the hook discarded it. Stated once
+  now, with its real date, and the shared components stop making the claim on every other mount.
+- /watchlist's empty state pointing at a ⋯ menu: **the base had already closed the literal claim.**
+  Train 60 added a 44px overflow control to every watchlist row and compose-11 measures it. Recorded
+  as a partial [REFUTED] of the audit. The copy was still ambiguous and now names where the menu is.
+- /admin's raw UUID fragment. [CONFIRMED] `MembersPanel`'s chain, whose header reads "NO raw UUIDs
+  render in member rows", ended in a uuid slice, and `WorkspacesUsageRow` did not use that chain at
+  all. One chain now, with the slice removed.
+- /admin's "DISCOVERED 3-4 mo ago": [CONFIRMED, live DB] **not a defect.** The 491 queued rows carry
+  `created_at` between 2026-04-05 and 2026-06-01. The rendering is right; the queue is stale because
+  build mode holds the scrape cadence off (rule 16). Logged, changed nowhere.
+
+**Found while proving the build, not assumed.** `/research` was the one list surface still statically
+prerendered. Once its ledger reads the URL, Next defers the whole `useSearchParams` boundary to the
+client — the prerendered `research.html` came out as 28KB of frame with none of the rows
+[CONFIRMED, by reading `.next/server/app/research.html`]. It renders per request now, like its three
+siblings. The data reads are unchanged; only the cached HTML is given up.
+
+**Specs and proofs updated, never weakened.** Three proofs pinned copy this lane deliberately
+changed (`WatchlistSurface.npmtest.mjs`, `AntonTitleLetterSpacing.npmtest.mjs`, and
+compose-11-watchlist.json's two `textMatch` anchors). Each is updated to the new correct structure
+with the reason in place, and each keeps its original invariant; the watchlist proof gains a new
+assertion that no rendered string on the page claims a last visit. The smoke and audit mounts gained
+the `next/navigation` stub the regulations spec already used, and the dashboard mount now supplies
+`bandCounts` deliberately divergent from its `aggregates` so it renders the case the defect turned
+on. The audit stands at 1193/1193 MATCH, the same total as the base.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` (the four list ledgers, their four
+routes, `DashboardBrief.tsx`, `WatchlistSurface.tsx`, `MapPageView.tsx`, the three detail surfaces,
+`NoticesRail.tsx`, `RecalculationNotice.tsx`, `MembersPanel.tsx`, `WorkspacesUsageRow.tsx`). No new
+interactive element is introduced anywhere: every facet control, row, chip and menu is the one that
+was already there, and the only behavioural change to a control is that a facet now writes the URL
+in addition to narrowing the list. No hit target is reduced; every 44px minimum stands. The one
+layout-affecting change is that filtered counts render smaller numbers in tiles whose geometry is
+fixed, so no wrap is introduced. The rendering guard passes at every viewport including 375 through
+all twelve UX smoke specs, with no new failures.
+
+**Gates.** `tsc --noEmit` clean; fitness 33 functions / 0 violations; rendering guard PASS (11
+fixtures, 12 viewports, 433 checks + 85 smoke + 216 UX); `audit:design` 61 specs / 1193 checks /
+1193 MATCH; `run-test-suite.sh` 5921 tests / 0 fail (exit 0); the CI npmtest glob 995 tests / 0 fail;
+`next build --webpack` exit 0.
+
+**Migration applied to production this session**: 314
+(`admin_attention_counts` provisional-queue population). DDL before the dependent code, verified by
+re-reading the function's own output.
