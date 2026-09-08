@@ -19,9 +19,21 @@ import type { ListSurfaceFacetGroup } from "./ListSurfaceShell";
 // section-card-lists.json) found this rail card and the facets card (ListSurfaceShell.tsx)
 // rendered NO rule at all — the base lane's own DEVIATION-LOG entry named rolling SectionRule onto
 // this file as later-lane scope; this is that lane.
-export function RailCard({ title, children }: { title: string; children: ReactNode }) {
+export function RailCard({
+  title,
+  children,
+  dataAudit,
+}: {
+  title: string;
+  children: ReactNode;
+  /** Design-audit hook (../../.discipline/rendering/audit) — a stable selector for a real page
+   *  composition mount, since a caller like LegendRailCard mounts this with no wrapper div of its
+   *  own. Optional: only the callers a compose-*.json spec needs to address by name pass it. */
+  dataAudit?: string;
+}) {
   return (
     <div
+      data-audit={dataAudit}
       style={{
         background: "var(--card)",
         border: "1px solid var(--line-1)",
@@ -219,7 +231,7 @@ export function FiltersRailCard({
 
 export function LegendRailCard() {
   return (
-    <RailCard title="Legend">
+    <RailCard title="Legend" dataAudit="legend-rail">
       <dl style={{ margin: 0, display: "flex", flexDirection: "column", gap: 10 }}>
         <div>
           <dt style={{ fontSize: "var(--fs-11)", fontWeight: 800, color: "var(--ink)" }}>Impact</dt>

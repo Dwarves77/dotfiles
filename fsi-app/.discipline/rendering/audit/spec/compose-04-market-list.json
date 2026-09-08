@@ -1,0 +1,74 @@
+{
+  "part": "Market page composition — MarketIntelLedger (real page component, not the ListSurfaceShell primitive)",
+  "mount": "compose-04-market",
+  "viewport": 1440,
+  "artboards": ["04-market-list"],
+  "source": "dc.html p4 (#p4): masthead, band tiles, HEADLINE SERIES card, 'N signals · grouped by band · Show as one list' + Sort row, rail (Filters card, then Legend/sources-tracked), band-sectioned rows. This spec exists per the operator's own complaint ('the filters were not above the regulations, they were on the right — same on every page; you are NOT matching the images directly') and closes the DEVIATION-LOG's own logged gap (2026-09-06 row 97, partially closed 2026-09-08): the Headline Series card now nests inside the content column between the band tiles and the Sort row, not as its own full-bleed page section.",
+  "notes": [
+    "Fixture matches capture-compose-lists-screenshots.mjs's own MARKET_ROWS/SERIES_BOARD (20 signal rows, 4 populated headline series with real Δ1w/Δ1m percentages) — the same shape the evidence screenshot renders, so the audit and the screenshot measure the identical mount.",
+    "The Headline Series card is asserted to mount BEFORE the sort row (DOM order), matching p4's own top-to-bottom order: band tiles, Headline Series, Sort row, band-sectioned rows.",
+    "Market has only 3 Sort options (Next date/Newest/A-Z, no 'My order') — the pre-existing DEVIATION-LOG row for the sort row already covers this; not re-asserted here to avoid duplicating that spec's own coverage."
+  ],
+  "selector": "[data-audit=\"filters-rail\"]",
+  "expect": {
+    "display": "block"
+  },
+  "children": [
+    {
+      "name": "Filters rail card mounts before the Legend rail card (rail order: Filters, then Legend)",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Headline Series card is embedded in the content column (mounts, with the ruling-5.1 SectionRule as its first child)",
+      "selector": "[data-audit=\"headline-series\"] .cl-section-rule",
+      "note": "Presence of the SectionRule inside the headline-series card confirms the embedded=true path (card chrome, ruling 5.1), not the old standalone full-bleed section (which never set data-audit or mounted a SectionRule).",
+      "expect": {
+        "height": "3px"
+      }
+    },
+    {
+      "name": "Headline Series card title reads 'Headline series' (artboard copy, not the file's own 'Comparative ribbon' identity)",
+      "selector": "[data-audit=\"headline-series\"] h2",
+      "expect": {
+        "text": "Headline series"
+      }
+    },
+    {
+      "name": "Headline Series card mounts before the Sort row (p4 order: band tiles, Headline Series, Sort row, rows)",
+      "selector": "[data-audit=\"headline-series\"] ~ [data-audit=\"sort-row\"]",
+      "note": "Sibling-combinator selector only matches when headline-series precedes sort-row in the DOM.",
+      "expect": {
+        "display": "flex"
+      }
+    },
+    {
+      "name": "Sort/count row renders above the rows",
+      "selector": "[data-audit=\"sort-row\"]",
+      "expect": {
+        "display": "flex"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no content-column facet chip strip above the rows (the original defect)",
+      "selector": ".cl-facets-desktop",
+      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Applies identically to Market."
+    },
+    {
+      "name": "Headline Series card no longer titled 'Comparative ribbon' (this file's own pre-existing, wrong-for-the-artboard copy)",
+      "selector": "[data-audit=\"headline-series\"] h2",
+      "textMatch": "Comparative ribbon",
+      "reason": "Artboard 04/id=\"p4\" titles this card 'HEADLINE SERIES'. 'Comparative ribbon' is the component/file's own internal identity, kept as the export name but never the rendered copy."
+    },
+    {
+      "name": "the literal word UNSCORED anywhere in a row",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
+    }
+  ]
+}

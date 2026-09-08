@@ -668,6 +668,24 @@ const EMPTY_API = [
   { urlGlob: '**/api/**', handler: (route) => route.fulfill({ contentType: 'application/json', body: '{}' }) },
 ];
 
+// RegulationsLedger/MarketIntelLedger both call /api/listings/rest for archived/infinite-scroll
+// reads, and (via useWorkspaceBootstrap's stubbed-authenticated client, DEFAULT_ALIAS's
+// stub-supabase-browser.mjs) /api/workspace/bootstrap on mount — usePersonalStateHydration.ts
+// calls `data.personalState.map(...)` unconditionally once `data` is non-null, matching every
+// other WorkspaceBootstrapData field's real API contract (always present, never optional except
+// where the type itself says so). A bare '{}' body (EMPTY_API's catch-all) crashes on that '.map'
+// over 'undefined'. Both routes get their real empty-but-shaped response before the generic '{}'
+// catch-all for anything else under /api/**.
+// Playwright registers overlapping page.route() handlers LIFO — the LAST one registered is tried
+// FIRST — so the generic '**/api/**' catch-all must be registered BEFORE the two specific routes
+// below, or it would shadow them and this array's whole point (a shaped, non-crashing response for
+// the two endpoints these ledgers actually depend on) would silently do nothing.
+const COMPOSE_LEDGER_API = [
+  ...EMPTY_API,
+  { urlGlob: '**/api/listings/rest**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ resources: [], archived: [] }) }) },
+  { urlGlob: '**/api/workspace/bootstrap**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ personalState: [], listOrders: {}, members: null, adminAttention: null, overrides: [] }) }) },
+];
+
 
 // ── AuthFrame + AuthPanel tabs (lane uxaudit-d, 2026-09-07, README screen 16) ──────────────────────
 // The real logged-out identity frame plus the Sign in / Create account tab strip both /login and
@@ -1273,6 +1291,157 @@ window.__mount = () => {
 };
 `;
 
+// ── Compose-lists page composition: RegulationsLedger / MarketIntelLedger (lane compose-lists,
+// 2026-09-08, artboards 02/id="p2" and 04/id="p4"). Real page-composition components, not the raw
+// ListSurfaceShell primitive `list-surface-1440` above mounts — this exercises facetGroups (incl.
+// Topic/Source-tier), the real sortRow/flat wiring, and (Market only) the embedded Headline Series
+// card, the exact regions the operator's screenshot audit named ("filters were on the right ...
+// you are NOT matching the images directly"). Fixture shape matches
+// ../capture-compose-lists-screenshots.mjs's own fixture (same rows, same SERIES_BOARD), so the
+// audit and the evidence screenshot measure the identical mount.
+const COMPOSE_EMPTY_AGGREGATES = {
+  totalItems: 0,
+  byPriority: { CRITICAL: 0, HIGH: 0, MODERATE: 0, LOW: 0 },
+  byStatus: {},
+  byJurisdiction: {},
+  totalJurisdictions: 0,
+  lastUpdatedAt: null,
+};
+
+function composeRegRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const topics = ['Emissions & carbon pricing', 'Sustainable fuels & energy', 'Green transport standards', 'ESG reporting'];
+  const bands = ['CRITICAL', 'CRITICAL', 'CRITICAL', 'HIGH', 'HIGH', 'HIGH', 'MODERATE', 'MODERATE', 'LOW'];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `reg-${i}`, domain: 1,
+    title: `Regulation fixture ${i}: cross-border reporting duty amendment`,
+    note: 'Short regulation note.', type: 'regulation', priority: bands[i % bands.length],
+    added: `2026-0${(i % 8) + 1}-0${(i % 9) + 1}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: modes[i % modes.length], topic: topics[i % topics.length], sourceTier: (i % 6) + 1,
+    citationCount: i % 4 === 0 ? null : 2, biasTags: [], itemGrade: 'record', reasoning: '', tags: [],
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-06-01', label: 'Compliance deadline', status: 'future' }],
+  };
+}
+const COMPOSE_REG_ROWS = Array.from({ length: 24 }, (_, i) => composeRegRow(i));
+
+function composeCountsBy(rows, field) {
+  const counts = {};
+  for (const r of rows) counts[r[field]] = (counts[r[field]] ?? 0) + 1;
+  return counts;
+}
+
+const COMPOSE_REGULATIONS_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { RegulationsLedger } from '@/components/regulations/RegulationsLedger';
+
+const REG_ROWS = ${JSON.stringify(COMPOSE_REG_ROWS)};
+const props = {
+  initialResources: REG_ROWS,
+  initialArchived: [],
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: REG_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_REG_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_REG_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-04T00:00:00Z',
+  },
+  hasMore: false,
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(RegulationsLedger, props));
+};
+`;
+
+function composeMarketRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const modes = [['ocean'], ['air'], ['road'], ['ocean', 'air'], ['rail']];
+  const bands = ['CRITICAL', 'CRITICAL', 'CRITICAL', 'HIGH', 'HIGH', 'HIGH', 'MODERATE', 'MODERATE', 'LOW'];
+  const jurisdiction = jurisdictions[i % jurisdictions.length];
+  return {
+    id: `mkt-${i}`, domain: 4,
+    title: `Market signal fixture ${i}: spot-rate divergence on the trans-Pacific lane`,
+    note: 'Short signal note.', type: 'signal', priority: bands[i % bands.length],
+    added: `2026-0${(i % 8) + 1}-1${i % 9}`, jurisdiction, jurisdictionIso: [jurisdiction],
+    modes: modes[i % modes.length], sourceTier: (i % 6) + 1,
+    severity: ['action_required', 'cost_alert', 'window_closing', 'competitive_edge', 'monitoring'][i % 5],
+    tags: [], reasoning: '',
+    complianceDeadline: `2026-${String(9 + (i % 3)).padStart(2, '0')}-${String(5 + (i % 20)).padStart(2, '0')}`,
+    timeline: [{ date: '2027-03-01', label: 'Window closes', status: 'future' }],
+  };
+}
+const COMPOSE_MARKET_ROWS = Array.from({ length: 20 }, (_, i) => composeMarketRow(i));
+
+function composeSeriesRow(key, label, displayValue, pct1w) {
+  return {
+    seriesKey: key, id: key, label, displayValue, emptyReason: null, asAtDate: '2026-09-03',
+    referencePeriod: null, observationCount: 12, sourceKey: 'fixture', sourceRef: null, unit: null,
+    currency: null, derivation: null, originClass: null, methodVersion: null, nObservations: 12,
+    deltas: {
+      count: 12,
+      latest: { date: '2026-09-03', value: 1, unit: null, currency: null },
+      sparkline: Array.from({ length: 6 }, (_, i) => ({ date: `2026-0${i + 1}-01`, value: 1 + i * 0.05 })),
+      delta1w: { value: pct1w / 100, pct: pct1w, fromDate: '2026-08-27' },
+      delta1m: { value: (pct1w * 2) / 100, pct: pct1w * 2, fromDate: '2026-08-03' },
+      deltaYoY: { insufficientHistory: true },
+      message: null,
+    },
+  };
+}
+const COMPOSE_SERIES_BOARD = {
+  groups: [{
+    keyPrefix: 'fixture', name: 'Fixture producer', implemented: true, cadence: 'weekly',
+    sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
+    series: [
+      composeSeriesRow('diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+      composeSeriesRow('e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+      composeSeriesRow('hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+      composeSeriesRow('rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+    ],
+  }],
+  unregistered: [], totalObservedSeries: 4, totalProducers: 1, implementedProducerCount: 1, isEmpty: false,
+};
+
+const COMPOSE_MARKET_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { MarketIntelLedger } from '@/components/market/MarketIntelLedger';
+import { MarketComparativeRibbon } from '@/components/market/MarketComparativeRibbon';
+
+const MARKET_ROWS = ${JSON.stringify(COMPOSE_MARKET_ROWS)};
+const SERIES_BOARD = ${JSON.stringify(COMPOSE_SERIES_BOARD)};
+const props = {
+  initialResources: MARKET_ROWS,
+  aggregates: {
+    ...${JSON.stringify(COMPOSE_EMPTY_AGGREGATES)},
+    totalItems: MARKET_ROWS.length,
+    byPriority: ${JSON.stringify(composeCountsBy(COMPOSE_MARKET_ROWS, 'priority'))},
+    byJurisdiction: ${JSON.stringify(composeCountsBy(COMPOSE_MARKET_ROWS, 'jurisdiction'))},
+    totalJurisdictions: 4,
+    lastUpdatedAt: '2026-09-03T00:00:00Z',
+  },
+  seriesBoard: SERIES_BOARD,
+  headlineSeries: React.createElement(MarketComparativeRibbon, { board: SERIES_BOARD, embedded: true }),
+};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(MarketIntelLedger, props));
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -1483,5 +1652,19 @@ export const AUDIT_MOUNTS = {
     description: 'The real OnboardingStepper (4-pill progress row), README screen 17 / dc.html p17.',
     viewport: 1440,
     entry: ONBOARDING_STEPPER_ENTRY,
+  },
+  'compose-02-regulations': {
+    id: 'compose-02-regulations',
+    description: 'The real RegulationsLedger page composition (24-row fixture): rail Filters/Legend, sort/count row, band-sectioned rows — artboard 02/id="p2".',
+    viewport: 1440,
+    entry: COMPOSE_REGULATIONS_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-04-market': {
+    id: 'compose-04-market',
+    description: 'The real MarketIntelLedger page composition (20-row fixture): rail Filters/Legend, embedded Headline Series card, sort/count row, band-sectioned rows — artboard 04/id="p4".',
+    viewport: 1440,
+    entry: COMPOSE_MARKET_ENTRY,
+    apiRoutes: COMPOSE_LEDGER_API,
   },
 };

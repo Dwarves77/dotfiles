@@ -27,3 +27,16 @@ test("the outer card div carries no padding of its own (moved to the inner wrapp
   assert.doesNotMatch(cardBlock, /padding:/);
   assert.match(cardBlock, /overflow: "hidden",/);
 });
+
+// dataAudit prop (lane compose-lists, 2026-09-08): a design-audit selector hook for callers like
+// LegendRailCard that mount RailCard with no wrapper div of their own, so a compose-*.json spec can
+// address the REAL page composition, not just a mount fixture's own invented wrapper.
+test("RailCard accepts an optional dataAudit prop and sets it as data-audit on the outer card div", () => {
+  assert.match(SOURCE, /dataAudit\?:\s*string/);
+  const cardBlock = SOURCE.slice(SOURCE.indexOf("export function RailCard"), SOURCE.indexOf("<SectionRule"));
+  assert.match(cardBlock, /data-audit=\{dataAudit\}/);
+});
+
+test('LegendRailCard passes dataAudit="legend-rail" through to its RailCard', () => {
+  assert.match(SOURCE, /<RailCard title="Legend" dataAudit="legend-rail">/);
+});

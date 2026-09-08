@@ -94,6 +94,7 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
 
   return (
     <div
+      data-audit={embedded ? "headline-series" : undefined}
       style={
         embedded ? embeddedCardStyle : { maxWidth: 1180, margin: "0 auto", padding: "0 36px 28px" }
       }
