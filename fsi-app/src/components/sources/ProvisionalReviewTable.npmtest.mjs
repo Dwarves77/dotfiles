@@ -69,9 +69,14 @@ test("a value the data does not carry renders Absence, never a zero or a blank",
 });
 
 test("RowTable geometry is dc.html p13's: 30px header, 48px rows, 44px overflow hit target", () => {
+  // Lane community60 (2026-09-08) made the row measures a per-table `metrics` prop so artboard
+  // 12's discussion table could reuse this component instead of forking it. This table passes no
+  // metrics, so the invariant is unchanged and is asserted where it now lives: in the DEFAULTS.
   assert.match(ROWTABLE, /height: 30,/);
-  assert.match(ROWTABLE, /minHeight: 48,/);
+  assert.match(ROWTABLE, /rowMinHeight = metrics\?\.rowMinHeight \?\? 48/);
   assert.match(ROWTABLE, /width: 44,\s*\n\s*height: 44,/);
   assert.match(ROWTABLE, /gap: "0 14px"/);
-  assert.match(ROWTABLE, /padding: "0 12px 0 16px"/);
+  assert.match(ROWTABLE, /paddingLeft = metrics\?\.paddingLeft \?\? 16/);
+  assert.match(ROWTABLE, /padding: `0 12px 0 \$\{paddingLeft\}px`/);
+  assert.doesNotMatch(SOURCE, /metrics=/);
 });

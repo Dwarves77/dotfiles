@@ -41,29 +41,67 @@ export interface RowTableRowSpec {
   key: string;
   /** One node per column, in column order. */
   cells: React.ReactNode[];
+  /**
+   * DOM id for the row element. Optional; lane community60 needs it so the
+   * `#post-<id>` in-page anchors the community rail already emits keep
+   * resolving after the stacked feed became this table.
+   */
+  id?: string;
+  /**
+   * Whole-row activation (the one click target rule, DP-1). When given, the
+   * row becomes a keyboard-reachable button; a control INSIDE a cell must
+   * stop propagation, exactly as `RowTableOverflow` does.
+   */
+  onActivate?: () => void;
+  /** Accessible name for the activatable row. */
+  activateLabel?: string;
+  /** Rendered full-width directly under the row, inside the same rules. */
+  below?: React.ReactNode;
+}
+
+/**
+ * Per-table geometry. Defaults are artboard 13's (the admin tables this
+ * component was born for); artboard 12's discussion table states different
+ * values for the same anatomy, so they are passed rather than forked into a
+ * second component (CLAUDE.md rule 13).
+ *
+ *   p13  padding-left 16 · rows 48 · no rule after the last row
+ *   p12  padding-left 14 · rows 56 · a rule after the last row too
+ */
+export interface RowTableMetrics {
+  /** Grid padding-left in px. Default 16 (dc.html p13). */
+  paddingLeft?: number;
+  /** Row min-height in px. Default 48 (dc.html p13). */
+  rowMinHeight?: number;
+  /** Draw the row divider under the last row as well. Default false. */
+  ruleAfterLastRow?: boolean;
 }
 
 export interface RowTableProps {
   columns: RowTableColumn[];
   rows: RowTableRowSpec[];
+  metrics?: RowTableMetrics;
 }
 
-function gridStyle(columns: RowTableColumn[]): React.CSSProperties {
+function gridStyle(columns: RowTableColumn[], paddingLeft: number): React.CSSProperties {
   return {
     display: "grid",
     gridTemplateColumns: columns.map((c) => c.width).join(" "),
     alignItems: "center",
     gap: "0 14px",
-    padding: "0 12px 0 16px",
+    padding: `0 12px 0 ${paddingLeft}px`,
   };
 }
 
-export function RowTable({ columns, rows }: RowTableProps) {
+export function RowTable({ columns, rows, metrics }: RowTableProps) {
+  const paddingLeft = metrics?.paddingLeft ?? 16;
+  const rowMinHeight = metrics?.rowMinHeight ?? 48;
+  const ruleAfterLastRow = metrics?.ruleAfterLastRow ?? false;
   return (
     <div>
       <div
         style={{
-          ...gridStyle(columns),
+          ...gridStyle(columns, paddingLeft),
           height: 30,
           fontSize: "var(--fs-95)",
           letterSpacing: "0.12em",
@@ -77,23 +115,51 @@ export function RowTable({ columns, rows }: RowTableProps) {
           <span key={`${c.label}-${i}`}>{c.label}</span>
         ))}
       </div>
-      {rows.map((r, i) => (
-        <div
-          key={r.key}
-          style={{
-            ...gridStyle(columns),
-            minHeight: 48,
-            fontSize: "var(--fs-125)",
-            borderBottom: i === rows.length - 1 ? undefined : "1px solid var(--line-3)",
-          }}
-        >
-          {r.cells.map((cell, ci) => (
-            <span key={ci} style={ci === 0 ? { minWidth: 0 } : undefined}>
-              {cell}
-            </span>
-          ))}
-        </div>
-      ))}
+      {rows.map((r, i) => {
+        const rule =
+          i === rows.length - 1 && !ruleAfterLastRow
+            ? undefined
+            : "1px solid var(--line-3)";
+        return (
+          <div key={r.key}>
+            <div
+              id={r.id}
+              role={r.onActivate ? "button" : undefined}
+              tabIndex={r.onActivate ? 0 : undefined}
+              aria-label={r.onActivate ? r.activateLabel : undefined}
+              onClick={r.onActivate}
+              onKeyDown={
+                r.onActivate
+                  ? (e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        r.onActivate?.();
+                      }
+                    }
+                  : undefined
+              }
+              style={{
+                ...gridStyle(columns, paddingLeft),
+                minHeight: rowMinHeight,
+                fontSize: "var(--fs-125)",
+                borderBottom: r.below ? undefined : rule,
+                cursor: r.onActivate ? "pointer" : undefined,
+              }}
+            >
+              {r.cells.map((cell, ci) => (
+                <span key={ci} style={ci === 0 ? { minWidth: 0 } : undefined}>
+                  {cell}
+                </span>
+              ))}
+            </div>
+            {r.below && (
+              <div style={{ padding: `0 12px 12px ${paddingLeft}px`, borderBottom: rule }}>
+                {r.below}
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -178,7 +244,12 @@ export function RowTableOverflow({
         aria-label={label}
         aria-expanded={open}
         aria-haspopup="menu"
-        onClick={() => setOpen((v) => !v)}
+        onClick={(e) => {
+          // The row itself may be the click target (RowTableRowSpec.onActivate);
+          // opening the menu must not also activate the row.
+          e.stopPropagation();
+          setOpen((v) => !v);
+        }}
         style={{
           width: 44,
           height: 44,
