@@ -159,7 +159,7 @@ export function DashboardBrief({
 
         {/* Due next */}
         <section>
-          <SectionCard>
+          <SectionCard dataAudit="due-next-card">
             <SectionHeading
               title={`Due next · ${dueNextRows.length} items`}
               aside={`By next binding date · week of ${weekOfLabel}`}
@@ -219,7 +219,7 @@ export function DashboardBrief({
 
         {/* What changed */}
         <section>
-          <SectionCard>
+          <SectionCard dataAudit="what-changed-card">
             <SectionHeading
               title="What changed"
               aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
@@ -274,7 +274,7 @@ export function DashboardBrief({
 
       {/* Rail */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <SectionCard>
+        <SectionCard dataAudit="across-platform-card">
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Across the platform
@@ -299,7 +299,7 @@ export function DashboardBrief({
           </div>
         </SectionCard>
 
-        <SectionCard>
+        <SectionCard dataAudit="watchlist-rail-card">
           <div style={{ padding: "14px 16px" }}>
             <Suspense fallback={<SkeletonListRow />}>
               <DashboardWatchlist promise={watchlistPromise} />
@@ -307,7 +307,7 @@ export function DashboardBrief({
           </div>
         </SectionCard>
 
-        <SectionCard>
+        <SectionCard dataAudit="dashboard-legend-card">
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Legend

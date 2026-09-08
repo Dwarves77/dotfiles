@@ -1,37 +1,46 @@
 {
-  "part": "Page composition — Community (12)",
+  "part": "Page composition \u2014 Community (12)",
   "mount": "compose-community",
   "viewport": 1440,
-  "artboards": ["12-community"],
+  "artboards": [
+    "12-community"
+  ],
   "source": "docs/design/handoff-2026-09-06/screens/12-community.png (artboard image is the authority per SETUP); dc.html id=\"p12\"; README screen 12",
   "notes": [
-    "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + CommunityRooms, real components, populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-community'] — no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
+    "Region-composition check for the full page: AppShell (Sidebar + TopBar) + Masthead + CommunityRooms, real components, populated fixture data via .discipline/rendering/audit/mounts.mjs['compose-community'] \u2014 no live Supabase project reachable in this sandbox (DEVIATION-LOG.md).",
     "Artboard order, content column top to bottom: room tile grid (FIXED 4 columns, 7 rooms + the dashed '+ New vertical group' tile as the grid's own 8th slot) -> the ROOM INDEX card (SectionRule, Anton head '<ROOM> ROOM' with the small-caps aside, the JURIS. / DISCUSSION / REPLIES / LAST ACTIVITY table, the foot strip with 'Start a discussion') -> the NEW POST card. Rail, top to bottom: Who's here, Verifier sign-off, Why post here.",
     "Lane community60 (2026-09-08) closed six listed differences: the extra 'REGIONAL ROOMS' heading above the tiles is gone (the artboard has no such heading; its stat line is the masthead dek); tiles carry the room NAME, not the 3-char key; the stacked discussion feed became the artboard's TABLE, built on the shared RowTable (extended additively with a `metrics` prop for p12's 14px pad / 56px rows / trailing rule, plus per-row `id`/`onActivate`/`below`); the composer left the discussions card and became its own NEW POST card at the foot of the content column; the room header + 'Live in this region' card left its position between the tiles and the discussions for R7 placement after the last designed region; and the rail order is now the artboard's, with the R7 Vertical groups card after it.",
     "R8 holds: the thread PAGE is not built. The table is the room index and a row expands in place (the `#post-<id>` anchor the rail already emitted is now carried by the table row, so those links still resolve).",
-    "Absence, logged in DEVIATION-LOG: the artboard's per-row QUESTION / PRACTICE / MARKET / TEMPLATE tag chip has no data path (community_posts, migration 030, has no kind/topic/tag column), so the Absence convention renders in its slot."
+    "Absence, logged in DEVIATION-LOG: the artboard's per-row QUESTION / PRACTICE / MARKET / TEMPLATE tag chip has no data path (community_posts, migration 030, has no kind/topic/tag column), so the Absence convention renders in its slot.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
   ],
   "selector": "[data-audit=\"community\"]",
-  "expect": { "count": "1" },
+  "expect": {
+    "count": "1"
+  },
   "children": [
     {
-      "name": "region 1 — command bar page-scoped placeholder (dc.html p12 exact text)",
+      "name": "region 1 \u2014 command bar page-scoped placeholder (dc.html p12 exact text)",
       "selector": "[data-audit=\"community\"] input[placeholder^=\"Search posts, groups, members\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "region 2 — room tile grid is fixed 4 columns, not auto-fit",
+      "name": "region 2 \u2014 room tile grid is fixed 4 columns, not auto-fit",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "region 2a — the first tile carries the room NAME, not the 3-char key",
+      "name": "region 2a \u2014 the first tile carries the room NAME, not the 3-char key",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button:first-child",
       "expect": {},
       "textMatch": "Global"
     },
     {
-      "name": "region 2b — tile name type (dc.html p12: 11px / .1em / uppercase / 800)",
+      "name": "region 2b \u2014 tile name type (dc.html p12: 11px / .1em / uppercase / 800)",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button:first-child > span:first-child > span:first-child",
       "expect": {
         "font-size": "11px",
@@ -41,54 +50,70 @@
       }
     },
     {
-      "name": "region 2c — '+ New vertical group' dashed tile is the grid's own 8th cell",
+      "name": "region 2c \u2014 '+ New vertical group' dashed tile is the grid's own 8th cell",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] button",
       "expect": {},
       "textMatch": "New vertical group"
     },
     {
-      "name": "region 3 — the room index card, directly after the tile grid",
+      "name": "region 3 \u2014 the room index card, directly after the tile grid",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] + [data-audit=\"room-index\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "region 3a — its 3px section rule (ruling 5.1, above the head, no rule below the title)",
+      "name": "region 3a \u2014 its 3px section rule (ruling 5.1, above the head, no rule below the title)",
       "selector": "[data-audit=\"room-index\"] > .cl-section-rule",
-      "expect": { "height": "3px" }
+      "expect": {
+        "height": "3px"
+      }
     },
     {
-      "name": "region 3b — Anton head reads '<ROOM> ROOM'",
+      "name": "region 3b \u2014 Anton head reads '<ROOM> ROOM'",
       "selector": "[data-audit=\"room-index\"] .cl-section-heading h2",
-      "expect": { "text": "Global room", "text-transform": "uppercase", "letter-spacing": "0.04em" }
+      "expect": {
+        "text": "Global room",
+        "text-transform": "uppercase",
+        "letter-spacing": "0.04em"
+      }
     },
     {
-      "name": "region 3c — head aside: discussions / shown / members here",
+      "name": "region 3c \u2014 head aside: discussions / shown / members here",
       "selector": "[data-audit=\"room-index\"] .cl-section-heading-aside",
       "expect": {},
       "textMatch": "shown"
     },
     {
-      "name": "region 3d — table column 1 header is JURIS.",
+      "name": "region 3d \u2014 table column 1 header is JURIS.",
       "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(1)",
-      "expect": { "text": "Juris." }
+      "expect": {
+        "text": "Juris."
+      }
     },
     {
-      "name": "region 3e — table column 2 header is DISCUSSION",
+      "name": "region 3e \u2014 table column 2 header is DISCUSSION",
       "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(2)",
-      "expect": { "text": "Discussion" }
+      "expect": {
+        "text": "Discussion"
+      }
     },
     {
-      "name": "region 3f — table column 3 header is REPLIES",
+      "name": "region 3f \u2014 table column 3 header is REPLIES",
       "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(3)",
-      "expect": { "text": "Replies" }
+      "expect": {
+        "text": "Replies"
+      }
     },
     {
-      "name": "region 3g — table column 4 header is LAST ACTIVITY",
+      "name": "region 3g \u2014 table column 4 header is LAST ACTIVITY",
       "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"] > span:nth-child(4)",
-      "expect": { "text": "Last activity" }
+      "expect": {
+        "text": "Last activity"
+      }
     },
     {
-      "name": "region 3h — header strip geometry and type (dc.html p12: 30px, .12em, 700; the 9.5px size is var(--fs-95), which run-audit's page does not load theme.css for)",
+      "name": "region 3h \u2014 header strip geometry and type (dc.html p12: 30px, .12em, 700; the 9.5px size is var(--fs-95), which run-audit's page does not load theme.css for)",
       "selector": "[data-audit=\"room-index\"] div[style*=\"64px\"]",
       "expect": {
         "height": "30px",
@@ -98,101 +123,231 @@
       }
     },
     {
-      "name": "region 3i — a discussion row carries the `#post-<id>` anchor the rail links to",
+      "name": "region 3i \u2014 a discussion row carries the `#post-<id>` anchor the rail links to",
       "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"]",
-      "expect": { "count": "3", "min-height": "56px" }
+      "expect": {
+        "count": "3",
+        "min-height": "56px"
+      }
     },
     {
-      "name": "region 3j — the whole row is the click target (DP-1), keyboard reachable",
+      "name": "region 3j \u2014 the whole row is the click target (DP-1), keyboard reachable",
       "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"][role=\"button\"][tabindex=\"0\"]",
-      "expect": { "count": "3" }
+      "expect": {
+        "count": "3"
+      }
     },
     {
-      "name": "region 3k — a row's REPLIES cell reads 'N replies'",
+      "name": "region 3k \u2014 a row's REPLIES cell reads 'N replies'",
       "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"] > span:nth-child(3)",
       "expect": {},
       "textMatch": "replies"
     },
     {
-      "name": "region 3l — every row ends in the 44px overflow control",
+      "name": "region 3l \u2014 every row ends in the 44px overflow control",
       "selector": "[data-audit=\"room-index\"] div[id^=\"post-\"] button[aria-haspopup=\"menu\"]",
-      "expect": { "count": "3", "width": "44px", "height": "44px" }
+      "expect": {
+        "count": "3",
+        "width": "44px",
+        "height": "44px"
+      }
     },
     {
-      "name": "region 3m — card foot strip, artboard text left",
+      "name": "region 3m \u2014 card foot strip, artboard text left",
       "selector": "[data-audit=\"room-index\"] .cl-card-foot",
       "expect": {},
       "textMatch": "Threads reference ledger items by link"
     },
     {
-      "name": "region 3n — card foot carries 'Start a discussion'",
+      "name": "region 3n \u2014 card foot carries 'Start a discussion'",
       "selector": "[data-audit=\"room-index\"] .cl-card-foot button",
       "expect": {},
       "textMatch": "Start a discussion"
     },
     {
-      "name": "region 4 — the NEW POST card, its own card after the room index",
+      "name": "region 4 \u2014 the NEW POST card, its own card after the room index",
       "selector": "[data-audit=\"room-index\"] + [data-audit=\"new-post\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "region 4a — its Anton head reads 'NEW POST · <ROOM>'",
+      "name": "region 4a \u2014 its Anton head reads 'NEW POST \u00b7 <ROOM>'",
       "selector": "[data-audit=\"new-post\"] .cl-section-heading h2",
-      "expect": { "text": "New post · Global", "text-transform": "uppercase" }
+      "expect": {
+        "text": "New post \u00b7 Global",
+        "text-transform": "uppercase"
+      }
     },
     {
-      "name": "region 4b — its aside reads 'POSTS TO THE <ROOM> ROOM'",
+      "name": "region 4b \u2014 its aside reads 'POSTS TO THE <ROOM> ROOM'",
       "selector": "[data-audit=\"new-post\"] .cl-section-heading-aside",
-      "expect": { "text": "Posts to the Global room", "text-transform": "uppercase" }
+      "expect": {
+        "text": "Posts to the Global room",
+        "text-transform": "uppercase"
+      }
     },
     {
-      "name": "region 4c — the composer is a post box with the artboard's placeholder",
+      "name": "region 4c \u2014 the composer is a post box with the artboard's placeholder",
       "selector": "[data-audit=\"new-post\"] textarea",
       "expect": {
         "count": "1",
-        "placeholder": "Ask the Global room — a lane observation, a handler question, a document worth sharing…",
+        "placeholder": "Ask the Global room \u2014 a lane observation, a handler question, a document worth sharing\u2026",
         "min-height": "64px"
       }
     },
     {
-      "name": "region 4d — the Post button sits on the same row as the starter chips",
+      "name": "region 4d \u2014 the Post button sits on the same row as the starter chips",
       "selector": "[data-audit=\"new-post\"] button",
       "expect": {},
       "textMatch": "Post"
     },
     {
-      "name": "region 5 — R7: the room header + Live-in-this-region card sits AFTER the new-post card",
+      "name": "region 5 \u2014 R7: the room header + Live-in-this-region card sits AFTER the new-post card",
       "selector": "[data-audit=\"new-post\"] + [data-audit=\"region-card\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "rail 1 — Who's here is the rail's first card",
+      "name": "rail 1 \u2014 Who's here is the rail's first card",
       "selector": "[data-audit=\"whos-here\"]",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "Presence comes from profile home jurisdictions"
     },
     {
-      "name": "rail 2 — Verifier sign-off is the rail's second card, directly after Who's here",
+      "name": "rail 2 \u2014 Verifier sign-off is the rail's second card, directly after Who's here",
       "selector": "[data-audit=\"whos-here\"] + [data-audit=\"verifier-signoff\"]",
-      "expect": { "count": "1" }
+      "expect": {
+        "count": "1"
+      }
     },
     {
-      "name": "rail 2a — its open-requests line is one line, value in the absence treatment",
+      "name": "rail 2a \u2014 its open-requests line is one line, value in the absence treatment",
       "selector": "[data-audit=\"verifier-signoff\"] p",
       "expect": {},
-      "textMatch": "Your open requests ·"
+      "textMatch": "Your open requests \u00b7"
     },
     {
-      "name": "rail 3 — Why post here is the rail's third card, directly after Verifier sign-off",
+      "name": "rail 3 \u2014 Why post here is the rail's third card, directly after Verifier sign-off",
       "selector": "[data-audit=\"verifier-signoff\"] + [data-audit=\"why-post-here\"]",
-      "expect": { "count": "1" },
+      "expect": {
+        "count": "1"
+      },
       "textMatch": "The ledger prints what"
     },
     {
-      "name": "rail 4 — R7: Vertical groups sits after the three designed rail cards",
+      "name": "rail 4 \u2014 R7: Vertical groups sits after the three designed rail cards",
       "selector": "[data-audit=\"why-post-here\"] ~ div",
       "expect": {},
       "textMatch": "Vertical groups"
+    },
+    {
+      "name": "A1 rule on the Global room card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"room-index\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Global room card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"room-index\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the New post card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"new-post\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the New post card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"new-post\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Who's here rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"whos-here\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Who's here rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"whos-here\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Verifier sign-off rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"verifier-signoff\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Verifier sign-off rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"verifier-signoff\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Why post here rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"why-post-here\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Why post here rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"why-post-here\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
     }
   ],
   "forbid": [
@@ -206,7 +361,7 @@
       "name": "no room tile labelled with the 3-char key",
       "selector": "[data-audit=\"community\"] div[style*=\"repeat(4, 1fr)\"] > button > span > span",
       "textMatch": "re:\\bGLO\\b",
-      "reason": "Artboard 12's tiles read GLOBAL / EU / US / UK / APAC / LATAM / MEAF — the room NAME. 'GLO' is the internal short key."
+      "reason": "Artboard 12's tiles read GLOBAL / EU / US / UK / APAC / LATAM / MEAF \u2014 the room NAME. 'GLO' is the internal short key."
     },
     {
       "name": "the composer is not inside the room index card",
@@ -226,7 +381,7 @@
       "reason": "The masthead command bar's 'Ask' is the only ask surface sitewide."
     },
     {
-      "name": "no second per-page ask/search bar (README §0.3)",
+      "name": "no second per-page ask/search bar (README \u00a70.3)",
       "selector": "[data-audit=\"community\"] input[type=\"search\"]",
       "reason": "The masthead CommandBar is the only search/ask surface; the room composer is a post box, not a search input."
     },
@@ -235,6 +390,11 @@
       "selector": "[data-audit=\"community\"] span, [data-audit=\"community\"] p",
       "textMatch": "UNSCORED",
       "reason": "General sitewide rule: absence is a reason from the fixed vocabulary, never the literal token."
+    },
+    {
+      "name": "CLASS CLOSURE (community): a card element that renders no 3px rule",
+      "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
+      "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
     }
   ],
   "boundsCheck": [

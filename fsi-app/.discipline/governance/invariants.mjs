@@ -214,7 +214,11 @@ export const SKILL_MARKER_BASELINE = {
   // lane TAGS-401's above. Renumbered to 41 / RD-66 / F41 at the fold; both are kept, and TAGS-401
   // kept its number because it landed first and was cited in more places. The BASELINE is 50, not
   // 49: each lane wrote 48 -> 49 for its own single new marker, and the fold carries both markers.
-  'remediation-discipline': 50,
+  // 50→51 (2026-09-08, lane cardrule): added Section 4 category 42's normative marker, "a visual
+  // shell repeated across files MUST become one component that owns every property of the shell,
+  // and the class MUST be closed by a gate that fails on a hand-built copy". TRIAGE: new invariant
+  // RD-67 (enforcedBy fitness:F42 + its selftest).
+  'remediation-discipline': 51,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +
@@ -1434,5 +1438,14 @@ export const INVARIANTS = [
     anchor: '### Section 4 — category 41: a responsive `@media` rule naming a class no element carries is a silent no-op',
     enforcedBy: ['fitness:F41', 'selftest:fsi-app/.discipline/fitness/functions/F41-dead-media-query-class.test.mjs'],
     residual: 'F41 is a LEXICAL scanner over `fsi-app/src/**/*.tsx` (test files and `/_archive/` excluded): it brace-balances each `@media` block, collects the `cl-*` class selectors inside it, and asserts each appears as a class on an element in the same file (any className attribute or class-building string, with the `<style>` blocks stripped first so a selector cannot vouch for itself). It checks EXISTENCE of the class, not that the rule\'s declarations are meaningful on the element that carries it — MapPageView\'s rule was ALSO inert because `grid-template-columns` does nothing on a flex container, and F41 would not have caught that half on its own; the bounds checks in the audit\'s mobile-* specs are what measure the rendered result. Scope is deliberately limited to rules INSIDE `@media`: non-responsive rules are a far larger surface with a cosmetic failure mode, while the defect this gate exists for is a responsive rule that silently never fires. CROSS_COMPONENT_CLASSES is a hardcoded, path-annotated list (F33/F35\'s posture): a shared-part class newly targeted from another file is covered only when it is added there or marked inline.',
+  },
+  {
+    id: 'RD-67-card-shell-one-component',
+    skill: 'remediation-discipline',
+    section: 'Section 4 \u2014 category 42: a repeated style shell is a component that does not exist yet, and what it omits is invisible',
+    text: 'The section/panel card shell (a card background plus a card border plus a card radius in one style object) lives in exactly one file, src/components/ui/SectionCard.tsx, which mounts the 3px graduated rule unconditionally and supplies the border, the radius and the shadow; a shell assembled anywhere else under fsi-app/src must carry a `// fitness-allow: F42 (reason)` marker naming why it is not a section card. [CONFIRMED, operator UI fix round 2026-09-08, item A1]: with no card component, the same five declarations were retyped in fifteen files and each caller mounted the rule by hand, so eighteen card types shipped with no rule; measured on the branch, CommunityRooms.tsx\'s local CARD object also carried radius 8 against the design\'s 10 and no box-shadow, and five further files had no shadow or a hand-typed literal shadow. No single-file gate can see this: a style object is opaque to tsc, and the repo\'s own coverage test counted rule mounts PER FILE and stayed green throughout.',
+    anchor: '### Section 4 \u2014 category 42: a repeated style shell is a component that does not exist yet, and what it omits is invisible',
+    enforcedBy: ['fitness:F42', 'selftest:fsi-app/.discipline/fitness/functions/F42-card-shell-outside-section-card.test.mjs'],
+    residual: 'F42 is a LEXICAL scanner over `fsi-app/src/**/*.tsx` (test files and `/_archive/` excluded): it reports a nine-line window carrying all three of a card background (`var(--card)`/`var(--surface)`), a card border (`1px solid var(--line-1)`/`var(--color-border)`/the literal `rgba(0,0,0,.12)`) and a card radius (`var(--radius-card)`/a bare `10`). It cannot see a shell built from a variable, a helper that composes the properties across two objects, or a Tailwind class list, and it does not decide whether a marked site really is not a card; the marker is a written reason a reader checks, not a proof. It also says nothing about the RENDERED result: that the rule is present with the exact gradient on each named card, and that no card element renders without one, is measured by the design audit\'s compose-* specs (one row per listed card plus a `[data-section-card=\"\"]:not(:has(.cl-section-rule))` forbid), which is where a rule that is present but the wrong colour (item E4\'s red rule) is caught.',
   },
 ];

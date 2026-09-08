@@ -4,7 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import { SectionRule } from "@/components/ui/SectionRule";
 
 /**
- * SectionCard — THE section/panel card shell. One component, every card.
+ * SectionCard: THE section/panel card shell. One component, every card.
  *
  * WHY IT EXISTS (operator item A1, UI fix round 2026-09-08, verbatim: "The 3px
  * graduated rule at the top of every card is MISSING on all pages except the band
@@ -15,7 +15,7 @@ import { SectionRule } from "@/components/ui/SectionRule";
  *     border-radius: var(--radius-card); box-shadow: var(--shadow-card);
  *     overflow: hidden
  *
- * were retyped in fifteen files, each caller then mounting `<SectionRule/>` by hand —
+ * were retyped in fifteen files, each caller then mounting `<SectionRule/>` by hand,
  * or forgetting to, or (CommunityRooms' `CARD`) typing radius 8 and no shadow at all.
  * A rule every caller has to remember is a rule that is missing somewhere, which is
  * exactly what the operator found. The fix is structural, not per page: the rule,
@@ -35,7 +35,7 @@ import { SectionRule } from "@/components/ui/SectionRule";
  *
  * which is exactly `--card` / `--line-1` / `--radius-card` / `--shadow-card` in
  * theme.css plus `SectionRule`. `overflow: hidden` is what keeps the rule INSIDE the
- * radius (operator A1: "inside the radius", no square corners over a rounded card) —
+ * radius (operator A1: "inside the radius", no square corners over a rounded card):
  * it is a card property here, not a caller's choice.
  *
  * NO LINE BELOW THE TITLE (ruling 5.1, 2026-09-07). The rule sits above the title and
@@ -45,16 +45,16 @@ import { SectionRule } from "@/components/ui/SectionRule";
  * NOT the band-coloured rule. Ruling 5.2 (2026-09-07) confines `BandGradientRule` to
  * three places sitewide (nav card cap, mobile top bar, drawer) and the per-band
  * grouping header keeps its own 3px band-colour TOP BORDER, which is a data-grouping
- * marker rather than a card edge — `noRule` in ListSurfaceShell's band card exists for
+ * marker rather than a card edge. `noRule` in ListSurfaceShell's band card exists for
  * exactly that one case and is the only supported way to suppress this rule.
  *
  * TWO LAYOUTS, ONE RULE. Whether the rule sits in normal flow or is absolutely
  * positioned is decided by the component from `padding`, never by the caller:
  *
- *   - `padding` omitted → the rule is the card's first flow child (the artboard's own
+ *   - `padding` omitted: the rule is the card's first flow child (the artboard's own
  *     shape) and the caller pads its own inner wrapper. Rail cards, the masthead, the
  *     dashboard's Due next / What changed, the matrix card.
- *   - `padding` given   → the padding goes on the card, the card is `position:
+ *   - `padding` given: the padding goes on the card, the card is `position:
  *     relative`, and the rule is absolutely positioned at the top edge so it spans the
  *     full width and is NOT indented by that padding. The detail-page cards.
  *
@@ -122,13 +122,17 @@ export function SectionCard({
     overflow: "hidden",
     ...(padded ? { position: "relative", padding } : null),
   };
+  // `data-section-card` is the marker the design audit's CLASS-CLOSURE row counts on:
+  // `[data-section-card=""]:not(:has(.cl-section-rule))` must match zero elements on every page.
+  // Ruling 5.2's band-grouping card is the one card that legitimately renders no rule, so it
+  // identifies itself by VALUE ("band-grouping") rather than being invisible to that check.
   return (
     <Tag
       {...dataAttributes}
       id={id}
       className={className}
       data-audit={dataAudit}
-      data-section-card=""
+      data-section-card={suppressRuleForBandGrouping ? "band-grouping" : ""}
       data-guard-card=""
       aria-label={ariaLabel}
       aria-labelledby={ariaLabelledBy}

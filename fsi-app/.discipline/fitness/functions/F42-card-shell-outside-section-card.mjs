@@ -34,8 +34,8 @@
 // THE EXEMPTIONS ARE NAMED, NEVER GLOBAL. Three things in this product share the card's border and
 // radius without being a section card, and each carries a `// fitness-allow: F42 (reason)` marker
 // at its own site rather than a whole-file pass:
-//   - the NAV CARD (Sidebar.tsx), whose 3px cap is the BAND-coloured rule — one of ruling 5.2's
-//     three sanctioned places for it — so it must NOT carry SectionRule;
+//   - the NAV CARD (Sidebar.tsx), whose 3px cap is the BAND-coloured rule, one of ruling 5.2's
+//     three sanctioned places for it, so it must NOT carry SectionRule;
 //   - SKELETONS (Skeleton.tsx), which hold a card's geometry open while it loads and draw no rule;
 //   - undesigned OVERLAYS (the two "create" modals), which ruling R7 and the operator's own
 //     overlays list say are not to be invented, and the auth frame's inner note panels, which
@@ -61,7 +61,7 @@ const CARD_BACKGROUND = /background:\s*"var\(--(?:card|surface)\)"/;
 const CARD_BORDER =
   /border:\s*"1px solid var\(--(?:line-1|color-border)\)"|border:\s*"1px solid rgba\(0,\s*0,\s*0,\s*\.12\)"/;
 // The `\b` belongs to the NUMERIC alternative only: after `"var(--radius-card)"` the next character
-// is a comma, and `"` → `,` is not a word boundary, so a trailing `\b` on the whole group silently
+// is a comma, and a quote followed by a comma is not a word boundary, so a trailing `\b` on the whole group silently
 // matched nothing but the bare `10` form. Caught by attack (the gate found 2 of 9 known shells).
 const CARD_RADIUS = /borderRadius:\s*(?:"var\(--radius-card\)"|10\b)/;
 
@@ -97,7 +97,7 @@ export const fitnessFunction = {
     'A style object carrying a card background + card border + card radius is a card shell, and ' +
     'the card shell lives in exactly one place: src/components/ui/SectionCard.tsx, which mounts ' +
     'the 3px graduated rule unconditionally. A shell assembled anywhere else is a card that can be ' +
-    'built without the rule, the shadow or the right radius — the defect the operator found on ' +
+    'built without the rule, the shadow or the right radius: the defect the operator found on ' +
     'eighteen card types on 2026-09-08. Use `<SectionCard>`, or mark the site ' +
     '`// fitness-allow: F42 (reason)` naming why it is not a section card. No allowlist, no expiry.',
   source:
@@ -120,7 +120,7 @@ export const fitnessFunction = {
           start + 1,
           'Card shell assembled by hand (card background + card border + card radius in one style ' +
             'object). The card shell is `SectionCard` (src/components/ui/SectionCard.tsx), which ' +
-            'owns the border, the radius, the shadow and the 3px graduated rule — a shell typed ' +
+            'owns the border, the radius, the shadow and the 3px graduated rule; a shell typed ' +
             'here can be built without any of them, which is exactly how eighteen card types ' +
             'shipped with no rule (operator item A1, 2026-09-08). Render `<SectionCard>`, or mark ' +
             'this site `// fitness-allow: F42 (reason)` if it is genuinely not a section card ' +

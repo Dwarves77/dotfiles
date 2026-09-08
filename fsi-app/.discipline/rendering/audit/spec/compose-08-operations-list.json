@@ -1,17 +1,18 @@
 {
-  "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+  "part": "Operations page composition \u2014 OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
   "mount": "compose-08-operations",
   "viewport": 1440,
   "artboards": [
     "08-operations-list"
   ],
-  "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+  "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items \u00b7 M jurisdictions \u00b7 six dimensions per region \u00b7 every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) \u2192 COVERAGE GAPS \u2192 LEGEND.",
   "notes": [
-    "This spec measures the COMPOSED page, region by region, in document order — the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
+    "This spec measures the COMPOSED page, region by region, in document order \u2014 the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
     "Fixture (mounts.mjs 'compose-08-operations') is invented sample data with the real prop shapes: 25 rows split 0/4/2/19 across the bands, 5 regions, populated region_dimension_coverage + regional_data_facts rows. The audit asserts geometry, placement and the components' own literals, never fixture values.",
     "The runner reads computed STYLE and textContent only: an `expect` key naming an HTML attribute (e.g. an input's placeholder) measures as null and reports a false MATCH, so no such key appears here. The page-scoped command-bar prompt artboard 08 states is verified in the side-by-side evidence PNG (docs/design/handoff-2026-09-06/built/compose-08-operations-list.png), not by this spec.",
-    "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's — 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
-    "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the US By-state cost sub-list moved from between the matrix and the first band card to the disclosure position at the foot of the content column; the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups. Both are checked below."
+    "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's \u2014 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
+    "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the US By-state cost sub-list moved from between the matrix and the first band card to the disclosure position at the foot of the content column; the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups. Both are checked below.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
   ],
   "selector": "[data-audit=\"ops-matrix-card\"]",
   "expect": {
@@ -51,7 +52,7 @@
       }
     },
     {
-      "name": "the matrix card precedes the first band card's foot strip — the matrix is FIRST in the content column, above the band cards",
+      "name": "the matrix card precedes the first band card's foot strip \u2014 the matrix is FIRST in the content column, above the band cards",
       "selector": "[data-audit=\"ops-matrix-card\"] ~ * [data-audit=\"band-foot\"]",
       "expect": {
         "display": "flex"
@@ -127,10 +128,31 @@
     {
       "name": "masthead scope line carries p8's own standing sentence after the live counts",
       "selector": ".cl-masthead-dek",
-      "textMatch": "six dimensions per region · every fact carries a source and date",
-      "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text.",
+      "textMatch": "six dimensions per region \u00b7 every fact carries a source and date",
+      "note": "p8: 'N active items \u00b7 M jurisdictions \u00b7 six dimensions per region \u00b7 every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text.",
       "expect": {
         "display": "block"
+      }
+    },
+    {
+      "name": "A1 rule on the Regions side by side card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"ops-matrix-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Regions side by side card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
       }
     }
   ],
@@ -138,7 +160,7 @@
     {
       "name": "no content-column facet chip strip above the rows",
       "selector": ".cl-facets-desktop",
-      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Operations' facets live in the rail's FILTERS card only."
+      "reason": "Operator audit: 'the filters were not above the regulations, they were on the right \u2014 same on every page.' Operations' facets live in the rail's FILTERS card only."
     },
     {
       "name": "no per-page ask panel on the list surface",
@@ -155,7 +177,7 @@
       "name": "no 'Facts' label in the expanded dimension row's leading cell",
       "selector": "[data-audit=\"ops-matrix-card\"] td",
       "textMatch": "Facts",
-      "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '▾ Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
+      "reason": "Artboard 08/id=\"p8\" leaves that cell EMPTY: the dimension is already named by the '\u25be Labor markets' row directly above it. The cell itself stays, so the facts columns keep the header row's alignment."
     },
     {
       "name": "no trailing 'N regional operations profiles across N regions' line below the band cards",
@@ -166,7 +188,12 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "CLASS CLOSURE (operations list): a card element that renders no 3px rule",
+      "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
+      "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
     }
   ]
 }

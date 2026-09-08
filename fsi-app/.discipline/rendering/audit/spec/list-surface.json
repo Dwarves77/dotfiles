@@ -1,13 +1,16 @@
 {
-  "part": "ListSurfaceShell — facets card, Legend rail card, DismissedStash foot",
+  "part": "ListSurfaceShell \u2014 facets card, Legend rail card, DismissedStash foot",
   "mount": "list-surface-1440",
   "viewport": 1440,
-  "artboards": ["02-regulations-list (Filters card, Legend rail card)", "18-section-treatments (ruling 5.1)"],
+  "artboards": [
+    "02-regulations-list (Filters card, Legend rail card)",
+    "18-section-treatments (ruling 5.1)"
+  ],
   "source": "docs/design/handoff-2026-09-06/'Caros Ledge UI System.dc.html' p2 (#p2), the 'Filters' and 'Legend' rail cards; operator ruling 5.1 (3px graduated rule above every panel/section card); ListSurfaceShell.tsx and ListSurfaceRailCards.tsx (real components, no mount-only fixture)",
   "notes": [
-    "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right — same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
-    "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper — the SAME structure `page-frame.json`'s dashboard cards already use.",
-    "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number — CLAUDE.md rule 2 (never fabricate)."
+    "RELOCATED (lane compose-lists, 2026-09-07, operator audit 'the filters were not above the regulations, they were on the right \u2014 same on every page'; artboard 02/id=\"p2\"): the facet chip cards that used to sit ABOVE the row list in the content column (`.cl-facets-desktop`) are gone. The SAME facetGroups/secondaryFacetGroups data now renders as the rail's `FiltersRailCard` (checkbox rows, live counts, 'Clear N', '+ N more' disclosure), mounted by ListSurfaceShell itself before the surface-specific rail content, matching p2's rail order (Filters, then the surface card, then Legend). Selectors below updated from `.cl-facets-desktop` to `[data-audit=\"filters-rail\"]`.",
+    "FIXED (fix58-lists, 2026-09-07, B163/B165/B170, superseded by the relocation above): the Legend rail card mounts `<SectionRule/>` (src/components/ui/SectionRule.tsx, ruling 5.1's own shared part) as the first child inside the card's outer border/radius/shadow div, full card width, before a separate inner padded content wrapper \u2014 the SAME structure `page-frame.json`'s dashboard cards already use.",
+    "DismissedStash is NOT one of the 17 artboards (its own header comment: 'an app feature not shown in the 17 artboards, restored exactly per operator ruling, not redesigned'). No artboard value exists to compare it against, so this spec checks it only against the general system tokens the operator's rulings and README state apply everywhere (44px hit targets on the Restore control; the shared --card/--line-2/--radius tokens it already imports), not against an invented design number \u2014 CLAUDE.md rule 2 (never fabricate)."
   ],
   "selector": "[data-audit=\"legend-rail\"] > div",
   "expect": {
@@ -19,7 +22,7 @@
   },
   "children": [
     {
-      "name": "Legend rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "name": "Legend rail card \u2014 the 3px graduated rule above the card (ruling 5.1)",
       "selector": "[data-audit=\"legend-rail\"] .cl-section-rule",
       "note": "Ruling 5.1 requires this on every panel/section card sitewide, including rail cards. FIXED (B163): RailCard.tsx now mounts SectionRule as its first child.",
       "expect": {
@@ -27,9 +30,9 @@
       }
     },
     {
-      "name": "Legend rail card — title label",
+      "name": "Legend rail card \u2014 title label",
       "selector": "[data-audit=\"legend-rail\"] p:first-child",
-      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 — a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C.",
+      "note": "p2 Legend card header: font-size 10.5px, letter-spacing .12em, uppercase, color #7A6E6C, weight 700. RailCard.tsx: var(--fs-105)=10.5px, weight 800 (design states 700 \u2014 a real divergence, logged as the comparison), letter-spacing .12em, uppercase, color var(--ink-3)=#7A6E6C.",
       "expect": {
         "font-size": "10.5px",
         "letter-spacing": "0.12em",
@@ -38,9 +41,9 @@
       }
     },
     {
-      "name": "Filters rail card — content padding",
+      "name": "Filters rail card \u2014 content padding",
       "selector": "[data-audit=\"filters-rail\"] > div:last-child",
-      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px — the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
+      "note": "p2 Filters card content wrapper: padding 14px 16px (this card's title + Clear-N row + checkbox sections all live in one padded wrapper, not the old chip-card's 12px 16px 14px \u2014 the artboard's rail Filters card padding is a single value on all sides, not the content-column chip card's asymmetric one).",
       "expect": {
         "padding-top": "14px",
         "padding-right": "16px",
@@ -49,7 +52,7 @@
       }
     },
     {
-      "name": "Filters rail card — the 3px graduated rule above the card (ruling 5.1)",
+      "name": "Filters rail card \u2014 the 3px graduated rule above the card (ruling 5.1)",
       "selector": "[data-audit=\"filters-rail\"] .cl-section-rule",
       "note": "Same ruling as the Legend rail card above. FiltersRailCard (ListSurfaceRailCards.tsx) mounts SectionRule as the card's first child, same as every other panel/section card sitewide.",
       "expect": {
@@ -57,13 +60,13 @@
       }
     },
     {
-      "name": "Filters rail card — checkbox rows carry live counts, not chip pills",
+      "name": "Filters rail card \u2014 checkbox rows carry live counts, not chip pills",
       "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
       "note": "artboard 02/id=\"p2\" FILTERS card: MODE / JURISDICTION / TOPIC / WORKSPACE TAGS as checkbox lists with right-aligned counts, not the FilterChip pill rendering the content column used to carry.",
       "expect": {}
     },
     {
-      "name": "DismissedStash — Restore control hit target (general 44px rule, not an artboard value)",
+      "name": "DismissedStash \u2014 Restore control hit target (general 44px rule, not an artboard value)",
       "selector": "[data-audit=\"dismissed-stash\"] button",
       "note": "README general rule: '44 px hit targets.' DismissedStash.tsx: minHeight 44 on the Restore button. Checked against the sitewide rule, not against an artboard (this part is not in the artboards).",
       "expect": {

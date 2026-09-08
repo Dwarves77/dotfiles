@@ -1,5 +1,5 @@
 {
-  "part": "Page composition — Dashboard (01)",
+  "part": "Page composition \u2014 Dashboard (01)",
   "mount": "page-frame-1440",
   "viewport": 1440,
   "artboards": [
@@ -7,10 +7,11 @@
   ],
   "source": "docs/design/handoff-2026-09-06/screens/01-dashboard.png (artboard image is the authority per SETUP); dc.html id=\"p1\"; README screen 1",
   "notes": [
-    "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` — the real DashboardBrief mounted by page-frame-1440.",
-    "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) — verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
+    "Region-composition check, not a value check (page-frame.json and the per-part specs already check exact colours/type/spacing). This spec checks that the artboard's regions exist, in the artboard's top-to-bottom order, inside `[data-audit=\"dashboard\"]` \u2014 the real DashboardBrief mounted by page-frame-1440.",
+    "The masthead (VOL line, title, dek, command bar) is NOT inside this mount (page-frame-1440 wraps DashboardBrief only, no DashboardMasthead) \u2014 verified separately by source read of src/app/page.tsx + src/components/dashboard/DashboardMasthead.tsx and the live-server screenshot docs/design/handoff-2026-09-06/built/uxfix-5.1-4.1-4.2-5.2-2.1-2.2-dashboard.png. A follow-up mount that adds DashboardMasthead (stubbing useAuth/useWorkspaceStore/useWorkspaceBootstrap) would let this spec check the masthead region too.",
     "Artboard order top to bottom: band tiles (Immediate/Action/Monitor/Awareness) -> Due next card (heading, column header, rows, foot 'All N immediate' / 'then N action . N monitor') -> What changed card (heading, column header, rows, foot) -> rail (Across the platform, Watchlist, Legend), rail running alongside the two left-column cards, not below them.",
-    "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) — checked below as an <a>/Link element, not plain text."
+    "Due-next foot's 'All N immediate' is a real link to /regulations?band=immediate per operator ruling 1.1 (closed) \u2014 checked below as an <a>/Link element, not plain text.",
+    "UI FIX ROUND 2026-09-08, items A1/A3 (lane cardrule): the rows named 'A1 rule on ...' and 'A3 shell of ...' below measure the card shell the operator ruled belongs to the CARD component. They assert the gradient's exact value, which the earlier rule rows on this page did not; the closing 'CLASS CLOSURE' row is the check that fails if any card on this page renders with no rule at all."
   ],
   "selector": "[data-audit=\"dashboard\"] .cl-brief-outer",
   "expect": {
@@ -19,7 +20,7 @@
   },
   "children": [
     {
-      "name": "region 1 — band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
+      "name": "region 1 \u2014 band tiles row (Immediate, Action, Monitor, Awareness, in that order)",
       "selector": "[data-audit=\"dashboard\"] .cl-band-tiles",
       "expect": {
         "display": "grid"
@@ -27,42 +28,147 @@
       "note": "Live band-count numerals (14/31/1135/254 in the seeded fixture) are checked by bandtile.json; this row only checks the region exists in the grid."
     },
     {
-      "name": "region 2 — Due next card, comes after band tiles, before What changed",
+      "name": "region 2 \u2014 Due next card, comes after band tiles, before What changed",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) h2[data-guard-title]",
       "expect": {},
-      "note": "Text is 'Due next · N items' where N is the live due-next row count, not a fixed artboard string."
+      "note": "Text is 'Due next \u00b7 N items' where N is the live due-next row count, not a fixed artboard string."
     },
     {
-      "name": "region 2a — Due next foot 'All N immediate' is a real link (ruling 1.1)",
+      "name": "region 2a \u2014 Due next foot 'All N immediate' is a real link (ruling 1.1)",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(1) a[href=\"/regulations?band=immediate\"]",
       "expect": {
         "count": "1"
       }
     },
     {
-      "name": "region 3 — What changed card, comes after Due next",
+      "name": "region 3 \u2014 What changed card, comes after Due next",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-grid > section:nth-of-type(2) h2[data-guard-title]",
       "expect": {},
       "text": "What changed"
     },
     {
-      "name": "region 4 — rail, 'Across the platform' card first",
+      "name": "region 4 \u2014 rail, 'Across the platform' card first",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(1) > div:nth-of-type(2) p:first-of-type",
       "expect": {},
       "text": "Across the platform"
     },
     {
-      "name": "region 5 — rail, Watchlist card second",
+      "name": "region 5 \u2014 rail, Watchlist card second",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(2)",
       "expect": {
         "count": "1"
       }
     },
     {
-      "name": "region 6 — rail, Legend card third and last",
+      "name": "region 6 \u2014 rail, Legend card third and last",
       "selector": "[data-audit=\"dashboard\"] .cl-brief-outer > div:nth-of-type(2) > div:nth-of-type(3) > div:nth-of-type(2) p:first-of-type",
       "expect": {},
       "text": "Legend"
+    },
+    {
+      "name": "A1 rule on the Due next card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"due-next-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Due next card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"due-next-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the What changed card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"what-changed-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the What changed card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"what-changed-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Across the platform card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"across-platform-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Across the platform card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"across-platform-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the Watchlist rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"watchlist-rail-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the Watchlist rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"watchlist-rail-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "A1 rule on the dashboard Legend rail card: 3px, full card width, exact dark-grey gradation",
+      "selector": "[data-audit=\"dashboard-legend-card\"] > .cl-section-rule",
+      "note": "Operator item A1 (2026-09-08): the 3px graduated rule belongs to the CARD, not to each caller. This row measures the rule's EXACT GRADIENT, not merely that a 3px element is present: the pre-existing rows on this page asserted height and count only, which a red rule (item E4) or any other colour would have passed. A3 in the same row set: shadow, border and radius.",
+      "expect": {
+        "height": "3px",
+        "background-image": "linear-gradient(90deg, rgb(90, 85, 82), rgb(90, 85, 82) 22%, rgba(90, 85, 82, 0.18))",
+        "count": "1"
+      }
+    },
+    {
+      "name": "A3 shell of the dashboard Legend rail card: shadow, 1px rgba(0,0,0,.12) border, radius 10",
+      "selector": "[data-audit=\"dashboard-legend-card\"]",
+      "note": "Operator item A3 (2026-09-08): 'Card shadow is missing on rail cards: 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06). Border 1px rgba(0,0,0,.12), radius 10.' Supplied by SectionCard, so no caller can drop it.",
+      "expect": {
+        "box-shadow": "rgba(26, 26, 26, 0.04) 0px 1px 2px 0px, rgba(26, 26, 26, 0.06) 0px 4px 14px 0px",
+        "border-width": "1px",
+        "border-color": "rgba(0,0,0,.12)",
+        "border-radius": "10px"
+      }
     }
   ],
   "forbid": [
@@ -81,7 +187,12 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+    },
+    {
+      "name": "CLASS CLOSURE (dashboard): a card element that renders no 3px rule",
+      "selector": "[data-section-card=\"\"]:not(:has(> .cl-section-rule)):not(:has(> [aria-hidden=\"true\"] > .cl-section-rule))",
+      "reason": "Coordinator note N3: 'Prove the class is closed ... a check that fails when a card element renders without it'. Encoded as a FORBID, which is the harness's own form for 'the design does not have this element': every card in the product is `SectionCard` (src/components/ui/SectionCard.tsx), which stamps `data-section-card` on itself and mounts the 3px rule in one of exactly two positions (its first flow child, or inside its own absolutely positioned wrapper when the card carries padding). This selector reaches a card with the rule in NEITHER position, so a match is a ruleless card and the row goes NOT IN SPEC. Ruling 5.2's band-grouping card, the one card that legitimately draws no dark-grey rule, stamps `data-section-card=\"band-grouping\"` instead, so it is outside this selector by identity rather than by being invisible to it."
     }
   ]
 }

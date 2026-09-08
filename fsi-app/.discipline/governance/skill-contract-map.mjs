@@ -154,12 +154,16 @@ export const ACCOUNT_LEVEL_SKILLS = [];
 export const PINNED_MANIFEST = {
   'remediation-discipline': {
     skillPath: 'fsi-app/.claude/skills/remediation-discipline/SKILL.md',
+    // 2026-09-08 (lane cardrule, train 62): re-pinned for Section 4 category 42 (card-shell-one-
+    // component, RD-67 / F42), a new APPENDED section. No cited statement changed and no
+    // citingFiles change: the files below cite the skill as a whole, not this section, the same
+    // posture as the category 36-41 re-pins.
     // 2026-09-08 (FOLD-61): re-pinned once for BOTH of train 61's new Section 4 categories - lane
     // TAGS-401's category 40 (authed-api-fetch, RD-65 / F40) and lane mobfix61's category 41
     // (dead-media-query-class, RD-66 / F41). The two lanes each arrived numbering theirs 40 and
     // each pinned their own hash; the fold keeps both sections, renumbers the second, and pins the
     // hash of the union. No cited statement changed: both are new appended sections.
-    contentHash: '724342ebbeeb6541456341d9d4e18e8b0b34b14873014533ca8cf5851df659bf',
+    contentHash: '7c1941ffb7684837305994a4f47822b82a52d2039c43fe0db372d1506e8a6926',
     citingFiles: [
       'fsi-app/scripts/lib/deferral.mjs',
       'fsi-app/scripts/verify/canonical-key-uniqueness.mjs',
