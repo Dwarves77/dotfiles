@@ -32,6 +32,24 @@ window.__mount = (props) => {
 };
 `;
 
+/**
+ * Disclosed chrome vocabulary (lane comp-11, 2026-09-08), passed as `assertGuardClean`'s existing
+ * `known` allowlist — the same mechanism the band-tile "Action" label already uses (see
+ * guard-assert.mjs's own header for that precedent).
+ *
+ * The F-1 detector's rule is that a table-HEADER literal must never render as DATA. These three
+ * strings are the opposite case: they are header and label CHROME, rendering as themselves, exactly
+ * where artboard 11 puts them.
+ *   "Tier"    the column-header cell of the row grid (dc.html p11 line 106's column, headed at
+ *             line 64) — the artboard's own word, not negotiable.
+ *   "Type"    the rail Filters card's facet-group heading.
+ *   "Source"  WATCHLIST_TYPE_LABEL.source, the display name of the `source` watch type, which the
+ *             extreme fixture includes and the Type facet therefore lists as an option.
+ * Nothing here weakens the detector for DATA cells: a row whose title or value were literally
+ * "Tier" would still be scanned, and every other literal in the set still fires.
+ */
+const KNOWN_CHROME_LITERALS = ['Tier', 'Type', 'Source'];
+
 export async function runSmoke(browser) {
   const failures = [];
   let checks = 0;
@@ -59,33 +77,39 @@ export async function runSmoke(browser) {
     await mountBundle(page, bundleJs, '__mount', oneRow);
     await page.waitForTimeout(150);
     checks++;
-    failures.push(...assertGuardClean('watchlist-team[one-row]', await measureGuard(page)));
+    failures.push(...assertGuardClean('watchlist-team[one-row]', await measureGuard(page), KNOWN_CHROME_LITERALS));
 
-    const scopeSelect = await page.$('#watchlist-scope');
+    // Lane comp-11 (2026-09-08): the one-row fixture is a SINGLE team "reg" row, so neither facet
+    // has two options and the rail's Filters card correctly renders nothing — there is no filter
+    // control in this state to assert on, and inventing one would be the fabrication the spec's own
+    // header rules out. The state's real controls are the row's watch toggle and the card foot's
+    // "Browse regulations →" link; both are asserted present and enabled here.
+    //
+    // NO CLICK-FIRE PROOF IN THIS STATE, deliberately and for the same reason the empty state has
+    // none: the watch toggle's only observable effect is an OPTIMISTIC flip that this harness's
+    // unrouted /api/watchlist call then reverts, so a click assertion here would be asserting on a
+    // race, not on the handler. The real click-fire proof lives in the extreme state below, where
+    // the facets exist and the effect is local and deterministic.
+    const watchToggle = await page.$('.cl-row-overflow button');
     checks++;
-    if (!scopeSelect) {
-      failures.push('watchlist-team[one-row]: primary action (scope filter) is missing.');
+    if (!watchToggle) {
+      failures.push('watchlist-team[one-row]: primary action (the row watch toggle) is missing.');
     } else {
-      const disabled = await scopeSelect.evaluate((el) => el.disabled);
-      if (disabled) failures.push('watchlist-team[one-row]: scope filter is present but disabled.');
-
-      // click-fire: filtering to "personal" empties the (all-team) one-row list, surfacing the
-      // "Clear filters" recovery button — a real onClick handler with an observable DOM effect.
-      await page.selectOption('#watchlist-scope', 'personal');
-      await page.waitForTimeout(100);
-      const clearBtn = await page.$('button:has-text("Clear filters")');
+      const disabled = await watchToggle.evaluate((el) => el.disabled);
+      if (disabled) failures.push('watchlist-team[one-row]: the row watch toggle is present but disabled.');
+      // Operator ruling 3.5: a watched row must never offer a bare "Watch". Every row on this
+      // surface is watched by construction, so the control's accessible name is the UNWATCH action.
+      const label = await watchToggle.evaluate((el) => el.getAttribute('aria-label') || '');
       checks++;
-      if (!clearBtn) {
-        failures.push('watchlist-team[one-row]: selecting a scope with zero matches did not surface "Clear filters" (onChange handler did not fire).');
-      } else {
-        await clearBtn.click();
-        await page.waitForTimeout(100);
-        const text = await page.textContent('body');
-        checks++;
-        if (!text.includes('EU Packaging')) {
-          failures.push('watchlist-team[one-row]: "Clear filters" click did not restore the filtered-out row (onClick handler did not fire).');
-        }
+      if (!/unwatch/i.test(label)) {
+        failures.push(`watchlist-team[one-row]: the watch toggle on a watched row reads "${label}" — ruling 3.5 requires the unwatch action.`);
       }
+    }
+
+    const browseLink = await page.$('.cl-card-foot a[href="/regulations"]');
+    checks++;
+    if (!browseLink) {
+      failures.push('watchlist-team[one-row]: the card foot\'s "Browse regulations →" link (artboard 11) is missing.');
     }
 
     await page.close();
@@ -97,37 +121,46 @@ export async function runSmoke(browser) {
     await mountBundle(page, bundleJs, '__mount', extreme);
     await page.waitForTimeout(150);
     checks++;
-    failures.push(...assertGuardClean('watchlist-team[extreme]', await measureGuard(page)));
+    failures.push(...assertGuardClean('watchlist-team[extreme]', await measureGuard(page), KNOWN_CHROME_LITERALS));
 
-    const typeSelect = await page.$('#watchlist-type');
+    // Lane comp-11 (2026-09-08): the Scope/Type filters are now checkbox rows inside the rail's
+    // shared `FiltersRailCard` (operator audit 2026-09-07, "the filters were not above the
+    // regulations, they were on the right"), not the two native <select>s this block used to drive.
+    // The INVARIANT is unchanged and still asserted in full: the state's primary filter control is
+    // present, enabled, and a real click narrows the real row list.
+    const typeFilter = await page.$('[data-audit="filters-rail"] label:has-text("Reg") input[type="checkbox"]');
     checks++;
-    if (!typeSelect) {
-      failures.push('watchlist-team[extreme]: primary action (type filter) is missing.');
+    if (!typeFilter) {
+      failures.push('watchlist-team[extreme]: primary action (the rail Filters card\'s type facet) is missing.');
     } else {
-      const disabled = await typeSelect.evaluate((el) => el.disabled);
-      if (disabled) failures.push('watchlist-team[extreme]: type filter is present but disabled.');
+      const disabled = await typeFilter.evaluate((el) => el.disabled);
+      if (disabled) failures.push('watchlist-team[extreme]: the type facet is present but disabled.');
 
-      // UILISTS lane (2026-09-06): WatchlistSurface now renders each row via the shared ListRow
+      // UILISTS lane (2026-09-06): WatchlistSurface renders each row via the shared ListRow
       // (a styled <div>, not an <li>) or, for row-less types, a plain <div> — both carry
-      // `data-guard-title` on the title element (ListRow's own, added additively this lane; the
-      // fallback div's own, added alongside it), so that attribute is the row count, not `li`.
+      // `data-guard-title` on the title element, so that attribute is the row count, not `li`.
       const before = await page.$$eval('[data-guard-title]', (els) => els.length);
-      await page.selectOption('#watchlist-type', 'reg');
+      await typeFilter.click();
       await page.waitForTimeout(100);
       const after = await page.$$eval('[data-guard-title]', (els) => els.length);
       checks++;
       if (!(after < before)) {
-        failures.push(`watchlist-team[extreme]: selecting the "reg" type filter did not narrow the row list (${before} -> ${after}; onChange handler did not fire).`);
+        failures.push(`watchlist-team[extreme]: checking the "Reg" type facet did not narrow the row list (${before} -> ${after}; onSelect handler did not fire).`);
       }
 
-      const clearBtn = await page.$('button:has-text("Clear filters")');
-      if (clearBtn) {
+      // The rail Filters card's own "Clear N" control (it appears the moment a facet is selected)
+      // is the restore path now that the selects are gone.
+      const clearBtn = await page.$('[data-audit="filters-rail"] button:has-text("Clear")');
+      checks++;
+      if (!clearBtn) {
+        failures.push('watchlist-team[extreme]: selecting a facet did not surface the Filters card\'s "Clear N" control.');
+      } else {
         await clearBtn.click();
         await page.waitForTimeout(100);
         const restored = await page.$$eval('[data-guard-title]', (els) => els.length);
         checks++;
         if (restored !== before) {
-          failures.push(`watchlist-team[extreme]: "Clear filters" click did not restore the full row list (${restored} !== ${before}).`);
+          failures.push(`watchlist-team[extreme]: "Clear" click did not restore the full row list (${restored} !== ${before}).`);
         }
       }
     }

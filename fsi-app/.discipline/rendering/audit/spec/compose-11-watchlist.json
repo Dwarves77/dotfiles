@@ -1,0 +1,190 @@
+{
+  "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+  "mount": "compose-11-watchlist",
+  "viewport": 1440,
+  "artboards": ["11-watchlist"],
+  "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+  "notes": [
+    "This spec exists per the operator's own composition complaint ('you are NOT matching the images directly'): it measures the page REGION BY REGION IN DOCUMENT ORDER, so a future regression that drops the column header, drops the card foot, drops the notices card, or puts the filters back into the content column is caught here rather than in a screenshot review.",
+    "Placement is asserted with sibling-combinator selectors wherever 'present but in the wrong place' is the defect being guarded — order, not mere presence.",
+    "Artboard 11's rail draws only two cards. The Filters card is the app's own scope/type/tag facets, which the artboard does not draw at all: ruling R7 keeps the feature and the operator's 2026-09-07 filters ruling puts it in the rail, so it is asserted here in rail position 1 exactly as on the other four list surfaces. Logged in DEVIATION-LOG.md.",
+    "Fixture data is invented with the real prop shape (6 WatchlistItems, 4 notices, 2 workspace tags) and is never shipped and never asserted on; the assertions are geometry, placement and the components' own static labels."
+  ],
+  "selector": "[data-audit=\"watched-card\"]",
+  "expect": {
+    "display": "block"
+  },
+  "children": [
+    {
+      "name": "masthead scope line ('N watched · personal · M shared by the workspace') is present",
+      "selector": "[data-audit=\"scope-line\"]",
+      "textMatch": "shared by the workspace",
+      "note": "dc.html p11 line 35. It was absent before this composition pass — the masthead rendered no dek at all.",
+      "expect": {
+        "display": "inline"
+      }
+    },
+    {
+      "name": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
+      "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase.",
+      "expect": {
+        "font-size": "20px",
+        "letter-spacing": "0.04em",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+      "textMatch": "Sorted by next date",
+      "note": "dc.html p11 line 53.",
+      "expect": {
+        "font-size": "10.5px",
+        "letter-spacing": "0.12em",
+        "text-transform": "uppercase",
+        "color": "#7A6E6C"
+      }
+    },
+    {
+      "name": "the column header row exists inside the Watched card, on the row grid",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+      "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header.",
+      "expect": {
+        "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+        "height": "30px",
+        "padding-right": "12px"
+      }
+    },
+    {
+      "name": "the column header row precedes the first row (header above rows, not below)",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header ~ .cl-list-row",
+      "note": "Sibling-combinator placement check: only matches when the header's node precedes a row's.",
+      "expect": {
+        "display": "grid"
+      }
+    },
+    {
+      "name": "the header's date column is labelled 'Next date' (not the dashboard's 'Due')",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(5)",
+      "textMatch": "Next date",
+      "expect": {
+        "text-align": "right"
+      }
+    },
+    {
+      "name": "the header's title column carries artboard 11's own label",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(3)",
+      "textMatch": "Title · type · modes",
+      "expect": {
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "textMatch": "Watch from any row",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass.",
+      "expect": {
+        "background-color": "#FAFAF8",
+        "font-size": "12px",
+        "border-top-width": "1px",
+        "border-top-color": "rgba(0,0,0,.08)",
+        "padding-left": "16px",
+        "padding-top": "10px"
+      }
+    },
+    {
+      "name": "the card foot carries the 'Browse regulations →' link on its right",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot a",
+      "textMatch": "Browse regulations",
+      "expect": {
+        "font-weight": "600"
+      }
+    },
+    {
+      "name": "the changed-since-last-visit state note sits INSIDE the Watched card, after its foot",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot ~ [data-audit=\"changed-note\"]",
+      "note": "dc.html p11 line 115. Absent entirely before this pass. The sibling combinator is the placement assertion: below the foot, still inside the card.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "the Recalculation notices card exists and follows the Watched card",
+      "selector": "[data-audit=\"watched-card\"] ~ [data-audit=\"recalculation-notices\"]",
+      "note": "dc.html p11 lines 121-131. The whole card was missing before this pass.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
+      "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
+      "textMatch": "Since your last visit",
+      "expect": {
+        "font-size": "10.5px",
+        "letter-spacing": "0.12em"
+      }
+    },
+    {
+      "name": "rail card 1 is Filters (the app's own facets, relocated out of the content column)",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Filters rail card carries checkbox rows, the same control the other list surfaces use",
+      "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+      "expect": {}
+    },
+    {
+      "name": "rail order: Filters before Share with workspace",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"share-rail\"]",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "rail order: Share with workspace before Legend (artboard 11's own rail order)",
+      "selector": "[data-audit=\"share-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "note": "dc.html p11 lines 134-195: Share with workspace, then Legend.",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
+      "expect": {
+        "width": "44px",
+        "height": "44px"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no filter control in the content column (native selects)",
+      "selector": "select",
+      "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The watchlist's Scope/Type selects sat above the rows; they are now checkbox rows in the rail's Filters card."
+    },
+    {
+      "name": "no filter chip strip in the content column",
+      "selector": ".cl-filter-group",
+      "reason": "Same ruling: the Workspace-tags FilterChipGroup card that sat above the rows is gone; the same data is the rail Filters card's 'Workspace tags' group."
+    },
+    {
+      "name": "the literal word UNSCORED anywhere on the page",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: this literal token never appears; Absence renders the fixed-vocabulary reason in small caps via CSS on lowercase text."
+    },
+    {
+      "name": "no floating Ask control",
+      "selector": ".cl-ask-fab",
+      "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
+    }
+  ]
+}

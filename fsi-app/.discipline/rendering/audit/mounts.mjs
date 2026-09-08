@@ -1607,6 +1607,86 @@ window.__mount = () => {
 };
 `;
 
+// ── /watchlist, the real page composition (lane comp-11, 2026-09-08, artboard 11 / dc.html p11) ──
+// The REAL `WatchlistSurface` fed a populated `WatchlistItem[]`, so the composition spec measures
+// the page as assembled — masthead scope line, Watched card (head, column header, rows, foot, the
+// changed-since-last-visit strip), the Recalculation notices card, and the rail's three cards in
+// artboard order — rather than a shell primitive fed invented props.
+//
+// TWO API fixtures matter here, and both must return SHAPED bodies, not EMPTY_API's '{}':
+//   /api/notices          feeds `useRecalculationNotices`; a populated list is what makes the
+//                         state-note strip and the notices list render at all.
+//   /api/workspace/tags   feeds `useWorkspaceTagsFacet`; its tags are the rail Filters card's
+//                         "Workspace tags" group.
+// Playwright tries overlapping page.route handlers LIFO, so the generic catch-all is registered
+// first (the EMPTY_API spread) and these two after it, exactly as COMPOSE_LEDGER_API does.
+const COMPOSE_WATCHLIST_NOTICES = Array.from({ length: 4 }, (_, i) => ({
+  newValueId: `nv-${i}`,
+  entityId: `ent-${i}`,
+  entityLabel: `Fixture entity ${i}`,
+  href: null,
+  oldValue: 1200 + i,
+  newValue: 1180 + i,
+  unit: 'EUR/1000L',
+  currency: null,
+  methodId: 'fixture-method',
+  oldMethodVersion: '1.0.0',
+  newMethodVersion: '1.0.0',
+  supersededAt: '2026-09-05T09:00:00Z',
+  triggeringEvent: null,
+}));
+
+const COMPOSE_WATCHLIST_TAGS = {
+  tags: [
+    { id: 'tag-1', name: 'Packaging', itemCount: 3 },
+    { id: 'tag-2', name: 'Fuel', itemCount: 2 },
+  ],
+  itemTags: { 'wl-0': ['tag-1'], 'wl-2': ['tag-2'] },
+};
+
+const COMPOSE_WATCHLIST_API = [
+  ...EMPTY_API,
+  { urlGlob: '**/api/notices**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify({ notices: COMPOSE_WATCHLIST_NOTICES }) }) },
+  { urlGlob: '**/api/workspace/tags**', handler: (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(COMPOSE_WATCHLIST_TAGS) }) },
+];
+
+function composeWatchRow(i) {
+  const jurisdictions = ['EU', 'US', 'UK', 'Global'];
+  const priorities = ['CRITICAL', 'HIGH', 'HIGH', 'MODERATE', 'LOW'];
+  const types = ['regulation', 'regulation', 'research', 'operations'];
+  return {
+    id: `wl-${i}`,
+    type: types[i % types.length],
+    title: `Watched fixture ${i}: packaging and packaging waste regulation`,
+    source: 'fixture',
+    jurisdiction: jurisdictions[i % jurisdictions.length],
+    lastChangedAt: '2026-08-06T00:00:00Z',
+    scope: i % 4 === 3 ? 'team' : 'personal',
+    addedBy: i % 4 === 3 ? 'A. Member' : undefined,
+    priority: priorities[i % priorities.length],
+    impactScores: { cost: 3, compliance: 3, client: 2, operational: 2 },
+    sourceTier: (i % 6) + 1,
+    complianceDeadline: `2026-12-${String(5 + (i % 20)).padStart(2, '0')}`,
+  };
+}
+const COMPOSE_WATCH_ROWS = Array.from({ length: 6 }, (_, i) => composeWatchRow(i));
+
+const COMPOSE_WATCHLIST_ENTRY = `
+${STYLE_INJECT}
+import React from 'react';
+import { createRoot } from 'react-dom/client';
+import { WatchlistSurface } from '@/components/watchlist/WatchlistSurface';
+
+const ITEMS = ${JSON.stringify(COMPOSE_WATCH_ROWS)};
+
+let root = null;
+window.__mount = () => {
+  const el = document.getElementById('smoke-root');
+  if (!root) root = createRoot(el);
+  root.render(React.createElement(WatchlistSurface, { items: ITEMS, limit: 250 }));
+};
+`;
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -1845,5 +1925,12 @@ export const AUDIT_MOUNTS = {
     viewport: 1440,
     entry: COMPOSE_OPERATIONS_ENTRY,
     apiRoutes: COMPOSE_LEDGER_API,
+  },
+  'compose-11-watchlist': {
+    id: 'compose-11-watchlist',
+    description: 'The real WatchlistSurface page composition (6-row fixture, populated notices + tags): masthead scope line, Watched card head/column header/rows/foot/state note, Recalculation notices card, rail Filters/Share/Legend — artboard 11/id="p11".',
+    viewport: 1440,
+    entry: COMPOSE_WATCHLIST_ENTRY,
+    apiRoutes: COMPOSE_WATCHLIST_API,
   },
 };

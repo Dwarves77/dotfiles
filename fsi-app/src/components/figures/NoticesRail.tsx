@@ -45,11 +45,16 @@ export interface NoticesRailProps {
   bare?: boolean;
 }
 
-export function NoticesRail({
-  heading = "Recalculation notices",
-  emptyMessage = "No recalculations on your team's watchlist since your last visit.",
-  bare = false,
-}: NoticesRailProps) {
+/**
+ * useRecalculationNotices — the fetch on its own, so a caller that needs the
+ * FEED rather than the rendered rail reads the same endpoint through the same
+ * code path instead of a second copy of this sequence. Extracted by lane
+ * comp-11 (2026-09-08): artboard 11 states the notice COUNT in a state-note
+ * strip at the foot of the Watched card and the notice LIST in its own card
+ * below it — two regions off one feed. `NoticesRail` is now this hook plus its
+ * markup, unchanged in behaviour.
+ */
+export function useRecalculationNotices(): { notices: RecalculationNoticeItem[]; loading: boolean } {
   const [notices, setNotices] = useState<RecalculationNoticeItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -79,6 +84,16 @@ export function NoticesRail({
       cancelled = true;
     };
   }, []);
+
+  return { notices, loading };
+}
+
+export function NoticesRail({
+  heading = "Recalculation notices",
+  emptyMessage = "No recalculations on your team's watchlist since your last visit.",
+  bare = false,
+}: NoticesRailProps) {
+  const { notices, loading } = useRecalculationNotices();
 
   const body = (
     <>

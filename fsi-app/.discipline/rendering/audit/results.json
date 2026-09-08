@@ -1,5 +1,5 @@
 {
-  "runAt": "2026-09-08T03:43:51.679Z",
+  "runAt": "2026-09-08T03:27:18.487Z",
   "specs": [
     {
       "part": "Absence",
@@ -891,161 +891,198 @@
       "__id": "compose-04-market-list"
     },
     {
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "mount": "compose-08-operations",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "mount": "compose-11-watchlist",
       "viewport": 1440,
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "notes": [
-        "This spec measures the COMPOSED page, region by region, in document order — the operator's own complaint was placement, not part styling ('the filters were not above the regulations, they were on the right ... you are NOT matching the images directly'). operations-matrix.json still measures RegionDimensionMatrix alone (six D1-D6 rows, ruling 3.3); this one measures where that matrix SITS and what surrounds it.",
-        "Fixture (mounts.mjs 'compose-08-operations') is invented sample data with the real prop shapes: 25 rows split 0/4/2/19 across the bands, 5 regions, populated region_dimension_coverage + regional_data_facts rows. The audit asserts geometry, placement and the components' own literals, never fixture values.",
-        "The runner reads computed STYLE and textContent only: an `expect` key naming an HTML attribute (e.g. an input's placeholder) measures as null and reports a false MATCH, so no such key appears here. The page-scoped command-bar prompt artboard 08 states is verified in the side-by-side evidence PNG (docs/design/handoff-2026-09-06/built/compose-08-operations-list.png), not by this spec.",
-        "Placement assertions use sibling-combinator selectors, which match only when the first element's DOM node PRECEDES the second's — 'present but in the wrong place' was the defect, so absence-only checks would not have caught it.",
-        "R7 (an app feature the artboard does not draw is kept, listed, and moved out of an artboard region's position): the US By-state cost sub-list moved from between the matrix and the first band card to the disclosure position at the foot of the content column; the Mode facet stays but sits after the artboard's own REGION and DIMENSION groups. Both are checked below."
+        "This spec exists per the operator's own composition complaint ('you are NOT matching the images directly'): it measures the page REGION BY REGION IN DOCUMENT ORDER, so a future regression that drops the column header, drops the card foot, drops the notices card, or puts the filters back into the content column is caught here rather than in a screenshot review.",
+        "Placement is asserted with sibling-combinator selectors wherever 'present but in the wrong place' is the defect being guarded — order, not mere presence.",
+        "Artboard 11's rail draws only two cards. The Filters card is the app's own scope/type/tag facets, which the artboard does not draw at all: ruling R7 keeps the feature and the operator's 2026-09-07 filters ruling puts it in the rail, so it is asserted here in rail position 1 exactly as on the other four list surfaces. Logged in DEVIATION-LOG.md.",
+        "Fixture data is invented with the real prop shape (6 WatchlistItems, 4 notices, 2 workspace tags) and is never shipped and never asserted on; the assertions are geometry, placement and the components' own static labels."
       ],
-      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "selector": "[data-audit=\"watched-card\"]",
       "expect": {
         "display": "block"
       },
       "children": [
         {
-          "name": "matrix card carries ruling 5.1's graduated top rule (it was a bare section with a 15px h2)",
-          "selector": "[data-audit=\"ops-matrix-card\"] .cl-section-rule",
+          "name": "masthead scope line ('N watched · personal · M shared by the workspace') is present",
+          "selector": "[data-audit=\"scope-line\"]",
+          "textMatch": "shared by the workspace",
+          "note": "dc.html p11 line 35. It was absent before this composition pass — the masthead rendered no dek at all.",
           "expect": {
-            "height": "3px",
-            "count": "1"
+            "display": "inline"
           }
         },
         {
-          "name": "matrix card head title is the Anton section title, 20px uppercase",
-          "selector": "[data-audit=\"ops-matrix-card\"] h2",
+          "name": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+          "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
+          "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase.",
           "expect": {
             "font-size": "20px",
+            "letter-spacing": "0.04em",
+            "text-transform": "uppercase"
+          }
+        },
+        {
+          "name": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+          "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+          "textMatch": "Sorted by next date",
+          "note": "dc.html p11 line 53.",
+          "expect": {
+            "font-size": "10.5px",
+            "letter-spacing": "0.12em",
             "text-transform": "uppercase",
-            "letter-spacing": "0.04em"
+            "color": "#7A6E6C"
           }
         },
         {
-          "name": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
-          "selector": "[data-audit=\"ops-matrix-foot\"]",
-          "textMatch": "no sourced fact yet",
+          "name": "the column header row exists inside the Watched card, on the row grid",
+          "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+          "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header.",
           "expect": {
-            "display": "flex"
+            "grid-template-columns": "3px 56px * 88px 84px 76px 40px 44px",
+            "height": "30px",
+            "padding-right": "12px"
           }
         },
         {
-          "name": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
-          "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
+          "name": "the column header row precedes the first row (header above rows, not below)",
+          "selector": "[data-audit=\"watched-card\"] .cl-list-row-header ~ .cl-list-row",
+          "note": "Sibling-combinator placement check: only matches when the header's node precedes a row's.",
           "expect": {
-            "display": "flex"
+            "display": "grid"
           }
         },
         {
-          "name": "the matrix card precedes the first band card's foot strip — the matrix is FIRST in the content column, above the band cards",
-          "selector": "[data-audit=\"ops-matrix-card\"] ~ * [data-audit=\"band-foot-strip\"]",
+          "name": "the header's date column is labelled 'Next date' (not the dashboard's 'Due')",
+          "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(5)",
+          "textMatch": "Next date",
           "expect": {
-            "display": "flex"
+            "text-align": "right"
           }
         },
         {
-          "name": "every band card is closed by a foot strip carrying the transition into the next band (or 'end of list' on the last)",
-          "selector": "[data-audit=\"band-foot-strip\"]",
+          "name": "the header's title column carries artboard 11's own label",
+          "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(3)",
+          "textMatch": "Title · type · modes",
           "expect": {
-            "count": "3"
+            "text-transform": "uppercase"
           }
         },
         {
-          "name": "the last band card's foot strip says 'end of list'",
-          "selector": "[data-audit=\"band-foot-strip\"]",
-          "textMatch": "end of list",
+          "name": "the card foot strip sits on the page tint with the header-weight divider above it",
+          "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+          "textMatch": "Watch from any row",
+          "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass.",
           "expect": {
-            "display": "flex"
+            "background-color": "#FAFAF8",
+            "font-size": "12px",
+            "border-top-width": "1px",
+            "border-top-color": "rgba(0,0,0,.08)",
+            "padding-left": "16px",
+            "padding-top": "10px"
           }
         },
         {
-          "name": "rail FILTERS card mounts before the COVERAGE GAPS card (p8 rail order: Filters, Coverage gaps, Legend)",
-          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"coverage-gaps-rail\"]",
+          "name": "the card foot carries the 'Browse regulations →' link on its right",
+          "selector": "[data-audit=\"watched-card\"] .cl-card-foot a",
+          "textMatch": "Browse regulations",
           "expect": {
-            "display": "block"
+            "font-weight": "600"
           }
         },
         {
-          "name": "rail COVERAGE GAPS card mounts before the LEGEND card",
-          "selector": "[data-audit=\"coverage-gaps-rail\"] ~ [data-audit=\"legend-rail\"]",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "rail facet order is REGION then DIMENSION (p8's own two groups, in p8's order)",
-          "selector": "[data-audit=\"facet-region\"] ~ [data-audit=\"facet-dimension\"]",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "the R7 extra (Mode, which p8's rail does not draw) follows both artboard groups, never ahead of one",
-          "selector": "[data-audit=\"facet-dimension\"] ~ [data-audit=\"facet-mode\"]",
-          "expect": {
-            "display": "block"
-          }
-        },
-        {
-          "name": "FILTERS card carries the DIMENSION group (p8 rail: D1 Regulatory feasibility ... D6 Operational cost)",
-          "selector": "[data-audit=\"filters-rail\"] p",
-          "textMatch": "Dimension",
+          "name": "the changed-since-last-visit state note sits INSIDE the Watched card, after its foot",
+          "selector": "[data-audit=\"watched-card\"] .cl-card-foot ~ [data-audit=\"changed-note\"]",
+          "note": "dc.html p11 line 115. Absent entirely before this pass. The sibling combinator is the placement assertion: below the foot, still inside the card.",
           "expect": {
             "display": "block"
           }
         },
         {
-          "name": "all six dimensions D1-D6 render in the rail with no '+ N more' disclosure hiding D6",
-          "selector": "[data-audit=\"filters-rail\"] label",
-          "textMatch": "D6 Operational cost",
-          "expect": {
-            "display": "flex"
-          }
-        },
-        {
-          "name": "COVERAGE GAPS card carries counted gap rows, not prose alone",
-          "selector": "[data-audit=\"coverage-gaps-rail\"] p",
-          "textMatch": "A known gap, stated plainly",
+          "name": "the Recalculation notices card exists and follows the Watched card",
+          "selector": "[data-audit=\"watched-card\"] ~ [data-audit=\"recalculation-notices\"]",
+          "note": "dc.html p11 lines 121-131. The whole card was missing before this pass.",
           "expect": {
             "display": "block"
           }
         },
         {
-          "name": "masthead scope line carries p8's own standing sentence after the live counts",
-          "selector": ".cl-masthead-dek",
-          "textMatch": "six dimensions per region · every fact carries a source and date",
-          "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text.",
+          "name": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
+          "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
+          "textMatch": "Since your last visit",
+          "expect": {
+            "font-size": "10.5px",
+            "letter-spacing": "0.12em"
+          }
+        },
+        {
+          "name": "rail card 1 is Filters (the app's own facets, relocated out of the content column)",
+          "selector": "[data-audit=\"filters-rail\"]",
           "expect": {
             "display": "block"
+          }
+        },
+        {
+          "name": "Filters rail card carries checkbox rows, the same control the other list surfaces use",
+          "selector": "[data-audit=\"filters-rail\"] input[type=\"checkbox\"]",
+          "expect": {}
+        },
+        {
+          "name": "rail order: Filters before Share with workspace",
+          "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"share-rail\"]",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "rail order: Share with workspace before Legend (artboard 11's own rail order)",
+          "selector": "[data-audit=\"share-rail\"] ~ [data-audit=\"legend-rail\"]",
+          "note": "dc.html p11 lines 134-195: Share with workspace, then Legend.",
+          "expect": {
+            "display": "block"
+          }
+        },
+        {
+          "name": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
+          "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+          "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself.",
+          "expect": {
+            "width": "44px",
+            "height": "44px"
           }
         }
       ],
       "forbid": [
         {
-          "name": "no content-column facet chip strip above the rows",
-          "selector": ".cl-facets-desktop",
-          "reason": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Operations' facets live in the rail's FILTERS card only."
+          "name": "no filter control in the content column (native selects)",
+          "selector": "select",
+          "reason": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The watchlist's Scope/Type selects sat above the rows; they are now checkbox rows in the rail's Filters card."
         },
         {
-          "name": "no per-page ask panel on the list surface",
-          "selector": "[data-ask-panel]",
-          "reason": "The Masthead's CommandBar is the only search/ask surface; artboard 08 has no second ask bar and no floating Ask control (operator rulings 2.2/2.3)."
+          "name": "no filter chip strip in the content column",
+          "selector": ".cl-filter-group",
+          "reason": "Same ruling: the Workspace-tags FilterChipGroup card that sat above the rows is gone; the same data is the rail Filters card's 'Workspace tags' group."
         },
         {
-          "name": "the literal word UNSCORED as page text",
+          "name": "the literal word UNSCORED anywhere on the page",
           "selector": "body",
           "textMatch": "UNSCORED",
-          "reason": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+          "reason": "Operator ruling P1 2.1: this literal token never appears; Absence renders the fixed-vocabulary reason in small caps via CSS on lowercase text."
+        },
+        {
+          "name": "no floating Ask control",
+          "selector": ".cl-ask-fab",
+          "reason": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
         }
       ],
-      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-08-operations-list.json",
-      "__id": "compose-08-operations-list"
+      "__file": "fsi-app/.discipline/rendering/audit/spec/compose-11-watchlist.json",
+      "__id": "compose-11-watchlist"
     },
     {
       "part": "DetailHeader",
@@ -7218,15 +7255,15 @@
       "note": "Operator ruling P1 2.1: this literal token never appears anywhere in the product."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "selector": "[data-audit=\"ops-matrix-card\"]",
+      "target": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "selector": "[data-audit=\"watched-card\"]",
       "property": "display",
       "expected": "block",
       "actual": "block",
@@ -7234,63 +7271,223 @@
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "matrix card carries ruling 5.1's graduated top rule (it was a bare section with a 15px h2)",
-      "selector": "[data-audit=\"ops-matrix-card\"] .cl-section-rule",
-      "property": "height",
-      "expected": "3px",
-      "actual": "3px",
+      "target": "masthead scope line ('N watched · personal · M shared by the workspace') is present",
+      "selector": "[data-audit=\"scope-line\"]",
+      "property": "display",
+      "expected": "inline",
+      "actual": "inline",
       "status": "MATCH",
-      "note": null
+      "note": "dc.html p11 line 35. It was absent before this composition pass — the masthead rendered no dek at all."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "matrix card carries ruling 5.1's graduated top rule (it was a bare section with a 15px h2)",
-      "selector": "[data-audit=\"ops-matrix-card\"] .cl-section-rule",
-      "property": "count",
-      "expected": "1",
-      "actual": "1",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "matrix card head title is the Anton section title, 20px uppercase",
-      "selector": "[data-audit=\"ops-matrix-card\"] h2",
+      "target": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
       "property": "font-size",
       "expected": "20px",
       "actual": "20px",
       "status": "MATCH",
+      "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
+      "property": "letter-spacing",
+      "expected": "0.04em (= 0.8px at 20px)",
+      "actual": "0.8px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "Watched card head is the shared SectionHeading: Anton 20px, .04em, uppercase",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading h2",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "dc.html p11 line 52: font-size 20px (the page-local head this replaced was 18px), letter-spacing .04em, uppercase."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 53."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+      "property": "letter-spacing",
+      "expected": "0.12em (= 1.26px at 10.5px)",
+      "actual": "1.26px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 53."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+      "property": "text-transform",
+      "expected": "uppercase",
+      "actual": "uppercase",
+      "status": "MATCH",
+      "note": "dc.html p11 line 53."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the head's right-hand aside is 10.5px/.12em uppercase muted",
+      "selector": "[data-audit=\"watched-card\"] .cl-section-heading-aside",
+      "property": "color",
+      "expected": "#7A6E6C",
+      "actual": "rgb(122, 110, 108)",
+      "status": "MATCH",
+      "note": "dc.html p11 line 53."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the column header row exists inside the Watched card, on the row grid",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+      "property": "grid-template-columns",
+      "expected": "3px 56px * 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 529px 88px 84px 76px 40px 44px",
+      "status": "MATCH",
+      "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the column header row exists inside the Watched card, on the row grid",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+      "property": "height",
+      "expected": "30px",
+      "actual": "30px",
+      "status": "MATCH",
+      "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the column header row exists inside the Watched card, on the row grid",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header",
+      "property": "padding-right",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "dc.html p11 lines 55-67. Absent entirely before this pass: the rows started with no header."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the column header row precedes the first row (header above rows, not below)",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header ~ .cl-list-row",
+      "property": "display",
+      "expected": "grid",
+      "actual": "grid",
+      "status": "MATCH",
+      "note": "Sibling-combinator placement check: only matches when the header's node precedes a row's."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the header's date column is labelled 'Next date' (not the dashboard's 'Due')",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(5)",
+      "property": "text-align",
+      "expected": "right",
+      "actual": "right",
+      "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "matrix card head title is the Anton section title, 20px uppercase",
-      "selector": "[data-audit=\"ops-matrix-card\"] h2",
+      "target": "the header's title column carries artboard 11's own label",
+      "selector": "[data-audit=\"watched-card\"] .cl-list-row-header span:nth-of-type(3)",
       "property": "text-transform",
       "expected": "uppercase",
       "actual": "uppercase",
@@ -7298,111 +7495,191 @@
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "matrix card head title is the Anton section title, 20px uppercase",
-      "selector": "[data-audit=\"ops-matrix-card\"] h2",
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "background-color",
+      "expected": "#FAFAF8",
+      "actual": "rgb(250, 250, 248)",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "font-size",
+      "expected": "12px",
+      "actual": "12px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "border-top-width",
+      "expected": "1px",
+      "actual": "1px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "border-top-color",
+      "expected": "rgba(0,0,0,.08)",
+      "actual": "rgba(0, 0, 0, 0.08)",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "padding-left",
+      "expected": "16px",
+      "actual": "16px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot strip sits on the page tint with the header-weight divider above it",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot",
+      "property": "padding-top",
+      "expected": "10px",
+      "actual": "10px",
+      "status": "MATCH",
+      "note": "dc.html p11 line 111: padding 10px 16px, border-top 1px solid rgba(0,0,0,.08), background #FAFAF8, font-size 12px. Rendered as a StateNote (band tint, left rule, no link) before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the card foot carries the 'Browse regulations →' link on its right",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot a",
+      "property": "font-weight",
+      "expected": "600",
+      "actual": "600",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the changed-since-last-visit state note sits INSIDE the Watched card, after its foot",
+      "selector": "[data-audit=\"watched-card\"] .cl-card-foot ~ [data-audit=\"changed-note\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "dc.html p11 line 115. Absent entirely before this pass. The sibling combinator is the placement assertion: below the foot, still inside the card."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the Recalculation notices card exists and follows the Watched card",
+      "selector": "[data-audit=\"watched-card\"] ~ [data-audit=\"recalculation-notices\"]",
+      "property": "display",
+      "expected": "block",
+      "actual": "block",
+      "status": "MATCH",
+      "note": "dc.html p11 lines 121-131. The whole card was missing before this pass."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
+      "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
+      "property": "font-size",
+      "expected": "10.5px",
+      "actual": "10.5px",
+      "status": "MATCH",
+      "note": null
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "the notices card's head is the same shared SectionHeading, with the artboard's aside",
+      "selector": "[data-audit=\"recalculation-notices\"] .cl-section-heading-aside",
       "property": "letter-spacing",
-      "expected": "0.04em (= 0.8px at 20px)",
-      "actual": "0.8px",
+      "expected": "0.12em (= 1.26px at 10.5px)",
+      "actual": "1.26px",
       "status": "MATCH",
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "matrix card foot strip exists and states the dash convention (artboard p8 foot: the 'Compare against' control plus the no-data note)",
-      "selector": "[data-audit=\"ops-matrix-foot\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "the 'Compare against' control sits in the card FOOT, not above the table (it moved; DOM order is the check)",
-      "selector": "[data-audit=\"ops-matrix-card\"] .cl-ops-matrix-table ~ [data-audit=\"ops-matrix-foot\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "the matrix card precedes the first band card's foot strip — the matrix is FIRST in the content column, above the band cards",
-      "selector": "[data-audit=\"ops-matrix-card\"] ~ * [data-audit=\"band-foot-strip\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "every band card is closed by a foot strip carrying the transition into the next band (or 'end of list' on the last)",
-      "selector": "[data-audit=\"band-foot-strip\"]",
-      "property": "count",
-      "expected": "3",
-      "actual": "3",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "the last band card's foot strip says 'end of list'",
-      "selector": "[data-audit=\"band-foot-strip\"]",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "rail FILTERS card mounts before the COVERAGE GAPS card (p8 rail order: Filters, Coverage gaps, Legend)",
-      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"coverage-gaps-rail\"]",
+      "target": "rail card 1 is Filters (the app's own facets, relocated out of the content column)",
+      "selector": "[data-audit=\"filters-rail\"]",
       "property": "display",
       "expected": "block",
       "actual": "block",
@@ -7410,15 +7687,15 @@
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "rail COVERAGE GAPS card mounts before the LEGEND card",
-      "selector": "[data-audit=\"coverage-gaps-rail\"] ~ [data-audit=\"legend-rail\"]",
+      "target": "rail order: Filters before Share with workspace",
+      "selector": "[data-audit=\"filters-rail\"] ~ [data-audit=\"share-rail\"]",
       "property": "display",
       "expected": "block",
       "actual": "block",
@@ -7426,148 +7703,116 @@
       "note": null
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "rail facet order is REGION then DIMENSION (p8's own two groups, in p8's order)",
-      "selector": "[data-audit=\"facet-region\"] ~ [data-audit=\"facet-dimension\"]",
+      "target": "rail order: Share with workspace before Legend (artboard 11's own rail order)",
+      "selector": "[data-audit=\"share-rail\"] ~ [data-audit=\"legend-rail\"]",
       "property": "display",
       "expected": "block",
       "actual": "block",
       "status": "MATCH",
-      "note": null
+      "note": "dc.html p11 lines 134-195: Share with workspace, then Legend."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "the R7 extra (Mode, which p8's rail does not draw) follows both artboard groups, never ahead of one",
-      "selector": "[data-audit=\"facet-dimension\"] ~ [data-audit=\"facet-mode\"]",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
+      "target": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "property": "width",
+      "expected": "44px",
+      "actual": "44px",
       "status": "MATCH",
-      "note": null
+      "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "FILTERS card carries the DIMENSION group (p8 rail: D1 Regulatory feasibility ... D6 Operational cost)",
-      "selector": "[data-audit=\"filters-rail\"] p",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
+      "target": "the row's trailing control is a real 44px target inside the 44px cell (law-2)",
+      "selector": "[data-audit=\"watched-card\"] .cl-row-overflow button",
+      "property": "height",
+      "expected": "44px",
+      "actual": "44px",
       "status": "MATCH",
-      "note": null
+      "note": "dc.html p11 line 108 draws a 28x28 glyph; the button around it is 44x44 because it is a target beside the row link, not the row itself."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "all six dimensions D1-D6 render in the rail with no '+ N more' disclosure hiding D6",
-      "selector": "[data-audit=\"filters-rail\"] label",
-      "property": "display",
-      "expected": "flex",
-      "actual": "flex",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "COVERAGE GAPS card carries counted gap rows, not prose alone",
-      "selector": "[data-audit=\"coverage-gaps-rail\"] p",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": null
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "masthead scope line carries p8's own standing sentence after the live counts",
-      "selector": ".cl-masthead-dek",
-      "property": "display",
-      "expected": "block",
-      "actual": "block",
-      "status": "MATCH",
-      "note": "p8: 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date'. The two counts are live fields, so only the standing half is matched as text."
-    },
-    {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
-      "artboards": [
-        "08-operations-list"
-      ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
-      "viewport": 1440,
-      "target": "no content-column facet chip strip above the rows",
-      "selector": ".cl-facets-desktop",
+      "target": "no filter control in the content column (native selects)",
+      "selector": "select",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "Operator audit: 'the filters were not above the regulations, they were on the right — same on every page.' Operations' facets live in the rail's FILTERS card only."
+      "note": "Operator audit 2026-09-07: 'the filters were not above the regulations, they were on the right — same on every page.' The watchlist's Scope/Type selects sat above the rows; they are now checkbox rows in the rail's Filters card."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "no per-page ask panel on the list surface",
-      "selector": "[data-ask-panel]",
+      "target": "no filter chip strip in the content column",
+      "selector": ".cl-filter-group",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "The Masthead's CommandBar is the only search/ask surface; artboard 08 has no second ask bar and no floating Ask control (operator rulings 2.2/2.3)."
+      "note": "Same ruling: the Workspace-tags FilterChipGroup card that sat above the rows is gone; the same data is the rail Filters card's 'Workspace tags' group."
     },
     {
-      "spec": "compose-08-operations-list",
-      "part": "Operations page composition — OperationsLedger (real page component, not the ListSurfaceShell primitive or the bare RegionDimensionMatrix)",
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
       "artboards": [
-        "08-operations-list"
+        "11-watchlist"
       ],
-      "source": "dc.html p8 (#p8): masthead (VOL line, ANTON title, 'N active items · M jurisdictions · six dimensions per region · every fact carries a source and date' scope line, scoped search placeholder, Ask), the four band tiles, the 'REGIONS SIDE BY SIDE' matrix CARD (ruling 5.1 top rule, Anton head + coverage meta, table, foot strip with 'Compare against:' and the dash convention), band cards each closed by a foot strip ('All N <band>' and the transition into the next band), and the rail in order FILTERS (REGION then DIMENSION) → COVERAGE GAPS → LEGEND.",
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
       "viewport": 1440,
-      "target": "the literal word UNSCORED as page text",
+      "target": "the literal word UNSCORED anywhere on the page",
       "selector": "body [text contains \"UNSCORED\"]",
       "property": "(forbidden element)",
       "expected": "absent",
       "actual": "absent",
       "status": "MATCH",
-      "note": "Operator ruling P1 2.1: the literal token never appears. Absence renders the lowercase fixed-vocabulary word with uppercase CSS, so textContent reads lowercase."
+      "note": "Operator ruling P1 2.1: this literal token never appears; Absence renders the fixed-vocabulary reason in small caps via CSS on lowercase text."
+    },
+    {
+      "spec": "compose-11-watchlist",
+      "part": "Watchlist page composition — the real WatchlistSurface (not a shell primitive fed invented props)",
+      "artboards": [
+        "11-watchlist"
+      ],
+      "source": "dc.html p11 (#p11): masthead (VOL line, WATCHLIST, scope line 'N watched · personal · M shared by the workspace', command bar placeholder 'Search your watchlist — or ask \"what changed on my watched items?\"'), then a 1fr/300px body — content column: Watched card (SectionHeading 'Watched · N' + 'Sorted by next date', column header Juris./Title · type · modes/Impact low → high/Next date/Timeline/Tier, rows, CardFoot + 'Browse regulations →', the changed-since-last-visit state note) then the Recalculation notices card; rail: Filters, Share with workspace, Legend.",
+      "viewport": 1440,
+      "target": "no floating Ask control",
+      "selector": ".cl-ask-fab",
+      "property": "(forbidden element)",
+      "expected": "absent",
+      "actual": "absent",
+      "status": "MATCH",
+      "note": "Operator ruling P1 2.2: the masthead command bar is the only ask surface; no floating control on any page."
     },
     {
       "spec": "detailheader",
@@ -11707,7 +11952,7 @@
       "selector": ".cl-list-row-header",
       "property": "grid-template-columns",
       "expected": "3px 56px * 88px 84px 76px 40px 44px",
-      "actual": "3px 56px 289px 88px 84px 76px 40px 44px",
+      "actual": "3px 56px 277px 88px 84px 76px 40px 44px",
       "status": "MATCH",
       "note": "dc.html #sys: height 30px, border-bottom 1px solid rgba(0,0,0,.08), same grid as the row."
     },
