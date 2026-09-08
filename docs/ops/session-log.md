@@ -12706,3 +12706,94 @@ composition rows); rendering guard **PASS** (11 fixtures, 431 checks, 7 SM + 12 
 **0 fail**, exit 0 (the known "kill switch ON but no DB creds" failure did not reproduce);
 `next build --webpack` exit 0 with no `.env.local`. Side-by-side regenerated from the folded code
 and READ beside the artboard: `docs/design/handoff-2026-09-06/built/compose-10-map.png`.
+
+## Addendum 86, postscript 15: lane community60 — artboard 12 (/community) composed (2026-09-08, lane COMMUNITY-60)
+
+Train 60, page-composition lane, one artboard: 12 `/community`, named in postscript 14's fold report
+as "the least-composed page". Six listed differences, all closed, plus the four the region table
+turned up on the way.
+
+**Region table, before and after.** Left column top to bottom, then the rail.
+
+| # | Artboard 12 region | Before | After |
+|---|---|---|---|
+| L0 | (none) | `<h2>REGIONAL ROOMS</h2>` + "N active items across N rooms · you're in N" | REMOVED; the figures are the masthead dek's, which already carries them |
+| L1 | Tile grid, 4 fixed columns, 7 rooms + dashed "+ New vertical group" | present, but tiles read the 3-char key ("GLO") in a 15px display font with a 20px count | tiles read the room NAME at 11px / .1em / uppercase / 800; count Anton 18px through `formatNumber`; sub-line "**Joined** · N discussions · <last activity>" or "no discussions yet" |
+| L2 | (none) | room header card: name, counts, Join/leave, "Live in this region" ledger strip | MOVED to L5 (R7) |
+| L3 | `<ROOM> ROOM` card: SectionRule, Anton head + "N DISCUSSIONS · N SHOWN · N MEMBER HERE", table JURIS./DISCUSSION/REPLIES/LAST ACTIVITY + ⋯, foot strip with "Start a discussion" | stacked card feed with an inline composer and a per-card action bar; no head aside, no columns, no foot | the artboard's table on the shared `ui/RowTable` (64px / minmax(0,1fr) / 96px / 120px / 44px, 30px header, 56px rows, trailing rule), shared `SectionRule` + `SectionHeading` + `CardFoot`; whole row is the click target |
+| L4 | `NEW POST · <ROOM>` card with "POSTS TO THE <ROOM> ROOM" aside, 64px box, starter chips left, Post right | did not exist (the composer lived inside L3) | built as drawn; "Start a discussion" in L3's foot focuses it |
+| L5 | (none) | — | the L2 card, unchanged in content, in R7's "after the last designed region of the column" slot |
+| R1 | WHO'S HERE · <ROOM>, Anton count, roster rows with OWNER, foot sentence | present, but the foot read "The network is N members and grows by…" | artboard's sentence verbatim; `networkMemberCount` prop and its page-side computation deleted |
+| R2 | VERIFIER SIGN-OFF, the sentence, "Your open requests · NONE" | THIRD in the rail; 9.5px/.13em eyebrow; no SectionRule; open-requests as a bordered sub-section | SECOND, as drawn; SectionRule; 10.5px/.12em/700 eyebrow; the artboard's one-line form |
+| R3 | WHY POST HERE paragraph | SECOND in the rail; paragraph continued into "post → engagement → Admin pickups (N) → platform brief" | THIRD, as drawn; paragraph is the artboard's verbatim; the pickups link is a `CardFoot` line (R7) |
+| R4 | (none) | VERTICAL GROUPS card | unchanged, still last (R7) |
+
+**Shared parts extended, additively, never forked.** `ui/RowTable` gained an optional `metrics`
+prop (`{paddingLeft, rowMinHeight, ruleAfterLastRow}`, defaulting to artboard 13's 16 / 48 / false)
+and per-row `id` / `onActivate` / `activateLabel` / `below`; `RowTableOverflow`'s button now stops
+propagation so it cannot also fire the row it sits in. `src/lib/relative-time.ts`'s two formatters
+gained an optional `now` instant. No other lane's file changed.
+
+**What R8 required, and what it got.** The thread page is NOT built. The table is the room index; a
+row expands in place, and it carries the `#post-<id>` id the rail's own sign-off links already
+pointed at, so no anchor broke. Reply / Cite source / Request verifier sign-off / Delete moved from
+the deleted per-card action bar into the row's ⋯ menu (R7's row-overflow precedent) — every write
+stayed reachable, no control became dead (ruling 1.1).
+
+**Absence, not invention.** Two artboard values have no data path and are logged with the schema
+read that proves it: the per-row QUESTION / PRACTICE / MARKET / TEMPLATE tag chip (`community_posts`,
+migration 030, has no kind/topic/tag column) renders `<Absence reason="connect data"/>`; the leading
+unread dot on two of the artboard's four rows has no per-user thread read state anywhere in the
+schema and is not drawn. The org name in "Opened by A. Weiss · Dietl" went the other way — it is now
+REAL, via a bounded `organizations` read on the author set the page already fetched.
+
+**Hydration.** LAST ACTIVITY is relative time inside a `"use client"` component, `render-now.ts`'s
+documented hazard. `/community` now passes `renderNowIso()` down as `nowIso` and every relative
+string derives from it. `components/community` is outside `render-clock.npmtest.mjs`'s SCOPE list, so
+this is a threading, not an annotation — an annotation would have been a claim it is safe.
+
+**Test updated to the product.** `ProvisionalReviewTable.npmtest.mjs` pinned RowTable's row geometry
+as literals (`minHeight: 48,`, `padding: "0 12px 0 16px"`). The invariant is unchanged — that table
+passes no `metrics` — so the assertions now read the DEFAULTS, plus a new one that the admin table
+passes no metrics at all. Two new tests were added rather than none: `ui/RowTable.npmtest.mjs` (the
+p13 defaults survive the extension; the overflow control's 44px box and its stopPropagation) and
+`community/CommunityRooms.composition.npmtest.mjs` (the regions, the shared parts, both R7
+placements, the rail order, the server instant). `lib/relative-time.npmtest.mjs` runs the real
+functions through jiti rather than grepping them, because the point of the new parameter is the
+value it produces.
+
+**Visual pass.** `built/compose-12-community-built.png` recaptured and
+`built/compose-12-community.png` regenerated through `compose-composite.mjs`, then read beside
+`screens/12-community.png`. No overflow, no cell collision, no orphan line at 1440. Remaining
+differences are the logged ones (relative-time vocabulary, the absent tag chip and unread dot, the
+fixture's three threads against the artboard's four) plus one that is NOT this page's: the shared
+`ui/Masthead` stacks its command bar below the dek where the artboard puts it beside the title, which
+is true of all 17 artboards and belongs to a Masthead-scoped lane.
+
+**UX compliance**: this lane touched `.tsx` under `fsi-app/src` — `components/ui/RowTable.tsx`,
+`components/community/CommunityRooms.tsx`, `app/community/page.tsx`. Every new interactive element
+meets the 44px minimum: the table row is 56px and is the single click target for its thread (whole
+row, `role="button"`, `tabIndex=0`, Enter/Space); the ⋯ control is a full 44x44 button whose VISIBLE
+parts are the artboard's 32px divider and 28px glyph; every menu item is a 44px row; Post, Reply,
+Start a discussion and Join/leave carry `min-h-[44px]`; the cite-picker's per-item buttons are 44px;
+the "Live in this region" links are 44px. Nothing gained a hover-only affordance. Rendering guard
+PASS with no new failures, including the community-surface UX smoke spec at 375 and the bounds/
+overlap assertions this lane added to the compose-12 spec (no discussion-table cell escapes its row
+or overlaps a sibling — the operator's own 2026-09-07 complaint class, now measured on this page).
+
+**Gates** (this container; the coordinator lands): `tsc --noEmit` clean; fitness runner 33/33, **0
+violations**; rendering guard **PASS** (11 fixtures, 431 checks, 7 SM + 12 UX smoke specs, 83 + 216
+checks); design audit **60 specs, 1031 checks, 1031 MATCH**, 0 MISMATCH / 0 NOT BUILT / 0 NOT IN SPEC
+(compose-12 grew from 8 checks to 46); CI npmtest glob **819/819 PASS** (798 before, +21 from this
+lane's three new files); `run-test-suite.sh` 5917 tests, **5912 pass, 0 fail**, 5 skipped, exit 0
+(the known "kill switch ON but no DB creds" failure did not reproduce); `override-check` exit 0, no
+drift; `invariant-coverage.mjs` PASS (119 invariants + 63 doctrines); `next build --webpack` exit 0
+with no `.env.local`.
+
+**One harness note worth carrying forward.** `run-audit.mjs` mounts its page WITHOUT the compiled
+app CSS (unlike `capture-compose-page.mjs`, which injects it), so `theme.css`'s custom properties are
+undefined there and any spec asserting a `var(--fs-*)`-derived font-size measures the 16px fallback
+and reports a MISMATCH against a correct product. Two of this lane's first-draft spec rows hit it.
+The rows now assert the literal values the same elements carry and say why the size is not among
+them; the alternative (injecting the CSS into the audit page) would change what all 60 specs measure
+and is a harness decision, not a lane's.
