@@ -281,8 +281,27 @@ export function MapPageView(props: MapPageViewProps) {
   return (
     <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-map-outer">
       <style>{`
+        /* D-M3 (lane mobfix61, 2026-09-08, operator mobile report: "map page complete overlaps
+           sections") [CONFIRMED root cause, twice over]. The rule here named .cl-map-grid, and
+           .cl-map-grid is the INNER content column below — which is a display:flex element, so
+           grid-template-columns on it was inert even on its own terms. The element that actually
+           holds the two-column layout is THIS one, .cl-map-outer, and nothing addressed it: the
+           300px rail track survived at every width, so at 390 the rail cards were laid out on top
+           of the MODE / BAND / REGION chip rows. A media query naming a class no element in the
+           file carries is a silent no-op, which is why this shipped; F40 in
+           .discipline/fitness/functions is the mechanical check that the class named in an @media
+           block exists on an element in the same file, so this class of defect cannot come back.
+
+           Below 1280 the rail folds under the content — the same one-track rule every other page
+           shell uses (ListSurfaceShell's own .cl-list-surface-grid), with minmax(0, 1fr) rather
+           than a bare 1fr so the single track cannot grow past the viewport on its content's
+           min-content width. Below 768 the page padding drops to the mobile 390 spec's measures
+           (14px 16px 16px), replacing the hardcoded 40px sides. */
         @media (max-width: 1280px) {
-          .cl-map-grid { grid-template-columns: 1fr !important; }
+          .cl-map-outer { grid-template-columns: minmax(0, 1fr) !important; }
+        }
+        @media (max-width: 767px) {
+          .cl-map-outer { padding: 14px 16px 16px !important; gap: 16px !important; }
         }
       `}</style>
 

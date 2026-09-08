@@ -122,7 +122,22 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           text-wrap: balance;
         }
         @media (max-width: 767px) {
-          .cl-masthead-body { padding: 14px 16px 0 !important; }
+          /* D-M5 (lane mobfix61, 2026-09-08, operator mobile report: "search bar touched
+             bounding box") [CONFIRMED by measurement at 390 on compose-02-regulations]:
+             card bottom 186.3, body bottom 185.3, command bar bottom 185.3 — the bar's bottom
+             edge sat ON the card's own 1px bottom border with ZERO padding beneath it, on every
+             mobile surface, because this rule set the body's bottom padding to 0 and the command
+             bar is the body's last child.
+
+             The mobile 390 spec's "padding 14px 16px 0" describes where the BODY's content
+             STARTS; the artboard still draws the card's own padding below the bar, and a card
+             whose content touches its border breaks the contained-by-its-parent rule whatever
+             the spec text reads (this lane's brief: "the card must contain its content with the
+             spec's padding ... which is what the artboard shows"). 16px is the same spec's own
+             bottom measure for the tile/content container directly beneath, so the two agree.
+             Measured after: card bottom 202.3, bar bottom 185.3, 16px of clearance. Logged in
+             DEVIATION-LOG.md. */
+          .cl-masthead-body { padding: 14px 16px 16px !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }
           .cl-masthead .cl-masthead-title { font-size: 24px !important; line-height: 1.08 !important; margin-top: 5px !important; }
           /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the mobile 390 spec gives the
