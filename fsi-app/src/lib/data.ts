@@ -39,6 +39,9 @@ import {
   type ResourcePage,
 } from "@/lib/supabase-server";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+// lane rsc503 (2026-09-08): the cache must never be given a fail-soft FALLBACK payload. See
+// lib/cache/fallback-guard.ts for the mechanism and the production defect it removes.
+import { refuseToCacheFallback, readThroughFallbackGuard } from "@/lib/cache/fallback-guard";
 import { fetchAllRows } from "@/lib/db/paginate.mjs";
 // CAP-1000-FIX-2 (2026-09-05): imported from the pure supabase-env module directly, not via
 // supabase-server (which imports @supabase/supabase-js + next/cache at module scope). This file is
@@ -165,7 +168,7 @@ const PUBLIC_ITEMS_REVALIDATE_SECONDS = 6 * 60 * 60; // 6 hours
  * routes invalidates immediately on user-driven changes.
  */
 const cachedAppData = unstable_cache(
-  async (orgId: string | null) => {
+  refuseToCacheFallback(async (orgId: string | null) => {
     // Sprint 3 E1 (2026-05-25): dropped fetchSourceData from the
     // getAppData merge. The Dashboard home tree + src/app/page.tsx do
     // not consume data.sources / data.provisionalSources /
@@ -186,7 +189,7 @@ const cachedAppData = unstable_cache(
       }),
     ]);
     return dashboardData;
-  },
+  }),
   // Shape-stamped key (rule 021): rotates whenever the DashboardData
   // interface changes, so a stale cross-deployment cache entry can never
   // reach code compiled against a newer shape. Never inline the key string
@@ -234,7 +237,7 @@ export async function getAppData() {
   const t0 = Date.now();
   try {
     const orgId = await resolveOrgIdFromCookies();
-    const data = await cachedAppData(orgId);
+    const data = await readThroughFallbackGuard(() => cachedAppData(orgId));
     console.log(`[perf] getAppData ${Date.now() - t0}ms`);
     alertIfFallback(data, "/");
     return data;
@@ -283,13 +286,13 @@ export async function getAppData() {
 // cache instead of re-running the RPC; a first hit per org per surface still pays the full query, same as
 // before.
 const cachedResourcesOnly = unstable_cache(
-  (orgId: string | null, page?: ResourcePage) => fetchResourcesOnly(orgId, page),
+  refuseToCacheFallback((orgId: string | null, page?: ResourcePage) => fetchResourcesOnly(orgId, page)),
   ["resources-only-4f1a9b3d"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
 
 const cachedListingsOnly = unstable_cache(
-  (orgId: string | null, page?: ResourcePage) => fetchListingsOnly(orgId, page),
+  refuseToCacheFallback((orgId: string | null, page?: ResourcePage) => fetchListingsOnly(orgId, page)),
   ["listings-only-4f1a9b3d"],
   { revalidate: 60, tags: [APP_DATA_TAG] }
 );
@@ -307,7 +310,7 @@ export async function getResourcesOnly(page?: ResourcePage): Promise<{
       setTimeout(() => reject(new Error("getResourcesOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = cachedResourcesOnly(orgId, page);
+    const dataPromise = readThroughFallbackGuard(() => cachedResourcesOnly(orgId, page));
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getResourcesOnly ${Date.now() - t0}ms`);
     // SF-2 Phase 1: route-agnostic since this fetcher serves multiple
@@ -354,7 +357,7 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
       setTimeout(() => reject(new Error("getListingsOnly timeout")), 10000)
     );
     const orgId = await resolveOrgIdFromCookies();
-    const dataPromise = cachedListingsOnly(orgId, page);
+    const dataPromise = readThroughFallbackGuard(() => cachedListingsOnly(orgId, page));
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");
@@ -400,13 +403,13 @@ export async function getListingsOnly(page?: ResourcePage): Promise<{
  * per org). Tagged PUBLIC_ITEMS_TAG, not APP_DATA_TAG — see that constant's header.
  */
 const cachedPublicResourcesOnly = unstable_cache(
-  (page?: ResourcePage) => fetchPublicResourcesOnly(page),
+  refuseToCacheFallback((page?: ResourcePage) => fetchPublicResourcesOnly(page)),
   ["public-resources-only-perf10"],
   { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
 
 const cachedPublicListingsOnly = unstable_cache(
-  (page?: ResourcePage) => fetchPublicListingsOnly(page),
+  refuseToCacheFallback((page?: ResourcePage) => fetchPublicListingsOnly(page)),
   ["public-listings-only-perf10"],
   { revalidate: PUBLIC_ITEMS_REVALIDATE_SECONDS, tags: [PUBLIC_ITEMS_TAG] }
 );
@@ -422,7 +425,7 @@ export async function getPublicResourcesOnly(page?: ResourcePage): Promise<{
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("getPublicResourcesOnly timeout")), 10000)
     );
-    const dataPromise = cachedPublicResourcesOnly(page);
+    const dataPromise = readThroughFallbackGuard(() => cachedPublicResourcesOnly(page));
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getPublicResourcesOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/operations|/market");
@@ -450,7 +453,7 @@ export async function getPublicListingsOnly(page?: ResourcePage): Promise<{
     const timeout = new Promise<never>((_, reject) =>
       setTimeout(() => reject(new Error("getPublicListingsOnly timeout")), 10000)
     );
-    const dataPromise = cachedPublicListingsOnly(page);
+    const dataPromise = readThroughFallbackGuard(() => cachedPublicListingsOnly(page));
     const result = await Promise.race([dataPromise, timeout.then(() => { throw new Error("timeout"); })]);
     console.log(`[perf] getPublicListingsOnly ${Date.now() - t0}ms`);
     alertIfFallback(result, "/regulations");
