@@ -15801,3 +15801,100 @@ discipline suite 5989 tests, 0 fail; CI npmtest glob 1006 tests, 0 fail; `next b
 
 **Open, for the operator.** One ruling is wanted: the /community sidebar navigation groups, R2
 content or R3 control surface. Everything else in the sweep is either fixed or reasoned in place.
+## LANE METERFIX (2026-09-08, train 62): one defect, the partially scored impact meter
+
+**Scope.** One defect, named by the operator and left unowned by the lane that found it. His ruling,
+verbatim: "ROW: meter with one bar and 2/12. Artboard: four bars sorted ascending, coloured by value,
+on a 1px baseline. If only some dimensions are scored the unscored ones render as 0-height on the
+baseline; the sum shows. If none are scored, absence variant. Never one lonely bar." The fully
+unscored case (the 30px dashed baseline plus the em dash) was already correct and was not touched.
+
+**The defect, re-measured this session [CONFIRMED].** `fsi-app/src/components/ui/ImpactMeter.tsx`'s
+scored branch drew every bar at `${v * 6}px`. A dimension scored 0 therefore painted a 9px-wide,
+0px-tall box: it held its slot but put no ink in it. Measured in chromium through the real `ListRow`,
+a row scored [0,0,0,2] rendered `0px,0px,0px,12px` at 1440 and `0px,0px,0px,10px` at 390: three
+invisible boxes and one bar beside "2/12", which is the "one lonely bar" the ruling forbids.
+
+**What the artboard actually draws for a zero dimension: nothing, because it never draws one.**
+Enumerated mechanically over `docs/design/handoff-2026-09-06/Caros Ledge UI System.dc.html`: 34 meter
+clusters across sections p1 (8), p2 (11), p4 (8), p6 (3), p8 (3) and p11 (1). Every one of them has
+four bars at 6, 12 or 18px; the lowest sum drawn anywhere is 4/12 (four dimensions at 1). Every meter
+container is `display:flex;align-items:flex-end;gap:2px;height:18px;border-bottom:1px solid
+rgba(0,0,0,.25);padding-bottom:0`, and the unscored row (p2, the two MONITOR catalogue records) is
+`width:30px;height:18px;border-bottom:1px dashed rgba(0,0,0,.3)` plus an em dash. There is no zero
+bar, no stub, no tick and no lighter track anywhere in the drawing, so the treatment is DERIVED and
+is recorded as derived in DEVIATION-LOG.md and in `impactmeter.json`'s notes.
+
+**The treatment.** A dimension scored 0 keeps its 9px slot and draws a **2px stub** in the baseline's
+own ink, `rgba(0,0,0,.25)`. Against the ruling's two halves: the unscored dimension is visibly a
+dimension at zero (ink in the slot, at a height no score can produce and in a colour no score uses),
+and the row can no longer read as one lonely bar (all four slots carry ink). Against the artboard's
+geometry rather than taste: the score unit is 6px, so 2px is one third of the smallest scored bar and
+cannot be confused with a 1; 1-2px is the scale the drawing already works at for non-bar ink (the 1px
+baseline stroke, the `1px 1px 0 0` bar radius); and `rgba(0,0,0,.25)` is the only non-ramp colour the
+artboard's meter contains, so the stub belongs to the baseline's vocabulary and not to the value ramp.
+One constant changed beyond the height: the bar-colour fallback for a value outside 1-3 moved from
+`var(--line-1)` (rgba(0,0,0,.12)) to `rgba(0,0,0,.25)`, because a stub fainter than the baseline it
+stands on is invisible in practice. `VALUE_COLOR` itself is untouched, as are the 9px width, the 2px
+gap, the 18px height, the 1px baseline, the sum label, the absence variant and MOBILE_CSS. The stub
+needs no media-query rule because MOBILE_CSS overrides heights only for `data-score` 1/2/3.
+
+**Rendered heights, before -> after.**
+
+| scores | 1440 before | 1440 after | 390 before | 390 after |
+|---|---|---|---|---|
+| [0,0,0,2] | 0,0,0,12 | **2,2,2,12** | 0,0,0,10 | **2,2,2,10** |
+| [1,0,2,0] | 0,0,6,12 | **2,2,6,12** | 0,0,5,10 | **2,2,5,10** |
+| [3,3,3,3] | 18,18,18,18 | 18,18,18,18 | 16,16,16,16 | 16,16,16,16 |
+
+Sums unchanged throughout (2/12, 3/12, 12/12).
+
+**Where it was verified: every surface the meter mounts on, not one.** There is exactly ONE
+row-variant mount site in the app, `ListRow.tsx:571`, with no page-local meter and no second copy (rule
+13). `verify-meterfix-surfaces.mjs` (new, `npm run verify:meterfix-surfaces`) reuses the design
+audit's own compose mounts, scores each surface's fixture rows [0,0,0,2] and reads computed bar
+heights out of chromium at 1440 and 390: Dashboard (Due next + What changed), Regulations, Market,
+Research, Operations, Watchlist. 12 legs, all PASS on this branch; all 12 FAIL on the base tree with
+193 invisible bars between them.
+
+**Proofs, red then green by attack.**
+- `.discipline/rendering/smoke/impact-meter-partial-smoke.mjs` (new, registered in
+  run-rendering-guard.mjs's SMOKE_SPECS): mounts the real ListRow -> real ImpactMeter, asserts
+  rendered heights, the four-bar count, no bar below 1px, the zero bar's ink and the sum label, at
+  1440 and 390. 38 checks. Attacked by reverting ImpactMeter.tsx alone: 12 failures, every one naming
+  the measured `0px`; restored: 0 failures. The fully scored control row stayed green throughout.
+- `impactmeter.json`: five new spec rows plus one `forbid` for the partial case, on a new
+  `row-partial` mount ([0,0,0,2]). 52/52 MATCH.
+- `ImpactMeter.npmtest.mjs`: two new source-level guards on the constants, and B33-B39 updated to the
+  new height expression.
+
+**GATES.** `tsc --noEmit`: **1 error, PRE-EXISTING, not this lane**.
+`src/lib/supabase-server.ts:1012` TS1117, reproduced identically with this lane's changes stashed.
+Lanes duenext and briefdata each added the same `complianceDeadline: row.compliance_deadline ||
+undefined` line to the same object literal in `mapWorkspaceItemRows`, at lines 970 and 1012. Same
+value, so it is semantically harmless and a hard compile error. `next build --webpack` fails on that
+same line and on nothing else. Remedy, PROVEN this session by applying it and reverting it: delete
+lines 1003-1012 (the second comment block and its duplicate key), keeping the line at 970. With that
+one hunk, `tsc --noEmit` is clean and `next build --webpack` exits 0. Left for the coordinator rather
+than fixed here: it is another lane's file, mid-fold, and this lane's scope is one defect.
+Fitness runner: 3 violations, identical to the base tree (F9 tsconfig, F42 x2 in
+src/components/sources), so 0 added; the two hand-run scripts this lane adds are wired into
+`package.json` so F25 stays clean, the same resolution train 57 used for
+`capture-defect-fix-screenshots.mjs`. Rendering guard: FAIL, 111 unique failure lines, byte-identical
+to the base tree's 111 (all layout-guard L2/L9/L10 legs on /settings, /community, the five lists), so 0
+added, and the new smoke spec is registered and green inside it. `npm run audit:design`: 71 specs,
+2362 checks, 2361 MATCH, 1 MISMATCH, on `compose-01-dashboard`, Due-next row count 2 vs 3, reproduced on
+the base tree with this lane stashed, same duenext/briefdata interaction, not this lane.
+`npm run audit:layout`: 990 findings, identical rule-by-rule to the base tree, no rise.
+`run-test-suite.sh`: 5997 tests, 0 fail, 5 skipped. CI npmtest glob: the failing set is
+byte-identical to the base tree's (0 added, 0 fixed); the tests beside what this lane touched
+(ImpactMeter, ListRow, DetailShell npmtests) are 54/54 pass.
+
+**Evidence.** `docs/design/handoff-2026-09-06/built/meterfix-partial-{before,after}-{1440,390}.png`,
+captured through the real ListRow by `npm run capture:meterfix-screenshots` and read back before
+reporting.
+
+**UX compliance.** No new row component and no new page surface: one shared part changed, in place.
+DP-1/DP-2 and the 375px row measurements are unaffected, because the meter's container height, bar width,
+gap and baseline are untouched at both viewports, which the rendering guard's UX smoke slot re-ran
+green (232 ux checks, same as base).
