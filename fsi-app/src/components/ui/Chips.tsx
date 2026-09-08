@@ -62,9 +62,15 @@ const TIER_CHIP_MOBILE_CSS = `
 `;
 
 /** Bordered square tier chip, T1-T6. Clamped so a raw out-of-range source
- *  tier never renders a broken label. */
-export function TierChip({ tier }: { tier: number }) {
-  const clamped = Math.max(1, Math.min(6, Math.round(tier)));
+ *  tier never renders a broken label.
+ *
+ *  `max` widens the clamp for the SOURCE tier vocabulary, which runs T1-T7
+ *  (src/lib/tier-labels.ts) rather than the item-tier T1-T6 of operator ruling
+ *  2.5, the admin provisional-review table (artboard 13) renders source tiers.
+ *  Additive: the default is unchanged, so every existing call site and every
+ *  spec measuring one keeps the T1-T6 behaviour exactly. */
+export function TierChip({ tier, max = 6 }: { tier: number; max?: number }) {
+  const clamped = Math.max(1, Math.min(max, Math.round(tier)));
   return (
     <>
       <style>{TIER_CHIP_MOBILE_CSS}</style>
