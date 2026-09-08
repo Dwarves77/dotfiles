@@ -57,6 +57,12 @@ import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
 import { UX_SMOKE_SPECS } from "./smoke/ux-smoke-specs.mjs";
+// SITE-WIDE LAYOUT GUARD (lane layoutguard, 2026-09-08, operator dispatch "SITE-WIDE LAYOUT GUARD":
+// "Add the guard to the 1440/1024 rendering check so no train lands with a failure"). Rules L1-L12
+// over all 17 routes at 1440 and 1024, on the design audit's OWN mounts and in THIS chromium
+// instance, so the whole guard costs no extra process. See layout-guard/rules.mjs for the rule
+// set and its per-rule provenance, and layout-guard/allowlists.mjs for the exceptions as data.
+import { runLayoutGuard } from "./layout-guard/run-layout-guard.mjs";
 
 // playwright is a hoisted/global install in some environments (this repo's own container included)
 // that a plain ESM `import "playwright"` cannot see — Node's ESM resolver, unlike CJS `require`,
@@ -211,6 +217,21 @@ async function main() {
   checks += uxChecks;
   failures.push(...uxFailures);
 
+  // ── Site-wide layout guard (2026-09-08): 17 routes × 2 widths × 12 rules, in this same browser.
+  // Its failure lines already name the rule, the route, the element and the measured numbers, so
+  // they go straight into this runner's own list without reformatting. ───────────────────────────
+  let layoutChecks = 0;
+  const layoutFailures = [];
+  try {
+    const { checks: c, failures: f } = await runLayoutGuard(browser);
+    layoutChecks = c;
+    layoutFailures.push(...f);
+  } catch (err) {
+    layoutFailures.push(`layout-guard: threw: ${err?.stack || err}`);
+  }
+  checks += layoutChecks;
+  failures.push(...layoutFailures);
+
   await browser.close();
 
   // Addendum item 8: split off failures covered by a still-active, dated, per-page 375 exemption
@@ -234,6 +255,7 @@ async function main() {
   console.log(`\n===== RENDERING GUARD (browser) =====`);
   console.log(`fixtures: ${fixtures.length}  viewports: ${VIEWPORTS.join(",")}  checks: ${checks}`);
   console.log(`SM smoke specs: ${SMOKE_SPECS.length} (${SMOKE_SPECS.map((s) => s.name).join(", ")})  smoke checks: ${smokeChecks}`);
+  console.log(`layout guard: ${layoutChecks} route×width measurement(s), ${layoutFailures.length} finding(s)`);
   console.log(`UX smoke specs: ${UX_SMOKE_SPECS.length} (${UX_SMOKE_SPECS.map((s) => s.name).join(", ") || "none registered"})  ux checks: ${uxChecks}`);
   if (newMobileFindings.length) {
     console.log(`\nNEW mobile/tablet overflow findings (< 480px, missed by the 1297px audit):`);

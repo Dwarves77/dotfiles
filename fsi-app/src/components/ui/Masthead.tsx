@@ -195,6 +195,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
         <div className="cl-masthead-titleblock" style={{ minWidth: 0, flex: "1 1 auto" }}>
           <h1
             data-guard-title
+            data-guard-display="page-title"
             className="cl-masthead-title"
             style={{
               fontFamily: "var(--font-display)",

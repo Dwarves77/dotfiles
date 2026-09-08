@@ -14354,3 +14354,61 @@ cannot be reproduced locally and is not claimed to be; the coordinator confirms 
 **Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks, up from
 445); node --test rendering globs 82 pass / 0 fail; audit:design 70 specs / 2018 MATCH; run-test-suite
 5975 tests / 0 fail.
+
+## 2026-09-08 - Lane layoutguard: the site-wide layout guard (L1 to L12)
+
+ACCOMPLISHED. Built the operator's SITE-WIDE LAYOUT GUARD as a named guard inside the existing
+rendering engine (`fsi-app/.discipline/rendering/layout-guard/`), not a thirteenth harness: it mounts
+all 17 routes on the design audit's OWN mounts, at 1440 and 1024, collects one measurement bundle per
+route and width, and judges it with twelve pure detectors that the node --test suite proves without a
+browser. Reports by RULE and by ROUTE; every failure line names the rule, the route, the element and
+the measured numbers. Ran it, published the failure table
+(`docs/audits/layout-guard-2026-09-08.md`), fixed the shared parts, routed the rest, and wired it
+into the rendering guard so no train can land with a NEW finding.
+
+Provenance: L3 and L11 already covered, L2 and L9 extended, the other eight new. Full argument in
+DEVIATION-LOG.md, this lane's section.
+
+FIXED (shared parts, before and after measured by the guard itself):
+- `components/ui/Card.tsx` - THE card. Four byte-for-byte identical local `function Card()`
+  definitions (DashboardBrief, ListSurfaceShell, MapPageView, WatchlistSurface) replaced by one
+  import each. Rule 13, and the reason L6 was unenforceable: with four definitions there was no one
+  place a card's chrome could be asserted.
+- `components/layout/PageFrame.tsx` - THE frame, README 0.3's grid plus the below-1280 stack.
+  Adopted by DashboardBrief and WatchlistSurface. Nine surfaces carried their own copy and the copies
+  had already drifted.
+- `/profile` frame padding `16px 40px 80px` to artboard p14's `18px 40px 40px`.
+- `CommandBar` input gains `text-overflow: ellipsis`: L12 went from 26 findings (13 routes at both
+  widths, placeholders of 339 to 546px cut inside a 283px input with no ellipsis) to 0.
+- `StateNote`'s action link and `DashboardRailCard`'s links to a 28px short axis: measured 24px,
+  4px under the operator's L9 floor, on every surface that declares a state.
+- `CardFoot`'s foot links to 28px, same rule.
+- L5 went 8 to 0 (the map's markers are inside the declared clipping viewport, geography not layout);
+  L8 went 6 to 0 (both were prose containing the word "pending").
+  Total: 941 findings to 783.
+
+ROUTED, with the owning part named in the audit document's routing table: the admin frame (the
+operator's own root cause, and his T1-T8 strip, which L4 measures at 387px of unreachable content at
+1024), the detail shell's frame and its section cards, CommunityRooms' frame, the settings page's
+split frame and its overlapping controls, the filter chips and list-surface controls.
+
+DECISIONS. L1 is a computed-style test, not a grep. L2's exclusions are four named cases, proven
+against a real overlap. L5 excuses contained decoration only. L7's allowlist is declared by the
+components that draw display type. L8 reads rendered text. L10's manifests come from the artboards.
+The 783 remaining findings are held by a dated baseline that expires at wave 65, the same mechanism
+and the same oracle `exemptions-375.mjs` uses, so they are a dated debt with a mechanical due date
+rather than a guard switched off.
+
+UX COMPLIANCE. Every `.tsx` in the write set was measured by this lane's own guard at 1440 and 1024
+and by the existing rendering guard at all twelve viewports: no overflow, no clipped text, no target
+below law 2's floor, and the three parts changed for hit targets (StateNote, CardFoot,
+DashboardRailCard) were changed UP, from 24px to 28px, which satisfies law 2 and L9 together. The
+design audit reads 2018/2018 MATCH at 1440 and 390 after the change; no spec went stale.
+
+GATES. tsc 0 · fitness 35 checked, 0 violations · rendering guard PASS (layout guard 36
+measurements, 0 blocking) · audit:design 2018 MATCH, 0 MISMATCH · audit:overflow 0px on every mount
+· npmtest glob 986 pass, 0 fail · run-test-suite.sh 5975 tests, 0 fail · next build --webpack clean.
+
+NEXT. The routing table names six owners. When each clears its rules it reruns
+`--write-baseline` and commits the shrunken file; the diff is the proof. The baseline dies at
+wave 65 whether or not that happens.

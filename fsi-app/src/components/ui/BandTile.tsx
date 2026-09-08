@@ -117,6 +117,7 @@ function BandTileBody({ band, count, loading }: Pick<BandTileProps, "band" | "co
       ) : (
         <span
           className="cl-band-tile-numeral"
+          data-guard-display="band-tile-numeral"
           style={{
             fontFamily: "var(--font-display)",
             fontSize: 34,

@@ -73,7 +73,6 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { RailCard, LegendRailCard, FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import type { ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
-import { SectionRule } from "@/components/ui/SectionRule";
 import { SkeletonListRow } from "@/components/ui/Skeleton";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import { useRecalculationNotices } from "@/components/figures/NoticesRail";
@@ -87,6 +86,8 @@ import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
 import type { Resource, TimelineEntry } from "@/types/resource";
+import { Card } from "@/components/ui/Card";
+import { PageFrame } from "@/components/layout/PageFrame";
 
 type ScopeFilterValue = "all" | WatchlistScope;
 type TypeFilterValue = "all" | WatchlistItemType;
@@ -145,26 +146,6 @@ function rowTimeline(entries: WatchlistItem["timeline"]): TimelineEntry[] | null
   return mapped.length > 0 ? mapped : null;
 }
 
-/** The section card both content-column regions sit in — the shared card
- *  chrome plus the one `SectionRule` ruling 5.1 puts above every panel. Same
- *  five declarations `ListSurfaceShell`'s own `Card` uses; two uses inside one
- *  file, not a second definition of a shared part. */
-function Card({ children }: { children: ReactNode }) {
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
-      {children}
-    </div>
-  );
-}
 
 export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps) {
   const now = nowFrom(nowIso);
@@ -282,11 +263,10 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
           }}
         />
       </div>
-      <div
-        style={{ padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
-        className="cl-list-surface-grid"
-      >
-        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
+      {/* THE SHARED FRAME (lane layoutguard, 2026-09-08): README §0.3's grid, taken from
+          <PageFrame/> rather than restated here. The `.cl-list-surface-grid` class is kept so
+          page-local CSS and the audit specs that select on it are unchanged. */}
+      <PageFrame className="cl-list-surface-grid">
         <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
           <div data-audit="watched-card">
             <Card>
@@ -486,7 +466,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
           </RailCard>
           <LegendRailCard />
         </div>
-      </div>
+      </PageFrame>
     </>
   );
 }

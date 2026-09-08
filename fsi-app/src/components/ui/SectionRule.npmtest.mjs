@@ -29,16 +29,22 @@ test("SectionRule is a different component than the band-proportion rule (5.2: o
   assert.doesNotMatch(RULE_SOURCE, /<BandGradientRule\b/);
 });
 
-test("DashboardBrief's Card mounts exactly one <SectionRule /> JSX element at the top of every panel", () => {
-  assert.match(DASHBOARD_SOURCE, /import \{ SectionRule \} from "@\/components\/ui\/SectionRule"/);
-  const cardBody = DASHBOARD_SOURCE.slice(
-    DASHBOARD_SOURCE.indexOf("function Card("),
-    DASHBOARD_SOURCE.indexOf("export interface DashboardBriefProps")
-  );
+// UPDATED (lane layoutguard, 2026-09-08). This read DashboardBrief for a LOCAL `function Card()`
+// that no longer exists: three other files carried a byte-for-byte identical one, and all four now
+// mount `components/ui/Card.tsx`. Note the trap this test itself names two comments below - a slice
+// taken between markers that are no longer in the file is EMPTY, and an assertion over an empty
+// slice can pass vacuously. `indexOf` returning -1 here would have sliced from the end and produced
+// exactly that, so the assertion follows the code to where it lives rather than being deleted or
+// left to rot: the shared Card mounts exactly one rule, and the dashboard mounts the shared Card.
+test("the shared Card mounts exactly one <SectionRule /> JSX element, and DashboardBrief mounts that Card", () => {
+  const cardSource = readFileSync(resolve(here, "Card.tsx"), "utf8");
+  assert.match(cardSource, /import \{ SectionRule \} from "@\/components\/ui\/SectionRule"/);
   // Match only the actual JSX element on its own line, not the doc-comment prose that also
   // mentions `<SectionRule/>` in backticks a few lines above the function.
-  const matches = cardBody.match(/^\s*<SectionRule \/>\s*$/gm) ?? [];
+  const matches = cardSource.match(/^\s*\{!noRule && <SectionRule \/>\}\s*$/gm) ?? [];
   assert.equal(matches.length, 1);
+  assert.match(DASHBOARD_SOURCE, /import \{ Card \} from "@\/components\/ui\/Card";/);
+  assert.doesNotMatch(DASHBOARD_SOURCE, /function Card\(/, "the dashboard has gone back to defining its own card");
 });
 
 // UPDATED (lane comp-11, 2026-09-08): SectionHeading moved to the shared ui/ layer, so this

@@ -46,6 +46,9 @@ export function StateNote({ band, children, action }: StateNoteProps) {
               color: "var(--ink)",
               textDecoration: "underline",
               textDecorationColor: "rgba(0,0,0,.3)",
+              // Same L9 floor as the button branch below: one link, two element types, one height.
+              display: "inline-block",
+              padding: "8px 0",
             }}
           >
             {action.label}
@@ -63,7 +66,14 @@ export function StateNote({ band, children, action }: StateNoteProps) {
               textDecorationColor: "rgba(0,0,0,.3)",
               background: "none",
               border: "none",
-              padding: 0,
+              // L9 (site-wide layout guard, lane layoutguard 2026-09-08): the state note's one
+              // action link measured 90.4x24 ("Watchlist →" on the dashboard) and 157.6x24
+              // ("Browse what to watch →" on /watchlist and the watchlist rail) - 4px under the
+              // operator's 28px short-axis floor, on every surface that declares a state, which
+              // is all of them. 8px vertical padding on the 11px line box clears it. Horizontal
+              // padding stays 0 so the link keeps sitting flush with the strip's right edge, which
+              // is what the artboard draws (README §0.4: "text left, one action link right").
+              padding: "8px 0",
               cursor: "pointer",
               fontFamily: "inherit",
             }}

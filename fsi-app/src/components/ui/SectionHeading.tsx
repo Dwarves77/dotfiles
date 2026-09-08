@@ -67,6 +67,7 @@ export function SectionHeading({ title, aside }: SectionHeadingProps) {
       `}</style>
       <h2
         data-guard-title
+        data-guard-display="card-title"
         style={{
           fontFamily: "var(--font-display)",
           fontWeight: 400,

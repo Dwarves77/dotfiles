@@ -336,7 +336,10 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
           info moved into the rail's own Admin card below, dc.html's exact copy). */}
       <div
         className="cl-account-grid"
-        style={{ padding: "16px 40px 80px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
+        // L1 (site-wide layout guard, lane layoutguard 2026-09-08): artboard 14 draws
+        // `padding:18px 40px 40px` verbatim (dc.html, id="p14"); this shipped 16px top and 80px
+        // bottom. The artboard is the spec, and the frame is the one place the value lives.
+        style={{ padding: "18px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
       >
         <style>{`
           @media (max-width: 1100px) { .cl-account-grid { grid-template-columns: minmax(0,1fr) !important; } }

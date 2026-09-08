@@ -694,9 +694,18 @@ let root = null;
 window.__mount = () => {
   const el = document.getElementById('smoke-root');
   if (!root) root = createRoot(el);
+  // ONE SURFACE OR BOTH (lane layoutguard, 2026-09-08). This entry has always rendered the
+  // dashboard AND the regulation detail stacked in one AppShell, which is right for a component
+  // audit reading getComputedStyle per selector and wrong for a per-ROUTE layout guard: two page
+  // bodies in one content column make every card-vs-column and card-order measurement meaningless.
+  // \`window.__ONLY_AUDIT\` lets the two route mounts render one surface each from this SAME entry
+  // and these SAME fixtures rather than forking a second copy of either. Unset (every existing
+  // caller) renders both, exactly as before.
+  const only = window.__ONLY_AUDIT || null;
+  const want = (name) => !only || only === name;
   root.render(
     React.createElement(AppShell, null,
-      React.createElement('div', { 'data-audit': 'dashboard' },
+      want('dashboard') && React.createElement('div', { 'data-audit': 'dashboard' },
         React.createElement(DashboardBrief, {
           // FOLD-59: <DashboardBrief/> takes SERVER-SELECTED BriefRow[] since HYDRATION-59, not a
           // Resource[] it derives from itself. The fixture keeps its Resource rows and runs them
@@ -717,12 +726,19 @@ window.__mount = () => {
           nowIso: NOW_ISO,
           watchlistPromise: Promise.resolve([]),
         })),
-      React.createElement('div', { 'data-audit': 'regulation-detail' },
+      want('regulation-detail') && React.createElement('div', { 'data-audit': 'regulation-detail' },
         React.createElement(RegulationDetailSurface, F.regulation)),
     ),
   );
 };
 `;
+
+// ── Per-ROUTE page mounts for the site-wide layout guard (lane layoutguard, 2026-09-08) ──────────
+// Same entry, same fixtures, one surface each - see the `window.__ONLY_AUDIT` comment inside
+// PAGE_FRAME_ENTRY for why a per-route guard cannot measure the stacked pair. The prelude sits
+// before the entry's imports, which ESM allows and esbuild preserves.
+const DASHBOARD_ROUTE_ENTRY = `window.__ONLY_AUDIT = 'dashboard';\n${PAGE_FRAME_ENTRY}`;
+const REGULATION_DETAIL_ROUTE_ENTRY = `window.__ONLY_AUDIT = 'regulation-detail';\n${PAGE_FRAME_ENTRY}`;
 
 // ── Market / research / operations detail — page-composition mounts ──────────────────────────────
 // Lane compose-dashboard-details (2026-09-08). Mirrors the regulation-detail fixture above,
@@ -2628,6 +2644,30 @@ export const AUDIT_MOUNTS = {
     description: 'AppShell + DashboardBrief with the mobile nav drawer OPENED by clicking the real hamburger — the mobile 390 spec\'s DRAWER measures.',
     viewport: 390,
     entry: MOBILE_DRAWER_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-01-dashboard': {
+    id: 'compose-01-dashboard',
+    description: 'The real AppShell frame wrapping DashboardBrief ALONE - the /-route mount the site-wide layout guard measures (artboard 01/id="p1").',
+    viewport: 1440,
+    entry: DASHBOARD_ROUTE_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
+  },
+  'compose-03-regulation-detail': {
+    id: 'compose-03-regulation-detail',
+    description: 'The real AppShell frame wrapping RegulationDetailSurface ALONE - the /regulations/[slug] mount the site-wide layout guard measures (artboard 03/id="p3").',
+    viewport: 1440,
+    entry: REGULATION_DETAIL_ROUTE_ENTRY,
+    needsCompiledCss: true,
     alias: {
       'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,

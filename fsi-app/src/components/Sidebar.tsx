@@ -370,6 +370,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
           <Link href="/" prefetch={false} className="block">
             <h1
               className="text-xl uppercase"
+              data-guard-display="wordmark"
               style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em" }}
             >
               {APP_NAME}
@@ -410,6 +411,7 @@ export function Sidebar({ drawerOpen = false, onDrawerClose }: SidebarProps) {
               <Link href="/" prefetch={false} onClick={onDrawerClose} className="block">
                 <h1
                   className="uppercase"
+                  data-guard-display="wordmark"
                   style={{ color: "var(--ink)", fontFamily: "var(--font-display)", fontWeight: 400, letterSpacing: "0.04em", fontSize: 19 }}
                 >
                   {APP_NAME}

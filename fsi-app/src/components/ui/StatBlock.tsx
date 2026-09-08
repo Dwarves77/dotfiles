@@ -46,6 +46,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
       />
     ) : (
       <span
+        data-guard-display="stat-block-numeral"
         style={{
           fontFamily: "var(--font-display)",
           fontSize: 16,
@@ -99,6 +100,7 @@ export function StatBlock({ label, value, note, loading, layout = "stack", tone 
     />
   ) : (
     <span
+      data-guard-display="stat-block-numeral"
       style={{
         display: "block",
         fontFamily: "var(--font-display)",

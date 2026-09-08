@@ -13,12 +13,10 @@
  */
 
 import { Suspense, useMemo } from "react";
-import type { ReactNode } from "react";
 import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
-import { SectionRule } from "@/components/ui/SectionRule";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
@@ -33,28 +31,9 @@ import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
 import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
+import { Card } from "@/components/ui/Card";
+import { PageFrame } from "@/components/layout/PageFrame";
 
-
-function Card({ children }: { children: ReactNode }) {
-  // Operator audit items 5.1 + 4.1 (2026-09-07, CLOSED rulings, artboard 18): every panel/section
-  // card sitewide gets the 3px top gradient rule (full card width, top edge, no radius on it) and
-  // loses the divider that used to sit below the section title — see `<SectionRule/>`'s own header
-  // for the shared value and `SectionHeading` above for the removed divider.
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
-      {children}
-    </div>
-  );
-}
 
 export interface DashboardBriefProps {
   /** Rows SELECTED AND SHAPED ON THE SERVER (src/lib/dashboard/brief-rows.ts) through the shared
@@ -124,9 +103,11 @@ export function DashboardBrief({
   const monitorTotal = bandCounts.byPriority.MODERATE ?? 0;
 
   return (
-    // Content column top padding is 20px (README §0.3), matching operator ruling 4.2's nav-card
-    // margin-top (fix58-tokens, 2026-09-07, page-frame.json B171) so the two align.
-    <div style={{ maxWidth: 1440, margin: "0 auto", padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }} className="cl-brief-outer">
+    // THE SHARED FRAME (lane layoutguard, 2026-09-08). This surface used to carry its own copy of
+    // README §0.3's grid; it now takes it from <PageFrame/>, which is the one definition. The
+    // 20px content-column top padding still matches operator ruling 4.2's nav-card margin-top
+    // (fix58-tokens, 2026-09-07, page-frame.json B171), because that is the value the frame holds.
+    <PageFrame className="cl-brief-outer">
       <style>{`
         /* MOBILE-60 (2026-09-08) [CONFIRMED root cause, measured at 390 by
            .discipline/rendering/audit/spec/mobile-01-dashboard.json]: this override
@@ -354,7 +335,7 @@ export function DashboardBrief({
           </div>
         </Card>
       </div>
-    </div>
+    </PageFrame>
   );
 }
 

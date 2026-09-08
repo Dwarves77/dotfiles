@@ -39,7 +39,6 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
-import { SectionRule } from "@/components/ui/SectionRule";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
@@ -55,6 +54,7 @@ import type { FacetOption } from "./list-surface-helpers";
 // nothing else was, so one /regulations screen carried "1,317 regulations" and "showing 5 of 1031"
 // on the same fold, plus "All 1031 monitor" and "then Monitor · 1031".
 import { formatNumber } from "@/lib/format";
+import { Card } from "@/components/ui/Card";
 
 // PERF-12: only worth windowing once a band's expanded row count clears the perBandCap-collapsed
 // case by a wide margin. 30 rows unwindowed is cheap; a band expanded to hundreds is not.
@@ -312,28 +312,6 @@ function FilterSheet({
         </div>
       </div>
     </>
-  );
-}
-
-function Card({ children, noRule }: { children: ReactNode; noRule?: boolean }) {
-  // Ruling 5.1 (2026-09-07): every panel/section card gets the dark-grey graduated top rule. The
-  // per-band Card (BandSectionHeader inside it) already carries its own top-edge 3px band-colour
-  // accent, which is a data-grouping marker (which band this row group is), not a page-level
-  // "section title" rule in 5.1's sense — `noRule` lets that one caller skip a doubled-up top edge
-  // rather than stacking two 3px rules. The loading/empty-state Cards (no band header) still get it.
-  return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      {!noRule && <SectionRule />}
-      {children}
-    </div>
   );
 }
 

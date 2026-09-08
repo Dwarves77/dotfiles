@@ -553,3 +553,58 @@ plus the defects it found that no lane could see from inside one worktree.
 | Date | Page / deviation | Detail | Ruled by |
 |---|---|---|---|
 | 2026-09-08 | The map canvas is DECLARED a clipping viewport (`data-guard-clip`), the one carve-out in the clipped-overflow rule | [CONFIRMED locally, CI half unproven here] Train 61's PR #610 was green on nine checks and red on the rendering guard in CI only: `map-page:populated@1280`, one `img[leaflet-tile leaflet-tile-loaded]` at right=1408px. Leaflet lays a tile grid deliberately wider than its frame and pans it inside that frame's own overflow, so `getBoundingClientRect` reports a tile's UNCLIPPED rect and a tile at the frame's edge reads as past the page edge while nothing the reader must read is cut off. A tile is rendering substrate, not a text run. Declared in the product (`MapPageView.tsx`, the `data-testid="map-canvas"` frame, which also states `overflow: hidden` so the declaration is honest) and in the smoke spec's stand-in for it, and read by `measureUx` exactly as `data-guard-strip` is read. Narrow twice over: the ancestor must ACTUALLY clip, and it must ITSELF sit inside the viewport, so a declaring element that overflows carries nothing and is reported like any other box. Proven by attack at all twelve viewports (fixtures `map-clip-declared`, `map-clip-undeclared-PREFIX`, `map-clip-self-overflow-PREFIX`); `overflow: hidden` on the map canvas is NOT the fix and was refused, since swallowing overflow is the defect class this detector exists to catch. | Coordinator diagnosis, verified this lane; CLAUDE.md rule 15 |
+
+## LANE LAYOUTGUARD (2026-09-08): the site-wide layout guard, L1 to L12
+
+The operator's SITE-WIDE LAYOUT GUARD dispatch (2026-09-08) turned twelve of the defects he has been
+finding by eye into twelve mechanical rules. This lane built them into the EXISTING rendering guard
+rather than a thirteenth harness, ran them over all 17 routes at 1440 and 1024, fixed the shared
+parts that are unambiguously shared, and routed the rest. The full failure table, by rule and by
+route, with the owning part named for every group, is `docs/audits/layout-guard-2026-09-08.md`.
+
+RULE PROVENANCE. L3 and L11 were ALREADY COVERED (audit/overflow-sweep.mjs and ux-assert.mjs's
+detectClippedOverflow / detectClippedText); L11 is called, never restated. L2 and L9 are EXTENDED
+(assertions.mjs's detectBoundsViolations did row-versus-cell containment only; ux-assert's
+detectSmallTargets is law 2's mobile floor and stays as it is, because the operator's L9 is a
+different, site-wide floor). L1, L4, L5, L6, L7, L8, L10 and L12 are NEW.
+
+DECISIONS TAKEN WHERE THE OPERATOR'S TEXT NEEDED ONE, all argued in the code they govern:
+
+L1 is a COMPUTED-STYLE test on the rendered tree, not a source grep, because a page can satisfy a
+grep and still defeat the frame with a nested wrapper. It reads each route's frame against the
+ARTBOARD's own numbers (from the dc.html), never against the app's source. Below 1280 it expects the
+STACKED form, which is README 0.3 verbatim, so ruling R10 (no invented 1024 behaviour) is untouched.
+
+L2's exclusion set is exactly four cases (parent/child; an element the L5 allowlist names; an
+overlap under 4px on either axis; an invisible box) and is proven not to swallow a real overlap: the
+test feeds it the operator's own /admin defect shape and requires it to fire.
+
+L5 excuses a CONTAINED absolute decoration (a positioned ancestor whose box holds it entirely, no
+text of its own), because a contained decoration cannot collide with anything outside it. `fixed`
+and `sticky` are never excused that way.
+
+L7's allowlist is declared by the shared components that draw display type, so a page must reach for
+one of them. A seventh entry beyond the operator's six is declared: the nav card wordmark, which
+every one of the 17 artboards draws in Anton.
+
+L8 compares RENDERED text (the shared browser/rendered-text.mjs, the one implementation the design
+audit also uses). "PENDING" must be the whole of its own run; the first run matched it inside "4
+inputs pending" and "489 pending, showing 4, approved", which are sentences, not absence tokens. The
+other three tokens are matched anywhere.
+
+L10's manifests are GENERATED FROM THE ARTBOARDS (generate-manifests.mjs reads the dc.html), never
+from the build, and card identity truncates at the first middot so a live count does not make every
+card on every route report as outside the artboard.
+
+ONE CORRECTION TO THE OPERATOR'S FRAMING, stated once and not argued. L10 says the manifest
+"replaces the deviation log that was never written to". This log HAS been written to throughout: it
+carries rulings R1 to R10 and a dated section for every UI lane in trains 59, 60 and 61. What it
+cannot do is fail a build, which is exactly what the manifest adds. The manifest therefore READS
+this log (manifests.mjs deviationsFromLog) rather than replacing it, so the two cannot drift into
+two vocabularies.
+
+| Date | Page | Deviation | Reason | Who ruled |
+|---|---|---|---|---|
+| 2026-09-08 | all | The 783 findings the first run left are held by a DATED baseline that expires at wave 65 | Every one belongs to a part another lane is actively rewriting; a new finding fails the build from today. Not a relaxation: the mechanism, the expiry and the argument are in layout-guard/baseline.mjs | lane layoutguard, following the operator's "no train lands with a failure" and the exemptions-375 precedent |
+| 2026-09-08 | /settings | Frame padding stays `18px 40px 0` against artboard p15's `18px 40px 40px` | The page splits its frame into two stacked regions and the second carries the bottom padding, so the right value is a composition question for the settings lane, not a one-number edit | lane layoutguard, routed not fixed |
+| 2026-09-08 | all | `.cl-row-card` (RecalculationNotice) carries card chrome and fails L6 for having no top rule | A row wearing a card's chrome is a card by the artboard's own definition. Reported, routed to the figures lane, not silenced | lane layoutguard |
