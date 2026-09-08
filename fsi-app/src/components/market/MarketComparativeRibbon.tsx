@@ -4,6 +4,37 @@
  * FILE IDENTITY vs RENDERED COPY. The export keeps its original name (spec 02 §6 item 1's
  * "comparative ribbon"); the card's rendered title is the artboard's own, "HEADLINE SERIES".
  *
+ * WHICH SERIES THIS ROW CONTAINS IS NOT DECIDED HERE (operator ruling, 2026-09-08). It is decided by
+ * selectHeadlineSeries (src/lib/market/headline-series-select.mjs) over the families declared in
+ * src/lib/market/series-family.mjs: one card per distinct price signal, fuels then carbon then FX then
+ * other indices, five visible, and no series that has no delta yet. This component renders the
+ * selection it is handed, in the order it is handed, and counts nothing itself.
+ *
+ * HONEST TODAY: of the 16 live series keys, the 4 ECB FX reference rates each hold one observation and
+ * therefore carry no delta, so the ruling's own rule 4 keeps them off this row and on the series board.
+ * The rest carry a real delta, so the cards below are comparative rather than the placeholder state
+ * this file was originally written against.
+ * FOLD 63 (2026-09-08), THE ONE COLLISION IN THIS TRAIN AND HOW IT IS RESOLVED. Lanes market63 and
+ * seriesfamily both rewrote this row, from different sources. market63 built it from artboard 04's
+ * markup, measured in chromium. seriesfamily implements the operator's LATER ruling, which says
+ * WHICH series the row contains. The later ruling supersedes the earlier lane wherever the two
+ * disagree, so the split is exact and there is one implementation of each half, never two:
+ *
+ *   SELECTION and the HEADER COUNT are seriesfamily's. `selectHeadlineSeries` decides which
+ *   families appear and in what order; the head reads "N of M" where N is DISTINCT FAMILIES SHOWN
+ *   and M is every observed series. Nothing in this file chooses or counts a series.
+ *
+ *   GEOMETRY and TYPE are market63's. One row of compact cards on `grid-auto-flow: column` at
+ *   `calc((100% - 40px) / 5)`, no sparkline, no 1m or YoY row, Anton 17px value with the delta
+ *   inline beside it, 86.844px card height against the artboard.
+ *
+ *   THE OVERFLOW takes market63's mechanism, because that is geometry: the families past the
+ *   ruling's cap of five continue the SAME row into the horizontal scroller, they are not stacked
+ *   into a second grid under a "N more headline series" disclosure. seriesfamily's disclosure and
+ *   market63's `MAX_METRICS = 10` are both gone; the cap is `HEADLINE_VISIBLE_CAP` in
+ *   headline-series-select.mjs, the ruling's own five, and it governs the HEAD COUNT while the
+ *   scroller carries the remainder. One cap, one row, one mechanism.
+ *
  * LANE MARKET63 (2026-09-08), EVERY NUMBER BELOW IS READ OFF `id="p4"`, MEASURED IN CHROMIUM,
  * not taken from prose. The operator's instruction for this lane was "match the artboard, not the
  * prose", so the artboard markup is the authority and each divergence from the brief's words is
@@ -12,10 +43,13 @@
  *   - ONE ROW OF FIVE compact cards. p4's grid is `repeat(5,1fr)` with `gap:10px` inside a card
  *     whose content box is 744px at 1440, so each card measures 140.8px, NOT the "~105px" the
  *     brief's prose estimates. The artboard value wins and 140.8px is what this renders.
- *   - The cards past the fifth SCROLL HORIZONTALLY. p4 draws exactly five and captions the head
- *     "10 of 16", so the image itself carries no scroller; the horizontal scroll is the operator's
- *     own instruction for the remainder, and it is built so the FIRST FIVE land on p4's exact
- *     140.8px track at 1440 and the rest are reachable without a second row.
+ *   - The cards past the fifth SCROLL HORIZONTALLY. p4 draws exactly five, so the image itself
+ *     carries no scroller; the horizontal scroll is the operator's own instruction for the
+ *     remainder, and it is built so the FIRST FIVE land on p4's exact 140.8px track at 1440 and
+ *     the rest are reachable without a second row. (FOLD 63 rewrote this bullet: market63 read
+ *     p4's head caption as "10 of 16" and made ten the cap. The later ruling caps the row at FIVE
+ *     and redefines the caption's N as distinct families shown, so the geometry below is unchanged
+ *     and only the number of cards on the visible track has moved from ten to five.)
  *   - Card: 10px 12px padding, 10px radius, the standard card border/shadow.
  *   - Label: 9.5px / 700 / 0.1em, uppercase, ONE LINE, ellipsised.
  *   - Value + delta share ONE baseline row: Anton 17px (p4's value, not the brief's "18px") beside
@@ -43,6 +77,7 @@
 
 import type { MarketSeriesBoardVM } from "@/lib/supabase-server";
 import { formatDelta } from "@/lib/contracts/envelope.mjs";
+import { selectHeadlineSeries } from "@/lib/market/headline-series-select.mjs";
 import { SectionCard } from "@/components/ui/SectionCard";
 import { formatNumber } from "@/lib/format";
 import { ABSENCE_TEXT_STYLE } from "@/components/ui/Absence";
@@ -59,11 +94,6 @@ interface MarketComparativeRibbonProps {
    *  caller is unaffected. */
   embedded?: boolean;
 }
-
-/** p4's head caption is "10 of 16", so ten is the card's own cap: five sit on the visible track at
- *  1440 and the next five are reached by scrolling the row sideways. Everything past ten is the
- *  Series board's job, which the head links to. */
-const MAX_METRICS = 10;
 
 /** p4's grid: five columns, 10px gutters. Written as an auto-column track so the sixth card and
  *  beyond continue the SAME row into the horizontal scroller instead of wrapping onto a second
@@ -99,26 +129,45 @@ interface RibbonRow {
   label: string;
   displayValue: string;
   deltas: SeriesDeltas;
+  /** The other members of this card's family, folded onto it ("+3 rates"). The ONE new field the card
+   *  markup gained for the ruling: the fold has nowhere else to live, and its count comes from the
+   *  family, never from a literal. count 0 renders nothing. */
+  fold: { count: number; noun: string };
+}
+
+interface HeadlineCard {
+  familyKey: string;
+  label: string;
+  row: { seriesKey: string; label: string; displayValue: string; deltas?: SeriesDeltas };
+  fold: { count: number; noun: string };
+}
+interface HeadlineSelection {
+  visible: HeadlineCard[];
+  overflow: HeadlineCard[];
+  familiesShown: number;
+  totalSeries: number;
+}
+
+function toRibbonRow(card: HeadlineCard): RibbonRow {
+  return {
+    seriesKey: card.familyKey,
+    label: card.label,
+    displayValue: card.row.displayValue,
+    deltas: card.row.deltas as SeriesDeltas,
+    fold: card.fold,
+  };
 }
 
 export function MarketComparativeRibbon({ board, embedded = false }: MarketComparativeRibbonProps) {
-  const rows: RibbonRow[] = [];
-  for (const g of board.groups) {
-    if (g.state !== "populated") continue;
-    for (const s of g.series) {
-      const raw = s as unknown as { deltas?: SeriesDeltas };
-      if (!raw.deltas) continue;
-      rows.push({ seriesKey: s.seriesKey, label: s.label, displayValue: s.displayValue, deltas: raw.deltas });
-    }
-  }
-  for (const s of board.unregistered) {
-    const raw = s as unknown as { deltas?: SeriesDeltas };
-    if (!raw.deltas) continue;
-    rows.push({ seriesKey: s.seriesKey, label: s.label, displayValue: s.displayValue, deltas: raw.deltas });
-  }
-
-  if (rows.length === 0) return null;
-  const shown = rows.slice(0, MAX_METRICS);
+  const selection = selectHeadlineSeries(board) as HeadlineSelection;
+  const shown = selection.visible.map(toRibbonRow);
+  const overflow = selection.overflow.map(toRibbonRow);
+  if (shown.length === 0) return null;
+  // FOLD 63: one row, in the ruling's order, the first five on the visible track and the rest
+  // reachable by scrolling it sideways. The cap is NOT applied again here; `visible` already carries
+  // it, and it is what the head counts. Concatenating rather than rendering a second grid is the
+  // whole of the overflow mechanism, which is why there is no "N more headline series" disclosure.
+  const track = [...shown, ...overflow];
 
   // Operator item A1 (2026-09-08): "Headline series" is one of the eighteen listed cards. Its card
   // shell used to be a local style object plus a conditional `<SectionRule/>`; both are gone, and
@@ -168,7 +217,10 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
             whiteSpace: "nowrap",
           }}
         >
-          {formatNumber(shown.length)} of {formatNumber(rows.length)} · dated, sourced observations ·{" "}
+          {/* Ruling step 3: N is the number of distinct FAMILIES shown, not the number of cards and
+              not the number of series; the denominator is every observed series. */}
+          {formatNumber(selection.familiesShown)} of {formatNumber(selection.totalSeries)} · dated,
+          sourced observations ·{" "}
           <a href="#market-series-board" style={{ color: "inherit", textDecoration: "underline" }}>
             Series board →
           </a>
@@ -197,7 +249,7 @@ export function MarketComparativeRibbon({ board, embedded = false }: MarketCompa
           padding: embedded ? "0 16px 16px" : undefined,
         }}
       >
-        {shown.map((row) => (
+        {track.map((row) => (
           <RibbonCard key={row.seriesKey} row={row} />
         ))}
       </div>
@@ -248,6 +300,12 @@ function RibbonCard({ row }: { row: RibbonRow }) {
         title={row.label}
       >
         {row.label}
+        {row.fold.count > 0 && (
+          <span style={{ fontWeight: 700, color: "var(--color-text-muted)" }}>
+            {" "}
+            +{row.fold.count} {row.fold.noun}
+          </span>
+        )}
       </p>
       {/* p4: `display:flex;flex-wrap:wrap;align-items:baseline;gap:2px 8px;margin-top:6px`, the
           value and its delta share ONE baseline. */}

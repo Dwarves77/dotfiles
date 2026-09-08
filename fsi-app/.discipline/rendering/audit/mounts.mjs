@@ -2439,6 +2439,14 @@ function composeSeriesRow(key, label, displayValue, pct1w, referencePeriod = '20
     },
   };
 }
+// SERIES KEYS ARE THE REAL LIVE ONES (lane seriesfamily, 2026-09-08), not shortened stand-ins. The
+// headline row is now a family SELECTION (src/lib/market/headline-series-select.mjs) rather than the
+// first ten populated series, and families claim their members by exact series_key, so a stand-in key
+// like 'eu-oil-bulletin:diesel' would resolve to a family of its own and measure a grouping the page
+// never performs. With the real keys this fixture renders artboard 04's own row exactly: Diesel,
+// Euro-Super 95, HFO, Residual fuel oil, and one EUR/USD card carrying the other three ECB rates as
+// its "+3 rates" fold. All four rates carry a delta here, which is what the artboard's five-card row
+// requires and what the live table does NOT yet have (its four rates hold one observation each).
 // The two producer groups use REAL registry keyPrefixes ('eu-oil-bulletin', 'ecb-fx') and carry a
 // `referencePeriod` on each series row, because artboard 04's NEXT DATA DROPS card derives its rows
 // from exactly those two fields (latest observed period + that producer's own registered
@@ -2450,32 +2458,43 @@ const COMPOSE_SERIES_BOARD = {
       keyPrefix: 'eu-oil-bulletin', name: 'EU Weekly Oil Bulletin', implemented: true, cadence: 'weekly',
       sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
       series: [
-        composeSeriesRow('eu-oil-bulletin:diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
-        composeSeriesRow('eu-oil-bulletin:e95', 'Euro-Super 95', '€1,014/1000L', 0.7),
-        composeSeriesRow('eu-oil-bulletin:hfo', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
-        composeSeriesRow('eu-oil-bulletin:rfo', 'Residual Fuel Oil', '€646/t', 1.8),
+        composeSeriesRow('eu-oil-bulletin:automotive-diesel', 'Diesel · EU avg benchmark', '€1,217/1000L', -1.7),
+        composeSeriesRow('eu-oil-bulletin:eurosuper-95', 'Euro-Super 95', '€1,014/1000L', 0.7),
+        composeSeriesRow('eu-oil-bulletin:heavy-fuel-oil-3-5pct', 'Heavy Fuel Oil 3.5%', '€535/t', -8.1),
+        composeSeriesRow('eu-oil-bulletin:residual-fuel-oil-1pct', 'Residual Fuel Oil', '€646/t', 1.8),
       ],
     },
     {
       keyPrefix: 'ecb-fx', name: 'ECB euro foreign exchange reference rates', implemented: true, cadence: 'daily',
       sourceName: 'Fixture', sourceUrl: '', licenceStatus: 'ok', state: 'populated',
-      // SIXTEEN observed series, not five (lane market63, 2026-09-08). Artboard 04's HEADLINE
-      // SERIES head reads "10 OF 16" while the image draws exactly five cards, so a five-series
-      // fixture could never measure the card's cap, its head caption, or the horizontal scroll the
-      // remainder lives in, with five rows the card renders "5 of 5" and never overflows, and every
-      // assertion about the overflow passes vacuously (CLAUDE.md rule 15). The first five keep the
-      // artboard's own series in the artboard's own order, so the visible track at 1440 is still the
-      // image; the eleven behind them exist to be scrolled to. Producer COUNT stays two so the NEXT
-      // DATA DROPS card's own row assertions are untouched.
+      // FOLD 63 (2026-09-08), the fixture half of this train's one collision. Lane market63 put
+      // TWELVE invented FX series here (`ecb-fx:eurusd`, `ecb-fx:eurgbp`, ...) so that a ten-card cap
+      // and its horizontal overflow could be measured rather than passing vacuously. That fixture
+      // cannot survive the later ruling, and not as a matter of taste: family membership is by EXACT
+      // series_key (src/lib/market/series-family.mjs declares `ecb-fx:eur-usd`, `-gbp`, `-cny`,
+      // `-jpy` and no others), so market63's unhyphenated keys are claimed by no family and each
+      // would resolve to a family of ITS OWN. The row would then be four fuels plus twelve singleton
+      // FX cards with no "+3 rates" fold anywhere, which is the exact shape the ruling exists to
+      // forbid. Lane seriesfamily's four REAL keys are kept, and they render the operator's own
+      // stated row verbatim: Diesel, Euro-Super 95, HFO, Residual fuel oil, and one EUR/USD card
+      // carrying "+3 rates".
+      //
+      // market63's NON-VACUITY concern is answered, not dropped. With the cap now the ruling's five
+      // and five families here, the visible track is full and the DOM audit measures the geometry
+      // (grid-auto-flow, grid-auto-columns, overflow-x, the resolved track width) on real cards
+      // rather than on an empty grid. The OVERFLOW BEHAVIOUR itself is proven where it can be proven
+      // exhaustively, by attack, in market-headline-series-select.test.mjs, which is execution-wired
+      // through the npmtest glob (CLAUDE.md rule 15). Inventing eleven more series here to make a
+      // scrollbar appear would have measured the fixture, not the product.
       series: [
-        composeSeriesRow('ecb-fx:eurusd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04'),
-        ...['GBP', 'JPY', 'CHF', 'CNY', 'SEK', 'NOK', 'PLN', 'CZK', 'DKK', 'HUF', 'CAD'].map((iso, i) =>
-          composeSeriesRow(`ecb-fx:eur${iso.toLowerCase()}`, `EUR/${iso} · ECB ref.`, `${(1 + i / 10).toFixed(2)}`, (i % 5) - 2, '2026-09-04'),
-        ),
+        composeSeriesRow('ecb-fx:eur-usd', 'EUR/USD · ECB ref.', '$1.16', 0, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-gbp', 'EUR/GBP · ECB ref.', '£0.86', 0.2, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-cny', 'EUR/CNY · ECB ref.', '8.30 CNY', -0.3, '2026-09-04'),
+        composeSeriesRow('ecb-fx:eur-jpy', 'EUR/JPY · ECB ref.', '172.10 JPY', 0.4, '2026-09-04'),
       ],
     },
   ],
-  unregistered: [], totalObservedSeries: 16, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
+  unregistered: [], totalObservedSeries: 8, totalProducers: 2, implementedProducerCount: 2, isEmpty: false,
 };
 
 // Artboard 04's CARBON COST PER FEU rows, in the shape summariseCarbonCorridors() returns from the

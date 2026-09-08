@@ -15397,3 +15397,66 @@ p4's head says sixteen. It now carries all four row states and sixteen series.
 The thirteen new compose-04 rows and four new forbids were proven by attack: reverting the track
 flow, the title size, the card padding and the carbon grid turned six of them MISMATCH, and
 restoring them returned 68/68.
+## 2026-09-08 LANE SERIESFAMILY: the headline-series selection on /market
+
+**Ruling implemented.** The /market headline row is no longer the first ten populated series. It is
+one card per distinct price signal: families, ordered fuels then carbon then FX then other indices,
+freight-relevant first inside a class, five visible, and no series that has no delta yet.
+
+**The live evidence, read before anything was designed** (Supabase MCP, project kwrsbpiseruzbfwjpvsp,
+read-only, 2026-09-08). `market_series` holds exactly 16 distinct `series_key` values:
+
+| Prefix | Series | Observations each | Latest | Delta today |
+|---|---|---|---|---|
+| eu-oil-bulletin | automotive-diesel, eurosuper-95, heating-gas-oil, heavy-fuel-oil-3-5pct, lpg-motor-fuel, residual-fuel-oil-1pct | 2 (2026-08-24, 2026-08-31) | 2026-08-31 | 1w only |
+| eia-v2 | brent-crude-rbrte, diesel-no2-low-sulfur-eer-epd2f-pf4-y35ny-dpg, gasoline-rbob-regular-eer-epmrr-pf4-y05la-dpg, jet-fuel-kerosene-eer-epjk-pf4-rgc-dpg, propane-mont-belvieu-eer-epllpa-pf4-y44mb-dpg, wti-crude-rwtc | 454 to 455, from 2017-12 | 2026-08-28 | 1w, 1m, YoY |
+| ecb-fx | eur-usd, eur-gbp, eur-cny, eur-jpy | 1 (2026-09-03) | 2026-09-03 | none |
+
+The EIA rows (2,727 in total) and the ECB rows both landed on 2026-09-04. The page fetcher reads the
+most recent 1,000 rows by reference period, and all 16 series are inside that window, so the board
+sees every series and the EIA ones keep roughly 164 points each.
+
+**The outcome differs from the operator's own stated row, and was not forced to match.** He expects
+Diesel, Euro-super 95, HFO, Residual fuel oil, EUR/USD. His rules over the live table give Diesel,
+Euro-Super 95, Heavy fuel oil 3.5%S, Residual fuel oil 1%S, Jet fuel. His first four are exactly
+right. The fifth differs for two independent reasons, both of them data:
+
+1. **Rule 4 excludes EUR/USD.** All four ECB rates hold one observation and no delta, so the FX family
+   has no eligible member and contributes no card at all. Artboard 04 draws that same card with a dash
+   for its delta and a BACKFILL chip, which IS the state rule 4 says is not a headline. The rule and
+   the image disagree about EUR/USD, and the rule is the later instruction.
+2. **Rule 2 plus rule 3 fill the row with fuels.** There are twelve fuel series today, not four, so
+   the five slots are taken before FX is reached. The fifth is jet fuel rather than a second diesel,
+   because the diesel and gasoline families fold their EIA quote onto the EU card.
+
+**A decision he may want to reverse**, stated plainly so it is his and not the lane's: if the row
+should show EUR/USD today, then either rule 4 has an exception for a class that would otherwise be
+absent from the row, or the FX card shows a level with an explicit "no delta yet" instead of being
+excluded. Both are one-line changes to `hasComputedDelta`'s caller. The lane did not choose either.
+
+**Where family lives.** `src/lib/market/series-family.mjs`, beside the series definitions, one home,
+applied once in `src/lib/market/headline-series-select.mjs` and nowhere else. Membership is data: a
+declared family claims members by exact `series_key`, and anything unclaimed becomes its own family
+with its ordering class read from its producer's registry entry (`familyClass`, new on each entry in
+`series-registry.mjs`). So a new series is a headline candidate in its correct class the day it lands,
+with nobody editing a switch. A column on `market_series` was considered and rejected: nothing
+populates it, and the rule would still need one written home to populate it from, which is two homes
+for one decision. Carbon is declared ahead of its data, so the day EEX EUA writes its first row the
+carbon slot opens with no code change, and an absent class closes up rather than leaving a hole.
+
+**The fold is computed, never a literal.** "+3 rates" is the FX family's own eligible-member count
+minus the one on show. A fifth tracked rate reads "+4 rates" with no edit, which is asserted.
+
+**Tests** (`src/__tests__/market-headline-series-select.test.mjs`, 12, all against a live-shaped
+16-series fixture): family grouping over the 16, ordering with and without a carbon family, the cap,
+the header count as families shown rather than cards or series, the delta exclusion including the
+two-observation unit-change case, and the fold count following family membership.
+
+**UX compliance.** No change to the card's anatomy, which lane market63 owns. The one new field is
+`fold: { count, noun }`, drawn as a small muted "+3 rates" after the card label; it has nowhere else
+to live. The audit mount fixture moved from stand-in series keys to the real ones so it measures the
+real family rule, and it now renders artboard 04's row exactly. Design audit 70 specs / 2018 MATCH at
+1440 and 390.
+
+**Gates:** tsc clean; fitness 35 functions / 0 violations; rendering guard PASS (481 checks); design
+audit 2018/2018 MATCH; run-test-suite 5,987 tests / 0 fail; `next build --webpack` clean.

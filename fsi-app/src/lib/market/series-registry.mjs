@@ -37,9 +37,16 @@
 // for its actual shape and gate (an empty SERIES_ITEM_MAP, not ENABLED/kill-switch, is what stops it from
 // writing today).
 
+// familyClass (added 2026-09-08, operator ruling on the headline-series row): the ordering class every
+// series under this prefix belongs to unless a declared family in series-family.mjs claims it by exact
+// key. One of FAMILY_CLASS_ORDER there ("fuels, carbon, FX, other indices", the ruling's own order).
+// It lives on the PRODUCER, not on each series, so a series this producer has never written before
+// still gets its class the day it lands, with nobody editing anything. series-family.mjs holds the
+// rest of the family rule and is the only place that reads this field.
 export const MARKET_SERIES_PRODUCERS = Object.freeze([
   {
     keyPrefix: "eu-oil-bulletin",
+    familyClass: "fuel",
     name: "EU Weekly Oil Bulletin",
     implemented: true,
     cadence: "weekly (published Mondays for the prior week's national surveys)",
@@ -62,6 +69,7 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
   },
   {
     keyPrefix: "eex-eua",
+    familyClass: "carbon",
     name: "EEX EUA primary auctions",
     implemented: false,
     cadence: "primary auctions run most trading days (EU ETS calendar); results published same day",
@@ -81,6 +89,7 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
   },
   {
     keyPrefix: "ecb-fx",
+    familyClass: "fx",
     name: "ECB euro foreign exchange reference rates",
     implemented: true,
     cadence: "daily (ECB publishes ~16:00 CET on TARGET business days)",
@@ -134,6 +143,7 @@ export const MARKET_SERIES_PRODUCERS = Object.freeze([
   },
   {
     keyPrefix: "eia-v2",
+    familyClass: "fuel",
     name: "US EIA v2 API (fuel/energy price series)",
     // implemented: true SINCE 2026-09-01 (lane SURF): scripts/producers/market/
     // eia-v2-petroleum-spot-producer.mjs was built, fixture-tested (src/__tests__/
