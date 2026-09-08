@@ -85,6 +85,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
   return (
     <header
       className="cl-masthead"
+      data-masthead-size={size}
       style={{
         background: "var(--card)",
         border: "1px solid var(--line-1)",
@@ -124,6 +125,12 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
           .cl-masthead-body { padding: 14px 16px 0 !important; }
           .cl-masthead .cl-masthead-eyebrow { font-size: 9.5px !important; font-weight: 700 !important; }
           .cl-masthead .cl-masthead-title { font-size: 24px !important; line-height: 1.08 !important; margin-top: 5px !important; }
+          /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390]: the mobile 390 spec gives the
+             MASTHEAD title 24px/1.08 and the DETAIL HEADER title 22px/1.1, and this component
+             renders both (the size prop). Only the masthead measure was declared, so every detail title
+             rendered at 24px at 390. Keyed off the size prop the component already takes, via a
+             data attribute, rather than a second component or a page-local override. */
+          .cl-masthead[data-masthead-size="detail"] .cl-masthead-title { font-size: 22px !important; line-height: 1.1 !important; }
           .cl-masthead .cl-masthead-dek { font-size: 12px !important; line-height: 1.45 !important; }
           .cl-masthead .cl-masthead-row { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
           .cl-masthead .cl-masthead-cmdbar { flex: 1 1 auto !important; min-width: 0 !important; width: 100% !important; }

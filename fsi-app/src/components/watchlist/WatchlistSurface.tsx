@@ -63,6 +63,7 @@
 
 import { useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
+import { LIST_SURFACE_MOBILE_CSS } from "@/components/list-surface/ListSurfaceShell";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { Absence } from "@/components/ui/Absence";
@@ -253,7 +254,8 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
 
   return (
     <>
-      <div style={{ padding: "20px 40px 0" }}>
+      <div className="cl-list-surface-masthead" style={{ padding: "20px 40px 0" }}>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <Masthead
           title="Watchlist"
           dateLabel={formatLocaleDate(now, { weekday: "long", year: "numeric", month: "long", day: "numeric", timeZone: "UTC" })}
@@ -276,7 +278,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
         style={{ padding: "20px 40px 40px", display: "grid", gridTemplateColumns: "minmax(0,1fr) 300px", gap: 28, alignItems: "start" }}
         className="cl-list-surface-grid"
       >
-        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: 1fr !important; } }`}</style>
+        <style>{`@media (max-width: 1280px) { .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; } }`}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
           <div data-audit="watched-card">
             <Card>

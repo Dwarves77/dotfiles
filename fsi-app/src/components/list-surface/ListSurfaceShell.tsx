@@ -158,7 +158,13 @@ export interface ListSurfaceShellProps {
 // below 768px): the facets card hides, a horizontal-scroll strip of compact FilterChipGroup
 // shells plus a "Filters" button take its place, and the sheet (built from the nav drawer's own
 // scrim mechanism) is available regardless of viewport but only reachable via that button.
-const MOBILE_FILTERS_CSS = `
+// Exported (MOBILE-60, 2026-09-08) because WatchlistSurface builds its own copy of this shell's
+// frame (masthead wrapper + content grid) rather than mounting the shell, and so carried NONE of
+// the mobile page measures: at 390 it kept the desktop 40px side padding on both wrappers. It now
+// renders this same block, so the five list surfaces have ONE definition of their mobile frame
+// instead of the shell having it and the watchlist quietly missing it (CLAUDE.md rule 13). The
+// filter rules below are inert on the watchlist, which renders none of those classes.
+export const LIST_SURFACE_MOBILE_CSS = `
   .cl-facets-mobile, .cl-filters-btn { display: none; }
   @media (max-width: 767px) {
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by the audit's mobile-*
@@ -182,10 +188,14 @@ const MOBILE_FILTERS_CSS = `
        facetGroups. The mobile 390 spec designs exactly one ("chip groups scroll
        sideways as whole units"; "facet counts and the workspace-tag facet open in a
        sheet from Filters"), so the desktop expression of it is not shown at this
-       width. The rest of the rail still folds under the content, as the spec says. */
+       width. The rest of the rail still folds under the content, as the spec says.
+       Gated on --mobile-facets, a class this shell adds only when it is actually
+       rendering that chip strip: /watchlist reuses this block for its page measures but
+       has no chip strip of its own, and hiding its rail FILTERS card would leave it with
+       no filter surface at all at 390 — a worse defect than the duplication. */
     .cl-list-surface-masthead { padding: 0 !important; }
     .cl-list-surface-grid { padding: 14px 16px 16px !important; gap: 16px !important; }
-    .cl-list-surface-grid [data-audit="filters-rail"] { display: none !important; }
+    .cl-list-surface-grid--mobile-facets [data-audit="filters-rail"] { display: none !important; }
     .cl-facets-desktop { display: none !important; }
     .cl-facets-mobile {
       display: flex;
@@ -404,7 +414,7 @@ export function ListSurfaceShell({
   return (
     <>
       <div className="cl-list-surface-masthead" style={{ padding: "20px 40px 0" }}>
-        <style>{MOBILE_FILTERS_CSS}</style>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <Masthead
           title={title}
           dek={dek ?? scopeLine}
@@ -421,7 +431,7 @@ export function ListSurfaceShell({
           gap: 28,
           alignItems: "start",
         }}
-        className="cl-list-surface-grid"
+        className={allFacetGroups.length > 0 ? "cl-list-surface-grid cl-list-surface-grid--mobile-facets" : "cl-list-surface-grid"}
       >
         <style>{`
           @media (max-width: 1280px) {
@@ -431,7 +441,7 @@ export function ListSurfaceShell({
             .cl-list-surface-grid { grid-template-columns: minmax(0, 1fr) !important; }
           }
         `}</style>
-        <style>{MOBILE_FILTERS_CSS}</style>
+        <style>{LIST_SURFACE_MOBILE_CSS}</style>
         <div style={{ display: "flex", flexDirection: "column", gap: 16, minWidth: 0 }}>
           {/* Band tiles */}
           <div className="cl-band-tiles" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 14 }}>

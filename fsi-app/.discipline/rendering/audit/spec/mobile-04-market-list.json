@@ -1,0 +1,398 @@
+{
+  "part": "Mobile 390 — Market list surface (top bar, masthead, 2x2 band tiles, chip-group strip, two-line rows)",
+  "mount": "compose-04-market",
+  "viewport": 390,
+  "compiledCss": true,
+  "artboards": [
+    "04-market-list (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections TOP BAR / MASTHEAD / BAND TILES / LIST ROW / FILTERS. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+  "notes": [
+    "Same mount as the compose-* spec for this surface, at 390 instead of 1440. The mobile 390 spec's own framing is 'No new components. Every part is the desktop part at a smaller measure', so a second mount would duplicate one that already exists.",
+    "`compiledCss: true` is required on every mobile-* spec: AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind utility classes (`hidden md:flex`, `md:hidden`), which the raw globals.css read the 1440 specs use leaves un-expanded. Opt-in per spec so the 43 green 1440 specs on the same mounts are not re-baselined. See run-audit.mjs at the addStyleTag call.",
+    "Rows below 768 drop the 76px timeline column and nothing else; every other cell of the desktop row is still measured here, at its mobile measure.",
+    "The rail folds under the content (one grid track below 1280), which is the spec's BREAKPOINTS behaviour; the rail's FILTERS card specifically is not drawn, because the mobile spec designs its own single filter surface (the chip-group strip plus the Filters sheet) and two live controls over the same facets is the duplication CLAUDE.md rule 13 forbids.",
+    "This mount is the page component itself (the same one its compose-* spec measures), not the AppShell frame, so the TOP BAR and DRAWER regions are measured once by mobile-01-dashboard.json and mobile-18-drawer.json rather than repeated on all five surfaces.",
+    "`.cl-facets-desktop` and `.cl-list-row-header` are asserted as forbids rather than as hidden elements here: the list surfaces do not render either at any width (the desktop facet strip was retired when the filters moved to the rail; the column header is a dashboard/watchlist card part), so a `display: none` expectation would report NOT BUILT rather than the truth.",
+    "Every row in this surface's fixture is unscored, so the row's impact cell is measured as the 30px dashed baseline (the Absence convention) rather than as 8px bars; the bars themselves are measured on the surfaces whose fixture scores rows (mobile-01-dashboard, mobile-11-watchlist) and by impactmeter.json."
+  ],
+  "selector": ".cl-list-surface-grid",
+  "expect": {
+    "display": "grid"
+  },
+  "children": [
+    {
+      "name": "Masthead wrapper carries no desktop side padding at 390 (the masthead's own 16px is the page margin)",
+      "selector": ".cl-list-surface-masthead",
+      "expect": {
+        "padding-left": "0px",
+        "padding-right": "0px",
+        "padding-top": "0px"
+      }
+    },
+    {
+      "name": "Masthead body padding 14px 16px 0",
+      "selector": ".cl-masthead-body",
+      "expect": {
+        "padding-top": "14px",
+        "padding-left": "16px",
+        "padding-right": "16px",
+        "padding-bottom": "0px"
+      }
+    },
+    {
+      "name": "Masthead VOL line 9.5px uppercase .14em/700",
+      "selector": ".cl-masthead-eyebrow",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "700",
+        "letter-spacing": "1.33px",
+        "text-transform": "uppercase",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "Masthead title Anton 24px uppercase, line-height 1.08, margin-top 5px",
+      "selector": ".cl-masthead-title",
+      "expect": {
+        "font-size": "24px",
+        "line-height": "25.92px",
+        "margin-top": "5px",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "Masthead scope line 12px, line-height 1.45",
+      "selector": ".cl-masthead-dek",
+      "expect": {
+        "font-size": "12px",
+        "line-height": "17.4px"
+      }
+    },
+    {
+      "name": "Masthead row stacks so the command bar takes a full-width line of its own",
+      "selector": ".cl-masthead-row",
+      "expect": {
+        "flex-direction": "column",
+        "align-items": "stretch",
+        "gap": "12px"
+      }
+    },
+    {
+      "name": "Command bar is 44px high, radius 8",
+      "selector": ".cl-command-bar",
+      "expect": {
+        "height": "44px",
+        "border-radius": "8px"
+      }
+    },
+    {
+      "name": "Command bar search glyph 15px",
+      "selector": ".cl-command-bar .cl-search-glyph",
+      "expect": {
+        "font-size": "15px",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "The Cmd-K hint is dropped at 390",
+      "selector": ".cl-command-bar .cl-cmdk-hint",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "Content container padding 14px 16px 16px, one column below 768",
+      "selector": ".cl-list-surface-grid",
+      "expect": {
+        "padding": "14px 16px 16px",
+        "grid-template-columns": "*"
+      }
+    },
+    {
+      "name": "Band tiles are two columns, gap 10",
+      "selector": ".cl-band-tiles",
+      "expect": {
+        "grid-template-columns": "* *",
+        "gap": "10px"
+      },
+      "note": "Two tracks for four tiles is the 2x2 assertion. getComputedStyle resolves an fr track to its used pixel width (see normalise.mjs's wildcard header), so the track COUNT plus the gap is the honest form."
+    },
+    {
+      "name": "Band tile padding 12px 14px 0, radius 10",
+      "selector": ".cl-band-tile",
+      "expect": {
+        "padding-top": "12px",
+        "padding-left": "14px",
+        "padding-right": "14px",
+        "padding-bottom": "0px",
+        "border-radius": "10px"
+      }
+    },
+    {
+      "name": "Band tile label 10px/800 .06em uppercase",
+      "selector": ".cl-band-tile .cl-band-tile-label",
+      "expect": {
+        "font-size": "10px",
+        "font-weight": "800",
+        "letter-spacing": "0.6px",
+        "text-transform": "uppercase"
+      }
+    },
+    {
+      "name": "Band tile over-window line 10px muted",
+      "selector": ".cl-band-tile .cl-band-tile-window",
+      "expect": {
+        "font-size": "10px",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "Band tile numeral Anton 30px/1, margin 6px 0 8px",
+      "selector": ".cl-band-tile .cl-band-tile-numeral",
+      "expect": {
+        "font-size": "30px",
+        "line-height": "30px",
+        "margin-top": "6px",
+        "margin-bottom": "8px"
+      }
+    },
+    {
+      "name": "Band tile 4px band rule pinned to the bottom edge at -14px",
+      "selector": ".cl-band-tile .cl-band-tile-rule",
+      "expect": {
+        "height": "4px",
+        "margin-left": "-14px",
+        "margin-right": "-14px",
+        "margin-bottom": "0px"
+      }
+    },
+    {
+      "name": "The rail FILTERS card is not drawn at 390 (one filter surface, not two — MOBILE-60)",
+      "selector": "[data-audit=\"filters-rail\"]",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "Chip groups scroll sideways as whole units",
+      "selector": ".cl-facets-mobile",
+      "expect": {
+        "display": "flex",
+        "overflow-x": "auto",
+        "gap": "8px"
+      }
+    },
+    {
+      "name": "Group shell 36px, 1px rgba(0,0,0,.1), radius 8, white, padding 0 8px",
+      "selector": ".cl-facets-mobile .cl-filter-group",
+      "expect": {
+        "height": "36px",
+        "min-height": "36px",
+        "border-top": "1px solid rgba(0, 0, 0, 0.1)",
+        "border-radius": "8px",
+        "background-color": "rgb(255, 255, 255)",
+        "padding-left": "8px",
+        "padding-right": "8px",
+        "flex-shrink": "0"
+      }
+    },
+    {
+      "name": "Group label 9.5px uppercase .1em/700 muted",
+      "selector": ".cl-facets-mobile .cl-filter-group-label",
+      "expect": {
+        "font-size": "9.5px",
+        "letter-spacing": "0.95px",
+        "font-weight": "700",
+        "text-transform": "uppercase",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "Chips 12px/600 radius 6",
+      "selector": ".cl-facets-mobile .cl-filter-chip",
+      "expect": {
+        "font-size": "12px",
+        "font-weight": "600",
+        "border-radius": "6px"
+      }
+    },
+    {
+      "name": "An inactive chip inside the labelled shell carries no border of its own (ruling 2.5)",
+      "selector": ".cl-facets-mobile .cl-filter-chip[data-active=\"false\"]",
+      "expect": {
+        "border-top-color": "rgba(0, 0, 0, 0)",
+        "background-color": "rgba(0, 0, 0, 0)",
+        "color": "rgb(90, 107, 103)"
+      }
+    },
+    {
+      "name": "An active chip is #5A5552 on white",
+      "selector": ".cl-facets-mobile .cl-filter-chip[data-active=\"true\"]",
+      "expect": {
+        "background-color": "rgb(90, 85, 82)",
+        "color": "rgb(255, 255, 255)"
+      }
+    },
+    {
+      "name": "The Filters control (facet counts and the workspace-tag facet open in a sheet from it) is a 44px target",
+      "selector": ".cl-filters-btn",
+      "expect": {
+        "min-height": "44px",
+        "border-radius": "8px",
+        "font-size": "13px",
+        "font-weight": "700",
+        "display": "flex"
+      },
+      "note": "Authored `inline-flex`; it is a flex ITEM of the content column, so CSS blockifies the computed value to `flex`. That is what a browser computes and what is asserted."
+    },
+    {
+      "name": "List row grid 3px 1fr, min-height 76",
+      "selector": ".cl-list-row",
+      "expect": {
+        "grid-template-columns": "3px *",
+        "min-height": "76px"
+      }
+    },
+    {
+      "name": "3px full-bleed band spine",
+      "selector": ".cl-list-row > .cl-row-spine",
+      "expect": {
+        "width": "3px"
+      }
+    },
+    {
+      "name": "Row content padding 10px 6px 10px 12px, a flex column of two lines",
+      "selector": ".cl-list-row .cl-row-content",
+      "expect": {
+        "padding": "10px 6px 10px 12px",
+        "display": "flex",
+        "flex-direction": "column"
+      }
+    },
+    {
+      "name": "Line 1 jurisdiction code 10.5px/.06em",
+      "selector": ".cl-list-row .cl-row-juris",
+      "expect": {
+        "font-size": "10.5px",
+        "letter-spacing": "0.63px"
+      }
+    },
+    {
+      "name": "Line 1 title 13.5px/1.35, wraps, no ellipsis",
+      "selector": ".cl-list-row .cl-row-title-text",
+      "expect": {
+        "font-size": "13.5px",
+        "line-height": "18.23px",
+        "white-space": "normal",
+        "text-overflow": "clip"
+      }
+    },
+    {
+      "name": "Line 2 gap 9px, margin-top 7px, wrapping",
+      "selector": ".cl-list-row .cl-row-line2",
+      "expect": {
+        "gap": "9px",
+        "margin-top": "7px",
+        "flex-wrap": "wrap"
+      }
+    },
+    {
+      "name": "Date + days 11.5px/700",
+      "selector": ".cl-list-row .cl-row-due-label",
+      "expect": {
+        "font-size": "11.5px",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "The days figure is 11.5px/500 muted",
+      "selector": ".cl-list-row .cl-row-due-days",
+      "expect": {
+        "font-size": "11.5px",
+        "font-weight": "500"
+      }
+    },
+    {
+      "name": "Tier square 9.5px/800 .06em in a 1px rgba(0,0,0,.2) radius-4 box",
+      "selector": ".cl-list-row .cl-tier-chip",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "800",
+        "letter-spacing": "0.57px",
+        "border-radius": "4px",
+        "border-top": "1px solid rgba(0, 0, 0, 0.2)"
+      }
+    },
+    {
+      "name": "Overflow control is a 44x44 target with a left rule",
+      "selector": ".cl-list-row .cl-row-overflow",
+      "expect": {
+        "width": "44px",
+        "height": "44px",
+        "border-left": "1px solid rgba(0, 0, 0, 0.08)"
+      },
+      "note": "'Pushed right' is measured by the boundsCheck below, not by margin-left: getComputedStyle resolves `auto` to a used pixel value."
+    },
+    {
+      "name": "The 76px timeline column is the only thing dropped at this width",
+      "selector": ".cl-list-row .cl-row-timeline",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "Unscored renders a 30px dashed baseline in place of the bars",
+      "selector": ".cl-impact-baseline",
+      "expect": {
+        "width": "30px",
+        "border-bottom": "1px dashed rgba(0, 0, 0, 0.25)"
+      }
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no literal UNSCORED token anywhere",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1: unscored renders a 30px dashed baseline plus the small-caps absence reason, never this literal."
+    },
+    {
+      "name": "no NOT SCORED wording",
+      "selector": "body",
+      "textMatch": "NOT SCORED",
+      "reason": "Mobile 390 spec, LIST ROW: 'never a second row, never \"NOT SCORED\"'."
+    },
+    {
+      "name": "no bare fabricated 0/12 impact sum on an unscored row",
+      "selector": ".cl-list-row",
+      "textMatch": "re:(^|[^0-9])0/12",
+      "reason": "An unscored row renders the Absence convention, never a fabricated zero (regex, not substring, so a real 10/12 is not a false finding)."
+    },
+    {
+      "name": "no floating Ask AI control",
+      "selector": "body",
+      "textMatch": "Ask AI",
+      "reason": "Operator ruling P1 2.2: the masthead command bar is the ask; no floating control, at any width."
+    },
+    {
+      "name": "no desktop facet chip strip in the content column at any width",
+      "selector": ".cl-facets-desktop",
+      "reason": "Operator audit 2026-09-07: the facet strip that used to sit above the rows in the content column is gone at every width; the mobile chip-group strip is a different element (.cl-facets-mobile)."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "no list-row cell overlaps a sibling or escapes its row at 390",
+      "container": ".cl-list-row",
+      "cells": ".cl-row-content > *",
+      "reason": "Same defect class at the narrowest supported width; 375 must not clip, so 390 must have headroom."
+    },
+    {
+      "name": "nothing in the content column is wider than the content column",
+      "container": ".cl-list-surface-grid",
+      "cells": ".cl-band-tiles, .cl-facets-mobile, .cl-filters-btn, .cl-list-row",
+      "reason": "MOBILE-60 regression guard: every mobile defect this lane fixed first showed up as a child wider than its own container at 390."
+    }
+  ]
+}

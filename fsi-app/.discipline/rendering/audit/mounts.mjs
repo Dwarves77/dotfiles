@@ -2469,6 +2469,28 @@ window.__mount = () => {
 };
 `;
 
+// ── Mobile 390 drawer (lane mobile60, 2026-09-08) ────────────────────────────────────────────────
+// The mobile 390 spec's DRAWER section states measures that only exist while the drawer is OPEN,
+// and AppShell owns that state (it is opened by <TopBar/>'s hamburger, never by a prop). Rather
+// than add a test-only prop to product code, this mount renders the SAME AppShell + DashboardBrief
+// tree as `page-frame-1440` and then clicks the real hamburger, so what the spec measures is the
+// drawer a reader actually opens. No new product surface, no fixture of its own: it reuses
+// PAGE_FRAME_FIXTURES.
+const MOBILE_DRAWER_ENTRY = PAGE_FRAME_ENTRY.replace(
+  'window.__mount = () => {',
+  `window.__mount = () => {
+  // React commits asynchronously, so poll for the real hamburger rather than assuming
+  // it exists on the next frame; run-audit.mjs waits two frames plus 80ms before it
+  // probes, which this comfortably fits inside.
+  let tries = 0;
+  const openDrawer = () => {
+    const hamburger = document.querySelector('button[aria-label="Open navigation"]');
+    if (hamburger) { hamburger.click(); return; }
+    if (tries++ < 40) setTimeout(openDrawer, 5);
+  };
+  setTimeout(openDrawer, 0);`,
+);
+
 export const AUDIT_MOUNTS = {
   factcard: {
     id: 'factcard',
@@ -2600,6 +2622,17 @@ export const AUDIT_MOUNTS = {
     description: 'ListSurfaceShell (real assembly): facets card, Legend rail card, DismissedStash foot.',
     viewport: 1440,
     entry: LISTSURFACE_ENTRY,
+  },
+  'mobile-drawer': {
+    id: 'mobile-drawer',
+    description: 'AppShell + DashboardBrief with the mobile nav drawer OPENED by clicking the real hamburger — the mobile 390 spec\'s DRAWER measures.',
+    viewport: 390,
+    entry: MOBILE_DRAWER_ENTRY,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+    },
+    apiRoutes: EMPTY_API,
   },
   'page-frame-1440': {
     id: 'page-frame-1440',

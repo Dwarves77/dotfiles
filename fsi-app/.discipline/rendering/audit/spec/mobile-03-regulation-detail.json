@@ -1,0 +1,226 @@
+{
+  "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
+  "mount": "page-frame-1440",
+  "viewport": 390,
+  "compiledCss": true,
+  "artboards": [
+    "03-regulation-detail (desktop); mobile-390 text spec (no 390 artboard PNG exists yet)"
+  ],
+  "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
+  "notes": [
+    "Same mount as compose-03-regulation-detail, at 390 instead of 1440 — the real AppShell frame wrapping RegulationDetailSurface, so the top bar and the detail surface are measured in one tree.",
+    "`compiledCss: true`, as on every mobile-* spec: the desktop/mobile switch in AppShell/Sidebar/TopBar is expressed as Tailwind utility classes. Opt-in per spec so the 1440 specs on this mount are not re-baselined.",
+    "The spec's 'Next obligation, N days' line: the build renders the desktop callout's own wording rather than inventing new copy, per the coordinator note carried in DetailShell.tsx's VerticalMilestoneStack header. Logged in DEVIATION-LOG.md.",
+    "The rail's prev/next links are not asserted: they render only when the URL carries list/pos/of and a neighbour slug, and this mount has no list position. The place-keeping card itself, which is what the spec requires to come FIRST in the folded rail, is asserted."
+  ],
+  "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout",
+  "expect": {
+    "display": "grid",
+    "grid-template-columns": "*"
+  },
+  "children": [
+    {
+      "name": "Detail page side padding is 16px at 390 (--cl-detail-pad-x)",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout",
+      "expect": {
+        "width": "358px"
+      },
+      "note": "390 minus the 16px page padding either side. Asserted as the resulting width because the padding lives on the wrapper above, via the --cl-detail-pad-x variable globals.css switches at 767."
+    },
+    {
+      "name": "Detail title is Anton, uppercase, .04em",
+      "selector": "[data-audit=\"regulation-detail\"] h1",
+      "expect": {
+        "text-transform": "uppercase",
+        "letter-spacing": "0.88px",
+        "font-size": "22px",
+        "line-height": "24.2px"
+      },
+      "note": "The detail title is the shared Masthead's own title at size=\"detail\". MOBILE-60: the 22px/1.1 detail measure was missing below 768 (every detail title rendered the masthead's 24px/1.08), and is now keyed off the size prop the component already takes."
+    },
+    {
+      "name": "Tier square is the bordered chip, 9.5px/800 .06em radius 4",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-tier-chip",
+      "expect": {
+        "font-size": "9.5px",
+        "font-weight": "800",
+        "border-radius": "4px",
+        "border-top": "1px solid rgba(0, 0, 0, 0.2)"
+      }
+    },
+    {
+      "name": "The four actions are a 2x2 grid, gap 8",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row",
+      "expect": {
+        "display": "grid",
+        "grid-template-columns": "* *",
+        "gap": "8px"
+      }
+    },
+    {
+      "name": "All four actions are present; none moves into an overflow menu",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row > button",
+      "expect": {
+        "count": "4",
+        "min-height": "44px",
+        "border-radius": "6px"
+      }
+    },
+    {
+      "name": "Export brief is the primary fill",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row > button:first-of-type",
+      "expect": {
+        "text": "Export brief",
+        "background-color": "rgb(90, 85, 82)",
+        "color": "rgb(255, 255, 255)",
+        "font-size": "12.5px",
+        "font-weight": "700"
+      }
+    },
+    {
+      "name": "Share, Watch and + Tag are the secondary 12.5px/600 buttons",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row > button:nth-of-type(2)",
+      "expect": {
+        "text": "Share",
+        "font-size": "12.5px",
+        "font-weight": "600",
+        "background-color": "rgb(255, 255, 255)",
+        "border-top": "1px solid rgba(0, 0, 0, 0.25)"
+      }
+    },
+    {
+      "name": "The desktop horizontal timeline is not drawn at 390",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-desktop",
+      "expect": {
+        "display": "none"
+      }
+    },
+    {
+      "name": "The vertical timeline is drawn at 390",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile",
+      "expect": {
+        "display": "block"
+      }
+    },
+    {
+      "name": "Each timeline row is the spec's 62px / 14px / 1fr grid with 14px bottom padding",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
+      "expect": {
+        "display": "grid",
+        "grid-template-columns": "62px 14px *",
+        "padding-bottom": "14px"
+      }
+    },
+    {
+      "name": "The date gutter is right-aligned, 11px/600 muted",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div > span:first-child",
+      "expect": {
+        "text-align": "right",
+        "font-size": "11px",
+        "color": "rgb(122, 110, 108)"
+      }
+    },
+    {
+      "name": "The dot column carries a 2px track behind the dots",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > span",
+      "expect": {
+        "width": "2px",
+        "position": "absolute"
+      }
+    },
+    {
+      "name": "The section index sticks to the top of the inner scroll container",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-section-index",
+      "expect": {
+        "position": "sticky",
+        "top": "0px"
+      }
+    },
+    {
+      "name": "Section index chips are 36px at 390 (the one target the spec drops below 44)",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-section-index-link",
+      "expect": {
+        "min-height": "36px",
+        "border-radius": "6px",
+        "font-size": "12.5px"
+      }
+    },
+    {
+      "name": "The section index scrolls sideways rather than wrapping",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-section-index [data-guard-strip]",
+      "expect": {
+        "overflow-x": "auto",
+        "white-space": "nowrap"
+      }
+    },
+    {
+      "name": "The rail folds under the content (one grid track below 1280)",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2)",
+      "expect": {
+        "display": "flex",
+        "flex-direction": "column",
+        "gap": "16px",
+        "width": "358px"
+      }
+    },
+    {
+      "name": "The folded rail's FIRST card is the 'In this list' place-keeping card",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:first-child p:first-of-type",
+      "expect": {
+        "text": "In this list",
+        "font-size": "10.5px",
+        "font-weight": "800",
+        "letter-spacing": "1.26px",
+        "text-transform": "uppercase",
+        "color": "rgb(122, 110, 108)"
+      },
+      "note": "The head reads \"In this list · <list>\" when the URL carries a list name; this mount has none, so the bare label is the string measured."
+    }
+  ],
+  "forbid": [
+    {
+      "name": "no inline 'Ask about this' bar in the detail masthead",
+      "selector": "[data-audit=\"regulation-detail\"]",
+      "textMatch": "Ask about this",
+      "reason": "Operator ruling P1 2.3: the scoped placeholder belongs in the masthead command bar, not a second bar; the action row follows the workspace tags row directly. At every width."
+    },
+    {
+      "name": "no floating Ask AI control",
+      "selector": "body",
+      "textMatch": "Ask AI",
+      "reason": "Operator ruling P1 2.2: the masthead command bar is the ask; no floating control, at any width."
+    },
+    {
+      "name": "no band dropdown in the action row",
+      "selector": "[data-audit=\"regulation-detail\"] .cl-action-row",
+      "textMatch": "Immediate",
+      "reason": "Operator ruling 3.1: the band is stated by the band pill in the header; changing it is not a reader action. Action row is exactly Export brief, Share, Watch, + Tag."
+    },
+    {
+      "name": "the literal UNSCORED token",
+      "selector": "body",
+      "textMatch": "UNSCORED",
+      "reason": "Operator ruling P1 2.1."
+    }
+  ],
+  "boundsCheck": [
+    {
+      "name": "no top-bar cell overlaps a sibling or escapes the 56px bar at 390",
+      "container": ".md\\:hidden > header",
+      "cells": "button, h1, a[href=\"/profile\"]",
+      "reason": "Operator, 2026-09-07: 'your text is too right and it overlays different areas.'"
+    },
+    {
+      "name": "no action button overlaps another or escapes the 2x2 grid",
+      "container": "[data-audit=\"regulation-detail\"] .cl-action-row",
+      "cells": "button",
+      "reason": "Four 44px targets in a 2x2 grid at 390 is the tightest control cluster on the detail page."
+    },
+    {
+      "name": "no timeline cell overlaps a sibling or escapes its row",
+      "container": "[data-audit=\"regulation-detail\"] .cl-timeline-mobile > div > div",
+      "cells": ":scope > span",
+      "reason": "The 62/14/1fr grid is the region the spec states most precisely; a label bleeding into the date gutter is exactly the collision class the operator's visual pass forbids. (:scope > span, so the dot's own nested marker is not compared against its parent cell.)"
+    }
+  ]
+}
