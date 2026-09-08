@@ -12,6 +12,7 @@
  * KNOWN NEW BACKEND (HANDOFF §7). A missing figure renders as "—", never 0.
  */
 
+import { SectionCard } from "@/components/ui/SectionCard";
 import { useMemo } from "react";
 import { memberDisplayName } from "@/lib/admin/member-display-name";
 import { formatLocaleDate } from "@/lib/format";
@@ -139,27 +140,11 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
   const eyebrow: React.CSSProperties = rail ? { ...EYEBROW, fontSize: 10, margin: 0 } : EYEBROW;
   const sub: React.CSSProperties = rail ? { ...SUB, fontSize: 10.5, margin: 0 } : SUB;
 
-  return (
-    <div
-      style={
-        rail
-          ? {
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 14,
-              padding: "14px 16px",
-              background: "var(--surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: "var(--radius-card)",
-            }
-          : {
-              display: "grid",
-              gridTemplateColumns: "repeat(4, 1fr)",
-              gap: 12,
-              margin: "0 0 14px",
-            }
-      }
-    >
+  // Operator item A1 (2026-09-08): the RAIL form of this block is a card, so it is the shared
+  // `SectionCard`; it had no rule and no shadow. The non-rail form is a bare 4-column grid inside
+  // another card, not a card of its own, and stays exactly as it is.
+  const cells = (
+    <>
       {/* Companies */}
       <div style={cell}>
         <p style={eyebrow}>Companies</p>
@@ -209,7 +194,15 @@ export function WorkspacesUsageRow({ orgs, members, layout = "row" }: Workspaces
         <p style={{ ...figure, color: "var(--text-2)" }}>—</p>
         <p style={sub}>populates when per-org activity events ship</p>
       </div>
-    </div>
+    </>
+  );
+
+  return rail ? (
+    <SectionCard padding="14px 16px" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
+      {cells}
+    </SectionCard>
+  ) : (
+    <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, margin: "0 0 14px" }}>{cells}</div>
   );
 }
 

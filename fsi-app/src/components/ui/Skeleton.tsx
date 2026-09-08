@@ -66,6 +66,9 @@ export function SkeletonListRow() {
   );
 }
 
+// fitness-allow: F42 (SKELETON. This holds a BandTile's geometry open while its count loads
+// (README §0.6: a count still loading is a Skeleton, never a 0). It is the shape of a tile, not a
+// section card, and draws no rule, and the real tile it stands in for does not either.)
 export function SkeletonBandTile() {
   return (
     <div

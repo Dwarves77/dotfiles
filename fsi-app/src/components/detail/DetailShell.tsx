@@ -41,7 +41,7 @@ import { MilestoneTimeline, classifyTimelineEntries } from "@/components/ui/Mile
 import { StateNote } from "@/components/ui/StateNote";
 import { ImpactMeter } from "@/components/ui/ImpactMeter";
 import { Absence } from "@/components/ui/Absence";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { Masthead } from "@/components/ui/Masthead";
 import { daysUntil, type UrgencyBand } from "@/lib/urgency/bands";
 import type { ImpactScores, TimelineEntry } from "@/types/resource";
@@ -95,28 +95,17 @@ export interface DetailHeaderProps {
 
 export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, headerStat }: DetailHeaderProps) {
   return (
-    <header
+    // Operator item A1 (2026-09-08): the detail header is a card, so it is the shared
+    // `SectionCard`. It owns the border, radius, shadow and the rule, and its `padding` form
+    // positions the rule absolutely so it still spans the full card width rather than being inset
+    // by the card's own padding. Ruling 5.2 (2026-09-07) is unchanged and now structural: the rule
+    // is the dark grey gradation, never the band-coloured rule.
+    <SectionCard
+      as="header"
       aria-label={title}
-      style={{
-        position: "relative",
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        marginBottom: 16,
-        overflow: "hidden",
-        /* dc.html #p3 (char 201809), the band-pill/action-row card: padding:16px 20px 18px. */
-        padding: "16px 20px 18px",
-      }}
+      padding="16px 20px 18px"
+      style={{ marginBottom: 16 }}
     >
-      {/* Ruling 5.2 (2026-09-07): every 3px rule on a detail header uses the dark grey gradation
-          from 5.1, never the band-coloured rule (that stays confined to the nav card cap / mobile
-          top bar / drawer). Positioned absolute so it spans the card's full width regardless of
-          the header's own padding (the padding above is a real, measured card property; the rule
-          is not indented by it). */}
-      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-        <SectionRule />
-      </div>
       {/* All four detail artboards STACK this header: the chip row (ending in the tier square and
           the stat), then the workspace tag row, then the action row, every one of them left-aligned
           at the card's own padding. The build laid it out as a two-column space-between row, which
@@ -145,7 +134,7 @@ export function DetailHeader({ band, tier, title, actions, extraChips, tagRow, h
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "flex-start", maxWidth: "100%" }}>{actions}</div>
         )}
       </div>
-    </header>
+    </SectionCard>
   );
 }
 
@@ -233,17 +222,7 @@ export interface ExposureItem {
 export function DetailExposure({ items }: { items: ExposureItem[] }) {
   if (items.length === 0) return null;
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        marginBottom: 16,
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard style={{ marginBottom: 16 }}>
       <div style={{ padding: "16px 20px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
         Exposure
@@ -272,7 +251,7 @@ export function DetailExposure({ items }: { items: ExposureItem[] }) {
         ))}
       </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -288,21 +267,7 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
   const next = list.find((e) => e.status === "current") ?? list.find((e) => e.status !== "past") ?? null;
 
   return (
-    <div
-      style={{
-        position: "relative",
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        marginBottom: 16,
-        overflow: "hidden",
-        padding: "16px 20px",
-      }}
-    >
-      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-        <SectionRule />
-      </div>
+    <SectionCard padding="16px 20px" style={{ marginBottom: 16 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 14, flexWrap: "wrap", gap: 8 }}>
         <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.1em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
           Timeline
@@ -353,7 +318,7 @@ export function DetailTimeline({ entries, band }: DetailTimelineProps) {
           </StateNote>
         </div>
       )}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -685,25 +650,7 @@ export function SummaryDepthSwitch({ depth, onChange }: { depth: SummaryDepth; o
 
 export function DetailSection({ id, title, aside, children }: { id: string; title: string; aside?: React.ReactNode; children: React.ReactNode }) {
   return (
-    <section
-      id={id}
-      style={{
-        position: "relative",
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        marginBottom: 16,
-        scrollMarginTop: 56,
-        overflow: "hidden",
-        padding: "16px 20px",
-      }}
-    >
-      {/* Absolute so the rule spans the card's full width regardless of the section's own padding
-          (the padding is a real, measured card property; the rule is not indented by it). */}
-      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-        <SectionRule />
-      </div>
+    <SectionCard as="section" id={id} padding="16px 20px" style={{ marginBottom: 16, scrollMarginTop: 56 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
         <h2
           style={{
@@ -722,7 +669,7 @@ export function DetailSection({ id, title, aside, children }: { id: string; titl
         {aside && <span style={{ fontSize: "var(--fs-105)", color: "var(--ink-3)" }}>{aside}</span>}
       </div>
       <div style={{ maxWidth: "72ch" }}>{children}</div>
-    </section>
+    </SectionCard>
   );
 }
 
@@ -829,16 +776,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
   const present = rows.filter((r) => r.value !== null && r.value !== undefined && r.value !== "");
   if (present.length === 0) return null;
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard>
       <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
         At a glance
@@ -858,7 +796,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
         ))}
       </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -870,16 +808,7 @@ export function AtAGlanceCard({ rows }: { rows: AtAGlanceRow[] }) {
 
 export function RailLegend() {
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard>
       <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
         Legend
@@ -898,7 +827,7 @@ export function RailLegend() {
         </p>
       </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -906,23 +835,14 @@ export function RailLegend() {
 
 export function ImpactRailCard({ scores }: { scores?: ImpactScores | null }) {
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard>
       <div style={{ padding: "14px 16px" }}>
       <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 12px" }}>
         Impact assessment
       </p>
       <ImpactMeter scores={scores} variant="full" />
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -1024,20 +944,7 @@ export function InThisListStat({
       : null;
 
   return (
-    <div
-      style={{
-        position: "relative",
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-        padding: "14px 16px",
-      }}
-    >
-      <div aria-hidden="true" style={{ position: "absolute", top: 0, left: 0, right: 0 }}>
-        <SectionRule />
-      </div>
+    <SectionCard padding="14px 16px">
       <Suspense fallback={null}>
         <InThisListBridge onParams={(p, o, l) => setParams({ pos: p, of: o, list: l })} />
       </Suspense>
@@ -1084,6 +991,6 @@ export function InThisListStat({
           </span>
         )}
       </div>
-    </div>
+    </SectionCard>
   );
 }

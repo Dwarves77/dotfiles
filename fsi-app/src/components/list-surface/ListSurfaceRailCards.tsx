@@ -10,7 +10,7 @@
  */
 
 import { Fragment, useEffect, useMemo, useState, type ReactNode } from "react";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { formatLocaleDate, formatNumber } from "@/lib/format";
 import { Absence } from "@/components/ui/Absence";
 import { SkeletonRailDateRow } from "@/components/ui/Skeleton";
@@ -58,17 +58,7 @@ export function RailCard({
   headLink?: { label: string; href: string };
 }) {
   return (
-    <div
-      data-audit={dataAudit}
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard dataAudit={dataAudit}>
       <div style={{ padding: "14px 16px" }}>
         {headLink ? (
           <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 10, margin: "0 0 10px" }}>
@@ -96,7 +86,7 @@ export function RailCard({
         )}
         {children}
       </div>
-    </div>
+    </SectionCard>
   );
 }
 
@@ -211,17 +201,7 @@ export function FiltersRailCard({
   const clearAll = () => shown.forEach((g) => g.onSelect(null));
   if (shown.length === 0) return null;
   return (
-    <div
-      data-audit="filters-rail"
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard dataAudit="filters-rail">
       <div style={{ padding: "14px 16px" }}>
         <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: 12 }}>
           <p
@@ -276,7 +256,7 @@ export function FiltersRailCard({
           </p>
         )}
       </div>
-    </div>
+    </SectionCard>
   );
 }
 

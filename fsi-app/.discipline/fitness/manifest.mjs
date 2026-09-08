@@ -193,6 +193,12 @@ import { fitnessFunction as F40 } from './functions/F40-authed-api-fetch.mjs';
 // renumbering it would have touched strictly more citations. Its invariant moved with it, from
 // RD-65 to RD-66.
 import { fitnessFunction as F41 } from './functions/F41-dead-media-query-class.mjs';
+// Card-shell chokepoint (2026-09-08, operator item A1): F42 is the structural half of "the 3px
+// graduated rule is part of the card component, not a decoration". The card shell now exists once
+// (src/components/ui/SectionCard.tsx) and mounts the rule unconditionally; F42 makes a hand-typed
+// shell anywhere else RED, so a card cannot be constructed without the rule, the shadow or the
+// artboard's radius. Closes the class the operator found open on eighteen card types.
+import { fitnessFunction as F42 } from './functions/F42-card-shell-outside-section-card.mjs';
 
 export const fitnessFunctions = [
   F2,
@@ -230,6 +236,7 @@ export const fitnessFunctions = [
   F39,
   F40,
   F41,
+  F42,
 ];
 
 export function getFunctionById(id) {

@@ -41,6 +41,7 @@
  * corroboration counts come exclusively from sources.independent_citers.
  */
 
+import { SectionCard } from "@/components/ui/SectionCard";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import Link from "next/link";
@@ -715,7 +716,9 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
     status === "dirty" ? "Unsaved…" : "Not saved";
 
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--line-1)", borderRadius: "var(--radius-card)", boxShadow: "var(--shadow-card)", padding: "14px 16px" }}>
+    // Operator item A1 (2026-09-08): shared `SectionCard`: the notes card carried the five card
+    // declarations by hand and no rule.
+    <SectionCard padding="14px 16px">
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 8 }}>
         <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: 0 }}>
           Your notes <span style={{ fontWeight: 600, textTransform: "none", letterSpacing: 0 }}>· visible to workspace</span>
@@ -734,7 +737,7 @@ function NotesField({ itemId, initialNote = "" }: { itemId: string; initialNote?
         suppressHydrationWarning
       />
       <p style={{ fontSize: "var(--fs-10)", color: status === "error" ? "var(--immediate)" : "var(--ink-3)", margin: "6px 0 0" }}>{statusLabel}</p>
-    </div>
+    </SectionCard>
   );
 }
 

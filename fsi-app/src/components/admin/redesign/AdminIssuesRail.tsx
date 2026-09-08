@@ -21,7 +21,7 @@
 
 import { useAdminAttention } from "@/lib/hooks/useAdminAttention";
 import { formatNumber } from "@/lib/format";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 
 export interface IssueNavTarget {
   section: string;
@@ -119,19 +119,10 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
   const total = rows.reduce((t, r) => t + r.count, 0);
 
   return (
-    <div
-      data-audit="rail-card"
-      style={{
-        minWidth: 0,
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card, 0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06))",
-        overflow: "hidden",
-      }}
-    >
-      {/* Ruling 5.1: the graduated rule above the section title, no divider below it. */}
-      <SectionRule />
+    // Operator item A1 (2026-09-08): the admin rail card ("Coverage gaps (critical)" among its
+    // rows) is the shared `SectionCard`, which owns the rule, the border, the radius and the
+    // shadow. Ruling 5.1 unchanged: rule above the title, no divider below it.
+    <SectionCard dataAudit="rail-card" style={{ minWidth: 0 }}>
       <div style={{ padding: "12px 16px 14px" }}>
         <div
           style={{
@@ -188,7 +179,7 @@ export function AdminIssuesRail({ onNavigate }: AdminIssuesRailProps) {
               : "Refreshes every 60s · zero-count rows stay quiet — a zero is a fact, not an alarm."}
         </p>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 

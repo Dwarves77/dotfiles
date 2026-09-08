@@ -66,7 +66,7 @@ import {
   DetailRail,
   type SectionIndexEntry,
 } from "@/components/detail/DetailShell";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { FactBlocks } from "@/components/detail/FactBlocks";
 import { GfmSection } from "@/components/shared/GfmSection";
 import { sourceEntriesOf, SourcesGrid } from "@/components/detail/SourcesGrid";
@@ -381,16 +381,7 @@ function RelatedRegionCard({ related, reason, region }: { related: RelatedItem[]
   if (related.length === 0) return null;
   const regionWord = region || "region";
   return (
-    <div
-      style={{
-        background: "var(--card)",
-        border: "1px solid var(--line-1)",
-        borderRadius: "var(--radius-card)",
-        boxShadow: "var(--shadow-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    <SectionCard>
       <div style={{ padding: "12px 16px 14px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 8 }}>
           <span style={{ fontSize: "var(--fs-105)", letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", fontWeight: 700 }}>
@@ -418,7 +409,7 @@ function RelatedRegionCard({ related, reason, region }: { related: RelatedItem[]
           ))}
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 

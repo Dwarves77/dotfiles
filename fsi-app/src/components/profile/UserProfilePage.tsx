@@ -10,6 +10,7 @@ import { formatNumber, formatLocaleDate } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { Masthead } from "@/components/ui/Masthead";
 import { TabRow, type TabRowItem } from "@/components/ui/TabRow";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { StatBlock } from "@/components/ui/StatBlock";
 import { resolveInitialProfileTab } from "@/lib/account/initial-tab";
 import {
@@ -387,19 +388,13 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
               border, the same treatment artboard 13's rail gives its Companies / Individuals /
               Newest join / Active-this-month block. They used to render as four separate
               bordered cards (lane admin60, 2026-09-08). */}
-          <div
-            data-audit="account-stat-card"
-            style={{
-              background: "var(--card)",
-              border: "1px solid var(--line-1)",
-              borderRadius: "var(--radius-card)",
-              boxShadow: "0 1px 2px rgba(26,26,26,.04), 0 4px 14px rgba(26,26,26,.06)",
-              padding: "14px 16px",
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: 14,
-              overflow: "hidden",
-            }}
+          {/* Operator item A1 (2026-09-08): shared `SectionCard`. This shell had the shadow typed
+              out by hand (the literal value, not the token) and NO rule; the card component owns
+              both, and its `padding` form keeps the rule spanning the full card width. */}
+          <SectionCard
+            dataAudit="account-stat-card"
+            padding="14px 16px"
+            style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
           >
             <StatBlock
               label="Sectors followed"
@@ -423,7 +418,7 @@ export function UserProfilePage({ userId, userEmail, nowIso }: Props) {
               }
             />
             <StatBlock label="Plan" value={orgPlan ? capitalize(orgPlan) : "—"} note="Billing, owner only" />
-          </div>
+          </SectionCard>
 
           {/* Admin card (dc.html p14 exact copy) — replaces the prior owner banner strip, which
               sat above the tab content in the main column and had no artboard counterpart. */}

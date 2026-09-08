@@ -115,6 +115,8 @@ export function AuthDivider() {
 /** Post-submit "check your email" state — shared by signup (confirmation
  *  link) and the magic-link path on /login. */
 export function CheckEmailPanel({ email, note }: { email: string; note: string }) {
+  // fitness-allow: F42 (auth confirmation note inside artboard 16's panel, not a section card;
+  // ruling R1 keeps the auth screen's approved wording and layout as they are.)
   return (
     <div
       style={{

@@ -7,7 +7,7 @@
  */
 
 import type { ReactNode, CSSProperties } from "react";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 
 const SANS = "var(--font-sans)";
 
@@ -96,19 +96,12 @@ export function AccountCard({
   foot?: ReactNode;
 }) {
   return (
-    <section
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-        maxWidth,
-      }}
-    >
-      {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins, no divider below
-          the title (the prior borderBottom under this plate header was exactly the wrong-direction
-          divider 4.1 removes). */}
-      <SectionRule />
+    // Operator items A1 + A3 (2026-09-08): the account/settings card is the shared `SectionCard`
+    // now. It was one of the shells carrying NO shadow at all (`--shadow-card` was simply absent
+    // from this style object), which is the A3 defect; the card component supplies it, so the miss
+    // is not reachable from here any more. Ruling 5.1 unchanged: rule above the title, no divider
+    // below it.
+    <SectionCard as="section" style={{ maxWidth }}>
       <div
         style={{
           padding: "14px 16px 10px",
@@ -172,7 +165,7 @@ export function AccountCard({
           {foot}
         </div>
       )}
-    </section>
+    </SectionCard>
   );
 }
 

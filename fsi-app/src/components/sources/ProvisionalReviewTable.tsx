@@ -38,7 +38,7 @@
 import React, { useState } from "react";
 import { authedFetch } from "@/lib/api/authed-fetch";
 import type { ProvisionalSource } from "@/types/source";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { RowTable, RowTableAction, RowTableOverflow } from "@/components/ui/RowTable";
 import { TierChip } from "@/components/ui/Chips";
 import { StateNote } from "@/components/ui/StateNote";
@@ -166,16 +166,9 @@ export function ProvisionalReviewTable({
   }
 
   return (
-    <div
-      data-audit="provisional-card"
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    // Operator items A1 + A3 (2026-09-08): shared `SectionCard`, which supplies the shadow this
+    // shell was missing entirely.
+    <SectionCard dataAudit="provisional-card">
 
       <div
         data-audit="provisional-head"
@@ -385,6 +378,6 @@ export function ProvisionalReviewTable({
           )}
         </StateNote>
       </div>
-    </div>
+    </SectionCard>
   );
 }

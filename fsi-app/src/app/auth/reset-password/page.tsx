@@ -54,6 +54,11 @@ export default function ResetPasswordPage() {
           </p>
         </div>
 
+        {/* fitness-allow: F42 (auth confirmation note, not a section card. Artboard 16 draws the
+            auth frame's identity panel and its inputs; this "we emailed you" box is a note inside
+            that panel, carries no title and no rule, and ruling R1 keeps the auth screen's approved
+            wording and layout as they are. Adding the card rule here would restyle a screen no
+            2026-09-08 item names.) */}
         {sent ? (
           <div
             style={{

@@ -73,6 +73,7 @@ import { WatchButton } from "@/components/ui/WatchButton";
 import { PriorityDropdown } from "@/components/regulations/PriorityDropdown";
 import { RailCard, LegendRailCard, FiltersRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import type { ListSurfaceFacetGroup } from "@/components/list-surface/ListSurfaceShell";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SkeletonListRow } from "@/components/ui/Skeleton";
 import { useWorkspaceTagsFacet } from "@/lib/tags/useWorkspaceTagsFacet";
 import { useRecalculationNotices } from "@/components/figures/NoticesRail";
@@ -86,7 +87,6 @@ import { RelativeTime } from "@/components/ui/RelativeTime";
 import { WATCHLIST_TYPE_LABEL, watchlistHref } from "@/lib/watchlist-links";
 import type { WatchlistItem, WatchlistItemType, WatchlistScope } from "@/lib/data";
 import type { Resource, TimelineEntry } from "@/types/resource";
-import { Card } from "@/components/ui/Card";
 import { PageFrame } from "@/components/layout/PageFrame";
 
 type ScopeFilterValue = "all" | WatchlistScope;
@@ -269,7 +269,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
       <PageFrame className="cl-list-surface-grid">
         <div style={{ display: "flex", flexDirection: "column", gap: 18, minWidth: 0 }}>
           <div data-audit="watched-card">
-            <Card>
+            <SectionCard>
               {/* Ruling 5.1 (2026-09-07): the graduated rule above the section title wins and there
                   is no divider below the title — the artboard still draws one, the later ruling
                   does not. */}
@@ -420,11 +420,11 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                   </StateNote>
                 </div>
               )}
-            </Card>
+            </SectionCard>
           </div>
 
           <div id="recalculation-notices" data-audit="recalculation-notices">
-            <Card>
+            <SectionCard>
               {/* COUNTS-61 (production defect, click-through audit 2026-09-08): this card printed
                   "SINCE YOUR LAST VISIT" here AND again in its own empty line, and never gave a
                   date. Root cause [CONFIRMED]: the phrase was wrong twice over — GET /api/notices
@@ -438,7 +438,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
               ) : (
                 <RecalculationNotice notices={notices} bare emptyMessage="No recalculations on watched items in this window." />
               )}
-            </Card>
+            </SectionCard>
           </div>
         </div>
 

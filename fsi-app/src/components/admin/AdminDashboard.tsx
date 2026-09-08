@@ -34,7 +34,7 @@ import { Search } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Masthead } from "@/components/ui/Masthead";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { SectionRule } from "@/components/ui/SectionRule";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { RowTableAction } from "@/components/ui/RowTable";
 import { TabRow } from "@/components/ui/TabRow";
 import { SourceHealthDashboard } from "@/components/sources/SourceHealthDashboard";
@@ -793,15 +793,9 @@ function PlateCard({
   children: React.ReactNode;
 }) {
   return (
-    <div
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    // Operator items A1 + A3 (2026-09-08): shared `SectionCard`, which supplies the shadow this
+    // shell was missing entirely.
+    <SectionCard>
       <div
         style={{
           display: "flex",
@@ -841,7 +835,7 @@ function PlateCard({
         )}
       </div>
       {children}
-    </div>
+    </SectionCard>
   );
 }
 
@@ -858,16 +852,9 @@ function PlateCard({
  */
 function ReadOnlyControlsCard({ onRefresh }: { onRefresh: () => void }) {
   return (
-    <div
-      data-audit="admin-readonly-controls"
-      style={{
-        background: "var(--surface)",
-        border: "1px solid var(--color-border)",
-        borderRadius: "var(--radius-card)",
-        overflow: "hidden",
-      }}
-    >
-      <SectionRule />
+    // Operator items A1 + A3 (2026-09-08): shared `SectionCard`, which supplies the shadow this
+    // shell was missing entirely.
+    <SectionCard dataAudit="admin-readonly-controls">
       <div style={{ padding: "12px 16px 14px" }}>
         <div
           style={{
@@ -892,7 +879,7 @@ function ReadOnlyControlsCard({ onRefresh }: { onRefresh: () => void }) {
           <RowTableAction label="Refresh" onClick={onRefresh} />
         </div>
       </div>
-    </div>
+    </SectionCard>
   );
 }
 

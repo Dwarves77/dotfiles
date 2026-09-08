@@ -39,6 +39,7 @@
 
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Masthead } from "@/components/ui/Masthead";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, type ListRowProps } from "@/components/ui/ListRow";
@@ -54,7 +55,6 @@ import type { FacetOption } from "./list-surface-helpers";
 // nothing else was, so one /regulations screen carried "1,317 regulations" and "showing 5 of 1031"
 // on the same fold, plus "All 1031 monitor" and "then Monitor · 1031".
 import { formatNumber } from "@/lib/format";
-import { Card } from "@/components/ui/Card";
 
 // PERF-12: only worth windowing once a band's expanded row count clears the perBandCap-collapsed
 // case by a wide margin. 30 rows unwindowed is cheap; a band expanded to hundreds is not.
@@ -476,19 +476,19 @@ export function ListSurfaceShell({
               rowsByBand's own per-band arrays already carry, concatenated into one unheaded list;
               still virtualized past the threshold, still each row's own true band colouring. */}
           {loadingFirstPage ? (
-            <Card>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</Card>
+            <SectionCard>{Array.from({ length: 15 }).map((_, i) => <SkeletonListRow key={i} />)}</SectionCard>
           ) : !anyRows ? (
-            <Card>
+            <SectionCard>
               {/* A caller-supplied empty state carries its own padding (artboard 06/id="p6":
                   28px 20px, centred, Anton title). The default StateNote gets the 16px inset it
                   has always had. */}
               {emptyState ?? <div style={{ padding: 16 }}><StateNote>Nothing matches these filters right now.</StateNote></div>}
-            </Card>
+            </SectionCard>
           ) : flat ? (
             (() => {
               const flatRows = rowsByBand.flatMap((section) => section.rows);
               return (
-                <Card noRule>
+                <SectionCard suppressRuleForBandGrouping>
                   {flatRows.length > VIRTUALIZE_THRESHOLD ? (
                     <VirtualizedRowList
                       rows={flatRows}
@@ -505,7 +505,7 @@ export function ListSurfaceShell({
                       return <ListRow key={key} {...rowProps} />;
                     })
                   )}
-                </Card>
+                </SectionCard>
               );
             })()
           ) : (
@@ -516,7 +516,7 @@ export function ListSurfaceShell({
                 const cap = expanded ? section.rows.length : perBandCap;
                 const visible = section.rows.slice(0, cap);
                 return (
-                  <Card key={section.band.key} noRule>
+                  <SectionCard key={section.band.key} suppressRuleForBandGrouping>
                     <BandSectionHeader band={section.band} total={section.total} showing={visible.length} />
                     {visible.length > VIRTUALIZE_THRESHOLD ? (
                       // PERF-12 (restored UILISTS2 lane, 2026-09-07): a band expanded to its full
@@ -601,7 +601,7 @@ export function ListSurfaceShell({
                       const foot = sectionFoot?.(section.band.key, nextSection ? nextSection.band.key : null);
                       return foot ? <div style={{ margin: "0 16px 14px" }}>{foot}</div> : null;
                     })()}
-                  </Card>
+                  </SectionCard>
                 );
               })
           )}

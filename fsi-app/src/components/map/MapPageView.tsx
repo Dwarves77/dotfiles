@@ -53,10 +53,10 @@ import { BAND_ORDER, bandFromPriority, type UrgencyBand, type UrgencyBandKey } f
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
 import { StateNote } from "@/components/ui/StateNote";
 import { FilterChip, FilterChipGroup } from "@/components/ui/Chips";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { RailCard, LegendRailCard } from "@/components/list-surface/ListSurfaceRailCards";
 import { formatNumber } from "@/lib/format";
-import { Card } from "@/components/ui/Card";
 
 const MapView = dynamic(
   () => import("@/components/map/MapView").then((m) => m.MapView),
@@ -349,7 +349,7 @@ export function MapPageView(props: MapPageViewProps) {
         )}
 
         {/* Regulatory map */}
-        <Card>
+        <SectionCard>
           <SectionHeading
             title="Regulatory map"
             aside={`${chartedRows.length} charted of ${liveJurisdictions} live · ${chartedItemCount} of ${totalActiveCount} items`}
@@ -376,10 +376,10 @@ export function MapPageView(props: MapPageViewProps) {
               />
             </div>
           </div>
-        </Card>
+        </SectionCard>
 
         {/* Jurisdiction register — one ListRow per jurisdiction. */}
-        <Card>
+        <SectionCard>
           <SectionHeading
             title="Jurisdiction register"
             aside={
@@ -436,7 +436,7 @@ export function MapPageView(props: MapPageViewProps) {
               </StateNote>
             </div>
           )}
-        </Card>
+        </SectionCard>
       </div>
 
       {/* Rail, the SHARED RailCard/LegendRailCard (src/components/list-surface/

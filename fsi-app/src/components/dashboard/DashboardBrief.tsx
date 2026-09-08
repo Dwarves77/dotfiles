@@ -17,6 +17,7 @@ import Link from "next/link";
 import { BandTile } from "@/components/ui/BandTile";
 import { BandTileRow } from "@/components/ui/BandTileRow";
 import { ListRow, ListRowColumnHeader } from "@/components/ui/ListRow";
+import { SectionCard } from "@/components/ui/SectionCard";
 import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
@@ -31,7 +32,6 @@ import type { SurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardWatchlist } from "@/components/home/DashboardWatchlist";
 import type { WatchlistItem } from "@/lib/data";
 import { BAND_FACET_PARAM, SORT_FACET_PARAM } from "@/components/list-surface/list-surface-helpers";
-import { Card } from "@/components/ui/Card";
 import { PageFrame } from "@/components/layout/PageFrame";
 
 
@@ -159,7 +159,7 @@ export function DashboardBrief({
 
         {/* Due next */}
         <section>
-          <Card>
+          <SectionCard>
             <SectionHeading
               title={`Due next · ${dueNextRows.length} items`}
               aside={`By next binding date · week of ${weekOfLabel}`}
@@ -214,12 +214,12 @@ export function DashboardBrief({
                 </StateNote>
               </div>
             )}
-          </Card>
+          </SectionCard>
         </section>
 
         {/* What changed */}
         <section>
-          <Card>
+          <SectionCard>
             <SectionHeading
               title="What changed"
               aside={auditDate ? `Detection pass ${auditDate}` : "No detection pass on record"}
@@ -268,13 +268,13 @@ export function DashboardBrief({
                 />
               </>
             )}
-          </Card>
+          </SectionCard>
         </section>
       </div>
 
       {/* Rail */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Card>
+        <SectionCard>
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Across the platform
@@ -297,17 +297,17 @@ export function DashboardBrief({
               )}
             </div>
           </div>
-        </Card>
+        </SectionCard>
 
-        <Card>
+        <SectionCard>
           <div style={{ padding: "14px 16px" }}>
             <Suspense fallback={<SkeletonListRow />}>
               <DashboardWatchlist promise={watchlistPromise} />
             </Suspense>
           </div>
-        </Card>
+        </SectionCard>
 
-        <Card>
+        <SectionCard>
           <div style={{ padding: "14px 16px" }}>
             <p style={{ fontSize: "var(--fs-105)", fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "var(--ink-3)", margin: "0 0 10px" }}>
               Legend
@@ -333,7 +333,7 @@ export function DashboardBrief({
               </div>
             </dl>
           </div>
-        </Card>
+        </SectionCard>
       </div>
     </PageFrame>
   );
