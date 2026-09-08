@@ -7,6 +7,7 @@
  * that component's header for what it's assembled from.
  */
 
+import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getListingsMapData } from "@/lib/data";
 import { getCoverageGaps } from "@/lib/coverage-gaps";
 import { MapPageView } from "@/components/map/MapPageView";
@@ -62,7 +63,7 @@ export default async function MapRoute({
 
   return (
     <>
-      <SystemErrorBanner message={data._error} />
+      <SystemErrorBanner message={data._error} reason={describeFallbackTrigger(data._fallbackTrigger)} />
       <div style={{ padding: "20px 40px 0" }}>
         <Masthead
           title="Regulatory map"

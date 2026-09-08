@@ -22,6 +22,7 @@
  * considered reversal of PERF-12's own choice.
  */
 
+import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getPublicListingsOnly, getPublicSurfaceCounts, getPublicObligationRegisterFirstPage } from "@/lib/data";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { RegulationsLedger } from "@/components/regulations/RegulationsLedger";
@@ -66,7 +67,7 @@ export default async function RegulationsPage({
 
   return (
     <>
-      <SystemErrorBanner message={data._error} />
+      <SystemErrorBanner message={data._error} reason={describeFallbackTrigger(data._fallbackTrigger)} />
       <RegulationsLedger
         initialResources={regulationResources.map(toLedgerRowPayload)}
         initialArchived={data.archived}

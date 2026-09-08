@@ -96,3 +96,35 @@ test("withTimeout rejects rather than resolving an empty stand-in payload", () =
     assert.equal(argLines.length, 1, "withTimeout takes exactly a promise and a millisecond bound");
   }
 });
+
+test("the failure state names a reason, and it is keyed on the same trigger the flag queue records", async () => {
+  const { describeFallbackTrigger } = await jiti.import("../supabase-server.ts");
+
+  // THE DEFECT THIS WOULD HAVE CAUGHT: "Data temporarily unavailable. Refresh to retry." was the
+  // whole of what production told the reader — no reason, and no retry that could fire, because
+  // the refresh was answered from the poisoned cache entry (see lib/cache/fallback-guard.ts).
+  assert.match(describeFallbackTrigger("timeout"), /time limit/);
+  assert.match(describeFallbackTrigger("rpc_error"), /no rows/);
+  assert.match(describeFallbackTrigger("exception"), /failed/);
+  assert.match(describeFallbackTrigger("supabase_not_configured"), /not configured/);
+  assert.match(describeFallbackTrigger("service_role_missing"), /not configured/);
+
+  // `null_orgId` is ruled NOT a degradation (operator ruling 2026-07-13): an anonymous or
+  // no-membership render of a public page. Telling that reader the system failed would be false.
+  assert.equal(describeFallbackTrigger("null_orgId"), undefined);
+  assert.equal(describeFallbackTrigger(undefined), undefined);
+
+  // Every surface that renders the sentinel renders the reason with it, or one screen says less
+  // than another about the same failure.
+  for (const route of ["community", "settings", "regulations", "map"]) {
+    const src = readFileSync(resolve(SRC, `app/${route}/page.tsx`), "utf8");
+    const line = src.split("\n").find((l) => l.includes("<SystemErrorBanner"));
+    assert.ok(line, `${route}/page.tsx should render SystemErrorBanner`);
+    assert.ok(
+      line.includes("describeFallbackTrigger"),
+      `${route}/page.tsx renders the sentinel without its reason clause`,
+    );
+  }
+  const dash = readFileSync(resolve(SRC, "app/page.tsx"), "utf8");
+  assert.ok(dash.includes("fetchErrorReason={describeFallbackTrigger("), "the dashboard renders the reason too");
+});

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getSettingsData } from "@/lib/data";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { SettingsPage } from "@/components/pages/SettingsPage";
@@ -25,7 +26,7 @@ export default async function Settings() {
 
   return (
     <>
-      <SystemErrorBanner message={data._error} />
+      <SystemErrorBanner message={data._error} reason={describeFallbackTrigger(data._fallbackTrigger)} />
       <SettingsPage
         initialResources={data.resources}
         initialArchived={data.archived}

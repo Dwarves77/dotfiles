@@ -78,6 +78,10 @@ export interface DashboardBriefProps {
    *  such banner (per-page RULES OF THE BUILD: no page-local ask/alert
    *  panel outside the shared parts). */
   fetchError?: string;
+  /** Additive extension (lane rsc503, 2026-09-08): the reason clause from
+   *  `describeFallbackTrigger(data._fallbackTrigger)`, rendered under the sentinel inside the
+   *  SAME StateNote. Undefined renders exactly what this card rendered before. */
+  fetchErrorReason?: string;
 }
 
 export function DashboardBrief({
@@ -91,6 +95,7 @@ export function DashboardBrief({
   watchlistPromise,
   loadingCounts,
   fetchError,
+  fetchErrorReason,
 }: DashboardBriefProps) {
   // HYDRATION-59 [CONFIRMED root cause of this route's React #418]: this label was
   // `formatLocaleDate(new Date(), { month: "short", day: "numeric" })` — a client component
@@ -208,7 +213,14 @@ export function DashboardBrief({
             )}
             {fetchError && (
               <div style={{ padding: 12 }}>
-                <StateNote>{fetchError}</StateNote>
+                <StateNote>
+                  {fetchError}
+                  {fetchErrorReason && (
+                    <span style={{ display: "block", marginTop: 3, color: "var(--ink-2)" }}>
+                      {fetchErrorReason}
+                    </span>
+                  )}
+                </StateNote>
               </div>
             )}
           </Card>

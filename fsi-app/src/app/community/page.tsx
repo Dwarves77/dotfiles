@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
+import { describeFallbackTrigger } from "@/lib/supabase-server";
 import { getListingsOnly } from "@/lib/data";
 import { Masthead } from "@/components/ui/Masthead";
 import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
@@ -509,7 +510,7 @@ export default async function CommunityPage() {
 
   return (
     <>
-      <SystemErrorBanner message={listings._error} />
+      <SystemErrorBanner message={listings._error} reason={describeFallbackTrigger(listings._fallbackTrigger)} />
       <div style={{ padding: "20px 40px 0" }}>
         <Masthead
           title="Community"

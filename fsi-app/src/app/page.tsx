@@ -29,7 +29,7 @@ import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
 import { formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
 import { buildDueNextRows, buildChangedRows, selectBriefResources } from "@/lib/dashboard/brief-rows";
-import { enrichRowSourceChips } from "@/lib/supabase-server";
+import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
 
 export default async function Home() {
   const [data, aggregates, surfaceCoverage] = await Promise.all([
@@ -98,6 +98,7 @@ export default async function Home() {
         surfaceCoverage={surfaceCoverage}
         watchlistPromise={watchlistPromise}
         fetchError={data._error}
+        fetchErrorReason={describeFallbackTrigger(data._fallbackTrigger)}
         nowIso={nowIso}
       />
     </>
