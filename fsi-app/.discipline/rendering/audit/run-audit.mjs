@@ -36,7 +36,6 @@ import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
-import { fullAppCssCompiled } from '../smoke/smoke-fixtures.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 

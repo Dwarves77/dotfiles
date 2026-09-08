@@ -41,7 +41,17 @@ test("narrow variant renders the dash and still carries the closed-vocabulary re
 });
 
 test("the reason variant is unchanged: no dash, no aria-label, the ruling 2.1 treatment", () => {
-  assert.match(SOURCE, /return <span style=\{ABSENCE_TEXT_STYLE\}>\{reason\}<\/span>;/);
+  // UPDATED AT FOLD-61. Lane mobfix61 put `cl-absence` on this variant so the design audit can
+  // assert `count: 1` over `.cl-list-row .cl-absence`, which reformatted the one-line return this
+  // test matched verbatim. The INVARIANT is unchanged and is now asserted on its substance rather
+  // than on its formatting: the wide variant renders the reason itself, on the shared text style,
+  // with no dash and no aria-label (those belong to the narrow variant alone).
+  const wide = SOURCE.slice(SOURCE.indexOf("// `cl-absence` (lane mobfix61"));
+  assert.match(wide, /className="cl-absence"/);
+  assert.match(wide, /style=\{ABSENCE_TEXT_STYLE\}/);
+  assert.match(wide, /\{reason\}/);
+  assert.doesNotMatch(wide, /aria-label/);
+  assert.doesNotMatch(wide, /—/);
 });
 
 const LIST_ROW = readFileSync(
@@ -54,14 +64,20 @@ const MATRIX = readFileSync(
 );
 
 test("the two narrow cells the audit measured use the narrow variant", () => {
-  // ListRow's TIER cell: a 40px fixed grid track (GRID's seventh column).
-  assert.match(LIST_ROW, /<Absence reason="not in primary source" variant="narrow" \/>/);
+  // ListRow's TIER cell: a 40px fixed grid track (GRID's seventh column). UPDATED AT FOLD-61:
+  // lane mobfix61's D-M4 made the row pick ONE reason for the whole row (ListRow's `reasonSlot`),
+  // so the tier cell no longer hardcodes "not in primary source" - it renders the row's single
+  // reason, and it is still the narrow variant, which is the half this test guards.
+  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence\} variant="narrow" \/>/);
   // RegionDimensionMatrix's empty region cell.
   assert.match(MATRIX, /<Absence reason="not in primary source" variant="narrow" \/>/);
 });
 
 test("the wide cells keep the spelled-out reason (ruling 2.1's presentation where it fits)", () => {
-  // The DUE cell (84px) and the mobile matrix card's summary badge are not narrow cells.
-  assert.match(LIST_ROW, /<Absence reason="pending" \/>/);
+  // The DUE cell (84px) and the mobile matrix card's summary badge are not narrow cells. UPDATED
+  // AT FOLD-61 for the same D-M4 reason as above: the due cell renders the row's single reason
+  // rather than a hardcoded "pending", and renders it in the WIDE variant, which is the half this
+  // test guards. `reasonSlot === "due"` is what routes "pending" here.
+  assert.match(LIST_ROW, /<Absence reason=\{rowAbsence\} \/>/);
   assert.match(MATRIX, /<Absence reason="not in primary source" \/>/);
 });

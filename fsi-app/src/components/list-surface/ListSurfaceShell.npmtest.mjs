@@ -50,7 +50,10 @@ test("FiltersRailCard renders a Filters title, a Clear control, and checkbox row
   // a facet whose count is a ratio rather than a tally (artboard 08's DIMENSION group, "3/5")
   // supplies its own display string. The invariant guarded here is unchanged — the rail row prints
   // the group's real count, never a static label.
-  assert.match(RAIL_SOURCE, /\{opt\.countLabel \?\? opt\.count\}/);
+  // UPDATED AT FOLD-61 for the same reason as the transition strip above: the live count still
+  // renders and `countLabel` still wins when a facet supplies a ratio, but a bare tally now goes
+  // through `formatNumber` so a four-digit facet count carries its separator.
+  assert.match(RAIL_SOURCE, /\{opt\.countLabel \?\? formatNumber\(opt\.count\)\}/);
 });
 
 test("mobile strip + sheet mechanism (cl-facets-mobile / cl-filters-btn) is unchanged by the relocation", () => {
@@ -91,7 +94,11 @@ test("every band section card carries the foot row, with the artboard's own grou
 // test follows the product; it does not preserve the old shape.
 test("the foot row names the next band, or says 'end of list' on the last rendered section", () => {
   assert.match(SHELL_SOURCE, /function transitionLabel\(/);
-  assert.match(SHELL_SOURCE, /`then \$\{next\.band\.label\} \\u00b7 \$\{next\.total\}`/);
+  // UPDATED AT FOLD-61: lane opsclip put every rendered integer through `formatNumber` (F36's
+  // locale-pinned formatter), so a four-digit band total reads "1,135" and not "1135" here as it
+  // already does on the band tiles. The invariant this line guards - the strip names the NEXT
+  // band and its total - is unchanged; only the number's rendering moved.
+  assert.match(SHELL_SOURCE, /`then \$\{next\.band\.label\} \\u00b7 \$\{formatNumber\(next\.total\)\}`/);
   assert.match(SHELL_SOURCE, /"end of list"/);
   // and it is the helper the foot row actually calls, not a dead function
   assert.match(SHELL_SOURCE, /\{transitionLabel\(populatedSections, sectionIndex\)\}/);

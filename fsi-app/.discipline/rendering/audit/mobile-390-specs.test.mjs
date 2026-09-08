@@ -85,24 +85,29 @@ test('every mobile-* spec carries at least one boundsCheck (the overflow/collisi
   }
 });
 
-test('run-audit.mjs injects the compiled CSS from the SPEC flag, not from the mount', () => {
-  assert.match(RUN_AUDIT, /if \(spec\.compiledCss\)/, 'run-audit.mjs does not read spec.compiledCss');
+test('run-audit.mjs reads the SPEC flag for the compiled CSS, alongside the mount flag', () => {
+  assert.match(RUN_AUDIT, /if \(mount\.needsCompiledCss \|\| spec\.compiledCss\)/, 'run-audit.mjs does not read spec.compiledCss');
   assert.match(RUN_AUDIT, /addStyleTag\(\{ content: await fullAppCssCompiled\(\) \}\)/);
-  // Per SPEC, deliberately: the same mounts are measured at 1440 by the compose-* specs, and
-  // switching the CSS under those in this lane would re-baseline specs it is not auditing.
-  // Comments are stripped first: run-audit.mjs's own comment at that call SAYS the words
-  // "mount.needsCompiledCss" to explain why it does not use it, and a raw source match would
-  // read that explanation as the thing it forbids.
+  // UPDATED AT FOLD-61. This test was written in lane mobile60's worktree, where run-audit.mjs had
+  // NO per-mount stylesheet reader at all, and it forbade `mount.needsCompiledCss` to keep the
+  // 1440 compose specs measuring the same CSS they had been calibrated against. Train 60 then
+  // landed that very reader (lane admin60), and RE-CALIBRATED the 1440 specs against it - /map's
+  // four register rows among them - so on this tree the forbid would remove the stylesheet the
+  // compose specs are now measured with. Both flags are kept, the app sheet is added at most once,
+  // and the mobile lane's real invariant is asserted instead: a SPEC can ask for the compiled CSS
+  // on a mount that does not declare it, which is what lets the mobile-* specs run against the
+  // same mounts as the compose-* specs without editing those mounts.
   const code = RUN_AUDIT.split('\n').filter((l) => !l.trim().startsWith('//')).join('\n');
+  assert.match(code, /spec\.compiledCss/, 'the spec flag must be a real reader, not only a comment');
   assert.doesNotMatch(
     code,
-    /mount\.needsCompiledCss/,
-    'run-audit.mjs must not key the compiled CSS off the mount — that would change what the 1440 specs measure',
+    /needsCompiledCss\s*=/,
+    'a spec asking for the compiled CSS must not WRITE the mount flag — that would change what the 1440 specs measure',
   );
 });
 
 test('the compiled CSS is injected BEFORE the bundle mounts', () => {
-  const inject = RUN_AUDIT.indexOf('if (spec.compiledCss)');
+  const inject = RUN_AUDIT.indexOf('if (mount.needsCompiledCss || spec.compiledCss)');
   const mount = RUN_AUDIT.indexOf("mountBundle(page, bundleCache.get(spec.mount)");
   assert.ok(inject > 0 && mount > inject, 'the style tag must be added before the tree mounts, or first paint measures un-styled');
 });

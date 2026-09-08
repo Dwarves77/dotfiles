@@ -212,8 +212,9 @@ export const SKILL_MARKER_BASELINE = {
   // (enforcedBy fitness:F41 + its selftest).
   // FOLD-61: this category and its invariant arrived numbered 40 / RD-65 / F40, colliding with
   // lane TAGS-401's above. Renumbered to 41 / RD-66 / F41 at the fold; both are kept, and TAGS-401
-  // kept its number because it landed first and was cited in more places.
-  'remediation-discipline': 49,
+  // kept its number because it landed first and was cited in more places. The BASELINE is 50, not
+  // 49: each lane wrote 48 -> 49 for its own single new marker, and the fold carries both markers.
+  'remediation-discipline': 50,
   // 17→18 (2026-07-12, secrets-topology dispatch): added the "Secrets-topology consistency (a referenced
   // credential must be a registered credential)" normative line to the Inventory-consistency section.
   // TRIAGE: new invariant SF-11-secrets-registered (enforcedBy selftest secrets-reference-audit.test.mjs +

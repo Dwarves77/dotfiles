@@ -1,5 +1,5 @@
 {
-  "part": "Mobile 390 — regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
+  "part": "Mobile 390 \u2014 regulation detail (top bar, detail header, 2x2 action grid, vertical timeline, sticky section index, folded rail)",
   "mount": "page-frame-1440",
   "viewport": 390,
   "compiledCss": true,
@@ -8,7 +8,7 @@
   ],
   "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC' (Claude Design, delivered by the operator 2026-09-07), sections DETAIL HEADER / TIMELINE (vertical) / SECTION INDEX AND RAIL. No artboard PNG for 390 has reached the repo; the text spec is the binding source until one does, and when one arrives the image wins and the differences are logged.",
   "notes": [
-    "Same mount as compose-03-regulation-detail, at 390 instead of 1440 — the real AppShell frame wrapping RegulationDetailSurface, so the top bar and the detail surface are measured in one tree.",
+    "Same mount as compose-03-regulation-detail, at 390 instead of 1440 \u2014 the real AppShell frame wrapping RegulationDetailSurface, so the top bar and the detail surface are measured in one tree.",
     "`compiledCss: true`, as on every mobile-* spec: the desktop/mobile switch in AppShell/Sidebar/TopBar is expressed as Tailwind utility classes. Opt-in per spec so the 1440 specs on this mount are not re-baselined.",
     "The spec's 'Next obligation, N days' line: the build renders the desktop callout's own wording rather than inventing new copy, per the coordinator note carried in DetailShell.tsx's VerticalMilestoneStack header. Logged in DEVIATION-LOG.md.",
     "The rail's prev/next links are not asserted: they render only when the URL carries list/pos/of and a neighbour slug, and this mount has no list position. The place-keeping card itself, which is what the spec requires to come FIRST in the folded rail, is asserted."
@@ -167,17 +167,17 @@
       }
     },
     {
-      "name": "The folded rail's FIRST card is the 'In this list' place-keeping card",
+      "name": "The folded rail's FIRST card is AT A GLANCE, the artboards' own rail order",
       "selector": "[data-audit=\"regulation-detail\"] .cl-detail-layout > div:nth-of-type(2) > div:first-child p:first-of-type",
       "expect": {
-        "text": "In this list",
+        "text": "At a glance",
         "font-size": "10.5px",
         "font-weight": "800",
         "letter-spacing": "1.26px",
         "text-transform": "uppercase",
         "color": "rgb(122, 110, 108)"
       },
-      "note": "The head reads \"In this list · <list>\" when the URL carries a list name; this mount has none, so the bare label is the string measured."
+      "note": "UPDATED AT FOLD-61, because train 60's lane details60 changed what is correct here. mobile60 was cut from wave59, when the detail rail opened with the 'In this list' place-keeping card; details60 then fixed the rail order ONCE in DetailShell's slot contract so every detail surface opens with AT A GLANCE, which is what artboards 03/05/07/09 draw. The mobile 390 spec's own prose asks for the place-keeping card in the folded rail and it still renders, lower in the order; this row measures the FIRST card, so it follows the artboards rather than pinning the superseded order. Not a weakening: the same six properties are asserted, on the card that is now first."
     }
   ],
   "forbid": [
@@ -208,7 +208,7 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     }
   ],
   "boundsCheck": [

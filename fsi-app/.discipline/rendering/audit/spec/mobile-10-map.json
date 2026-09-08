@@ -1,5 +1,5 @@
 {
-  "part": "Mobile 390 — Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
+  "part": "Mobile 390 \u2014 Map page (outer grid folds to one column, rail under the content, masthead contains its command bar)",
   "mount": "compose-map",
   "viewport": 390,
   "compiledCss": true,
@@ -9,9 +9,9 @@
   "source": "docs/design/handoff-2026-09-06/DEVIATION-LOG.md 'MOBILE 390 SPEC', sections BREAKPOINTS ('below 1280: rail folds under the content') and MASTHEAD; operator mobile report 2026-09-08, D-M3.",
   "notes": [
     "THE SPEC THIS LANE ADDS (mobfix61, 2026-09-08). The map page was the one surface with no 390 spec at all, and it was the surface the operator's own screenshot showed worst: its rail cards were drawn ON TOP of the MODE / BAND / REGION chip rows.",
-    "[CONFIRMED root cause, twice over] MapPageView.tsx's outer div is the two-column grid (`minmax(0,1fr) 300px`, className `cl-map-outer`), and the file's only media query named `.cl-map-grid` — the INNER content column, which is a `display: flex` element on which `grid-template-columns` does nothing at all. So the rule was dead twice over and the 300px rail track survived at every width. Nothing in the toolchain could see it: a CSS selector matching no element is not an error in any language involved. That is why the fix ships with F40 (.discipline/fitness/functions/F40-dead-media-query-class.mjs) rather than with a spec row alone.",
+    "[CONFIRMED root cause, twice over] MapPageView.tsx's outer div is the two-column grid (`minmax(0,1fr) 300px`, className `cl-map-outer`), and the file's only media query named `.cl-map-grid` \u2014 the INNER content column, which is a `display: flex` element on which `grid-template-columns` does nothing at all. So the rule was dead twice over and the 300px rail track survived at every width. Nothing in the toolchain could see it: a CSS selector matching no element is not an error in any language involved. That is why the fix ships with F40 (.discipline/fitness/functions/F40-dead-media-query-class.mjs) rather than with a spec row alone.",
     "The boundsCheck below is the part that cannot be satisfied by accident: it asserts every direct child of the outer grid is contained by it, which is exactly the assertion the overlapping rail failed.",
-    "`compiledCss: true` for the same reason every other mobile-* spec sets it — AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind `md:` utilities that a raw globals.css read leaves un-expanded."
+    "`compiledCss: true` for the same reason every other mobile-* spec sets it \u2014 AppShell/Sidebar/TopBar express the desktop/mobile switch as Tailwind `md:` utilities that a raw globals.css read leaves un-expanded."
   ],
   "selector": ".cl-map-outer",
   "expect": {
@@ -21,7 +21,7 @@
   },
   "children": [
     {
-      "name": "D-M3: the outer grid is ONE track at 390 — the rail folds under the content, it does not overlap it",
+      "name": "D-M3: the outer grid is ONE track at 390 \u2014 the rail folds under the content, it does not overlap it",
       "selector": ".cl-map-outer",
       "expect": {
         "grid-template-columns": "358px"
@@ -64,12 +64,13 @@
       }
     },
     {
-      "name": "The register still uses the one shared ListRow, at its mobile measure",
-      "selector": ".cl-list-row",
+      "name": "The register row is the shared part's `register` variant, at its 390 measure",
+      "selector": ".cl-list-row-register",
       "expect": {
-        "grid-template-columns": "3px *",
-        "min-height": "76px"
-      }
+        "grid-template-columns": "3px * 68px 40px",
+        "min-height": "44px"
+      },
+      "note": "UPDATED AT FOLD-61, because the structure this row described no longer exists. mobile60/mobfix61 were cut from wave59 and wrote this against `.cl-list-row`; train 60's lane map60 rebuilt the register on ListRow's own `variant=\"register\"` (dc.html p10's six-column grid) and DELETED the old approximation, so all four register rows here reported NOT BUILT against a row that renders correctly. The spec is repointed at the surviving structure, not weakened: it still asserts exact tracks. The 68px band/count column and the 40px arrow are the fold's measured mobile reflow of that grid (see ListRow.tsx's own comment) - the two flexible tracks computed to 18.5px each at 390 before it, which is one character and an ellipsis."
     },
     {
       "name": "Masthead VOL line 9.5px uppercase .14em/700",
@@ -108,32 +109,31 @@
     },
     {
       "name": "Register row: 3px full-bleed band spine",
-      "selector": ".cl-list-row > .cl-row-spine",
+      "selector": ".cl-list-row-register > .cl-row-spine",
       "expect": {
         "width": "3px"
       }
     },
     {
-      "name": "Register row content padding 10px 6px 10px 12px, a flex column of two lines",
-      "selector": ".cl-list-row .cl-row-content",
+      "name": "Register row: the jurisdiction name gets a real column, not 18.5px",
+      "selector": ".cl-list-row-register .cl-row-register-name",
       "expect": {
-        "padding": "10px 6px 10px 12px",
-        "display": "flex",
-        "flex-direction": "column"
+        "font-size": "13px",
+        "font-weight": "600",
+        "text-overflow": "ellipsis",
+        "width": "207px"
+      },
+      "note": "The name keeps p10's own type and its ellipsis; what the fold changed is the WIDTH of the track it sits in. The bounds row below is what proves the track, since an ellipsis makes a too-narrow column look deliberate. The 207px is resolved, not chosen: the 356px row less its 8px right padding leaves 348, less the 3px spine, the 68px band/count column, the 40px arrow and three 10px gaps."
+    },
+    {
+      "name": "Register row: the arrow keeps its 40px cell at 390",
+      "selector": ".cl-list-row-register .cl-row-register-arrow",
+      "expect": {
+        "width": "40px"
       }
     },
     {
-      "name": "Register row title 13.5px/1.35, wraps, no ellipsis",
-      "selector": ".cl-list-row .cl-row-title-text",
-      "expect": {
-        "font-size": "13.5px",
-        "line-height": "18.23px",
-        "white-space": "normal",
-        "text-overflow": "clip"
-      }
-    },
-    {
-      "name": "Filter chip group shell 36px, radius 8 — a group never loses its label",
+      "name": "Filter chip group shell 36px, radius 8 \u2014 a group never loses its label",
       "selector": ".cl-filter-group",
       "expect": {
         "min-height": "36px",
@@ -155,7 +155,7 @@
       "name": "no literal UNSCORED token anywhere",
       "selector": "body",
       "textMatch": "UNSCORED",
-      "reason": "Operator ruling P1 2.1. Matched against RENDERED text (run-audit.mjs's renderedText) — the source writes it lower case and CSS uppercases it, which is how nineteen specs' worth of this forbid matched nothing for as long as they existed."
+      "reason": "Operator ruling P1 2.1. Matched against RENDERED text (run-audit.mjs's renderedText) \u2014 the source writes it lower case and CSS uppercases it, which is how nineteen specs' worth of this forbid matched nothing for as long as they existed."
     },
     {
       "name": "no floating Ask AI control",
@@ -166,7 +166,7 @@
     {
       "name": "D-M4: no list row carries more than one absence token",
       "selector": ".cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-due .cl-absence), .cl-list-row:has(.cl-row-impact .cl-absence):has(.cl-row-tier .cl-absence), .cl-list-row:has(.cl-row-due .cl-absence):has(.cl-row-tier .cl-absence)",
-      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE — three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
+      "reason": "D-M4 (operator mobile report 2026-09-08) [CONFIRMED at 1440 and at 390]. The impact, due and tier cells each rendered their own <Absence>, so a row missing all three drew a dashed baseline plus UNSCORED plus PENDING plus NOT IN PRIMARY SOURCE \u2014 three tokens, the third on a line of its own. Ruling 2.1 allows exactly ONE reason per row. This selector matches a row carrying a token in TWO of the three cells, which is the defect and nothing else. The structural guarantee is ListRow's `reasonSlot`."
     }
   ],
   "boundsCheck": [
@@ -180,13 +180,13 @@
       "name": "D-M5: the masthead card contains its command bar",
       "container": ".cl-masthead",
       "cells": ".cl-command-bar",
-      "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix on a sibling surface: card bottom 186.3, bar bottom 185.3 — the bar sat on the card's border."
+      "reason": "Operator: \"search bar touched bounding box\". Measured at 390 before the fix on a sibling surface: card bottom 186.3, bar bottom 185.3 \u2014 the bar sat on the card's border."
     },
     {
-      "name": "no list-row cell overlaps a sibling or escapes its row at 390",
-      "container": ".cl-list-row",
-      "cells": ".cl-row-content > *",
-      "reason": "The register rows are the same shared ListRow every list surface uses; the same bounds rule applies here."
+      "name": "no register cell overlaps a sibling or escapes its row at 390",
+      "container": ".cl-list-row-register",
+      "cells": ".cl-list-row-register > *:not(.cl-row-link)",
+      "reason": "UPDATED AT FOLD-61: the container was `.cl-list-row`, the shared list row this register no longer is (lane map60 gave it its own `variant=\"register\"` anatomy), so the check matched nothing and passed by absence. It now measures the row that actually renders, whose four mobile tracks are the fold's own fix for a name column that computed to 18.5px. The stretched row-link overlay is excluded by selector, exactly as the list-row bounds checks exclude it: it is `position:absolute; inset:0` by design (README 0.4, the whole row is the one click target), so it overlaps every cell on purpose and would make this check permanently red."
     }
   ]
 }

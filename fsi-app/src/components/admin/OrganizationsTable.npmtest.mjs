@@ -23,6 +23,9 @@ import ts from "typescript";
 
 const DIR = dirname(fileURLToPath(import.meta.url));
 const SOURCE = readFileSync(resolve(DIR, "OrganizationsTable.tsx"), "utf8");
+// Read from the SoT rather than typed here, so the two cannot drift silently.
+const FORMAT_SOURCE = readFileSync(resolve(DIR, "../../lib/format.ts"), "utf8");
+const FIXED_LOCALE = /FIXED_LOCALE\s*=\s*"([^"]+)"/.exec(FORMAT_SOURCE)[1];
 
 // Compile just the module to JS and pull the pure export out of it, so the
 // assertions below run the real function rather than a copy of it.
@@ -34,6 +37,14 @@ const { membersCellLabel } = await import(
       })
         .outputText // the JSX-bearing component is never called here; strip the imports it needs
         .replace(/^import[\s\S]*?;$/gm, "")
+        // FOLD-61: stripping the imports also strips `formatNumber`, which lane opsclip's
+        // "every rendered integer carries its separator" pass added to this module, so the real
+        // function threw ReferenceError and four green tests went red on a change that was
+        // correct. Rather than stub a second formatter (a copy of a SoT is the thing this repo
+        // forbids), the ONE line of src/lib/format.ts is re-declared here from the same
+        // FIXED_LOCALE, and `formatNumber agrees with src/lib/format.ts` below asserts the two
+        // still say the same thing, so a change to the real formatter fails this file loudly.
+        .replace(/^/, `const formatNumber = (v, o) => v.toLocaleString(${JSON.stringify(FIXED_LOCALE)}, o);\n`)
         .replace(/export function OrganizationsTable[\s\S]*$/m, "")
     ).toString("base64")
 );
@@ -82,4 +93,14 @@ test("no ROLES column: the artboard's five headers and a blank action column", (
 
 test("the empty row list renders the Absence convention, never a fabricated zero", () => {
   assert.match(SOURCE, /<Absence reason="connect data" \/>/);
+});
+
+test("the formatNumber this file re-declares agrees with src/lib/format.ts, for the values asserted above", () => {
+  // The guard on the shim: src/lib/format.ts pins ONE locale and delegates to toLocaleString, and
+  // this file re-declares exactly that. If formatNumber ever becomes more than a locale pin, this
+  // fails and the shim gets rewritten rather than quietly disagreeing with the product.
+  assert.match(FORMAT_SOURCE, /export function formatNumber\(value: number, options\?: Intl\.NumberFormatOptions\): string \{\s*return value\.toLocaleString\(FIXED_LOCALE, options\);/);
+  for (const n of [0, 2, 3, 4, 1135, 1000000]) {
+    assert.equal(n.toLocaleString(FIXED_LOCALE), membersCellLabel(n, undefined));
+  }
 });

@@ -266,6 +266,35 @@ const RESPONSIVE_CSS = `
      should be invented). */
   .cl-list-row-register:hover { background: var(--row-hover); }
 
+  /* FOLD-61 [CONFIRMED, measured at 390 by the audit's own probe]: the register's six tracks
+     (3px 1fr 1fr 110px 80px 40px, five 14px gaps) need 303px of fixed width and gap alone. In the
+     356px row the map page gives them at 390, that left 37px for BOTH "1fr" tracks, so the
+     jurisdiction NAME column computed to 18.5px and rendered as roughly one character and an
+     ellipsis, with the meta column beside it the same. Neither lane could see it: map60 built this
+     variant with no 390 spec in existence, and mobfix61's mobile-10-map spec was written against
+     the shared ".cl-list-row" this variant replaced, so its four register rows reported NOT BUILT
+     rather than measuring the row that shipped.
+
+     The comment above is still right that no mobile ARTBOARD for this register exists and none is
+     invented here. What governs instead is the mobile 390 spec's own operator prose: "the frame
+     collapses; every part is the desktop part at a smaller measure". So every part stays - name,
+     meta, band, count and the arrow all still render, in the same order and with the same type -
+     and only the MEASURE changes: name over meta in one flexible column, band over count in a
+     narrow one, the 40px arrow full height. The desktop grid is untouched above 768. */
+  @media (max-width: 767px) {
+    .cl-list-row-register {
+      grid-template-columns: 3px minmax(0, 1fr) 68px 40px !important;
+      gap: 2px 10px !important;
+      padding-right: 8px !important;
+    }
+    .cl-list-row-register > .cl-row-spine { grid-column: 1; grid-row: 1 / -1; }
+    .cl-row-register-name { grid-column: 2; grid-row: 1; }
+    .cl-row-register-meta { grid-column: 2; grid-row: 2; }
+    .cl-row-register-band { grid-column: 3; grid-row: 1; }
+    .cl-row-register-count { grid-column: 3; grid-row: 2; }
+    .cl-row-register-arrow { grid-column: 4; grid-row: 1 / -1; }
+  }
+
   @media (max-width: 767px) {
     /* MOBILE-60 (2026-09-08) [CONFIRMED, measured at 390 by
        .discipline/rendering/audit/spec/mobile-01-dashboard.json]: the column header

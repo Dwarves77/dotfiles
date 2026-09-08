@@ -110,7 +110,15 @@ export function ListSurfaceSortRow({
           </>
         )}
       </div>
-      <div className="cl-sort-options" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: "var(--fs-12)" }}>
+      {/* FOLD-61: `data-guard-strip` is how a sideways scroller DECLARES itself to the rendering
+          guard (ux-assert.mjs's detectClippedOverflow: an element past the viewport edge is a
+          defect unless a declared strip ancestor carries it). D-M6's fix above makes this group
+          scroll below 768, and the guard measured the last option, "My order", at right=410 on a
+          375px viewport with no strip to carry it, so the fix read as three UX-smoke failures on
+          /regulations. The convention already exists on .cl-facets-mobile, the ThemeStrip, the
+          obligations strip, the community tabs and the detail chip row; this row is the same
+          mechanism and had simply not said so. The attribute changes nothing visual. */}
+      <div className="cl-sort-options" data-guard-strip="true" style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap", fontSize: "var(--fs-12)" }}>
         <span
           style={{
             color: "var(--ink-3)",
