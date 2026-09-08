@@ -58,6 +58,10 @@ import { runSmoke as runHydrationSmoke } from "./smoke/hydration-smoke.mjs";
 // that inspects the request, which is why the 401 that killed the feature in production was
 // invisible to every other leg.
 import { runSmoke as runWorkspaceTagsSmoke } from "./smoke/workspace-tags-smoke.mjs";
+// lane BRIEFDATA, 2026-09-08: the WATCH WRITE against an auth-enforcing, state-keeping route stub.
+// See that module's header for the live measurement (org_watchlist: 0 rows; user_watchlist: 1 row)
+// and for why an api fixture that fulfils every request cannot prove a write path.
+import { runSmoke as runWatchlistWriteSmoke } from "./smoke/watchlist-write-smoke.mjs";
 // UX smoke specs (2026-09-03, RD-60): real ledger/row components mounted at MOBILE_VIEWPORT and measured
 // with ux-assert.mjs (law-2 target floor, squeezed-title wrap class, overflow). A lane that adds or fixes
 // a row component ships its spec here; the slot is the mechanical proof the row survives a phone.
@@ -190,6 +194,7 @@ async function main() {
     { name: "auth-onboarding", run: runAuthOnboardingSmoke },
     { name: "hydration", run: runHydrationSmoke },
     { name: "workspace-tags", run: runWorkspaceTagsSmoke },
+    { name: "watchlist-write", run: runWatchlistWriteSmoke },
   ];
   let smokeChecks = 0;
   const smokeFailures = [];

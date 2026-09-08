@@ -186,11 +186,33 @@ export function getClientWatchMembership(
   const cached = clientCache.get(itemType);
   if (cached) return cached;
 
+  // THE RECEIVER BUG (lane BRIEFDATA, 2026-09-08) [CONFIRMED in a real chromium, by the smoke spec
+  // .discipline/rendering/smoke/watchlist-write-smoke.mjs, which found it].
+  //
+  // The fetch below used to read `await options.fetchImpl(url, init)`. That is a METHOD call, so
+  // the browser's real `fetch` ran with `this === options` instead of the window, and Chrome
+  // refuses it outright:
+  //
+  //     TypeError: Failed to execute 'fetch' on 'Window': Illegal invocation
+  //
+  // The `catch` below then swallowed the TypeError and resolved an EMPTY map, so the failure was
+  // completely silent: every WatchButton falling back to this client path (the four detail-page
+  // surfaces named in this module's header) rendered its honest-unwatched default for an item the
+  // reader IS watching, on every page load since PERF-3 landed this cache on 2026-09-03. No unit
+  // test caught it because every test injects a PLAIN FUNCTION as `fetchImpl`, and a plain
+  // function does not care what `this` is — only the real `fetch` does.
+  //
+  // Destructuring first makes it a plain call (`this === undefined`), which Chrome accepts, and
+  // which is the shape src/lib/api/authed-fetch.ts's own `doFetch(input, init)` already used. All
+  // three shapes were measured in the bundle this repo actually ships: `opts.fetchImpl(url)`
+  // throws, `const f = opts.fetchImpl; f(url)` returns 200, `f.bind(globalThis)` returns 200.
+  const { fetchImpl, authHeader } = options;
+
   const promise = (async () => {
     try {
-      const resp = await options.fetchImpl(
+      const resp = await fetchImpl(
         `/api/watchlist?item_type=${encodeURIComponent(itemType)}`,
-        { headers: options.authHeader }
+        { headers: authHeader }
       );
       if (!resp.ok) return new Map<string, WatchMembershipEntry>();
       const body = (await resp.json()) as WatchlistListResponse;
