@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getResourcesOnly, getPublicListingsOnly } from "@/lib/data";
 import { toLedgerRowPayload } from "@/lib/list-pagination";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
+import { fetchRemainderPaged } from "./logic";
 
 // PERF-12 (2026-09-04, ADR-027 §2): Regulations-only cap this route used to share with Operations
 // (LIST_REMAINDER_LIMIT, list-pagination.ts) is DELETED along with Regulations' one-shot remainder
@@ -91,8 +92,17 @@ export async function GET(request: NextRequest) {
   try {
     const result =
       surface === "regulations"
-        ? await getPublicListingsOnly({ limit: REGULATIONS_REMAINDER_LIMIT, offset, domain: REGULATIONS_DOMAIN })
-        : await getResourcesOnly({ limit: OPERATIONS_REMAINDER_LIMIT, offset });
+        ? await fetchRemainderPaged(
+            (from, to) =>
+              getPublicListingsOnly({ limit: to - from + 1, offset: from, domain: REGULATIONS_DOMAIN }),
+            offset,
+            REGULATIONS_REMAINDER_LIMIT
+          )
+        : await fetchRemainderPaged(
+            (from, to) => getResourcesOnly({ limit: to - from + 1, offset: from }),
+            offset,
+            OPERATIONS_REMAINDER_LIMIT
+          );
 
     if (result._error) {
       // Non-fatal: log with full detail (message/details/hint/code already

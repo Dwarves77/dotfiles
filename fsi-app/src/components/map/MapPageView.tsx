@@ -41,7 +41,7 @@ import { useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { Resource } from "@/types/resource";
-import { getJurisdiction } from "@/lib/scoring";
+import { jurisdictionKeyOf } from "@/lib/map/jurisdiction-rollup";
 import { JURISDICTIONS } from "@/lib/constants";
 import { JURISDICTION_CENTROIDS } from "@/components/map/jurisdictionCentroids";
 import type { RegionCoverage } from "@/lib/coverage-gaps";
@@ -184,7 +184,7 @@ export function MapPageView(props: MapPageViewProps) {
       regionChips.size === 0
         ? bandFiltered
         : bandFiltered.filter((r) => {
-            const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
+            const jur = jurisdictionKeyOf(r);
             for (const chip of regionChips) {
               if (REGION_CHIP_TO_JURS[chip].includes(jur)) return true;
             }
@@ -214,7 +214,7 @@ export function MapPageView(props: MapPageViewProps) {
     const groups = new Map<string, Resource[]>();
     for (const r of filteredResources) {
       if (r.domain !== REGULATIONS_DOMAIN) continue;
-      const jur = (r.jurisdiction || getJurisdiction(r) || "global").toLowerCase();
+      const jur = jurisdictionKeyOf(r);
       const list = groups.get(jur) || [];
       list.push(r);
       groups.set(jur, list);

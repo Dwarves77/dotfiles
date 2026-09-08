@@ -15,8 +15,8 @@ import { SystemErrorBanner } from "@/components/ui/SystemErrorBanner";
 import { Masthead } from "@/components/ui/Masthead";
 import { createSupabaseServerClient } from "@/lib/supabase-server-client";
 import { REGULATIONS_DOMAIN } from "@/lib/domains";
-import { bandFromPriority } from "@/lib/urgency/bands";
-import { formatLocaleDate } from "@/lib/format";
+import { jurisdictionCount, jurisdictionCountInBand } from "@/lib/map/jurisdiction-rollup";
+import { countNoun, formatLocaleDate } from "@/lib/format";
 import { renderNowIso } from "@/lib/render-now";
 import type { CommunityActivityRow } from "@/components/map/MapView";
 
@@ -43,11 +43,15 @@ export default async function MapRoute({
   ]);
   console.log(`[perf] /map data ${Date.now() - t0}ms`);
 
+  // COUNTS-61 (production defect, click-through audit 2026-09-08): both jurisdiction figures below
+  // come from src/lib/map/jurisdiction-rollup.ts, the SAME module <MapPageView/> rolls its register
+  // and its Immediate rail card up with. They used to be keyed here as `r.jurisdiction || "global"`
+  // and there as `r.jurisdiction || getJurisdiction(r) || "global"`, which is why this masthead read
+  // "6 jurisdictions live" over a register headed "8 jurisdictions", and "4 jurisdictions with
+  // immediate items" beside a rail card reading "IMMEDIATE · 3 JURISDICTIONS". See that module.
   const regs = data.resources.filter((r) => r.domain === REGULATIONS_DOMAIN);
-  const jurisdictions = new Set(regs.map((r) => (r.jurisdiction || "global").toLowerCase()));
-  const immediateJurisdictions = new Set(
-    regs.filter((r) => bandFromPriority(r.priority).key === "immediate").map((r) => (r.jurisdiction || "global").toLowerCase())
-  );
+  const liveJurisdictions = jurisdictionCount(regs);
+  const immediateJurisdictions = jurisdictionCountInBand(regs, "immediate");
 
   // HYDRATION-59: one server instant (render-now.ts), UTC-pinned, and threaded into <Masthead/>
   // so its VOL week number is computed from the SAME instant this label is — never from the
@@ -71,10 +75,9 @@ export default async function MapRoute({
           nowIso={nowIso}
           dek={
             <>
-              {jurisdictions.size} jurisdiction{jurisdictions.size === 1 ? "" : "s"} live ·{" "}
-              {regs.length} active item{regs.length === 1 ? "" : "s"} ·{" "}
-              {immediateJurisdictions.size} jurisdiction{immediateJurisdictions.size === 1 ? "" : "s"} with
-              immediate items · marker size = item count · colour = highest band present
+              {countNoun(liveJurisdictions, "jurisdiction")} live · {countNoun(regs.length, "active item")} ·{" "}
+              {countNoun(immediateJurisdictions, "jurisdiction")} with immediate items · marker size = item
+              count · colour = highest band present
             </>
           }
           commandBar={{

@@ -84,3 +84,24 @@ export function formatLocaleDate(date: Date, options?: Intl.DateTimeFormatOption
 export function formatLocaleDateTime(date: Date, options?: Intl.DateTimeFormatOptions): string {
   return date.toLocaleString(FIXED_LOCALE, options);
 }
+
+// ── COUNTS-61 (2026-09-08): the one home for "a noun agreeing with its number" ──────────────────
+//
+// WHY: the click-through audit of production (2026-09-08) found the dashboard rail printing
+// "1 regional rooms" — a plural noun against a count of one. That was not the only such site: the
+// codebase carries ~40 hand-written `${n === 1 ? "" : "s"}` ternaries, each an independent chance
+// to forget one, and the one that was forgotten shipped. These two helpers are that ternary with a
+// name, so a new count line agrees with its number by construction instead of by remembering.
+//
+// English regular plural only, by design: an irregular noun passes its own plural explicitly
+// (`pluralize(n, "jurisdiction")`, `pluralize(n, "analysis", "analyses")`). Nothing here guesses.
+
+/** The noun in the form that agrees with `count`. `plural` defaults to `singular + "s"`. */
+export function pluralize(count: number, singular: string, plural?: string): string {
+  return Math.abs(count) === 1 ? singular : plural ?? `${singular}s`;
+}
+
+/** "1 room" / "7 rooms" — the count (thousands-separated, per formatNumber) and its agreeing noun. */
+export function countNoun(count: number, singular: string, plural?: string): string {
+  return `${formatNumber(count)} ${pluralize(count, singular, plural)}`;
+}

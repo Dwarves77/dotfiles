@@ -65,6 +65,15 @@ export interface DashboardBriefProps {
    *  capped at CHANGED_CAP. */
   totalChanges: number;
   aggregates: WorkspaceAggregates;
+  /** COUNTS-61 (production defect, click-through audit 2026-09-08): the band tiles' OWN counts,
+   *  which must be the counts of the surface each tile NAVIGATES TO. Every tile's href is
+   *  `/regulations?band=<key>`, so this is `getPublicSurfaceCounts("regulations")` — the identical
+   *  call /regulations makes for its identical four tiles. Before this prop they read
+   *  `aggregates.byPriority`, a workspace-wide tally across all five surfaces, so the Monitor tile
+   *  said 1,135 here and 1,119 one click later on the page it opened; Action said 32 against 14.
+   *  `aggregates` stays for the figures that really are workspace-wide (the masthead's item count
+   *  and the platform rail), which say so in their own labels. */
+  bandCounts: WorkspaceAggregates;
   auditDate: string;
   /** Server render instant (src/lib/render-now.ts). */
   nowIso?: string;
@@ -89,6 +98,7 @@ export function DashboardBrief({
   changedRows,
   totalChanges,
   aggregates,
+  bandCounts,
   auditDate,
   nowIso,
   surfaceCoverage,
@@ -108,9 +118,9 @@ export function DashboardBrief({
     () => formatLocaleDate(nowFrom(nowIso), { month: "short", day: "numeric", timeZone: "UTC" }),
     [nowIso],
   );
-  const immediateTotal = aggregates.byPriority.CRITICAL ?? 0;
-  const actionTotal = aggregates.byPriority.HIGH ?? 0;
-  const monitorTotal = aggregates.byPriority.MODERATE ?? 0;
+  const immediateTotal = bandCounts.byPriority.CRITICAL ?? 0;
+  const actionTotal = bandCounts.byPriority.HIGH ?? 0;
+  const monitorTotal = bandCounts.byPriority.MODERATE ?? 0;
 
   return (
     // Content column top padding is 20px (README §0.3), matching operator ruling 4.2's nav-card
@@ -145,7 +155,7 @@ export function DashboardBrief({
               <BandTile
                 key={band.key}
                 band={band}
-                count={aggregates.byPriority[band.priority] ?? 0}
+                count={bandCounts.byPriority[band.priority] ?? 0}
                 href={`/regulations?${BAND_FACET_PARAM}=${band.key}`}
               />
             ),

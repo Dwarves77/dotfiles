@@ -22,7 +22,7 @@
  * (migration 148) via getSurfaceCoverageSnapshot, fail-soft.
  */
 
-import { getAppData, getWatchlist, getWorkspaceAggregates } from "@/lib/data";
+import { getAppData, getPublicSurfaceCounts, getWatchlist, getWorkspaceAggregates } from "@/lib/data";
 import { getSurfaceCoverageSnapshot } from "@/lib/dashboard/surface-coverage";
 import { DashboardMasthead } from "@/components/dashboard/DashboardMasthead";
 import { DashboardBrief } from "@/components/dashboard/DashboardBrief";
@@ -32,9 +32,15 @@ import { buildDueNextRows, buildChangedRows, selectBriefResources } from "@/lib/
 import { enrichRowSourceChips, describeFallbackTrigger } from "@/lib/supabase-server";
 
 export default async function Home() {
-  const [data, aggregates, surfaceCoverage] = await Promise.all([
+  // COUNTS-61 (production defect, click-through audit 2026-09-08): `regulationsCounts` is the
+  // band tiles' own source, and it is the SAME call /regulations makes for its own four tiles
+  // (getPublicSurfaceCounts("regulations")), because every tile here navigates there. See
+  // <DashboardBrief/>'s `bandCounts` prop. `aggregates` stays the workspace-wide figure the
+  // masthead's "N items across 5 surfaces" line actually describes.
+  const [data, aggregates, regulationsCounts, surfaceCoverage] = await Promise.all([
     getAppData(),
     getWorkspaceAggregates(),
+    getPublicSurfaceCounts("regulations"),
     getSurfaceCoverageSnapshot(),
   ]);
 
@@ -93,6 +99,7 @@ export default async function Home() {
         dueNextRows={dueNextRows}
         changedRows={changedRows}
         aggregates={aggregates}
+        bandCounts={regulationsCounts}
         totalChanges={data.recentChanges.length}
         auditDate={data.auditDate}
         surfaceCoverage={surfaceCoverage}
