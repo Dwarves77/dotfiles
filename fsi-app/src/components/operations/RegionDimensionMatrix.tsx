@@ -63,6 +63,7 @@ import {
   originClassLabel,
   originClassStrength,
   derivationLabel,
+  factHeadline,
 } from "@/lib/operations/region-grid.mjs";
 
 export interface MatrixRegion { key: string; label: string }
@@ -236,6 +237,11 @@ export function RegionDimensionMatrix({
             lineHeight: 1,
             margin: 0,
             color: "var(--ink)",
+            // dc.html p8 declares `white-space:nowrap` on both halves of this head strip; neither
+            // is taken. The artboard's card is wider than the built page's, and nowrap here pushed
+            // the meta beside it off the right edge at 375 (rendering guard, lane opsclip). Losing
+            // characters is the defect this lane removes; wrapping this strip costs nothing.
+            // Logged in DEVIATION-LOG.md.
           }}
         >
           Regions side by side
@@ -263,44 +269,27 @@ export function RegionDimensionMatrix({
           hides this table at <=640px (globals.css); `.cl-ops-matrix-cards` below replaces it with one
           card per region at that width. Desktop is unchanged — same table, same class list plus the
           new one. */}
-      {/* Defect D4 (2026-09-07): a scroll CONTAINER was already here (overflowX:auto) — the audit's
-          finding was that at 1440 the rightmost region column is cut off with NO VISIBLE
-          AFFORDANCE, so the table reads as clipped rather than scrollable. Two additions, both
-          CSS-only (no JS width measurement, so they hold at every viewport and in the design-audit
-          harness): an always-rendered horizontal scrollbar gutter (`scrollbar-gutter`/`::-webkit-
-          scrollbar`, so the bar is visible before the pointer enters the region — overlay
-          scrollbars are why there was nothing to see), and the standard CSS scroll-shadow: two
-          `local` background layers that sit flush against the content edges and two `scroll` layers
-          that stay pinned to the box, so a right-edge shade appears exactly when there is more
-          table to the right and disappears at the end of the scroll. */}
-      <style>{`
-        .cl-ops-matrix-scroll {
-          overflow-x: auto;
-          scrollbar-gutter: stable;
-          background:
-            linear-gradient(to right, var(--card, #fff) 30%, rgba(255,255,255,0)) left center local,
-            linear-gradient(to left, var(--card, #fff) 30%, rgba(255,255,255,0)) right center local,
-            linear-gradient(to right, rgba(0,0,0,0.16), rgba(0,0,0,0)) left center scroll,
-            linear-gradient(to left, rgba(0,0,0,0.16), rgba(0,0,0,0)) right center scroll;
-          background-repeat: no-repeat;
-          background-size: 28px 100%, 28px 100%, 14px 100%, 14px 100%;
-          background-attachment: local, local, scroll, scroll;
-        }
-        .cl-ops-matrix-scroll::-webkit-scrollbar { height: 10px; }
-        .cl-ops-matrix-scroll::-webkit-scrollbar-thumb {
-          background: var(--line-1, rgba(0,0,0,.25)); border-radius: 5px;
-        }
-        .cl-ops-matrix-scroll::-webkit-scrollbar-track { background: var(--tag, rgba(0,0,0,.05)); border-radius: 5px; }
-      `}</style>
-      <div className="cl-ops-matrix-table cl-ops-matrix-scroll">
-        <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 13 }}>
+      {/* Defect D4 (2026-09-07) added a scrollbar gutter and a CSS scroll shadow here, on the
+          reading that the table was legitimately wider than its container and only lacked an
+          affordance. DEFECT 1 (lane opsclip, train 61) shows that reading was wrong: the table
+          was wider because the FACTS were rendered into the region columns, and the artboard fits
+          five columns in the same card at the same width. The scroll affordance stays as the
+          honest fallback for the widths between the mobile card reflow and the artboard's own
+          1440, but it is no longer a component-local <style> block: it is `.cl-scroll-shadow` in
+          globals.css, one definition shared with the /regulations obligations strip.
+
+          The container is also now DECLARED to the rendering guard's overflow detector. Production
+          overflowed it by 198px at 1440 and nothing in the suite noticed, because the guard
+          measures only elements carrying this attribute and this one did not. */}
+      <div className="cl-ops-matrix-table cl-scroll-shadow" data-guard-container="ops-matrix-scroll">
+        <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12.5 }}>
           <thead style={{ backgroundColor: "var(--color-surface-raised)" }}>
             <tr>
-              <th style={{ ...cell, textAlign: "left", minWidth: 190 }}>Dimension</th>
+              <th style={{ ...cell, textAlign: "left", borderLeft: "none" }}>Dimension</th>
               {orderedRegions.map((r) => {
                 const cov = coverageByRegion[r.key];
                 return (
-                  <th key={r.key} style={{ ...cell, minWidth: 130, verticalAlign: "top" }}>
+                  <th key={r.key} style={{ ...cell, verticalAlign: "top" }}>
                     <div style={{ fontWeight: 600, color: "var(--color-text-primary)" }}>{r.label}</div>
                     {/* Artboard 08/id="p8" column subhead: ONE 10px line, "2/5 sourced · 778 regs" —
                         the coverage fraction and the cross-reference count on the same line, not two
@@ -385,34 +374,73 @@ export function RegionDimensionMatrix({
 
                   {open && (
                     <tr>
-                      {/* Artboard 08/id="p8" leaves this leading cell of the expanded facts row
-                          EMPTY: the dimension is already named by the "▾ Labor markets" row directly
-                          above it, and no "Facts" label is drawn under it (lane lists60,
-                          2026-09-08). The cell itself stays, so the facts columns keep the header
-                          row's column alignment. */}
-                      <td style={{ ...cell, verticalAlign: "top", textAlign: "left" }} />
-                      {orderedRegions.map((r) => {
-                        const c = grid.byCell[`${r.key}|${d.db}`];
-                        return (
-                          <td key={r.key} style={{ ...cell, verticalAlign: "top", textAlign: "left" }}>
-                            {!c || c.factCount === 0 ? (
-                              <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>
-                                No sourced fact for {r.key} on this dimension.
-                              </span>
-                            ) : (
-                              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                                {c.facts.map((f: any, i: number) =>
-                                  isEnvelopedFact(f) ? (
-                                    <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
-                                  ) : (
-                                    <LegacyFactRow key={i} fact={f} />
-                                  )
+                      {/* DEFECT 1, lane opsclip (train 61, 2026-09-08). THE CLIP AND ITS CAUSE.
+                          Measured on production at 1440: this scroll container had clientWidth
+                          750 against scrollWidth 948, so the United Kingdom column was cut
+                          mid-glyph on every line and the UAE column was entirely off-screen. The
+                          artboard fits FIVE columns in the same card at the same width, so a
+                          horizontal scroller was never the answer.
+
+                          ROOT CAUSE [CONFIRMED by reading both markups side by side]: the facts
+                          were rendered into the REGION'S OWN <td>, one per column, so each fact's
+                          prose set that region column's minimum content width and dragged the
+                          whole table past its container. Artboard 08 does not do that, its
+                          expanded row is a SINGLE cell spanning the table
+                          (`<td colspan="6">`) holding a `repeat(5,1fr)` grid. The facts then
+                          divide the card's width evenly and can never widen a header column.
+                          Removing the 190px/130px `minWidth` floors on the header cells (which the
+                          artboard does not have either) is the other half. */}
+                      <td
+                        colSpan={orderedRegions.length + 1}
+                        style={{ ...cell, textAlign: "left", padding: "12px 16px 14px", background: "var(--card)" }}
+                      >
+                        <div
+                          style={{
+                            display: "grid",
+                            gridTemplateColumns: `repeat(${orderedRegions.length}, minmax(0, 1fr))`,
+                            gap: 12,
+                          }}
+                        >
+                          {orderedRegions.map((r) => {
+                            const c = grid.byCell[`${r.key}|${d.db}`];
+                            return (
+                              <div key={r.key} style={{ minWidth: 0 }}>
+                                {/* Artboard 08: each block opens with its region tag in 10px
+                                    uppercase muted, so a reader scanning the row knows which
+                                    column each figure belongs to without tracking back up. */}
+                                <div
+                                  style={{
+                                    fontSize: 10,
+                                    letterSpacing: "0.1em",
+                                    textTransform: "uppercase",
+                                    color: "var(--ink-3)",
+                                    fontWeight: 700,
+                                    marginBottom: 3,
+                                  }}
+                                >
+                                  {r.label}
+                                </div>
+                                {!c || c.factCount === 0 ? (
+                                  // Same narrow-cell rule as the summary cell above: these blocks
+                                  // are a fifth of the card each, and the spelled-out phrase runs
+                                  // to three lines in one.
+                                  <Absence reason="not in primary source" variant="narrow" />
+                                ) : (
+                                  <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                                    {c.facts.map((f: any, i: number) =>
+                                      isEnvelopedFact(f) ? (
+                                        <EnvelopedFactRow key={i} fact={f} baseFact={baseFactFor(d.db, f)} isBaseColumn={r.key === baseRegion} />
+                                      ) : (
+                                        <LegacyFactRow key={i} fact={f} />
+                                      )
+                                    )}
+                                  </div>
                                 )}
                               </div>
-                            )}
-                          </td>
-                        );
-                      })}
+                            );
+                          })}
+                        </div>
+                      </td>
                     </tr>
                   )}
                 </Fragment>
@@ -632,20 +660,50 @@ export function RegionDimensionMatrix({
 // treatments of two genuinely different data shapes, not one component with an `if` inside that a
 // later edit could accidentally let leak across.
 
-/** UNCHANGED from the pre-envelope render (verbatim markup) — the legacy free-text path this surface
- *  has always used, and the one 100% of live rows exercise today. */
+/** The artboard's Facts block for a fact that is NOT enveloped, 100% of live rows today.
+ *
+ *  DEFECT 1's second half (lane opsclip, train 61, 2026-09-08). Production set the whole prose
+ *  block in the heavy display face at ~17px in a ~130px measure, 15 or more lines, ~370px tall,
+ *  and showed no headline figure anywhere. Artboard 08 draws a headline figure in the display face
+ *  at 18px over a one-line description in ORDINARY 11.5px body, with the source muted below.
+ *
+ *  `factHeadline` (region-grid.mjs) is the one place that decides which slot the data goes into,
+ *  and its header records which columns were checked for a figure and what was found. A fact whose
+ *  stored `value` is a sentence rather than a figure has no headline figure in the data: the
+ *  absence convention stands in the figure's place, and the sentence is set at the description's
+ *  own type where it belongs, never in Anton. Nothing is derived out of the prose.
+ */
 function LegacyFactRow({ fact: f }: { fact: any }) {
   const url = f.sourceUrl ?? sourceUrlFromNote(f.sourceNote);
   const name = f.sourceName ?? sourceNameFromNote(f.sourceNote);
-  // Artboard 08/id="p8" Facts-row block: 2px ink-muted left edge, the VALUE first in Anton 18px,
-  // then the fact label as the description line, then the source and date muted below.
+  const { figure, description, prose } = factHeadline(f);
   return (
-    <div style={{ borderLeft: "2px solid var(--ink-2)", paddingLeft: 10 }}>
-      <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", margin: "2px 0" }}>{f.value}</div>
-      <div style={{ fontSize: "var(--fs-115)", color: "var(--ink)", lineHeight: 1.45 }}>{f.factLabel}</div>
+    <div style={{ borderLeft: "2px solid var(--ink-2)", paddingLeft: 10, minWidth: 0 }}>
+      {figure ? (
+        <div style={{ fontFamily: "var(--font-display)", fontSize: 18, lineHeight: 1.1, color: "var(--ink)", margin: "2px 0" }}>
+          {figure}
+        </div>
+      ) : (
+        // The figure slot, empty and saying so. "pending" is the closed-vocabulary reason that
+        // fits: the figure IS in the source and IS in this row's prose; what has not happened is
+        // the envelope extraction that would give the cell a comparable number (migration 267's
+        // columns, NULL on every live row, both producers kill-switched off). Logged in
+        // DEVIATION-LOG.md with the columns checked.
+        <div style={{ margin: "2px 0" }}>
+          <Absence reason="pending" />
+        </div>
+      )}
+      {/* Artboard 08's description line: ordinary body, 11.5px, line-height 1.45, not the display
+          face, which is what turned this into a wall of bold text on production. */}
+      <div style={{ fontSize: "var(--fs-115)", color: "var(--ink)", lineHeight: 1.45, overflowWrap: "anywhere" }}>{description}</div>
+      {prose && (
+        <div style={{ fontSize: "var(--fs-115)", color: "var(--ink-2)", lineHeight: 1.45, marginTop: 3, overflowWrap: "anywhere" }}>
+          {prose}
+        </div>
+      )}
       {/* law-2 (RD-60/F35): the source link is a real target — 24px tall with 8px clearance from
           the description line above, which the 8px marginTop supplies. */}
-      <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 8 }}>
+      <div style={{ fontSize: "var(--fs-11)", color: "var(--ink-3)", marginTop: 8, overflowWrap: "anywhere" }}>
         {name ? (url ? <a href={url} target="_blank" rel="noopener noreferrer" style={{ display: "inline-flex", alignItems: "center", minHeight: 24, color: "var(--color-primary)", textDecoration: "underline" }}>{name}</a> : name) : "source not linked"}
         {f.lastUpdated ? ` · row written ${String(f.lastUpdated).slice(0, 10)}` : " · no date on row"}
       </div>
@@ -713,9 +771,18 @@ function EnvelopedFactRow({ fact: f, baseFact, isBaseColumn }: { fact: any; base
   );
 }
 
+// dc.html p8's own th/td: `padding:10px 12px`, hairline row rule below and column rule left, no
+// full box border, and NO width declaration anywhere, the artboard lets the table's own automatic
+// layout size the columns. That is now possible here for the first time, because the facts no
+// longer live in the region columns (see the expanded row above): a region column is sized by its
+// header label and a two-digit count, nothing else, and `overflowWrap: anywhere` keeps a long
+// dimension name inside the card rather than widening the table. The `minWidth: 190/130` floors
+// that used to sit on the header cells are gone with it.
 const cell: React.CSSProperties = {
-  border: "1px solid var(--color-border)",
-  padding: "6px 10px",
+  borderBottom: "1px solid var(--line-3)",
+  borderLeft: "1px solid var(--line-3)",
+  padding: "10px 12px",
   textAlign: "center",
   verticalAlign: "top",
+  overflowWrap: "anywhere",
 };

@@ -59,7 +59,7 @@ test("dc.html p15 copy, verbatim", () => {
   assert.ok(SOURCE.includes("Applies workspace-wide"));
   // UPDATED (lane opsclip, train 61, defect 5): the artboard draws "See audit log →" in this
   // notice, but there is no audit-log surface in the product [CONFIRMED: no such route under
-  // src/app, no such table], so production shipped it as <a href="#"> — the only #-href anchor
+  // src/app, no such table], so production shipped it as <a href="#">, the only #-href anchor
   // anywhere in the product, and dead on click. Ruling 1.1's class: a dead control is a defect.
   // The label is removed until the surface exists; the notice text beside it is unchanged.
   assert.ok(!/linkLabel:\s*"See audit log/.test(SOURCE), "the dead audit-log link must not be re-added without a linkHref");

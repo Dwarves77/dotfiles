@@ -224,7 +224,7 @@ export function Masthead({ title, size = "list", dek, dateLabel, commandBar, vol
               hash when no target was given, which produced the only hash-href anchor in the whole
               product: /settings' "See audit log", which the click-through proved dead (clicking
               appends the hash to the URL and does nothing else). Ruling 1.1's class is that a dead
-              control is a defect, so the fallback is gone — a notice with no target renders NO
+              control is a defect, so the fallback is gone, a notice with no target renders NO
               link, and a label can never again be shipped as a control that does nothing. */}
           {notice.linkLabel && notice.linkHref && (
             <a href={notice.linkHref} style={{ fontSize: 11, fontWeight: 600, whiteSpace: "nowrap" }}>

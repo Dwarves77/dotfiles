@@ -186,7 +186,7 @@ export function DashboardBrief({
                   // Audit item 1.1 (2026-09-07): was plain text, a dead control (click did
                   // nothing). Navigates to /regulations with the Immediate band facet applied,
                   // via the same `?band=` contract RegulationsLedger reads (see
-                  // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam) — no second,
+                  // list-surface-helpers.ts's BAND_FACET_PARAM/bandFromSearchParam), no second,
                   // inline expansion of the Immediate band built here on the dashboard.
                   // Lane opsclip (train 61, defect 5): the anchor and its law-2 padding moved into
                   // CardFoot's own `leftHref`, so the sibling foot below cannot be built without
@@ -255,7 +255,7 @@ export function DashboardBrief({
                   // while its counterpart on the Due Next card above was an anchor, and the
                   // artboard draws both as links. "The changes" is the regulations list ordered
                   // newest-first, so it links to that ordering through the `?sort=` contract added
-                  // beside `?band=` in list-surface-helpers.ts — a real target, not a link to an
+                  // beside `?band=` in list-surface-helpers.ts, a real target, not a link to an
                   // unordered list that happens to navigate.
                   left={<>All {formatNumber(totalChanges)} changes in the last 7 days</>}
                   leftHref={`/regulations?${SORT_FACET_PARAM}=newest`}

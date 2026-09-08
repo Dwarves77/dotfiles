@@ -138,7 +138,7 @@ export function ListRowColumnHeader({
   //
   // DEFECT 2, lane opsclip (train 61, 2026-09-08). The D1 fix above was correct; the `whiteSpace:
   // nowrap` + `textOverflow: ellipsis` that shipped WITH it was not. Measured on production at
-  // 1440, the IMPACT header rendered as "IMPACT LOW → H" on the dashboard and on /watchlist — the
+  // 1440, the IMPACT header rendered as "IMPACT LOW → H" on the dashboard and on /watchlist, the
   // word HIGH cut to one letter, one defect traded for another. The label cannot fit an 88px
   // column on one line at 9.5px/.12em (it measures ~113px), and the artboard does not ask it to:
   // dc.html p1/p11 give this header cell the SAME 88px track and the SAME type with no nowrap at
@@ -169,21 +169,25 @@ export function ListRowColumnHeader({
     whiteSpace: "nowrap",
     textOverflow: "ellipsis",
   };
-  const wrappingCellStyle: CSSProperties = {
+  // Wraps at WORD boundaries only: the artboard breaks "IMPACT low → high" after IMPACT, and
+  // `overflowWrap: anywhere` would break inside the word ("IMPA / CT"), which is the same lost
+  // legibility the truncation had, differently spelled. Confirmed by capture at 1440.
+  const impactCellStyle: CSSProperties = {
     ...cellStyle,
     whiteSpace: "normal",
     textOverflow: "clip",
     lineHeight: 1.2,
-    overflowWrap: "anywhere",
   };
-  const impactCellStyle: CSSProperties = wrappingCellStyle;
+  // The register variant's own labels sit in tracks that go genuinely tiny at the narrow widths
+  // /map has no artboard for, where a single unbreakable word cannot fit any other way.
+  const wrappingCellStyle: CSSProperties = { ...impactCellStyle, overflowWrap: "anywhere" };
   if (variant === "register") {
     // dc.html p10: same 30px height, same 9.5/.12em/700/--ink-3 type, the register grid, and the
     // ITEMS label right-aligned over its right-aligned numerals. The spine and arrow columns carry
     // no label, exactly as the artboard leaves them blank.
     //
     // DEFECT 2's class, lane opsclip (train 61): "HIGHEST BAND" measured 146px against its own
-    // 110px track and shipped truncated, exactly as the IMPACT header did — found by the new
+    // 110px track and shipped truncated, exactly as the IMPACT header did, found by the new
     // column-header fit rule, not by the operator, which is the point. The artboard's own markup
     // for this row (dc.html p10, the register card's header div) carries no `nowrap` either and
     // draws the label over two lines, so these cells take the same wrapping treatment. `height`
@@ -437,7 +441,7 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
         {/* DEFECT 3 (lane opsclip, train 61): the TIER column is a 40px fixed track, and
             "NOT IN PRIMARY SOURCE" wrapped over three lines inside it, doubling the row's height
             on the dashboard. `variant="narrow"` is the Absence part's own rule for a cell this
-            size — the dash, with the same closed-vocabulary reason on `aria-label`/`title`. */}
+            size, the dash, with the same closed-vocabulary reason on `aria-label`/`title`. */}
         {tier != null ? <TierChip tier={tier} /> : <Absence reason="not in primary source" variant="narrow" />}
       </span>
     </>
@@ -548,6 +552,16 @@ export function ListRow({ href, band, jurisdiction, title, meta, impact, due, ti
                       textOverflow: "ellipsis",
                       whiteSpace: "nowrap",
                       flexShrink: 1,
+                      // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production cut this line
+                      // mid-word with NO ellipsis on /research ("initiative · Last-mile
+                      // electrifica") while the title directly above it truncated properly. Root
+                      // cause [CONFIRMED]: `flexShrink: 1` without `minWidth: 0` is inert, a flex
+                      // item's default `min-width: auto` refuses to shrink below its content's
+                      // intrinsic width, so this span never narrowed, its own ellipsis never had
+                      // anything to do, and the PARENT's `overflow: hidden` did the cutting
+                      // instead. Same mechanism this file's own ListRowColumnHeader header
+                      // documents for the D1 collision.
+                      minWidth: 0,
                     }}
                   >
                     {meta}

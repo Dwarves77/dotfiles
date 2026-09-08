@@ -186,12 +186,12 @@ export function bandFromSearchParam(value: string | null | undefined): UrgencyBa
 }
 
 /**
- * SORT_FACET_PARAM — the URL query-parameter name for deep-linking a list surface's SORT, the
+ * SORT_FACET_PARAM, the URL query-parameter name for deep-linking a list surface's SORT, the
  * sibling of BAND_FACET_PARAM above and built for the same reason.
  *
  * DEFECT 5, lane opsclip (train 61, 2026-09-08). The dashboard's "All N changes in the last 7
- * days" shipped as a bare <span> — `closest('a') === false`, `cursor: auto`, proven statically off
- * production — while its counterpart "All N immediate" beside it is a real anchor and the artboard
+ * days" shipped as a bare <span>, `closest('a') === false`, `cursor: auto`, proven statically off
+ * production, while its counterpart "All N immediate" beside it is a real anchor and the artboard
  * draws both as links. Wiring it needed a target that MEANS "the changes", and "the changes" is
  * the regulations list ordered newest-first, which had no URL contract: `sortKey` was local
  * `useState` in every ledger [CONFIRMED by reading all four]. This is that contract, in the same

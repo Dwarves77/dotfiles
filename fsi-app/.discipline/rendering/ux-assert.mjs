@@ -100,7 +100,7 @@ export function detectClippedOverflow(boxes, tolerance = 2) {
  * header shipped as "IMPACT LOW → H"; /research row meta as "Last-mile electrifica"; the
  * /operations and /regulations section index as "S6 Operational requirem" and a bare "S7"; the
  * /regulations UPCOMING OBLIGATIONS fifth card cut mid-word. Every one of them is a text run
- * whose own box hides its overflow with `text-overflow: clip` — a character is lost and the
+ * whose own box hides its overflow with `text-overflow: clip`, a character is lost and the
  * reader is given no sign that anything is missing.
  *
  * The rule: a text run may overflow its own box only when it says so, i.e. `text-overflow:
@@ -109,7 +109,7 @@ export function detectClippedOverflow(boxes, tolerance = 2) {
  *
  * A COLUMN HEADER (`mustFit`) is held to a stricter rule: it must fit outright, ellipsis or not.
  * Its text is fixed, short and known at build time, so there is no reader-supplied string that
- * could ever justify truncating it — and an ellipsis is exactly how defect 2 hid itself, shipping
+ * could ever justify truncating it, and an ellipsis is exactly how defect 2 hid itself, shipping
  * "IMPACT LOW → HIGH" as "IMPACT LOW → H" while every truncation detector stayed green because the
  * truncation was declared.
  *
@@ -157,7 +157,7 @@ export function assertUxClean(label, { targets = [], titles = [], clipped = [], 
       .map((r) => `${r.name} +${Math.round(Math.max(r.overflowX, r.overflowY))}px`)
       .join(', ');
     failures.push(
-      `${label}: ${clippedText.length} text run(s) clipped with no ellipsis — ${detail}${clippedText.length > 8 ? ', …' : ''}`,
+      `${label}: ${clippedText.length} text run(s) clipped with no ellipsis, ${detail}${clippedText.length > 8 ? ', …' : ''}`,
     );
   }
   const squeezed = detectSqueezedTitles(titles);
@@ -230,7 +230,13 @@ export async function measureUx(page) {
         const r = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
         const lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3 || 16;
-        const container = el.closest('[data-guard-container]') || el.offsetParent || document.body;
+        // A title inside a TABLE CELL is budgeted by its own column, not by the card the table
+        // sits in (lane opsclip, train 61). Measuring a 6-column matrix's dimension name against
+        // the whole card reports every long name as "squeezed to 12% of its card" whether the
+        // table is laid out well or badly, which is noise; measuring it against its own cell says
+        // the true thing, whether the name fits the column it was given.
+        const container =
+          el.closest('td,th') || el.closest('[data-guard-container]') || el.offsetParent || document.body;
         titles.push({
           name: nameOf(el),
           width: r.width,
@@ -238,8 +244,8 @@ export async function measureUx(page) {
           lines: Math.max(1, Math.round(r.height / lh)),
         });
       }
-      // Text runs (opsclip, defects 2 and 6): every element that IS a run of text — it has visible
-      // text and every element child of its own is inline — measured against its own box. A card or
+      // Text runs (opsclip, defects 2 and 6): every element that IS a run of text, it has visible
+      // text and every element child of its own is inline, measured against its own box. A card or
       // a column whose children are blocks is not a text run and is not swept here; that case is
       // what `clipped` above and `detectOverflows` already cover.
       const textRuns = [];

@@ -28,8 +28,8 @@
  * DEFECT 5, lane opsclip (train 61, 2026-09-08). The two band-footer expanders
  * on the dashboard disagreed with each other on production: "All 14 immediate"
  * was a real anchor and "All 500 changes in the last 7 days" was a bare
- * <span> — `closest('a') === false`, `cursor: auto`, i.e. not a control at
- * all — while the artboard draws BOTH as links. The root cause was that the
+ * <span>, `closest('a') === false`, `cursor: auto`, i.e. not a control at
+ * all, while the artboard draws BOTH as links. The root cause was that the
  * link treatment lived at ONE call site inside DashboardBrief rather than
  * here, so the second foot could be written without it and nothing noticed.
  * `leftHref`/`rightHref` move that treatment into the shared part: a caller

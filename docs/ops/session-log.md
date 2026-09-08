@@ -13574,3 +13574,127 @@ functions, **0 violations**; rendering guard **PASS** (11 fixtures, 433 checks; 
 checks; 12 UX smoke specs, 216 checks); `npm run audit:design` **61 specs, 1193 checks, 1193 MATCH**;
 CI npmtest glob **121 files, 948 tests, 0 fail**; `run-test-suite.sh` **5921 tests, 0 fail**, exit 0,
 no known-failure line reached; `npx next build --webpack` succeeded with no `.env.local`.
+
+## Addendum: lane opsclip (train 61, production defects), 2026-09-08
+
+Branch `lane/opsclip-2026-09-08` off `train/wave60-2026-09-08` (42005ba8). Source: the click-through
+audit of production run this morning against train 59 (master 69b1374),
+`/home/claude/audit-2026-09-08/CLICKTHROUGH-2026-09-08.md`. These are not artboard-fidelity items:
+each one is something broken on the live site. The operator found the last round himself, which is
+the failure he called out, so every fix here ships with a check that would have caught it.
+
+**Six items, six root causes, all [CONFIRMED] before any code changed.**
+
+1. **The operations matrix clipped, and train 59 claimed to have fixed it.** Measured on production:
+   `clientWidth 750`, `scrollWidth 948`, overflowing by 198px at 1440, with the UK column cut
+   mid-glyph on every line and the UAE column entirely off-screen. Base did NOT fix it. Root cause:
+   the expanded Facts row rendered each region's facts into that REGION'S OWN `<td>`, so a fact's
+   prose set its column's minimum content width and dragged the table past its container; the header
+   cells also carried 190px/130px `minWidth` floors the artboard does not have. Artboard 08's own
+   markup puts the expanded row in a SINGLE `colspan` cell holding a `repeat(5,1fr)` grid. Rebuilt
+   that way, plus the floors removed and the artboard's automatic column sizing restored. Measured
+   after: clientWidth 772, scrollWidth 772, overflow 0, six columns at 206/121/110/114/122/99.
+   Train 59's "affordance" reading of the same symptom (a scrollbar gutter and a scroll shadow) was
+   wrong about the cause; the affordance is kept as the narrow-width fallback but is no longer the
+   answer, and it moved out of a component-local `<style>` into `.cl-scroll-shadow` in globals.css,
+   shared with the /regulations obligations strip which had the same missing affordance.
+   Same item, second half: production rendered NO headline figure and set the whole prose block in
+   the display face at ~17px over 15+ lines. `factHeadline` (region-grid.mjs) is now the one place
+   that decides which slot the data goes into; its header names every column checked for a figure
+   and what was found. A fact whose stored `value` is a sentence has no figure in the data, so the
+   absence convention stands in the figure's place and the sentence is set at the description's own
+   type. Nothing is derived out of the prose.
+   Checks added: the scroll container is now DECLARED to the guard's overflow detector (it was
+   invisible to it, which is why 198px of overflow passed the suite), plus structural tests for the
+   colspan row, the absent minWidth floors, and the display face appearing exactly once per fact
+   block.
+
+2. **`IMPACT LOW → HIGH` shipped as `IMPACT LOW → H`.** Base did NOT fix it. Root cause: train 59
+   fixed the header's collision with the DUE column with `minWidth: 0` (correct) and, in the same
+   change, `white-space: nowrap` + `text-overflow: ellipsis` (not correct). The label measures
+   ~113px against an 88px track, so on one line it could only ever truncate. The artboard gives this
+   cell the SAME track and the SAME type with no nowrap and draws it over two lines; two 9.5px lines
+   at line-height 1.2 measure 22.8px and fit the artboard's own 30px row. It wraps now, at word
+   boundaries (an early `overflow-wrap: anywhere` rendered "IMPA / CT" and was rejected on capture).
+   Check added: `detectClippedText` with a column-header rule, a `.cl-list-row-header` cell must fit
+   outright, ellipsis or not, because its text is fixed at build time and an ellipsis is exactly how
+   this defect hid from every existing truncation detector. It immediately found a second, unreported
+   instance of the same class: /map's register header "HIGHEST BAND" at 146px in a 110px track.
+   Lines touched in `ListRow.tsx`: the `ListRowColumnHeader` cell styles and the header rows' spans.
+   No media query, no class name, no line of `RESPONSIVE_CSS` (lane mobfix61 is editing those).
+
+3. **The absence phrase deformed the rows it sat in.** Base did NOT fix it. "NOT IN PRIMARY SOURCE"
+   over three lines in a 40px TIER track made those dashboard rows twice their neighbours' height,
+   and shouted over three lines in every empty matrix cell. Root cause: no rule existed for a cell
+   too narrow to hold the vocabulary. The rule is decided once, in `Absence`: a narrow cell gets the
+   dash, a wide cell gets the small-caps reason. Ruling 2.1 owns the vocabulary and is not weakened
+  , the narrow variant still takes a reason from the closed set and states it on `aria-label` and
+   `title`. It also retires the deviation the matrix carried ("the artboard's dash cannot be built,
+   it is a placeholder literal"): a dash carrying its reason is not a bare dash, and it declares
+   itself to the guard with `data-absence` rather than needing a third per-spec allowlist, so a bare
+   dash anywhere else in the product still fails.
+
+4. **Thousands separators reached only the band tiles.** Base fixed ONE of the five instances the
+   audit lists: the "1317 regulations tracked across 32 jurisdictions" footer strip is gone from
+   base already (lane lists60 removed the whole strip as a third copy of two figures). The other
+   four were live. Root cause: the fix was applied at one render site rather than to the class.
+   Every rendered count now goes through the locale-pinned `formatNumber` (F36), aria-labels
+   included. Check added: `findUnseparatedThousands`, run over the LEAF text of every guard smoke
+   mount. Leaf text, not ancestor text, an ancestor concatenates its children and manufactures
+   numbers that are not on the screen ("Jun 1, 2027" over "266 days"). Years, ISO dates, decimals
+   and identifiers are carved out, and the carve-outs are tested.
+
+5. **Two dead controls.** Base did NOT fix either. /settings' "See audit log" was `<a href="#">`,
+   the product's only hash-href anchor. There is no audit-log route and no audit-log surface
+   [CONFIRMED], so per ruling 1.1's class the link is removed and the notice text stands alone,
+   fixed as a class in `Masthead`, whose `?? "#"` fallback is gone, so no caller can manufacture a
+   target again. The dashboard's "All N changes in the last 7 days" was a bare `<span>` while its
+   sibling was an anchor; root cause was that the anchor and its law-2 padding lived at ONE call
+   site instead of in `CardFoot`. The treatment moved into `CardFoot` (`leftHref`/`rightHref`), and
+   its target needed a real ordering, so `SORT_FACET_PARAM`/`sortFromSearchParam` now sit beside
+   `BAND_FACET_PARAM` and /regulations reads `?sort=` the way it reads `?band=`.
+
+6. **Text clipped without an ellipsis, in four places.** Base did NOT fix them.
+   /research row meta: `flexShrink: 1` with no `minWidth: 0` is inert (a flex item's default
+   `min-width: auto` refuses to shrink), so the span never narrowed, its own ellipsis never fired,
+   and the PARENT's `overflow: hidden` did the cutting, the same mechanism `ListRowColumnHeader`'s
+   own header documents. `minWidth: 0` added.
+   Section index: the artboard uses short tab labels and the product passes each section's full
+   title, so the tab is bounded at 150px in the shared part and truncates with a real ellipsis, full
+   label on `title`.
+   UPCOMING OBLIGATIONS: the cards scrolled with no visible affordance (overlay scrollbars are
+   invisible until the pointer arrives), so the cut read as broken; it now uses the shared
+   `.cl-scroll-shadow`.
+   CONNECTIONS rail: full untruncated titles at 8-12 lines each, now clamped to two lines with the
+   full title on `title`.
+
+**What the base had already closed**, stated with evidence rather than rebuilt: the /regulations
+footer strip carrying an unseparated total (item 4's fifth instance) is gone from
+`RegulationsLedger.tsx`, which now carries a comment recording lane lists60's removal and the reason
+(artboard 02 draws nothing below the band cards). Everything else on this lane's list was still live
+on the base and is fixed here.
+
+**Guard corrections this lane made, all tightenings:** the matrix scroll container is now measured
+at all (198px of production overflow was invisible to the suite); a column header must fit outright;
+a text run may not overflow its own box without an ellipsis; a rendered integer over 999 must carry
+its separator. One detector was CORRECTED rather than tightened: the squeezed-title detector now
+measures a title inside a `td`/`th` against its own cell rather than the whole card, because a table
+title's budget is its column. It still fails a title that does not fit the column it was given.
+
+**UX compliance**: this lane touched `.tsx`/`.ts` under `fsi-app/src` in the shared parts
+(`ListRow.tsx`, `Absence.tsx`, `CardFoot.tsx`, `Masthead.tsx`, `DetailShell.tsx`,
+`ItemConnectionsCard.tsx`, `ListSurfaceShell.tsx`, `ListSurfaceRailCards.tsx`,
+`RegionDimensionMatrix.tsx`, `UpcomingObligationsStripView.tsx`) and in the count call sites listed
+above. `docs/design/ux-laws.md` and `docs/design/design-principles.md` were read before writing.
+Two new interactive elements are introduced, both required by ruling 1.1's class: `CardFoot`'s
+optional link on either side (24px minimum met with real padding, because the surrounding Card clips
+overflow and would clip a negative-margin hit area) and nothing else, the /settings change REMOVES
+a control rather than adding one. Every existing 44px minimum is preserved: the section-index link
+keeps `minHeight: 44` and only its width is bounded, and the matrix's dimension rows are unchanged
+click targets. The rendering guard passes at every viewport including 375, with three detectors it
+did not have before.
+
+**Gates**: `npx tsc --noEmit` clean; fitness 33 functions, 0 violations; rendering guard PASS (433
+fixture checks, 85 SM smoke, 216 UX smoke); `npm run audit:design` 61 specs, 1193 checks, 1193
+MATCH, 0 MISMATCH; `run-test-suite.sh` exit 0, 5939 tests, 0 fail (5921 on the base, so 18 new);
+`npx next build --webpack` exit 0.

@@ -36,11 +36,11 @@ export function assertGuardClean(label, { measurements, texts, leafTexts }, know
     failures.push(`${label}: placeholder literal rendered — ${placeholders.join(', ')}`);
   }
   // opsclip (train 61, defect 4): a rendered integer >= 1000 without the locale-pinned separator.
-  // Shares the caller's `known` allowlist with the placeholder check above — a spec that has
+  // Shares the caller's `known` allowlist with the placeholder check above, a spec that has
   // disclosed a literal as real vocabulary has disclosed it for both detectors.
   const unseparated = findUnseparatedThousands(leafTexts ?? texts, known);
   if (unseparated.length > 0) {
-    failures.push(`${label}: unseparated thousands rendered — ${unseparated.join(', ')}`);
+    failures.push(`${label}: unseparated thousands rendered, ${unseparated.join(', ')}`);
   }
   return failures;
 }

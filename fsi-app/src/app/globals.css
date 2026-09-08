@@ -537,6 +537,34 @@ body {
    the 5-region fixture the first MOBILE lane tested with. At <=640px the table is replaced by one
    card per region (own div, own class below); the table itself is hidden, not removed, so desktop
    is byte-for-byte unchanged. */
+
+/* ── Horizontal-scroll affordance, one definition (lane opsclip, train 61, defect 6) ───────────
+   A strip that scrolls sideways must SAY it scrolls, or its right-hand cut reads as a broken
+   layout. Production's /regulations UPCOMING OBLIGATIONS strip cut its fifth card mid-word at the
+   container edge with no fade and no visible scrollbar (overlay scrollbars are invisible until the
+   pointer enters), so the audit read it as clipping rather than as scrolling.
+
+   The idiom is the standard CSS scroll shadow: two `local` layers flush against the content edges
+   and two `scroll` layers pinned to the box, so a shade appears exactly when there is more content
+   in that direction and disappears at the end of the scroll, plus an always-reserved scrollbar
+   gutter. It was written once inside RegionDimensionMatrix as a component-local <style> tag; it is
+   moved here verbatim so the obligations strip uses the SAME definition rather than a second copy. */
+.cl-scroll-shadow {
+  overflow-x: auto;
+  scrollbar-gutter: stable;
+  background:
+    linear-gradient(to right, var(--card, #fff) 30%, rgba(255,255,255,0)) left center local,
+    linear-gradient(to left, var(--card, #fff) 30%, rgba(255,255,255,0)) right center local,
+    linear-gradient(to right, rgba(0,0,0,0.16), rgba(0,0,0,0)) left center scroll,
+    linear-gradient(to left, rgba(0,0,0,0.16), rgba(0,0,0,0)) right center scroll;
+  background-repeat: no-repeat;
+  background-size: 28px 100%, 28px 100%, 14px 100%, 14px 100%;
+  background-attachment: local, local, scroll, scroll;
+}
+.cl-scroll-shadow::-webkit-scrollbar { height: 10px; }
+.cl-scroll-shadow::-webkit-scrollbar-thumb { background: var(--line-1, rgba(0,0,0,.25)); border-radius: 5px; }
+.cl-scroll-shadow::-webkit-scrollbar-track { background: var(--tag, rgba(0,0,0,.05)); border-radius: 5px; }
+
 .cl-ops-matrix-cards { display: none; }
 @media (max-width: 640px) {
   .cl-ops-matrix-table { display: none !important; }

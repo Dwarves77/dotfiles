@@ -28,8 +28,8 @@ const SOURCE = readFileSync(
 test("the 'All N immediate' CardFoot control is wired to /regulations with the Immediate band facet, not plain text", () => {
   // UPDATED (lane opsclip, train 61, defect 5): the anchor itself moved into CardFoot's shared
   // `leftHref` so the sibling foot on the What Changed card could not be built without it. The
-  // invariant this test guards is unchanged — the control has a real target built from the shared
-  // facet constant — only the part that renders the anchor moved.
+  // invariant this test guards is unchanged, the control has a real target built from the shared
+  // facet constant, only the part that renders the anchor moved.
   assert.match(
     SOURCE,
     /leftHref=\{`\/regulations\?\$\{BAND_FACET_PARAM\}=immediate`\}/,

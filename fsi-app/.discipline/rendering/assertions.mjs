@@ -164,7 +164,7 @@ export function isNowIndependent(formatFn, iso) {
 // What is deliberately NOT a violation, each because it is not a count:
 //   - a four-digit YEAR (1500-2199) standing alone, or inside an ISO date/time;
 //   - a digit run touching a letter, `-`, `/`, `:`, `.`, `_` or `#` (identifiers, slugs, hashes,
-//     ISO dates, decimals, version strings, "T1", ratios) — a count is a bare numeral;
+//     ISO dates, decimals, version strings, "T1", ratios), a count is a bare numeral;
 //   - anything the caller discloses in `known`.
 // The year carve-out means a COUNT that happens to equal 2026 slips through. That is a known,
 // bounded hole (one value in a thousand), taken deliberately over the alternative of failing every

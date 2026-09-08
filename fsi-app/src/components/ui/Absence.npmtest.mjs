@@ -29,8 +29,8 @@ test("600 weight, --ink-3 (#7A6E6C), 10.5px — ruling 2.1's exact numbers", () 
 // ── variant="narrow" (lane opsclip, train 61, defect 3) ───────────────────────
 // RED-THEN-GREEN: production rendered "NOT IN PRIMARY SOURCE" into the list row's 40px TIER track
 // and into every empty cell of the five-column operations matrix, wrapping over three lines in
-// both and doubling the affected rows' height. The rule decided in Absence.tsx's own header — a
-// narrow cell gets the dash, a wide cell gets the reason — is enforced here at both ends: the
+// both and doubling the affected rows' height. The rule decided in Absence.tsx's own header, a
+// narrow cell gets the dash, a wide cell gets the reason, is enforced here at both ends: the
 // variant exists and carries the reason to assistive tech, and the two narrow cells use it.
 test("narrow variant renders the dash and still carries the closed-vocabulary reason", () => {
   assert.match(SOURCE, /variant\?:\s*"reason"\s*\|\s*"narrow"/);

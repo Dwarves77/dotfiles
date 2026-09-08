@@ -17,6 +17,7 @@
     "capture:uxfix-lists-live": "node .discipline/rendering/capture-uxfix-lists-screenshots.mjs",
     "capture:uxfix-lists-fixture": "node .discipline/rendering/capture-uxfix-lists-fixture-screenshots.mjs",
     "capture:defect-fix-screenshots": "node .discipline/rendering/capture-defect-fix-screenshots.mjs",
+    "capture:opsclip-screenshots": "node .discipline/rendering/capture-opsclip-screenshots.mjs",
     "capture:dashrow-screenshot": "node .discipline/rendering/capture-dashrow-screenshot.mjs",
     "capture:compose-lists-screenshots": "node .discipline/rendering/capture-compose-lists-screenshots.mjs",
     "capture:compose-11-watchlist": "node .discipline/rendering/capture-compose-11-watchlist.mjs",

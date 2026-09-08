@@ -155,3 +155,30 @@ test("B60: the tier cell is text-align:center", () => {
 test("B61: the desktop overflow-cell divider is --line-2 (rgba(0,0,0,.08)), not --line-3", () => {
   assert.match(SOURCE, /className="cl-row-overflow"[\s\S]{0,300}borderLeft: "1px solid var\(--line-2\)",/);
 });
+
+// ── DEFECT 6 (lane opsclip, train 61, 2026-09-08): the row meta line truncates properly ──────
+test("the row's meta line can actually shrink, so its own ellipsis is the thing that truncates it", () => {
+  // Production cut this line mid-word with NO ellipsis on /research ("initiative · Last-mile
+  // electrifica") while the title directly above it truncated properly. Root cause: `flexShrink: 1`
+  // with no `minWidth: 0` is inert (a flex item's default `min-width: auto` refuses to shrink below
+  // its content), so the span never narrowed, its ellipsis never fired, and the PARENT's
+  // `overflow: hidden` did the cutting. Both declarations must be present together.
+  const meta = SOURCE.slice(SOURCE.indexOf("{meta && ("), SOURCE.indexOf("{tags && tags.length > 0 && ("));
+  assert.match(meta, /textOverflow: "ellipsis"/);
+  assert.match(meta, /flexShrink: 1/);
+  assert.match(meta, /minWidth: 0/, "without this the flexShrink above does nothing");
+});
+
+// ── DEFECT 2 (lane opsclip, train 61): the IMPACT header keeps every character ────────────────
+test("the IMPACT column header wraps at a word boundary instead of truncating", () => {
+  // Production shipped "IMPACT LOW → H". The label measures ~113px against its 88px track, so it
+  // could only ever truncate on one line; the artboard (dc.html p1/p11) gives it the same track and
+  // the same type with no nowrap and draws it over two lines.
+  assert.match(SOURCE, /const impactCellStyle: CSSProperties = \{/);
+  assert.match(SOURCE, /whiteSpace: "normal"/);
+  assert.match(SOURCE, /<span style=\{impactCellStyle\}>/);
+  // Word boundary, not `anywhere`: breaking inside the word ("IMPA / CT") loses the same legibility
+  // the truncation did. The register variant's own labels are the only ones allowed to break.
+  const impact = SOURCE.slice(SOURCE.indexOf("const impactCellStyle"), SOURCE.indexOf("const wrappingCellStyle"));
+  assert.doesNotMatch(impact, /overflowWrap/);
+});

@@ -18,9 +18,18 @@ test("imports the shared Absence part rather than a bare text span", () => {
   assert.match(SOURCE, /from "@\/components\/ui\/Absence"/);
 });
 
-test("both empty-cell branches (desktop table cell, mobile card summary) render <Absence>, never the old '— no data' / 'no data' literal", () => {
+test("every empty-cell branch renders <Absence>, never the old '— no data' / 'no data' literal", () => {
+  // UPDATED (lane opsclip, train 61, defect 3). The INVARIANT is unchanged: every empty cell
+  // renders the shared Absence part with a reason from the closed vocabulary, never a bare
+  // literal. What changed is the count and the presentation. There are now THREE such branches,
+  // because the expanded Facts row's per-region block is a real empty-cell branch of its own since
+  // that row became one full-width cell holding an N-up grid (defect 1). Two of the three are
+  // narrow cells (a 1/6 table column, a 1/5 grid column) and take `variant="narrow"`, the dash the
+  // artboard draws; the mobile card's summary badge is not narrow and keeps the phrase.
+  const narrow = SOURCE.match(/<Absence reason="not in primary source" variant="narrow" \/>/g) ?? [];
+  assert.equal(narrow.length, 2, "the desktop table cell and the expanded row's per-region block");
   const matches = SOURCE.match(/<Absence reason="not in primary source" \/>/g) ?? [];
-  assert.equal(matches.length, 2, "one in the desktop <td> branch, one in the mobile card branch");
+  assert.equal(matches.length, 1, "the mobile card summary badge keeps the spelled-out reason");
   assert.doesNotMatch(SOURCE, />\s*—\s*no data\s*</, "no bare em-dash 'no data' text node survives");
   assert.doesNotMatch(SOURCE, />\s*no data\s*</, "no bare 'no data' text node survives");
 });
@@ -58,8 +67,48 @@ test("D4: the count is keyed by region, so column reordering cannot change it", 
 });
 
 test("D4: the wide table keeps a scroll container AND a visible affordance", () => {
-  assert.match(SOURCE, /className="cl-ops-matrix-table cl-ops-matrix-scroll"/);
-  assert.match(SOURCE, /\.cl-ops-matrix-scroll \{[\s\S]*overflow-x: auto/, "the scroll container survives");
-  assert.match(SOURCE, /scrollbar-gutter: stable/, "the scrollbar is present before the pointer arrives");
-  assert.match(SOURCE, /background-attachment: local, local, scroll, scroll/, "edge scroll shadows say there is more table");
+  // UPDATED (lane opsclip, train 61, defect 1): the scroll affordance is unchanged in behaviour
+  // but is no longer a component-local <style> block, it is `.cl-scroll-shadow` in globals.css,
+  // one definition shared with the /regulations obligations strip, which had the same missing
+  // affordance. The invariant this test guards (the table has a declared horizontal-scroll
+  // fallback) is intact; only where the declaration lives moved.
+  assert.match(SOURCE, /className="cl-ops-matrix-table cl-scroll-shadow"/);
+  const GLOBALS = readFileSync(
+    resolve(dirname(fileURLToPath(import.meta.url)), "../../app/globals.css"),
+    "utf8",
+  );
+  assert.match(GLOBALS, /\.cl-scroll-shadow \{[\s\S]*overflow-x: auto/, "the scroll container survives");
+  assert.match(GLOBALS, /scrollbar-gutter: stable/, "the scrollbar is present before the pointer arrives");
+  assert.match(GLOBALS, /background-attachment: local, local, scroll, scroll/, "edge scroll shadows say there is more table");
+});
+
+// ── DEFECT 1 (lane opsclip, train 61, 2026-09-08): the matrix fits its card ───
+// Production measured clientWidth 750 against scrollWidth 948 at 1440, cutting the United Kingdom
+// column mid-glyph on every line and putting the UAE column entirely off-screen, while the artboard
+// (dc.html p8) fits five columns in the same card at the same width. These are the structural
+// invariants that make the built table fit the way the artboard's does; the measurement itself is
+// in the rendering guard (this file is the no-npm structural half).
+test("the expanded Facts row is ONE full-width cell, not one cell per region column", () => {
+  // This is the root cause. Facts rendered into the region's own <td> made each fact's prose set
+  // that column's minimum content width, which is what dragged the table past its container.
+  assert.match(SOURCE, /colSpan=\{orderedRegions\.length \+ 1\}/);
+  assert.match(SOURCE, /gridTemplateColumns: `repeat\(\$\{orderedRegions\.length\}, minmax\(0, 1fr\)\)`/);
+});
+
+test("no minWidth floor survives on any header cell (the artboard declares none)", () => {
+  const thead = SOURCE.slice(SOURCE.indexOf("<thead"), SOURCE.indexOf("</thead>"));
+  assert.doesNotMatch(thead, /minWidth:\s*\d/, "a fixed minimum on a region column re-creates the overflow");
+});
+
+test("the fact block renders the artboard's headline figure over body-type prose, never prose in the display face", () => {
+  // The figure comes from `factHeadline` (region-grid.mjs), the one place that decides which slot
+  // the data goes into; a fact with no figure in the data renders the absence convention there
+  // rather than promoting a sentence into Anton.
+  assert.match(SOURCE, /const \{ figure, description, prose \} = factHeadline\(f\);/);
+  assert.match(SOURCE, /figure \? \(/);
+  assert.match(SOURCE, /<Absence reason="pending" \/>/);
+  const block = SOURCE.slice(SOURCE.indexOf("function LegacyFactRow"), SOURCE.indexOf("function originClassColor"));
+  // The display face appears exactly once in the block: on the figure.
+  assert.equal((block.match(/var\(--font-display\)/g) ?? []).length, 1);
+  assert.match(block, /\{prose\}/, "the sentence is kept, at the description's type");
 });

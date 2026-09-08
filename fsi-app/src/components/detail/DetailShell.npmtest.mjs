@@ -183,3 +183,16 @@ test("DetailHeader renders no <h1> (title lives in DetailMasthead's Masthead mou
   assert.match(headerBody, /aria-label=\{title\}/);
   assert.doesNotMatch(SOURCE, /title\.length/, "no length-based title-style switch survives anywhere in this file");
 });
+
+// ── DEFECT 6 (lane opsclip, train 61, 2026-09-08): the section index stops cutting words ─────
+test("section index tabs are bounded and truncate with a real ellipsis, with the full label on title", () => {
+  // Production rendered "S6 Operational requirem" and a bare "S7", cut mid-glyph at the card edge,
+  // and pushed the Summary/Full brief toggle onto a second row. The artboard uses SHORT tab labels
+  // ("S1 Cost baseline"); the product passes the section's full title, so the tab is bounded here
+  // in the shared part and truncates properly instead of being cut by the container.
+  assert.match(SOURCE, /const SECTION_TAB_MAX_WIDTH = \d+;/);
+  assert.match(SOURCE, /maxWidth: SECTION_TAB_MAX_WIDTH/);
+  const link = SOURCE.slice(SOURCE.indexOf('className="cl-section-index-link"'), SOURCE.indexOf("S{i + 1} {s.label}"));
+  assert.match(link, /textOverflow: "ellipsis"/);
+  assert.match(link, /title=\{s\.label\}/, "the full label stays reachable");
+});

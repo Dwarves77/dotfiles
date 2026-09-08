@@ -30,7 +30,7 @@ export const ABSENCE_TEXT_STYLE = {
  * TIER cell of the dashboard tables is a 40px grid column, and rendering
  * "NOT IN PRIMARY SOURCE" into it wrapped the phrase over THREE lines, making
  * those rows roughly twice the height of their neighbours and breaking the
- * table's rhythm — the tallest thing on the dashboard. The same string shouts
+ * table's rhythm, the tallest thing on the dashboard. The same string shouts
  * over three lines in every empty cell of the operations matrix, where the
  * artboard (dc.html p8) draws a single em dash and explains it once in the
  * card's foot strip.
@@ -39,7 +39,7 @@ export const ABSENCE_TEXT_STYLE = {
  *
  *   A NARROW cell gets the dash. A WIDE cell gets the small-caps reason.
  *
- * "Narrow" means a fixed track too small to hold the vocabulary on one line —
+ * "Narrow" means a fixed track too small to hold the vocabulary on one line:
  * the list row's 40px TIER column, the matrix's region columns. Ruling 2.1
  * owns the VOCABULARY and is not weakened by this: `variant="narrow"` still
  * takes a reason from the closed set, still says it to assistive technology
@@ -49,16 +49,24 @@ export const ABSENCE_TEXT_STYLE = {
  * DEVIATION-LOG.md.
  *
  * The dash is `—` (U+2014), which the app's own source-entry-filter SoT lists
- * in NO_DATA_TOKENS as a placeholder-name token. That collision is already
- * disclosed and carved out for the honest-dash case in two rendering-guard
- * specs (detail-surfaces-smoke.mjs's unrated tier chip, map-smoke.mjs's
- * no-active-themes cell); this variant is the third instance of the same
- * disclosed, confirmed-safe case, never fabricated content.
+ * in NO_DATA_TOKENS as a placeholder-name token. Two rendering-guard specs
+ * already carve the honest-dash case out per spec (detail-surfaces-smoke.mjs's
+ * unrated tier chip, map-smoke.mjs's no-active-themes cell). This variant does
+ * not need a third such allowlist: it declares itself with `data-absence`,
+ * which the guard's own scan skips, so a bare `—` anywhere else in the product
+ * still fails the guard exactly as it should.
  */
 export function Absence({ reason, variant = "reason" }: { reason: AbsenceReason; variant?: "reason" | "narrow" }) {
   if (variant === "narrow") {
     return (
       <span
+        // The rendering guard's placeholder-literal scan reads this attribute and skips the
+        // element (harness.mjs's measureGuard). That is narrower and more honest than the
+        // per-spec "—" allowlists two smoke specs already carry: a dash CARRYING its
+        // closed-vocabulary reason is disclosed structurally, once, by the part that renders it,
+        // while a bare "—" anywhere else in the product stays a placeholder literal and still
+        // fails the guard.
+        data-absence="narrow"
         aria-label={reason}
         title={reason}
         style={{ ...ABSENCE_TEXT_STYLE, fontSize: "var(--fs-12)", letterSpacing: "normal" }}

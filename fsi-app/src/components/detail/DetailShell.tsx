@@ -472,6 +472,11 @@ export interface SectionIndexEntry {
   label: string;
 }
 
+/** Widest a single section tab may be before it truncates (defect 6). Measured against the
+ *  artboard's own tab labels ("S1 Cost baseline", "S2 Obligations", "S3 Penalties"), the longest
+ *  of which sets ~136px at this row's 12.5px type plus its 12px side padding. */
+const SECTION_TAB_MAX_WIDTH = 150;
+
 export function SectionIndex({
   sections,
   trailing,
@@ -567,6 +572,17 @@ export function SectionIndex({
               href={`#${s.id}`}
               className="cl-section-index-link"
               aria-current={isActive ? "true" : undefined}
+              // DEFECT 6 (lane opsclip, train 61, 2026-09-08): production rendered "S6 Operational
+              // requirem" and a bare "S7", cut mid-glyph at the card's right edge, and pushed the
+              // Summary/Full brief toggle onto a second row. Root cause [CONFIRMED by comparing
+              // the two markups]: the artboard's index uses SHORT tab labels ("S1 Cost baseline")
+              // and the product passes the section's full title ("S1 Operational cost baseline"),
+              // so seven of them do not fit the row. The artboard's own treatment is a short tab,
+              // so the tab is bounded here, in the shared part, and truncates with a real ellipsis
+              // instead of a mid-glyph cut. The full label stays reachable on `title`, and the
+              // link's own accessible name is the full label, so nothing is lost to a reader or to
+              // assistive technology.
+              title={s.label}
               style={{
                 fontSize: "12.5px",
                 fontWeight: isActive ? 700 : 600,
@@ -578,6 +594,11 @@ export function SectionIndex({
                 minHeight: 44,
                 borderRadius: 6,
                 padding: "6px 12px",
+                maxWidth: SECTION_TAB_MAX_WIDTH,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
               S{i + 1} {s.label}

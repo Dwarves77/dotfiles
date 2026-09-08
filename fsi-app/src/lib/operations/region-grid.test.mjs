@@ -13,6 +13,7 @@ import {
   originClassLabel,
   originClassStrength,
   derivationLabel,
+  factHeadline,
 } from "./region-grid.mjs";
 
 const REGIONS = ["ASIA", "EU", "UAE", "UK", "US"];
@@ -237,4 +238,46 @@ test("a dimension with ZERO facts across every region (regulatory_feasibility's 
   const dimCov = g.dimensionCoverage.find((d) => d.dimension === "regulatory_feasibility");
   assert.equal(dimCov.filled, 0, "never invented a fill count for a dimension with no sourced rows");
   assert.equal(dimCov.total, REGIONS.length);
+});
+
+// ── factHeadline (lane opsclip, train 61, defect 1) ───────────────────────────
+// RED-THEN-GREEN. Production set the entire prose block in the display face at ~17px in a ~130px
+// measure, 15+ lines, ~370px tall, and showed no headline figure anywhere, because the render
+// treated the free-text `value` column as the figure unconditionally. The values below are the
+// artboard's own five headline figures and, for the prose case, a sentence of the shape the audit
+// read off the United Kingdom column.
+test("factHeadline: the artboard's own headline figures read as figures", () => {
+  for (const value of ["€40.4 / hr", "$60,000 / yr", "HKD 14,747 / mo", "£40-42k / yr", "3-6% / yr"]) {
+    const out = factHeadline({ factLabel: "Labour cost", value });
+    assert.equal(out.figure, value, `${value} must render as the headline figure`);
+    assert.equal(out.prose, null);
+  }
+});
+
+test("factHeadline: a sentence is NOT a figure, it goes to the prose slot and the figure is absent", () => {
+  const value = "EPR compliance costs reached GBP 1.1 billion in 2023; recovered fibre is volatile.";
+  const out = factHeadline({ factLabel: "EPR compliance", value });
+  assert.equal(out.figure, null, "no figure may be invented out of a sentence");
+  assert.equal(out.description, "EPR compliance");
+  assert.equal(out.prose, value, "the sentence is kept in full, at the description's type");
+});
+
+test("factHeadline: a valid envelope is the figure, ahead of the free text", () => {
+  const out = factHeadline({ factLabel: "Warehouse wage", value: "about fourteen thousand", valueNumeric: 14747, unit: "HKD/mo", nObservations: null });
+  assert.ok(out.figure && out.figure.includes("HKD/mo"), `expected the envelope, got ${out.figure}`);
+});
+
+test("factHeadline: a malformed envelope (number, no unit) never becomes a bare figure", () => {
+  const out = factHeadline({ factLabel: "Wage", value: "A long sentence about wages that is certainly not a figure at all.", valueNumeric: 14747, unit: null });
+  assert.equal(out.figure, null);
+});
+
+test("factHeadline: an empty value yields no figure and no prose, only the label", () => {
+  assert.deepEqual(factHeadline({ factLabel: "Wage", value: "   " }), { figure: null, description: "Wage", prose: null });
+});
+
+test("factHeadline: a short string with no digit is not a figure", () => {
+  // "not applicable" is short but carries no number; the figure slot stays empty rather than
+  // promoting a word into the display face.
+  assert.equal(factHeadline({ factLabel: "Wage", value: "not applicable" }).figure, null);
 });
