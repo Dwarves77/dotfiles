@@ -77,6 +77,7 @@ function describeSupabaseError(error: {
 // internal callers AND re-export so existing `import { getServiceSupabase } from "@/lib/supabase-server"`
 // callers are unchanged. Fail-closed lives there (throws on missing key; never downgrades to anon).
 import { getServiceSupabase, isServiceSupabaseConfigured } from "./supabase-service";
+import { PROVISIONAL_REVIEW_STATUSES } from "@/lib/admin/provisional-review-queue";
 export { getServiceSupabase, isServiceSupabaseConfigured };
 
 // ── Fetch Functions ──────────────────────────────────────────
@@ -364,7 +365,11 @@ async function fetchProvisionalSources(): Promise<ProvisionalSource[]> {
   const { data: rows, error } = await supabase
     .from("provisional_sources")
     .select("*")
-    .in("status", ["pending_review", "needs_more_data"])
+    // COUNTS-61: the queue's population is named ONCE, in src/lib/admin/provisional-review-queue.ts,
+    // and migration 314's admin_attention_counts counts the same two statuses. Before that the RPC
+    // counted `pending_review` alone, so the badge said 489 over a table header reading "491 PENDING".
+    // fitness-allow: F39 (a bounded status vocabulary, not a corpus-scale id list)
+    .in("status", [...PROVISIONAL_REVIEW_STATUSES])
     .order("independent_citers", { ascending: false });
 
   if (error) {

@@ -38,6 +38,7 @@ import { resolveOrgIdFromCookies } from "@/lib/api/org";
 import { getServiceSupabase, isSupabaseConfigured } from "@/lib/supabase-server";
 import { APP_DATA_TAG } from "@/lib/data";
 import { surfaceOf } from "@/lib/surface-of.mjs";
+import { ROOMS } from "@/lib/community/rooms";
 
 export interface IntelligenceSurfaceCounts {
   regulations: number;
@@ -54,8 +55,20 @@ export interface IntelligenceSurfaceCounts {
 }
 
 export interface CommunitySurfaceCounts {
-  /** Distinct active groups (private + public) the workspace member belongs to. */
-  activeGroups: number;
+  /** COUNTS-61 (production defect, click-through audit 2026-09-08): the number of REGIONAL ROOMS,
+   *  which is what both consumers of this field label it — the nav rail's "Community" badge and the
+   *  dashboard rail's "N regional rooms" note. It is the roster the /community page itself renders
+   *  (src/lib/community/rooms.ts's ROOMS, a fixed vocabulary of seven), so the badge and the page
+   *  cannot disagree. It used to be `activeGroups`, the count of distinct groups the workspace's
+   *  members had JOINED, which is a different quantity entirely: the rail read "Community 1 / 1
+   *  regional rooms" against a page reading "7 regional rooms".
+   *
+   *  The membership figure is not lost — it is `joinedGroups` below, and the /community page states
+   *  it in its own sentence ("you are in N"), which is the only place it was ever meant to appear. */
+  regionalRooms: number;
+  /** Distinct active groups (private + public) the workspace's members belong to. A membership
+   *  tally, never a room roster — see `regionalRooms` above for why the two are now separate. */
+  joinedGroups: number;
   /** Unread notifications for the current user (cross-group). */
   unreadNotifications: number;
   /** Mention-kind unread count (subset of unreadNotifications). */
@@ -77,7 +90,8 @@ const EMPTY_INTEL: IntelligenceSurfaceCounts = {
 };
 
 const EMPTY_COMMUNITY: CommunitySurfaceCounts = {
-  activeGroups: 0,
+  regionalRooms: ROOMS.length,
+  joinedGroups: 0,
   unreadNotifications: 0,
   unreadMentions: 0,
 };
@@ -260,7 +274,7 @@ async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCoun
       (r) => r.user_id
     );
 
-    let activeGroups = 0;
+    let joinedGroups = 0;
     let unreadNotifications = 0;
     let unreadMentions = 0;
 
@@ -286,7 +300,7 @@ async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCoun
       for (const row of (cgmRowsRaw ?? []) as Array<{ group_id: string }>) {
         if (row.group_id) groupSet.add(row.group_id);
       }
-      activeGroups = groupSet.size;
+      joinedGroups = groupSet.size;
     }
 
     // Unread + mention counts: aggregate across all org members. This is
@@ -311,7 +325,9 @@ async function fetchCommunityCounts(orgId: string): Promise<CommunitySurfaceCoun
       }
     }
 
-    return { activeGroups, unreadNotifications, unreadMentions };
+    // regionalRooms is the room ROSTER, not a query result: the /community page renders one tile per
+    // ROOMS entry whether or not the seed has run, so the nav badge must read the same vocabulary.
+    return { regionalRooms: ROOMS.length, joinedGroups, unreadNotifications, unreadMentions };
   } catch (e) {
     console.error("[dashboard/surface-coverage] fetchCommunityCounts failed:", e);
     return EMPTY_COMMUNITY;

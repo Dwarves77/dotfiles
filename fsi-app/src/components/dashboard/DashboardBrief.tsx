@@ -22,7 +22,7 @@ import { SectionHeading } from "@/components/ui/SectionHeading";
 import { CardFoot } from "@/components/ui/CardFoot";
 import { StateNote } from "@/components/ui/StateNote";
 import { StatBlock } from "@/components/ui/StatBlock";
-import { formatNumber, formatLocaleDate } from "@/lib/format";
+import { countNoun, formatNumber, formatLocaleDate } from "@/lib/format";
 import { nowFrom } from "@/lib/render-now";
 import { SkeletonListRow, SkeletonBandTile, SkeletonStatBlock } from "@/components/ui/Skeleton";
 import { BAND_ORDER, bandFromPriority } from "@/lib/urgency/bands";
@@ -297,7 +297,7 @@ export function DashboardBrief({
                   <RailStat label="Market" note="Price series, corporate moves, capital" value={surfaceCoverage.intelligence.marketIntel} href="/market" />
                   <RailStat label="Research" note="Horizon-scan findings" value={surfaceCoverage.intelligence.research} href="/research" />
                   <RailStat label="Operations" note="Regional cost, feasibility, infrastructure" value={surfaceCoverage.intelligence.operations} href="/operations" />
-                  <RailStat label="Community" note={`${surfaceCoverage.community.activeGroups} regional rooms`} value={surfaceCoverage.community.activeGroups} href="/community" />
+                  <RailStat label="Community" note={countNoun(surfaceCoverage.community.regionalRooms, "regional room")} value={surfaceCoverage.community.regionalRooms} href="/community" />
                 </>
               )}
             </div>

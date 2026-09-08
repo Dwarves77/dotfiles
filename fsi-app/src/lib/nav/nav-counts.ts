@@ -47,7 +47,10 @@ export async function getNavCounts(): Promise<NavCounts> {
       market: coverage.intelligence.marketIntel,
       research: coverage.intelligence.research,
       operations: coverage.intelligence.operations,
-      community: coverage.community.activeGroups,
+      // COUNTS-61: the badge counts regional ROOMS, which is what the /community page's own
+      // header states. It used to count groups the workspace had joined, so the rail said
+      // "Community 1" over a page saying "7 regional rooms".
+      community: coverage.community.regionalRooms,
       watchlist: watchlist.length,
       byPriority: aggregates.byPriority,
     };
