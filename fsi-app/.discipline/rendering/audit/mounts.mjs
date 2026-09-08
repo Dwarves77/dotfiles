@@ -2544,6 +2544,20 @@ export const AUDIT_MOUNTS = {
     },
     apiRoutes: ADMIN_ISSUES_RAIL_API,
   },
+  'compose-account': {
+    id: 'compose-account',
+    description: 'Full-page composition mount: AppShell + the real UserProfilePage (own internal Masthead), populated fixture data, README screen 14 / dc.html p14.',
+    viewport: 1440,
+    entry: COMPOSE_ACCOUNT_ENTRY,
+    needsCompiledCss: true,
+    alias: {
+      'next/navigation': `${SMOKE}stub-next-navigation-account.mjs`,
+      '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
+      '@/lib/supabase-browser': `${SMOKE}stub-supabase-browser-account.mjs`,
+      '@/lib/workspace/profile': `${SMOKE}stub-workspace-profile-account.mjs`,
+    },
+    apiRoutes: [...ADMIN_ISSUES_RAIL_API, ...ACCOUNT_ORG_API],
+  },
   'compose-settings': {
     id: 'compose-settings',
     description: 'Full-page composition mount: AppShell + the real SettingsPage (own internal Masthead + SectionIndex), populated fixture data, README screen 15 / dc.html p15.',

@@ -310,7 +310,7 @@ export function WatchlistSurface({ items, limit, nowIso }: WatchlistSurfaceProps
                     .map((item) => {
                       const href = watchlistHref(item);
                       const band = item.priority ? bandFromPriority(item.priority) : null;
-                      const due = dueInfo(item.complianceDeadline);
+                      const due = dueInfo(item.complianceDeadline, now);
                       const impact =
                         item.impactScores ??
                         (item.priority ? scoreResource({ type: item.type, priority: item.priority, tags: [], cat: "global" } as unknown as Resource) : null);
