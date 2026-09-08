@@ -10,7 +10,7 @@ import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { bundleEntry, newSmokePage, mountBundle } from './smoke/harness.mjs';
 import { fullAppCssCompiled } from './smoke/smoke-fixtures.mjs';
-import { AUDIT_MOUNTS } from './audit/mounts.mjs';
+import { AUDIT_MOUNTS, mountExtraCss } from './audit/mounts.mjs';
 import { getRepoRoot } from '../lib/context.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
@@ -47,6 +47,8 @@ async function main() {
     const css = await fullAppCssCompiled();
     await page.addStyleTag({ content: css });
   }
+  const extraCss = mountExtraCss(mount);
+  if (extraCss) await page.addStyleTag({ content: extraCss });
   await mountBundle(page, bundleJs, '__mount', null);
   await page.waitForTimeout(300);
   await page.evaluate(() => new Promise((r) => requestAnimationFrame(r)));

@@ -32,7 +32,7 @@ import { join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getRepoRoot } from '../../lib/context.mjs';
 import { bundleEntry, newSmokePage, mountBundle } from '../smoke/harness.mjs';
-import { AUDIT_MOUNTS } from './mounts.mjs';
+import { AUDIT_MOUNTS, mountExtraCss } from './mounts.mjs';
 import { compareValue, collapse } from './normalise.mjs';
 import { detectBoundsViolations } from '../assertions.mjs';
 
@@ -167,6 +167,9 @@ async function probe(page, targets, forbids) {
  * checked against its row's own box (no cell escapes it) and against its sibling cells (no two
  * overlap). This is what `expect`/`children`'s value-level checks structurally cannot do (they
  * read `getComputedStyle`, never geometry against a SIBLING), and what `detectOverflows`
+ * `containmentOnly: true` on an entry keeps the container check and drops the sibling-overlap
+ * check, for items whose positions come from DATA rather than layout (map markers at jurisdiction
+ * centroids), where an overlap is geography, not a defect.
  * (the smoke specs' own guard) cannot do either (it only sees a container's own scrollWidth vs
  * clientWidth — never one cell bleeding into another while the container itself stays scroll-
  * free, which is exactly the reported defect).
@@ -208,7 +211,9 @@ function rowsForBounds(spec, checks, measured) {
     }
     const allViolations = [];
     perRow.forEach(({ containerRect, cells }, rowIdx) => {
-      const v = detectBoundsViolations(containerRect, cells);
+      const v = detectBoundsViolations(containerRect, cells, undefined, {
+        containmentOnly: Boolean(check.containmentOnly),
+      });
       if (v.length > 0) allViolations.push(`row ${rowIdx}: ${v.join('; ')}`);
     });
     rows.push({
@@ -422,6 +427,8 @@ async function main() {
       const page = await newSmokePage(browser, { apiRoutes: mount.apiRoutes || [] });
       try {
         await page.setViewportSize({ width: spec.viewport, height: 1400 });
+        const extraCss = mountExtraCss(mount);
+        if (extraCss) await page.addStyleTag({ content: extraCss });
         await mountBundle(page, bundleCache.get(spec.mount), '__mount', null);
         await page.evaluate(() => new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(() => r()))));
         await page.waitForTimeout(80);

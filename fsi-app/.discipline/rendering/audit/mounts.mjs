@@ -22,9 +22,31 @@
 // text is the component's own literal, not fixture data.
 
 import { fileURLToPath } from 'node:url';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fullAppCss } from '../smoke/smoke-fixtures.mjs';
+import { getRepoRoot } from '../../lib/context.mjs';
 
 const SMOKE = fileURLToPath(new URL('../smoke/', import.meta.url));
+
+/**
+ * `styleFiles` on a mount: real stylesheets a mount needs at RUNTIME that the esbuild bundle
+ * cannot carry. A bare `.css` import has no output path in this harness's `write:false` bundle, so
+ * such imports are aliased away in `alias` (see compose-map's `leaflet/dist/leaflet.css`) and the
+ * stylesheet is read off disk and injected with `page.addStyleTag` instead, the exact technique
+ * ../smoke/map-smoke.mjs has used since lane uimapcomm. Repo-relative paths, read at call time.
+ *
+ * WHY IT MATTERS, measured (lane map60, 2026-09-08): with leaflet's stylesheet aliased to an empty
+ * module and nothing injected in its place, Leaflet still BUILDS its panes and markers, the four
+ * fixture markers were in the DOM with correct `translate3d` transforms, but nothing gives
+ * `.leaflet-pane` / `.leaflet-marker-icon` their `position:absolute`, so every marker laid out in
+ * normal flow ~2700px BELOW the 420px map card and the canvas photographed empty. It was the
+ * FIXTURE, not the product.
+ */
+export function mountExtraCss(mount) {
+  const files = mount && Array.isArray(mount.styleFiles) ? mount.styleFiles : [];
+  return files.map((rel) => readFileSync(join(getRepoRoot(), rel), 'utf8')).join('\n');
+}
 
 const STYLE_INJECT = `
 (() => {
@@ -120,6 +142,10 @@ window.__mount = () => {
           meta: 'Emissions \\u00b7 Reporting \\u00b7 Packaging',
           endStat: { label: 'Immediate', value: 392, band: BAND_ORDER.find((b) => b.key === 'immediate') },
           minHeight: 44,
+          // Lane map60 (2026-09-08): the register row is ListRow's own \`variant="register"\`, p10's
+          // six-column grid. The merged \`4 / span 4\` endStat cell this mount used to exercise no
+          // longer exists (deleted with it, rule 13); map-register.json's targets move with it.
+          variant: 'register',
         })),
     ),
   );
@@ -2674,6 +2700,10 @@ export const AUDIT_MOUNTS = {
       '@/components/auth/AuthProvider': `${SMOKE}stub-auth-provider.mjs`,
       'leaflet/dist/leaflet.css': `${SMOKE}stub-empty-css.mjs`,
     },
+    // The alias above keeps esbuild from needing an output path for leaflet's stylesheet; this
+    // puts the REAL stylesheet back at runtime (see mountExtraCss above). leaflet is already an
+    // app dependency, so this adds no new one and reaches no network.
+    styleFiles: ['fsi-app/node_modules/leaflet/dist/leaflet.css'],
     apiRoutes: EMPTY_API,
   },
   'compose-community': {

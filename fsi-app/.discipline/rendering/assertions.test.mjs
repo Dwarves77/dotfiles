@@ -171,3 +171,22 @@ test("detectBoundsViolations ignores zero-size (unrendered) cells", () => {
   ]);
   assert.deepEqual(violations, []);
 });
+
+// containmentOnly (lane map60, 2026-09-08): the map-marker case, positions come from data, so a
+// sibling overlap is geography, never a layout defect; containment must still be checked.
+test("detectBoundsViolations containmentOnly keeps containment and drops sibling overlap", () => {
+  const container = { left: 0, top: 0, right: 400, bottom: 400 };
+  const overlapping = [
+    { name: "marker-a", rect: { left: 100, top: 100, right: 144, bottom: 144, width: 44, height: 44 } },
+    { name: "marker-b", rect: { left: 120, top: 120, right: 164, bottom: 164, width: 44, height: 44 } },
+  ];
+  assert.equal(detectBoundsViolations(container, overlapping).length, 1, "default mode reports the overlap");
+  assert.deepEqual(detectBoundsViolations(container, overlapping, undefined, { containmentOnly: true }), []);
+
+  const escaped = [
+    { name: "marker-c", rect: { left: 10, top: 900, right: 54, bottom: 944, width: 44, height: 44 } },
+  ];
+  const v = detectBoundsViolations(container, escaped, undefined, { containmentOnly: true });
+  assert.equal(v.length, 1, "containmentOnly still reports a cell outside its container");
+  assert.match(v[0], /extends outside its container/);
+});
